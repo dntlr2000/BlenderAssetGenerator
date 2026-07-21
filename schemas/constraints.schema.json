@@ -1,0 +1,487 @@
+{
+  "$defs": {
+    "AlignConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "align",
+          "default": "align",
+          "title": "Kind",
+          "type": "string"
+        },
+        "object_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Object Ids",
+          "type": "array"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "anchor": {
+          "default": "CENTER",
+          "enum": [
+            "CENTER",
+            "MIN",
+            "MAX"
+          ],
+          "title": "Anchor",
+          "type": "string"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "object_ids",
+        "axis"
+      ],
+      "title": "AlignConstraint",
+      "type": "object"
+    },
+    "DimensionConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "dimension",
+          "default": "dimension",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "description": "Semantic object family ID or __scene__",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "value_m": {
+          "exclusiveMinimum": 0,
+          "title": "Value M",
+          "type": "number"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        },
+        "instance_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Index"
+        }
+      },
+      "required": [
+        "id",
+        "target_id",
+        "axis",
+        "value_m"
+      ],
+      "title": "DimensionConstraint",
+      "type": "object"
+    },
+    "DistanceConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "distance",
+          "default": "distance",
+          "title": "Kind",
+          "type": "string"
+        },
+        "object_a": {
+          "title": "Object A",
+          "type": "string"
+        },
+        "object_b": {
+          "title": "Object B",
+          "type": "string"
+        },
+        "axis": {
+          "default": "XYZ",
+          "enum": [
+            "X",
+            "Y",
+            "Z",
+            "XYZ"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "value_m": {
+          "minimum": 0,
+          "title": "Value M",
+          "type": "number"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        },
+        "instance_a": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance A"
+        },
+        "instance_b": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance B"
+        }
+      },
+      "required": [
+        "id",
+        "object_a",
+        "object_b",
+        "value_m"
+      ],
+      "title": "DistanceConstraint",
+      "type": "object"
+    },
+    "EqualDimensionConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "equal_dimension",
+          "default": "equal_dimension",
+          "title": "Kind",
+          "type": "string"
+        },
+        "object_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Object Ids",
+          "type": "array"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "object_ids",
+        "axis"
+      ],
+      "title": "EqualDimensionConstraint",
+      "type": "object"
+    },
+    "LocationConstraint": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "location",
+          "default": "location",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "value_m": {
+          "title": "Value M",
+          "type": "number"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        },
+        "instance_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Index"
+        }
+      },
+      "required": [
+        "id",
+        "target_id",
+        "axis",
+        "value_m"
+      ],
+      "title": "LocationConstraint",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0",
+      "default": "0.4.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "units": {
+      "const": "METERS",
+      "default": "METERS",
+      "title": "Units",
+      "type": "string"
+    },
+    "constraints": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "align": "#/$defs/AlignConstraint",
+            "dimension": "#/$defs/DimensionConstraint",
+            "distance": "#/$defs/DistanceConstraint",
+            "equal_dimension": "#/$defs/EqualDimensionConstraint",
+            "location": "#/$defs/LocationConstraint"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/DimensionConstraint"
+          },
+          {
+            "$ref": "#/$defs/LocationConstraint"
+          },
+          {
+            "$ref": "#/$defs/DistanceConstraint"
+          },
+          {
+            "$ref": "#/$defs/AlignConstraint"
+          },
+          {
+            "$ref": "#/$defs/EqualDimensionConstraint"
+          }
+        ]
+      },
+      "title": "Constraints",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "title": "ConstraintSet",
+  "type": "object"
+}

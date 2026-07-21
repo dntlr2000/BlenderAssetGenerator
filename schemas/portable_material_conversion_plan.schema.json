@@ -1,0 +1,414 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "PortableAtlasPolicy": {
+      "additionalProperties": false,
+      "description": "Define one deterministic global atlas over every derived render and LOD binding.",
+      "properties": {
+        "layout": {
+          "const": "global_shared",
+          "default": "global_shared",
+          "title": "Layout",
+          "type": "string"
+        },
+        "atlas_scope": {
+          "const": "all_render_lod",
+          "default": "all_render_lod",
+          "title": "Atlas Scope",
+          "type": "string"
+        },
+        "conversion_phase": {
+          "const": "after_optimization_with_canonical_source_frame",
+          "default": "after_optimization_with_canonical_source_frame",
+          "title": "Conversion Phase",
+          "type": "string"
+        },
+        "tile_strategy": {
+          "const": "deterministic_grid",
+          "default": "deterministic_grid",
+          "title": "Tile Strategy",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "CBMPortableAtlas",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "resolution": {
+          "default": 2048,
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Resolution",
+          "type": "integer"
+        },
+        "margin_px": {
+          "default": 16,
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Margin Px",
+          "type": "integer"
+        },
+        "maximum_overlap_fraction": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Overlap Fraction",
+          "type": "number"
+        },
+        "preserve_existing_uv_sets": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Existing Uv Sets",
+          "type": "boolean"
+        },
+        "required_channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "title": "Required Channels",
+          "type": "array"
+        }
+      },
+      "title": "PortableAtlasPolicy",
+      "type": "object"
+    },
+    "PortableMaterialBinding": {
+      "additionalProperties": false,
+      "description": "Bind one required material to its source recipe and atlas users.",
+      "properties": {
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "source_shader_recipe": {
+          "$ref": "#/$defs/PortableMaterialContractArtifact"
+        },
+        "source_material_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Material Fingerprint",
+          "type": "string"
+        },
+        "mapping_mode": {
+          "enum": [
+            "uv",
+            "object",
+            "generated",
+            "triplanar"
+          ],
+          "title": "Mapping Mode",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "bake_required": {
+          "const": true,
+          "default": true,
+          "title": "Bake Required",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "material_id",
+        "source_shader_recipe",
+        "source_material_fingerprint",
+        "mapping_mode",
+        "target_ids"
+      ],
+      "title": "PortableMaterialBinding",
+      "type": "object"
+    },
+    "PortableMaterialContractArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one V0.7.1 material-conversion contract to a safe path and digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "portable_material_conversion_plan",
+            "portable_material_conversion_manifest",
+            "shader_recipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "PortableMaterialContractArtifact",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authorize one derived-only material conversion against immutable run provenance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "profile_artifact": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "optimization_plan": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "optimized_blend": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "uv_manifest": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "required_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Required Material Ids",
+      "type": "array"
+    },
+    "atlas_policy": {
+      "$ref": "#/$defs/PortableAtlasPolicy"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/PortableMaterialBinding"
+      },
+      "minItems": 1,
+      "title": "Materials",
+      "type": "array"
+    },
+    "status": {
+      "default": "draft",
+      "enum": [
+        "draft",
+        "approved"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approved_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approved At"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "plan_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "profile_artifact",
+    "optimization_plan",
+    "optimized_blend",
+    "uv_manifest",
+    "required_material_ids",
+    "materials",
+    "created_at"
+  ],
+  "title": "PortableMaterialConversionPlan",
+  "type": "object"
+}

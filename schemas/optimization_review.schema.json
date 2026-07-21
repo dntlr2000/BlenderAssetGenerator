@@ -1,0 +1,469 @@
+{
+  "$defs": {
+    "CollisionOptimizationReview": {
+      "additionalProperties": false,
+      "description": "Expose the exact collider policy and its bounded pre-execution estimate.",
+      "properties": {
+        "strategy": {
+          "enum": [
+            "none",
+            "box",
+            "sphere",
+            "capsule",
+            "convex_hull",
+            "compound",
+            "mesh_proxy"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "semantic_family_count": {
+          "minimum": 0,
+          "title": "Semantic Family Count",
+          "type": "integer"
+        },
+        "source_object_count": {
+          "minimum": 0,
+          "title": "Source Object Count",
+          "type": "integer"
+        },
+        "estimated_collider_count": {
+          "minimum": 0,
+          "title": "Estimated Collider Count",
+          "type": "integer"
+        },
+        "estimated_triangle_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Triangle Count"
+        },
+        "maximum_triangle_ceiling": {
+          "minimum": 0,
+          "title": "Maximum Triangle Ceiling",
+          "type": "integer"
+        },
+        "max_hulls_per_object": {
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Hulls Per Object",
+          "type": "integer"
+        },
+        "max_triangles_per_object": {
+          "minimum": 4,
+          "title": "Max Triangles Per Object",
+          "type": "integer"
+        },
+        "include_in_package": {
+          "title": "Include In Package",
+          "type": "boolean"
+        },
+        "recommendation": {
+          "enum": [
+            "disabled_by_profile",
+            "manual_review"
+          ],
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "strategy",
+        "semantic_family_count",
+        "source_object_count",
+        "estimated_collider_count",
+        "maximum_triangle_ceiling",
+        "max_hulls_per_object",
+        "max_triangles_per_object",
+        "include_in_package",
+        "recommendation",
+        "reasons"
+      ],
+      "title": "CollisionOptimizationReview",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "LODLevelReview": {
+      "additionalProperties": false,
+      "description": "Summarize one configured derived LOD level before optimization begins.",
+      "properties": {
+        "level": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Level",
+          "type": "integer"
+        },
+        "target_triangle_ratio": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Target Triangle Ratio",
+          "type": "number"
+        },
+        "minimum_silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Silhouette Iou",
+          "type": "number"
+        },
+        "estimated_triangle_ceiling": {
+          "minimum": 0,
+          "title": "Estimated Triangle Ceiling",
+          "type": "integer"
+        },
+        "estimated_object_count": {
+          "minimum": 0,
+          "title": "Estimated Object Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "level",
+        "target_triangle_ratio",
+        "minimum_silhouette_iou",
+        "estimated_triangle_ceiling",
+        "estimated_object_count"
+      ],
+      "title": "LODLevelReview",
+      "type": "object"
+    },
+    "LODOptimizationReview": {
+      "additionalProperties": false,
+      "description": "Expose the exact profile LOD policy and its estimated derived cost.",
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "preserve_lod0": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Lod0",
+          "type": "boolean"
+        },
+        "semantic_family_count": {
+          "minimum": 0,
+          "title": "Semantic Family Count",
+          "type": "integer"
+        },
+        "source_object_count": {
+          "minimum": 0,
+          "title": "Source Object Count",
+          "type": "integer"
+        },
+        "source_triangle_count": {
+          "minimum": 0,
+          "title": "Source Triangle Count",
+          "type": "integer"
+        },
+        "levels": {
+          "items": {
+            "$ref": "#/$defs/LODLevelReview"
+          },
+          "title": "Levels",
+          "type": "array"
+        },
+        "recommendation": {
+          "enum": [
+            "disabled_by_profile",
+            "manual_review"
+          ],
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "unverified_checks": {
+          "items": {
+            "enum": [
+              "silhouette_iou",
+              "runtime_switching"
+            ],
+            "type": "string"
+          },
+          "title": "Unverified Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "enabled",
+        "semantic_family_count",
+        "source_object_count",
+        "source_triangle_count",
+        "recommendation",
+        "reasons"
+      ],
+      "title": "LODOptimizationReview",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Present exact V0.7 LOD and collider defaults before any derived mutation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "review_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "primary_format": {
+      "enum": [
+        "glb",
+        "fbx",
+        "obj"
+      ],
+      "title": "Primary Format",
+      "type": "string"
+    },
+    "profile_artifact": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "preflight_report": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "lod": {
+      "$ref": "#/$defs/LODOptimizationReview"
+    },
+    "collision": {
+      "$ref": "#/$defs/CollisionOptimizationReview"
+    },
+    "consolidation_mode": {
+      "enum": [
+        "none",
+        "by_semantic_group",
+        "by_spatial_cell"
+      ],
+      "title": "Consolidation Mode",
+      "type": "string"
+    },
+    "status": {
+      "const": "awaiting_user_approval",
+      "default": "awaiting_user_approval",
+      "title": "Status",
+      "type": "string"
+    },
+    "decision_required": {
+      "const": true,
+      "default": true,
+      "title": "Decision Required",
+      "type": "boolean"
+    },
+    "available_decisions": {
+      "items": {
+        "enum": [
+          "approve",
+          "revise_profile",
+          "cancel"
+        ],
+        "type": "string"
+      },
+      "title": "Available Decisions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "review_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "primary_format",
+    "profile_artifact",
+    "preflight_report",
+    "source",
+    "plan_sha256",
+    "lod",
+    "collision",
+    "consolidation_mode",
+    "created_at"
+  ],
+  "title": "OptimizationReview",
+  "type": "object"
+}

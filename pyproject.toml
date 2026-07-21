@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "codex-blender-modeler"
+version = "0.8.0"
+description = "Resumable reference-to-portable-asset workflow orchestration for Codex and Blender"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "jsonschema>=4.23,<5",
+  "mcp[cli]>=1.27,<2",
+  "Pillow>=10,<13",
+  "pydantic>=2.9,<3",
+  "python-dotenv>=1.0,<2",
+  "PyYAML>=6,<7",
+  "reportlab>=4.2,<5",
+  "rich>=13.8,<15",
+  "typer>=0.12,<1",
+]
+
+[project.optional-dependencies]
+vision = [
+  "numpy>=2,<3",
+  "opencv-python-headless>=4.10,<5",
+]
+dev = [
+  "pypdf>=5,<7",
+  "pytest>=8,<9",
+  "ruff>=0.8,<1",
+]
+
+[project.scripts]
+cbm = "codex_blender_modeler.cli:app"
+cbm-mcp = "codex_blender_modeler.mcp_server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/codex_blender_modeler"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]

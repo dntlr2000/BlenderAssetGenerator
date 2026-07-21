@@ -1,0 +1,46 @@
+{
+  "schema_version": "0.4.0",
+  "job_id": "measured_box",
+  "units": "METERS",
+  "constraints": [
+    {
+      "id": "asset.box.width",
+      "enabled": true,
+      "source": "front dimension",
+      "notes": [],
+      "kind": "dimension",
+      "target_id": "asset.box",
+      "axis": "X",
+      "value_m": 2.0,
+      "tolerance_m": 0.002,
+      "instance_index": null
+    },
+    {
+      "id": "asset.box.depth",
+      "enabled": true,
+      "source": "user anchor",
+      "notes": [],
+      "kind": "dimension",
+      "target_id": "asset.box",
+      "axis": "Y",
+      "value_m": 1.0,
+      "tolerance_m": 0.002,
+      "instance_index": null
+    },
+    {
+      "id": "asset.box.height",
+      "enabled": true,
+      "source": "front dimension",
+      "notes": [],
+      "kind": "dimension",
+      "target_id": "asset.box",
+      "axis": "Z",
+      "value_m": 1.5,
+      "tolerance_m": 0.002,
+      "instance_index": null
+    }
+  ],
+  "notes": [
+    "Expected to pass after build and inspect."
+  ]
+}

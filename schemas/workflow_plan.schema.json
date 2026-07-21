@@ -1,0 +1,361 @@
+{
+  "$defs": {
+    "ArtifactRequirement": {
+      "additionalProperties": false,
+      "description": "Describe one job-contained artifact needed to complete a workflow step.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "acceptance": {
+          "default": "exists",
+          "enum": [
+            "exists",
+            "valid_json",
+            "json_ok",
+            "nonempty_directory"
+          ],
+          "title": "Acceptance",
+          "type": "string"
+        },
+        "canonical": {
+          "default": false,
+          "title": "Canonical",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "path"
+      ],
+      "title": "ArtifactRequirement",
+      "type": "object"
+    },
+    "DestinationRequest": {
+      "additionalProperties": false,
+      "description": "Record an explicit destination without inferring an engine from asset purpose.",
+      "properties": {
+        "kind": {
+          "default": "unspecified",
+          "enum": [
+            "unspecified",
+            "engine_neutral",
+            "unity",
+            "unreal",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "title": "DestinationRequest",
+      "type": "object"
+    },
+    "DestinationResolution": {
+      "additionalProperties": false,
+      "description": "Resolve only implemented destination capabilities and preserve a portable boundary.",
+      "properties": {
+        "requested": {
+          "$ref": "#/$defs/DestinationRequest"
+        },
+        "status": {
+          "enum": [
+            "not_requested",
+            "available",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "adapter_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Id"
+        },
+        "terminal_boundary": {
+          "const": "portable_package",
+          "default": "portable_package",
+          "title": "Terminal Boundary",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requested",
+        "status",
+        "reason"
+      ],
+      "title": "DestinationResolution",
+      "type": "object"
+    },
+    "WorkflowStep": {
+      "additionalProperties": false,
+      "description": "Declare one ordered orchestration step and its explicit execution boundary.",
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "job",
+            "analysis",
+            "geometry",
+            "interior",
+            "material",
+            "qa",
+            "portable",
+            "destination"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "execution_mode": {
+          "enum": [
+            "host",
+            "agent",
+            "approval",
+            "specialized_approval",
+            "manual"
+          ],
+          "title": "Execution Mode",
+          "type": "string"
+        },
+        "tool_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tool Name"
+        },
+        "depends_on": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+            "type": "string"
+          },
+          "title": "Depends On",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/ArtifactRequirement"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "approval_gate": {
+          "anyOf": [
+            {
+              "enum": [
+                "proxy_geometry",
+                "detailed_geometry",
+                "material_swatches",
+                "qa_review",
+                "final_package",
+                "interior_scope",
+                "visual_revision",
+                "optimization_plan"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Gate"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "instructions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Instructions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "step_id",
+        "title",
+        "phase",
+        "execution_mode"
+      ],
+      "title": "WorkflowStep",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a routed request to one immutable ordered V0.8 execution plan.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "routing_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Routing Sha256",
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "new_asset",
+        "revise_asset",
+        "add_measured_view",
+        "interior_scope",
+        "material_authoring",
+        "visual_qa",
+        "portable_package"
+      ],
+      "title": "Intent",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "analysis_only",
+        "proxy_only",
+        "geometry_only",
+        "interior_only",
+        "material_only",
+        "qa_only",
+        "portable_only",
+        "full"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "destination": {
+      "$ref": "#/$defs/DestinationResolution"
+    },
+    "steps": {
+      "items": {
+        "$ref": "#/$defs/WorkflowStep"
+      },
+      "minItems": 1,
+      "title": "Steps",
+      "type": "array"
+    },
+    "terminal_step_id": {
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+      "title": "Terminal Step Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "workflow_id",
+    "job_id",
+    "request_sha256",
+    "routing_sha256",
+    "intent",
+    "scope",
+    "destination",
+    "steps",
+    "terminal_step_id",
+    "created_at"
+  ],
+  "title": "WorkflowPlan",
+  "type": "object"
+}

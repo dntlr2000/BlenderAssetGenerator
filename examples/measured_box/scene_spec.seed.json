@@ -1,0 +1,89 @@
+{
+  "schema_version": "0.2.0",
+  "job_id": "measured_box",
+  "mode": "measured",
+  "units": "METERS",
+  "coordinate_system": {
+    "handedness": "RIGHT",
+    "up": "+Z",
+    "forward": "-Y"
+  },
+  "nominal_scene_size": [2.0, 1.0, 1.5],
+  "sources": [
+    {
+      "id": "reference.front",
+      "path": "input/reference.png",
+      "kind": "reference",
+      "immutable": true,
+      "scale_anchors": [
+        "asset.box width = 2.0 m",
+        "asset.box height = 1.5 m",
+        "asset.box depth = 1.0 m"
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat.box",
+      "name": "Box blue",
+      "shader": "principled",
+      "base_color": [0.25, 0.55, 0.85, 1.0],
+      "roughness": 0.45,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    }
+  ],
+  "objects": [
+    {
+      "id": "asset.box",
+      "name": "Measured box",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [2.0, 1.0, 1.5],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [0.0, 0.0, 0.75],
+        "rotation_deg": [0.0, 0.0, 0.0],
+        "scale": [1.0, 1.0, 1.0]
+      },
+      "material_id": "mat.box",
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.02,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": ["measured", "demo"],
+      "evidence": [
+        {
+          "source_id": "reference.front",
+          "bbox_norm": [0.18, 0.15, 0.82, 0.82],
+          "status": "observed",
+          "confidence": 0.99
+        }
+      ],
+      "editable": {}
+    }
+  ],
+  "camera": {
+    "projection": "ORTHO",
+    "location": [4.0, -7.0, 4.0],
+    "target": [0.0, 0.0, 0.75],
+    "focal_length_mm": 50.0,
+    "ortho_scale": 3.4,
+    "resolution": [640, 480]
+  },
+  "assumptions": [
+    "Depth is supplied as an explicit anchor rather than recovered from the front drawing."
+  ],
+  "revision_notes": []
+}

@@ -1,0 +1,354 @@
+{
+  "$defs": {
+    "Bounds3D": {
+      "additionalProperties": false,
+      "description": "Store one finite axis-aligned bounding box in meters.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "Bounds3D",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "LODEntry": {
+      "additionalProperties": false,
+      "description": "Describe one immutable LOD artifact for a stable semantic object family.",
+      "properties": {
+        "target_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "level": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Level",
+          "type": "integer"
+        },
+        "mesh": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_triangle_count": {
+          "minimum": 0,
+          "title": "Source Triangle Count",
+          "type": "integer"
+        },
+        "triangle_count": {
+          "minimum": 0,
+          "title": "Triangle Count",
+          "type": "integer"
+        },
+        "triangle_ratio": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Triangle Ratio",
+          "type": "number"
+        },
+        "silhouette_iou": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Silhouette Iou"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds3D"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target_id",
+        "level",
+        "mesh",
+        "source_triangle_count",
+        "triangle_count",
+        "triangle_ratio",
+        "bounds"
+      ],
+      "title": "LODEntry",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record derived LOD artifacts while proving the canonical master stayed unchanged.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "quality_status": {
+      "default": "unverified",
+      "enum": [
+        "verified",
+        "partially_verified",
+        "unverified"
+      ],
+      "title": "Quality Status",
+      "type": "string"
+    },
+    "unverified_checks": {
+      "items": {
+        "const": "silhouette_iou",
+        "type": "string"
+      },
+      "title": "Unverified Checks",
+      "type": "array"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/LODEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "created_at"
+  ],
+  "title": "LODManifest",
+  "type": "object"
+}

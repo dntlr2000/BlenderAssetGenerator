@@ -1,0 +1,19 @@
+[features]
+material_core = true
+shader_core = true
+texture_provider = "procedural"
+visual_qa = true
+image_model_qa = false
+automatic_revision = false
+portable_asset_core = true
+workflow_orchestration = true
+
+[qa]
+revision_mode = "suggest"
+max_revision_iterations = 1
+generated_target_weight = 0.15
+
+[orchestration]
+default_scope = "proxy_only"
+max_host_steps_per_resume = 8
+lock_ttl_seconds = 900

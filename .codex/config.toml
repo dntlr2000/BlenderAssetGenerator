@@ -1,0 +1,60 @@
+# Project-scoped Codex MCP configuration.
+# Codex will use this only after the repository is trusted.
+
+[mcp_servers.blender_modeler]
+command = "uv"
+args = ["run", "cbm-mcp"]
+cwd = "."
+startup_timeout_sec = 20
+tool_timeout_sec = 900
+required = false
+enabled_tools = [
+  "create_job",
+  "add_view",
+  "get_job_status",
+  "get_modeling_capabilities",
+  "plan_short_workflow",
+  "get_workflow_state",
+  "reconcile_short_workflow",
+  "resume_short_workflow",
+  "record_workflow_step_completion",
+  "approve_workflow_checkpoint",
+  "cancel_short_workflow",
+  "get_destination_adapters",
+  "initialize_interior_scope",
+  "get_interior_scope_status",
+  "validate_interior_scope",
+  "blender_compatibility_probe",
+  "analyze_reference",
+  "get_reference_analysis",
+  "init_constraints",
+  "evaluate_constraints",
+  "initialize_materials",
+  "validate_material_contracts",
+  "get_material_presets",
+  "generate_procedural_textures",
+  "attach_texture_manifest",
+  "bake_materials",
+  "inspect_materials",
+  "render_material_swatches",
+  "generate_pdf_report",
+  "run_visual_qa",
+  "compile_visual_revision",
+  "approve_visual_revision",
+  "apply_approved_visual_revision",
+  "initialize_asset_profile",
+  "run_asset_preflight",
+  "plan_portable_asset_optimization",
+  "approve_portable_asset_optimization",
+  "optimize_portable_asset",
+  "convert_portable_materials",
+  "build_portable_package",
+  "validate_portable_package",
+  "get_portable_asset_status",
+  "apply_revision_plan",
+  "build_scene",
+  "render_preview",
+  "inspect_scene",
+  "validate_scene",
+  "export_scene",
+]

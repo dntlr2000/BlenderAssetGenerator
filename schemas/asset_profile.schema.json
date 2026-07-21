@@ -1,0 +1,428 @@
+{
+  "$defs": {
+    "CollisionPolicy": {
+      "additionalProperties": false,
+      "description": "Describe the engine-neutral collision proxy strategy and complexity budget.",
+      "properties": {
+        "strategy": {
+          "default": "compound",
+          "enum": [
+            "none",
+            "box",
+            "sphere",
+            "capsule",
+            "convex_hull",
+            "compound",
+            "mesh_proxy"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "max_hulls_per_object": {
+          "default": 8,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Hulls Per Object",
+          "type": "integer"
+        },
+        "max_triangles_per_object": {
+          "default": 256,
+          "minimum": 4,
+          "title": "Max Triangles Per Object",
+          "type": "integer"
+        }
+      },
+      "title": "CollisionPolicy",
+      "type": "object"
+    },
+    "ConsolidationPolicy": {
+      "additionalProperties": false,
+      "description": "Control safe derived-object cleanup and semantic-preserving batching.",
+      "properties": {
+        "mode": {
+          "default": "none",
+          "enum": [
+            "none",
+            "by_semantic_group",
+            "by_spatial_cell"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "maximum_objects_per_batch": {
+          "default": 64,
+          "maximum": 1024,
+          "minimum": 2,
+          "title": "Maximum Objects Per Batch",
+          "type": "integer"
+        },
+        "spatial_cell_size_m": {
+          "default": 25.0,
+          "exclusiveMinimum": 0,
+          "title": "Spatial Cell Size M",
+          "type": "number"
+        },
+        "remove_loose_geometry": {
+          "default": true,
+          "title": "Remove Loose Geometry",
+          "type": "boolean"
+        },
+        "deduplicate_material_slots": {
+          "default": true,
+          "title": "Deduplicate Material Slots",
+          "type": "boolean"
+        },
+        "deduplicate_exact_colliders": {
+          "default": true,
+          "title": "Deduplicate Exact Colliders",
+          "type": "boolean"
+        },
+        "detect_exact_instances": {
+          "default": true,
+          "title": "Detect Exact Instances",
+          "type": "boolean"
+        },
+        "detect_overlap_candidates": {
+          "default": true,
+          "title": "Detect Overlap Candidates",
+          "type": "boolean"
+        },
+        "overlap_pair_limit": {
+          "default": 5000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Overlap Pair Limit",
+          "type": "integer"
+        }
+      },
+      "title": "ConsolidationPolicy",
+      "type": "object"
+    },
+    "CostBudgetPolicy": {
+      "additionalProperties": false,
+      "description": "Declare optional engine-neutral static-asset cost ceilings.",
+      "properties": {
+        "enforcement": {
+          "default": "warning",
+          "enum": [
+            "warning",
+            "fail"
+          ],
+          "title": "Enforcement",
+          "type": "string"
+        },
+        "max_lod0_render_objects": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Render Objects"
+        },
+        "max_lod0_material_slots": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Material Slots"
+        },
+        "max_lod0_estimated_draw_calls": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Estimated Draw Calls"
+        },
+        "max_lod0_triangles": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Triangles"
+        },
+        "max_collider_triangles": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Collider Triangles"
+        },
+        "max_overlap_candidates": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Overlap Candidates"
+        }
+      },
+      "title": "CostBudgetPolicy",
+      "type": "object"
+    },
+    "LODPolicy": {
+      "additionalProperties": false,
+      "description": "Control immutable-LOD0 preservation and optional derived LOD generation.",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "preserve_lod0": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Lod0",
+          "type": "boolean"
+        },
+        "targets": {
+          "items": {
+            "$ref": "#/$defs/LODTarget"
+          },
+          "title": "Targets",
+          "type": "array"
+        }
+      },
+      "title": "LODPolicy",
+      "type": "object"
+    },
+    "LODTarget": {
+      "additionalProperties": false,
+      "description": "Define one derived LOD ratio and its minimum silhouette preservation target.",
+      "properties": {
+        "level": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Level",
+          "type": "integer"
+        },
+        "target_triangle_ratio": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Target Triangle Ratio",
+          "type": "number"
+        },
+        "minimum_silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Silhouette Iou",
+          "type": "number"
+        }
+      },
+      "required": [
+        "level",
+        "target_triangle_ratio",
+        "minimum_silhouette_iou"
+      ],
+      "title": "LODTarget",
+      "type": "object"
+    },
+    "TexturePolicy": {
+      "additionalProperties": false,
+      "description": "Preserve raw PBR channels while defining an optional portable packing layout.",
+      "properties": {
+        "preserve_raw_channels": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Raw Channels",
+          "type": "boolean"
+        },
+        "packing": {
+          "default": "raw_channels",
+          "enum": [
+            "raw_channels",
+            "gltf_orm",
+            "none"
+          ],
+          "title": "Packing",
+          "type": "string"
+        },
+        "maximum_resolution": {
+          "default": 4096,
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Maximum Resolution",
+          "type": "integer"
+        }
+      },
+      "title": "TexturePolicy",
+      "type": "object"
+    },
+    "UVPolicy": {
+      "additionalProperties": false,
+      "description": "Control preservation, generation, and validation of material and lightmap UVs.",
+      "properties": {
+        "preserve_uv0": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Uv0",
+          "type": "boolean"
+        },
+        "generate_uv0_if_missing": {
+          "default": true,
+          "title": "Generate Uv0 If Missing",
+          "type": "boolean"
+        },
+        "generate_uv1": {
+          "default": true,
+          "title": "Generate Uv1",
+          "type": "boolean"
+        },
+        "maximum_overlap_fraction": {
+          "default": 0.01,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Overlap Fraction",
+          "type": "number"
+        },
+        "target_texel_density_px_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Texel Density Px M"
+        },
+        "minimum_padding_px": {
+          "default": 4,
+          "minimum": 0,
+          "title": "Minimum Padding Px",
+          "type": "integer"
+        }
+      },
+      "title": "UVPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Declare one engine-neutral portable static-asset target profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "asset_kind": {
+      "enum": [
+        "static_prop",
+        "static_environment",
+        "static_architecture"
+      ],
+      "title": "Asset Kind",
+      "type": "string"
+    },
+    "primary_format": {
+      "enum": [
+        "glb",
+        "fbx",
+        "obj"
+      ],
+      "title": "Primary Format",
+      "type": "string"
+    },
+    "units": {
+      "const": "meters",
+      "default": "meters",
+      "title": "Units",
+      "type": "string"
+    },
+    "up_axis": {
+      "const": "+Y",
+      "default": "+Y",
+      "title": "Up Axis",
+      "type": "string"
+    },
+    "forward_axis": {
+      "const": "-Z",
+      "default": "-Z",
+      "title": "Forward Axis",
+      "type": "string"
+    },
+    "lod": {
+      "$ref": "#/$defs/LODPolicy"
+    },
+    "collision": {
+      "$ref": "#/$defs/CollisionPolicy"
+    },
+    "uv": {
+      "$ref": "#/$defs/UVPolicy"
+    },
+    "textures": {
+      "$ref": "#/$defs/TexturePolicy"
+    },
+    "consolidation": {
+      "$ref": "#/$defs/ConsolidationPolicy"
+    },
+    "budgets": {
+      "$ref": "#/$defs/CostBudgetPolicy"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "profile_id",
+    "job_id",
+    "asset_kind",
+    "primary_format"
+  ],
+  "title": "AssetProfile",
+  "type": "object"
+}

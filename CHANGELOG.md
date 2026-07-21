@@ -1,0 +1,87 @@
+# Changelog
+
+## 0.8.0
+
+- Added strict `0.8.0` contracts for short requests, deterministic intent routing, immutable workflow plans, reconstructed workflow state, generic approvals, agent completion markers, execution attempts, and exclusive locks.
+- Added isolated new-job defaults, primary-reference reuse rejection, staged auxiliary-view promotion, and fail-closed ambiguity handling for existing jobs. Explicit `new_asset` is rejected for every existing job even when the primary-reference hash matches.
+- Added resumable deterministic host execution with bounded step counts, exact input/output freshness, unique attempt receipts, explicit failed-step retry, abandoned-attempt finalization, cancellation, and expired-lock recovery.
+- Added approval-aware orchestration across proxy/detail geometry, material swatches, Visual QA, optional interiors, and V0.7 portable packaging without replacing specialized hash approvals.
+- Added destination capability reporting. Unity, Unreal, and custom adapters remain unsupported and explicitly fall back to the engine-neutral portable-package boundary.
+- Added CLI/MCP orchestration surfaces, schemas, tests, documentation, and isolated V0.8 gate scripts while preserving SceneSpec `0.2.0`, material `0.5.0`, QA `0.6.0`, and portable asset `0.7.0`.
+
+## 0.7.4
+
+- Added a mandatory pre-optimization review showing exact LOD, collider, cleanup, consolidation, and budget settings before any derived optimization.
+- Added exact plan SHA-256 approval bound to job, source, profile, preflight, run, and single-use optimization consumption.
+- Added profile-level LOD enable/disable and collision strategy controls plus review/approval evidence in package snapshots and export PDFs.
+- Verified the isolated Blender 5.0.1 V0.7 gate for GLB, FBX, OBJ, portable material conversion, clean-import round trip, and PDF reporting.
+
+## 0.7.3
+
+- Added backward-compatible AssetProfile consolidation and static cost-budget policies while keeping the portable contract at `0.7.0`.
+- Added derived-only loose-geometry cleanup, duplicate material-slot cleanup, exact duplicate collider removal, and semantic/material/LOD/UV-safe batching.
+- Added immutable `StaticAssetCostReport 0.7.0` evidence with before/after object, material-slot, draw-call proxy, triangle, collider, instance-group, and overlap metrics.
+- Preserved total triangles and per-source LOD ceilings through consolidation; legacy stored profiles default to `consolidation.mode=none`.
+- Added advisory repeated-mesh detection and broad-phase AABB overlap findings without claiming runtime instancing or deleting internal/coplanar faces.
+- Added warning/fail cost-budget enforcement, package snapshots, export-PDF projection, CLI/MCP controls, schema coverage, and isolated Blender gate assertions.
+- Kept canonical SceneSpec, geometry payloads, material contracts, textures, and authoring `.blend` read-only throughout cleanup and consolidation.
+- Separated host-only Pydantic validation from Blender's Python 3.11 provenance collector so Blender 5.0.1 does not depend on the host Python ABI.
+
+## 0.7.2
+
+- Added the optional `InteriorScope 0.1.0`, approval, and validation contracts without changing Geometry SceneSpec `0.2.0`.
+- Made absence of `architecture/interior_scope.json` a valid `default_disabled` state so legacy and exterior-only jobs do not gain files or interior geometry implicitly.
+- Required an explicit user request plus `architecture/interior_scope.approval.json` bound to the exact current scope SHA-256 before any reserved interior object can pass validation.
+- Added fail-closed checks for normalized explicit interior tags and common room namespaces, approved/excluded prefixes, optional level/space locators, proxy/detailed furnishing limits, measured constraint coverage, measured mode, and visible-only/measured evidence.
+- Added CLI and whitelisted MCP operations to initialize, inspect, and validate a scope; approval is a manual interactive CLI-only action requiring the complete scope hash, so creating a draft never approves or changes SceneSpec.
+- Bound explicit scope and approval hashes into build provenance so changing the authorized interior boundary makes derived builds stale.
+- Preserved exterior facade helpers such as backing, reveals, recesses, and exterior wall thickness when they are not represented as interior objects.
+- Kept interactive doors, navigation, gameplay volumes, engine-specific room systems, light baking, and runtime interior shaders outside the current static-geometry scope.
+
+## 0.7.0
+
+- Added separate `0.7.0` contracts for engine-neutral AssetProfile, source provenance, mesh preflight, OptimizationPlan, LOD, collision, UV, texture packing, immutable packages, and clean-import round trips.
+- Added three conservative static-asset profiles: `portable_gltf`, `fbx_interchange`, and `obj_legacy`.
+- Added read-only Blender topology inspection and stale-source/build-fingerprint rejection before optimization.
+- Added run-owned optimized Blender scenes with deterministic LOD, collider, and UV manifests while preserving canonical geometry and materials.
+- Added byte-preserved raw PBR packaging plus deterministic glTF ORM derivation with explicit `R=occlusion`, `G=roughness`, and `B=metallic` provenance.
+- Added atomic GLB/FBX/OBJ package creation, relative-path/hash receipts, clean Blender reimport, bounds/identity/dependency validation, and immutable validation evidence.
+- Added embedded FBX image dependencies and package-relative OBJ/MTL texture copies while preserving raw PBR sidecars as the authoritative reconstruction inputs.
+- Added CLI and whitelisted MCP surfaces for profile initialization, preflight, optimization, packaging, validation, and status.
+- Added `export` PDF reporting from canonical V0.7 evidence and extended `full` reports without making PDF data authoritative.
+- Added isolated V0.7 gate scripts that use a fresh smoke workspace and `geometry_showcase` only.
+- Kept engine-specific Unity, Unreal, or other runtime import adapters outside V0.7 until a destination is explicitly selected.
+
+## 0.6.0
+
+- Added V0.5 MaterialPlan, ShaderRecipe, TextureManifest, BakeManifest, and validation contracts while retaining SceneSpec `0.2.0`.
+- Added a Blender-safe shader-recipe loader, portable Principled surface overrides, and a whitelisted procedural Noise/ColorRamp/Bump layer.
+- Added material plan scaffolding, host contract validation, Blender node/image/color-space/UV inspection, and fixed sphere/plane swatches.
+- Added nine deterministic Pillow PBR presets, six generated source channels, manifest attachment, hash/provenance checks, and Blender image-map execution.
+- Added feature-probed Smart UV generation for explicitly UV-mapped materials and bounded Cycles baking for five portable PBR channels.
+- Added canonical build provenance across SceneSpec, camera, external geometry, material contracts, texture channels, and source `.blend`; stale QA and bake runs now fail before output.
+- Added V0.6 fixed-camera beauty, silhouette, object ID, material ID, normal, depth, and wireframe passes with hashes and semantic color maps.
+- Required the exact seven-pass set and validated the actual Blender camera against the fixed SceneSpec camera before QA.
+- Added direct reference-mask and observed semantic-region QA with immutable per-run records.
+- Added an optional advisory image-target provider interface whose output cannot override direct evidence or authorize revisions.
+- Added an explicit existing-file target handoff that preserves the exact prompt plus provider/model/version/seed and output hashes.
+- Added safe revision candidates, explicit hash-bound single-use approval, one-iteration convergence checks, and automatic SceneSpec restoration/rebuild on regression or failure.
+- Extended rollback protection across canonical replacement/reporting and compare measured constraints by stable ID, status, tolerance, and normalized residual.
+- Added CLI/MCP tools, feature flags, skills, prompts, tests, and Blender 5.0.1 integration gates for the new layers.
+- Kept profile packing and engine import outside V0.6. V0.7 adds engine-neutral glTF ORM/raw packaging, while Unity/Unreal-specific packing and import remain deferred until a destination is selected.
+
+## 0.4.0
+
+- Added deterministic reference analysis, content masks, edge diagnostics, dominant colors, symmetry scores, and optional OpenCV line clusters.
+- Added camera-solution and modeling-plan schemas.
+- Added measured constraint contracts and residual evaluation against Blender world-space inventory.
+- Added safe `add-view` and atomic duplicate-resistant job creation.
+- Added Blender compatibility probe with optional GLB/OBJ/FBX smoke exports.
+- Added Blender 5.0.1 EEVEE feature probing, AgX fallback, Python exit-code propagation, and MCP stdin isolation.
+- Added world-space object/family bounding boxes and Blender runtime metadata to inventory.
+- Added quick-reference, reference-analysis, and measured-constraint Codex skills.
+- Retained SceneSpec `0.2.0` for v0.2 geometry compatibility.
+
+## 0.2.0
+
+- Geometry Core: custom mesh, profile extrusion, revolve, curve, terrain, modifier stacks, and guarded revision plans.

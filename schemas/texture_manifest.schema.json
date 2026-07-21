@@ -1,0 +1,319 @@
+{
+  "$defs": {
+    "TextureChannel": {
+      "additionalProperties": false,
+      "description": "Describe one image or procedural PBR channel.",
+      "properties": {
+        "source": {
+          "enum": [
+            "image",
+            "procedural"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "color_space": {
+          "anyOf": [
+            {
+              "enum": [
+                "sRGB",
+                "Non-Color"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color Space"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "TextureChannel",
+      "type": "object"
+    },
+    "TextureProvenance": {
+      "additionalProperties": false,
+      "description": "Record reproducibility and rights metadata for generated texture assets.",
+      "properties": {
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "provider_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Version"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "source_hashes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Hashes",
+          "type": "array"
+        },
+        "generated_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Generated Sha256",
+          "type": "object"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "title": "TextureProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Define portable texture channels while accepting known v0.4 draft metadata.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "material_id": {
+      "title": "Material Id",
+      "type": "string"
+    },
+    "uv_set": {
+      "default": "Object",
+      "enum": [
+        "UVMap",
+        "Generated",
+        "Object"
+      ],
+      "title": "Uv Set",
+      "type": "string"
+    },
+    "intended_scale_m": {
+      "exclusiveMinimum": 0,
+      "title": "Intended Scale M",
+      "type": "number"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "source_type": {
+      "enum": [
+        "image",
+        "procedural",
+        "hybrid"
+      ],
+      "title": "Source Type",
+      "type": "string"
+    },
+    "channels": {
+      "additionalProperties": {
+        "$ref": "#/$defs/TextureChannel"
+      },
+      "propertyNames": {
+        "enum": [
+          "base_color",
+          "roughness",
+          "metallic",
+          "normal",
+          "height",
+          "opacity",
+          "emission"
+        ]
+      },
+      "title": "Channels",
+      "type": "object"
+    },
+    "procedural": {
+      "additionalProperties": true,
+      "title": "Procedural",
+      "type": "object"
+    },
+    "shader_recipe": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Shader Recipe"
+    },
+    "provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TextureProvenance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "cycles_shader_model": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cycles Shader Model"
+    },
+    "node_graph_summary": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Node Graph Summary"
+    },
+    "color_space_rules": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Color Space Rules"
+    },
+    "generation_notes": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Generation Notes"
+    },
+    "expected_preview_goal": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Preview Goal"
+    }
+  },
+  "required": [
+    "material_id",
+    "intended_scale_m",
+    "resolution",
+    "source_type"
+  ],
+  "title": "TextureManifest",
+  "type": "object"
+}

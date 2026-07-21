@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "description": "Declare the exact optional interior-authoring boundary for one job.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "policy": {
+      "default": "disabled",
+      "enum": [
+        "disabled",
+        "visible_only",
+        "proxy",
+        "measured",
+        "authored"
+      ],
+      "title": "Policy",
+      "type": "string"
+    },
+    "request": {
+      "default": "",
+      "title": "Request",
+      "type": "string"
+    },
+    "allowed_semantic_prefixes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Allowed Semantic Prefixes",
+      "type": "array"
+    },
+    "excluded_semantic_prefixes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Excluded Semantic Prefixes",
+      "type": "array"
+    },
+    "levels": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Levels",
+      "type": "array"
+    },
+    "spaces": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Spaces",
+      "type": "array"
+    },
+    "furnishing": {
+      "default": "none",
+      "enum": [
+        "none",
+        "proxy",
+        "detailed"
+      ],
+      "title": "Furnishing",
+      "type": "string"
+    },
+    "evidence_status": {
+      "default": "not_applicable",
+      "enum": [
+        "not_applicable",
+        "observed",
+        "inferred",
+        "measured",
+        "authored"
+      ],
+      "title": "Evidence Status",
+      "type": "string"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "created_at"
+  ],
+  "title": "InteriorScope",
+  "type": "object"
+}

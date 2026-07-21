@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "BakeOutput": {
+      "additionalProperties": false,
+      "description": "Describe one baked PBR output and its expected color space.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "opacity",
+            "emission",
+            "orm"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "channel",
+        "path",
+        "color_space"
+      ],
+      "title": "BakeOutput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outputs": {
+            "items": {
+              "properties": {
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "sha256"
+              ]
+            },
+            "minItems": 1
+          }
+        },
+        "required": [
+          "source_scene_spec_sha256",
+          "source_geometry_payloads_sha256",
+          "source_camera_fingerprint",
+          "source_material_plan_sha256",
+          "source_shader_recipe_sha256",
+          "source_blend_sha256",
+          "source_build_fingerprint",
+          "source_material_fingerprint"
+        ]
+      }
+    }
+  ],
+  "description": "Record deterministic material baking inputs, outputs, and export profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "material_id": {
+      "title": "Material Id",
+      "type": "string"
+    },
+    "source_shader_recipe": {
+      "title": "Source Shader Recipe",
+      "type": "string"
+    },
+    "source_scene_spec_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Scene Spec Sha256"
+    },
+    "source_geometry_payloads_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Source Geometry Payloads Sha256",
+      "type": "object"
+    },
+    "source_camera_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Camera Fingerprint"
+    },
+    "source_material_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Material Plan Sha256"
+    },
+    "source_shader_recipe_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Shader Recipe Sha256"
+    },
+    "source_texture_manifest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Texture Manifest"
+    },
+    "source_texture_manifest_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Texture Manifest Sha256"
+    },
+    "source_texture_channels_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Source Texture Channels Sha256",
+      "type": "object"
+    },
+    "source_blend_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Blend Sha256"
+    },
+    "source_build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Build Fingerprint"
+    },
+    "source_material_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Material Fingerprint"
+    },
+    "profile": {
+      "enum": [
+        "blender_eevee",
+        "blender_cycles",
+        "gltf_pbr",
+        "unity_urp_lit",
+        "unity_hdrp_lit"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "uv_set": {
+      "default": "UVMap",
+      "title": "Uv Set",
+      "type": "string"
+    },
+    "margin_px": {
+      "default": 16,
+      "minimum": 0,
+      "title": "Margin Px",
+      "type": "integer"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/BakeOutput"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "blender_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Blender Version"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "material_id",
+    "source_shader_recipe",
+    "profile",
+    "resolution",
+    "outputs"
+  ],
+  "title": "BakeManifest",
+  "type": "object"
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Revision Request",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["request", "target_ids", "preserve_ids", "acceptance_criteria"],
+  "properties": {
+    "request": {"type": "string"},
+    "target_ids": {"type": "array", "items": {"type": "string"}},
+    "preserve_ids": {"type": "array", "items": {"type": "string"}},
+    "acceptance_criteria": {"type": "array", "items": {"type": "string"}}
+  }
+}

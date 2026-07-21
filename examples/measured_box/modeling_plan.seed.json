@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.4.0",
+  "job_id": "measured_box",
+  "reference_analysis_path": "workspaces/measured_box/analysis/reference_analysis.json",
+  "camera_solution_path": "workspaces/measured_box/analysis/camera_solution.json",
+  "stage": "authored",
+  "objects": [
+    {
+      "id": "asset.box",
+      "label": "Measured box",
+      "recommended_geometry": "primitive",
+      "source_ids": ["reference"],
+      "bbox_norm": [0.12, 0.12, 0.88, 0.88],
+      "observed": true,
+      "confidence": 0.98,
+      "notes": [
+        "Visible orthographic silhouette and explicit scale anchors define the box envelope."
+      ]
+    },
+    {
+      "id": "asset.box.hidden_backface",
+      "label": "Hidden back face assumption",
+      "recommended_geometry": "undecided",
+      "source_ids": ["reference"],
+      "bbox_norm": null,
+      "observed": false,
+      "confidence": 0.3,
+      "notes": [
+        "The rear face is not visible and remains an inferred closure of the measured volume."
+      ]
+    }
+  ],
+  "global_notes": [
+    "Authored fixture verifies that observed and inferred semantic planning remain distinct."
+  ]
+}

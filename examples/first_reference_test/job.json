@@ -1,0 +1,15 @@
+{
+  "job_id": "first_reference_test",
+  "mode": "concept",
+  "created_at": "example",
+  "reference_path": "examples/first_reference_test/reference.png",
+  "reference_sha256": "bundled-example",
+  "scale_anchors": [],
+  "sources": [
+    {
+      "kind": "reference",
+      "path": "examples/first_reference_test/reference.png",
+      "sha256": "bundled-example"
+    }
+  ]
+}

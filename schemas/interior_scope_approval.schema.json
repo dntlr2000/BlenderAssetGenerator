@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "description": "Persist one user approval bound to the exact InteriorScope bytes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    },
+    "approved_policy": {
+      "enum": [
+        "disabled",
+        "visible_only",
+        "proxy",
+        "measured",
+        "authored"
+      ],
+      "title": "Approved Policy",
+      "type": "string"
+    },
+    "approved_semantic_prefixes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Approved Semantic Prefixes",
+      "type": "array"
+    },
+    "excluded_semantic_prefixes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Excluded Semantic Prefixes",
+      "type": "array"
+    },
+    "approved_levels": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Approved Levels",
+      "type": "array"
+    },
+    "approved_spaces": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Approved Spaces",
+      "type": "array"
+    },
+    "furnishing": {
+      "enum": [
+        "none",
+        "proxy",
+        "detailed"
+      ],
+      "title": "Furnishing",
+      "type": "string"
+    },
+    "recorded_via": {
+      "const": "manual_cli",
+      "default": "manual_cli",
+      "title": "Recorded Via",
+      "type": "string"
+    },
+    "approved_at": {
+      "title": "Approved At",
+      "type": "string"
+    },
+    "approval_note": {
+      "minLength": 1,
+      "title": "Approval Note",
+      "type": "string"
+    },
+    "status": {
+      "default": "approved",
+      "enum": [
+        "approved",
+        "revoked"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "approval_id",
+    "job_id",
+    "scope_sha256",
+    "approved_policy",
+    "approved_semantic_prefixes",
+    "furnishing",
+    "approved_at",
+    "approval_note"
+  ],
+  "title": "InteriorScopeApproval",
+  "type": "object"
+}

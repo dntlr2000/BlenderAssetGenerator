@@ -1,0 +1,19 @@
+{
+  "job_id": "measured_box",
+  "mode": "measured",
+  "created_at": "example",
+  "reference_path": "examples/measured_box/reference.png",
+  "reference_sha256": "bundled-example",
+  "scale_anchors": [
+    "asset.box width = 2.0 m",
+    "asset.box height = 1.5 m",
+    "asset.box depth = 1.0 m"
+  ],
+  "sources": [
+    {
+      "kind": "reference",
+      "path": "examples/measured_box/reference.png",
+      "sha256": "bundled-example"
+    }
+  ]
+}

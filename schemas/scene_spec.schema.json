@@ -1,0 +1,1353 @@
+{
+  "$defs": {
+    "ArrayGenerator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayGenerator",
+      "type": "object"
+    },
+    "ArrayModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayModifier",
+      "type": "object"
+    },
+    "BevelModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "bevel",
+          "default": "bevel",
+          "title": "Kind",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "segments": {
+          "default": 2,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "limit_method": {
+          "default": "ANGLE",
+          "enum": [
+            "NONE",
+            "ANGLE",
+            "WEIGHT",
+            "VGROUP"
+          ],
+          "title": "Limit Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "width"
+      ],
+      "title": "BevelModifier",
+      "type": "object"
+    },
+    "BooleanModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "boolean",
+          "default": "boolean",
+          "title": "Kind",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "UNION",
+            "DIFFERENCE",
+            "INTERSECT"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "solver": {
+          "default": "EXACT",
+          "enum": [
+            "EXACT",
+            "FAST"
+          ],
+          "title": "Solver",
+          "type": "string"
+        },
+        "hide_target": {
+          "default": true,
+          "title": "Hide Target",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation",
+        "target_id"
+      ],
+      "title": "BooleanModifier",
+      "type": "object"
+    },
+    "CameraSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "projection": {
+          "enum": [
+            "PERSP",
+            "ORTHO"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "location": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "target": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target",
+          "type": "array"
+        },
+        "focal_length_mm": {
+          "exclusiveMinimum": 0,
+          "title": "Focal Length Mm",
+          "type": "number"
+        },
+        "ortho_scale": {
+          "exclusiveMinimum": 0,
+          "title": "Ortho Scale",
+          "type": "number"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projection",
+        "location",
+        "target",
+        "focal_length_mm",
+        "ortho_scale",
+        "resolution"
+      ],
+      "title": "CameraSpec",
+      "type": "object"
+    },
+    "CoordinateSystem": {
+      "additionalProperties": false,
+      "properties": {
+        "handedness": {
+          "const": "RIGHT",
+          "default": "RIGHT",
+          "title": "Handedness",
+          "type": "string"
+        },
+        "up": {
+          "const": "+Z",
+          "default": "+Z",
+          "title": "Up",
+          "type": "string"
+        },
+        "forward": {
+          "const": "-Y",
+          "default": "-Y",
+          "title": "Forward",
+          "type": "string"
+        }
+      },
+      "title": "CoordinateSystem",
+      "type": "object"
+    },
+    "CurveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "curve",
+          "default": "curve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "spline_type": {
+          "default": "POLY",
+          "enum": [
+            "POLY",
+            "NURBS"
+          ],
+          "title": "Spline Type",
+          "type": "string"
+        },
+        "cyclic": {
+          "default": false,
+          "title": "Cyclic",
+          "type": "boolean"
+        },
+        "bevel_depth": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "title": "Bevel Depth",
+          "type": "number"
+        },
+        "bevel_resolution": {
+          "default": 3,
+          "maximum": 12,
+          "minimum": 0,
+          "title": "Bevel Resolution",
+          "type": "integer"
+        },
+        "resolution_u": {
+          "default": 12,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Resolution U",
+          "type": "integer"
+        },
+        "convert_to_mesh": {
+          "default": true,
+          "title": "Convert To Mesh",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "CurveGeometry",
+      "type": "object"
+    },
+    "CustomMeshGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "custom_mesh",
+          "default": "custom_mesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "vertices": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 3,
+                "minItems": 3,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vertices"
+        },
+        "faces": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Faces"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "format": {
+          "const": "mesh_json",
+          "default": "mesh_json",
+          "title": "Format",
+          "type": "string"
+        },
+        "recalculate_normals": {
+          "default": true,
+          "title": "Recalculate Normals",
+          "type": "boolean"
+        }
+      },
+      "title": "CustomMeshGeometry",
+      "type": "object"
+    },
+    "DecimateModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decimate",
+          "default": "decimate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ratio": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ratio"
+      ],
+      "title": "DecimateModifier",
+      "type": "object"
+    },
+    "EvidenceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_id",
+        "bbox_norm",
+        "status",
+        "confidence"
+      ],
+      "title": "EvidenceSpec",
+      "type": "object"
+    },
+    "MaterialSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "shader": {
+          "default": "principled",
+          "enum": [
+            "principled",
+            "water",
+            "glass",
+            "emissive",
+            "cloud"
+          ],
+          "title": "Shader",
+          "type": "string"
+        },
+        "base_color": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "roughness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "metallic": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "emission_strength": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "base_color",
+        "roughness",
+        "metallic"
+      ],
+      "title": "MaterialSpec",
+      "type": "object"
+    },
+    "MirrorModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "mirror",
+          "default": "mirror",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "merge": {
+          "default": true,
+          "title": "Merge",
+          "type": "boolean"
+        },
+        "merge_threshold": {
+          "default": 0.001,
+          "minimum": 0,
+          "title": "Merge Threshold",
+          "type": "number"
+        }
+      },
+      "title": "MirrorModifier",
+      "type": "object"
+    },
+    "ObjectSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "geometry": {
+          "discriminator": {
+            "mapping": {
+              "curve": "#/$defs/CurveGeometry",
+              "custom_mesh": "#/$defs/CustomMeshGeometry",
+              "primitive": "#/$defs/PrimitiveGeometry",
+              "profile_extrude": "#/$defs/ProfileExtrudeGeometry",
+              "revolve": "#/$defs/RevolveGeometry",
+              "terrain": "#/$defs/TerrainGeometry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PrimitiveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CustomMeshGeometry"
+            },
+            {
+              "$ref": "#/$defs/ProfileExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/RevolveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CurveGeometry"
+            },
+            {
+              "$ref": "#/$defs/TerrainGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSpec"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "modifiers": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "array": "#/$defs/ArrayModifier",
+                "bevel": "#/$defs/BevelModifier",
+                "boolean": "#/$defs/BooleanModifier",
+                "decimate": "#/$defs/DecimateModifier",
+                "mirror": "#/$defs/MirrorModifier",
+                "remesh": "#/$defs/RemeshModifier",
+                "solidify": "#/$defs/SolidifyModifier",
+                "subdivision": "#/$defs/SubdivisionModifier"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BevelModifier"
+              },
+              {
+                "$ref": "#/$defs/MirrorModifier"
+              },
+              {
+                "$ref": "#/$defs/SubdivisionModifier"
+              },
+              {
+                "$ref": "#/$defs/SolidifyModifier"
+              },
+              {
+                "$ref": "#/$defs/ArrayModifier"
+              },
+              {
+                "$ref": "#/$defs/DecimateModifier"
+              },
+              {
+                "$ref": "#/$defs/RemeshModifier"
+              },
+              {
+                "$ref": "#/$defs/BooleanModifier"
+              }
+            ]
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "generator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArrayGenerator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "shade_smooth": {
+          "default": false,
+          "title": "Shade Smooth",
+          "type": "boolean"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSpec"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "editable": {
+          "additionalProperties": true,
+          "title": "Editable",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "geometry",
+        "material_id"
+      ],
+      "title": "ObjectSpec",
+      "type": "object"
+    },
+    "PrimitiveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "primitive",
+          "default": "primitive",
+          "title": "Kind",
+          "type": "string"
+        },
+        "primitive": {
+          "enum": [
+            "cube",
+            "cylinder",
+            "sphere",
+            "cone",
+            "torus"
+          ],
+          "title": "Primitive",
+          "type": "string"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "segments": {
+          "default": 32,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "ring_segments": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 3,
+          "title": "Ring Segments",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "primitive",
+        "dimensions"
+      ],
+      "title": "PrimitiveGeometry",
+      "type": "object"
+    },
+    "ProfileExtrudeGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "profile_extrude",
+          "default": "profile_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Profile",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Y",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile",
+        "depth"
+      ],
+      "title": "ProfileExtrudeGeometry",
+      "type": "object"
+    },
+    "RemeshModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "remesh",
+          "default": "remesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "voxel_size": {
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        },
+        "smooth": {
+          "default": false,
+          "title": "Smooth",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "voxel_size"
+      ],
+      "title": "RemeshModifier",
+      "type": "object"
+    },
+    "RevolveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "revolve",
+          "default": "revolve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "description": "Pairs of [radius, height]",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "angle_deg": {
+          "default": 360.0,
+          "exclusiveMinimum": 0,
+          "maximum": 360,
+          "title": "Angle Deg",
+          "type": "number"
+        },
+        "segments": {
+          "default": 48,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "cap_ends": {
+          "default": true,
+          "title": "Cap Ends",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "RevolveGeometry",
+      "type": "object"
+    },
+    "SolidifyModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "solidify",
+          "default": "solidify",
+          "title": "Kind",
+          "type": "string"
+        },
+        "thickness": {
+          "title": "Thickness",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "required": [
+        "thickness"
+      ],
+      "title": "SolidifyModifier",
+      "type": "object"
+    },
+    "SourceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "reference",
+            "front",
+            "right",
+            "top",
+            "blueprint",
+            "cad"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "immutable": {
+          "default": true,
+          "title": "Immutable",
+          "type": "boolean"
+        },
+        "scale_anchors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scale Anchors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "kind"
+      ],
+      "title": "SourceSpec",
+      "type": "object"
+    },
+    "SubdivisionModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "subdivision",
+          "default": "subdivision",
+          "title": "Kind",
+          "type": "string"
+        },
+        "levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "render_levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Render Levels",
+          "type": "integer"
+        },
+        "subdivision_type": {
+          "default": "CATMULL_CLARK",
+          "enum": [
+            "CATMULL_CLARK",
+            "SIMPLE"
+          ],
+          "title": "Subdivision Type",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionModifier",
+      "type": "object"
+    },
+    "TerrainGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "terrain",
+          "default": "terrain",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "height_grid",
+            "heightmap"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "size": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Size",
+          "type": "array"
+        },
+        "heights": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heights"
+        },
+        "heightmap_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heightmap Path"
+        },
+        "resolution": {
+          "default": [
+            128,
+            128
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "skirt_depth": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Skirt Depth",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mode",
+        "size"
+      ],
+      "title": "TerrainGeometry",
+      "type": "object"
+    },
+    "TransformSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "scale": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        }
+      },
+      "title": "TransformSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "concept",
+        "measured"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "units": {
+      "const": "METERS",
+      "default": "METERS",
+      "title": "Units",
+      "type": "string"
+    },
+    "coordinate_system": {
+      "$ref": "#/$defs/CoordinateSystem"
+    },
+    "nominal_scene_size": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Nominal Scene Size",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceSpec"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/MaterialSpec"
+      },
+      "title": "Materials",
+      "type": "array"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ObjectSpec"
+      },
+      "title": "Objects",
+      "type": "array"
+    },
+    "camera": {
+      "$ref": "#/$defs/CameraSpec"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "revision_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Revision Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "mode",
+    "nominal_scene_size",
+    "sources",
+    "materials",
+    "objects",
+    "camera"
+  ],
+  "title": "SceneSpec",
+  "type": "object"
+}

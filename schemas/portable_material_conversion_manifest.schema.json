@@ -1,0 +1,867 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "PortableAtlasPolicy": {
+      "additionalProperties": false,
+      "description": "Define one deterministic global atlas over every derived render and LOD binding.",
+      "properties": {
+        "layout": {
+          "const": "global_shared",
+          "default": "global_shared",
+          "title": "Layout",
+          "type": "string"
+        },
+        "atlas_scope": {
+          "const": "all_render_lod",
+          "default": "all_render_lod",
+          "title": "Atlas Scope",
+          "type": "string"
+        },
+        "conversion_phase": {
+          "const": "after_optimization_with_canonical_source_frame",
+          "default": "after_optimization_with_canonical_source_frame",
+          "title": "Conversion Phase",
+          "type": "string"
+        },
+        "tile_strategy": {
+          "const": "deterministic_grid",
+          "default": "deterministic_grid",
+          "title": "Tile Strategy",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "CBMPortableAtlas",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "resolution": {
+          "default": 2048,
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Resolution",
+          "type": "integer"
+        },
+        "margin_px": {
+          "default": 16,
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Margin Px",
+          "type": "integer"
+        },
+        "maximum_overlap_fraction": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Overlap Fraction",
+          "type": "number"
+        },
+        "preserve_existing_uv_sets": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Existing Uv Sets",
+          "type": "boolean"
+        },
+        "required_channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "maxItems": 5,
+          "minItems": 5,
+          "title": "Required Channels",
+          "type": "array"
+        }
+      },
+      "title": "PortableAtlasPolicy",
+      "type": "object"
+    },
+    "PortableAtlasTile": {
+      "additionalProperties": false,
+      "description": "Bind one derived render/LOD material use to a deterministic global-atlas tile.",
+      "properties": {
+        "binding_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "target_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "derived_object_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Derived Object Id",
+          "type": "string"
+        },
+        "lod_level": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Lod Level",
+          "type": "integer"
+        },
+        "uv_set": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "margin_px": {
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Margin Px",
+          "type": "integer"
+        },
+        "uv_minimum": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Uv Minimum",
+          "type": "array"
+        },
+        "uv_maximum": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Uv Maximum",
+          "type": "array"
+        },
+        "overlap_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overlap Fraction"
+        },
+        "quality_status": {
+          "default": "unverified",
+          "enum": [
+            "verified",
+            "partially_verified",
+            "unverified"
+          ],
+          "title": "Quality Status",
+          "type": "string"
+        },
+        "unwrap_method": {
+          "default": "smart_project",
+          "enum": [
+            "smart_project",
+            "lightmap_pack_fallback"
+          ],
+          "title": "Unwrap Method",
+          "type": "string"
+        },
+        "repaired_uv_degenerate_face_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Repaired Uv Degenerate Face Count",
+          "type": "integer"
+        },
+        "remaining_uv_degenerate_face_count": {
+          "const": 0,
+          "default": 0,
+          "title": "Remaining Uv Degenerate Face Count",
+          "type": "integer"
+        },
+        "tangent_repair_method": {
+          "default": "none",
+          "enum": [
+            "none",
+            "dissolve_degenerate"
+          ],
+          "title": "Tangent Repair Method",
+          "type": "string"
+        },
+        "micro_sliver_face_count_before": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Micro Sliver Face Count Before",
+          "type": "integer"
+        },
+        "remaining_micro_sliver_face_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Remaining Micro Sliver Face Count",
+          "type": "integer"
+        },
+        "tangent_invalid_loop_count_before": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tangent Invalid Loop Count Before",
+          "type": "integer"
+        },
+        "tangent_invalid_loop_count_after": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tangent Invalid Loop Count After",
+          "type": "integer"
+        },
+        "bounds_max_abs_delta_m": {
+          "default": 0.0,
+          "maximum": 1e-06,
+          "minimum": 0,
+          "title": "Bounds Max Abs Delta M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "binding_id",
+        "material_id",
+        "target_id",
+        "derived_object_id",
+        "lod_level",
+        "uv_set",
+        "resolution",
+        "margin_px",
+        "uv_minimum",
+        "uv_maximum"
+      ],
+      "title": "PortableAtlasTile",
+      "type": "object"
+    },
+    "PortableChannelOutput": {
+      "additionalProperties": false,
+      "description": "Describe one global portable PBR atlas image and its material coverage.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "emission"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "maximum": 8192,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "file_format": {
+          "const": "png",
+          "default": "png",
+          "title": "File Format",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "channel",
+        "path",
+        "sha256",
+        "color_space",
+        "resolution",
+        "material_ids"
+      ],
+      "title": "PortableChannelOutput",
+      "type": "object"
+    },
+    "PortableMaterialContractArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one V0.7.1 material-conversion contract to a safe path and digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "portable_material_conversion_plan",
+            "portable_material_conversion_manifest",
+            "shader_recipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "PortableMaterialContractArtifact",
+      "type": "object"
+    },
+    "PortableMaterialConversionEntry": {
+      "additionalProperties": false,
+      "description": "Record one converted material's bindings, factors, and declared fidelity losses.",
+      "properties": {
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "source_shader_recipe": {
+          "$ref": "#/$defs/PortableMaterialContractArtifact"
+        },
+        "source_material_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Material Fingerprint",
+          "type": "string"
+        },
+        "portable_material_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Portable Material Fingerprint",
+          "type": "string"
+        },
+        "mapping_mode": {
+          "enum": [
+            "uv",
+            "object",
+            "generated",
+            "triplanar"
+          ],
+          "title": "Mapping Mode",
+          "type": "string"
+        },
+        "binding_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Binding Ids",
+          "type": "array"
+        },
+        "surface_factors": {
+          "$ref": "#/$defs/PortableSurfaceFactors"
+        },
+        "losses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Losses",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id",
+        "source_shader_recipe",
+        "source_material_fingerprint",
+        "portable_material_fingerprint",
+        "mapping_mode",
+        "binding_ids"
+      ],
+      "title": "PortableMaterialConversionEntry",
+      "type": "object"
+    },
+    "PortableSurfaceFactors": {
+      "additionalProperties": false,
+      "description": "Preserve portable scalar factors that cannot be inferred from atlas pixels alone.",
+      "properties": {
+        "base_color_factor": {
+          "default": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Base Color Factor",
+          "type": "array"
+        },
+        "roughness_factor": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness Factor",
+          "type": "number"
+        },
+        "metallic_factor": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic Factor",
+          "type": "number"
+        },
+        "emission_factor": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Emission Factor",
+          "type": "array"
+        },
+        "alpha_factor": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Alpha Factor",
+          "type": "number"
+        },
+        "transmission_factor": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission Factor",
+          "type": "number"
+        }
+      },
+      "title": "PortableSurfaceFactors",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove lifecycle, coverage, and immutable outputs for one portable conversion run.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "plan_artifact": {
+      "$ref": "#/$defs/PortableMaterialContractArtifact"
+    },
+    "profile_artifact": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "optimization_plan": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "optimized_blend": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "uv_manifest": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "atlas_policy": {
+      "$ref": "#/$defs/PortableAtlasPolicy"
+    },
+    "required_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Required Material Ids",
+      "type": "array"
+    },
+    "converted_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Converted Material Ids",
+      "type": "array"
+    },
+    "missing_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Missing Material Ids",
+      "type": "array"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/PortableMaterialConversionEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "tiles": {
+      "items": {
+        "$ref": "#/$defs/PortableAtlasTile"
+      },
+      "title": "Tiles",
+      "type": "array"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/PortableChannelOutput"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "portable_blend": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "running",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "plan_artifact",
+    "profile_artifact",
+    "optimization_plan",
+    "optimized_blend",
+    "uv_manifest",
+    "atlas_policy",
+    "required_material_ids",
+    "created_at"
+  ],
+  "title": "PortableMaterialConversionManifest",
+  "type": "object"
+}

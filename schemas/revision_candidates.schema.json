@@ -1,0 +1,191 @@
+{
+  "$defs": {
+    "RevisionCandidate": {
+      "additionalProperties": false,
+      "description": "Represent one QA-sourced edit before it becomes an executable RevisionPlan.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "target_type": {
+          "enum": [
+            "object",
+            "material",
+            "camera",
+            "scene"
+          ],
+          "title": "Target Type",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Id"
+        },
+        "path": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Path",
+          "type": "array"
+        },
+        "op": {
+          "enum": [
+            "set",
+            "multiply",
+            "add",
+            "append"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "evidence_sources": {
+          "items": {
+            "enum": [
+              "direct_reference",
+              "generated_target",
+              "constraint"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Sources",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "applicability": {
+          "enum": [
+            "auto_safe",
+            "approval_required",
+            "manual_required"
+          ],
+          "title": "Applicability",
+          "type": "string"
+        },
+        "acceptance_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Acceptance Criteria",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "finding_id",
+        "target_type",
+        "path",
+        "op",
+        "value",
+        "reason",
+        "evidence_sources",
+        "confidence",
+        "applicability",
+        "acceptance_criteria"
+      ],
+      "title": "RevisionCandidate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind candidate edits to exact SceneSpec, camera, and QA report hashes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "base_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Spec Sha256",
+      "type": "string"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "source_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Report Sha256",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/RevisionCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "locked_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Locked Ids",
+      "type": "array"
+    },
+    "locked_paths": {
+      "items": {
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "title": "Locked Paths",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "base_spec_sha256",
+    "camera_fingerprint",
+    "source_report_sha256"
+  ],
+  "title": "RevisionCandidates",
+  "type": "object"
+}

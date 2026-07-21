@@ -1,0 +1,29 @@
+{
+  "schema_version": "0.1.0",
+  "job_id": "first_reference_test",
+  "reference_sha256": "9c5bcb3ea6c6fdcb584bfad0915955acc0e5f5ad421e52660c77334bf9885e8d",
+  "scene_spec_sha256": "7cb9b86a3c0875e31e0ed8d8ed5000c483857423083e88e00c2bec6bd1fd8a35",
+  "scene_spec_version": "0.2.0",
+  "geometry_payload_count": 11,
+  "geometry_payload_sha256": "43a4b7a54dac9c45a01a0b3837e7aa760989d4777d04d22e1dc7c2f3b74c6433",
+  "semantic_ids_sha256": "7dc30aa448cde9e0ab77b291cdd6904f23240e4dddbc84715dfa5789ee332c5e",
+  "semantic_object_families": 40,
+  "expected_instances": 63,
+  "nominal_scene_size": [34.0, 26.0, 18.0],
+  "camera": {
+    "projection": "ORTHO",
+    "location": [28.0, -40.0, 30.0],
+    "target": [0.0, 0.0, 6.0],
+    "focal_length_mm": 50.0,
+    "ortho_scale": 37.0,
+    "resolution": [1024, 768]
+  },
+  "validation_metrics": {
+    "generated_objects": 63,
+    "generated_mesh_objects": 63,
+    "vertices_before_modifier_evaluation": 4798,
+    "polygons_before_modifier_evaluation": 4561,
+    "expected_object_families": 40,
+    "material_count": 14
+  }
+}

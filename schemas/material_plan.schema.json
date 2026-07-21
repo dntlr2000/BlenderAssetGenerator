@@ -1,0 +1,205 @@
+{
+  "$defs": {
+    "MappingSpec": {
+      "additionalProperties": false,
+      "description": "Describe deterministic material coordinates and their physical scale.",
+      "properties": {
+        "mode": {
+          "default": "object",
+          "enum": [
+            "uv",
+            "object",
+            "generated",
+            "triplanar"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "real_world_scale_m": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Real World Scale M",
+          "type": "number"
+        },
+        "texel_density_px_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texel Density Px M"
+        }
+      },
+      "title": "MappingSpec",
+      "type": "object"
+    },
+    "MaterialPlanItem": {
+      "additionalProperties": false,
+      "description": "Plan one stable SceneSpec material without changing geometry.",
+      "properties": {
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "shader_family": {
+          "default": "standard_pbr",
+          "enum": [
+            "standard_pbr",
+            "rock",
+            "terrain",
+            "water",
+            "glass",
+            "foliage",
+            "lava",
+            "cloud",
+            "emissive"
+          ],
+          "title": "Shader Family",
+          "type": "string"
+        },
+        "texture_strategy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "procedural",
+            "image",
+            "hybrid"
+          ],
+          "title": "Texture Strategy",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/MappingSpec"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        },
+        "shader_recipe": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shader Recipe"
+        },
+        "export_profiles": {
+          "items": {
+            "enum": [
+              "blender_eevee",
+              "blender_cycles",
+              "gltf_pbr",
+              "unity_urp_lit",
+              "unity_hdrp_lit"
+            ],
+            "type": "string"
+          },
+          "title": "Export Profiles",
+          "type": "array"
+        },
+        "evidence_status": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id",
+        "label"
+      ],
+      "title": "MaterialPlanItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record the approved material decomposition before authoring shader files.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "scene_spec_path": {
+      "default": "analysis/scene_spec.json",
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "stage": {
+      "default": "scaffold",
+      "enum": [
+        "scaffold",
+        "authored"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/MaterialPlanItem"
+      },
+      "title": "Materials",
+      "type": "array"
+    },
+    "global_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Global Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id"
+  ],
+  "title": "MaterialPlan",
+  "type": "object"
+}

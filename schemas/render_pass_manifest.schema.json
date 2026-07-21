@@ -1,0 +1,199 @@
+{
+  "$defs": {
+    "DepthRange": {
+      "additionalProperties": false,
+      "description": "Record the camera-space range used to encode the depth pass.",
+      "properties": {
+        "near": {
+          "minimum": 0,
+          "title": "Near",
+          "type": "number"
+        },
+        "far": {
+          "exclusiveMinimum": 0,
+          "title": "Far",
+          "type": "number"
+        }
+      },
+      "required": [
+        "near",
+        "far"
+      ],
+      "title": "DepthRange",
+      "type": "object"
+    },
+    "RenderPassRecord": {
+      "additionalProperties": false,
+      "description": "Describe one deterministic render-pass artifact and its encoding.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "beauty",
+            "silhouette",
+            "object_id",
+            "material_id",
+            "normal",
+            "depth",
+            "wireframe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "width",
+        "height",
+        "encoding"
+      ],
+      "title": "RenderPassRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind QA render passes to one scene, camera, resolution, and Blender runtime.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Run Id"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "blender_version": {
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "render_engine": {
+      "title": "Render Engine",
+      "type": "string"
+    },
+    "render_device": {
+      "title": "Render Device",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "passes": {
+      "items": {
+        "$ref": "#/$defs/RenderPassRecord"
+      },
+      "maxItems": 7,
+      "minItems": 7,
+      "title": "Passes",
+      "type": "array"
+    },
+    "object_id_colors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Object Id Colors",
+      "type": "object"
+    },
+    "material_id_colors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Material Id Colors",
+      "type": "object"
+    },
+    "depth_range": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DepthRange"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "scene_spec_sha256",
+    "camera_fingerprint",
+    "build_fingerprint",
+    "blender_version",
+    "render_engine",
+    "render_device",
+    "resolution",
+    "passes"
+  ],
+  "title": "RenderPassManifest",
+  "type": "object"
+}

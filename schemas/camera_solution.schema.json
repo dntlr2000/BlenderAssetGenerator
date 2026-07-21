@@ -1,0 +1,131 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0",
+      "default": "0.4.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "projection": {
+      "enum": [
+        "PERSP",
+        "ORTHO"
+      ],
+      "title": "Projection",
+      "type": "string"
+    },
+    "method": {
+      "enum": [
+        "user_hint",
+        "orthographic_source",
+        "line_heuristic",
+        "default_heuristic"
+      ],
+      "title": "Method",
+      "type": "string"
+    },
+    "focal_length_mm": {
+      "exclusiveMinimum": 0,
+      "title": "Focal Length Mm",
+      "type": "number"
+    },
+    "azimuth_deg": {
+      "maximum": 180,
+      "minimum": -180,
+      "title": "Azimuth Deg",
+      "type": "number"
+    },
+    "elevation_deg": {
+      "maximum": 89,
+      "minimum": -89,
+      "title": "Elevation Deg",
+      "type": "number"
+    },
+    "roll_deg": {
+      "maximum": 180,
+      "minimum": -180,
+      "title": "Roll Deg",
+      "type": "number"
+    },
+    "view_direction": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "View Direction",
+      "type": "array"
+    },
+    "principal_point_norm": {
+      "default": [
+        0.5,
+        0.5
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Principal Point Norm",
+      "type": "array"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "locked_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Locked Fields",
+      "type": "array"
+    },
+    "underconstrained": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Underconstrained",
+      "type": "array"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "projection",
+    "method",
+    "focal_length_mm",
+    "azimuth_deg",
+    "elevation_deg",
+    "roll_deg",
+    "view_direction",
+    "confidence"
+  ],
+  "title": "CameraSolution",
+  "type": "object"
+}

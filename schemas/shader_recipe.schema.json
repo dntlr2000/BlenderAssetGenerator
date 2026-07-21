@@ -1,0 +1,329 @@
+{
+  "$defs": {
+    "MappingSpec": {
+      "additionalProperties": false,
+      "description": "Describe deterministic material coordinates and their physical scale.",
+      "properties": {
+        "mode": {
+          "default": "object",
+          "enum": [
+            "uv",
+            "object",
+            "generated",
+            "triplanar"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "real_world_scale_m": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Real World Scale M",
+          "type": "number"
+        },
+        "texel_density_px_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texel Density Px M"
+        }
+      },
+      "title": "MappingSpec",
+      "type": "object"
+    },
+    "ShaderLayer": {
+      "additionalProperties": false,
+      "description": "Describe one whitelisted material layer and its optional mask.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "constant",
+            "image",
+            "noise",
+            "gradient",
+            "fresnel",
+            "normal",
+            "bump"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "blend": {
+          "default": "mix",
+          "enum": [
+            "replace",
+            "mix",
+            "multiply",
+            "add",
+            "screen",
+            "overlay"
+          ],
+          "title": "Blend",
+          "type": "string"
+        },
+        "factor": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Factor",
+          "type": "number"
+        },
+        "mask": {
+          "default": "none",
+          "enum": [
+            "none",
+            "height",
+            "slope",
+            "cavity",
+            "noise",
+            "fresnel"
+          ],
+          "title": "Mask",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "ShaderLayer",
+      "type": "object"
+    },
+    "SurfaceSpec": {
+      "additionalProperties": false,
+      "description": "Store portable Principled-style surface parameters by semantic name.",
+      "properties": {
+        "base_color": {
+          "default": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "metallic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "roughness": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "ior": {
+          "default": 1.45,
+          "maximum": 3.0,
+          "minimum": 1.0,
+          "title": "Ior",
+          "type": "number"
+        },
+        "transmission_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission Weight",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "emission_color": {
+          "default": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "coat_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coat Weight",
+          "type": "number"
+        },
+        "subsurface_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Subsurface Weight",
+          "type": "number"
+        },
+        "anisotropic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Anisotropic",
+          "type": "number"
+        }
+      },
+      "title": "SurfaceSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Define a whitelisted, Blender-version-neutral shader recipe.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "material_id": {
+      "title": "Material Id",
+      "type": "string"
+    },
+    "family": {
+      "default": "standard_pbr",
+      "enum": [
+        "standard_pbr",
+        "rock",
+        "terrain",
+        "water",
+        "glass",
+        "foliage",
+        "lava",
+        "cloud",
+        "emissive"
+      ],
+      "title": "Family",
+      "type": "string"
+    },
+    "surface": {
+      "$ref": "#/$defs/SurfaceSpec"
+    },
+    "mapping": {
+      "$ref": "#/$defs/MappingSpec"
+    },
+    "layers": {
+      "items": {
+        "$ref": "#/$defs/ShaderLayer"
+      },
+      "title": "Layers",
+      "type": "array"
+    },
+    "texture_manifest": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Texture Manifest"
+    },
+    "blender_master": {
+      "default": true,
+      "title": "Blender Master",
+      "type": "boolean"
+    },
+    "bake_required": {
+      "default": false,
+      "title": "Bake Required",
+      "type": "boolean"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "material_id"
+  ],
+  "title": "ShaderRecipe",
+  "type": "object"
+}

@@ -1,0 +1,389 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "PackageFile": {
+      "additionalProperties": false,
+      "description": "Describe one immutable file contained by a portable export package.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "primary_asset",
+            "lod",
+            "collider",
+            "texture",
+            "metadata",
+            "preview",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "PackageFile",
+      "type": "object"
+    },
+    "PortableMaterialContractArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one V0.7.1 material-conversion contract to a safe path and digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "portable_material_conversion_plan",
+            "portable_material_conversion_manifest",
+            "shader_recipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "PortableMaterialContractArtifact",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Provide the authoritative immutable receipt for one portable asset package.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "optimization_plan": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "material_conversion": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PortableMaterialContractArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_manifests": {
+      "items": {
+        "$ref": "#/$defs/HashedArtifact"
+      },
+      "title": "Source Manifests",
+      "type": "array"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "building",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "package_root": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Package Root",
+      "type": "string"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/PackageFile"
+      },
+      "title": "Files",
+      "type": "array"
+    },
+    "primary_file_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary File Id"
+    },
+    "semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Semantic Ids",
+      "type": "array"
+    },
+    "material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Material Ids",
+      "type": "array"
+    },
+    "absolute_path_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Absolute Path Count",
+      "type": "integer"
+    },
+    "missing_dependency_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Missing Dependency Count",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "known_losses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Losses",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "package_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "optimization_plan",
+    "package_root",
+    "created_at"
+  ],
+  "title": "ExportPackageManifest",
+  "type": "object"
+}

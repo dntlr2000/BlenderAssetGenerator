@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "DestinationRequest": {
+      "additionalProperties": false,
+      "description": "Record an explicit destination without inferring an engine from asset purpose.",
+      "properties": {
+        "kind": {
+          "default": "unspecified",
+          "enum": [
+            "unspecified",
+            "engine_neutral",
+            "unity",
+            "unreal",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "title": "DestinationRequest",
+      "type": "object"
+    },
+    "DestinationResolution": {
+      "additionalProperties": false,
+      "description": "Resolve only implemented destination capabilities and preserve a portable boundary.",
+      "properties": {
+        "requested": {
+          "$ref": "#/$defs/DestinationRequest"
+        },
+        "status": {
+          "enum": [
+            "not_requested",
+            "available",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "adapter_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Adapter Id"
+        },
+        "terminal_boundary": {
+          "const": "portable_package",
+          "default": "portable_package",
+          "title": "Terminal Boundary",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requested",
+        "status",
+        "reason"
+      ],
+      "title": "DestinationResolution",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Explain deterministic intent selection and whether execution may proceed.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "intent": {
+      "enum": [
+        "new_asset",
+        "revise_asset",
+        "add_measured_view",
+        "interior_scope",
+        "material_authoring",
+        "visual_qa",
+        "portable_package"
+      ],
+      "title": "Intent",
+      "type": "string"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "matched_terms": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Matched Terms",
+      "type": "array"
+    },
+    "requires_clarification": {
+      "default": false,
+      "title": "Requires Clarification",
+      "type": "boolean"
+    },
+    "destination": {
+      "$ref": "#/$defs/DestinationResolution"
+    },
+    "routed_at": {
+      "format": "date-time",
+      "title": "Routed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "workflow_id",
+    "job_id",
+    "intent",
+    "confidence",
+    "reasons",
+    "destination",
+    "routed_at"
+  ],
+  "title": "IntentRouting",
+  "type": "object"
+}

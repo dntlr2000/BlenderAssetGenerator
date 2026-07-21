@@ -1,0 +1,1377 @@
+{
+  "schema_version": "0.2.0",
+  "job_id": "floating_island",
+  "mode": "concept",
+  "units": "METERS",
+  "coordinate_system": {
+    "handedness": "RIGHT",
+    "up": "+Z",
+    "forward": "-Y"
+  },
+  "nominal_scene_size": [
+    120,
+    96,
+    50
+  ],
+  "sources": [
+    {
+      "id": "ref.main",
+      "path": "examples/floating_island/reference.png",
+      "kind": "reference",
+      "immutable": true,
+      "scale_anchors": []
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat.rock",
+      "name": "Rock",
+      "shader": "principled",
+      "base_color": [
+        0.12,
+        0.1,
+        0.09,
+        1
+      ],
+      "roughness": 0.9,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.grass",
+      "name": "Grass",
+      "shader": "principled",
+      "base_color": [
+        0.16,
+        0.42,
+        0.1,
+        1
+      ],
+      "roughness": 0.85,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.lava",
+      "name": "Lava",
+      "shader": "emissive",
+      "base_color": [
+        1.0,
+        0.12,
+        0.01,
+        1
+      ],
+      "roughness": 0.25,
+      "metallic": 0.0,
+      "emission_strength": 4.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.water",
+      "name": "Water",
+      "shader": "water",
+      "base_color": [
+        0.02,
+        0.36,
+        0.72,
+        0.72
+      ],
+      "roughness": 0.08,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.stone",
+      "name": "Light Stone",
+      "shader": "principled",
+      "base_color": [
+        0.72,
+        0.76,
+        0.75,
+        1
+      ],
+      "roughness": 0.55,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.gold",
+      "name": "Gold",
+      "shader": "principled",
+      "base_color": [
+        0.82,
+        0.5,
+        0.07,
+        1
+      ],
+      "roughness": 0.3,
+      "metallic": 0.8,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.city",
+      "name": "City",
+      "shader": "principled",
+      "base_color": [
+        0.55,
+        0.66,
+        0.7,
+        1
+      ],
+      "roughness": 0.48,
+      "metallic": 0.08,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.roof",
+      "name": "Roof",
+      "shader": "principled",
+      "base_color": [
+        0.62,
+        0.12,
+        0.05,
+        1
+      ],
+      "roughness": 0.72,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.cloud",
+      "name": "Cloud",
+      "shader": "cloud",
+      "base_color": [
+        0.92,
+        0.95,
+        1.0,
+        0.85
+      ],
+      "roughness": 0.9,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.road",
+      "name": "Road",
+      "shader": "principled",
+      "base_color": [
+        0.12,
+        0.13,
+        0.15,
+        1
+      ],
+      "roughness": 0.82,
+      "metallic": 0.0,
+      "emission_strength": 0.0,
+      "texture_manifest": null
+    }
+  ],
+  "objects": [
+    {
+      "id": "island.base",
+      "name": "Floating island rock base",
+      "material_id": "mat.rock",
+      "generator": null,
+      "tags": [
+        "base",
+        "silhouette"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.03,
+            0.06,
+            0.97,
+            0.98
+          ],
+          "status": "observed",
+          "confidence": 0.95
+        }
+      ],
+      "editable": {
+        "width": 120,
+        "depth": 96,
+        "thickness": 10
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          120,
+          96,
+          10
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          -5
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 4,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "island.top",
+      "name": "Top terrain slab",
+      "material_id": "mat.grass",
+      "generator": null,
+      "tags": [
+        "terrain"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.04,
+            0.05,
+            0.96,
+            0.83
+          ],
+          "status": "observed",
+          "confidence": 0.9
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          116,
+          92,
+          3
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          1
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 3,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.volcano.mass",
+      "name": "Volcano district mass",
+      "material_id": "mat.rock",
+      "generator": null,
+      "tags": [
+        "volcano",
+        "landmark"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.06,
+            0.03,
+            0.52,
+            0.39
+          ],
+          "status": "observed",
+          "confidence": 0.92
+        }
+      ],
+      "editable": {
+        "height": 26
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cone",
+        "dimensions": [
+          46,
+          40,
+          26
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          -30,
+          22,
+          11
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 1,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.volcano.crater",
+      "name": "Lava crater",
+      "material_id": "mat.lava",
+      "generator": null,
+      "tags": [
+        "volcano",
+        "lava"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.25,
+            0.05,
+            0.36,
+            0.14
+          ],
+          "status": "observed",
+          "confidence": 0.9
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          9,
+          9,
+          1.2
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          -30,
+          22,
+          23
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.4,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.atlantis.water",
+      "name": "Atlantis water plate",
+      "material_id": "mat.water",
+      "generator": null,
+      "tags": [
+        "water",
+        "atlantis"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.48,
+            0.03,
+            0.94,
+            0.39
+          ],
+          "status": "observed",
+          "confidence": 0.9
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          52,
+          40,
+          2
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          28,
+          24,
+          3
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 2,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.atlantis.temple",
+      "name": "Atlantis temple",
+      "material_id": "mat.stone",
+      "generator": null,
+      "tags": [
+        "atlantis",
+        "landmark"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.65,
+            0.07,
+            0.87,
+            0.27
+          ],
+          "status": "observed",
+          "confidence": 0.86
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          18,
+          14,
+          12
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          30,
+          26,
+          9
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 1,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.atlantis.dome",
+      "name": "Atlantis dome",
+      "material_id": "mat.water",
+      "generator": null,
+      "tags": [
+        "atlantis",
+        "dome"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.72,
+            0.01,
+            0.84,
+            0.13
+          ],
+          "status": "observed",
+          "confidence": 0.84
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "sphere",
+        "dimensions": [
+          12,
+          12,
+          8
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          30,
+          26,
+          17
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.city.road_x",
+      "name": "City east-west road",
+      "material_id": "mat.road",
+      "generator": null,
+      "tags": [
+        "city",
+        "road"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.57,
+            0.34,
+            0.95,
+            0.68
+          ],
+          "status": "observed",
+          "confidence": 0.8
+        }
+      ],
+      "editable": {
+        "width": 6
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          55,
+          6,
+          0.5
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          28,
+          -10,
+          3
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.4,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.city.road_y",
+      "name": "City north-south road",
+      "material_id": "mat.road",
+      "generator": null,
+      "tags": [
+        "city",
+        "road"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.57,
+            0.34,
+            0.95,
+            0.68
+          ],
+          "status": "observed",
+          "confidence": 0.8
+        }
+      ],
+      "editable": {
+        "width": 6
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          6,
+          42,
+          0.5
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          28,
+          -10,
+          3.2
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.4,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.city.towers",
+      "name": "City tower row",
+      "material_id": "mat.city",
+      "generator": {
+        "kind": "array",
+        "count": 6,
+        "offset": [
+          8,
+          0,
+          0
+        ]
+      },
+      "tags": [
+        "city",
+        "building",
+        "repeat"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.58,
+            0.32,
+            0.96,
+            0.64
+          ],
+          "status": "observed",
+          "confidence": 0.84
+        }
+      ],
+      "editable": {
+        "count": 6,
+        "spacing": 8
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          7,
+          7,
+          16
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          10,
+          -6,
+          9
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.8,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.forest.ground",
+      "name": "Forest district",
+      "material_id": "mat.grass",
+      "generator": null,
+      "tags": [
+        "forest"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.04,
+            0.38,
+            0.48,
+            0.84
+          ],
+          "status": "observed",
+          "confidence": 0.9
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          52,
+          38,
+          3
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          -28,
+          -22,
+          3
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 3,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.forest.trunks",
+      "name": "Tree trunks",
+      "material_id": "mat.rock",
+      "generator": {
+        "kind": "array",
+        "count": 8,
+        "offset": [
+          6,
+          3,
+          0
+        ]
+      },
+      "tags": [
+        "forest",
+        "tree",
+        "repeat"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.08,
+            0.43,
+            0.45,
+            0.78
+          ],
+          "status": "observed",
+          "confidence": 0.7
+        }
+      ],
+      "editable": {
+        "count": 8
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          2,
+          2,
+          8
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          -47,
+          -32,
+          7
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.1,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.forest.canopies",
+      "name": "Tree canopies",
+      "material_id": "mat.grass",
+      "generator": {
+        "kind": "array",
+        "count": 8,
+        "offset": [
+          6,
+          3,
+          0
+        ]
+      },
+      "tags": [
+        "forest",
+        "tree",
+        "repeat"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.08,
+            0.43,
+            0.45,
+            0.78
+          ],
+          "status": "observed",
+          "confidence": 0.75
+        }
+      ],
+      "editable": {
+        "count": 8
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cone",
+        "dimensions": [
+          8,
+          8,
+          10
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          -47,
+          -32,
+          13
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.5,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.cloud.clouds",
+      "name": "Cloud bank",
+      "material_id": "mat.cloud",
+      "generator": {
+        "kind": "array",
+        "count": 5,
+        "offset": [
+          9,
+          2,
+          0
+        ]
+      },
+      "tags": [
+        "cloud",
+        "repeat"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.42,
+            0.55,
+            0.94,
+            0.94
+          ],
+          "status": "observed",
+          "confidence": 0.88
+        }
+      ],
+      "editable": {
+        "count": 5
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "sphere",
+        "dimensions": [
+          18,
+          12,
+          8
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          18,
+          -31,
+          7
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "zone.cloud.palace",
+      "name": "Cloud palace main hall",
+      "material_id": "mat.stone",
+      "generator": null,
+      "tags": [
+        "cloud",
+        "palace",
+        "landmark"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.48,
+            0.55,
+            0.87,
+            0.88
+          ],
+          "status": "observed",
+          "confidence": 0.9
+        }
+      ],
+      "editable": {},
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          28,
+          20,
+          14
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          20,
+          -27,
+          15
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 1.2,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": false
+    },
+    {
+      "id": "zone.cloud.columns",
+      "name": "Cloud palace columns",
+      "material_id": "mat.stone",
+      "generator": {
+        "kind": "array",
+        "count": 6,
+        "offset": [
+          5,
+          0,
+          0
+        ]
+      },
+      "tags": [
+        "cloud",
+        "palace",
+        "repeat"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.45,
+            0.57,
+            0.88,
+            0.87
+          ],
+          "status": "observed",
+          "confidence": 0.78
+        }
+      ],
+      "editable": {
+        "count": 6
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          2,
+          2,
+          12
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          9,
+          -35,
+          14
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.2,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "center.plaza",
+      "name": "Central plaza",
+      "material_id": "mat.stone",
+      "generator": null,
+      "tags": [
+        "center",
+        "plaza"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.35,
+            0.31,
+            0.62,
+            0.6
+          ],
+          "status": "observed",
+          "confidence": 0.95
+        }
+      ],
+      "editable": {
+        "diameter": 28
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          28,
+          28,
+          1.5
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          5
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.6,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    },
+    {
+      "id": "center.monument",
+      "name": "Central monument",
+      "material_id": "mat.gold",
+      "generator": null,
+      "tags": [
+        "center",
+        "landmark"
+      ],
+      "evidence": [
+        {
+          "source_id": "ref.main",
+          "bbox_norm": [
+            0.45,
+            0.32,
+            0.54,
+            0.52
+          ],
+          "status": "observed",
+          "confidence": 0.85
+        }
+      ],
+      "editable": {
+        "height": 12
+      },
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          4,
+          4,
+          12
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          0,
+          0,
+          11
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.3,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "parent_id": null,
+      "shade_smooth": true
+    }
+  ],
+  "camera": {
+    "projection": "ORTHO",
+    "location": [
+      105,
+      -120,
+      105
+    ],
+    "target": [
+      0,
+      0,
+      5
+    ],
+    "focal_length_mm": 50,
+    "ortho_scale": 155,
+    "resolution": [
+      1024,
+      768
+    ]
+  },
+  "assumptions": [
+    "The source is stylized isometric concept art with no absolute scale anchor.",
+    "Nominal island width is set to 120 m only as a convenient modeling scale.",
+    "Hidden underside and rear geometry are inferred.",
+    "This seed is a low-detail proxy intended to demonstrate the pipeline, not a faithful final reconstruction."
+  ],
+  "revision_notes": [
+    "Initial bundled proxy specification."
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "description": "Represent one expiring job write lock without storing host secrets.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "lock_id": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Lock Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "process_id": {
+      "minimum": 0,
+      "title": "Process Id",
+      "type": "integer"
+    },
+    "acquired_at": {
+      "format": "date-time",
+      "title": "Acquired At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "lock_id",
+    "workflow_id",
+    "job_id",
+    "process_id",
+    "acquired_at",
+    "expires_at"
+  ],
+  "title": "WorkflowLock",
+  "type": "object"
+}

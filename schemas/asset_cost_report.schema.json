@@ -1,0 +1,748 @@
+{
+  "$defs": {
+    "AssetCostReduction": {
+      "additionalProperties": false,
+      "description": "Record one exact before/after static-asset cost delta.",
+      "properties": {
+        "metric": {
+          "enum": [
+            "lod0_render_objects",
+            "lod0_material_slots",
+            "lod0_estimated_draw_calls",
+            "lod0_vertices",
+            "lod0_triangles",
+            "lod_objects",
+            "collider_objects",
+            "collider_triangles",
+            "total_derived_triangles",
+            "overlap_candidates"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "before": {
+          "minimum": 0,
+          "title": "Before",
+          "type": "integer"
+        },
+        "after": {
+          "minimum": 0,
+          "title": "After",
+          "type": "integer"
+        },
+        "reduction": {
+          "title": "Reduction",
+          "type": "integer"
+        },
+        "reduction_fraction": {
+          "title": "Reduction Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "before",
+        "after",
+        "reduction",
+        "reduction_fraction"
+      ],
+      "title": "AssetCostReduction",
+      "type": "object"
+    },
+    "AssetCostSnapshot": {
+      "additionalProperties": false,
+      "description": "Capture deterministic derived-scene cost proxies at one pipeline boundary.",
+      "properties": {
+        "lod0_render_objects": {
+          "minimum": 0,
+          "title": "Lod0 Render Objects",
+          "type": "integer"
+        },
+        "lod0_material_slots": {
+          "minimum": 0,
+          "title": "Lod0 Material Slots",
+          "type": "integer"
+        },
+        "lod0_estimated_draw_calls": {
+          "minimum": 0,
+          "title": "Lod0 Estimated Draw Calls",
+          "type": "integer"
+        },
+        "lod0_vertices": {
+          "minimum": 0,
+          "title": "Lod0 Vertices",
+          "type": "integer"
+        },
+        "lod0_triangles": {
+          "minimum": 0,
+          "title": "Lod0 Triangles",
+          "type": "integer"
+        },
+        "lod_objects": {
+          "minimum": 0,
+          "title": "Lod Objects",
+          "type": "integer"
+        },
+        "collider_objects": {
+          "minimum": 0,
+          "title": "Collider Objects",
+          "type": "integer"
+        },
+        "collider_triangles": {
+          "minimum": 0,
+          "title": "Collider Triangles",
+          "type": "integer"
+        },
+        "total_derived_triangles": {
+          "minimum": 0,
+          "title": "Total Derived Triangles",
+          "type": "integer"
+        },
+        "unique_materials": {
+          "minimum": 0,
+          "title": "Unique Materials",
+          "type": "integer"
+        },
+        "overlap_candidates": {
+          "minimum": 0,
+          "title": "Overlap Candidates",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "lod0_render_objects",
+        "lod0_material_slots",
+        "lod0_estimated_draw_calls",
+        "lod0_vertices",
+        "lod0_triangles",
+        "lod_objects",
+        "collider_objects",
+        "collider_triangles",
+        "total_derived_triangles",
+        "unique_materials",
+        "overlap_candidates"
+      ],
+      "title": "AssetCostSnapshot",
+      "type": "object"
+    },
+    "ConsolidationBatch": {
+      "additionalProperties": false,
+      "description": "Trace one derived batch back to every source object and stable semantic owner.",
+      "properties": {
+        "batch_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "lod_level": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Lod Level",
+          "type": "integer"
+        },
+        "spatial_cell": {
+          "anyOf": [
+            {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Spatial Cell"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "source_objects": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Source Objects",
+          "type": "array"
+        },
+        "output_object": {
+          "title": "Output Object",
+          "type": "string"
+        },
+        "object_count_before": {
+          "minimum": 2,
+          "title": "Object Count Before",
+          "type": "integer"
+        },
+        "object_count_after": {
+          "const": 1,
+          "default": 1,
+          "title": "Object Count After",
+          "type": "integer"
+        },
+        "triangle_count_before": {
+          "minimum": 0,
+          "title": "Triangle Count Before",
+          "type": "integer"
+        },
+        "triangle_count_after": {
+          "minimum": 0,
+          "title": "Triangle Count After",
+          "type": "integer"
+        },
+        "material_slots_before": {
+          "minimum": 0,
+          "title": "Material Slots Before",
+          "type": "integer"
+        },
+        "material_slots_after": {
+          "minimum": 0,
+          "title": "Material Slots After",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "batch_id",
+        "semantic_id",
+        "lod_level",
+        "source_objects",
+        "output_object",
+        "object_count_before",
+        "triangle_count_before",
+        "triangle_count_after",
+        "material_slots_before",
+        "material_slots_after"
+      ],
+      "title": "ConsolidationBatch",
+      "type": "object"
+    },
+    "CostBudgetResult": {
+      "additionalProperties": false,
+      "description": "Compare one measured static-asset cost proxy with an explicit ceiling.",
+      "properties": {
+        "metric": {
+          "enum": [
+            "lod0_render_objects",
+            "lod0_material_slots",
+            "lod0_estimated_draw_calls",
+            "lod0_vertices",
+            "lod0_triangles",
+            "lod_objects",
+            "collider_objects",
+            "collider_triangles",
+            "total_derived_triangles",
+            "overlap_candidates"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "actual": {
+          "minimum": 0,
+          "title": "Actual",
+          "type": "integer"
+        },
+        "maximum": {
+          "minimum": 0,
+          "title": "Maximum",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "actual",
+        "maximum",
+        "status",
+        "message"
+      ],
+      "title": "CostBudgetResult",
+      "type": "object"
+    },
+    "ExactInstanceGroup": {
+      "additionalProperties": false,
+      "description": "Identify reusable mesh payloads without assuming destination-engine instancing.",
+      "properties": {
+        "group_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Group Id",
+          "type": "string"
+        },
+        "mesh_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Mesh Fingerprint",
+          "type": "string"
+        },
+        "objects": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Objects",
+          "type": "array"
+        },
+        "semantic_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Semantic Ids",
+          "type": "array"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "potential_mesh_copies_saved": {
+          "minimum": 1,
+          "title": "Potential Mesh Copies Saved",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "group_id",
+        "mesh_fingerprint",
+        "objects",
+        "semantic_ids",
+        "potential_mesh_copies_saved"
+      ],
+      "title": "ExactInstanceGroup",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "MeshCleanupRecord": {
+      "additionalProperties": false,
+      "description": "Record non-rendering derived cleanup without claiming canonical repair.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "object_name": {
+          "title": "Object Name",
+          "type": "string"
+        },
+        "asset_role": {
+          "enum": [
+            "render",
+            "lod",
+            "collider"
+          ],
+          "title": "Asset Role",
+          "type": "string"
+        },
+        "lod_level": {
+          "anyOf": [
+            {
+              "maximum": 8,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lod Level"
+        },
+        "loose_vertices_removed": {
+          "minimum": 0,
+          "title": "Loose Vertices Removed",
+          "type": "integer"
+        },
+        "loose_edges_removed": {
+          "minimum": 0,
+          "title": "Loose Edges Removed",
+          "type": "integer"
+        },
+        "duplicate_material_slots_removed": {
+          "minimum": 0,
+          "title": "Duplicate Material Slots Removed",
+          "type": "integer"
+        },
+        "exact_duplicate_colliders_removed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Exact Duplicate Colliders Removed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "object_name",
+        "asset_role",
+        "loose_vertices_removed",
+        "loose_edges_removed",
+        "duplicate_material_slots_removed"
+      ],
+      "title": "MeshCleanupRecord",
+      "type": "object"
+    },
+    "MeshOverlapFinding": {
+      "additionalProperties": false,
+      "description": "Describe one exact duplicate or broad-phase overlap candidate for manual review.",
+      "properties": {
+        "finding_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "left_object": {
+          "title": "Left Object",
+          "type": "string"
+        },
+        "right_object": {
+          "title": "Right Object",
+          "type": "string"
+        },
+        "left_semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Left Semantic Id",
+          "type": "string"
+        },
+        "right_semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Right Semantic Id",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "exact_duplicate",
+            "aabb_overlap_candidate"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "overlap_volume_m3": {
+          "minimum": 0,
+          "title": "Overlap Volume M3",
+          "type": "number"
+        },
+        "action": {
+          "const": "report_only",
+          "default": "report_only",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "left_object",
+        "right_object",
+        "left_semantic_id",
+        "right_semantic_id",
+        "classification",
+        "overlap_volume_m3"
+      ],
+      "title": "MeshOverlapFinding",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize V0.7.3 batching, cleanup, overlap evidence, and cost budgets.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "quality_status": {
+      "default": "partially_verified",
+      "enum": [
+        "verified",
+        "partially_verified",
+        "unverified"
+      ],
+      "title": "Quality Status",
+      "type": "string"
+    },
+    "unverified_checks": {
+      "items": {
+        "enum": [
+          "internal_face_classification",
+          "runtime_draw_calls",
+          "destination_engine_instancing"
+        ],
+        "type": "string"
+      },
+      "title": "Unverified Checks",
+      "type": "array"
+    },
+    "before": {
+      "$ref": "#/$defs/AssetCostSnapshot"
+    },
+    "after": {
+      "$ref": "#/$defs/AssetCostSnapshot"
+    },
+    "reductions": {
+      "items": {
+        "$ref": "#/$defs/AssetCostReduction"
+      },
+      "title": "Reductions",
+      "type": "array"
+    },
+    "budgets": {
+      "items": {
+        "$ref": "#/$defs/CostBudgetResult"
+      },
+      "title": "Budgets",
+      "type": "array"
+    },
+    "consolidation_batches": {
+      "items": {
+        "$ref": "#/$defs/ConsolidationBatch"
+      },
+      "title": "Consolidation Batches",
+      "type": "array"
+    },
+    "cleanup_records": {
+      "items": {
+        "$ref": "#/$defs/MeshCleanupRecord"
+      },
+      "title": "Cleanup Records",
+      "type": "array"
+    },
+    "instance_groups": {
+      "items": {
+        "$ref": "#/$defs/ExactInstanceGroup"
+      },
+      "title": "Instance Groups",
+      "type": "array"
+    },
+    "overlap_findings_before": {
+      "items": {
+        "$ref": "#/$defs/MeshOverlapFinding"
+      },
+      "title": "Overlap Findings Before",
+      "type": "array"
+    },
+    "overlap_findings_after": {
+      "items": {
+        "$ref": "#/$defs/MeshOverlapFinding"
+      },
+      "title": "Overlap Findings After",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "report_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "status",
+    "ok",
+    "before",
+    "after",
+    "created_at"
+  ],
+  "title": "StaticAssetCostReport",
+  "type": "object"
+}

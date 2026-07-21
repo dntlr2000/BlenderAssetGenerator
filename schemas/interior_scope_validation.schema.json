@@ -1,0 +1,111 @@
+{
+  "additionalProperties": false,
+  "description": "Report whether SceneSpec interior objects remain inside the approved boundary.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "effective_policy": {
+      "enum": [
+        "disabled",
+        "visible_only",
+        "proxy",
+        "measured",
+        "authored"
+      ],
+      "title": "Effective Policy",
+      "type": "string"
+    },
+    "scope_state": {
+      "enum": [
+        "default_disabled",
+        "explicit_disabled",
+        "draft",
+        "approved",
+        "stale",
+        "revoked"
+      ],
+      "title": "Scope State",
+      "type": "string"
+    },
+    "scope_present": {
+      "title": "Scope Present",
+      "type": "boolean"
+    },
+    "approval_present": {
+      "title": "Approval Present",
+      "type": "boolean"
+    },
+    "approval_valid": {
+      "title": "Approval Valid",
+      "type": "boolean"
+    },
+    "scope_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Scope Sha256"
+    },
+    "approval_sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approval Sha256"
+    },
+    "interior_object_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Interior Object Ids",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "ok",
+    "effective_policy",
+    "scope_state",
+    "scope_present",
+    "approval_present",
+    "approval_valid"
+  ],
+  "title": "InteriorScopeValidation",
+  "type": "object"
+}

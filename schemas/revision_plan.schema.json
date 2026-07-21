@@ -1,0 +1,128 @@
+{
+  "$defs": {
+    "RevisionOperation": {
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "enum": [
+            "set",
+            "multiply",
+            "add",
+            "append"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "target_type": {
+          "enum": [
+            "object",
+            "material",
+            "camera",
+            "scene"
+          ],
+          "title": "Target Type",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Id"
+        },
+        "path": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Path",
+          "type": "array"
+        },
+        "value": {
+          "title": "Value"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op",
+        "target_type",
+        "path",
+        "value",
+        "reason"
+      ],
+      "title": "RevisionOperation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "base_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Spec Sha256",
+      "type": "string"
+    },
+    "request": {
+      "title": "Request",
+      "type": "string"
+    },
+    "operations": {
+      "items": {
+        "$ref": "#/$defs/RevisionOperation"
+      },
+      "minItems": 1,
+      "title": "Operations",
+      "type": "array"
+    },
+    "acceptance_criteria": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Acceptance Criteria",
+      "type": "array"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "base_spec_sha256",
+    "request",
+    "operations",
+    "acceptance_criteria"
+  ],
+  "title": "Codex Blender Modeler RevisionPlan",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/revision_plan.schema.json"
+}

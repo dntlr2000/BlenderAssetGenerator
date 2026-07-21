@@ -1,0 +1,196 @@
+{
+  "$defs": {
+    "ArtifactFreshness": {
+      "additionalProperties": false,
+      "description": "Separate integrity, currency, and verification for one observed artifact.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "integrity": {
+          "enum": [
+            "valid",
+            "corrupt",
+            "missing"
+          ],
+          "title": "Integrity",
+          "type": "string"
+        },
+        "currency": {
+          "enum": [
+            "current",
+            "superseded",
+            "unknown"
+          ],
+          "title": "Currency",
+          "type": "string"
+        },
+        "verification": {
+          "enum": [
+            "verified",
+            "partially_verified",
+            "unverified"
+          ],
+          "title": "Verification",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "path",
+        "integrity",
+        "currency",
+        "verification",
+        "reason"
+      ],
+      "title": "ArtifactFreshness",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve one immutable execution attempt and its exact input/output evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "step_id": {
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,95}$",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "running",
+        "succeeded",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "output_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Output Fingerprint"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/ArtifactFreshness"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "error_type": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Type"
+    },
+    "error_message": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Message"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "workflow_id",
+    "job_id",
+    "step_id",
+    "plan_sha256",
+    "input_fingerprint",
+    "status",
+    "started_at"
+  ],
+  "title": "WorkflowAttempt",
+  "type": "object"
+}

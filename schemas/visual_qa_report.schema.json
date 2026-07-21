@@ -1,0 +1,389 @@
+{
+  "$defs": {
+    "BoundingBoxMetric": {
+      "additionalProperties": false,
+      "description": "Report normalized reference and rendered bounding-box deviations.",
+      "properties": {
+        "reference_bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Reference Bbox Norm",
+          "type": "array"
+        },
+        "rendered_bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rendered Bbox Norm"
+        },
+        "center_error_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Center Error Norm"
+        },
+        "size_error_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Size Error Norm"
+        }
+      },
+      "required": [
+        "reference_bbox_norm",
+        "rendered_bbox_norm"
+      ],
+      "title": "BoundingBoxMetric",
+      "type": "object"
+    },
+    "DirectVisualMetrics": {
+      "additionalProperties": false,
+      "description": "Store shader-independent direct-reference metrics for one fixed camera.",
+      "properties": {
+        "scoring_version": {
+          "default": "legacy_bbox_v1",
+          "enum": [
+            "legacy_bbox_v1",
+            "semantic_bbox_v2"
+          ],
+          "title": "Scoring Version",
+          "type": "string"
+        },
+        "silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Silhouette Iou",
+          "type": "number"
+        },
+        "silhouette_union_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Silhouette Union Fraction",
+          "type": "number"
+        },
+        "global_bbox": {
+          "$ref": "#/$defs/BoundingBoxMetric"
+        },
+        "semantic_deviations": {
+          "items": {
+            "$ref": "#/$defs/SemanticDeviation"
+          },
+          "title": "Semantic Deviations",
+          "type": "array"
+        },
+        "overall_direct_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Overall Direct Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "silhouette_iou",
+        "silhouette_union_fraction",
+        "global_bbox",
+        "overall_direct_score"
+      ],
+      "title": "DirectVisualMetrics",
+      "type": "object"
+    },
+    "QAFinding": {
+      "additionalProperties": false,
+      "description": "Represent one localized discrepancy and the evidence channels supporting it.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "issue_type": {
+          "enum": [
+            "silhouette",
+            "position",
+            "proportion",
+            "missing",
+            "camera",
+            "depth_order",
+            "color_block",
+            "constraint",
+            "other"
+          ],
+          "title": "Issue Type",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_sources": {
+          "items": {
+            "enum": [
+              "direct_reference",
+              "generated_target",
+              "constraint"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Sources",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "metrics": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "suggestion": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SuggestedEdit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "issue_type",
+        "severity",
+        "description",
+        "evidence_sources",
+        "confidence"
+      ],
+      "title": "QAFinding",
+      "type": "object"
+    },
+    "SemanticDeviation": {
+      "additionalProperties": false,
+      "description": "Localize one observed reference region to a rendered semantic object family.",
+      "properties": {
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "metric": {
+          "$ref": "#/$defs/BoundingBoxMetric"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id",
+        "metric",
+        "confidence"
+      ],
+      "title": "SemanticDeviation",
+      "type": "object"
+    },
+    "SuggestedEdit": {
+      "additionalProperties": false,
+      "description": "Describe a non-executable SceneSpec edit suggested by one QA finding.",
+      "properties": {
+        "target_type": {
+          "enum": [
+            "object",
+            "material",
+            "camera",
+            "scene"
+          ],
+          "title": "Target Type",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Id"
+        },
+        "path": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Path",
+          "type": "array"
+        },
+        "op": {
+          "enum": [
+            "set",
+            "multiply",
+            "add",
+            "append"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value"
+        }
+      },
+      "required": [
+        "target_type",
+        "path",
+        "op",
+        "value"
+      ],
+      "title": "SuggestedEdit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Combine direct evidence with optional advisory target findings without conflation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "direct_metrics": {
+      "$ref": "#/$defs/DirectVisualMetrics"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/QAFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "generated_target_status": {
+      "enum": [
+        "not_requested",
+        "pending",
+        "generated",
+        "cached",
+        "failed"
+      ],
+      "title": "Generated Target Status",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "request_sha256",
+    "camera_fingerprint",
+    "direct_metrics",
+    "generated_target_status"
+  ],
+  "title": "VisualQAReport",
+  "type": "object"
+}

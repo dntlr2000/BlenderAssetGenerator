@@ -1,0 +1,862 @@
+{
+  "schema_version": "0.2.0",
+  "job_id": "geometry_showcase",
+  "mode": "concept",
+  "units": "METERS",
+  "coordinate_system": {
+    "handedness": "RIGHT",
+    "up": "+Z",
+    "forward": "-Y"
+  },
+  "nominal_scene_size": [
+    24,
+    18,
+    10
+  ],
+  "sources": [
+    {
+      "id": "ref.main",
+      "path": "input/reference.png",
+      "kind": "reference",
+      "immutable": true,
+      "scale_anchors": []
+    }
+  ],
+  "materials": [
+    {
+      "id": "mat.gray",
+      "name": "Gray",
+      "shader": "principled",
+      "base_color": [
+        0.5,
+        0.55,
+        0.6,
+        1
+      ],
+      "roughness": 0.55,
+      "metallic": 0.05,
+      "emission_strength": 0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.blue",
+      "name": "Blue",
+      "shader": "principled",
+      "base_color": [
+        0.15,
+        0.35,
+        0.8,
+        1
+      ],
+      "roughness": 0.4,
+      "metallic": 0.1,
+      "emission_strength": 0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.green",
+      "name": "Green",
+      "shader": "principled",
+      "base_color": [
+        0.2,
+        0.65,
+        0.25,
+        1
+      ],
+      "roughness": 0.75,
+      "metallic": 0,
+      "emission_strength": 0,
+      "texture_manifest": null
+    },
+    {
+      "id": "mat.orange",
+      "name": "Orange",
+      "shader": "principled",
+      "base_color": [
+        0.9,
+        0.35,
+        0.08,
+        1
+      ],
+      "roughness": 0.45,
+      "metallic": 0,
+      "emission_strength": 0,
+      "texture_manifest": null
+    }
+  ],
+  "objects": [
+    {
+      "id": "demo.custom_pyramid",
+      "name": "Inline custom pyramid",
+      "geometry": {
+        "kind": "custom_mesh",
+        "vertices": [
+          [
+            -1,
+            -1,
+            0
+          ],
+          [
+            1,
+            -1,
+            0
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            -1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            2.5
+          ]
+        ],
+        "faces": [
+          [
+            0,
+            1,
+            2,
+            3
+          ],
+          [
+            0,
+            4,
+            1
+          ],
+          [
+            1,
+            4,
+            2
+          ],
+          [
+            2,
+            4,
+            3
+          ],
+          [
+            3,
+            4,
+            0
+          ]
+        ],
+        "path": null,
+        "format": "mesh_json",
+        "recalculate_normals": true
+      },
+      "transform": {
+        "location": [
+          -7,
+          -3,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.orange",
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.08,
+          "segments": 2,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.profile_house",
+      "name": "Profile extrude",
+      "geometry": {
+        "kind": "profile_extrude",
+        "profile": [
+          [
+            -1.5,
+            0
+          ],
+          [
+            1.5,
+            0
+          ],
+          [
+            1.5,
+            1.8
+          ],
+          [
+            0,
+            3
+          ],
+          [
+            -1.5,
+            1.8
+          ]
+        ],
+        "depth": 2.4,
+        "axis": "Y",
+        "cap": true
+      },
+      "transform": {
+        "location": [
+          -2.5,
+          -3,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.blue",
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.08,
+          "segments": 3,
+          "limit_method": "ANGLE"
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.revolve_vase",
+      "name": "Revolved vase",
+      "geometry": {
+        "kind": "revolve",
+        "profile": [
+          [
+            0,
+            0
+          ],
+          [
+            1.2,
+            0
+          ],
+          [
+            1.5,
+            0.4
+          ],
+          [
+            1.1,
+            1.7
+          ],
+          [
+            0.7,
+            2.7
+          ],
+          [
+            0.75,
+            3.0
+          ],
+          [
+            0,
+            3.0
+          ]
+        ],
+        "axis": "Z",
+        "angle_deg": 360,
+        "segments": 48,
+        "cap_ends": true
+      },
+      "transform": {
+        "location": [
+          2.5,
+          -3,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.orange",
+      "modifiers": [
+        {
+          "kind": "subdivision",
+          "levels": 1,
+          "render_levels": 1,
+          "subdivision_type": "CATMULL_CLARK"
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.curve_pipe",
+      "name": "Curve converted to mesh",
+      "geometry": {
+        "kind": "curve",
+        "points": [
+          [
+            -2,
+            0,
+            0
+          ],
+          [
+            -1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1.8
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            2
+          ]
+        ],
+        "spline_type": "NURBS",
+        "cyclic": false,
+        "bevel_depth": 0.18,
+        "bevel_resolution": 4,
+        "resolution_u": 16,
+        "convert_to_mesh": true
+      },
+      "transform": {
+        "location": [
+          7,
+          -3,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.blue",
+      "modifiers": [],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.terrain",
+      "name": "Height grid terrain",
+      "geometry": {
+        "kind": "terrain",
+        "mode": "height_grid",
+        "size": [
+          7,
+          6,
+          3
+        ],
+        "heights": [
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.15,
+            0.3,
+            0.35,
+            0.3,
+            0.15,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.15,
+            0.4,
+            0.55,
+            0.6,
+            0.55,
+            0.4,
+            0.15,
+            0.0
+          ],
+          [
+            0.0,
+            0.3,
+            0.55,
+            0.7,
+            0.75,
+            0.7,
+            0.55,
+            0.3,
+            0.0
+          ],
+          [
+            0.0,
+            0.35,
+            0.6,
+            0.75,
+            0.8,
+            0.75,
+            0.6,
+            0.35,
+            0.0
+          ],
+          [
+            0.0,
+            0.3,
+            0.55,
+            0.7,
+            0.75,
+            0.7,
+            0.55,
+            0.3,
+            0.0
+          ],
+          [
+            0.0,
+            0.15,
+            0.4,
+            0.55,
+            0.6,
+            0.55,
+            0.4,
+            0.15,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.15,
+            0.3,
+            0.35,
+            0.3,
+            0.15,
+            0.0,
+            0.0
+          ],
+          [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ]
+        ],
+        "heightmap_path": null,
+        "resolution": [
+          9,
+          9
+        ],
+        "skirt_depth": 1.2
+      },
+      "transform": {
+        "location": [
+          -5,
+          5,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.green",
+      "modifiers": [
+        {
+          "kind": "decimate",
+          "ratio": 0.95
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.boolean.block",
+      "name": "Boolean block",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [
+          4,
+          4,
+          3
+        ],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          1.5,
+          5,
+          1.5
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.gray",
+      "modifiers": [
+        {
+          "kind": "bevel",
+          "width": 0.12,
+          "segments": 3,
+          "limit_method": "ANGLE"
+        },
+        {
+          "kind": "boolean",
+          "operation": "DIFFERENCE",
+          "target_id": "demo.boolean.cutter",
+          "solver": "EXACT",
+          "hide_target": true
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.boolean.cutter",
+      "name": "Boolean cutter",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          1.8,
+          1.8,
+          5
+        ],
+        "segments": 48,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [
+          1.5,
+          5,
+          1.5
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.orange",
+      "modifiers": [],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.instance_post",
+      "name": "Generated posts",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cylinder",
+        "dimensions": [
+          0.45,
+          0.45,
+          2.4
+        ],
+        "segments": 24,
+        "ring_segments": 12
+      },
+      "transform": {
+        "location": [
+          6,
+          3,
+          1.2
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "material_id": "mat.blue",
+      "modifiers": [],
+      "generator": {
+        "kind": "array",
+        "count": 5,
+        "offset": [
+          0,
+          1.2,
+          0
+        ]
+      },
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": [
+        "showcase"
+      ],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.modifier_mirror",
+      "name": "Mirror modifier half box",
+      "geometry": {
+        "kind": "custom_mesh",
+        "vertices": [
+          [0, -1, 0],
+          [1.4, -1, 0],
+          [1.4, 1, 0],
+          [0, 1, 0],
+          [0, -1, 2],
+          [1.4, -1, 2],
+          [1.4, 1, 2],
+          [0, 1, 2]
+        ],
+        "faces": [
+          [0, 1, 2, 3],
+          [4, 7, 6, 5],
+          [0, 4, 5, 1],
+          [1, 5, 6, 2],
+          [2, 6, 7, 3]
+        ],
+        "path": null,
+        "format": "mesh_json",
+        "recalculate_normals": true
+      },
+      "transform": {
+        "location": [-8, 6.5, 0],
+        "rotation_deg": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material_id": "mat.blue",
+      "modifiers": [
+        {
+          "kind": "mirror",
+          "axes": ["X"],
+          "merge": true,
+          "merge_threshold": 0.001
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": ["showcase", "modifier-coverage"],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.modifier_solidify",
+      "name": "Solidify modifier tilted panel",
+      "geometry": {
+        "kind": "custom_mesh",
+        "vertices": [
+          [-1.3, -1, 0],
+          [1.3, -1, 0.12],
+          [1.3, 1, 0.12],
+          [-1.3, 1, 0]
+        ],
+        "faces": [[0, 1, 2, 3]],
+        "path": null,
+        "format": "mesh_json",
+        "recalculate_normals": true
+      },
+      "transform": {
+        "location": [-3.5, 7, 1],
+        "rotation_deg": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material_id": "mat.green",
+      "modifiers": [
+        {
+          "kind": "solidify",
+          "thickness": 0.25,
+          "offset": 0
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": ["showcase", "modifier-coverage"],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.modifier_array",
+      "name": "Array modifier bars",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "cube",
+        "dimensions": [0.45, 0.7, 2.2],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [3.5, 7, 1.1],
+        "rotation_deg": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material_id": "mat.orange",
+      "modifiers": [
+        {
+          "kind": "array",
+          "count": 4,
+          "offset": [0.9, 0, 0]
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": false,
+      "tags": ["showcase", "modifier-coverage"],
+      "evidence": [],
+      "editable": {}
+    },
+    {
+      "id": "demo.modifier_remesh",
+      "name": "Voxel remesh sphere",
+      "geometry": {
+        "kind": "primitive",
+        "primitive": "sphere",
+        "dimensions": [2.4, 2.4, 2.4],
+        "segments": 32,
+        "ring_segments": 16
+      },
+      "transform": {
+        "location": [8, 7, 1.2],
+        "rotation_deg": [0, 0, 0],
+        "scale": [1, 1, 1]
+      },
+      "material_id": "mat.gray",
+      "modifiers": [
+        {
+          "kind": "remesh",
+          "voxel_size": 0.25,
+          "smooth": true
+        }
+      ],
+      "generator": null,
+      "parent_id": null,
+      "shade_smooth": true,
+      "tags": ["showcase", "modifier-coverage"],
+      "evidence": [],
+      "editable": {}
+    }
+  ],
+  "camera": {
+    "projection": "PERSP",
+    "location": [
+      22,
+      -28,
+      22
+    ],
+    "target": [
+      0,
+      0,
+      2
+    ],
+    "focal_length_mm": 50,
+    "ortho_scale": 28,
+    "resolution": [
+      1024,
+      640
+    ]
+  },
+  "assumptions": [
+    "Demonstration geometry only."
+  ],
+  "revision_notes": []
+}

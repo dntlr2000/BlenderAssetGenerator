@@ -1,0 +1,1366 @@
+from __future__ import annotations
+
+import json
+import shutil
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from .analysis import analyze_job_reference, load_modeling_plan
+from .architecture import (
+    approve_interior_scope,
+    get_interior_scope_status,
+    initialize_interior_scope,
+    validate_job_interior_scope,
+)
+from .auto_revision import (
+    apply_job_approved_revision,
+    approve_job_qa_revision,
+    compile_job_qa_revision,
+)
+from .baking import bake_job_materials
+from .blender_artifact_runner import (
+    inspect_job_materials,
+    render_job_material_swatches,
+)
+from .blender_runner import run_blender
+from .codex_runner import run_codex_json
+from .config import executable_exists, get_settings, load_feature_config
+from .constraints import evaluate_job_constraints, initialize_constraints
+from .materials import (
+    create_material_scaffold,
+    load_material_plan,
+    validate_job_material_contracts,
+)
+from .migration import migrate_v1_file
+from .optimization import (
+    approve_asset_optimization,
+    initialize_asset_profile,
+    optimize_asset,
+    plan_asset_optimization,
+    preflight_asset,
+)
+from .optimization import (
+    asset_status as get_asset_status,
+)
+from .orchestration import (
+    approve_workflow_gate,
+    cancel_workflow,
+    complete_workflow_step,
+    destination_adapters,
+    get_workflow_status,
+    reconcile_workflow,
+    resume_workflow,
+)
+from .orchestration import (
+    plan_workflow as plan_orchestrated_workflow,
+)
+from .orchestration.models import WorkflowBudgets
+from .packaging import package_asset, validate_asset_package
+from .packaging.material_conversion import convert_portable_materials
+from .qa import ExistingFileQATargetProvider, run_job_visual_qa
+from .reporting import generate_job_pdf_report, report_output_dir
+from .revision import apply_revision_plan, sha256_file
+from .texturing import (
+    attach_texture_manifest_to_plan,
+    generate_job_procedural_textures,
+    get_material_family_presets,
+)
+from .validation import load_scene_spec
+from .versioning import PROJECT_VERSION
+from .workspace import (
+    add_job_view,
+    archive_scene_spec,
+    create_job,
+    ensure_job_dirs,
+    find_input_images,
+    job_dir,
+    load_job,
+    metadata_path,
+)
+
+app = typer.Typer(no_args_is_help=True, help="Codex Blender Modeler CLI")
+console = Console()
+
+
+def _scene_spec_path(job_id: str) -> Path:
+    """Resolve the canonical geometry contract for one job."""
+
+    return job_dir(job_id) / "analysis" / "scene_spec.json"
+
+
+def _validate_render_options(render_engine: str, render_device: str) -> None:
+    """Reject renderer/device combinations unsupported by deterministic runners."""
+
+    if render_engine not in {"eevee", "cycles"}:
+        raise typer.BadParameter("render-engine must be eevee or cycles")
+    if render_device not in {"auto", "cpu", "gpu"}:
+        raise typer.BadParameter("render-device must be auto, cpu, or gpu")
+    if render_engine == "eevee" and render_device != "auto":
+        raise typer.BadParameter("render-device must be auto for EEVEE")
+
+
+@app.command()
+def doctor() -> None:
+    """Check local prerequisites and paths."""
+    settings = get_settings()
+    table = Table(title="Codex Blender Modeler doctor")
+    table.add_column("Check")
+    table.add_column("Value")
+    table.add_column("Status")
+    rows = [
+        ("Repository", str(settings.repo_root), settings.repo_root.is_dir()),
+        ("Workspace", str(settings.workspace_root), True),
+        ("Blender", settings.blender_bin, executable_exists(settings.blender_bin)),
+        ("Codex", settings.codex_bin, executable_exists(settings.codex_bin)),
+    ]
+    for name, value, ok in rows:
+        table.add_row(name, value, "OK" if ok else "MISSING")
+    console.print(table)
+    if not all(ok for _, _, ok in rows):
+        raise typer.Exit(code=1)
+
+
+@app.command("blender-compat")
+def blender_compat(
+    smoke_exports: Annotated[bool, typer.Option("--smoke-exports/--no-smoke-exports")] = True,
+) -> None:
+    """Probe Blender APIs and optionally smoke-test GLB/OBJ/FBX exports."""
+    settings = get_settings()
+    report = settings.repo_root / "reports" / "blender_compatibility.json"
+    export_dir = settings.repo_root / "reports" / "compat_exports"
+    args = ["--output", str(report)]
+    if smoke_exports:
+        args.extend(["--smoke-exports", "--export-dir", str(export_dir)])
+    result = run_blender("probe_compat.py", args)
+    console.print(result.stdout.strip())
+    console.print_json(report.read_text(encoding="utf-8"))
+
+
+@app.command("new")
+def new_job(
+    job_id: str,
+    image: Annotated[Path, typer.Option("--image", exists=True, file_okay=True, dir_okay=False)],
+    mode: Annotated[str, typer.Option("--mode")] = "concept",
+    scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
+    view: Annotated[
+        list[str] | None,
+        typer.Option("--view", help="Repeat kind=/absolute/path for front/right/top/blueprint/cad"),
+    ] = None,
+) -> None:
+    """Create a job and copy immutable reference/blueprint images into it."""
+    if mode not in {"concept", "measured"}:
+        raise typer.BadParameter("mode must be concept or measured")
+    additional_views: dict[str, Path] = {}
+    for assignment in view or []:
+        if "=" not in assignment:
+            raise typer.BadParameter("--view must use kind=/absolute/path")
+        kind, raw_path = assignment.split("=", 1)
+        kind = kind.strip().lower()
+        if kind not in {"front", "right", "top", "blueprint", "cad"}:
+            raise typer.BadParameter(f"Unsupported view kind: {kind}")
+        candidate = Path(raw_path).expanduser()
+        if not candidate.is_file():
+            raise typer.BadParameter(f"View file does not exist: {candidate}")
+        additional_views[kind] = candidate
+    metadata = create_job(job_id, image, mode, scale_anchor or [], additional_views)
+    console.print_json(json.dumps(metadata, ensure_ascii=False))
+
+
+@app.command("add-view")
+def add_view(
+    job_id: str,
+    kind: Annotated[str, typer.Option("--kind")],
+    image: Annotated[Path, typer.Option("--image", exists=True, file_okay=True, dir_okay=False)],
+    replace: Annotated[bool, typer.Option("--replace")] = False,
+    scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
+) -> None:
+    """Safely add or explicitly replace one measured/reference view."""
+    result = add_job_view(
+        job_id,
+        kind.strip().lower(),
+        image,
+        replace=replace,
+        scale_anchors=scale_anchor or [],
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("analyze-reference")
+def analyze_reference(
+    job_id: str,
+    provider: Annotated[str, typer.Option("--provider")] = "auto",
+    projection: Annotated[str, typer.Option("--projection")] = "auto",
+    focal_length_mm: Annotated[float | None, typer.Option("--focal-length-mm")] = None,
+    azimuth_deg: Annotated[float | None, typer.Option("--azimuth-deg")] = None,
+    elevation_deg: Annotated[float | None, typer.Option("--elevation-deg")] = None,
+) -> None:
+    """Create deterministic image diagnostics and a camera-solution scaffold."""
+    if provider not in {"auto", "basic", "opencv"}:
+        raise typer.BadParameter("provider must be auto, basic, or opencv")
+    if projection not in {"auto", "persp", "ortho"}:
+        raise typer.BadParameter("projection must be auto, persp, or ortho")
+    result = analyze_job_reference(
+        job_id,
+        provider=provider,  # type: ignore[arg-type]
+        projection_hint=projection,  # type: ignore[arg-type]
+        focal_length_mm=focal_length_mm,
+        azimuth_deg=azimuth_deg,
+        elevation_deg=elevation_deg,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("import-example")
+def import_example(
+    name: Annotated[str, typer.Argument()] = "floating_island",
+) -> None:
+    """Copy a complete bundled example, including deterministic payloads, into a workspace."""
+    settings = get_settings()
+    example = settings.repo_root / "examples" / name
+    if not example.is_dir():
+        raise typer.BadParameter(f"Unknown example: {name}")
+    root = job_dir(name)
+    if root.exists() and any(root.iterdir()):
+        raise FileExistsError(f"Example workspace already exists: {root}")
+    root = ensure_job_dirs(name)
+    reference = example / "reference.png"
+    target_reference = root / "input" / "reference.png"
+    if reference.exists():
+        shutil.copy2(reference, target_reference)
+    shutil.copy2(example / "scene_spec.seed.json", root / "analysis" / "scene_spec.json")
+    for payload_dir in ("geometry", "materials", "textures"):
+        source_dir = example / payload_dir
+        if source_dir.is_dir():
+            shutil.copytree(source_dir, root / payload_dir, dirs_exist_ok=True)
+    modeling_plan_seed = example / "modeling_plan.seed.json"
+    if modeling_plan_seed.exists():
+        target_plan = root / "analysis" / "modeling_plan.json"
+        shutil.copy2(modeling_plan_seed, target_plan)
+        load_modeling_plan(target_plan)
+    constraint_seed = example / "constraints.seed.json"
+    if constraint_seed.exists():
+        shutil.copy2(constraint_seed, root / "constraints" / "constraints.json")
+    material_plan_seed = example / "material_plan.seed.json"
+    if material_plan_seed.exists():
+        target_material_plan = root / "analysis" / "material_plan.json"
+        shutil.copy2(material_plan_seed, target_material_plan)
+        load_material_plan(target_material_plan)
+    metadata = json.loads((example / "job.json").read_text(encoding="utf-8"))
+    if target_reference.exists():
+        metadata["reference_path"] = metadata_path(target_reference)
+        metadata["reference_sha256"] = sha256_file(target_reference)
+        metadata["sources"] = [
+            {
+                "kind": "reference",
+                "path": metadata_path(target_reference),
+                "sha256": sha256_file(target_reference),
+            }
+        ]
+    metadata["project_version_created"] = PROJECT_VERSION
+    (root / "job.json").write_text(
+        json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    load_scene_spec(root / "analysis" / "scene_spec.json")
+    console.print(f"Imported example to {root}")
+
+
+@app.command()
+def analyze(job_id: str) -> None:
+    """Ask Codex to turn the job reference into a schema-valid SceneSpec."""
+    settings = get_settings()
+    metadata = load_job(job_id)
+    images = find_input_images(job_id)
+    template = (settings.repo_root / "prompts" / "analyze_reference.md").read_text(encoding="utf-8")
+    prompt = (
+        template
+        + "\n\n# Job context\n"
+        + json.dumps(metadata, indent=2, ensure_ascii=False)
+        + f"\nTarget job directory: {job_dir(job_id)}\n"
+    )
+    output = _scene_spec_path(job_id)
+    archive_scene_spec(job_id)
+    run_codex_json(
+        prompt=prompt,
+        images=images,
+        schema=settings.repo_root / "schemas" / "scene_spec.schema.json",
+        output=output,
+    )
+    spec = load_scene_spec(output)
+    console.print(f"SceneSpec created: {output} ({len(spec.objects)} objects)")
+
+
+@app.command()
+def revise(job_id: str, request: str) -> None:
+    """Ask Codex to minimally revise the canonical SceneSpec."""
+    settings = get_settings()
+    current = _scene_spec_path(job_id)
+    spec = load_scene_spec(current)
+    preview = job_dir(job_id) / "renders" / "preview.png"
+    images = find_input_images(job_id)
+    if preview.is_file():
+        images.append(preview)
+    template = (settings.repo_root / "prompts" / "revise_scene.md").read_text(encoding="utf-8")
+    prompt = (
+        template
+        + f"\n\nUser request:\n{request}\n"
+        + f"\nCurrent SceneSpec path: {current}\n"
+        + f"Current job ID: {spec.job_id}\n"
+    )
+    temp = job_dir(job_id) / "analysis" / "scene_spec.next.json"
+    run_codex_json(
+        prompt=prompt,
+        images=images,
+        schema=settings.repo_root / "schemas" / "scene_spec.schema.json",
+        output=temp,
+    )
+    next_spec = load_scene_spec(temp)
+    if next_spec.job_id != job_id:
+        raise ValueError(f"Revised SceneSpec job_id changed to {next_spec.job_id}")
+    archived = archive_scene_spec(job_id)
+    temp.replace(current)
+    console.print(f"Revised SceneSpec written: {current}")
+    if archived:
+        console.print(f"Previous revision archived: {archived}")
+
+
+@app.command("migrate-spec")
+def migrate_spec(job_id: str) -> None:
+    """Migrate a primitive-only SceneSpec v0.1 file to v0.2 geometry recipes."""
+    current = _scene_spec_path(job_id)
+    if not current.is_file():
+        raise typer.BadParameter(f"SceneSpec does not exist: {current}")
+    raw = json.loads(current.read_text(encoding="utf-8"))
+    if raw.get("schema_version") == "0.2.0":
+        console.print(f"Already on SceneSpec v0.2.0: {current}")
+        return
+    archived = archive_scene_spec(job_id)
+    migrate_v1_file(current)
+    load_scene_spec(current)
+    console.print(f"Migrated to SceneSpec v0.2.0: {current}")
+    if archived:
+        console.print(f"Previous revision archived: {archived}")
+
+
+
+@app.command("plan-revision")
+def plan_revision(job_id: str, request: str) -> None:
+    """Ask Codex for a small, ID-addressed RevisionPlan without mutating SceneSpec."""
+    settings = get_settings()
+    current = _scene_spec_path(job_id)
+    spec = load_scene_spec(current)
+    preview = job_dir(job_id) / "renders" / "preview.png"
+    images = find_input_images(job_id)
+    if preview.is_file():
+        images.append(preview)
+    template = (settings.repo_root / "prompts" / "plan_revision.md").read_text(
+        encoding="utf-8"
+    )
+    base_hash = sha256_file(current)
+    prompt = (
+        template
+        + f"\n\nUser request:\n{request}\n"
+        + f"\nCurrent SceneSpec path: {current}\n"
+        + f"Exact job_id: {spec.job_id}\n"
+        + f"Exact base_spec_sha256: {base_hash}\n"
+    )
+    output = job_dir(job_id) / "analysis" / "revision_plan.json"
+    run_codex_json(
+        prompt=prompt,
+        images=images,
+        schema=settings.repo_root / "schemas" / "revision_plan.schema.json",
+        output=output,
+    )
+    console.print(f"RevisionPlan created: {output}")
+    console.print_json(output.read_text(encoding="utf-8"))
+
+
+@app.command("apply-revision")
+def apply_revision(job_id: str) -> None:
+    """Apply the current guarded RevisionPlan and emit an exact before/after report."""
+    root = job_dir(job_id)
+    current = _scene_spec_path(job_id)
+    plan = root / "analysis" / "revision_plan.json"
+    if not plan.is_file():
+        raise typer.BadParameter(f"Revision plan does not exist: {plan}")
+    temp = root / "analysis" / "scene_spec.next.json"
+    _validated, report = apply_revision_plan(
+        scene_spec_path=current,
+        plan_path=plan,
+        output_path=temp,
+    )
+    archived = archive_scene_spec(job_id)
+    temp.replace(current)
+    report_path = root / "reports" / "revision_diff.json"
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
+    console.print(f"Guarded revision applied: {current}")
+    if archived:
+        console.print(f"Previous revision archived: {archived}")
+    console.print(f"Exact diff report: {report_path}")
+
+
+
+@app.command("init-constraints")
+def init_constraints(
+    job_id: str,
+    overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
+) -> None:
+    """Create an empty measured-mode constraint contract for a job."""
+    path = initialize_constraints(job_id, overwrite=overwrite)
+    console.print(f"Constraint template: {path}")
+
+
+@app.command("evaluate-constraints")
+def evaluate_constraints(job_id: str) -> None:
+    """Evaluate constraints against the latest Blender scene inventory."""
+    solution = evaluate_job_constraints(job_id)
+    console.print_json(solution.model_dump_json())
+    if not solution.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("material-scaffold")
+def material_scaffold(
+    job_id: str,
+    overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
+) -> None:
+    """Create a V0.5 material plan and portable shader recipes from approved materials."""
+
+    features = load_feature_config().features
+    if not features.material_core or not features.shader_core:
+        raise typer.BadParameter("material_core and shader_core must be enabled in cbm.toml")
+    plan = create_material_scaffold(job_id, overwrite=overwrite)
+    console.print_json(plan.model_dump_json())
+
+
+@app.command("validate-material-contracts")
+def validate_materials(job_id: str) -> None:
+    """Validate V0.5 material plans, shader recipes, and texture manifests on the host."""
+
+    report = validate_job_material_contracts(job_id)
+    console.print_json(json.dumps(report, ensure_ascii=False))
+    if not report["ok"]:
+        raise typer.Exit(code=2)
+
+
+@app.command("material-presets")
+def material_presets() -> None:
+    """List deterministic offline PBR material-family presets."""
+
+    console.print_json(json.dumps(get_material_family_presets(), ensure_ascii=False))
+
+
+@app.command("generate-procedural-textures")
+def generate_procedural_textures(
+    job_id: str,
+    material_id: str,
+    preset: Annotated[str, typer.Option("--preset")] = "standard_pbr",
+    channel: Annotated[list[str] | None, typer.Option("--channel")] = None,
+    resolution: Annotated[int, typer.Option("--resolution", min=16, max=8192)] = 512,
+    seed: Annotated[int, typer.Option("--seed", min=0)] = 0,
+    intended_scale_m: Annotated[float, typer.Option("--scale-m", min=0.000001)] = 1.0,
+    prompt: Annotated[str, typer.Option("--prompt")] = "",
+    uv_set: Annotated[str, typer.Option("--uv-set")] = "Object",
+    overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
+    attach: Annotated[bool, typer.Option("--attach/--no-attach")] = True,
+) -> None:
+    """Generate reproducible local PBR maps and optionally attach their manifest."""
+
+    config = load_feature_config()
+    if config.features.texture_provider != "procedural":
+        raise typer.BadParameter("features.texture_provider must be procedural")
+    result = generate_job_procedural_textures(
+        job_id,
+        material_id,
+        preset=preset,
+        channels=channel or (
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "emission",
+        ),
+        resolution=(resolution, resolution),
+        seed=seed,
+        intended_scale_m=intended_scale_m,
+        prompt=prompt,
+        uv_set=uv_set,
+        overwrite=overwrite,
+        attach=attach,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("attach-texture-manifest")
+def attach_texture_manifest(
+    job_id: str,
+    material_id: str,
+    manifest_path: Annotated[str, typer.Option("--manifest")],
+) -> None:
+    """Attach one validated job-local texture manifest to a stable material ID."""
+
+    plan = attach_texture_manifest_to_plan(job_id, material_id, manifest_path)
+    console.print_json(plan.model_dump_json())
+
+
+@app.command("bake-materials")
+def bake_materials(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "gltf_pbr",
+    resolution: Annotated[int, typer.Option("--resolution", min=1, max=8192)] = 1024,
+    margin_px: Annotated[int, typer.Option("--margin-px", min=0)] = 16,
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+    material_id: Annotated[list[str] | None, typer.Option("--material-id")] = None,
+    strict: Annotated[bool, typer.Option("--strict/--allow-partial")] = True,
+) -> None:
+    """Bake bounded portable PBR channels from the latest approved Blender scene."""
+
+    if render_device not in {"auto", "cpu", "gpu"}:
+        raise typer.BadParameter("render-device must be auto, cpu, or gpu")
+    report = bake_job_materials(
+        job_id,
+        profile=profile,  # type: ignore[arg-type]
+        resolution=resolution,
+        margin_px=margin_px,
+        render_device=render_device,  # type: ignore[arg-type]
+        material_ids=material_id,
+        strict=strict,
+    )
+    console.print_json(json.dumps(report, ensure_ascii=False))
+
+
+@app.command("inspect-materials")
+def inspect_materials(job_id: str) -> None:
+    """Inspect applied Blender node graphs, images, color spaces, and UV statistics."""
+
+    report = inspect_job_materials(job_id)
+    console.print_json(json.dumps(report, ensure_ascii=False))
+    if not report.get("ok", False):
+        raise typer.Exit(code=2)
+
+
+@app.command("render-material-swatches")
+def render_material_swatches(
+    job_id: str,
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+    size: Annotated[int, typer.Option("--size", min=128, max=2048)] = 512,
+    material_id: Annotated[list[str] | None, typer.Option("--material-id")] = None,
+) -> None:
+    """Render fixed sphere and plane previews for selected stable material IDs."""
+
+    _validate_render_options(render_engine, render_device)
+    manifest = render_job_material_swatches(
+        job_id,
+        render_engine=render_engine,
+        render_device=render_device,
+        size=size,
+        material_ids=material_id,
+    )
+    console.print_json(json.dumps(manifest, ensure_ascii=False))
+
+
+@app.command("report-pdf")
+def report_pdf(
+    job_id: str,
+    scope: Annotated[str, typer.Option("--scope")] = "full",
+    qa_run_id: Annotated[str, typer.Option("--qa-run-id")] = "latest",
+    optimization_run_id: Annotated[
+        str, typer.Option("--optimization-run-id")
+    ] = "latest",
+    package_id: Annotated[str, typer.Option("--package-id")] = "latest",
+    output: Annotated[Path | None, typer.Option("--output")] = None,
+) -> None:
+    """Generate a Korean human-readable PDF while preserving canonical JSON reports."""
+
+    if scope not in {"build", "material", "qa", "export", "full"}:
+        raise typer.BadParameter("scope must be build, material, qa, export, or full")
+    result = generate_job_pdf_report(
+        job_id,
+        scope=scope,  # type: ignore[arg-type]
+        qa_run_id=qa_run_id,
+        optimization_run_id=optimization_run_id,
+        package_id=package_id,
+        output_path=output,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("visual-qa")
+def visual_qa(
+    job_id: str,
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    generated_target: Annotated[bool, typer.Option("--generated-target")] = False,
+    target_image: Annotated[Path | None, typer.Option("--target-image")] = None,
+    target_model: Annotated[str, typer.Option("--target-model")] = "external-image-model",
+    target_model_version: Annotated[
+        str | None, typer.Option("--target-model-version")
+    ] = None,
+    target_seed: Annotated[int | None, typer.Option("--target-seed", min=0)] = None,
+    target_allowed_root: Annotated[
+        Path | None, typer.Option("--target-allowed-root")
+    ] = None,
+    target_prompt_file: Annotated[
+        Path | None, typer.Option("--target-prompt-file")
+    ] = None,
+) -> None:
+    """Render V0.6 passes and optionally import one advisory image-model target."""
+
+    _validate_render_options(render_engine, render_device)
+    features = load_feature_config()
+    include_target = generated_target or target_image is not None
+    if not features.features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    if include_target and not features.features.image_model_qa:
+        raise typer.BadParameter("image_model_qa is disabled in cbm.toml")
+    if generated_target and target_image is None:
+        raise typer.BadParameter(
+            "The local CLI has no bundled image generator; pass --target-image with the "
+            "explicitly generated advisory image."
+        )
+    if target_image is not None and target_prompt_file is None:
+        raise typer.BadParameter(
+            "--target-image requires --target-prompt-file so the actual generation prompt "
+            "can be hashed for provenance."
+        )
+    target_prompt = None
+    if target_prompt_file is not None:
+        try:
+            target_prompt = target_prompt_file.expanduser().resolve(strict=True).read_text(
+                encoding="utf-8"
+            ).strip()
+        except OSError as exc:
+            raise typer.BadParameter(f"Cannot read target prompt file: {exc}") from exc
+        if not target_prompt:
+            raise typer.BadParameter("target prompt file must not be empty")
+    provider = (
+        ExistingFileQATargetProvider(
+            target_image,
+            model=target_model,
+            model_version=target_model_version,
+            seed=target_seed,
+            allowed_root=target_allowed_root,
+        )
+        if target_image is not None
+        else None
+    )
+    result = run_job_visual_qa(
+        job_id,
+        render_engine=render_engine,
+        render_device=render_device,
+        run_id=run_id,
+        include_generated_target=include_target,
+        provider=provider,
+        target_prompt=target_prompt,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-compile-revision")
+def qa_compile_revision(
+    job_id: str,
+    run_id: str,
+    candidate_id: Annotated[list[str], typer.Option("--candidate-id")],
+    request: Annotated[str, typer.Option("--request")],
+) -> None:
+    """Compile selected safe QA candidates without creating or implying approval."""
+
+    config = load_feature_config()
+    if config.qa.revision_mode == "off":
+        raise typer.BadParameter("qa.revision_mode is off in cbm.toml")
+    result = compile_job_qa_revision(
+        job_id,
+        run_id,
+        selected_candidate_ids=candidate_id,
+        request=request,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-approve-revision")
+def qa_approve_revision(
+    job_id: str,
+    run_id: str,
+    candidate_id: Annotated[list[str], typer.Option("--candidate-id")],
+) -> None:
+    """Record the user's explicit, hash-bound, single-use approval for selected candidates."""
+
+    config = load_feature_config()
+    if config.qa.revision_mode not in {"approve", "auto"}:
+        raise typer.BadParameter("qa.revision_mode must be approve or auto in cbm.toml")
+    result = approve_job_qa_revision(
+        job_id,
+        run_id,
+        approved_candidate_ids=candidate_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-apply-approved")
+def qa_apply_approved(
+    job_id: str,
+    run_id: str,
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+    minimum_improvement: Annotated[
+        float, typer.Option("--minimum-improvement", min=0.0, max=1.0)
+    ] = 0.001,
+) -> None:
+    """Apply one approved QA revision and accept or automatically restore after verification."""
+
+    _validate_render_options(render_engine, render_device)
+    config = load_feature_config()
+    if config.qa.revision_mode not in {"approve", "auto"}:
+        raise typer.BadParameter("qa.revision_mode must be approve or auto in cbm.toml")
+    if config.qa.max_revision_iterations < 1:
+        raise typer.BadParameter("qa.max_revision_iterations must allow one iteration")
+    result = apply_job_approved_revision(
+        job_id,
+        run_id,
+        run_pipeline=True,
+        render_engine=render_engine,
+        render_device=render_device,
+        minimum_improvement=minimum_improvement,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("asset-profile-init")
+def asset_profile_init(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    asset_kind: Annotated[str, typer.Option("--asset-kind")] = "static_prop",
+    consolidation: Annotated[
+        str, typer.Option("--consolidation")
+    ] = "by_semantic_group",
+    spatial_cell_size_m: Annotated[
+        float, typer.Option("--spatial-cell-size-m")
+    ] = 25.0,
+    maximum_objects_per_batch: Annotated[
+        int, typer.Option("--maximum-objects-per-batch")
+    ] = 64,
+    lod_mode: Annotated[str, typer.Option("--lod-mode")] = "profile_default",
+    collision_strategy: Annotated[
+        str, typer.Option("--collision-strategy")
+    ] = "profile_default",
+    max_collider_hulls_per_object: Annotated[
+        int, typer.Option("--max-collider-hulls-per-object")
+    ] = 8,
+    max_collider_triangles_per_object: Annotated[
+        int, typer.Option("--max-collider-triangles-per-object")
+    ] = 256,
+    budget_enforcement: Annotated[
+        str, typer.Option("--budget-enforcement")
+    ] = "warning",
+    max_render_objects: Annotated[
+        int | None, typer.Option("--max-render-objects")
+    ] = None,
+    max_material_slots: Annotated[
+        int | None, typer.Option("--max-material-slots")
+    ] = None,
+    max_draw_calls: Annotated[int | None, typer.Option("--max-draw-calls")] = None,
+    max_lod0_triangles: Annotated[
+        int | None, typer.Option("--max-lod0-triangles")
+    ] = None,
+    max_collider_triangles: Annotated[
+        int | None, typer.Option("--max-collider-triangles")
+    ] = None,
+    max_overlap_candidates: Annotated[
+        int | None, typer.Option("--max-overlap-candidates")
+    ] = None,
+    overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
+) -> None:
+    """Initialize one engine-neutral profile with explicit optimization defaults."""
+
+    if profile not in {"portable_gltf", "fbx_interchange", "obj_legacy"}:
+        raise typer.BadParameter(
+            "profile must be portable_gltf, fbx_interchange, or obj_legacy"
+        )
+    if asset_kind not in {"static_prop", "static_environment", "static_architecture"}:
+        raise typer.BadParameter(
+            "asset-kind must be static_prop, static_environment, or static_architecture"
+        )
+    if consolidation not in {"none", "by_semantic_group", "by_spatial_cell"}:
+        raise typer.BadParameter(
+            "consolidation must be none, by_semantic_group, or by_spatial_cell"
+        )
+    if budget_enforcement not in {"warning", "fail"}:
+        raise typer.BadParameter("budget-enforcement must be warning or fail")
+    if lod_mode not in {"profile_default", "enabled", "disabled"}:
+        raise typer.BadParameter("lod-mode must be profile_default, enabled, or disabled")
+    if collision_strategy not in {
+        "profile_default",
+        "none",
+        "box",
+        "sphere",
+        "capsule",
+        "convex_hull",
+        "compound",
+        "mesh_proxy",
+    }:
+        raise typer.BadParameter(
+            "collision-strategy must be profile_default, none, box, sphere, capsule, "
+            "convex_hull, compound, or mesh_proxy"
+        )
+    result = initialize_asset_profile(
+        job_id,
+        profile_id=profile,
+        asset_kind=asset_kind,  # type: ignore[arg-type]
+        consolidation_mode=consolidation,  # type: ignore[arg-type]
+        spatial_cell_size_m=spatial_cell_size_m,
+        maximum_objects_per_batch=maximum_objects_per_batch,
+        lod_mode=lod_mode,  # type: ignore[arg-type]
+        collision_strategy=collision_strategy,  # type: ignore[arg-type]
+        max_collider_hulls_per_object=max_collider_hulls_per_object,
+        max_collider_triangles_per_object=max_collider_triangles_per_object,
+        budget_enforcement=budget_enforcement,
+        max_lod0_render_objects=max_render_objects,
+        max_lod0_material_slots=max_material_slots,
+        max_lod0_estimated_draw_calls=max_draw_calls,
+        max_lod0_triangles=max_lod0_triangles,
+        max_collider_triangles=max_collider_triangles,
+        max_overlap_candidates=max_overlap_candidates,
+        overwrite=overwrite,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("interior-scope-init")
+def interior_scope_init(
+    job_id: str,
+    policy: Annotated[str, typer.Option("--policy")] = "disabled",
+    request: Annotated[str, typer.Option("--request")] = "",
+    allow_prefix: Annotated[list[str] | None, typer.Option("--allow-prefix")] = None,
+    exclude_prefix: Annotated[list[str] | None, typer.Option("--exclude-prefix")] = None,
+    level: Annotated[list[str] | None, typer.Option("--level")] = None,
+    space: Annotated[list[str] | None, typer.Option("--space")] = None,
+    furnishing: Annotated[str, typer.Option("--furnishing")] = "none",
+    evidence_status: Annotated[str | None, typer.Option("--evidence-status")] = None,
+    assumption: Annotated[list[str] | None, typer.Option("--assumption")] = None,
+    note: Annotated[list[str] | None, typer.Option("--note")] = None,
+    overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
+) -> None:
+    """Create an explicit interior boundary without authorizing or changing geometry."""
+
+    evidence_defaults = {
+        "disabled": "not_applicable",
+        "visible_only": "observed",
+        "proxy": "inferred",
+        "measured": "measured",
+        "authored": "authored",
+    }
+    if policy not in evidence_defaults:
+        raise typer.BadParameter(
+            "policy must be disabled, visible_only, proxy, measured, or authored"
+        )
+    scope = initialize_interior_scope(
+        job_id,
+        policy=policy,
+        request=request,
+        allowed_semantic_prefixes=allow_prefix or [],
+        excluded_semantic_prefixes=exclude_prefix or [],
+        levels=level or [],
+        spaces=space or [],
+        furnishing=furnishing,
+        evidence_status=evidence_status or evidence_defaults[policy],
+        assumptions=assumption or [],
+        notes=note or [],
+        overwrite=overwrite,
+    )
+    result = get_interior_scope_status(job_id)
+    result["scope"] = scope.model_dump(mode="json")
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("interior-scope-approve")
+def interior_scope_approve(
+    job_id: str,
+    scope_sha256: Annotated[str, typer.Option("--scope-sha256")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+) -> None:
+    """Persist one exact approval only after a human-facing interactive confirmation."""
+
+    expected_confirmation = f"APPROVE {scope_sha256}"
+    confirmation = typer.prompt(
+        "Manual approval required. Type the exact phrase "
+        f"'{expected_confirmation}'"
+    )
+    if confirmation.strip() != expected_confirmation:
+        raise typer.Abort()
+    approval = approve_interior_scope(
+        job_id,
+        scope_sha256=scope_sha256,
+        approval_note=approval_note,
+        manual_confirmation=True,
+    )
+    console.print_json(approval.model_dump_json())
+
+
+@app.command("interior-scope-status")
+def interior_scope_status(job_id: str) -> None:
+    """Show the effective interior policy without creating any contract files."""
+
+    console.print_json(json.dumps(get_interior_scope_status(job_id), ensure_ascii=False))
+
+
+@app.command("interior-scope-validate")
+def interior_scope_validate(job_id: str) -> None:
+    """Validate canonical SceneSpec interiors against the current approved scope."""
+
+    report = validate_job_interior_scope(job_id, write_report=True)
+    console.print_json(report.model_dump_json())
+    if not report.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("asset-preflight")
+def asset_preflight(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Inspect canonical mesh portability without changing the authoring scene."""
+
+    result = preflight_asset(job_id, profile_id=profile, run_id=run_id)
+    console.print_json(result.model_dump_json())
+    if not result.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("asset-optimize")
+def asset_optimize(
+    job_id: str,
+    approved_plan_sha256: Annotated[
+        str, typer.Option("--approved-plan-sha256")
+    ],
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Execute one reviewed and explicitly approved run-owned optimization plan."""
+
+    result = optimize_asset(
+        job_id,
+        profile_id=profile,
+        run_id=run_id,
+        approved_plan_sha256=approved_plan_sha256,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-plan")
+def asset_plan(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Show exact LOD, collider, batching, and cost assumptions before execution."""
+
+    result = plan_asset_optimization(job_id, profile_id=profile, run_id=run_id)
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-plan-approve")
+def asset_plan_approve(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+) -> None:
+    """Record one hash-bound user approval for a reviewed optimization plan."""
+
+    result = approve_asset_optimization(
+        job_id,
+        run_id=run_id,
+        plan_sha256=plan_sha256,
+        approval_note=approval_note,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-package")
+def asset_package(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    package_id: Annotated[str | None, typer.Option("--package-id")] = None,
+    material_conversion_id: Annotated[
+        str | None, typer.Option("--material-conversion-id")
+    ] = None,
+    include_colliders: Annotated[
+        bool, typer.Option("--include-colliders/--exclude-colliders")
+    ] = True,
+) -> None:
+    """Build one immutable portable package from a complete optimization run."""
+
+    result = package_asset(
+        job_id,
+        profile_id=profile,
+        run_id=run_id,
+        package_id=package_id,
+        material_conversion_id=material_conversion_id,
+        include_colliders=include_colliders,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-material-convert")
+def asset_material_convert(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    conversion_id: Annotated[str, typer.Option("--conversion-id")],
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    resolution: Annotated[int, typer.Option("--resolution", min=16)] = 1024,
+    margin_px: Annotated[int, typer.Option("--margin-px", min=1)] = 16,
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+) -> None:
+    """Bake run-owned portable PBR atlases without changing authoring materials."""
+
+    if render_device not in {"auto", "cpu", "gpu"}:
+        raise typer.BadParameter("render-device must be auto, cpu, or gpu")
+    result = convert_portable_materials(
+        job_id,
+        profile_id=profile,
+        run_id=run_id,
+        conversion_id=conversion_id,
+        resolution=resolution,
+        margin_px=margin_px,
+        render_device=render_device,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-validate")
+def asset_validate(
+    job_id: str,
+    package_id: Annotated[str, typer.Option("--package-id")],
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    bounds_tolerance_m: Annotated[
+        float, typer.Option("--bounds-tolerance-m", min=0.000001)
+    ] = 0.0001,
+) -> None:
+    """Clean-import one immutable package and verify normalized portable semantics."""
+
+    result = validate_asset_package(
+        job_id,
+        package_id,
+        profile_id=profile,
+        bounds_tolerance_m=bounds_tolerance_m,
+    )
+    console.print_json(result.model_dump_json())
+    if not result.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("asset-status")
+def portable_asset_status(job_id: str) -> None:
+    """Show V0.7 profiles, optimization runs, packages, and validation evidence."""
+
+    console.print_json(json.dumps(get_asset_status(job_id), ensure_ascii=False))
+
+
+@app.command("workflow-plan")
+def workflow_plan_command(
+    request: Annotated[str, typer.Option("--request")],
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    reference_path: Annotated[str | None, typer.Option("--reference-path")] = None,
+    intent: Annotated[str, typer.Option("--intent")] = "auto",
+    scope: Annotated[str, typer.Option("--scope")] = "auto",
+    mode: Annotated[str, typer.Option("--mode")] = "concept",
+    view_kind: Annotated[str | None, typer.Option("--view-kind")] = None,
+    replace_view: Annotated[bool, typer.Option("--replace-view")] = False,
+    scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    destination: Annotated[str, typer.Option("--destination")] = "unspecified",
+    destination_name: Annotated[
+        str | None, typer.Option("--destination-name")
+    ] = None,
+    destination_version: Annotated[
+        str | None, typer.Option("--destination-version")
+    ] = None,
+    max_host_steps: Annotated[int, typer.Option("--max-host-steps", min=1, max=64)] = 8,
+    max_qa_iterations: Annotated[
+        int, typer.Option("--max-qa-iterations", min=0, max=10)
+    ] = 1,
+    max_texture_resolution: Annotated[
+        int, typer.Option("--max-texture-resolution", min=16, max=8192)
+    ] = 2048,
+    max_lod0_triangles: Annotated[
+        int | None, typer.Option("--max-lod0-triangles", min=1)
+    ] = None,
+    external_provider_budget: Annotated[
+        int, typer.Option("--external-provider-budget", min=0, max=100)
+    ] = 0,
+) -> None:
+    """Route one short request into an immutable approval-aware workflow plan."""
+
+    state = plan_orchestrated_workflow(
+        request,
+        job_id=job_id,
+        reference_path=reference_path,
+        intent=intent,
+        scope=scope,
+        mode=mode,
+        view_kind=view_kind,
+        replace_view=replace_view,
+        scale_anchors=scale_anchor or [],
+        profile_id=profile,
+        destination_kind=destination,
+        destination_name=destination_name,
+        destination_version=destination_version,
+        budgets=WorkflowBudgets(
+            max_host_steps_per_resume=max_host_steps,
+            max_qa_iterations=max_qa_iterations,
+            max_texture_resolution=max_texture_resolution,
+            max_lod0_triangles=max_lod0_triangles,
+            external_provider_budget=external_provider_budget,
+        ),
+    )
+    console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-status")
+def workflow_status_command(
+    job_id: str,
+    workflow_id: Annotated[str | None, typer.Option("--workflow-id")] = None,
+) -> None:
+    """Read one persisted workflow state without executing or approving anything."""
+
+    console.print_json(
+        json.dumps(get_workflow_status(job_id, workflow_id), ensure_ascii=False)
+    )
+
+
+@app.command("workflow-reconcile")
+def workflow_reconcile_command(job_id: str, workflow_id: str) -> None:
+    """Reconstruct workflow state from exact current artifacts and receipts."""
+
+    state = reconcile_workflow(job_id, workflow_id)
+    console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-resume")
+def workflow_resume_command(
+    job_id: str,
+    workflow_id: str,
+    max_host_steps: Annotated[
+        int | None, typer.Option("--max-host-steps", min=1, max=64)
+    ] = None,
+    retry_failed: Annotated[
+        bool,
+        typer.Option(
+            "--retry-failed",
+            help="Explicitly retry only the current failed deterministic host step.",
+        ),
+    ] = False,
+) -> None:
+    """Run deterministic host steps, requiring an explicit flag for failed retries."""
+
+    state = resume_workflow(
+        job_id,
+        workflow_id,
+        max_host_steps=max_host_steps,
+        retry_failed=retry_failed,
+    )
+    console.print_json(state.model_dump_json())
+    if state.status == "failed":
+        raise typer.Exit(code=2)
+
+
+@app.command("workflow-complete-step")
+def workflow_complete_step_command(
+    job_id: str,
+    workflow_id: str,
+    step_id: Annotated[str, typer.Option("--step-id")],
+    input_fingerprint: Annotated[str, typer.Option("--input-fingerprint")],
+    note: Annotated[str, typer.Option("--note")],
+) -> None:
+    """Bind one agent-authored output marker to current workflow inputs and files."""
+
+    state = complete_workflow_step(
+        job_id,
+        workflow_id,
+        step_id,
+        input_fingerprint=input_fingerprint,
+        note=note,
+    )
+    console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-approve")
+def workflow_approve_command(
+    job_id: str,
+    workflow_id: str,
+    step_id: Annotated[str, typer.Option("--step-id")],
+    artifact_fingerprint: Annotated[str, typer.Option("--artifact-fingerprint")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+) -> None:
+    """Approve one exact generic checkpoint without bypassing specialized approvals."""
+
+    state = approve_workflow_gate(
+        job_id,
+        workflow_id,
+        step_id,
+        artifact_fingerprint=artifact_fingerprint,
+        approval_note=approval_note,
+    )
+    console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-cancel")
+def workflow_cancel_command(
+    job_id: str,
+    workflow_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Stop future workflow execution without deleting any generated evidence."""
+
+    state = cancel_workflow(job_id, workflow_id, reason=reason)
+    console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-adapters")
+def workflow_adapters_command() -> None:
+    """List validated destination capabilities and engine-neutral fallbacks."""
+
+    console.print_json(json.dumps(destination_adapters(), ensure_ascii=False))
+
+
+@app.command()
+def build(job_id: str) -> None:
+    """Build blender/scene.blend from analysis/scene_spec.json."""
+    root = job_dir(job_id)
+    spec_path = root / "analysis" / "scene_spec.json"
+    load_scene_spec(spec_path)
+    output = root / "blender" / "scene.blend"
+    result = run_blender("build_scene.py", ["--spec", str(spec_path), "--output", str(output)])
+    console.print(result.stdout.strip())
+    console.print(f"Built: {output}")
+
+
+@app.command()
+def render(job_id: str) -> None:
+    """Render a comparison preview."""
+    root = job_dir(job_id)
+    blend = root / "blender" / "scene.blend"
+    output = root / "renders" / "preview.png"
+    result = run_blender(
+        "render_preview.py",
+        ["--output", str(output)],
+        blend_file=blend,
+    )
+    console.print(result.stdout.strip())
+    console.print(f"Rendered: {output}")
+
+
+@app.command()
+def inspect(job_id: str) -> None:
+    """Write a scene inventory report."""
+    root = job_dir(job_id)
+    blend = root / "blender" / "scene.blend"
+    output = root / "reports" / "scene_inventory.json"
+    run_blender("inspect_scene.py", ["--output", str(output)], blend_file=blend)
+    console.print(f"Inventory: {output}")
+
+
+@app.command()
+def validate(job_id: str) -> None:
+    """Run deterministic schema and Blender scene checks."""
+    root = job_dir(job_id)
+    spec_path = root / "analysis" / "scene_spec.json"
+    load_scene_spec(spec_path)
+    validate_job_interior_scope(job_id, write_report=True)
+    blend = root / "blender" / "scene.blend"
+    output = root / "reports" / "validation.json"
+    run_blender(
+        "validate_scene.py",
+        ["--spec", str(spec_path), "--output", str(output)],
+        blend_file=blend,
+    )
+    report = json.loads(output.read_text(encoding="utf-8"))
+    console.print_json(json.dumps(report, ensure_ascii=False))
+    if not report.get("ok", False):
+        raise typer.Exit(code=2)
+
+
+@app.command("export")
+def export_scene(
+    job_id: str,
+    format: Annotated[str, typer.Option("--format")] = "glb",
+) -> None:
+    """Export the generated scene."""
+    if format not in {"glb", "gltf", "obj", "fbx"}:
+        raise typer.BadParameter("format must be glb, gltf, obj, or fbx")
+    root = job_dir(job_id)
+    blend = root / "blender" / "scene.blend"
+    suffix = ".glb" if format == "glb" else f".{format}"
+    output = root / "exports" / f"scene{suffix}"
+    run_blender(
+        "export_scene.py",
+        ["--format", format, "--output", str(output)],
+        blend_file=blend,
+    )
+    console.print(f"Exported: {output}")
+
+
+@app.command()
+def status(job_id: str) -> None:
+    """Show job files and current SceneSpec counts."""
+    root = job_dir(job_id)
+    metadata = load_job(job_id)
+    table = Table(title=f"Job: {job_id}")
+    table.add_column("Item")
+    table.add_column("Status")
+    table.add_row("Mode", metadata.get("mode", "unknown"))
+    interior = get_interior_scope_status(job_id)
+    table.add_row(
+        "Interior policy",
+        f"{interior['effective_policy']} ({interior['scope_state']})",
+    )
+    for rel in [
+        "job.json",
+        "analysis/reference_analysis.json",
+        "analysis/camera_solution.json",
+        "analysis/modeling_plan.json",
+        "analysis/scene_spec.json",
+        "analysis/material_plan.json",
+        "architecture/interior_scope.json",
+        "architecture/interior_scope.approval.json",
+        "constraints/constraints.json",
+        "blender/scene.blend",
+        "renders/preview.png",
+        "reports/scene_inventory.json",
+        "reports/validation.json",
+        "reports/constraint_solution.json",
+        "reports/material_contract_validation.json",
+        "reports/material_validation.json",
+        "reports/material_swatches.json",
+        "reports/material_bakes.json",
+        "reports/interior_scope_validation.json",
+        "qa/latest.json",
+        "optimization/latest.json",
+        "exports/scene.glb",
+    ]:
+        table.add_row(rel, "exists" if (root / rel).exists() else "missing")
+    pdf_root = report_output_dir(job_id)
+    for name in (
+        "build_report.pdf",
+        "material_report.pdf",
+        "qa_report.pdf",
+        "export_report.pdf",
+        "full_report.pdf",
+    ):
+        path = pdf_root / name
+        table.add_row(f"output/pdf/{job_id}/{name}", "exists" if path.exists() else "missing")
+    console.print(table)
+
+
+if __name__ == "__main__":
+    app()

@@ -1,0 +1,246 @@
+{
+  "$defs": {
+    "ConstraintRegression": {
+      "additionalProperties": false,
+      "description": "Describe one measured constraint that became less acceptable after revision.",
+      "properties": {
+        "constraint_id": {
+          "title": "Constraint Id",
+          "type": "string"
+        },
+        "before_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "passed",
+                "failed",
+                "missing",
+                "disabled"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Status"
+        },
+        "after_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "passed",
+                "failed",
+                "missing",
+                "disabled"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Status"
+        },
+        "before_residual_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Residual M"
+        },
+        "after_residual_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Residual M"
+        },
+        "before_tolerance_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Tolerance M"
+        },
+        "after_tolerance_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Tolerance M"
+        },
+        "before_residual_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Residual Ratio"
+        },
+        "after_residual_ratio": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Residual Ratio"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "constraint_id",
+        "reasons"
+      ],
+      "title": "ConstraintRegression",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Decide whether one approved revision improved direct evidence without regressions.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "before_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Before Report Sha256",
+      "type": "string"
+    },
+    "after_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "After Report Sha256",
+      "type": "string"
+    },
+    "before_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Before Direct Score",
+      "type": "number"
+    },
+    "after_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "After Direct Score",
+      "type": "number"
+    },
+    "score_delta": {
+      "title": "Score Delta",
+      "type": "number"
+    },
+    "before_failed_constraints": {
+      "minimum": 0,
+      "title": "Before Failed Constraints",
+      "type": "integer"
+    },
+    "after_failed_constraints": {
+      "minimum": 0,
+      "title": "After Failed Constraints",
+      "type": "integer"
+    },
+    "constraint_regressions": {
+      "items": {
+        "$ref": "#/$defs/ConstraintRegression"
+      },
+      "title": "Constraint Regressions",
+      "type": "array"
+    },
+    "changed_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Ids",
+      "type": "array"
+    },
+    "preserved_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preserved Ids",
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "improved",
+        "no_change",
+        "regressed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "accepted": {
+      "title": "Accepted",
+      "type": "boolean"
+    },
+    "rollback_required": {
+      "title": "Rollback Required",
+      "type": "boolean"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "before_report_sha256",
+    "after_report_sha256",
+    "before_direct_score",
+    "after_direct_score",
+    "score_delta",
+    "before_failed_constraints",
+    "after_failed_constraints",
+    "status",
+    "accepted",
+    "rollback_required"
+  ],
+  "title": "ConvergenceReport",
+  "type": "object"
+}

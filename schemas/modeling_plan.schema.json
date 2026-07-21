@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "ModelingPlanObject": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "recommended_geometry": {
+          "default": "undecided",
+          "enum": [
+            "primitive",
+            "profile_extrude",
+            "revolve",
+            "curve",
+            "terrain",
+            "custom_mesh",
+            "undecided"
+          ],
+          "title": "Recommended Geometry",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Norm"
+        },
+        "observed": {
+          "default": true,
+          "title": "Observed",
+          "type": "boolean"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "ModelingPlanObject",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "stage": {
+            "const": "authored"
+          }
+        },
+        "required": [
+          "stage"
+        ]
+      },
+      "then": {
+        "properties": {
+          "objects": {
+            "minItems": 1
+          }
+        },
+        "required": [
+          "objects"
+        ]
+      }
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0",
+      "default": "0.4.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "reference_analysis_path": {
+      "title": "Reference Analysis Path",
+      "type": "string"
+    },
+    "camera_solution_path": {
+      "title": "Camera Solution Path",
+      "type": "string"
+    },
+    "stage": {
+      "default": "scaffold",
+      "enum": [
+        "scaffold",
+        "authored"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ModelingPlanObject"
+      },
+      "title": "Objects",
+      "type": "array"
+    },
+    "global_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Global Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "reference_analysis_path",
+    "camera_solution_path"
+  ],
+  "title": "ModelingPlan",
+  "type": "object"
+}

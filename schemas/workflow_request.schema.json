@@ -1,0 +1,263 @@
+{
+  "$defs": {
+    "DestinationRequest": {
+      "additionalProperties": false,
+      "description": "Record an explicit destination without inferring an engine from asset purpose.",
+      "properties": {
+        "kind": {
+          "default": "unspecified",
+          "enum": [
+            "unspecified",
+            "engine_neutral",
+            "unity",
+            "unreal",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "title": "DestinationRequest",
+      "type": "object"
+    },
+    "WorkflowBudgets": {
+      "additionalProperties": false,
+      "description": "Bound orchestration work without silently broadening modeling scope.",
+      "properties": {
+        "max_host_steps_per_resume": {
+          "default": 8,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Max Host Steps Per Resume",
+          "type": "integer"
+        },
+        "max_qa_iterations": {
+          "default": 1,
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Max Qa Iterations",
+          "type": "integer"
+        },
+        "max_texture_resolution": {
+          "default": 2048,
+          "maximum": 8192,
+          "minimum": 16,
+          "title": "Max Texture Resolution",
+          "type": "integer"
+        },
+        "max_lod0_triangles": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Triangles"
+        },
+        "external_provider_budget": {
+          "default": 0,
+          "maximum": 100,
+          "minimum": 0,
+          "title": "External Provider Budget",
+          "type": "integer"
+        }
+      },
+      "title": "WorkflowBudgets",
+      "type": "object"
+    },
+    "WorkflowInputArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one copied workflow input to a safe job-relative path and digest.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "reference",
+            "front",
+            "right",
+            "top",
+            "blueprint",
+            "cad"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "WorkflowInputArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Persist one normalized short request without absolute source paths or secrets.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "raw_request": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Raw Request",
+      "type": "string"
+    },
+    "intent_hint": {
+      "default": "auto",
+      "enum": [
+        "auto",
+        "new_asset",
+        "revise_asset",
+        "add_measured_view",
+        "interior_scope",
+        "material_authoring",
+        "visual_qa",
+        "portable_package"
+      ],
+      "title": "Intent Hint",
+      "type": "string"
+    },
+    "requested_scope": {
+      "enum": [
+        "analysis_only",
+        "proxy_only",
+        "geometry_only",
+        "interior_only",
+        "material_only",
+        "qa_only",
+        "portable_only",
+        "full"
+      ],
+      "title": "Requested Scope",
+      "type": "string"
+    },
+    "mode": {
+      "default": "concept",
+      "enum": [
+        "concept",
+        "measured"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "primary_reference": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkflowInputArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "staged_view": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/WorkflowInputArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "replace_existing_view": {
+      "default": false,
+      "title": "Replace Existing View",
+      "type": "boolean"
+    },
+    "scale_anchors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scale Anchors",
+      "type": "array"
+    },
+    "profile_id": {
+      "default": "portable_gltf",
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "destination": {
+      "$ref": "#/$defs/DestinationRequest"
+    },
+    "budgets": {
+      "$ref": "#/$defs/WorkflowBudgets"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "workflow_id",
+    "job_id",
+    "raw_request",
+    "requested_scope",
+    "created_at"
+  ],
+  "title": "WorkflowRequest",
+  "type": "object"
+}

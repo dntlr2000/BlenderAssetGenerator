@@ -1,0 +1,412 @@
+{
+  "$defs": {
+    "Bounds3D": {
+      "additionalProperties": false,
+      "description": "Store one finite axis-aligned bounding box in meters.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "Bounds3D",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "MeshPreflightCheck": {
+      "additionalProperties": false,
+      "description": "Record one deterministic topology, transform, normal, or UV preflight check.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Id"
+        },
+        "category": {
+          "enum": [
+            "topology",
+            "transform",
+            "normal",
+            "tangent",
+            "material",
+            "uv",
+            "budget"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "evidence_path": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence Path"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "status",
+        "message"
+      ],
+      "title": "MeshPreflightCheck",
+      "type": "object"
+    },
+    "MeshSummary": {
+      "additionalProperties": false,
+      "description": "Summarize one semantic mesh family before derived optimization.",
+      "properties": {
+        "target_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "object_count": {
+          "minimum": 1,
+          "title": "Object Count",
+          "type": "integer"
+        },
+        "vertex_count": {
+          "minimum": 0,
+          "title": "Vertex Count",
+          "type": "integer"
+        },
+        "triangle_count": {
+          "minimum": 0,
+          "title": "Triangle Count",
+          "type": "integer"
+        },
+        "boundary_edge_count": {
+          "minimum": 0,
+          "title": "Boundary Edge Count",
+          "type": "integer"
+        },
+        "non_manifold_edge_count": {
+          "minimum": 0,
+          "title": "Non Manifold Edge Count",
+          "type": "integer"
+        },
+        "degenerate_face_count": {
+          "minimum": 0,
+          "title": "Degenerate Face Count",
+          "type": "integer"
+        },
+        "negative_scale_count": {
+          "minimum": 0,
+          "title": "Negative Scale Count",
+          "type": "integer"
+        },
+        "bounds": {
+          "$ref": "#/$defs/Bounds3D"
+        },
+        "declared_exceptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Declared Exceptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target_id",
+        "object_count",
+        "vertex_count",
+        "triangle_count",
+        "boundary_edge_count",
+        "non_manifold_edge_count",
+        "degenerate_face_count",
+        "negative_scale_count",
+        "bounds"
+      ],
+      "title": "MeshSummary",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize canonical mesh readiness without mutating the authoring master.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_artifact": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "passed": {
+      "minimum": 0,
+      "title": "Passed",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/MeshPreflightCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "meshes": {
+      "items": {
+        "$ref": "#/$defs/MeshSummary"
+      },
+      "title": "Meshes",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "report_id",
+    "job_id",
+    "profile_id",
+    "profile_artifact",
+    "source",
+    "status",
+    "ok",
+    "passed",
+    "warnings",
+    "failed",
+    "created_at"
+  ],
+  "title": "MeshPreflightReport",
+  "type": "object"
+}

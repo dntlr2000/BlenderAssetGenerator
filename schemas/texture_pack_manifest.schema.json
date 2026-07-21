@@ -1,0 +1,342 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "PackedTexture": {
+      "additionalProperties": false,
+      "description": "Describe one immutable raw or packed portable texture and its channel provenance.",
+      "properties": {
+        "texture_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Texture Id",
+          "type": "string"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "packing": {
+          "enum": [
+            "raw_channels",
+            "gltf_orm"
+          ],
+          "title": "Packing",
+          "type": "string"
+        },
+        "output": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 16384,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 16384,
+          "title": "Height",
+          "type": "integer"
+        },
+        "mappings": {
+          "items": {
+            "$ref": "#/$defs/TextureChannelMapping"
+          },
+          "minItems": 1,
+          "title": "Mappings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "texture_id",
+        "material_ids",
+        "packing",
+        "output",
+        "color_space",
+        "width",
+        "height",
+        "mappings"
+      ],
+      "title": "PackedTexture",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    },
+    "TextureChannelMapping": {
+      "additionalProperties": false,
+      "description": "Map one preserved raw PBR source channel into a portable output component.",
+      "properties": {
+        "output_channel": {
+          "enum": [
+            "R",
+            "G",
+            "B",
+            "A",
+            "RGB",
+            "RGBA"
+          ],
+          "title": "Output Channel",
+          "type": "string"
+        },
+        "source_channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "emission",
+            "opacity",
+            "orm"
+          ],
+          "title": "Source Channel",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "output_channel",
+        "source_channel",
+        "source"
+      ],
+      "title": "TextureChannelMapping",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record engine-neutral packed textures while preserving every raw PBR source channel.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "status": {
+      "default": "planned",
+      "enum": [
+        "planned",
+        "complete",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "packing_required": {
+      "default": true,
+      "title": "Packing Required",
+      "type": "boolean"
+    },
+    "raw_channels_preserved": {
+      "const": true,
+      "default": true,
+      "title": "Raw Channels Preserved",
+      "type": "boolean"
+    },
+    "textures": {
+      "items": {
+        "$ref": "#/$defs/PackedTexture"
+      },
+      "title": "Textures",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completed_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Completed At"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source",
+    "created_at"
+  ],
+  "title": "TexturePackManifest",
+  "type": "object"
+}

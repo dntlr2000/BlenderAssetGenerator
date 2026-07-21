@@ -1,0 +1,364 @@
+{
+  "$defs": {
+    "Bounds3D": {
+      "additionalProperties": false,
+      "description": "Store one finite axis-aligned bounding box in meters.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "Bounds3D",
+      "type": "object"
+    },
+    "BoundsComparison": {
+      "additionalProperties": false,
+      "description": "Compare source-derived and clean-import bounds against one metric tolerance.",
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/Bounds3D"
+        },
+        "imported": {
+          "$ref": "#/$defs/Bounds3D"
+        },
+        "max_abs_error_m": {
+          "minimum": 0,
+          "title": "Max Abs Error M",
+          "type": "number"
+        },
+        "tolerance_m": {
+          "exclusiveMinimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        },
+        "passed": {
+          "title": "Passed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "imported",
+        "max_abs_error_m",
+        "tolerance_m",
+        "passed"
+      ],
+      "title": "BoundsComparison",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "RoundTripCheck": {
+      "additionalProperties": false,
+      "description": "Record one normalized clean-import package verification check.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "format",
+            "units",
+            "axis",
+            "bounds",
+            "object",
+            "semantic_id",
+            "material_id",
+            "uv",
+            "normal",
+            "tangent",
+            "texture",
+            "dependency"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "target_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Id"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "status",
+        "message"
+      ],
+      "title": "RoundTripCheck",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove normalized IDs, bounds, and dependencies survive a clean package reimport.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "validation_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Validation Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "package_manifest": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "imported_inventory": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed",
+        "error"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "passed": {
+      "minimum": 0,
+      "title": "Passed",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/RoundTripCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "bounds": {
+      "$ref": "#/$defs/BoundsComparison"
+    },
+    "expected_semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Expected Semantic Ids",
+      "type": "array"
+    },
+    "observed_semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Observed Semantic Ids",
+      "type": "array"
+    },
+    "semantic_id_coverage": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Semantic Id Coverage",
+      "type": "number"
+    },
+    "expected_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Expected Material Ids",
+      "type": "array"
+    },
+    "observed_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Observed Material Ids",
+      "type": "array"
+    },
+    "material_id_coverage": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Material Id Coverage",
+      "type": "number"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "validation_id",
+    "job_id",
+    "run_id",
+    "package_id",
+    "profile_id",
+    "package_manifest",
+    "imported_inventory",
+    "status",
+    "ok",
+    "passed",
+    "warnings",
+    "failed",
+    "bounds",
+    "semantic_id_coverage",
+    "material_id_coverage",
+    "created_at"
+  ],
+  "title": "RoundTripValidation",
+  "type": "object"
+}

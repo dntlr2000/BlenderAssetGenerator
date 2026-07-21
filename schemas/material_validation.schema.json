@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CBM Material Validation Report v0.5",
+  "type": "object",
+  "required": ["schema_version", "job_id", "ok"],
+  "properties": {
+    "schema_version": {"const": "0.5.0"},
+    "job_id": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "blender_version": {"type": "string"},
+    "engine": {"type": "string"},
+    "device": {"type": "string"},
+    "passed": {"type": "integer", "minimum": 0},
+    "warnings": {"oneOf": [{"type": "integer", "minimum": 0}, {"type": "array"}]},
+    "failed": {"type": "integer", "minimum": 0},
+    "errors": {"type": "array"},
+    "summary": {"type": "object"},
+    "checks": {"type": "array"},
+    "materials": {"type": "array"},
+    "objects": {"type": "array"},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

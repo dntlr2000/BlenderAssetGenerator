@@ -1,0 +1,15 @@
+{
+  "job_id": "floating_island",
+  "mode": "concept",
+  "created_at": "example",
+  "reference_path": "examples/floating_island/reference.png",
+  "reference_sha256": "bundled-example",
+  "scale_anchors": [],
+  "sources": [
+    {
+      "kind": "reference",
+      "path": "examples/floating_island/reference.png",
+      "sha256": "bundled-example"
+    }
+  ]
+}

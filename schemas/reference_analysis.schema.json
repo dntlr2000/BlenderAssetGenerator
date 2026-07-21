@@ -1,0 +1,262 @@
+{
+  "$defs": {
+    "DominantColor": {
+      "additionalProperties": false,
+      "properties": {
+        "rgb": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Rgb",
+          "type": "array"
+        },
+        "fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "rgb",
+        "fraction"
+      ],
+      "title": "DominantColor",
+      "type": "object"
+    },
+    "ImageAnalysis": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "aspect_ratio": {
+          "exclusiveMinimum": 0,
+          "title": "Aspect Ratio",
+          "type": "number"
+        },
+        "color_mode": {
+          "title": "Color Mode",
+          "type": "string"
+        },
+        "has_alpha": {
+          "title": "Has Alpha",
+          "type": "boolean"
+        },
+        "content_bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Content Bbox Norm",
+          "type": "array"
+        },
+        "edge_density": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Edge Density",
+          "type": "number"
+        },
+        "bilateral_symmetry_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Bilateral Symmetry Score",
+          "type": "number"
+        },
+        "dominant_colors": {
+          "items": {
+            "$ref": "#/$defs/DominantColor"
+          },
+          "title": "Dominant Colors",
+          "type": "array"
+        },
+        "line_angle_clusters": {
+          "items": {
+            "$ref": "#/$defs/LineAngleCluster"
+          },
+          "title": "Line Angle Clusters",
+          "type": "array"
+        },
+        "diagnostics": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Diagnostics",
+          "type": "object"
+        }
+      },
+      "required": [
+        "source_id",
+        "path",
+        "sha256",
+        "width",
+        "height",
+        "aspect_ratio",
+        "color_mode",
+        "has_alpha",
+        "content_bbox_norm",
+        "edge_density",
+        "bilateral_symmetry_score"
+      ],
+      "title": "ImageAnalysis",
+      "type": "object"
+    },
+    "LineAngleCluster": {
+      "additionalProperties": false,
+      "properties": {
+        "angle_deg": {
+          "exclusiveMaximum": 180,
+          "minimum": 0,
+          "title": "Angle Deg",
+          "type": "number"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "spread_deg": {
+          "minimum": 0,
+          "title": "Spread Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "angle_deg",
+        "count",
+        "spread_deg"
+      ],
+      "title": "LineAngleCluster",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0",
+      "default": "0.4.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "basic",
+        "opencv"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "images": {
+      "items": {
+        "$ref": "#/$defs/ImageAnalysis"
+      },
+      "title": "Images",
+      "type": "array"
+    },
+    "recommended_projection": {
+      "enum": [
+        "PERSP",
+        "ORTHO",
+        "UNKNOWN"
+      ],
+      "title": "Recommended Projection",
+      "type": "string"
+    },
+    "projection_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Projection Confidence",
+      "type": "number"
+    },
+    "reference_type": {
+      "enum": [
+        "perspective_reference",
+        "orthographic_set",
+        "blueprint_set",
+        "mixed",
+        "unknown"
+      ],
+      "title": "Reference Type",
+      "type": "string"
+    },
+    "scale_status": {
+      "enum": [
+        "unscaled",
+        "anchored",
+        "multi_anchor"
+      ],
+      "title": "Scale Status",
+      "type": "string"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "provider",
+    "images",
+    "recommended_projection",
+    "projection_confidence",
+    "reference_type",
+    "scale_status"
+  ],
+  "title": "ReferenceAnalysis",
+  "type": "object"
+}
