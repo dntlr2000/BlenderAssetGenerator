@@ -8,6 +8,7 @@
 - Added approval-aware orchestration across proxy/detail geometry, material swatches, Visual QA, optional interiors, and V0.7 portable packaging without replacing specialized hash approvals.
 - Added destination capability reporting. Unity, Unreal, and custom adapters remain unsupported and explicitly fall back to the engine-neutral portable-package boundary.
 - Added CLI/MCP orchestration surfaces, schemas, tests, documentation, and isolated V0.8 gate scripts while preserving SceneSpec `0.2.0`, material `0.5.0`, QA `0.6.0`, and portable asset `0.7.0`.
+- Refreshed the top-level README, start-page routing, and V1.0 roadmap so the current V0.8 baseline, verified environment, unsupported boundaries, and V0.9 entry scope are stated consistently.
 
 ## 0.7.4
 

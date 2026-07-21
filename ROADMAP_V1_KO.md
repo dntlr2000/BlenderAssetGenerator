@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V1.0 로드맵
 
-이 문서는 BlenderAssetGenerator가 현재 프로젝트 `0.7.3`에서 V1.0까지 발전하는 공식 개발 로드맵입니다. 구현된 기능과 계획된 기능을 구분하고, 각 단계의 책임·진입 조건·완료 조건·되돌아가기 규칙을 정의합니다.
+이 문서는 BlenderAssetGenerator가 현재 프로젝트 `0.8.0`에서 V1.0까지 발전하는 공식 개발 로드맵입니다. 구현된 기능과 계획된 기능을 구분하고, 각 단계의 책임·진입 조건·완료 조건·되돌아가기 규칙을 정의합니다.
 
 로드맵은 구현 사실을 대신하지 않습니다. 어떤 단계가 `완료`로 바뀌려면 해당 버전의 코드, JSON 계약, 테스트 계획, 실제 Blender 통합 게이트와 검증 기록이 함께 존재해야 합니다.
 
@@ -8,7 +8,7 @@
 
 이 프로젝트에는 세 종류의 버전이 함께 존재합니다.
 
-1. **프로젝트 버전**: 현재 통합 저장소의 기능 수준입니다. 현재 값은 `0.7.3`입니다.
+1. **프로젝트 버전**: 현재 통합 저장소의 기능 수준입니다. 현재 값은 `0.8.0`입니다.
 2. **데이터 계약 버전**: SceneSpec, MaterialPlan, Visual QA, portable asset처럼 독립적으로 유지되는 JSON 계약 버전입니다.
 3. **작업 단계**: 한 자산이 분석·형상·재질·QA·패키징을 오가는 제작 단계입니다.
 
@@ -24,7 +24,7 @@
 | Portable static asset | `0.7.0` | preflight, 최적화, 패키지, round trip |
 | Workflow orchestration | `0.8.0` | 짧은 요청 라우팅, 상태, 재개, 승인 경계 |
 
-현재 V0.7 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
+현재 V0.8 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
 
 용어는 다음처럼 구분합니다.
 
@@ -165,7 +165,7 @@ V0.4는 임의의 CAD 제약을 자동 해결하는 완전한 비선형 솔버�
 
 ### 선택적 실내 구조 보강
 
-프로젝트 `0.7.3`은 V0.8 orchestration에 앞서 V0.4 형상 authoring 경계에 별도 `InteriorScope 0.1.0`을 유지하고, V0.7 derived asset 계층에 안전한 배칭·cleanup·cost budget evidence를 추가합니다. `architecture/interior_scope.json`이 없으면 실내 정책은 `disabled`이고, 외관 요청은 외관만 생성합니다. 사용자가 실내를 명시적으로 요청한 경우에도 scope 초안만으로는 충분하지 않으며, `architecture/interior_scope.approval.json`이 현재 scope의 SHA-256과 정확히 일치해야 승인된 prefix·level·space·furnishing 범위 안에서만 정적 실내 형상을 작성할 수 있습니다.
+프로젝트 `0.7.3`에서 V0.8 orchestration에 앞서 V0.4 형상 authoring 경계에 별도 `InteriorScope 0.1.0`을 도입했고, V0.7 derived asset 계층에 안전한 배칭·cleanup·cost budget evidence를 추가했습니다. 이 경계는 현재 `0.8.0`에서도 유지됩니다. `architecture/interior_scope.json`이 없으면 실내 정책은 `disabled`이고, 외관 요청은 외관만 생성합니다. 사용자가 실내를 명시적으로 요청한 경우에도 scope 초안만으로는 충분하지 않으며, `architecture/interior_scope.approval.json`이 현재 scope의 SHA-256과 정확히 일치해야 승인된 prefix·level·space·furnishing 범위 안에서만 정적 실내 형상을 작성할 수 있습니다.
 
 이 보강은 SceneSpec `0.2.0`을 변경하지 않습니다. 실내 객체는 기존 stable semantic ID와 tag를 이용해 분류하며, facade backing·door reveal·window recess·외벽 두께처럼 외관을 지지하는 형상은 실내로 명명하거나 tag하지 않는 한 계속 허용합니다. interactive door, navigation, gameplay volume, 목적 엔진별 room system과 runtime shader는 향후 목적지 adapter 범위입니다.
 
@@ -491,7 +491,7 @@ V1.0을 `Reference/CAD-to-Asset`이라고 부르려면 파일을 단순 보관�
 - 단위, 축, layer/object identity와 누락 feature 보고
 - clean import와 실제 형상·치수 검증
 
-지원 형식은 V0.8 설계 시 결정하고 V0.9에서 실제 환경으로 검증합니다. 이 조건을 충족하지 못하면 V1.0의 공식 명칭은 `Reference-to-Asset`으로 제한하고 CAD는 post-V1.0 범위로 이동해야 합니다.
+V0.9 범위 동결 시 실제 CAD 지원을 구현·검증할지 결정합니다. 이 조건을 충족하지 못하거나 CAD 범위를 선택하지 않으면 V1.0의 공식 명칭은 `Reference-to-Asset`으로 제한하고 CAD는 post-V1.0 범위로 이동해야 합니다.
 
 ## 13. 단계 되돌아가기와 stale 전파
 
@@ -580,7 +580,7 @@ VERIFICATION_Vxx_KO.md
 - [V0.8 테스트 계획](TEST_PLAN_V08_KO.md)
 - [V0.8 검증 기록](VERIFICATION_V08_KO.md)
 
-현재 V0.8은 코드·스키마·격리 orchestration gate와 V0.7.4 Blender 5.0.1 GLB/FBX/OBJ 회귀 결과를 `VERIFICATION_V08_KO.md`에 기록했습니다. V0.9 문서 동결 전에는 목적 엔진 adapter와 더 다양한 실제 자산 benchmark 결과를 별도 검증 기록으로 추가해야 합니다.
+현재 V0.8은 코드·스키마·격리 orchestration gate와 V0.7.4 Blender 5.0.1 GLB/FBX/OBJ 회귀 결과를 `VERIFICATION_V08_KO.md`에 기록했습니다. V0.9 문서 동결 전에는 더 다양한 실제 자산 benchmark를 별도 검증 기록으로 추가해야 합니다. 목적 엔진이 명시적으로 선택된 경우에만 해당 adapter의 실제 import/runtime 증거를 추가하고, 선택되지 않으면 engine-neutral package가 검증된 종료 경계임을 유지합니다.
 
 ## 17. 현재 시점의 다음 순서
 
@@ -592,4 +592,4 @@ VERIFICATION_Vxx_KO.md
 → V1.0 release gate
 ```
 
-V0.8 구현을 시작하기 전까지 현재 공개 기능의 최상위는 V0.7.3입니다. 이 문서는 미래 기능을 이미 구현된 것처럼 사용할 권한을 부여하지 않습니다.
+현재 공개 기능의 최상위는 프로젝트 `0.8.0`과 Workflow contract `0.8.0`입니다. V0.9와 V1.0은 각각의 코드·계약·테스트·실기동 검증 기록이 완료되기 전까지 계획 상태이며, 이 문서는 계획된 기능을 이미 구현된 것처럼 사용할 권한을 부여하지 않습니다.
