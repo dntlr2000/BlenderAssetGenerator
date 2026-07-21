@@ -52,6 +52,14 @@ from codex_blender_modeler.qa.models import (
     VisualQAReport,
     VisualQARequest,
 )
+from codex_blender_modeler.stabilization.models import (
+    EnvironmentProbeReport,
+    LocalWorkflowQueue,
+    QueueAttemptReceipt,
+    QueueLock,
+    StabilityReportManifest,
+    WorkspaceAuditReport,
+)
 from codex_blender_modeler.texturing.models import TextureManifest
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -98,6 +106,12 @@ SCHEMAS = {
     "workflow_step_completion.schema.json": WorkflowStepCompletion,
     "workflow_attempt.schema.json": WorkflowAttempt,
     "workflow_lock.schema.json": WorkflowLock,
+    "environment_probe.schema.json": EnvironmentProbeReport,
+    "workspace_audit.schema.json": WorkspaceAuditReport,
+    "local_workflow_queue.schema.json": LocalWorkflowQueue,
+    "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
+    "queue_lock.schema.json": QueueLock,
+    "stability_report_manifest.schema.json": StabilityReportManifest,
 }
 
 

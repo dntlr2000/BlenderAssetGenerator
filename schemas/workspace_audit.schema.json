@@ -1,0 +1,278 @@
+{
+  "$defs": {
+    "AuditFinding": {
+      "additionalProperties": false,
+      "description": "Report one actionable workspace integrity or migration observation.",
+      "properties": {
+        "finding_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[A-Z0-9_]{3,96}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "job_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Job Id"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "remediation": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Remediation"
+        }
+      },
+      "required": [
+        "finding_id",
+        "severity",
+        "code",
+        "message"
+      ],
+      "title": "AuditFinding",
+      "type": "object"
+    },
+    "JobAudit": {
+      "additionalProperties": false,
+      "description": "Summarize one job without mutating or migrating its canonical artifacts.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "migration_status": {
+          "enum": [
+            "current",
+            "compatible_legacy",
+            "unsupported_future",
+            "corrupt"
+          ],
+          "title": "Migration Status",
+          "type": "string"
+        },
+        "project_version_created": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Version Created"
+        },
+        "source_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Source Count",
+          "type": "integer"
+        },
+        "verified_source_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Verified Source Count",
+          "type": "integer"
+        },
+        "workflow_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Workflow Count",
+          "type": "integer"
+        },
+        "findings": {
+          "items": {
+            "$ref": "#/$defs/AuditFinding"
+          },
+          "title": "Findings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "status",
+        "migration_status"
+      ],
+      "title": "JobAudit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Persist one bounded read-only audit of job evidence and workflow receipts.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "audit_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Audit Id",
+      "type": "string"
+    },
+    "project_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Project Version",
+      "type": "string"
+    },
+    "workspace_mode": {
+      "enum": [
+        "repository_default",
+        "external_configured"
+      ],
+      "title": "Workspace Mode",
+      "type": "string"
+    },
+    "job_filter": {
+      "anyOf": [
+        {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Job Filter"
+    },
+    "scan_limit": {
+      "maximum": 1000000,
+      "minimum": 100,
+      "title": "Scan Limit",
+      "type": "integer"
+    },
+    "scanned_file_count": {
+      "minimum": 0,
+      "title": "Scanned File Count",
+      "type": "integer"
+    },
+    "scanned_job_count": {
+      "minimum": 0,
+      "title": "Scanned Job Count",
+      "type": "integer"
+    },
+    "passed_job_count": {
+      "minimum": 0,
+      "title": "Passed Job Count",
+      "type": "integer"
+    },
+    "warning_job_count": {
+      "minimum": 0,
+      "title": "Warning Job Count",
+      "type": "integer"
+    },
+    "failed_job_count": {
+      "minimum": 0,
+      "title": "Failed Job Count",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "jobs": {
+      "items": {
+        "$ref": "#/$defs/JobAudit"
+      },
+      "title": "Jobs",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/AuditFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "audit_id",
+    "project_version",
+    "workspace_mode",
+    "scan_limit",
+    "scanned_file_count",
+    "scanned_job_count",
+    "passed_job_count",
+    "warning_job_count",
+    "failed_job_count",
+    "status",
+    "started_at",
+    "completed_at"
+  ],
+  "title": "WorkspaceAuditReport",
+  "type": "object"
+}

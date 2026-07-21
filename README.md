@@ -1,6 +1,6 @@
-# BlenderAssetGenerator V0.8.0
+# BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.8은 V0.4~V0.7의 분석·형상·재질·Visual QA·portable package 기능을 짧은 요청에서 안전하게 조율하는 workflow 계층을 추가합니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue와 release-candidate 보고 계층을 추가합니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -8,7 +8,7 @@
 
 | 항목 | 현재 계약 또는 상태 |
 |---|---|
-| 프로젝트 | `0.8.0` |
+| 프로젝트 | `0.9.0` |
 | Geometry SceneSpec | `0.2.0` |
 | Reference / Constraint | `0.4.0` |
 | Optional InteriorScope | `0.1.0` |
@@ -16,10 +16,11 @@
 | Visual QA | `0.6.0` |
 | Portable static asset | `0.7.0` |
 | Workflow orchestration | `0.8.0` |
+| Stabilization evidence | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 358 tests passed, Ruff passed |
+| 최신 Python 회귀 | 374 tests passed, Ruff passed |
 
-Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 V0.9 지원 매트릭스가 완료되기 전까지 `unverified`입니다.
+Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
 ## 구현 범위
 
@@ -32,6 +33,9 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
 - engine-neutral GLB, FBX, OBJ 정적 자산 preflight·최적화·package·clean-import round trip
 - 짧은 요청의 deterministic intent routing, 상태 재구성, 잠금, 재개, 취소와 승인 대기
+- privacy-safe 환경 probe와 bounded read-only workspace audit
+- 기존 V0.8 workflow만 처리하는 single-worker local queue와 immutable attempt receipt
+- exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
 - authoritative JSON을 기반으로 한 build, material, QA, export, full PDF 보고서
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
@@ -40,7 +44,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - rig, skinning, animation과 캐릭터용 topology
 - 모든 CAD 형식의 실제 parsing과 B-Rep 변환
 - 단일 이미지에서 보이지 않는 후면·내부·절대 치수의 정답 복원
-- 장기 다중 작업 scheduler와 운영체제별 release matrix
+- multi-worker 또는 distributed scheduler와 완성된 cross-platform release matrix
 
 명시적 목적지 adapter가 없으면 V0.8은 V0.7 engine-neutral portable package에서 정상 종료합니다.
 
@@ -60,10 +64,12 @@ BlenderAssetGenerator/
 │  ├─ qa/                            V0.6 비교와 후보 생성
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
+│  ├─ stabilization/                 V0.9 probe, audit, queue, PDF
 │  └─ blender_scripts/               whitelisted Blender background scripts
 ├─ examples/                         geometry_showcase, measured_box 등
 ├─ tests/                            계약·음성·회귀 테스트
-├─ reports/                          격리 gate와 검증 증거
+├─ reports/                          격리 gate, V0.9 probe와 audit 증거
+├─ output/pdf/v09/                   exact-hash stability PDF
 └─ workspaces/<job>/                 자산별 canonical 및 derived 상태
 ```
 
@@ -111,6 +117,19 @@ uv run cbm workflow-plan `
 
 완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)을 따릅니다.
 
+## V0.9 안정화 표면
+
+```powershell
+uv run cbm stability-probe --probe-id probe-local-001
+uv run cbm workspace-audit --audit-id audit-local-001
+uv run cbm stability-report-pdf `
+  --probe-id probe-local-001 `
+  --audit-id audit-local-001 `
+  --report-id stability-local-001
+```
+
+Audit는 canonical job을 repair하거나 migration하지 않습니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고 agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
+
 ## 단계별 제작 흐름
 
 ```text
@@ -121,6 +140,7 @@ immutable input
 → V0.6 fixed-camera QA and guarded revision
 → V0.7 derived optimization and portable package
 → V0.8 orchestration, resume and approval boundaries
+→ V0.9 stabilization evidence and release gates
 ```
 
 작업 단계는 일방통행이 아닙니다. 형상이 마음에 들지 않으면 현재 저장소를 유지한 채 V0.4 authoring으로 돌아가고, 국소적인 레퍼런스 오차는 V0.6 guarded revision으로 처리합니다. canonical 입력이 바뀌면 이후 build, QA와 package는 stale 상태가 되며 새 run ID로 재검증합니다.
@@ -151,20 +171,24 @@ uv run cbm doctor
 현재 통합 gate:
 
 ```powershell
-.\scripts\run_v08_gates.ps1
+.\scripts\run_v09_gates.ps1
 ```
 
-V0.8 orchestration만 재검사하고 이미 검증된 V0.7 Blender gate를 생략하려면:
+V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 
 ```powershell
-.\scripts\run_v08_gates.ps1 -SkipV07
+.\scripts\run_v09_gates.ps1 -SkipV08
 ```
 
-실제 검증 결과는 [V0.8 검증 기록](VERIFICATION_V08_KO.md)에 있습니다. 테스트하지 않은 운영체제, Blender 버전, 엔진 또는 adapter는 지원된 것으로 표시하지 않습니다.
+실제 검증 결과는 [V0.9 검증 기록](VERIFICATION_V09_KO.md)에 있습니다. 테스트하지 않은 운영체제, Blender 버전, 엔진 또는 adapter는 지원된 것으로 표시하지 않습니다.
 
 ## 문서 안내
 
 - [V1.0 공식 로드맵](ROADMAP_V1_KO.md)
+- [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
+- [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
+- [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
+- [V0.9 검증 기록](VERIFICATION_V09_KO.md)
 - [V0.8 아키텍처](ARCHITECTURE_V08_KO.md)
 - [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)
 - [V0.8 테스트 계획](TEST_PLAN_V08_KO.md)
@@ -175,4 +199,4 @@ V0.8 orchestration만 재검사하고 이미 검증된 V0.7 Blender gate를 생�
 - [Blender 5 호환성](BLENDER_5_COMPATIBILITY_KO.md)
 - [변경 기록](CHANGELOG.md)
 
-V0.9는 새 모델링 기능을 대량 추가하는 단계가 아니라 clean install, migration, failure injection, 실제 자산 benchmark, 지원 매트릭스와 공개 계약을 동결하는 stabilization 및 release-candidate 단계입니다.
+V0.9는 release-candidate 기반을 구현하지만 아직 cross-platform 또는 목적 엔진 parity를 의미하지 않습니다. 실제 V1.0 승격 전에는 남은 지원 매트릭스, 실제 자산 benchmark, release blocker와 공개 계약 동결을 완료해야 합니다.

@@ -1,0 +1,221 @@
+{
+  "$defs": {
+    "ContractVersionRecord": {
+      "additionalProperties": false,
+      "description": "Record one preserved project contract boundary without rewriting old data.",
+      "properties": {
+        "contract": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Contract",
+          "type": "string"
+        },
+        "version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "contract",
+        "version"
+      ],
+      "title": "ContractVersionRecord",
+      "type": "object"
+    },
+    "EvidenceReference": {
+      "additionalProperties": false,
+      "description": "Bind one contained evidence file by portable path and exact digest.",
+      "properties": {
+        "evidence_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "blender_compatibility",
+            "workspace_audit",
+            "test_summary",
+            "release_gate",
+            "environment_probe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "EvidenceReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe the detected host without turning detection into a support claim.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "probe_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Probe Id",
+      "type": "string"
+    },
+    "project_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Project Version",
+      "type": "string"
+    },
+    "platform_system": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Platform System",
+      "type": "string"
+    },
+    "platform_release": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Platform Release",
+      "type": "string"
+    },
+    "architecture": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Architecture",
+      "type": "string"
+    },
+    "python_version": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Python Version",
+      "type": "string"
+    },
+    "blender_executable_name": {
+      "maxLength": 260,
+      "minLength": 1,
+      "title": "Blender Executable Name",
+      "type": "string"
+    },
+    "workspace_mode": {
+      "enum": [
+        "repository_default",
+        "external_configured"
+      ],
+      "title": "Workspace Mode",
+      "type": "string"
+    },
+    "blender_report_status": {
+      "enum": [
+        "missing",
+        "valid",
+        "invalid"
+      ],
+      "title": "Blender Report Status",
+      "type": "string"
+    },
+    "blender_version": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Blender Version"
+    },
+    "blender_compatibility_ok": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Blender Compatibility Ok"
+    },
+    "contracts": {
+      "items": {
+        "$ref": "#/$defs/ContractVersionRecord"
+      },
+      "minItems": 1,
+      "title": "Contracts",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceReference"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "feature_flags": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string"
+          }
+        ]
+      },
+      "title": "Feature Flags",
+      "type": "object"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "probe_id",
+    "project_version",
+    "platform_system",
+    "platform_release",
+    "architecture",
+    "python_version",
+    "blender_executable_name",
+    "workspace_mode",
+    "blender_report_status",
+    "contracts",
+    "generated_at"
+  ],
+  "title": "EnvironmentProbeReport",
+  "type": "object"
+}

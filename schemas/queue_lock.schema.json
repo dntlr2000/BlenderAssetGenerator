@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "description": "Represent one expiring local queue writer lock without host path disclosure.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "lock_id": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Lock Id",
+      "type": "string"
+    },
+    "process_id": {
+      "minimum": 0,
+      "title": "Process Id",
+      "type": "integer"
+    },
+    "acquired_at": {
+      "format": "date-time",
+      "title": "Acquired At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "lock_id",
+    "process_id",
+    "acquired_at",
+    "expires_at"
+  ],
+  "title": "QueueLock",
+  "type": "object"
+}

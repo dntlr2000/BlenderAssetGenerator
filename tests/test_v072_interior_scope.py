@@ -665,7 +665,7 @@ def test_cli_approval_requires_the_exact_interactive_hash_phrase(
 def test_v072_project_and_interior_contract_versions_are_independent() -> None:
     """Advance the host version without changing earlier geometry or portable contracts."""
 
-    assert PROJECT_VERSION == "0.8.0"
+    assert PROJECT_VERSION == "0.9.0"
     assert INTERIOR_SCOPE_SCHEMA_VERSION == "0.1.0"
 
 

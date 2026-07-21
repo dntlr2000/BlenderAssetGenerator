@@ -61,5 +61,5 @@ def test_v08_mcp_tools_are_explicitly_whitelisted() -> None:
 def test_v08_versions_preserve_all_earlier_contract_boundaries() -> None:
     """Advance orchestration without rewriting geometry, material, QA, or V0.7 data."""
 
-    assert PROJECT_VERSION == "0.8.0"
+    assert PROJECT_VERSION == "0.9.0"
     assert WORKFLOW_SCHEMA_VERSION == "0.8.0"

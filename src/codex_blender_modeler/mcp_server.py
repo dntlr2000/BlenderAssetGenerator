@@ -68,6 +68,20 @@ from .packaging.material_conversion import (
 from .qa import ExistingFileQATargetProvider, run_job_visual_qa
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan as apply_guarded_revision
+from .stabilization import (
+    audit_workspace_state as audit_workspace_state_internal,
+)
+from .stabilization import (
+    cancel_local_workflow_queue_entry as cancel_local_queue_entry_internal,
+)
+from .stabilization import enqueue_short_workflow as enqueue_short_workflow_internal
+from .stabilization import (
+    generate_stability_pdf_report as generate_stability_pdf_report_internal,
+)
+from .stabilization import get_local_workflow_queue as get_local_workflow_queue_internal
+from .stabilization import probe_release_environment as probe_release_environment_internal
+from .stabilization import requeue_local_workflow as requeue_local_workflow_internal
+from .stabilization import run_local_workflow_queue as run_local_workflow_queue_internal
 from .texturing import (
     attach_texture_manifest_to_plan,
     generate_job_procedural_textures,
@@ -82,6 +96,7 @@ from .versioning import (
     PROJECT_VERSION,
     REFERENCE_SCHEMA_VERSION,
     SCENE_SPEC_VERSION,
+    STABILIZATION_SCHEMA_VERSION,
     VISUAL_QA_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
 )
@@ -91,7 +106,9 @@ from .workspace import create_job as create_job_internal
 mcp = FastMCP(
     "codex-blender-modeler",
     instructions=(
-        "Project v0.8.0 adds deterministic short-request routing, artifact freshness, "
+        "Project v0.9.0 adds release evidence, read-only workspace audits, and a bounded "
+        "single-worker local queue while preserving V0.8 deterministic short-request "
+        "routing, artifact freshness, "
         "resumable host steps, job write locks, and exact workflow approvals on top of "
         "the V0.7.4 LOD/collider review and hash-bound approval gate. It preserves "
         "semantic-preserving batching and static-asset cost evidence, "
@@ -203,6 +220,7 @@ def get_modeling_capabilities() -> dict:
         "portable_asset_schema_version": PORTABLE_ASSET_SCHEMA_VERSION,
         "interior_scope_schema_version": INTERIOR_SCOPE_SCHEMA_VERSION,
         "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
+        "stabilization_schema_version": STABILIZATION_SCHEMA_VERSION,
         "feature_flags": {
             "material_core": feature_config.features.material_core,
             "shader_core": feature_config.features.shader_core,
@@ -214,6 +232,7 @@ def get_modeling_capabilities() -> dict:
             "workflow_orchestration": (
                 feature_config.features.workflow_orchestration
             ),
+            "stabilization_core": feature_config.features.stabilization_core,
             "revision_mode": feature_config.qa.revision_mode,
             "max_revision_iterations": feature_config.qa.max_revision_iterations,
         },
@@ -264,6 +283,13 @@ def get_modeling_capabilities() -> dict:
             ],
             "destination_default": "unspecified",
             "engine_adapters": "not installed; stop at V0.7 portable package",
+        },
+        "stabilization": {
+            "environment_probe": "reuses hash-bound Blender evidence without rerunning it",
+            "workspace_audit": "bounded and read-only for canonical job data",
+            "local_queue": "single worker; existing workflows only",
+            "failed_retry": "explicit requeue authorization required",
+            "approval_behavior": "never synthesized or bypassed",
         },
         "interior_capabilities": {
             "default_policy": "disabled",
@@ -469,6 +495,99 @@ def get_destination_adapters() -> dict:
     """List validated destination adapters and engine-neutral fallback behavior."""
 
     return destination_adapters_internal()
+
+
+@mcp.tool()
+def probe_release_environment(probe_id: str | None = None) -> dict:
+    """Persist a privacy-safe V0.9 host snapshot from existing compatibility evidence."""
+
+    return probe_release_environment_internal(probe_id=probe_id).model_dump(mode="json")
+
+
+@mcp.tool()
+def audit_workspace_state(
+    job_id: str | None = None,
+    audit_id: str | None = None,
+    scan_limit: int | None = None,
+) -> dict:
+    """Audit canonical workspace evidence without repairing or migrating it."""
+
+    return audit_workspace_state_internal(
+        job_id=job_id,
+        audit_id=audit_id,
+        scan_limit=scan_limit,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def generate_stability_pdf_report(
+    probe_id: str,
+    audit_id: str,
+    report_id: str,
+) -> dict:
+    """Project strict V0.9 JSON evidence into one immutable human-readable PDF."""
+
+    return generate_stability_pdf_report_internal(
+        probe_id,
+        audit_id,
+        report_id=report_id,
+    )
+
+
+@mcp.tool()
+def enqueue_local_workflow(
+    job_id: str,
+    workflow_id: str,
+    priority: int = 50,
+    max_attempts: int = 3,
+) -> dict:
+    """Queue one existing V0.8 workflow without creating jobs or approvals."""
+
+    return enqueue_short_workflow_internal(
+        job_id,
+        workflow_id,
+        priority=priority,
+        max_attempts=max_attempts,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_local_workflow_queue() -> dict:
+    """Read V0.9 local queue state without executing any workflow."""
+
+    return get_local_workflow_queue_internal().model_dump(mode="json")
+
+
+@mcp.tool()
+def run_local_workflow_queue(
+    max_entries: int = 1,
+    max_host_steps: int | None = None,
+) -> dict:
+    """Run bounded existing host steps and stop at every agent or approval boundary."""
+
+    return run_local_workflow_queue_internal(
+        max_entries=max_entries,
+        max_host_steps=max_host_steps,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def requeue_local_workflow(entry_id: str, retry_failed: bool = False) -> dict:
+    """Requeue one failed entry only with explicit failed-step retry authorization."""
+
+    return requeue_local_workflow_internal(
+        entry_id,
+        retry_failed=retry_failed,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def cancel_local_workflow_queue_entry(entry_id: str, reason: str) -> dict:
+    """Cancel future queue dispatch without cancelling the underlying workflow."""
+
+    return cancel_local_queue_entry_internal(entry_id, reason=reason).model_dump(
+        mode="json"
+    )
 
 
 @mcp.tool()

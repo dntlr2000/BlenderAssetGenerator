@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V1.0 로드맵
 
-이 문서는 BlenderAssetGenerator가 현재 프로젝트 `0.8.0`에서 V1.0까지 발전하는 공식 개발 로드맵입니다. 구현된 기능과 계획된 기능을 구분하고, 각 단계의 책임·진입 조건·완료 조건·되돌아가기 규칙을 정의합니다.
+이 문서는 BlenderAssetGenerator가 현재 프로젝트 `0.9.0`에서 V1.0까지 발전하는 공식 개발 로드맵입니다. 구현된 기능과 계획된 기능을 구분하고, 각 단계의 책임·진입 조건·완료 조건·되돌아가기 규칙을 정의합니다.
 
 로드맵은 구현 사실을 대신하지 않습니다. 어떤 단계가 `완료`로 바뀌려면 해당 버전의 코드, JSON 계약, 테스트 계획, 실제 Blender 통합 게이트와 검증 기록이 함께 존재해야 합니다.
 
@@ -8,7 +8,7 @@
 
 이 프로젝트에는 세 종류의 버전이 함께 존재합니다.
 
-1. **프로젝트 버전**: 현재 통합 저장소의 기능 수준입니다. 현재 값은 `0.8.0`입니다.
+1. **프로젝트 버전**: 현재 통합 저장소의 기능 수준입니다. 현재 값은 `0.9.0`입니다.
 2. **데이터 계약 버전**: SceneSpec, MaterialPlan, Visual QA, portable asset처럼 독립적으로 유지되는 JSON 계약 버전입니다.
 3. **작업 단계**: 한 자산이 분석·형상·재질·QA·패키징을 오가는 제작 단계입니다.
 
@@ -23,8 +23,9 @@
 | Visual QA | `0.6.0` | 고정 카메라 증거, 점수, 후보, 승인, 복구 |
 | Portable static asset | `0.7.0` | preflight, 최적화, 패키지, round trip |
 | Workflow orchestration | `0.8.0` | 짧은 요청 라우팅, 상태, 재개, 승인 경계 |
+| Stabilization evidence | `0.9.0` | 환경 증거, 읽기 전용 감사, queue, release report |
 
-현재 V0.8 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
+현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
 
 용어는 다음처럼 구분합니다.
 
@@ -69,7 +70,7 @@ V1.0  Integrated Reference/CAD-to-Asset Pipeline
 | V0.6 | 구현 및 로컬 검증 완료 | QA/revision `0.6.0` |
 | V0.7 | V0.7.4 최적화 사전 검토·승인 및 Blender 5 통합 검증 | portable asset `0.7.0` |
 | V0.8 | 구현 및 로컬 계약 검증 완료 | workflow orchestration `0.8.0`, 프로젝트 `0.8.0` |
-| V0.9 | 계획 | 아직 release candidate 없음 |
+| V0.9 | core 구현 및 Windows/Blender 5 로컬 gate 완료 | stabilization `0.9.0`, 프로젝트 `0.9.0` |
 | V1.0 | 계획 | 아래 완료 기준 충족 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
@@ -342,13 +343,23 @@ V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. �
 
 ## 11. V0.9 — Stabilization + Release Candidate
 
-**상태: 계획. V1.0 출시를 위한 검증과 범위 고정 단계입니다.**
+**상태: core 구현 및 Windows/Blender 5.0.1 로컬 gate 완료. cross-platform matrix와 실제 자산 benchmark가 남은 release-candidate 단계입니다.**
 
 ### 목표
 
 새 기능 추가를 최소화하고 지원 환경, 데이터 호환, 복구, 실제 자산 품질과 문서를 출시 가능한 수준으로 고정합니다.
 
-### 계획 범위
+### 구현된 범위
+
+- 기존 Blender compatibility JSON을 hash로 참조하는 privacy-safe environment probe
+- immutable input hash, contract readability/version, workflow pointer와 path escape를 검사하는 bounded read-only workspace audit
+- 기존 V0.8 workflow만 실행하는 one-writer/one-worker local queue
+- execution lease, immutable attempt receipt, live/expired lock 처리와 explicit failed retry
+- exact probe/audit source hash에 묶인 stability PDF와 sidecar
+- strict `0.9.0` JSON Schema, CLI/MCP allowlist와 격리 PowerShell/POSIX gate
+- 기존 V0.2~V0.8 계약을 재작성하지 않는 compatibility 정책과 수동 migration 원칙
+
+### 남은 release-candidate 범위
 
 - 지원 운영체제, Blender, Python, Codex surface의 실제 검증 매트릭스
 - 깨끗한 설치, 업데이트, workspace migration과 backup/restore
@@ -371,11 +382,13 @@ V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. �
 - clean install부터 engine-neutral package까지 사용자 문서만으로 재현 가능
 - V1.0에서 동결할 공개 CLI, MCP, JSON Schema와 migration 정책 확정
 - release blocker 0건, 알려진 제한 전부 문서화
-- 연속·병렬 작업과 중간 장애 후 resume에서 orphan lock, staging, 잘못된 latest pointer 0건
+- 연속 작업과 중간 장애 후 resume에서 orphan lock, staging, 잘못된 latest pointer 0건
+
+V0.9 queue는 의도적으로 `max_concurrency=1`이다. 병렬·distributed scheduling은 V1.0 필수 조건이 아니며, 별도 운영 계층의 장기 후보로 남긴다.
 
 테스트하지 않은 Blender, 운영체제 또는 엔진을 지원한다고 표시하지 않습니다.
 
-## 12. V1.0 — Integrated Reference/CAD-to-Asset Pipeline
+## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
 **상태: 계획. 아래 조건을 충족하기 전에는 V1.0으로 표시하지 않습니다.**
 
@@ -480,6 +493,7 @@ Material/Shader         0.5.0
 Visual QA               0.6.0
 Portable Asset          0.7.0
 Workflow Orchestration  0.8.0
+Stabilization Evidence  0.9.0
 ```
 
 ### CAD 명칭 사용 조건
@@ -491,7 +505,7 @@ V1.0을 `Reference/CAD-to-Asset`이라고 부르려면 파일을 단순 보관�
 - 단위, 축, layer/object identity와 누락 feature 보고
 - clean import와 실제 형상·치수 검증
 
-V0.9 범위 동결 시 실제 CAD 지원을 구현·검증할지 결정합니다. 이 조건을 충족하지 못하거나 CAD 범위를 선택하지 않으면 V1.0의 공식 명칭은 `Reference-to-Asset`으로 제한하고 CAD는 post-V1.0 범위로 이동해야 합니다.
+현재 V0.9 core에는 실제 CAD parsing과 B-Rep 변환이 없으므로 V1.0의 공식 목표 명칭은 `Reference-to-Asset`으로 제한합니다. 향후 사용자가 CAD 범위를 명시적으로 선택하고 위 조건을 구현·검증한 경우에만 `Reference/CAD-to-Asset` 명칭을 다시 검토합니다.
 
 ## 13. 단계 되돌아가기와 stale 전파
 
@@ -579,17 +593,21 @@ VERIFICATION_Vxx_KO.md
 - [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)
 - [V0.8 테스트 계획](TEST_PLAN_V08_KO.md)
 - [V0.8 검증 기록](VERIFICATION_V08_KO.md)
+- [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
+- [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
+- [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
+- [V0.9 검증 기록](VERIFICATION_V09_KO.md)
 
-현재 V0.8은 코드·스키마·격리 orchestration gate와 V0.7.4 Blender 5.0.1 GLB/FBX/OBJ 회귀 결과를 `VERIFICATION_V08_KO.md`에 기록했습니다. V0.9 문서 동결 전에는 더 다양한 실제 자산 benchmark를 별도 검증 기록으로 추가해야 합니다. 목적 엔진이 명시적으로 선택된 경우에만 해당 adapter의 실제 import/runtime 증거를 추가하고, 선택되지 않으면 engine-neutral package가 검증된 종료 경계임을 유지합니다.
+현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas와 stability PDF core를 구현했습니다. 실제 전체 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. 목적 엔진이 명시적으로 선택된 경우에만 해당 adapter의 실제 import/runtime 증거를 추가하고, 선택되지 않으면 engine-neutral package가 검증된 종료 경계임을 유지합니다.
 
 ## 17. 현재 시점의 다음 순서
 
 ```text
-현재 V0.8 orchestration 기준선 유지
-→ V0.8 실제 작업 시나리오를 승인 경계별로 추가 검증
-→ V0.9 지원 매트릭스와 실제 자산 benchmark
-→ 공개 계약과 migration 동결
+현재 V0.9 stabilization 기준선 검증
+→ V0.8/V0.7 전체 회귀와 실제 자산 benchmark
+→ 지원 매트릭스, backup/migration과 known limitations 동결
+→ 공개 CLI/MCP/JSON 계약 freeze와 release blocker 해소
 → V1.0 release gate
 ```
 
-현재 공개 기능의 최상위는 프로젝트 `0.8.0`과 Workflow contract `0.8.0`입니다. V0.9와 V1.0은 각각의 코드·계약·테스트·실기동 검증 기록이 완료되기 전까지 계획 상태이며, 이 문서는 계획된 기능을 이미 구현된 것처럼 사용할 권한을 부여하지 않습니다.
+현재 공개 기능의 최상위는 프로젝트와 Stabilization contract `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. V0.9 지원 표시는 실제 검증 기록 범위에 한정되며, V1.0은 release gate와 blocker 기준을 충족하기 전까지 계획 상태입니다.

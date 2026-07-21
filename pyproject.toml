@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "codex-blender-modeler"
-version = "0.8.0"
-description = "Resumable reference-to-portable-asset workflow orchestration for Codex and Blender"
+version = "0.9.0"
+description = "Stabilized reference-to-portable-asset workflows for Codex and Blender"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

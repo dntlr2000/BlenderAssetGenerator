@@ -7,6 +7,7 @@ image_model_qa = false
 automatic_revision = false
 portable_asset_core = true
 workflow_orchestration = true
+stabilization_core = true
 
 [qa]
 revision_mode = "suggest"
@@ -17,3 +18,8 @@ generated_target_weight = 0.15
 default_scope = "proxy_only"
 max_host_steps_per_resume = 8
 lock_ttl_seconds = 900
+
+[stabilization]
+audit_scan_limit = 100000
+queue_lock_ttl_seconds = 300
+queue_lease_seconds = 7200

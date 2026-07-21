@@ -96,7 +96,7 @@ def test_v07_mcp_tools_are_explicitly_whitelisted() -> None:
 def test_v07_versions_preserve_older_contract_boundaries() -> None:
     """Advance the project while keeping portable data on its independent contract."""
 
-    assert PROJECT_VERSION == "0.8.0"
+    assert PROJECT_VERSION == "0.9.0"
     assert PORTABLE_ASSET_SCHEMA_VERSION == "0.7.0"
 
 

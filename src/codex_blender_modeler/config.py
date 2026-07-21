@@ -24,7 +24,7 @@ class Settings:
 
 @dataclass(frozen=True)
 class FeatureFlags:
-    """Control optional material, QA, portable-asset, and workflow capabilities."""
+    """Control optional material, QA, portable-asset, workflow, and V0.9 capabilities."""
 
     material_core: bool = True
     shader_core: bool = True
@@ -34,6 +34,7 @@ class FeatureFlags:
     automatic_revision: bool = False
     portable_asset_core: bool = True
     workflow_orchestration: bool = True
+    stabilization_core: bool = True
 
 
 @dataclass(frozen=True)
@@ -55,12 +56,22 @@ class OrchestrationSettings:
 
 
 @dataclass(frozen=True)
+class StabilizationSettings:
+    """Bound V0.9 workspace audits and the single-worker local workflow queue."""
+
+    audit_scan_limit: int = 100000
+    queue_lock_ttl_seconds: int = 300
+    queue_lease_seconds: int = 7200
+
+
+@dataclass(frozen=True)
 class FeatureConfig:
-    """Bundle feature flags with QA policy settings."""
+    """Bundle feature flags with QA, orchestration, and stabilization policies."""
 
     features: FeatureFlags
     qa: QaSettings
     orchestration: OrchestrationSettings
+    stabilization: StabilizationSettings
 
 
 def get_settings() -> Settings:
@@ -79,7 +90,7 @@ def get_settings() -> Settings:
 
 
 def load_feature_config(path: Path | None = None) -> FeatureConfig:
-    """Load optional V0.5-V0.8 feature flags and conservative workflow policy."""
+    """Load optional V0.5-V0.9 feature flags and conservative runtime policies."""
 
     config_path = (path or REPO_ROOT / "cbm.toml").expanduser().resolve()
     raw: dict = {}
@@ -90,12 +101,19 @@ def load_feature_config(path: Path | None = None) -> FeatureConfig:
     feature_values = raw.get("features", {})
     qa_values = raw.get("qa", {})
     orchestration_values = raw.get("orchestration", {})
+    stabilization_values = raw.get("stabilization", {})
     if not all(
         isinstance(value, dict)
-        for value in (feature_values, qa_values, orchestration_values)
+        for value in (
+            feature_values,
+            qa_values,
+            orchestration_values,
+            stabilization_values,
+        )
     ):
         raise ValueError(
-            "cbm.toml features, qa, and orchestration sections must be TOML tables"
+            "cbm.toml features, qa, orchestration, and stabilization sections "
+            "must be TOML tables"
         )
 
     features = FeatureFlags(
@@ -109,6 +127,7 @@ def load_feature_config(path: Path | None = None) -> FeatureConfig:
         workflow_orchestration=bool(
             feature_values.get("workflow_orchestration", True)
         ),
+        stabilization_core=bool(feature_values.get("stabilization_core", True)),
     )
     revision_mode = str(qa_values.get("revision_mode", "suggest"))
     if revision_mode not in {"off", "suggest", "approve", "auto"}:
@@ -146,7 +165,34 @@ def load_feature_config(path: Path | None = None) -> FeatureConfig:
         max_host_steps_per_resume=max_host_steps,
         lock_ttl_seconds=lock_ttl,
     )
-    return FeatureConfig(features=features, qa=qa, orchestration=orchestration)
+    audit_scan_limit = int(stabilization_values.get("audit_scan_limit", 100000))
+    if audit_scan_limit < 100 or audit_scan_limit > 1_000_000:
+        raise ValueError("stabilization.audit_scan_limit must be within [100, 1000000]")
+    queue_lock_ttl = int(
+        stabilization_values.get("queue_lock_ttl_seconds", 300)
+    )
+    if queue_lock_ttl < 30 or queue_lock_ttl > 86400:
+        raise ValueError(
+            "stabilization.queue_lock_ttl_seconds must be within [30, 86400]"
+        )
+    queue_lease = int(stabilization_values.get("queue_lease_seconds", 7200))
+    if queue_lease < 60 or queue_lease > 86400:
+        raise ValueError("stabilization.queue_lease_seconds must be within [60, 86400]")
+    if queue_lease <= queue_lock_ttl:
+        raise ValueError(
+            "stabilization.queue_lease_seconds must exceed queue_lock_ttl_seconds"
+        )
+    stabilization = StabilizationSettings(
+        audit_scan_limit=audit_scan_limit,
+        queue_lock_ttl_seconds=queue_lock_ttl,
+        queue_lease_seconds=queue_lease,
+    )
+    return FeatureConfig(
+        features=features,
+        qa=qa,
+        orchestration=orchestration,
+        stabilization=stabilization,
+    )
 
 
 def executable_exists(value: str) -> bool:

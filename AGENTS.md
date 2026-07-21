@@ -1,4 +1,4 @@
-# Codex Blender Modeler v0.8.0 — Repository Instructions
+# Codex Blender Modeler v0.9.0 — Repository Instructions
 
 ## Local collaboration rules
 
@@ -26,9 +26,11 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 11. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
 12. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
 13. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
-14. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
+14. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
+15. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
+16. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
 
-The project version is `0.8.0`. The geometry SceneSpec contract remains `0.2.0` so existing v0.2 workspaces can be reused without rewriting approved geometry. Optional InteriorScope contracts use `0.1.0`, material contracts remain `0.5.0`, QA contracts remain `0.6.0`, portable static-asset contracts use `0.7.0`, and orchestration contracts use `0.8.0`.
+The project version is `0.9.0`. The geometry SceneSpec contract remains `0.2.0` so existing v0.2 workspaces can be reused without rewriting approved geometry. Optional InteriorScope contracts use `0.1.0`, material contracts remain `0.5.0`, QA contracts remain `0.6.0`, portable static-asset contracts use `0.7.0`, orchestration contracts use `0.8.0`, and stabilization evidence uses `0.9.0`.
 
 ## Default behavior for short requests
 
@@ -106,6 +108,14 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 56. V0.7 optimization requires a matching `optimization_approval.json` bound to the exact review-plan SHA-256. Approval is explicit and single-use; calling `asset-optimize` alone never implies approval.
 57. If the profile, preflight report, source fingerprint, review, or plan changes after review, reject approval or execution and start a new optimization run. Never silently carry approval forward.
 58. Present `approve`, `revise_profile`, and `cancel` as the pre-optimization choices. When the user requests changes, update the profile explicitly and generate a fresh preflight and review before asking again.
+59. V0.9 workspace audits are bounded and read-only. They may detect compatibility, tampering, dangling receipts, path escapes, and interrupted state, but must never repair, migrate, delete, or rewrite canonical evidence.
+60. Environment probes report detected facts and existing compatibility evidence only. Detection never implies support for an untested operating system, Blender version, Python runtime, destination engine, or adapter.
+61. V0.9 reports persist repository-relative paths only. Absolute host paths, secrets, and raw external source locations must not enter machine reports or PDF appendices.
+62. The local workflow queue accepts existing V0.8 workflows only, uses one writer and one execution lease, and never creates jobs, writes agent-authored contracts, synthesizes approvals, or bypasses specialized gates.
+63. Queue dispatch is single-worker and bounded. It stops at agent, generic review, specialized approval, cancellation, budget, or failure boundaries and records one immutable receipt per attempt.
+64. Failed workflow steps are never retried automatically. A queue re-dispatch requires an explicit single-use failed-retry token and must still obey the V0.8 attempt contract.
+65. V0.9 does not auto-migrate legacy jobs. A compatible legacy contract remains readable; an incompatible contract is reported and requires a separately reviewed migration or rebuild plan.
+66. A V0.9 stability PDF is a derived projection of exact environment-probe and workspace-audit JSON hashes. It cannot change a release status or replace machine-readable evidence.
 
 ## v0.4 reference-analysis workflow
 
@@ -264,6 +274,17 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 9. Resume from the first incomplete step. Retry a failed host step only with explicit authorization and a new attempt receipt.
 10. Cancellation preserves all evidence. Destination-specific reconstruction remains deferred until a validated adapter is selected and tested.
 
+## v0.9 stabilization and release-candidate workflow
+
+1. Run `stability-probe` to snapshot the detected host, project/contract versions, and the hash of existing Blender compatibility evidence without copying absolute paths.
+2. Run `workspace-audit` against all jobs or one explicit job. Treat warnings and failures as evidence; do not repair or migrate during the audit.
+3. Generate `stability-report-pdf` only from the exact immutable probe and audit IDs. Keep its sidecar manifest and source hashes with the PDF.
+4. Use the local queue only for already planned V0.8 workflows. Enqueue one active entry per job/workflow and keep `max_concurrency=1`.
+5. Run one bounded queue dispatch. Stop normally at every agent-authored or approval boundary and preserve the V0.8 workflow state as authoritative.
+6. Requeue a failed entry only after an explicit failed-step retry decision. Cancellation affects future queue dispatch only and does not cancel or delete the underlying workflow.
+7. Run the V0.9 release gate from an isolated smoke workspace. Do not use a user job to make a failing gate appear green.
+8. Record the exact verified environment and every unverified matrix cell. V0.9 is a release candidate, not proof of cross-platform or destination-engine parity.
+
 ## Testing
 
 - Dependencies: `uv sync --extra dev`
@@ -276,9 +297,11 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - V0.5/V0.6 integration: `scripts/run_v06_gates.ps1`
 - V0.7 isolated portable-asset integration: `scripts/run_v07_gates.ps1`
 - V0.8 orchestration and V0.7 regression: `scripts/run_v08_gates.ps1`
+- V0.9 stabilization, V0.8 regression, and Blender compatibility: `scripts/run_v09_gates.ps1`
 - Interior safety: `uv run cbm interior-scope-status <job>` and `uv run cbm interior-scope-validate <job>`
 - Human-readable report: `uv run cbm report-pdf <job> --scope build|material|qa|export|full`
 - PDF verification: validate PDF text/pages and sidecar hashes, then render representative pages for visual inspection
+- V0.9 evidence: `uv run cbm stability-probe`, `uv run cbm workspace-audit`, and `uv run cbm stability-report-pdf`
 
 ## File ownership
 
@@ -298,3 +321,6 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - `blender/`, `renders/`, `reports/`, `bakes/`, and non-package exports: derived artifacts
 - `output/pdf/`: derived user-facing PDF reports and provenance manifests; never canonical inputs
 - `workflows/`: immutable orchestration contracts, attempts, approvals, and derived state; never a replacement for canonical stage contracts
+- `reports/v09/`: repository-owned environment probes and read-only workspace audits with relative paths only
+- `.cbm/queue/`: operational single-worker queue, locks, leases, and immutable dispatch receipts; never canonical asset data
+- `output/pdf/v09/`: derived V0.9 stability PDFs and exact source-hash sidecars

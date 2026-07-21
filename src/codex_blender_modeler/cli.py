@@ -64,6 +64,16 @@ from .packaging.material_conversion import convert_portable_materials
 from .qa import ExistingFileQATargetProvider, run_job_visual_qa
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan, sha256_file
+from .stabilization import (
+    audit_workspace_state,
+    cancel_local_workflow_queue_entry,
+    enqueue_short_workflow,
+    generate_stability_pdf_report,
+    get_local_workflow_queue,
+    probe_release_environment,
+    requeue_local_workflow,
+    run_local_workflow_queue,
+)
 from .texturing import (
     attach_texture_manifest_to_plan,
     generate_job_procedural_textures,
@@ -1231,6 +1241,123 @@ def workflow_adapters_command() -> None:
     """List validated destination capabilities and engine-neutral fallbacks."""
 
     console.print_json(json.dumps(destination_adapters(), ensure_ascii=False))
+
+
+@app.command("stability-probe")
+def stability_probe_command(
+    probe_id: Annotated[str | None, typer.Option("--probe-id")] = None,
+) -> None:
+    """Snapshot privacy-safe V0.9 host and existing Blender compatibility evidence."""
+
+    report = probe_release_environment(probe_id=probe_id)
+    console.print_json(report.model_dump_json())
+
+
+@app.command("workspace-audit")
+def workspace_audit_command(
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    audit_id: Annotated[str | None, typer.Option("--audit-id")] = None,
+    scan_limit: Annotated[
+        int | None, typer.Option("--scan-limit", min=100, max=1_000_000)
+    ] = None,
+) -> None:
+    """Audit workspace hashes and receipts without migrating or repairing canonical data."""
+
+    report = audit_workspace_state(
+        job_id=job_id,
+        audit_id=audit_id,
+        scan_limit=scan_limit,
+    )
+    console.print_json(report.model_dump_json())
+    if report.status == "failed":
+        raise typer.Exit(code=2)
+
+
+@app.command("stability-report-pdf")
+def stability_report_pdf_command(
+    probe_id: Annotated[str, typer.Option("--probe-id")],
+    audit_id: Annotated[str, typer.Option("--audit-id")],
+    report_id: Annotated[str, typer.Option("--report-id")],
+) -> None:
+    """Render immutable V0.9 environment and audit evidence as a PDF summary."""
+
+    result = generate_stability_pdf_report(
+        probe_id,
+        audit_id,
+        report_id=report_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("queue-enqueue")
+def queue_enqueue_command(
+    job_id: str,
+    workflow_id: str,
+    priority: Annotated[int, typer.Option("--priority", min=0, max=100)] = 50,
+    max_attempts: Annotated[
+        int, typer.Option("--max-attempts", min=1, max=10)
+    ] = 3,
+) -> None:
+    """Queue one existing non-terminal V0.8 workflow for bounded local execution."""
+
+    queue = enqueue_short_workflow(
+        job_id,
+        workflow_id,
+        priority=priority,
+        max_attempts=max_attempts,
+    )
+    console.print_json(queue.model_dump_json())
+
+
+@app.command("queue-status")
+def queue_status_command() -> None:
+    """Read the local workflow queue without resuming or approving any workflow."""
+
+    console.print_json(get_local_workflow_queue().model_dump_json())
+
+
+@app.command("queue-run")
+def queue_run_command(
+    max_entries: Annotated[int, typer.Option("--max-entries", min=1, max=64)] = 1,
+    max_host_steps: Annotated[
+        int | None, typer.Option("--max-host-steps", min=1, max=64)
+    ] = None,
+) -> None:
+    """Run queued host work sequentially and stop at agent or approval boundaries."""
+
+    queue = run_local_workflow_queue(
+        max_entries=max_entries,
+        max_host_steps=max_host_steps,
+    )
+    console.print_json(queue.model_dump_json())
+
+
+@app.command("queue-requeue")
+def queue_requeue_command(
+    entry_id: str,
+    retry_failed: Annotated[
+        bool,
+        typer.Option(
+            "--retry-failed",
+            help="Explicitly authorize retry of only the current failed V0.8 host step.",
+        ),
+    ] = False,
+) -> None:
+    """Requeue one failed entry only with explicit failed-step retry authorization."""
+
+    queue = requeue_local_workflow(entry_id, retry_failed=retry_failed)
+    console.print_json(queue.model_dump_json())
+
+
+@app.command("queue-cancel")
+def queue_cancel_command(
+    entry_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Cancel future queue dispatch without cancelling the underlying workflow."""
+
+    queue = cancel_local_workflow_queue_entry(entry_id, reason=reason)
+    console.print_json(queue.model_dump_json())
 
 
 @app.command()

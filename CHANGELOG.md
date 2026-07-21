@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- Added strict `0.9.0` environment-probe, workspace-audit, local-queue, attempt-receipt, queue-lock, and stability-PDF manifest contracts while preserving every V0.2-V0.8 asset contract version.
+- Added privacy-safe host evidence that hashes existing Blender compatibility results without persisting repository, workspace, or external-source absolute paths.
+- Added bounded read-only workspace audits for immutable source hashes, contract readability/version compatibility, workflow pointers, path escapes, temporary evidence, and scan limits without automatic repair or migration.
+- Added a one-writer, one-worker local dispatcher for existing V0.8 workflows with leases, immutable receipts, approval/agent boundaries, explicit single-use failed retry, cancellation, and expired-lock recovery.
+- Added an exact-source-hash V0.9 stability PDF and sidecar manifest, CLI/MCP surfaces, checked-in JSON Schemas, isolated Windows/POSIX gate scripts, and release-candidate documentation.
+- Kept Unity, Unreal, custom engine adapters, distributed scheduling, cross-platform support claims, automatic migration, CAD parsing, rigs, and animation outside the verified V0.9 core.
+
 ## 0.8.0
 
 - Added strict `0.8.0` contracts for short requests, deterministic intent routing, immutable workflow plans, reconstructed workflow state, generic approvals, agent completion markers, execution attempts, and exclusive locks.
