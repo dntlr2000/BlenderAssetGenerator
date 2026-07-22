@@ -480,6 +480,63 @@ def test_explicit_unity_target_stops_at_engine_neutral_package(
     assert unity["status"] == "unsupported"
 
 
+def test_optional_destination_handoff_follows_passed_portable_roundtrip(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Place the optional V0.9 handoff after package approval with exact output paths."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    primary = _image(tmp_path / "primary.png")
+    create_job("handoff_workflow_asset", primary, "concept", [])
+    state = plan_workflow(
+        "Prepare a portable GLB package and a Codex destination handoff.",
+        job_id="handoff_workflow_asset",
+        intent="portable_package",
+        profile_id="portable_gltf",
+        include_destination_handoff=True,
+    )
+    workflow_root = (
+        workspace / "handoff_workflow_asset" / "workflows" / state.workflow_id
+    )
+    request = json.loads((workflow_root / "request.json").read_text(encoding="utf-8"))
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    steps = {item["step_id"]: item for item in plan["steps"]}
+    assert request["include_destination_handoff"] is True
+    assert plan["terminal_step_id"] == "destination.handoff"
+    assert steps["destination.handoff"]["depends_on"] == ["portable.final_approval"]
+    assert steps["destination.handoff"]["tool_name"] == "generate_destination_handoff"
+    assert steps["portable.roundtrip"]["outputs"][0]["path"].startswith(
+        "optimization/runs/"
+    )
+    assert "/roundtrip/" in steps["portable.roundtrip"]["outputs"][0]["path"]
+    assert all(
+        item["path"].startswith("exports/destination_handoffs/")
+        for item in steps["destination.handoff"]["outputs"]
+    )
+
+
+def test_destination_handoff_rejects_obj_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject a handoff request for legacy OBJ before persisting a workflow."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    primary = _image(tmp_path / "primary.png")
+    create_job("obj_handoff_asset", primary, "concept", [])
+    with pytest.raises(ValueError, match="GLB and FBX"):
+        plan_workflow(
+            "Prepare a legacy OBJ handoff.",
+            job_id="obj_handoff_asset",
+            intent="portable_package",
+            profile_id="obj_legacy",
+            include_destination_handoff=True,
+        )
+
+
 @pytest.mark.parametrize(
     ("intent", "request_text", "report_id", "approval_id"),
     [

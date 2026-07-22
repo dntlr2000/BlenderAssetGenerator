@@ -1,0 +1,314 @@
+{
+  "$defs": {
+    "HandoffFileReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one file inside a movable handoff envelope by exact relative receipt.",
+      "properties": {
+        "file_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "File Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "package_manifest",
+            "primary_model",
+            "package_file",
+            "texture",
+            "roundtrip_validation",
+            "roundtrip_evidence",
+            "destination_context",
+            "assembly_manifest",
+            "material_mapping",
+            "import_checklist",
+            "prompt_template",
+            "known_limitations",
+            "import_schema",
+            "handoff_manifest",
+            "pdf_report",
+            "pdf_manifest",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "HandoffFileReceipt",
+      "type": "object"
+    },
+    "MaterialChannelMapping": {
+      "additionalProperties": false,
+      "description": "Describe one portable PBR channel or explicitly record that it is unavailable.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "normal",
+            "metallic",
+            "roughness",
+            "occlusion",
+            "emission",
+            "opacity"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "packed",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HandoffFileReceipt"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "component": {
+          "anyOf": [
+            {
+              "enum": [
+                "R",
+                "G",
+                "B",
+                "A",
+                "RGB",
+                "RGBA"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Component"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "meaning": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Meaning",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "status",
+        "color_space",
+        "meaning"
+      ],
+      "title": "MaterialChannelMapping",
+      "type": "object"
+    },
+    "PortableMaterialMapping": {
+      "additionalProperties": false,
+      "description": "Map one stable material ID to raw or packed portable channels.",
+      "properties": {
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "mapping_mode": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Mapping Mode",
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/MaterialChannelMapping"
+          },
+          "maxItems": 7,
+          "minItems": 7,
+          "title": "Channels",
+          "type": "array"
+        },
+        "blender_master_shader_baked": {
+          "title": "Blender Master Shader Baked",
+          "type": "boolean"
+        },
+        "known_losses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Known Losses",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id",
+        "mapping_mode",
+        "channels",
+        "blender_master_shader_baked"
+      ],
+      "title": "PortableMaterialMapping",
+      "type": "object"
+    },
+    "RawPBRContract": {
+      "additionalProperties": false,
+      "description": "State portable raw-channel meanings and the canonical glTF ORM packing.",
+      "properties": {
+        "base_color": {
+          "default": "sRGB surface albedo; alpha may carry opacity only when declared",
+          "title": "Base Color",
+          "type": "string"
+        },
+        "normal": {
+          "default": "Non-Color tangent-space normal using the OpenGL +Y convention",
+          "title": "Normal",
+          "type": "string"
+        },
+        "metallic": {
+          "default": "Non-Color scalar metalness",
+          "title": "Metallic",
+          "type": "string"
+        },
+        "roughness": {
+          "default": "Non-Color scalar perceptual roughness",
+          "title": "Roughness",
+          "type": "string"
+        },
+        "occlusion": {
+          "default": "Non-Color ambient occlusion multiplier",
+          "title": "Occlusion",
+          "type": "string"
+        },
+        "emission": {
+          "default": "sRGB emissive color with strength handled separately when available",
+          "title": "Emission",
+          "type": "string"
+        },
+        "opacity": {
+          "default": "Non-Color or base-color alpha according to the mapping entry",
+          "title": "Opacity",
+          "type": "string"
+        },
+        "gltf_orm": {
+          "additionalProperties": {
+            "enum": [
+              "occlusion",
+              "roughness",
+              "metallic"
+            ],
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "R",
+              "G",
+              "B"
+            ]
+          },
+          "title": "Gltf Orm",
+          "type": "object"
+        }
+      },
+      "title": "RawPBRContract",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe portable material reconstruction without claiming master-shader parity.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "package_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Manifest Sha256",
+      "type": "string"
+    },
+    "pbr_contract": {
+      "$ref": "#/$defs/RawPBRContract"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/PortableMaterialMapping"
+      },
+      "minItems": 1,
+      "title": "Materials",
+      "type": "array"
+    },
+    "blender_master_shader_transfer": {
+      "const": "not_assumed",
+      "default": "not_assumed",
+      "title": "Blender Master Shader Transfer",
+      "type": "string"
+    },
+    "destination_channel_conversion_required": {
+      "const": true,
+      "default": true,
+      "title": "Destination Channel Conversion Required",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "package_manifest_sha256",
+    "pbr_contract",
+    "materials"
+  ],
+  "title": "MaterialMappingManifest",
+  "type": "object"
+}

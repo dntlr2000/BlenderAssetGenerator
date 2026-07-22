@@ -19,6 +19,9 @@ BlenderAssetGenerator/
   AGENTS.md
   ARCHITECTURE_V04_KO.md
   ARCHITECTURE_V06_KO.md
+  ARCHITECTURE_V07_KO.md
+  ARCHITECTURE_V08_KO.md
+  ARCHITECTURE_V09_KO.md
   BLENDER_5_COMPATIBILITY_KO.md
   cbm.toml
   CHANGELOG.md
@@ -52,10 +55,13 @@ BlenderAssetGenerator/
   GETTING_STARTED_KO.md
   GETTING_STARTED_V04_KO.md
   GETTING_STARTED_V06_KO.md
+  GETTING_STARTED_V08_KO.md
+  GETTING_STARTED_V09_KO.md
   Makefile
   MIGRATION_V2_KO.md
   prompts/analyze_reference.md
   prompts/compare_reference_preview.md
+  prompts/codex_destination_import.md
   prompts/generate_qa_target.md
   prompts/measured_modeling.md
   prompts/plan_materials.md
@@ -70,13 +76,24 @@ BlenderAssetGenerator/
   README.md
   REPOSITORY_TREE.txt
   schemas/bake_manifest.schema.json
+  schemas/assembly_manifest.schema.json
   schemas/camera_solution.schema.json
   schemas/constraint_solution.schema.json
   schemas/constraints.schema.json
+  schemas/destination_context.schema.json
+  schemas/destination_handoff_manifest.schema.json
+  schemas/destination_handoff_plan.schema.json
+  schemas/destination_handoff_validation.schema.json
+  schemas/destination_import_plan.schema.json
+  schemas/destination_import_receipt.schema.json
+  schemas/destination_import_validation.schema.json
   schemas/convergence_report.schema.json
   schemas/material_plan.schema.json
+  schemas/material_mapping.schema.json
   schemas/material_validation.schema.json
   schemas/modeling_plan.schema.json
+  schemas/handoff_report_manifest.schema.json
+  schemas/import_checklist.schema.json
   schemas/qa_target_manifest.schema.json
   schemas/reference_analysis.schema.json
   schemas/render_pass_manifest.schema.json
@@ -101,6 +118,12 @@ BlenderAssetGenerator/
   scripts/run_v06_gates.ps1
   scripts/run_v06_gates.sh
   scripts/run_v06_mcp_regressions.py
+  scripts/run_v07_gates.ps1
+  scripts/run_v07_gates.sh
+  scripts/run_v08_gates.ps1
+  scripts/run_v08_gates.sh
+  scripts/run_v09_gates.ps1
+  scripts/run_v09_gates.sh
   scripts/verify_v04_regressions.py
   scripts/verify_v06_artifacts.py
   src/codex_blender_modeler/__init__.py
@@ -154,6 +177,10 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/constraints/__init__.py
   src/codex_blender_modeler/constraints/evaluator.py
   src/codex_blender_modeler/constraints/models.py
+  src/codex_blender_modeler/handoff/__init__.py
+  src/codex_blender_modeler/handoff/models.py
+  src/codex_blender_modeler/handoff/pdf_report.py
+  src/codex_blender_modeler/handoff/service.py
   src/codex_blender_modeler/material_manifest.py
   src/codex_blender_modeler/materials/__init__.py
   src/codex_blender_modeler/materials/io.py
@@ -176,6 +203,16 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/qa/service.py
   src/codex_blender_modeler/qa/suggestion_enrichment.py
   src/codex_blender_modeler/qa/target_provider.py
+  src/codex_blender_modeler/orchestration/__init__.py
+  src/codex_blender_modeler/orchestration/models.py
+  src/codex_blender_modeler/orchestration/planner.py
+  src/codex_blender_modeler/orchestration/router.py
+  src/codex_blender_modeler/orchestration/service.py
+  src/codex_blender_modeler/stabilization/__init__.py
+  src/codex_blender_modeler/stabilization/locks.py
+  src/codex_blender_modeler/stabilization/models.py
+  src/codex_blender_modeler/stabilization/pdf_report.py
+  src/codex_blender_modeler/stabilization/service.py
   src/codex_blender_modeler/revision.py
   src/codex_blender_modeler/shader_recipe_runtime.py
   src/codex_blender_modeler/texturing/__init__.py
@@ -189,6 +226,9 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/workspace.py
   TEST_PLAN_V04_KO.md
   TEST_PLAN_V06_KO.md
+  TEST_PLAN_V07_KO.md
+  TEST_PLAN_V08_KO.md
+  TEST_PLAN_V09_KO.md
   tests/test_advisory_target_compare.py
   tests/test_auto_revision.py
   tests/test_auto_revision_service.py
@@ -216,6 +256,12 @@ BlenderAssetGenerator/
   tests/test_v05_texture_contracts.py
   tests/test_v06_public_surface.py
   tests/test_v06_schemas.py
+  tests/test_v08_gate_scripts.py
+  tests/test_v08_orchestration.py
+  tests/test_v09_contracts.py
+  tests/test_v09_destination_handoff.py
+  tests/test_v09_gate_scripts.py
+  tests/test_v09_public_surface.py
   tests/test_visual_qa.py
   tests/test_visual_qa_service.py
   tests/test_workspace.py
@@ -225,3 +271,7 @@ BlenderAssetGenerator/
   uv.lock
   VERIFICATION_KO.md
   VERIFICATION_V06_KO.md
+  VERIFICATION_V073_KO.md
+  VERIFICATION_V074_KO.md
+  VERIFICATION_V08_KO.md
+  VERIFICATION_V09_KO.md

@@ -1,6 +1,6 @@
-# V0.9 Stabilization & Release Candidate 아키텍처
+# V0.9 Stabilization & Codex Destination Handoff 아키텍처
 
-V0.9는 새로운 모델링 알고리즘을 대량 추가하는 단계가 아니다. V0.8까지의 분석, 형상, 재질, QA, portable package, workflow를 그대로 보존하면서 설치 환경과 작업 증거를 감사하고, 실패를 재현하며, 제한된 로컬 queue로 기존 workflow를 안전하게 이어 가는 안정화 계층이다.
+V0.9는 새로운 모델링 알고리즘을 대량 추가하는 단계가 아니다. V0.8까지의 분석, 형상, 재질, QA, portable package, workflow를 그대로 보존하면서 설치 환경과 작업 증거를 감사하고, 실패를 재현하며, 제한된 로컬 queue로 기존 workflow를 안전하게 이어 간다. 여기에 검증된 V0.7 package를 다른 프로젝트의 Codex가 안전하게 해석할 수 있도록 hash-bound 전달 계약을 생성하는 Codex Destination Handoff를 포함한다.
 
 ## 계약 경계
 
@@ -14,6 +14,7 @@ V0.9는 새로운 모델링 알고리즘을 대량 추가하는 단계가 아니
 | Portable static asset | `0.7.0` | 변경 없음 |
 | Workflow orchestration | `0.8.0` | 변경 없음 |
 | Stabilization evidence | `0.9.0` | 신규 |
+| Codex Destination Handoff | `0.9.0` | 신규 |
 
 V0.9는 오래된 정상 job을 자동 변환하지 않는다. 호환 가능한 계약은 그대로 읽고, 인식할 수 없거나 손상된 계약은 audit finding으로 남긴다.
 
@@ -25,6 +26,11 @@ src/codex_blender_modeler/stabilization/
 ├─ locks.py        expiring O_EXCL queue writer lock
 ├─ service.py      environment probe, workspace audit, local queue
 └─ pdf_report.py   exact JSON hashes에서 파생되는 stability PDF
+
+src/codex_blender_modeler/handoff/
+├─ models.py       strict handoff·destination import 계약
+├─ service.py      plan, immutable envelope 생성, 검증과 status
+└─ pdf_report.py   authoritative handoff JSON에서 파생되는 PDF
 ```
 
 새 스키마는 다음과 같다.
@@ -37,7 +43,52 @@ schemas/
 ├─ queue_attempt_receipt.schema.json
 ├─ queue_lock.schema.json
 └─ stability_report_manifest.schema.json
+
+schemas/
+├─ destination_handoff_plan.schema.json
+├─ destination_handoff_manifest.schema.json
+├─ destination_handoff_validation.schema.json
+├─ destination_context.schema.json
+├─ assembly_manifest.schema.json
+├─ material_mapping.schema.json
+├─ import_checklist.schema.json
+├─ destination_import_plan.schema.json
+├─ destination_import_receipt.schema.json
+├─ destination_import_validation.schema.json
+└─ handoff_report_manifest.schema.json
 ```
+
+## Codex Destination Handoff
+
+V0.7 package manifest는 package에 선언되지 않은 파일을 허용하지 않고 package 자체가 immutable하므로, handoff를 원본 package 내부에 덧붙이지 않는다. 생성기는 passed round-trip package를 byte-for-byte 복제한 별도 이동 가능 봉투를 만든다.
+
+```text
+exports/destination_handoffs/<profile>/<package-id>/<handoff-id>/
+├─ package/                         exact V0.7 package copy
+├─ evidence/
+│  ├─ roundtrip_validation.json
+│  └─ roundtrip_evidence.json
+├─ codex_handoff/
+│  ├─ handoff_manifest.json
+│  ├─ destination_context.json
+│  ├─ assembly_manifest.json
+│  ├─ material_mapping.json
+│  ├─ import_checklist.json
+│  ├─ codex_import_prompt.md
+│  ├─ known_limitations.md
+│  ├─ schemas/
+│  ├─ handoff_report.pdf
+│  └─ handoff_report.manifest.json
+└─ destination_handoff_validation.json
+```
+
+생성 전에는 package manifest, 모든 package receipt, clean-import round trip과 evidence hash를 다시 확인한다. GLB와 FBX만 허용하고 OBJ는 handoff 대상에서 거부한다. 생성 중 원본 package snapshot을 전후 비교하며, canonical SceneSpec·geometry·authoring `.blend`·source texture는 읽거나 복사 근거로만 사용하고 수정하지 않는다.
+
+`handoff_manifest.json`은 정확한 package manifest SHA-256, primary model, texture, semantic/material identity, assembly/material mapping, LOD/Collider, prompt와 전체 envelope receipt를 결속한다. 경로는 package-relative POSIX path만 허용하며 absolute path, traversal, symlink·junction 같은 link-like entry와 누락 dependency는 실패한다.
+
+목적지 프롬프트는 package 내용을 untrusted data로 취급한다. 목적지 Codex는 엔진·버전·렌더 파이프라인을 탐지한 뒤 파일 변경 전에 `import_plan.json`을 작성하고 승인을 받아야 한다. 승인 후에만 import·재조립을 수행하고 `import_receipt.json`과 `import_validation.json`을 남긴다. Blender master shader의 직접 이전, runtime parity, Unity/Unreal API 호출은 보장하지 않는다.
+
+V0.8 workflow에서는 GLB/FBX portable package의 최종 승인 뒤 선택적인 `destination.handoff` agent step으로 연결한다. Completion marker는 exact package와 handoff output hash에 결속된다. V0.9 audit와 stability/full PDF는 handoff의 current/valid 상태를 표시하지만 자동으로 repair하지 않는다.
 
 ## 환경 probe
 
@@ -114,7 +165,7 @@ Sidecar는 PDF SHA-256, source fingerprint, repository-relative source paths, �
 
 ## V0.9의 비목표
 
-- Unity, Unreal 또는 custom engine adapter
+- Unity, Unreal 또는 custom engine API를 직접 호출하는 자동 Destination Adapter
 - 다중 worker나 distributed scheduler
 - legacy contract 자동 migration
 - 손상 job 자동 repair
@@ -122,4 +173,4 @@ Sidecar는 PDF SHA-256, source fingerprint, repository-relative source paths, �
 - CAD B-Rep parser와 solver
 - cross-platform 지원 선언
 
-V1.0 진입 전에는 V0.9 gate, 실제 환경 검증 기록, 알려진 한계, 백업/migration 정책과 공개 계약을 동결해야 한다.
+자동 Destination Adapter는 목적 엔진·버전·렌더 파이프라인이 확정된 뒤 V1.1 이후 범위다. V1.0 승격은 현재 중단되어 있으며, V0.9 완료는 engine-neutral GLB/FBX package, clean-import round trip, hash-bound Codex Destination Handoff와 기존 V0.7~V0.9 회귀 통과를 기준으로 판정한다.

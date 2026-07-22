@@ -33,9 +33,11 @@ def test_v08_gates_preserve_the_unsupported_engine_boundary() -> None:
     for path in (POWERSHELL_GATE, SHELL_GATE):
         source = _source(path)
         assert "--destination unity" in source
+        assert "--include-destination-handoff" in source
         assert "unsupported" in source
         assert "portable_package" in source
         assert "portable.final_approval" in source
+        assert "destination.handoff" in source
 
 
 def test_v08_gates_retain_the_v07_regression_path() -> None:

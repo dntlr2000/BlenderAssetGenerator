@@ -1,0 +1,179 @@
+{
+  "$defs": {
+    "SourceArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one source-job artifact to its exact job-relative path and digest.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "package_manifest",
+            "roundtrip_validation",
+            "roundtrip_evidence",
+            "package_file"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "SourceArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one source package and passed round trip before handoff generation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "package_root": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Package Root",
+      "type": "string"
+    },
+    "package_manifest": {
+      "$ref": "#/$defs/SourceArtifact"
+    },
+    "roundtrip_validation": {
+      "$ref": "#/$defs/SourceArtifact"
+    },
+    "roundtrip_evidence": {
+      "$ref": "#/$defs/SourceArtifact"
+    },
+    "output_root": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Output Root",
+      "type": "string"
+    },
+    "destination_hint": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination Hint"
+    },
+    "supported_scope": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Scope",
+      "type": "array"
+    },
+    "excluded_scope": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Excluded Scope",
+      "type": "array"
+    },
+    "status": {
+      "const": "planned",
+      "default": "planned",
+      "title": "Status",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "package_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Package Unchanged",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "handoff_id",
+    "job_id",
+    "profile_id",
+    "package_id",
+    "run_id",
+    "package_root",
+    "package_manifest",
+    "roundtrip_validation",
+    "roundtrip_evidence",
+    "output_root",
+    "supported_scope",
+    "excluded_scope",
+    "created_at"
+  ],
+  "title": "DestinationHandoffPlan",
+  "type": "object"
+}

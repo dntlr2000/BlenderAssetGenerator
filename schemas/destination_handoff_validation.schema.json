@@ -1,0 +1,281 @@
+{
+  "$defs": {
+    "HandoffFileReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one file inside a movable handoff envelope by exact relative receipt.",
+      "properties": {
+        "file_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "File Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "package_manifest",
+            "primary_model",
+            "package_file",
+            "texture",
+            "roundtrip_validation",
+            "roundtrip_evidence",
+            "destination_context",
+            "assembly_manifest",
+            "material_mapping",
+            "import_checklist",
+            "prompt_template",
+            "known_limitations",
+            "import_schema",
+            "handoff_manifest",
+            "pdf_report",
+            "pdf_manifest",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "HandoffFileReceipt",
+      "type": "object"
+    },
+    "HandoffValidationCheck": {
+      "additionalProperties": false,
+      "description": "Record one normalized handoff integrity or safety verification.",
+      "properties": {
+        "check_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "package",
+            "roundtrip",
+            "path",
+            "hash",
+            "assembly",
+            "material",
+            "prompt",
+            "pdf",
+            "dependency"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "category",
+        "status",
+        "message"
+      ],
+      "title": "HandoffValidationCheck",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Verify every movable handoff file while excluding only this self-receipt.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "validation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Validation Id",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "handoff_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Manifest Sha256",
+      "type": "string"
+    },
+    "package_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Manifest Sha256",
+      "type": "string"
+    },
+    "roundtrip_validation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Roundtrip Validation Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "passed": {
+      "minimum": 0,
+      "title": "Passed",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "expected_file_count": {
+      "minimum": 1,
+      "title": "Expected File Count",
+      "type": "integer"
+    },
+    "files": {
+      "items": {
+        "$ref": "#/$defs/HandoffFileReceipt"
+      },
+      "minItems": 1,
+      "title": "Files",
+      "type": "array"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/HandoffValidationCheck"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "missing_dependency_count": {
+      "minimum": 0,
+      "title": "Missing Dependency Count",
+      "type": "integer"
+    },
+    "absolute_path_count": {
+      "minimum": 0,
+      "title": "Absolute Path Count",
+      "type": "integer"
+    },
+    "source_package_current": {
+      "title": "Source Package Current",
+      "type": "boolean"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "source_package_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Source Package Unchanged",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    }
+  },
+  "required": [
+    "validation_id",
+    "handoff_id",
+    "job_id",
+    "profile_id",
+    "package_id",
+    "handoff_manifest_sha256",
+    "package_manifest_sha256",
+    "roundtrip_validation_sha256",
+    "status",
+    "ok",
+    "passed",
+    "warnings",
+    "failed",
+    "expected_file_count",
+    "files",
+    "checks",
+    "missing_dependency_count",
+    "absolute_path_count",
+    "source_package_current",
+    "created_at"
+  ],
+  "title": "DestinationHandoffValidation",
+  "type": "object"
+}

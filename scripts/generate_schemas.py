@@ -16,6 +16,19 @@ from codex_blender_modeler.auto_revision.models import (
 )
 from codex_blender_modeler.baking.models import BakeManifest
 from codex_blender_modeler.constraints.models import ConstraintSet, ConstraintSolution
+from codex_blender_modeler.handoff.models import (
+    AssemblyManifest,
+    DestinationContext,
+    DestinationHandoffManifest,
+    DestinationHandoffPlan,
+    DestinationHandoffValidation,
+    DestinationImportPlan,
+    DestinationImportReceipt,
+    DestinationImportValidation,
+    HandoffReportManifest,
+    ImportChecklist,
+    MaterialMappingManifest,
+)
 from codex_blender_modeler.materials.models import MaterialPlan, ShaderRecipe
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.optimization.models import (
@@ -112,6 +125,17 @@ SCHEMAS = {
     "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
     "queue_lock.schema.json": QueueLock,
     "stability_report_manifest.schema.json": StabilityReportManifest,
+    "destination_handoff_plan.schema.json": DestinationHandoffPlan,
+    "destination_context.schema.json": DestinationContext,
+    "assembly_manifest.schema.json": AssemblyManifest,
+    "material_mapping.schema.json": MaterialMappingManifest,
+    "import_checklist.schema.json": ImportChecklist,
+    "destination_handoff_manifest.schema.json": DestinationHandoffManifest,
+    "destination_handoff_validation.schema.json": DestinationHandoffValidation,
+    "handoff_report_manifest.schema.json": HandoffReportManifest,
+    "destination_import_plan.schema.json": DestinationImportPlan,
+    "destination_import_receipt.schema.json": DestinationImportReceipt,
+    "destination_import_validation.schema.json": DestinationImportValidation,
 }
 
 

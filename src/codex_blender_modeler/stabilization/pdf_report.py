@@ -226,8 +226,11 @@ def _append_cover(
             [
                 ("Audited jobs", audit.scanned_job_count),
                 ("Passed", audit.passed_job_count),
-                ("Warnings", audit.warning_job_count),
                 ("Failed", audit.failed_job_count),
+                (
+                    "Valid handoffs",
+                    f"{audit.valid_handoff_count}/{audit.handoff_count}",
+                ),
             ],
             styles,
         )
@@ -291,7 +294,7 @@ def _append_audit(
     )
     story.append(
         _data_table(
-            ["Job", "Status", "Migration", "Sources", "Workflows"],
+            ["Job", "Status", "Migration", "Sources", "Workflows", "Handoffs"],
             [
                 [
                     job.job_id,
@@ -299,10 +302,11 @@ def _append_audit(
                     job.migration_status,
                     f"{job.verified_source_count}/{job.source_count}",
                     job.workflow_count,
+                    f"{job.handoff_status} {job.valid_handoff_count}/{job.handoff_count}",
                 ]
                 for job in audit.jobs
             ],
-            [45 * mm, 27 * mm, 44 * mm, 29 * mm, 29 * mm],
+            [37 * mm, 22 * mm, 38 * mm, 23 * mm, 20 * mm, 34 * mm],
             styles,
         )
     )

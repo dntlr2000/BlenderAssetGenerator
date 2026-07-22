@@ -1,0 +1,341 @@
+{
+  "$defs": {
+    "AxisContract": {
+      "additionalProperties": false,
+      "description": "Describe source-authoring and interchange orientation without runtime claims.",
+      "properties": {
+        "handedness": {
+          "const": "right_handed",
+          "default": "right_handed",
+          "title": "Handedness",
+          "type": "string"
+        },
+        "source_up_axis": {
+          "const": "+Z",
+          "default": "+Z",
+          "title": "Source Up Axis",
+          "type": "string"
+        },
+        "source_forward_axis": {
+          "const": "-Y",
+          "default": "-Y",
+          "title": "Source Forward Axis",
+          "type": "string"
+        },
+        "interchange_up_axis": {
+          "const": "+Y",
+          "default": "+Y",
+          "title": "Interchange Up Axis",
+          "type": "string"
+        },
+        "interchange_forward_axis": {
+          "const": "-Z",
+          "default": "-Z",
+          "title": "Interchange Forward Axis",
+          "type": "string"
+        },
+        "unit": {
+          "const": "meters",
+          "default": "meters",
+          "title": "Unit",
+          "type": "string"
+        },
+        "unit_scale_m": {
+          "const": 1.0,
+          "default": 1.0,
+          "title": "Unit Scale M",
+          "type": "number"
+        },
+        "camera_independent_orientation": {
+          "const": true,
+          "default": true,
+          "title": "Camera Independent Orientation",
+          "type": "boolean"
+        },
+        "file_metadata_verified": {
+          "default": false,
+          "title": "File Metadata Verified",
+          "type": "boolean"
+        }
+      },
+      "title": "AxisContract",
+      "type": "object"
+    },
+    "Bounds3D": {
+      "additionalProperties": false,
+      "description": "Store one finite axis-aligned bounding box in meters.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "Bounds3D",
+      "type": "object"
+    },
+    "HierarchySummary": {
+      "additionalProperties": false,
+      "description": "Separate verified exported hierarchy from advisory canonical relationships.",
+      "properties": {
+        "exported_hierarchy": {
+          "const": "flat_root",
+          "default": "flat_root",
+          "title": "Exported Hierarchy",
+          "type": "string"
+        },
+        "exported_hierarchy_verified": {
+          "const": true,
+          "default": true,
+          "title": "Exported Hierarchy Verified",
+          "type": "boolean"
+        },
+        "canonical_semantic_hierarchy": {
+          "const": "advisory",
+          "default": "advisory",
+          "title": "Canonical Semantic Hierarchy",
+          "type": "string"
+        },
+        "destination_reparenting_requires_approval": {
+          "const": true,
+          "default": true,
+          "title": "Destination Reparenting Requires Approval",
+          "type": "boolean"
+        }
+      },
+      "title": "HierarchySummary",
+      "type": "object"
+    },
+    "LODColliderSummary": {
+      "additionalProperties": false,
+      "description": "Summarize whether the portable package contains LOD or collider objects.",
+      "properties": {
+        "lod_present": {
+          "title": "Lod Present",
+          "type": "boolean"
+        },
+        "lod_levels": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Lod Levels",
+          "type": "array"
+        },
+        "collider_present": {
+          "title": "Collider Present",
+          "type": "boolean"
+        },
+        "collider_count": {
+          "minimum": 0,
+          "title": "Collider Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "lod_present",
+        "collider_present",
+        "collider_count"
+      ],
+      "title": "LODColliderSummary",
+      "type": "object"
+    },
+    "RawPBRContract": {
+      "additionalProperties": false,
+      "description": "State portable raw-channel meanings and the canonical glTF ORM packing.",
+      "properties": {
+        "base_color": {
+          "default": "sRGB surface albedo; alpha may carry opacity only when declared",
+          "title": "Base Color",
+          "type": "string"
+        },
+        "normal": {
+          "default": "Non-Color tangent-space normal using the OpenGL +Y convention",
+          "title": "Normal",
+          "type": "string"
+        },
+        "metallic": {
+          "default": "Non-Color scalar metalness",
+          "title": "Metallic",
+          "type": "string"
+        },
+        "roughness": {
+          "default": "Non-Color scalar perceptual roughness",
+          "title": "Roughness",
+          "type": "string"
+        },
+        "occlusion": {
+          "default": "Non-Color ambient occlusion multiplier",
+          "title": "Occlusion",
+          "type": "string"
+        },
+        "emission": {
+          "default": "sRGB emissive color with strength handled separately when available",
+          "title": "Emission",
+          "type": "string"
+        },
+        "opacity": {
+          "default": "Non-Color or base-color alpha according to the mapping entry",
+          "title": "Opacity",
+          "type": "string"
+        },
+        "gltf_orm": {
+          "additionalProperties": {
+            "enum": [
+              "occlusion",
+              "roughness",
+              "metallic"
+            ],
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "R",
+              "G",
+              "B"
+            ]
+          },
+          "title": "Gltf Orm",
+          "type": "object"
+        }
+      },
+      "title": "RawPBRContract",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe portable static-asset assumptions for a destination Codex session.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "asset_kind": {
+      "const": "static_asset",
+      "default": "static_asset",
+      "title": "Asset Kind",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "primary_model": {
+      "title": "Primary Model",
+      "type": "string"
+    },
+    "axis": {
+      "$ref": "#/$defs/AxisContract"
+    },
+    "pivot_policy": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Pivot Policy",
+      "type": "string"
+    },
+    "expected_bounds": {
+      "$ref": "#/$defs/Bounds3D"
+    },
+    "expected_bounds_space": {
+      "const": "source_authoring_z_up",
+      "default": "source_authoring_z_up",
+      "title": "Expected Bounds Space",
+      "type": "string"
+    },
+    "hierarchy": {
+      "$ref": "#/$defs/HierarchySummary"
+    },
+    "pbr": {
+      "$ref": "#/$defs/RawPBRContract"
+    },
+    "lod_and_collider": {
+      "$ref": "#/$defs/LODColliderSummary"
+    },
+    "known_format_losses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Format Losses",
+      "type": "array"
+    },
+    "unverified_items": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Unverified Items",
+      "type": "array"
+    },
+    "destination_hint": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination Hint"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "profile_id",
+    "primary_model",
+    "axis",
+    "pivot_policy",
+    "expected_bounds",
+    "hierarchy",
+    "pbr",
+    "lod_and_collider",
+    "unverified_items"
+  ],
+  "title": "DestinationContext",
+  "type": "object"
+}

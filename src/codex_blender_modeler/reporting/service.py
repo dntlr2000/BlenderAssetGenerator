@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from ..blender_artifacts import write_json_atomic
 from ..config import get_settings
+from ..handoff import validate_destination_handoff
 from ..workspace import job_dir, load_job, resolve_metadata_path, sha256_file
 from .models import HumanReportManifest, ReportScope, ReportSource
 from .pdf_renderer import render_job_pdf
@@ -445,6 +446,72 @@ def _collect_export_sources(
     return resolved_run_id, resolved_package_id
 
 
+def _collect_destination_handoff_sources(
+    root: Path,
+    documents: dict[str, dict[str, Any]],
+    sources: list[ReportSource],
+    warnings: list[str],
+    *,
+    package_id: str | None,
+) -> str | None:
+    """Collect the newest valid V0.9 handoff bound to the selected package."""
+
+    package = documents.get("package_manifest") or {}
+    profile_id = package.get("profile_id")
+    if not package_id or not isinstance(profile_id, str):
+        return None
+    handoffs_root = (
+        root / "exports" / "destination_handoffs" / profile_id / package_id
+    )
+    if not handoffs_root.is_dir():
+        warnings.append(
+            f"No V0.9 Codex Destination Handoff is available for package: {package_id}"
+        )
+        return None
+    candidates = sorted(
+        path
+        for path in handoffs_root.iterdir()
+        if path.is_dir() and (path / "destination_handoff_validation.json").is_file()
+    )
+    for envelope in reversed(candidates):
+        try:
+            validate_destination_handoff(
+                root.name,
+                profile_id=profile_id,
+                package_id=package_id,
+                handoff_id=envelope.name,
+            )
+        except Exception as exc:
+            warnings.append(
+                "Skipped invalid or stale V0.9 destination handoff "
+                f"{envelope.name}: {type(exc).__name__}"
+            )
+            continue
+        handoff_root = envelope / "codex_handoff"
+        for key, path in (
+            ("destination_handoff_manifest", handoff_root / "handoff_manifest.json"),
+            ("destination_context", handoff_root / "destination_context.json"),
+            ("assembly_manifest", handoff_root / "assembly_manifest.json"),
+            ("material_mapping", handoff_root / "material_mapping.json"),
+            ("import_checklist", handoff_root / "import_checklist.json"),
+            (
+                "destination_handoff_validation",
+                envelope / "destination_handoff_validation.json",
+            ),
+            (
+                "destination_handoff_pdf_manifest",
+                handoff_root / "handoff_report.manifest.json",
+            ),
+        ):
+            _collect_json_source(root, key, path, documents, sources)
+        return envelope.name
+    if candidates:
+        warnings.append(
+            f"No valid V0.9 destination handoff remains for package: {package_id}"
+        )
+    return None
+
+
 def _collect_material_images(
     root: Path,
     documents: dict[str, dict[str, Any]],
@@ -576,6 +643,7 @@ def collect_job_report_payload(
 
     resolved_optimization_run_id: str | None = None
     resolved_package_id: str | None = None
+    resolved_handoff_id: str | None = None
     if scope in {"export", "full"}:
         resolved_optimization_run_id, resolved_package_id = _collect_export_sources(
             root,
@@ -584,6 +652,13 @@ def collect_job_report_payload(
             warnings,
             optimization_run_id=optimization_run_id,
             package_id=package_id,
+        )
+        resolved_handoff_id = _collect_destination_handoff_sources(
+            root,
+            documents,
+            sources,
+            warnings,
+            package_id=resolved_package_id,
         )
 
     reference = _resolve_reference(metadata, root, warnings)
@@ -617,6 +692,7 @@ def collect_job_report_payload(
         "qa_run_id": run_id,
         "optimization_run_id": resolved_optimization_run_id,
         "package_id": resolved_package_id,
+        "handoff_id": resolved_handoff_id,
         "warnings": warnings,
         "sources": sources,
         "source_fingerprint": _source_fingerprint(sources),

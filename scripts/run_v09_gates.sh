@@ -18,6 +18,67 @@ for arg in "$@"; do
   esac
 done
 
+# Builds one real GLB package and validates a movable Codex handoff in isolation.
+run_destination_handoff_gate() {
+  local run_id="v09-handoff-smoke-run"
+  local conversion_id="v09-handoff-smoke-materials"
+  local package_id="v09-handoff-smoke-package"
+  local handoff_id="v09-handoff-smoke"
+  uv run cbm import-example geometry_showcase
+  uv run cbm material-scaffold geometry_showcase
+  uv run cbm generate-procedural-textures geometry_showcase mat.blue \
+    --preset rock --resolution 64 --seed 909 --uv-set UVMap --overwrite
+  uv run cbm validate-material-contracts geometry_showcase
+  uv run cbm build geometry_showcase
+  uv run cbm render geometry_showcase
+  uv run cbm inspect geometry_showcase
+  uv run cbm validate geometry_showcase
+  uv run cbm asset-profile-init geometry_showcase \
+    --profile portable_gltf --asset-kind static_environment
+  uv run cbm asset-preflight geometry_showcase \
+    --profile portable_gltf --run-id "$run_id"
+  uv run cbm asset-plan geometry_showcase \
+    --profile portable_gltf --run-id "$run_id"
+  local review_plan="$SMOKE_WORKSPACE/geometry_showcase/optimization/runs/$run_id/review_plan.json"
+  local review_hash
+  review_hash="$(uv run python -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$review_plan")"
+  uv run cbm asset-plan-approve geometry_showcase \
+    --run-id "$run_id" --plan-sha256 "$review_hash" \
+    --approval-note "Automated isolated V0.9 handoff integration approval."
+  uv run cbm asset-optimize geometry_showcase \
+    --profile portable_gltf --run-id "$run_id" \
+    --approved-plan-sha256 "$review_hash"
+  uv run cbm asset-material-convert geometry_showcase \
+    --profile portable_gltf --run-id "$run_id" --conversion-id "$conversion_id" \
+    --resolution 1024 --margin-px 16 --render-device auto
+  uv run cbm asset-package geometry_showcase \
+    --profile portable_gltf --run-id "$run_id" --package-id "$package_id" \
+    --material-conversion-id "$conversion_id"
+  uv run cbm asset-validate geometry_showcase \
+    --profile portable_gltf --package-id "$package_id" --bounds-tolerance-m 0.0001
+
+  local package_manifest="$SMOKE_WORKSPACE/geometry_showcase/exports/packages/portable_gltf/$package_id/package_manifest.json"
+  local package_hash_before
+  package_hash_before="$(uv run python -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$package_manifest")"
+  uv run cbm handoff-plan geometry_showcase \
+    --profile portable_gltf --package-id "$package_id" --handoff-id "$handoff_id"
+  local handoff_plan="$SMOKE_WORKSPACE/geometry_showcase/handoffs/$handoff_id/handoff_plan.json"
+  local handoff_plan_hash
+  handoff_plan_hash="$(uv run python -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$handoff_plan")"
+  uv run cbm handoff-generate geometry_showcase \
+    --handoff-id "$handoff_id" --plan-sha256 "$handoff_plan_hash"
+  uv run cbm handoff-validate geometry_showcase \
+    --profile portable_gltf --package-id "$package_id" --handoff-id "$handoff_id"
+  uv run cbm handoff-status geometry_showcase
+  uv run cbm report-pdf geometry_showcase --scope export \
+    --optimization-run-id "$run_id" --package-id "$package_id"
+
+  local envelope="$SMOKE_WORKSPACE/geometry_showcase/exports/destination_handoffs/portable_gltf/$package_id/$handoff_id"
+  local package_hash_after
+  package_hash_after="$(uv run python -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$package_manifest")"
+  uv run python -c 'import json,sys,pathlib; e=pathlib.Path(sys.argv[1]); v=json.load(open(e/"destination_handoff_validation.json", encoding="utf-8")); assert v["ok"] and v["status"] == "passed"; assert (e/"codex_handoff/handoff_manifest.json").is_file(); assert (e/"codex_handoff/handoff_report.pdf").is_file(); assert (e/"codex_handoff/handoff_report.manifest.json").is_file(); assert sys.argv[2] == sys.argv[3]' "$envelope" "$package_hash_before" "$package_hash_after"
+}
+
 if [[ "$SKIP_VISION" -eq 1 ]]; then
   uv sync --frozen --extra dev
 else
@@ -59,6 +120,8 @@ restore_workspace() {
 }
 trap restore_workspace EXIT
 
+run_destination_handoff_gate
+
 REFERENCE="$PWD/examples/geometry_showcase/reference.png"
 uv run cbm workflow-plan \
   --request "Create a bounded V0.9 proxy smoke workflow." \
@@ -78,6 +141,11 @@ uv run cbm workspace-audit --job-id v09_queue_smoke --audit-id "$AUDIT_ID"
 AUDIT_PATH="$PWD/reports/v09/audits/$AUDIT_ID/workspace_audit.json"
 uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["status"] == "passed" and p["scanned_job_count"] == 1; assert sys.argv[2] not in open(sys.argv[1], encoding="utf-8").read()' "$AUDIT_PATH" "$SMOKE_WORKSPACE"
 
+HANDOFF_AUDIT_ID="handoff-audit-$RUN_ID_SAFE"
+uv run cbm workspace-audit --job-id geometry_showcase --audit-id "$HANDOFF_AUDIT_ID"
+HANDOFF_AUDIT_PATH="$PWD/reports/v09/audits/$HANDOFF_AUDIT_ID/workspace_audit.json"
+uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["status"] == "passed" and p["handoff_count"] == 1 and p["valid_handoff_count"] == 1' "$HANDOFF_AUDIT_PATH"
+
 PROBE_ID="probe-$RUN_ID_SAFE"
 uv run cbm stability-probe --probe-id "$PROBE_ID"
 PROBE_PATH="$PWD/reports/v09/environment/$PROBE_ID/environment_probe.json"
@@ -85,7 +153,7 @@ uv run python -c 'import sys; t=open(sys.argv[1], encoding="utf-8").read(); asse
 
 REPORT_ID="stability-$RUN_ID_SAFE"
 uv run cbm stability-report-pdf --probe-id "$PROBE_ID" \
-  --audit-id "$AUDIT_ID" --report-id "$REPORT_ID"
+  --audit-id "$HANDOFF_AUDIT_ID" --report-id "$REPORT_ID"
 PDF_ROOT="$PWD/output/pdf/v09/$REPORT_ID"
 [[ -f "$PDF_ROOT/stability_report.pdf" ]]
 [[ -f "$PDF_ROOT/stability_report.manifest.json" ]]

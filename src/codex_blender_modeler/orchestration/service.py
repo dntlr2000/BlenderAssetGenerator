@@ -264,6 +264,7 @@ def plan_workflow(
     destination_kind: str = "unspecified",
     destination_name: str | None = None,
     destination_version: str | None = None,
+    include_destination_handoff: bool = False,
     budgets: WorkflowBudgets | None = None,
 ) -> WorkflowState:
     """Create one isolated routed plan without bypassing any downstream approval gate."""
@@ -299,6 +300,9 @@ def plan_workflow(
         raise ValueError("unsupported workflow scope")
     if profile_id not in {"portable_gltf", "fbx_interchange", "obj_legacy"}:
         raise ValueError("unsupported portable profile")
+    resolved_profile = _profile_from_request(normalized_request, profile_id)
+    if include_destination_handoff and resolved_profile == "obj_legacy":
+        raise ValueError("destination handoff supports GLB and FBX packages only")
     normalized_view = view_kind.strip().lower() if view_kind else None
     if normalized_view is not None and normalized_view not in _VIEW_KINDS:
         raise ValueError("view_kind must be front, right, top, blueprint, or cad")
@@ -384,8 +388,9 @@ def plan_workflow(
             staged_view=staged_view,
             replace_existing_view=replace_view,
             scale_anchors=scale_anchors or [],
-            profile_id=_profile_from_request(normalized_request, profile_id),  # type: ignore[arg-type]
+            profile_id=resolved_profile,  # type: ignore[arg-type]
             destination=routing.destination.requested,
+            include_destination_handoff=include_destination_handoff,
             budgets=budgets or WorkflowBudgets(),
             created_at=_utc_now(),
         )
@@ -461,6 +466,18 @@ def _validate_known_json_contract(
         from ..materials.models import MaterialPlan
 
         MaterialPlan.model_validate(payload)
+    elif relative_path.endswith("/codex_handoff/handoff_manifest.json"):
+        from ..handoff.models import DestinationHandoffManifest
+
+        DestinationHandoffManifest.model_validate(payload)
+    elif relative_path.endswith("/destination_handoff_validation.json"):
+        from ..handoff.models import DestinationHandoffValidation
+
+        DestinationHandoffValidation.model_validate(payload)
+    elif relative_path.endswith("/codex_handoff/handoff_report.manifest.json"):
+        from ..handoff.models import HandoffReportManifest
+
+        HandoffReportManifest.model_validate(payload)
 
 
 def _validate_agent_completion_semantics(root: Path, step: WorkflowStep) -> None:
@@ -480,6 +497,17 @@ def _validate_agent_completion_semantics(root: Path, step: WorkflowStep) -> None
             plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
             if "plan.authored" in requirement.artifact_id and plan.stage != "authored":
                 raise RuntimeError("agent completion requires material_plan stage=authored")
+    if step.step_id == "destination.handoff":
+        from ..handoff import validate_destination_handoff
+
+        validation = validate_destination_handoff(
+            root.name,
+            profile_id=str(step.parameters["profile_id"]),
+            package_id=str(step.parameters["package_id"]),
+            handoff_id=str(step.parameters["handoff_id"]),
+        )
+        if not validation.ok:
+            raise RuntimeError("destination handoff validation did not report ok=true")
 
 
 def _inspect_artifact(

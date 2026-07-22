@@ -1,0 +1,127 @@
+{
+  "$defs": {
+    "HandoffFileReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one file inside a movable handoff envelope by exact relative receipt.",
+      "properties": {
+        "file_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "File Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "package_manifest",
+            "primary_model",
+            "package_file",
+            "texture",
+            "roundtrip_validation",
+            "roundtrip_evidence",
+            "destination_context",
+            "assembly_manifest",
+            "material_mapping",
+            "import_checklist",
+            "prompt_template",
+            "known_limitations",
+            "import_schema",
+            "handoff_manifest",
+            "pdf_report",
+            "pdf_manifest",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "HandoffFileReceipt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind the derived PDF report to exact machine-readable handoff sources.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "pdf_path": {
+      "title": "Pdf Path",
+      "type": "string"
+    },
+    "pdf_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pdf Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/HandoffFileReceipt"
+      },
+      "minItems": 4,
+      "title": "Sources",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "pdf_path",
+    "pdf_sha256",
+    "source_fingerprint",
+    "sources",
+    "generated_at"
+  ],
+  "title": "HandoffReportManifest",
+  "type": "object"
+}

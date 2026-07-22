@@ -24,6 +24,7 @@
 | Portable static asset | `0.7.0` | preflight, 최적화, 패키지, round trip |
 | Workflow orchestration | `0.8.0` | 짧은 요청 라우팅, 상태, 재개, 승인 경계 |
 | Stabilization evidence | `0.9.0` | 환경 증거, 읽기 전용 감사, queue, release report |
+| Codex Destination Handoff | `0.9.0` | package-bound 조립·재질 계약과 안전한 목적지 import prompt |
 
 현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
 
@@ -55,9 +56,9 @@ V0.7  Engine-neutral Portable Static Asset Core
   ↓
 V0.8  Short-Prompt Automation + Job Orchestration
   ↓
-V0.9  Stabilization + Release Candidate
+V0.9  Stabilization + Codex Destination Handoff
   ↓
-V1.0  Integrated Reference/CAD-to-Asset Pipeline
+V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 ```
 
 | 단계 | 상태 | 저장소에서의 위치 |
@@ -70,8 +71,8 @@ V1.0  Integrated Reference/CAD-to-Asset Pipeline
 | V0.6 | 구현 및 로컬 검증 완료 | QA/revision `0.6.0` |
 | V0.7 | V0.7.4 최적화 사전 검토·승인 및 Blender 5 통합 검증 | portable asset `0.7.0` |
 | V0.8 | 구현 및 로컬 계약 검증 완료 | workflow orchestration `0.8.0`, 프로젝트 `0.8.0` |
-| V0.9 | core 구현 및 Windows/Blender 5 로컬 gate 완료 | stabilization `0.9.0`, 프로젝트 `0.9.0` |
-| V1.0 | 계획 | 아래 완료 기준 충족 전에는 사용 금지 |
+| V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
+| V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
 
@@ -168,7 +169,7 @@ V0.4는 임의의 CAD 제약을 자동 해결하는 완전한 비선형 솔버�
 
 프로젝트 `0.7.3`에서 V0.8 orchestration에 앞서 V0.4 형상 authoring 경계에 별도 `InteriorScope 0.1.0`을 도입했고, V0.7 derived asset 계층에 안전한 배칭·cleanup·cost budget evidence를 추가했습니다. 이 경계는 현재 `0.8.0`에서도 유지됩니다. `architecture/interior_scope.json`이 없으면 실내 정책은 `disabled`이고, 외관 요청은 외관만 생성합니다. 사용자가 실내를 명시적으로 요청한 경우에도 scope 초안만으로는 충분하지 않으며, `architecture/interior_scope.approval.json`이 현재 scope의 SHA-256과 정확히 일치해야 승인된 prefix·level·space·furnishing 범위 안에서만 정적 실내 형상을 작성할 수 있습니다.
 
-이 보강은 SceneSpec `0.2.0`을 변경하지 않습니다. 실내 객체는 기존 stable semantic ID와 tag를 이용해 분류하며, facade backing·door reveal·window recess·외벽 두께처럼 외관을 지지하는 형상은 실내로 명명하거나 tag하지 않는 한 계속 허용합니다. interactive door, navigation, gameplay volume, 목적 엔진별 room system과 runtime shader는 향후 목적지 adapter 범위입니다.
+이 보강은 SceneSpec `0.2.0`을 변경하지 않습니다. 실내 객체는 기존 stable semantic ID와 tag를 이용해 분류하며, facade backing·door reveal·window recess·외벽 두께처럼 외관을 지지하는 형상은 실내로 명명하거나 tag하지 않는 한 계속 허용합니다. interactive door, navigation, gameplay volume, 목적 엔진별 room system과 runtime shader는 V1.1 이후 목적지별 통합 범위입니다.
 
 ## 7. V0.5 — Material, UV, Texture & Shader Core
 
@@ -298,10 +299,12 @@ V0.7은 정적 자산만 지원합니다. 특정 Unity/Unreal 버전의 import p
    - 시간, 해상도, 폴리곤, QA iteration과 외부 provider budget
    - 단계별 `off`, `suggest`, `approve` 정책
    - status, resume, cancel과 실패 원인 보고
-6. **Destination adapter selection**
-   - 목적지가 확인된 경우에만 adapter capability 탐색
-   - 지원 adapter가 없으면 V0.7 engine-neutral package에서 정상 종료
+6. **Destination handoff selection**
+   - 기본 종료 경계는 V0.7 engine-neutral package
+   - 사용자가 요청한 GLB/FBX workflow에서만 optional Codex Destination Handoff 추가
+   - handoff는 prompt와 조립 계약만 생성하고 목적지 프로젝트를 직접 수정하지 않음
    - Unity, Unreal 또는 기타 엔진을 기본값으로 추정하지 않음
+   - 자동 Destination Adapter는 목적지가 확정된 뒤 V1.1 이후 범위
 
 ### Artifact freshness 모델
 
@@ -341,56 +344,65 @@ V0.7은 정적 자산만 지원합니다. 특정 Unity/Unreal 버전의 import p
 
 V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. 이미 검증된 분석·형상·재질·QA·패키징 기능을 일관되게 조율하는 단계입니다.
 
-## 11. V0.9 — Stabilization + Release Candidate
+## 11. V0.9 — Stabilization + Codex Destination Handoff
 
-**상태: core 구현 및 Windows/Blender 5.0.1 로컬 gate 완료. cross-platform matrix와 실제 자산 benchmark가 남은 release-candidate 단계입니다.**
+**상태: 수정된 로컬 완료 기준 구현 및 Windows 11/Blender 5.0.1 격리 gate 완료. V1.0 승격은 중단되어 있습니다.**
 
 ### 목표
 
-새 기능 추가를 최소화하고 지원 환경, 데이터 호환, 복구, 실제 자산 품질과 문서를 출시 가능한 수준으로 고정합니다.
+기존 V0.8까지의 자산 계약을 안정화하고, passed V0.7 engine-neutral package를 다른 목적지 프로젝트의 Codex가 안전하게 해석할 수 있는 hash-bound 조립·재질·import 계약으로 전달합니다. 목적 엔진 API를 직접 호출하지 않습니다.
 
-### 구현된 범위
+### 구현된 안정화 범위
 
 - 기존 Blender compatibility JSON을 hash로 참조하는 privacy-safe environment probe
-- immutable input hash, contract readability/version, workflow pointer와 path escape를 검사하는 bounded read-only workspace audit
+- immutable input hash, contract readability/version, workflow pointer, handoff binding과 path escape를 검사하는 bounded read-only workspace audit
 - 기존 V0.8 workflow만 실행하는 one-writer/one-worker local queue
 - execution lease, immutable attempt receipt, live/expired lock 처리와 explicit failed retry
 - exact probe/audit source hash에 묶인 stability PDF와 sidecar
 - strict `0.9.0` JSON Schema, CLI/MCP allowlist와 격리 PowerShell/POSIX gate
 - 기존 V0.2~V0.8 계약을 재작성하지 않는 compatibility 정책과 수동 migration 원칙
 
-### 남은 release-candidate 범위
+### 구현된 Codex Destination Handoff 범위
 
-- 지원 운영체제, Blender, Python, Codex surface의 실제 검증 매트릭스
-- 깨끗한 설치, 업데이트, workspace migration과 backup/restore
-- Blender 5.x API 변화와 feature-probe 회귀
-- concept 건물·환경·제품, measured blueprint와 복합 실제 작업 benchmark
-- job 충돌, 동시 작업, timeout, 강제 종료, 손상 JSON, 누락 payload와 stale artifact 음성 테스트
-- SceneSpec/Material/QA/Portable 계약의 forward/backward compatibility 정책
-- 성능, 메모리, 폴리곤, 텍스처, 반복 횟수와 provider 비용 관측
-- 전체 PDF와 machine JSON의 hash·경로·개인정보 검증
-- 알려진 제한, 비목표와 지원하지 않는 입력의 명확한 오류
-- 선택된 destination adapter가 있다면 실제 대상 엔진 import와 runtime 검증
-- LOD 다중 시점 silhouette, UV overlap, texel density와 padding의 정량 검증
-- 반복 실행 결과의 byte hash가 아니라 normalized inventory·score·manifest 의미 동등성 검증
+- `portable_gltf`와 `fbx_interchange` package만 허용하고 OBJ는 거부
+- matching `passed` clean-import round trip과 exact package manifest SHA-256 요구
+- 원본 package를 변경하지 않는 별도 immutable movable envelope
+- 모든 package/texture/handoff 파일의 relative path, SHA-256와 dependency 검증
+- semantic ID, hierarchy, local transform, material assignment, 반복 instance, pivot, LOD와 Collider 조립 계약
+- base color, normal, metallic, roughness, occlusion, emission, opacity와 glTF ORM 의미를 보존하는 material mapping
+- Blender procedural shader bake 여부와 알려진 손실 기록
+- package metadata를 untrusted data로 취급하고 임의 코드 실행을 금지하는 목적지 Codex prompt
+- 목적지 변경 전에 `import_plan.json`과 exact 사용자 승인을 요구하고 완료 후 receipt/validation을 요구하는 schema
+- V0.8 optional `destination.handoff` agent step과 exact package/handoff completion marker
+- V0.9 workspace audit, export/full PDF와 stability PDF에 handoff 생성·검증 상태 표시
 
-### 예정 완료 기준
+### V0.9 완료 기준
 
-- 지원한다고 명시한 환경에서 전체 회귀 게이트 통과
-- 실제 자산 benchmark의 실패·품질 지표와 재현 절차 공개
-- 부분 실패가 성공으로 보고되지 않고 canonical 데이터 손상 0건
-- clean install부터 engine-neutral package까지 사용자 문서만으로 재현 가능
-- V1.0에서 동결할 공개 CLI, MCP, JSON Schema와 migration 정책 확정
-- release blocker 0건, 알려진 제한 전부 문서화
-- 연속 작업과 중간 장애 후 resume에서 orphan lock, staging, 잘못된 latest pointer 0건
+- engine-neutral FBX/GLB package 생성 계약과 V0.7 clean-import round trip 유지
+- complete assembly/material handoff 계약과 safe destination Codex prompt
+- handoff manifest가 exact package/handoff hashes에 결속됨
+- canonical SceneSpec, geometry, authoring `.blend`, source texture와 원본 package 변경 0건
+- V0.8 workflow 연결과 V0.9 audit/PDF/gate 연결
+- 기존 V0.7~V0.9 회귀 통과
+- 테스트한 범위와 미검증 목적지 runtime을 명확하게 분리
 
-V0.9 queue는 의도적으로 `max_concurrency=1`이다. 병렬·distributed scheduling은 V1.0 필수 조건이 아니며, 별도 운영 계층의 장기 후보로 남긴다.
+### 현재 완료 범위에서 제외
 
-테스트하지 않은 Blender, 운영체제 또는 엔진을 지원한다고 표시하지 않습니다.
+- Unity Editor 또는 Unreal Editor 자동 실행
+- Prefab/Actor, 목적 엔진 material graph와 runtime shader 자동 생성
+- engine runtime parity 주장
+- CAD B-Rep, rig, skinning과 animation
+- macOS/Linux와 Blender 4.x 실기동 지원 주장
+- 공개 배포, installer, code signing과 cross-platform release matrix
+- 다양한 실제 자산의 장기 benchmark와 분산 scheduler
+
+위 항목은 현재 V0.9 미완성으로 취급하지 않는다. 특히 자동 Destination Adapter는 목적 엔진·버전·렌더 파이프라인이 확정된 뒤 V1.1 이후 별도 마일스톤에서 구현·검증한다.
+
+V0.9 queue는 의도적으로 `max_concurrency=1`이다. 테스트하지 않은 Blender, 운영체제 또는 엔진을 지원한다고 표시하지 않습니다.
 
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
-**상태: 계획. 아래 조건을 충족하기 전에는 V1.0으로 표시하지 않습니다.**
+**상태: 승격 중단. 재개 시 제품 범위와 아래 완료 기준을 다시 검토하기 전에는 V1.0으로 표시하지 않습니다.**
 
 ### 제품 목표
 
@@ -404,7 +416,7 @@ input evidence
 → material, texture and shader
 → fixed-camera QA and guarded revision
 → portable optimization and package
-→ optional validated destination adapter
+→ optional hash-bound Codex Destination Handoff
 ```
 
 ### 사용자 경험
@@ -474,7 +486,8 @@ input evidence
 - raw PBR 보존, immutable package, dependency와 absolute path 검사
 - clean import 후 bounds와 profile이 선언한 identity coverage 검증
 - 목적 엔진 미지정 시 engine-neutral package에서 정상 종료
-- 목적 엔진 지정 시 지원 adapter만 사용하고 실제 import/runtime evidence를 기록
+- 요청 시 package-bound Codex Destination Handoff를 생성하고 목적지 Codex가 import plan과 사용자 승인을 거치도록 함
+- 자동 Destination Adapter나 runtime parity를 V1.0 core 완료 조건으로 간주하지 않음
 
 #### 운영과 문서
 
@@ -494,6 +507,7 @@ Visual QA               0.6.0
 Portable Asset          0.7.0
 Workflow Orchestration  0.8.0
 Stabilization Evidence  0.9.0
+Destination Handoff     0.9.0
 ```
 
 ### CAD 명칭 사용 조건
@@ -521,6 +535,7 @@ V1.0을 `Reference/CAD-to-Asset`이라고 부르려면 파일을 단순 보관�
 | constraints | constraint solution과 모든 revision acceptance 재평가 |
 | 승인된 V0.6 revision | build → material 영향 검사 → 새 QA run → 새 V0.7 run |
 | V0.7 profile 또는 derived plan | 해당 optimization/conversion/package/round trip만 새 run으로 생성 |
+| V0.7 package 또는 round-trip evidence | 기존 handoff를 stale로 표시하고 새 plan/handoff ID로 재생성 |
 
 규칙:
 
@@ -530,6 +545,7 @@ V1.0을 `Reference/CAD-to-Asset`이라고 부르려면 파일을 단순 보관�
 4. 변경 후에는 새로운 run ID, conversion ID와 package ID를 사용합니다.
 5. source fingerprint가 달라지면 이전 V0.7 package를 재사용하지 않습니다.
 6. 카메라 변경 후에는 과거 QA score를 동일 기준의 개선량으로 비교하지 않습니다.
+7. package manifest 또는 round-trip hash가 달라지면 이전 Destination Handoff를 최신 전달물로 사용하지 않습니다.
 
 ## 14. 영구적인 한계와 비목표
 
@@ -551,6 +567,7 @@ V1.0 core의 기본 범위는 정적 자산입니다. 다음은 별도 명시적
 - arbitrary organic character reconstruction
 - Unity prefab 또는 Unreal actor의 무조건적 생성
 - 모든 엔진에서 동일하게 동작하는 runtime shader
+- 목적 엔진·버전·렌더 파이프라인 검증 전 자동 Destination Adapter 실행
 - 모든 CAD 형식의 완전한 B-Rep 호환
 - 이미지 한 장에서 완벽한 digital twin 생성
 
@@ -598,16 +615,16 @@ VERIFICATION_Vxx_KO.md
 - [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
 - [V0.9 검증 기록](VERIFICATION_V09_KO.md)
 
-현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas와 stability PDF core를 구현했습니다. 실제 전체 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. 목적 엔진이 명시적으로 선택된 경우에만 해당 adapter의 실제 import/runtime 증거를 추가하고, 선택되지 않으면 engine-neutral package가 검증된 종료 경계임을 유지합니다.
+현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다. 실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지 import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
 
 ## 17. 현재 시점의 다음 순서
 
 ```text
-현재 V0.9 stabilization 기준선 검증
-→ V0.8/V0.7 전체 회귀와 실제 자산 benchmark
-→ 지원 매트릭스, backup/migration과 known limitations 동결
-→ 공개 CLI/MCP/JSON 계약 freeze와 release blocker 해소
-→ V1.0 release gate
+현재 V0.9 stabilization + destination handoff 기준선 유지
+→ 사용자가 V1.0 승격 재개 여부와 제품 범위를 다시 결정
+→ 재개 시 필요한 benchmark·지원 매트릭스·공개 계약 범위를 별도 승인
+→ 승인된 범위만 V1.0 release gate로 검증
+→ 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
 ```
 
-현재 공개 기능의 최상위는 프로젝트와 Stabilization contract `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. V0.9 지원 표시는 실제 검증 기록 범위에 한정되며, V1.0은 release gate와 blocker 기준을 충족하기 전까지 계획 상태입니다.
+현재 공개 기능의 최상위는 프로젝트, Stabilization과 Destination Handoff contract `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. V0.9 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

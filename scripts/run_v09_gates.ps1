@@ -17,6 +17,82 @@ function Invoke-Uv {
     }
 }
 
+# Builds one real GLB package and validates a movable Codex handoff in the isolated workspace.
+function Invoke-DestinationHandoffGate {
+    $RunId = "v09-handoff-smoke-run"
+    $ConversionId = "v09-handoff-smoke-materials"
+    $PackageId = "v09-handoff-smoke-package"
+    $HandoffId = "v09-handoff-smoke"
+    Invoke-Uv run cbm import-example geometry_showcase
+    Invoke-Uv run cbm material-scaffold geometry_showcase
+    Invoke-Uv run cbm generate-procedural-textures geometry_showcase mat.blue `
+        --preset rock --resolution 64 --seed 909 --uv-set UVMap --overwrite
+    Invoke-Uv run cbm validate-material-contracts geometry_showcase
+    Invoke-Uv run cbm build geometry_showcase
+    Invoke-Uv run cbm render geometry_showcase
+    Invoke-Uv run cbm inspect geometry_showcase
+    Invoke-Uv run cbm validate geometry_showcase
+    Invoke-Uv run cbm asset-profile-init geometry_showcase `
+        --profile portable_gltf --asset-kind static_environment
+    Invoke-Uv run cbm asset-preflight geometry_showcase `
+        --profile portable_gltf --run-id $RunId
+    Invoke-Uv run cbm asset-plan geometry_showcase `
+        --profile portable_gltf --run-id $RunId
+    $ReviewPlan = Join-Path $SmokeWorkspace `
+        "geometry_showcase/optimization/runs/$RunId/review_plan.json"
+    $ReviewHash = (Get-FileHash -Algorithm SHA256 $ReviewPlan).Hash.ToLowerInvariant()
+    Invoke-Uv run cbm asset-plan-approve geometry_showcase `
+        --run-id $RunId --plan-sha256 $ReviewHash `
+        --approval-note "Automated isolated V0.9 handoff integration approval."
+    Invoke-Uv run cbm asset-optimize geometry_showcase `
+        --profile portable_gltf --run-id $RunId `
+        --approved-plan-sha256 $ReviewHash
+    Invoke-Uv run cbm asset-material-convert geometry_showcase `
+        --profile portable_gltf --run-id $RunId --conversion-id $ConversionId `
+        --resolution 1024 --margin-px 16 --render-device auto
+    Invoke-Uv run cbm asset-package geometry_showcase `
+        --profile portable_gltf --run-id $RunId --package-id $PackageId `
+        --material-conversion-id $ConversionId
+    Invoke-Uv run cbm asset-validate geometry_showcase `
+        --profile portable_gltf --package-id $PackageId `
+        --bounds-tolerance-m 0.0001
+
+    $PackageManifest = Join-Path $SmokeWorkspace `
+        "geometry_showcase/exports/packages/portable_gltf/$PackageId/package_manifest.json"
+    $PackageHashBefore = `
+        (Get-FileHash -Algorithm SHA256 $PackageManifest).Hash.ToLowerInvariant()
+    Invoke-Uv run cbm handoff-plan geometry_showcase `
+        --profile portable_gltf --package-id $PackageId --handoff-id $HandoffId
+    $HandoffPlan = Join-Path $SmokeWorkspace `
+        "geometry_showcase/handoffs/$HandoffId/handoff_plan.json"
+    $HandoffPlanHash = `
+        (Get-FileHash -Algorithm SHA256 $HandoffPlan).Hash.ToLowerInvariant()
+    Invoke-Uv run cbm handoff-generate geometry_showcase `
+        --handoff-id $HandoffId --plan-sha256 $HandoffPlanHash
+    Invoke-Uv run cbm handoff-validate geometry_showcase `
+        --profile portable_gltf --package-id $PackageId --handoff-id $HandoffId
+    Invoke-Uv run cbm handoff-status geometry_showcase
+    Invoke-Uv run cbm report-pdf geometry_showcase --scope export `
+        --optimization-run-id $RunId --package-id $PackageId
+
+    $Envelope = Join-Path $SmokeWorkspace `
+        "geometry_showcase/exports/destination_handoffs/portable_gltf/$PackageId/$HandoffId"
+    $Validation = Get-Content -Raw `
+        (Join-Path $Envelope "destination_handoff_validation.json") | ConvertFrom-Json
+    $HandoffManifest = Join-Path $Envelope "codex_handoff/handoff_manifest.json"
+    $HandoffPdf = Join-Path $Envelope "codex_handoff/handoff_report.pdf"
+    $HandoffPdfManifest = `
+        Join-Path $Envelope "codex_handoff/handoff_report.manifest.json"
+    $PackageHashAfter = `
+        (Get-FileHash -Algorithm SHA256 $PackageManifest).Hash.ToLowerInvariant()
+    if (-not $Validation.ok -or $Validation.status -ne "passed" -or `
+        -not (Test-Path $HandoffManifest) -or -not (Test-Path $HandoffPdf) -or `
+        -not (Test-Path $HandoffPdfManifest) -or `
+        $PackageHashBefore -ne $PackageHashAfter) {
+        throw "V0.9 destination handoff gate failed or changed its source package."
+    }
+}
+
 if ($SkipVision) {
     Invoke-Uv sync --frozen --extra dev
 }
@@ -52,6 +128,7 @@ New-Item -ItemType Directory -Path $SmokeWorkspace -Force | Out-Null
 
 try {
     $env:CBM_WORKSPACE_ROOT = $SmokeWorkspace
+    Invoke-DestinationHandoffGate
     $Reference = (Resolve-Path "examples/geometry_showcase/reference.png").Path
     Invoke-Uv run cbm workflow-plan `
         --request "Create a bounded V0.9 proxy smoke workflow." `
@@ -89,6 +166,18 @@ try {
         throw "V0.9 audit leaked an absolute workspace path."
     }
 
+    $HandoffAuditId = "handoff-audit-${RunStamp}-$PID".ToLowerInvariant()
+    Invoke-Uv run cbm workspace-audit --job-id geometry_showcase `
+        --audit-id $HandoffAuditId
+    $HandoffAuditPath = Join-Path (Get-Location) `
+        "reports/v09/audits/$HandoffAuditId/workspace_audit.json"
+    $HandoffAudit = Get-Content -Raw $HandoffAuditPath | ConvertFrom-Json
+    if ($HandoffAudit.status -ne "passed" -or `
+        $HandoffAudit.handoff_count -ne 1 -or `
+        $HandoffAudit.valid_handoff_count -ne 1) {
+        throw "V0.9 workspace audit did not verify the isolated destination handoff."
+    }
+
     $ProbeId = "probe-${RunStamp}-$PID".ToLowerInvariant()
     Invoke-Uv run cbm stability-probe --probe-id $ProbeId
     $ProbePath = Join-Path (Get-Location) `
@@ -100,7 +189,7 @@ try {
     }
     $ReportId = "stability-${RunStamp}-$PID".ToLowerInvariant()
     Invoke-Uv run cbm stability-report-pdf --probe-id $ProbeId `
-        --audit-id $AuditId --report-id $ReportId
+        --audit-id $HandoffAuditId --report-id $ReportId
     $PdfRoot = Join-Path (Get-Location) "output/pdf/v09/$ReportId"
     if (-not (Test-Path (Join-Path $PdfRoot "stability_report.pdf")) -or `
         -not (Test-Path (Join-Path $PdfRoot "stability_report.manifest.json"))) {

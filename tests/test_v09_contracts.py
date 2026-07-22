@@ -5,6 +5,19 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from codex_blender_modeler.handoff.models import (
+    AssemblyManifest,
+    DestinationContext,
+    DestinationHandoffManifest,
+    DestinationHandoffPlan,
+    DestinationHandoffValidation,
+    DestinationImportPlan,
+    DestinationImportReceipt,
+    DestinationImportValidation,
+    HandoffReportManifest,
+    ImportChecklist,
+    MaterialMappingManifest,
+)
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
     LocalWorkflowQueue,
@@ -26,6 +39,17 @@ def test_v09_contract_schemas_are_current_and_strict() -> None:
         "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
         "queue_lock.schema.json": QueueLock,
         "stability_report_manifest.schema.json": StabilityReportManifest,
+        "destination_handoff_plan.schema.json": DestinationHandoffPlan,
+        "destination_context.schema.json": DestinationContext,
+        "assembly_manifest.schema.json": AssemblyManifest,
+        "material_mapping.schema.json": MaterialMappingManifest,
+        "import_checklist.schema.json": ImportChecklist,
+        "destination_handoff_manifest.schema.json": DestinationHandoffManifest,
+        "destination_handoff_validation.schema.json": DestinationHandoffValidation,
+        "handoff_report_manifest.schema.json": HandoffReportManifest,
+        "destination_import_plan.schema.json": DestinationImportPlan,
+        "destination_import_receipt.schema.json": DestinationImportReceipt,
+        "destination_import_validation.schema.json": DestinationImportValidation,
     }
     for filename, model in contracts.items():
         schema = json.loads((root / "schemas" / filename).read_text(encoding="utf-8"))

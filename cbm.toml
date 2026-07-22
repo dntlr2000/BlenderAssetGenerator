@@ -8,6 +8,7 @@ automatic_revision = false
 portable_asset_core = true
 workflow_orchestration = true
 stabilization_core = true
+destination_handoff = true
 
 [qa]
 revision_mode = "suggest"

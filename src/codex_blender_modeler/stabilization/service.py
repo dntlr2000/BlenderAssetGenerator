@@ -14,6 +14,17 @@ from uuid import uuid4
 
 from ..blender_artifacts import sha256_file, write_json_atomic
 from ..config import get_settings, load_feature_config
+from ..handoff import get_destination_handoff_status
+from ..handoff.models import (
+    AssemblyManifest,
+    DestinationContext,
+    DestinationHandoffManifest,
+    DestinationHandoffPlan,
+    DestinationHandoffValidation,
+    HandoffReportManifest,
+    ImportChecklist,
+    MaterialMappingManifest,
+)
 from ..orchestration import get_workflow_status, resume_workflow
 from ..orchestration.models import (
     WorkflowAttempt,
@@ -24,6 +35,7 @@ from ..orchestration.models import (
 )
 from ..versioning import (
     CONSTRAINT_SCHEMA_VERSION,
+    DESTINATION_HANDOFF_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
@@ -111,6 +123,7 @@ def _contract_versions() -> list[ContractVersionRecord]:
         ("portable_asset", PORTABLE_ASSET_SCHEMA_VERSION),
         ("workflow", WORKFLOW_SCHEMA_VERSION),
         ("stabilization", STABILIZATION_SCHEMA_VERSION),
+        ("destination_handoff", DESTINATION_HANDOFF_SCHEMA_VERSION),
     ]
     return [ContractVersionRecord(contract=name, version=version) for name, version in values]
 
@@ -204,6 +217,7 @@ def probe_release_environment(
         limitations=[
             "Detected environment data is not a cross-platform support claim.",
             "Unity, Unreal, and custom destination adapters remain unsupported.",
+            "Codex Destination Handoff plans imports but does not validate runtime parity.",
             "Blender evidence is reused by hash; this command does not execute Blender.",
         ],
         generated_at=_utc_now(),
@@ -310,6 +324,24 @@ def _validate_workflow_contract(path: Path) -> None:
         model.model_validate_json(path.read_text(encoding="utf-8"))
 
 
+def _validate_handoff_contract(path: Path) -> None:
+    """Validate recognized V0.9 handoff JSON while leaving copied package JSON untouched."""
+
+    model_by_name: dict[str, type[Any]] = {
+        "handoff_plan.json": DestinationHandoffPlan,
+        "handoff_manifest.json": DestinationHandoffManifest,
+        "destination_context.json": DestinationContext,
+        "assembly_manifest.json": AssemblyManifest,
+        "material_mapping.json": MaterialMappingManifest,
+        "import_checklist.json": ImportChecklist,
+        "destination_handoff_validation.json": DestinationHandoffValidation,
+        "handoff_report.manifest.json": HandoffReportManifest,
+    }
+    model = model_by_name.get(path.name)
+    if model is not None:
+        model.model_validate_json(path.read_text(encoding="utf-8"))
+
+
 def _scan_job_files(
     root: Path,
     job_id: str,
@@ -381,6 +413,8 @@ def _scan_job_files(
                 json.loads(path.read_text(encoding="utf-8"))
                 if "workflows" in path.parts:
                     _validate_workflow_contract(path)
+                if "handoffs" in path.parts or "destination_handoffs" in path.parts:
+                    _validate_handoff_contract(path)
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 findings.append(
                     _finding(
@@ -425,6 +459,91 @@ def _audit_latest_workflow(root: Path, job_id: str) -> list[AuditFinding]:
             )
         ]
     return []
+
+
+def _audit_destination_handoffs(
+    root: Path,
+    job_id: str,
+) -> tuple[int, int, str, list[AuditFinding]]:
+    """Classify handoff integrity and stale package bindings without repairing evidence."""
+
+    if not load_feature_config().features.destination_handoff:
+        return 0, 0, "not_requested", []
+    try:
+        payload = get_destination_handoff_status(job_id)
+    except Exception as exc:
+        return (
+            1,
+            0,
+            "invalid",
+            [
+                _finding(
+                    "HANDOFF_STATUS_INVALID",
+                    "error",
+                    "Destination handoff status could not be reconstructed: "
+                    f"{type(exc).__name__}.",
+                    job_id=job_id,
+                    path=f"workspace/{job_id}/exports/destination_handoffs",
+                    remediation="Restore the immutable handoff plan and validation evidence.",
+                )
+            ],
+        )
+    records = payload.get("handoffs", [])
+    records = records if isinstance(records, list) else []
+    count = len(records)
+    valid = sum(
+        isinstance(item, dict) and item.get("status") == "valid" for item in records
+    )
+    raw_status = str(payload.get("status", "not_requested"))
+    status = "generated" if raw_status in {"planned", "generated"} else raw_status
+    if status not in {"not_requested", "generated", "valid", "invalid", "stale"}:
+        status = "invalid"
+    findings: list[AuditFinding] = []
+    for item in records:
+        if not isinstance(item, dict):
+            continue
+        item_status = str(item.get("status", "invalid"))
+        handoff_id = str(item.get("handoff_id", "unknown"))
+        output_root = item.get("output_root")
+        path = (
+            f"workspace/{job_id}/{output_root}"
+            if isinstance(output_root, str)
+            else f"workspace/{job_id}/exports/destination_handoffs"
+        )
+        if item_status == "stale":
+            findings.append(
+                _finding(
+                    "HANDOFF_STALE_BINDING",
+                    "error",
+                    f"Destination handoff {handoff_id} is stale for its source package.",
+                    job_id=job_id,
+                    path=path,
+                    remediation="Generate a new handoff from the current passed round trip.",
+                )
+            )
+        elif item_status == "invalid":
+            findings.append(
+                _finding(
+                    "HANDOFF_INVALID",
+                    "error",
+                    f"Destination handoff {handoff_id} failed receipt or contract validation.",
+                    job_id=job_id,
+                    path=path,
+                    remediation="Restore the handoff or regenerate it under a new ID.",
+                )
+            )
+        elif item_status in {"planned", "generated"}:
+            findings.append(
+                _finding(
+                    "HANDOFF_INCOMPLETE",
+                    "warning",
+                    f"Destination handoff {handoff_id} is planned but not fully validated.",
+                    job_id=job_id,
+                    path=path,
+                    remediation="Generate and validate the handoff before moving it.",
+                )
+            )
+    return count, valid, status, findings
 
 
 def _audit_job(
@@ -601,6 +720,10 @@ def _audit_job(
 
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
     findings.extend(_audit_latest_workflow(root, job_id))
+    handoff_count, valid_handoff_count, handoff_status, handoff_findings = (
+        _audit_destination_handoffs(root, job_id)
+    )
+    findings.extend(handoff_findings)
     workflows_root = root / "workflows"
     workflow_count = 0
     if workflows_root.is_dir():
@@ -627,6 +750,9 @@ def _audit_job(
         source_count=source_count,
         verified_source_count=verified_sources,
         workflow_count=workflow_count,
+        handoff_count=handoff_count,
+        valid_handoff_count=valid_handoff_count,
+        handoff_status=handoff_status,  # type: ignore[arg-type]
         findings=findings,
     )
 
@@ -705,6 +831,8 @@ def audit_workspace_state(
         passed_job_count=passed,
         warning_job_count=warnings,
         failed_job_count=failed,
+        handoff_count=sum(item.handoff_count for item in jobs),
+        valid_handoff_count=sum(item.valid_handoff_count for item in jobs),
         status=status,  # type: ignore[arg-type]
         jobs=jobs,
         findings=global_findings,

@@ -66,10 +66,11 @@ uv run cbm import-example geometry_showcase
 uv run cbm workflow-plan \
   --request "Prepare an FBX package for Unity." \
   --job-id geometry_showcase --intent portable_package \
-  --profile fbx_interchange --destination unity
+  --profile fbx_interchange --destination unity \
+  --include-destination-handoff
 PORTABLE_LATEST="$SMOKE_WORKSPACE/geometry_showcase/workflows/latest.json"
 PORTABLE_WORKFLOW_ID="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["workflow_id"])' "$PORTABLE_LATEST")"
 PORTABLE_PLAN="$SMOKE_WORKSPACE/geometry_showcase/workflows/$PORTABLE_WORKFLOW_ID/plan.json"
-uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["destination"]["status"] == "unsupported" and p["destination"]["terminal_boundary"] == "portable_package" and p["terminal_step_id"] == "portable.final_approval"' "$PORTABLE_PLAN"
+uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); s={x["step_id"]:x for x in p["steps"]}; assert p["destination"]["status"] == "unsupported" and p["destination"]["terminal_boundary"] == "portable_package" and p["terminal_step_id"] == "destination.handoff"; assert s["destination.handoff"]["depends_on"] == ["portable.final_approval"]' "$PORTABLE_PLAN"
 
 echo "V0.8 isolated orchestration gates completed: $SMOKE_ROOT"

@@ -950,12 +950,112 @@ def _append_qa_finding_table(
     )
 
 
+def _append_destination_handoff_section(
+    story: list[Any],
+    documents: dict[str, dict[str, Any]],
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Append one concise V0.9 source-side handoff summary to export reports."""
+
+    handoff = documents.get("destination_handoff_manifest") or {}
+    handoff_validation = documents.get("destination_handoff_validation") or {}
+    context = documents.get("destination_context") or {}
+    assembly = documents.get("assembly_manifest") or {}
+    material_mapping = documents.get("material_mapping") or {}
+    checklist = documents.get("import_checklist") or {}
+    story.append(_paragraph("V0.9 Codex Destination Handoff", styles["h2"]))
+    if not handoff:
+        story.append(
+            _paragraph(
+                "No valid destination handoff is available for the selected package. "
+                "The portable package remains usable, but destination reconstruction must be "
+                "planned manually and no engine parity is implied.",
+                styles["body"],
+            )
+        )
+        return
+
+    lod_context = context.get("lod_and_collider") or {}
+    story.append(
+        _metric_table(
+            [
+                (
+                    "Handoff status",
+                    _status(
+                        handoff_validation.get(
+                            "ok", handoff_validation.get("status")
+                        )
+                    )[0],
+                ),
+                ("Assembly nodes", len(assembly.get("nodes", []))),
+                ("Materials", len(material_mapping.get("materials", []))),
+                ("Checklist gates", len(checklist.get("items", []))),
+            ],
+            styles,
+        )
+    )
+    story.append(
+        _data_table(
+            ["Field", "Value"],
+            [
+                ["Handoff ID", handoff.get("handoff_id")],
+                ["Profile / package", [handoff.get("profile_id"), handoff.get("package_id")]],
+                ["Package manifest SHA-256", handoff.get("package_manifest", {}).get("sha256")],
+                ["Primary model", handoff.get("primary_model", {}).get("path")],
+                ["LOD present", lod_context.get("lod_present")],
+                ["LOD levels", lod_context.get("lod_levels")],
+                [
+                    "Collider present / count",
+                    [
+                        lod_context.get("collider_present"),
+                        lod_context.get("collider_count"),
+                    ],
+                ],
+                [
+                    "Known format losses",
+                    context.get("known_format_losses") or "None declared",
+                ],
+                ["Unverified items", context.get("unverified_items")],
+                ["Runtime parity", "not verified"],
+            ],
+            [55 * mm, 119 * mm],
+            styles,
+        )
+    )
+    material_rows = []
+    for material in material_mapping.get("materials", []):
+        if not isinstance(material, dict):
+            continue
+        channels = [
+            item.get("channel")
+            for item in material.get("channels", [])
+            if isinstance(item, dict) and item.get("status") != "unavailable"
+        ]
+        material_rows.append(
+            [
+                material.get("material_id"),
+                channels or "None",
+                material.get("blender_master_shader_baked"),
+                material.get("known_losses") or "None",
+            ]
+        )
+    if material_rows:
+        story.append(
+            _data_table(
+                ["Material ID", "Portable channels", "Master baked", "Known losses"],
+                material_rows,
+                [42 * mm, 58 * mm, 24 * mm, 50 * mm],
+                styles,
+            )
+        )
+
+
 def _append_export_section(
     story: list[Any],
     documents: dict[str, dict[str, Any]],
     styles: dict[str, ParagraphStyle],
 ) -> None:
-    """Append V0.7 preflight, derived assets, package, and round-trip evidence."""
+    """Append V0.7 package evidence and an optional V0.9 destination handoff."""
 
     story.append(_paragraph("V0.7 이식형 게임 자산 패키지", styles["h1"]))
     plan = documents.get("optimization_plan") or {}
@@ -966,7 +1066,10 @@ def _append_export_section(
     conversion = documents.get("material_conversion_manifest") or {}
     package = documents.get("package_manifest") or {}
     roundtrip = documents.get("roundtrip_validation") or {}
-    if not any((plan, review, approval, preflight, cost, conversion, package, roundtrip)):
+    handoff = documents.get("destination_handoff_manifest") or {}
+    if not any(
+        (plan, review, approval, preflight, cost, conversion, package, roundtrip, handoff)
+    ):
         story.append(
             _paragraph(
                 "V0.7 최적화 또는 내보내기 JSON이 아직 없습니다. 이 보고서는 통과 상태를 "
@@ -1493,6 +1596,8 @@ def _append_export_section(
                     styles,
                 )
             )
+
+    _append_destination_handoff_section(story, documents, styles)
 
 
 def _append_qa_section(

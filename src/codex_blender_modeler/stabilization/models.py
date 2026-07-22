@@ -45,6 +45,7 @@ MigrationStatus = Literal[
     "unsupported_future",
     "corrupt",
 ]
+HandoffAuditStatus = Literal["not_requested", "generated", "valid", "invalid", "stale"]
 QueueEntryStatus = Literal[
     "queued",
     "running",
@@ -140,6 +141,9 @@ class JobAudit(V09StrictModel):
     source_count: int = Field(default=0, ge=0)
     verified_source_count: int = Field(default=0, ge=0)
     workflow_count: int = Field(default=0, ge=0)
+    handoff_count: int = Field(default=0, ge=0)
+    valid_handoff_count: int = Field(default=0, ge=0)
+    handoff_status: HandoffAuditStatus = "not_requested"
     findings: list[AuditFinding] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -148,6 +152,12 @@ class JobAudit(V09StrictModel):
 
         if self.verified_source_count > self.source_count:
             raise ValueError("verified source count cannot exceed source count")
+        if self.valid_handoff_count > self.handoff_count:
+            raise ValueError("valid handoff count cannot exceed handoff count")
+        if self.handoff_count == 0 and self.handoff_status != "not_requested":
+            raise ValueError("jobs without handoffs must report not_requested")
+        if self.handoff_count > 0 and self.handoff_status == "not_requested":
+            raise ValueError("jobs with handoffs cannot report not_requested")
         has_error = any(item.severity == "error" for item in self.findings)
         has_warning = any(item.severity == "warning" for item in self.findings)
         expected = "failed" if has_error else "warning" if has_warning else "passed"
@@ -170,6 +180,8 @@ class WorkspaceAuditReport(V09StrictModel):
     passed_job_count: int = Field(ge=0)
     warning_job_count: int = Field(ge=0)
     failed_job_count: int = Field(ge=0)
+    handoff_count: int = Field(default=0, ge=0)
+    valid_handoff_count: int = Field(default=0, ge=0)
     status: AuditStatus
     jobs: list[JobAudit] = Field(default_factory=list)
     findings: list[AuditFinding] = Field(default_factory=list)
@@ -185,6 +197,12 @@ class WorkspaceAuditReport(V09StrictModel):
         )
         if counts != self.scanned_job_count or len(self.jobs) != self.scanned_job_count:
             raise ValueError("workspace audit job counts do not match job records")
+        if self.handoff_count != sum(item.handoff_count for item in self.jobs):
+            raise ValueError("workspace handoff count does not match job records")
+        if self.valid_handoff_count != sum(
+            item.valid_handoff_count for item in self.jobs
+        ):
+            raise ValueError("workspace valid handoff count does not match job records")
         if self.completed_at < self.started_at:
             raise ValueError("workspace audit completion cannot precede its start")
         all_findings = self.findings + [item for job in self.jobs for item in job.findings]

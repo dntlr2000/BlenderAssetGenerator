@@ -50,7 +50,32 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - explicit `--retry-failed` token 한 번만 소비
 - max attempts, queue cancellation, underlying workflow 보존
 
-## Gate 5 — PDF 보고서
+## Gate 5 — Codex Destination Handoff
+
+정상 사례:
+
+- `portable_gltf` 또는 `fbx_interchange` package와 matching `passed` round trip
+- exact plan SHA-256으로 single-use handoff 생성
+- source package의 byte-for-byte copy와 생성 전후 package snapshot 동일
+- package manifest, primary model, texture, semantic/material, assembly와 prompt hash 결속
+- LOD/Collider, pivot, transform, hierarchy와 raw PBR 의미 기록
+- glTF ORM `R=occlusion`, `G=roughness`, `B=metallic` 기록
+- 모든 envelope path가 relative POSIX path이고 모든 파일에 SHA-256 receipt 존재
+- 목적지 import plan/receipt/validation schema와 safe prompt 포함
+- handoff PDF와 sidecar가 exact JSON source hash에 결속
+
+음성 사례:
+
+- failed, missing 또는 stale round trip
+- package receipt mismatch, missing/untracked dependency 또는 source package 변경
+- OBJ profile
+- absolute/traversal path 또는 link-like package entry
+- reused handoff/plan ID와 stale plan hash
+- prompt 안전 규칙 또는 필수 placeholder 누락
+
+모든 사례에서 canonical SceneSpec, geometry, authoring `.blend`, source texture와 원본 V0.7 package hash가 바뀌지 않아야 한다.
+
+## Gate 6 — PDF 보고서
 
 - exact probe/audit strict-load
 - PDF SHA-256과 source fingerprint sidecar
@@ -60,12 +85,15 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - 2페이지 이상, 텍스트 추출 가능
 - representative page PNG render와 육안 clipping/overlap/한글 검사
 
-## Gate 6 — V0.8/V0.7 회귀와 Blender
+Export/full PDF는 newest valid handoff를 선택된 package에 결속해 표시하고, stability PDF는 audit의 handoff count와 valid count를 표시한다. Handoff PDF도 machine JSON의 파생 보고서이며 판단 입력으로 다시 읽지 않는다.
+
+## Gate 7 — V0.8/V0.7 회귀와 Blender
 
 - 전체 `pytest`, Ruff, doctor
 - 실제 Blender compatibility probe
 - V0.8 isolated workflow regression
-- V0.7 portable asset 회귀는 최근 검증 증거를 참조하되 release 전 별도 full gate로 재실행
+- V0.8 optional `destination.handoff` step이 exact package approval 뒤에 위치하고 output completion marker가 hash-bound인지 확인
+- V0.7 portable asset 회귀와 실제 GLB package clean-import를 격리 smoke workspace에서 실행
 - EEVEE feature probe, AgX, `stdin=DEVNULL`, `--python-exit-code 1`
 - compatibility smoke export의 GLB/FBX/OBJ
 
@@ -79,7 +107,7 @@ uv run cbm blender-compat
 .\scripts\run_v09_gates.ps1
 ```
 
-V0.9 gate의 smoke workspace는 `reports/v09_smoke/<run-id>/workspaces/`다. 기존 사용자 job을 변경해서 gate를 통과시키지 않는다.
+V0.9 gate의 smoke workspace는 `reports/v09_smoke/<run-id>/workspaces/`다. 기존 사용자 job을 변경해서 gate를 통과시키지 않는다. Gate는 source package manifest hash를 handoff 생성 전후 비교하고 audit에서 handoff `1/1 valid`를 요구한다.
 
 ## 지원 매트릭스 판정
 
@@ -89,4 +117,4 @@ V0.9 gate의 smoke workspace는 `reports/v09_smoke/<run-id>/workspaces/`다. 기
 - `partially_verified`: contract/fallback만 검사하거나 일부 gate만 통과
 - `unverified`: 실기동 증거 없음
 
-감지됐거나 코드 fallback이 있다는 이유로 `verified`로 올리지 않는다. Unity, Unreal, custom adapter는 실제 import/runtime test 전에는 계속 unsupported다.
+감지됐거나 코드 fallback이 있다는 이유로 `verified`로 올리지 않는다. Codex Destination Handoff 검증은 목적지 import 계획에 필요한 계약과 prompt의 안전성을 뜻하며 Unity, Unreal, custom engine의 자동 adapter 또는 runtime parity 검증을 뜻하지 않는다.

@@ -198,6 +198,7 @@ class WorkflowRequest(V08StrictModel):
         "portable_gltf"
     )
     destination: DestinationRequest = Field(default_factory=DestinationRequest)
+    include_destination_handoff: bool = False
     budgets: WorkflowBudgets = Field(default_factory=WorkflowBudgets)
     created_at: datetime
 
@@ -209,6 +210,8 @@ class WorkflowRequest(V08StrictModel):
             raise ValueError("staged auxiliary view cannot use kind=reference")
         if self.replace_existing_view and self.staged_view is None:
             raise ValueError("replace_existing_view requires a staged auxiliary view")
+        if self.include_destination_handoff and self.profile_id == "obj_legacy":
+            raise ValueError("destination handoff supports GLB and FBX packages only")
         return self
 
 

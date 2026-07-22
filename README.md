@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue와 release-candidate 보고 계층을 추가합니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue와 Codex Destination Handoff를 추가합니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -17,8 +17,9 @@
 | Portable static asset | `0.7.0` |
 | Workflow orchestration | `0.8.0` |
 | Stabilization evidence | `0.9.0` |
+| Codex Destination Handoff | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 374 tests passed, Ruff passed |
+| 최신 Python 회귀 | 380 tests passed, Ruff passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -36,17 +37,20 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - privacy-safe 환경 probe와 bounded read-only workspace audit
 - 기존 V0.8 workflow만 처리하는 single-worker local queue와 immutable attempt receipt
 - exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
+- passed clean-import package에만 생성되는 hash-bound Codex Destination Handoff
+- semantic hierarchy, transform, material/PBR, LOD/Collider와 목적지 import 계약
+- 목적지 프로젝트를 수정하기 전에 `import_plan.json`과 사용자 승인을 요구하는 안전 프롬프트
 - authoritative JSON을 기반으로 한 build, material, QA, export, full PDF 보고서
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
-- Unity prefab, Unreal actor 또는 특정 엔진의 runtime shader adapter
+- Unity prefab, Unreal actor 또는 특정 엔진 API를 직접 호출하는 자동 Destination Adapter
 - rig, skinning, animation과 캐릭터용 topology
 - 모든 CAD 형식의 실제 parsing과 B-Rep 변환
 - 단일 이미지에서 보이지 않는 후면·내부·절대 치수의 정답 복원
 - multi-worker 또는 distributed scheduler와 완성된 cross-platform release matrix
 
-명시적 목적지 adapter가 없으면 V0.8은 V0.7 engine-neutral portable package에서 정상 종료합니다.
+자동 Destination Adapter는 목적 엔진·버전·렌더 파이프라인이 확정된 뒤 V1.1 이후 범위입니다. 현재는 V0.7 package 뒤에 선택적으로 Codex Destination Handoff를 생성하고, 목적지 프로젝트의 Codex가 먼저 import plan을 작성하도록 전달합니다.
 
 ## 핵심 저장소 구조
 
@@ -64,6 +68,7 @@ BlenderAssetGenerator/
 │  ├─ qa/                            V0.6 비교와 후보 생성
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
+│  ├─ handoff/                       V0.9 hash-bound destination handoff
 │  ├─ stabilization/                 V0.9 probe, audit, queue, PDF
 │  └─ blender_scripts/               whitelisted Blender background scripts
 ├─ examples/                         geometry_showcase, measured_box 등
@@ -117,6 +122,17 @@ uv run cbm workflow-plan `
 
 완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)을 따릅니다.
 
+Portable workflow 뒤에 전달 계약까지 포함하려면 GLB 또는 FBX profile에서 선택 플래그를 사용합니다. 이 단계는 목적지 프로젝트를 수정하지 않습니다.
+
+```powershell
+uv run cbm workflow-plan `
+  --request "승인된 정적 자산을 portable package와 Codex handoff로 준비해줘" `
+  --job-id temple_asset `
+  --intent portable_package `
+  --profile portable_gltf `
+  --include-destination-handoff
+```
+
 ## V0.9 안정화 표면
 
 ```powershell
@@ -130,6 +146,28 @@ uv run cbm stability-report-pdf `
 
 Audit는 canonical job을 repair하거나 migration하지 않습니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고 agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
 
+Passed round-trip package에 대해 전달 봉투를 만들려면 먼저 계획을 생성하고 그 정확한 SHA-256을 확인합니다.
+
+```powershell
+uv run cbm handoff-plan <job-id> `
+  --profile portable_gltf `
+  --package-id <package-id> `
+  --handoff-id <handoff-id>
+
+uv run cbm handoff-generate <job-id> `
+  --handoff-id <handoff-id> `
+  --plan-sha256 <exact-plan-sha256>
+
+uv run cbm handoff-validate <job-id> `
+  --profile portable_gltf `
+  --package-id <package-id> `
+  --handoff-id <handoff-id>
+
+uv run cbm handoff-status <job-id>
+```
+
+원본 V0.7 package는 immutable이므로 handoff 파일을 그 안에 덧붙이지 않습니다. 대신 package를 byte-for-byte 복제한 독립 전달 봉투를 `exports/destination_handoffs/<profile>/<package-id>/<handoff-id>/`에 생성합니다.
+
 ## 단계별 제작 흐름
 
 ```text
@@ -140,7 +178,8 @@ immutable input
 → V0.6 fixed-camera QA and guarded revision
 → V0.7 derived optimization and portable package
 → V0.8 orchestration, resume and approval boundaries
-→ V0.9 stabilization evidence and release gates
+→ optional V0.9 Codex Destination Handoff
+→ V0.9 stabilization evidence and local gates
 ```
 
 작업 단계는 일방통행이 아닙니다. 형상이 마음에 들지 않으면 현재 저장소를 유지한 채 V0.4 authoring으로 돌아가고, 국소적인 레퍼런스 오차는 V0.6 guarded revision으로 처리합니다. canonical 입력이 바뀌면 이후 build, QA와 package는 stale 상태가 되며 새 run ID로 재검증합니다.
@@ -154,6 +193,7 @@ immutable input
 - `.blend`를 canonical 수정 수단으로 사용하지 않습니다.
 - 생성 이미지 기반 QA target은 보조 근거이며 단독으로 revision을 승인하지 못합니다.
 - V0.7은 canonical authoring 데이터를 수정하지 않고 run-owned derived directory에서만 최적화합니다.
+- Handoff 생성은 원본 package와 canonical authoring 데이터를 변경하지 않고 모든 파일을 상대 경로와 SHA-256으로 결속합니다.
 - 일반 workflow 승인은 InteriorScope, Visual QA revision 또는 optimization의 전용 승인을 대체하지 못합니다.
 
 전체 규칙은 [AGENTS.md](AGENTS.md)를 따릅니다.
@@ -199,4 +239,4 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [Blender 5 호환성](BLENDER_5_COMPATIBILITY_KO.md)
 - [변경 기록](CHANGELOG.md)
 
-V0.9는 release-candidate 기반을 구현하지만 아직 cross-platform 또는 목적 엔진 parity를 의미하지 않습니다. 실제 V1.0 승격 전에는 남은 지원 매트릭스, 실제 자산 benchmark, release blocker와 공개 계약 동결을 완료해야 합니다.
+V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또는 목적 엔진 runtime parity를 의미하지 않습니다. V1.0 승격은 현재 중단되어 있으며, 자동 Unity/Unreal/custom Destination Adapter는 V1.1 이후에 목적지가 확정된 다음 별도로 설계·검증합니다.

@@ -1,6 +1,6 @@
 # V0.9 빠른 시작
 
-V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue와 release-candidate PDF 보고서를 추가한다. 기존 SceneSpec, 재질, QA, package 계약은 그대로 유지된다.
+V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
 
 ## 1. 설치 및 백업
 
@@ -93,13 +93,67 @@ uv run cbm queue-cancel <entry-id> --reason "user cancelled dispatch"
 
 이는 underlying V0.8 workflow를 취소하지 않는다.
 
-## 6. 전체 V0.9 gate
+## 6. Codex Destination Handoff
+
+Handoff는 `portable_gltf` 또는 `fbx_interchange` package의 clean-import round trip이 `passed`인 경우에만 만들 수 있다. 원본 package 내부를 수정하지 않고 별도의 이동 가능 envelope를 만든다.
+
+먼저 exact plan을 생성한다.
+
+```powershell
+uv run cbm handoff-plan <job-id> `
+  --profile portable_gltf `
+  --package-id <package-id> `
+  --handoff-id <handoff-id>
+```
+
+결과의 `handoff_plan.json`과 SHA-256을 검토한 뒤 동일 hash로 생성한다.
+
+```powershell
+uv run cbm handoff-generate <job-id> `
+  --handoff-id <handoff-id> `
+  --plan-sha256 <exact-plan-sha256>
+
+uv run cbm handoff-validate <job-id> `
+  --profile portable_gltf `
+  --package-id <package-id> `
+  --handoff-id <handoff-id>
+
+uv run cbm handoff-status <job-id>
+```
+
+산출물:
+
+```text
+workspaces/<job-id>/exports/destination_handoffs/
+└─ <profile>/<package-id>/<handoff-id>/
+   ├─ package/
+   ├─ evidence/
+   ├─ codex_handoff/
+   └─ destination_handoff_validation.json
+```
+
+사용자는 이 envelope 전체를 목적지 프로젝트로 이동한다. 목적지 Codex에는 `codex_handoff/codex_import_prompt.md`를 주고 `<PACKAGE_PATH>`, `<DESTINATION_PROJECT_ROOT>`, `<OPTIONAL_DESTINATION_HINT>`만 현재 환경에 맞게 해석하게 한다. 목적지 Codex는 import plan과 사용자 승인 전에는 프로젝트 파일을 수정하면 안 된다.
+
+V0.8 portable workflow에 선택적으로 포함하려면 다음 플래그를 사용한다.
+
+```powershell
+uv run cbm workflow-plan `
+  --request "승인된 정적 자산을 portable package와 Codex handoff로 준비해줘" `
+  --job-id <job-id> `
+  --intent portable_package `
+  --profile portable_gltf `
+  --include-destination-handoff
+```
+
+OBJ package는 handoff 대상이 아니며, Unity/Unreal/custom engine을 감지했다고 자동 지원이나 runtime parity를 주장하지 않는다.
+
+## 7. 전체 V0.9 gate
 
 ```powershell
 .\scripts\run_v09_gates.ps1
 ```
 
-Gate는 Python/Ruff/doctor, Blender compatibility, V0.8 regression, 격리 workflow와 queue, audit/privacy, stability PDF를 검증한다. 사용자 job 대신 `reports/v09_smoke/` 아래의 격리 workspace를 사용한다.
+Gate는 Python/Ruff/doctor, Blender compatibility, V0.8 regression, 격리 workflow와 queue, real GLB package·clean import·handoff 생성/검증, audit/privacy, export/stability PDF를 검증한다. 사용자 job 대신 `reports/v09_smoke/` 아래의 격리 workspace를 사용한다.
 
 이미 V0.8 회귀를 별도로 확인한 진단 실행에서만 선택적으로 생략한다.
 

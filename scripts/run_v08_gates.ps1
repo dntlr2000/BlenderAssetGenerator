@@ -69,7 +69,8 @@ try {
     Invoke-Uv run cbm workflow-plan `
         --request "Prepare an FBX package for Unity." `
         --job-id geometry_showcase --intent portable_package `
-        --profile fbx_interchange --destination unity
+        --profile fbx_interchange --destination unity `
+        --include-destination-handoff
     $PortableLatest = Join-Path $SmokeWorkspace `
         "geometry_showcase/workflows/latest.json"
     $PortableWorkflowId = `
@@ -79,8 +80,14 @@ try {
     $PortablePlan = Get-Content -Raw $PortablePlanPath | ConvertFrom-Json
     if ($PortablePlan.destination.status -ne "unsupported" -or `
         $PortablePlan.destination.terminal_boundary -ne "portable_package" -or `
-        $PortablePlan.terminal_step_id -ne "portable.final_approval") {
-        throw "V0.8 did not preserve the engine-neutral boundary for Unity."
+        $PortablePlan.terminal_step_id -ne "destination.handoff") {
+        throw "V0.8 did not preserve the optional handoff boundary for Unity."
+    }
+    $HandoffStep = $PortablePlan.steps | `
+        Where-Object { $_.step_id -eq "destination.handoff" }
+    if ($null -eq $HandoffStep -or `
+        $HandoffStep.depends_on[0] -ne "portable.final_approval") {
+        throw "V0.8 destination handoff is not downstream of exact package approval."
     }
 }
 finally {

@@ -230,6 +230,16 @@ def destination_adapters() -> dict[str, object]:
 
     return {
         "schema_version": "0.8.0",
+        "source_handoff_capabilities": [
+            {
+                "capability_id": "codex_destination_handoff_v09",
+                "status": "available",
+                "formats": ["glb", "fbx"],
+                "modifies_destination": False,
+                "executes_external_engine": False,
+                "runtime_parity_claim": False,
+            }
+        ],
         "adapters": [
             {
                 "adapter_id": "portable_static_asset_v07",

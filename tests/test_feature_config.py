@@ -15,6 +15,7 @@ def test_feature_config_defaults_are_conservative(tmp_path: Path) -> None:
     assert config.features.image_model_qa is False
     assert config.features.automatic_revision is False
     assert config.features.portable_asset_core is True
+    assert config.features.destination_handoff is True
     assert config.qa.revision_mode == "suggest"
     assert config.qa.max_revision_iterations == 1
     assert config.qa.generated_target_weight == 0.15

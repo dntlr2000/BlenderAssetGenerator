@@ -1,0 +1,325 @@
+{
+  "$defs": {
+    "AssemblyNode": {
+      "additionalProperties": false,
+      "description": "Map one exported object back to stable semantic and material identities.",
+      "properties": {
+        "export_key": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Export Key",
+          "type": "string"
+        },
+        "object_name": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Object Name",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "instance_index": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Index"
+        },
+        "parent_export_key": {
+          "default": null,
+          "title": "Parent Export Key",
+          "type": "null"
+        },
+        "canonical_parent_semantic_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Canonical Parent Semantic Id"
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSnapshot"
+        },
+        "material_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "lod_level": {
+          "anyOf": [
+            {
+              "maximum": 8,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lod Level"
+        },
+        "collider_target_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Collider Target Id"
+        },
+        "render_object": {
+          "title": "Render Object",
+          "type": "boolean"
+        },
+        "asset_role": {
+          "enum": [
+            "render",
+            "lod",
+            "collider"
+          ],
+          "title": "Asset Role",
+          "type": "string"
+        },
+        "source_package_file": {
+          "title": "Source Package File",
+          "type": "string"
+        },
+        "repeated_instance_relation": {
+          "enum": [
+            "explicit_index",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Repeated Instance Relation",
+          "type": "string"
+        },
+        "pivot": {
+          "$ref": "#/$defs/PivotSnapshot"
+        }
+      },
+      "required": [
+        "export_key",
+        "object_name",
+        "semantic_id",
+        "transform",
+        "render_object",
+        "asset_role",
+        "source_package_file",
+        "repeated_instance_relation",
+        "pivot"
+      ],
+      "title": "AssemblyNode",
+      "type": "object"
+    },
+    "PivotSnapshot": {
+      "additionalProperties": false,
+      "description": "Record object-origin and source +Z base-plane evidence for reconstruction.",
+      "properties": {
+        "origin_translation_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Origin Translation M",
+          "type": "array"
+        },
+        "base_plane_z_m": {
+          "title": "Base Plane Z M",
+          "type": "number"
+        },
+        "policy": {
+          "const": "preserve_exported_object_origin",
+          "default": "preserve_exported_object_origin",
+          "title": "Policy",
+          "type": "string"
+        },
+        "verification": {
+          "const": "export_evidence",
+          "default": "export_evidence",
+          "title": "Verification",
+          "type": "string"
+        }
+      },
+      "required": [
+        "origin_translation_m",
+        "base_plane_z_m"
+      ],
+      "title": "PivotSnapshot",
+      "type": "object"
+    },
+    "TransformSnapshot": {
+      "additionalProperties": false,
+      "description": "Record the source-authoring world transform used by a flat exported root.",
+      "properties": {
+        "translation_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Translation M",
+          "type": "array"
+        },
+        "rotation_euler_rad": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Euler Rad",
+          "type": "array"
+        },
+        "scale": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        },
+        "space": {
+          "const": "source_authoring_world_as_flat_root",
+          "default": "source_authoring_world_as_flat_root",
+          "title": "Space",
+          "type": "string"
+        }
+      },
+      "required": [
+        "translation_m",
+        "rotation_euler_rad",
+        "scale"
+      ],
+      "title": "TransformSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Provide a deterministic destination reconstruction map for exported objects.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "package_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Manifest Sha256",
+      "type": "string"
+    },
+    "primary_model": {
+      "title": "Primary Model",
+      "type": "string"
+    },
+    "exported_root_policy": {
+      "const": "flat_root",
+      "default": "flat_root",
+      "title": "Exported Root Policy",
+      "type": "string"
+    },
+    "canonical_hierarchy_is_advisory": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Hierarchy Is Advisory",
+      "type": "boolean"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/AssemblyNode"
+      },
+      "minItems": 1,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Semantic Ids",
+      "type": "array"
+    },
+    "material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Material Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "package_manifest_sha256",
+    "primary_model",
+    "nodes",
+    "semantic_ids",
+    "material_ids"
+  ],
+  "title": "AssemblyManifest",
+  "type": "object"
+}

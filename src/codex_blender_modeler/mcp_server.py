@@ -26,6 +26,16 @@ from .blender_artifact_runner import (
 from .blender_runner import run_blender
 from .config import get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
+from .handoff import (
+    generate_destination_handoff as generate_destination_handoff_internal,
+)
+from .handoff import (
+    get_destination_handoff_status as get_destination_handoff_status_internal,
+)
+from .handoff import plan_destination_handoff as plan_destination_handoff_internal
+from .handoff import (
+    validate_destination_handoff as validate_destination_handoff_internal,
+)
 from .materials import create_material_scaffold, validate_job_material_contracts
 from .optimization import (
     approve_asset_optimization as approve_asset_optimization_internal,
@@ -90,6 +100,7 @@ from .texturing import (
 from .validation import load_scene_spec
 from .versioning import (
     CONSTRAINT_SCHEMA_VERSION,
+    DESTINATION_HANDOFF_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
@@ -221,6 +232,7 @@ def get_modeling_capabilities() -> dict:
         "interior_scope_schema_version": INTERIOR_SCOPE_SCHEMA_VERSION,
         "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
         "stabilization_schema_version": STABILIZATION_SCHEMA_VERSION,
+        "destination_handoff_schema_version": DESTINATION_HANDOFF_SCHEMA_VERSION,
         "feature_flags": {
             "material_core": feature_config.features.material_core,
             "shader_core": feature_config.features.shader_core,
@@ -233,6 +245,7 @@ def get_modeling_capabilities() -> dict:
                 feature_config.features.workflow_orchestration
             ),
             "stabilization_core": feature_config.features.stabilization_core,
+            "destination_handoff": feature_config.features.destination_handoff,
             "revision_mode": feature_config.qa.revision_mode,
             "max_revision_iterations": feature_config.qa.max_revision_iterations,
         },
@@ -382,6 +395,7 @@ def plan_short_workflow(
     max_texture_resolution: int = 2048,
     max_lod0_triangles: int | None = None,
     external_provider_budget: int = 0,
+    include_destination_handoff: bool = False,
 ) -> dict:
     """Route one short request into an immutable, approval-aware V0.8 workflow."""
 
@@ -399,6 +413,7 @@ def plan_short_workflow(
         destination_kind=destination_kind,
         destination_name=destination_name,
         destination_version=destination_version,
+        include_destination_handoff=include_destination_handoff,
         budgets=WorkflowBudgets(
             max_host_steps_per_resume=max_host_steps_per_resume,
             max_qa_iterations=max_qa_iterations,
@@ -1230,6 +1245,64 @@ def get_portable_asset_status(job_id: str) -> dict:
     """Return profiles, runs, packages, and validation evidence for one job."""
 
     return get_asset_status_internal(job_id)
+
+
+@mcp.tool()
+def plan_destination_handoff(
+    job_id: str,
+    profile_id: str,
+    package_id: str,
+    handoff_id: str | None = None,
+    destination_hint: str | None = None,
+) -> dict:
+    """Plan a hash-bound handoff without modifying a package or destination project."""
+
+    return plan_destination_handoff_internal(
+        job_id,
+        profile_id=profile_id,
+        package_id=package_id,
+        handoff_id=handoff_id,
+        destination_hint=destination_hint,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def generate_destination_handoff(
+    job_id: str,
+    handoff_id: str,
+    plan_sha256: str,
+) -> dict:
+    """Generate one immutable source-side handoff from the exact plan digest."""
+
+    return generate_destination_handoff_internal(
+        job_id,
+        handoff_id,
+        approved_plan_sha256=plan_sha256,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def validate_destination_handoff(
+    job_id: str,
+    profile_id: str,
+    package_id: str,
+    handoff_id: str,
+) -> dict:
+    """Read-only verify handoff receipts, source binding, and reconstruction contracts."""
+
+    return validate_destination_handoff_internal(
+        job_id,
+        profile_id=profile_id,
+        package_id=package_id,
+        handoff_id=handoff_id,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_destination_handoff_status(job_id: str) -> dict:
+    """Return planned, generated, valid, invalid, and stale handoff state."""
+
+    return get_destination_handoff_status_internal(job_id)
 
 
 @mcp.tool()

@@ -44,6 +44,7 @@ SUBDIRS = [
     "reports",
     "exports",
     "exports/packages",
+    "exports/destination_handoffs",
     "textures",
     "bakes",
     "asset_profiles",
@@ -54,6 +55,7 @@ SUBDIRS = [
     "qa/runs",
     "qa/cache/generated_targets",
     "workflows",
+    "handoffs",
 ]
 SOURCE_KINDS = {"reference", "front", "right", "top", "blueprint", "cad"}
 SOURCE_ORDER = {"reference": 0, "front": 1, "right": 2, "top": 3, "blueprint": 4, "cad": 5}

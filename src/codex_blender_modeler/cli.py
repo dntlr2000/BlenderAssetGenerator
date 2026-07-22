@@ -30,6 +30,12 @@ from .blender_runner import run_blender
 from .codex_runner import run_codex_json
 from .config import executable_exists, get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
+from .handoff import (
+    generate_destination_handoff,
+    get_destination_handoff_status,
+    plan_destination_handoff,
+    validate_destination_handoff,
+)
 from .materials import (
     create_material_scaffold,
     load_material_plan,
@@ -1076,6 +1082,73 @@ def portable_asset_status(job_id: str) -> None:
     console.print_json(json.dumps(get_asset_status(job_id), ensure_ascii=False))
 
 
+@app.command("handoff-plan")
+def handoff_plan_command(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")],
+    package_id: Annotated[str, typer.Option("--package-id")],
+    handoff_id: Annotated[str | None, typer.Option("--handoff-id")] = None,
+    destination_hint: Annotated[
+        str | None, typer.Option("--destination-hint")
+    ] = None,
+) -> None:
+    """Plan one package-bound destination handoff without copying or changing assets."""
+
+    result = plan_destination_handoff(
+        job_id,
+        profile_id=profile,
+        package_id=package_id,
+        handoff_id=handoff_id,
+        destination_hint=destination_hint,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("handoff-generate")
+def handoff_generate_command(
+    job_id: str,
+    handoff_id: Annotated[str, typer.Option("--handoff-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+) -> None:
+    """Generate one immutable destination handoff from the exact reviewed plan hash."""
+
+    result = generate_destination_handoff(
+        job_id,
+        handoff_id,
+        approved_plan_sha256=plan_sha256,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("handoff-validate")
+def handoff_validate_command(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")],
+    package_id: Annotated[str, typer.Option("--package-id")],
+    handoff_id: Annotated[str, typer.Option("--handoff-id")],
+) -> None:
+    """Read-only verify every handoff file and its exact source package binding."""
+
+    result = validate_destination_handoff(
+        job_id,
+        profile_id=profile,
+        package_id=package_id,
+        handoff_id=handoff_id,
+    )
+    console.print_json(result.model_dump_json())
+    if not result.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("handoff-status")
+def handoff_status_command(job_id: str) -> None:
+    """Show planned, generated, valid, invalid, and stale destination handoffs."""
+
+    console.print_json(
+        json.dumps(get_destination_handoff_status(job_id), ensure_ascii=False)
+    )
+
+
 @app.command("workflow-plan")
 def workflow_plan_command(
     request: Annotated[str, typer.Option("--request")],
@@ -1108,6 +1181,12 @@ def workflow_plan_command(
     external_provider_budget: Annotated[
         int, typer.Option("--external-provider-budget", min=0, max=100)
     ] = 0,
+    include_destination_handoff: Annotated[
+        bool,
+        typer.Option(
+            "--include-destination-handoff/--no-destination-handoff"
+        ),
+    ] = False,
 ) -> None:
     """Route one short request into an immutable approval-aware workflow plan."""
 
@@ -1125,6 +1204,7 @@ def workflow_plan_command(
         destination_kind=destination,
         destination_name=destination_name,
         destination_version=destination_version,
+        include_destination_handoff=include_destination_handoff,
         budgets=WorkflowBudgets(
             max_host_steps_per_resume=max_host_steps,
             max_qa_iterations=max_qa_iterations,

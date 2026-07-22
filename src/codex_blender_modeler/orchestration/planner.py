@@ -628,7 +628,7 @@ def _append_portable_flow(
                 outputs=[
                     _artifact(
                         "portable.roundtrip_report",
-                        f"{package_root}/roundtrip_validation.json",
+                        f"{run_root}/roundtrip/{package_id}/roundtrip_validation.json",
                         acceptance="json_ok",
                     )
                 ],
@@ -659,6 +659,56 @@ def _append_portable_flow(
             gate="final_package",
         )
     )
+    terminal = "portable.final_approval"
+    if request.include_destination_handoff:
+        handoff_id = f"v08-{suffix}-handoff"
+        handoff_root = (
+            "exports/destination_handoffs/"
+            f"{request.profile_id}/{package_id}/{handoff_id}"
+        )
+        steps.append(
+            _step(
+                "destination.handoff",
+                "Generate immutable Codex destination handoff",
+                "destination",
+                "agent",
+                tool="generate_destination_handoff",
+                depends_on=["portable.final_approval"],
+                outputs=[
+                    _artifact(
+                        "destination.handoff.manifest",
+                        f"{handoff_root}/codex_handoff/handoff_manifest.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "destination.handoff.validation",
+                        f"{handoff_root}/destination_handoff_validation.json",
+                        acceptance="json_ok",
+                    ),
+                    _artifact(
+                        "destination.handoff.pdf_manifest",
+                        f"{handoff_root}/codex_handoff/handoff_report.manifest.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "destination.handoff.directory",
+                        handoff_root,
+                        acceptance="nonempty_directory",
+                    ),
+                ],
+                parameters={
+                    "profile_id": request.profile_id,
+                    "package_id": package_id,
+                    "handoff_id": handoff_id,
+                },
+                instructions=[
+                    "Plan the handoff against the exact passed round-trip package.",
+                    "Generate and validate it without modifying a destination project.",
+                    "Record completion only after exact package and handoff hashes pass.",
+                ],
+            )
+        )
+        terminal = "destination.handoff"
     if request.destination.kind in {"unity", "unreal", "custom"}:
         steps.append(
             _step(
@@ -667,12 +717,12 @@ def _append_portable_flow(
                 "destination",
                 "manual",
                 tool="select_validated_destination_adapter",
-                depends_on=["portable.final_approval"],
+                depends_on=[terminal],
                 instructions=[request.destination.kind + " adapter is not implemented."],
             )
         )
-        return "portable.final_approval"
-    return "portable.final_approval"
+        return terminal
+    return terminal
 
 
 def _scope_for_routing(request: WorkflowRequest, routing: IntentRouting) -> WorkflowScope:

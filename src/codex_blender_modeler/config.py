@@ -24,7 +24,7 @@ class Settings:
 
 @dataclass(frozen=True)
 class FeatureFlags:
-    """Control optional material, QA, portable-asset, workflow, and V0.9 capabilities."""
+    """Control optional material, portable-asset, workflow, handoff, and V0.9 capabilities."""
 
     material_core: bool = True
     shader_core: bool = True
@@ -35,6 +35,7 @@ class FeatureFlags:
     portable_asset_core: bool = True
     workflow_orchestration: bool = True
     stabilization_core: bool = True
+    destination_handoff: bool = True
 
 
 @dataclass(frozen=True)
@@ -128,6 +129,7 @@ def load_feature_config(path: Path | None = None) -> FeatureConfig:
             feature_values.get("workflow_orchestration", True)
         ),
         stabilization_core=bool(feature_values.get("stabilization_core", True)),
+        destination_handoff=bool(feature_values.get("destination_handoff", True)),
     )
     revision_mode = str(qa_values.get("revision_mode", "suggest"))
     if revision_mode not in {"off", "suggest", "approve", "auto"}:

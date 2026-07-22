@@ -1,0 +1,260 @@
+{
+  "$defs": {
+    "HandoffFileReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one file inside a movable handoff envelope by exact relative receipt.",
+      "properties": {
+        "file_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "File Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "package_manifest",
+            "primary_model",
+            "package_file",
+            "texture",
+            "roundtrip_validation",
+            "roundtrip_evidence",
+            "destination_context",
+            "assembly_manifest",
+            "material_mapping",
+            "import_checklist",
+            "prompt_template",
+            "known_limitations",
+            "import_schema",
+            "handoff_manifest",
+            "pdf_report",
+            "pdf_manifest",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "HandoffFileReceipt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind the complete core handoff contract to one exact portable package.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "handoff_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Handoff Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "package_manifest": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "roundtrip_validation": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "primary_model": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "textures": {
+      "items": {
+        "$ref": "#/$defs/HandoffFileReceipt"
+      },
+      "title": "Textures",
+      "type": "array"
+    },
+    "semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Semantic Ids",
+      "type": "array"
+    },
+    "material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Material Ids",
+      "type": "array"
+    },
+    "destination_context": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "assembly_manifest": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "material_mapping": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "import_checklist": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "import_prompt": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "known_limitations": {
+      "$ref": "#/$defs/HandoffFileReceipt"
+    },
+    "import_schemas": {
+      "items": {
+        "$ref": "#/$defs/HandoffFileReceipt"
+      },
+      "minItems": 3,
+      "title": "Import Schemas",
+      "type": "array"
+    },
+    "assembly_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assembly Manifest Sha256",
+      "type": "string"
+    },
+    "material_mapping_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Material Mapping Sha256",
+      "type": "string"
+    },
+    "prompt_template_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prompt Template Sha256",
+      "type": "string"
+    },
+    "lod_present": {
+      "title": "Lod Present",
+      "type": "boolean"
+    },
+    "collider_present": {
+      "title": "Collider Present",
+      "type": "boolean"
+    },
+    "supported_scope": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Supported Scope",
+      "type": "array"
+    },
+    "excluded_scope": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Excluded Scope",
+      "type": "array"
+    },
+    "core_files": {
+      "items": {
+        "$ref": "#/$defs/HandoffFileReceipt"
+      },
+      "minItems": 1,
+      "title": "Core Files",
+      "type": "array"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "source_package_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Source Package Unchanged",
+      "type": "boolean"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "handoff_id",
+    "job_id",
+    "profile_id",
+    "package_id",
+    "run_id",
+    "package_manifest",
+    "roundtrip_validation",
+    "primary_model",
+    "semantic_ids",
+    "material_ids",
+    "destination_context",
+    "assembly_manifest",
+    "material_mapping",
+    "import_checklist",
+    "import_prompt",
+    "known_limitations",
+    "import_schemas",
+    "assembly_manifest_sha256",
+    "material_mapping_sha256",
+    "prompt_template_sha256",
+    "lod_present",
+    "collider_present",
+    "supported_scope",
+    "excluded_scope",
+    "core_files",
+    "generated_at"
+  ],
+  "title": "DestinationHandoffManifest",
+  "type": "object"
+}

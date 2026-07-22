@@ -242,6 +242,11 @@
     "destination": {
       "$ref": "#/$defs/DestinationRequest"
     },
+    "include_destination_handoff": {
+      "default": false,
+      "title": "Include Destination Handoff",
+      "type": "boolean"
+    },
     "budgets": {
       "$ref": "#/$defs/WorkflowBudgets"
     },

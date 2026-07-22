@@ -7,7 +7,10 @@
 - Added bounded read-only workspace audits for immutable source hashes, contract readability/version compatibility, workflow pointers, path escapes, temporary evidence, and scan limits without automatic repair or migration.
 - Added a one-writer, one-worker local dispatcher for existing V0.8 workflows with leases, immutable receipts, approval/agent boundaries, explicit single-use failed retry, cancellation, and expired-lock recovery.
 - Added an exact-source-hash V0.9 stability PDF and sidecar manifest, CLI/MCP surfaces, checked-in JSON Schemas, isolated Windows/POSIX gate scripts, and release-candidate documentation.
-- Kept Unity, Unreal, custom engine adapters, distributed scheduling, cross-platform support claims, automatic migration, CAD parsing, rigs, and animation outside the verified V0.9 core.
+- Added strict `0.9.0` Codex Destination Handoff contracts and CLI/MCP plan, generate, validate, and status surfaces for passed GLB/FBX clean-import packages.
+- Added an immutable movable envelope containing the exact package copy, round-trip evidence, semantic assembly, portable material/PBR mapping, LOD/Collider context, safe destination prompt, import schemas, limitations, and exact-hash PDF.
+- Bound optional V0.8 `destination.handoff` completion to exact package and handoff hashes, and extended V0.9 audit, stability/export/full PDF, feature reporting, tests, and isolated gates with handoff validity.
+- Kept Unity, Unreal, and custom automatic engine adapters, runtime parity claims, distributed scheduling, cross-platform support claims, automatic migration, CAD parsing, rigs, and animation outside the verified V0.9 core. Automatic Destination Adapters are deferred until V1.1 or later after a destination is selected.
 
 ## 0.8.0
 

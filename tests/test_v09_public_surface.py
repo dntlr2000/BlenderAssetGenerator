@@ -7,6 +7,7 @@ from typer.testing import CliRunner
 
 from codex_blender_modeler.cli import app
 from codex_blender_modeler.versioning import (
+    DESTINATION_HANDOFF_SCHEMA_VERSION,
     PROJECT_VERSION,
     STABILIZATION_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
@@ -22,6 +23,10 @@ EXPECTED_COMMANDS = {
     "queue-run",
     "queue-requeue",
     "queue-cancel",
+    "handoff-plan",
+    "handoff-generate",
+    "handoff-validate",
+    "handoff-status",
 }
 EXPECTED_MCP_TOOLS = {
     "probe_release_environment",
@@ -32,6 +37,10 @@ EXPECTED_MCP_TOOLS = {
     "run_local_workflow_queue",
     "requeue_local_workflow",
     "cancel_local_workflow_queue_entry",
+    "plan_destination_handoff",
+    "generate_destination_handoff",
+    "validate_destination_handoff",
+    "get_destination_handoff_status",
 }
 
 
@@ -66,4 +75,5 @@ def test_v09_advances_project_only_and_preserves_workflow_contract() -> None:
 
     assert PROJECT_VERSION == "0.9.0"
     assert STABILIZATION_SCHEMA_VERSION == "0.9.0"
+    assert DESTINATION_HANDOFF_SCHEMA_VERSION == "0.9.0"
     assert WORKFLOW_SCHEMA_VERSION == "0.8.0"

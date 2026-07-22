@@ -137,6 +137,30 @@
           "title": "Workflow Count",
           "type": "integer"
         },
+        "handoff_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Handoff Count",
+          "type": "integer"
+        },
+        "valid_handoff_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Valid Handoff Count",
+          "type": "integer"
+        },
+        "handoff_status": {
+          "default": "not_requested",
+          "enum": [
+            "not_requested",
+            "generated",
+            "valid",
+            "invalid",
+            "stale"
+          ],
+          "title": "Handoff Status",
+          "type": "string"
+        },
         "findings": {
           "items": {
             "$ref": "#/$defs/AuditFinding"
@@ -223,6 +247,18 @@
     "failed_job_count": {
       "minimum": 0,
       "title": "Failed Job Count",
+      "type": "integer"
+    },
+    "handoff_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Handoff Count",
+      "type": "integer"
+    },
+    "valid_handoff_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Valid Handoff Count",
       "type": "integer"
     },
     "status": {
