@@ -5,6 +5,7 @@
 단계별 상세 문서는 다음과 같습니다.
 
 - 전체 현황과 기본 명령: [README.md](README.md)
+- 새 레퍼런스 단계별 검증 프롬프트: [NEW_REFERENCE_VALIDATION_PROMPTS_KO.md](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
 - 안정화, workspace audit와 queue: [GETTING_STARTED_V09_KO.md](GETTING_STARTED_V09_KO.md)
 - 재질·텍스처·셰이더와 Visual QA: [GETTING_STARTED_V06_KO.md](GETTING_STARTED_V06_KO.md)
 - 정적 자산 최적화와 portable package: [GETTING_STARTED_V07_KO.md](GETTING_STARTED_V07_KO.md)
