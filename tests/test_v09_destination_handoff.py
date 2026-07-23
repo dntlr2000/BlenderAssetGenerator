@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -16,6 +17,8 @@ from codex_blender_modeler.handoff import (
     plan_destination_handoff,
     validate_destination_handoff,
 )
+from codex_blender_modeler.handoff.models import HandoffFileReceipt
+from codex_blender_modeler.handoff.service import _build_material_mapping
 from codex_blender_modeler.optimization.models import (
     Bounds3D,
     HashedArtifact,
@@ -25,6 +28,7 @@ from codex_blender_modeler.packaging.models import (
     BoundsComparison,
     ExportPackageManifest,
     PackageFile,
+    RoundTripCheck,
     RoundTripValidation,
 )
 from codex_blender_modeler.reporting.service import (
@@ -247,7 +251,7 @@ def test_handoff_generation(
     validation = generate_destination_handoff(
         root.name,
         plan.handoff_id,
-        approved_plan_sha256=sha256_file(plan_path),
+        approved_plan_sha256=sha256_file(plan_path).upper(),
     )
     assert validation.ok is True
     verified = validate_destination_handoff(
@@ -260,6 +264,11 @@ def test_handoff_generation(
     manifest = json.loads(
         (envelope / "codex_handoff/handoff_manifest.json").read_text(encoding="utf-8")
     )
+    assembly = json.loads(
+        (envelope / "codex_handoff/assembly_manifest.json").read_text(
+            encoding="utf-8"
+        )
+    )
     prompt = (envelope / "codex_handoff/codex_import_prompt.md").read_text(
         encoding="utf-8"
     )
@@ -270,7 +279,17 @@ def test_handoff_generation(
     assert manifest["package_manifest"]["sha256"] == plan.package_manifest.sha256
     assert manifest["primary_model"]["path"] == "package/asset.glb"
     assert "<PACKAGE_PATH>" in prompt and "import_plan.json" in prompt
+    assert assembly["nodes"][0]["lod_group_id"].startswith("lodgroup.")
+    assert assembly["nodes"][0]["default_active"] is True
+    assert "TEXCOORD_0" in prompt and "default_active=true" in prompt
     assert len(PdfReader(pdf).pages) >= 3
+    handoff_pdf_text = "\n".join(
+        page.extract_text() or "" for page in PdfReader(pdf).pages
+    )
+    assert "LOD reconstruction" in handoff_pdf_text
+    assert "LOD group" in handoff_pdf_text
+    assert "Representation" in handoff_pdf_text
+    assert "UV binding" in handoff_pdf_text
     assert get_destination_handoff_status(root.name)["status"] == "valid"
     payload = collect_job_report_payload(
         root.name,
@@ -337,6 +356,172 @@ def test_fbx_handoff_generation(
     assert validation.ok is True
     assert verified.ok is True
     assert manifest["primary_model"]["path"] == "package/asset.fbx"
+
+
+def test_material_mapping_prefers_verified_conversion_atlas_over_canonical_raw(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep every converted material on one UV0 atlas instead of mixing texture spaces."""
+
+    workspace = tmp_path / "workspaces"
+    workspace.mkdir()
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    root, profile_id, package_id, _run_id = _build_package_fixture(
+        workspace,
+        profile_id="fbx_interchange",
+    )
+    manifest_path = root / "exports/packages" / profile_id / package_id / "package_manifest.json"
+    package = ExportPackageManifest.model_validate_json(
+        manifest_path.read_text(encoding="utf-8")
+    )
+    atlas_hash = "1" * 64
+    canonical_hash = "2" * 64
+    atlas_file = PackageFile(
+        id="texture.atlas.base",
+        kind="texture",
+        path=f"{package.package_root}/textures/portable_atlas/raw/base_color.png",
+        sha256=atlas_hash,
+        byte_size=10,
+        media_type="image/png",
+    )
+    canonical_file = PackageFile(
+        id="texture.canonical.base",
+        kind="texture",
+        path=f"{package.package_root}/textures/canonical/base_color.png",
+        sha256=canonical_hash,
+        byte_size=10,
+        media_type="image/png",
+    )
+    package.files.extend([atlas_file, canonical_file])
+    receipts = {
+        atlas_file.id: HandoffFileReceipt(
+            file_id="texture-atlas-base",
+            kind="texture",
+            path="package/textures/portable_atlas/raw/base_color.png",
+            sha256=atlas_hash,
+            byte_size=10,
+            media_type="image/png",
+        ),
+        canonical_file.id: HandoffFileReceipt(
+            file_id="texture-canonical-base",
+            kind="texture",
+            path="package/textures/canonical/base_color.png",
+            sha256=canonical_hash,
+            byte_size=10,
+            media_type="image/png",
+        ),
+    }
+    texture_pack = {
+        "textures": [
+            {
+                "texture_id": "texture.canonical.mat.body.base_color",
+                "material_ids": ["mat.body"],
+                "packing": "raw_channels",
+                "output": {"path": canonical_file.path, "sha256": canonical_hash},
+                "color_space": "sRGB",
+                "mappings": [
+                    {"source_channel": "base_color", "output_channel": "RGB"}
+                ],
+            },
+            {
+                "texture_id": "texture.conversion.fixture.base_color",
+                "material_ids": ["mat.body"],
+                "packing": "raw_channels",
+                "output": {"path": atlas_file.path, "sha256": atlas_hash},
+                "color_space": "sRGB",
+                "mappings": [
+                    {"source_channel": "base_color", "output_channel": "RGB"}
+                ],
+            },
+        ]
+    }
+    conversion = {
+        "entries": [{"material_id": "mat.body", "mapping_mode": "object"}],
+        "outputs": [{"channel": "base_color", "sha256": atlas_hash}],
+    }
+    export_evidence = {
+        "uv_binding_contract": {
+            "status": "verified",
+            "required_uv_set": "CBMPortableAtlas",
+            "required_uv_channel_index": 0,
+            "destination_semantic": "TEXCOORD_0",
+            "tangent_uv_set": "CBMPortableAtlas",
+        }
+    }
+    result = _build_material_mapping(
+        "handoff-material-test",
+        package,
+        "3" * 64,
+        texture_pack,
+        conversion,
+        export_evidence,
+        receipts,
+    )
+    material = result.materials[0]
+    base_color = next(item for item in material.channels if item.channel == "base_color")
+    assert material.source_mapping_mode == "object"
+    assert material.portable_mapping_mode == "uv"
+    assert material.texture_representation == "portable_global_atlas"
+    assert material.texture_coordinate_binding is not None
+    assert material.texture_coordinate_binding.required_uv_channel_index == 0
+    assert base_color.file is not None and base_color.file.sha256 == atlas_hash
+
+
+def test_handoff_validation_preserves_nonblocking_roundtrip_warning(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Carry source round-trip uncertainty into the handoff instead of reporting zero warnings."""
+
+    workspace = tmp_path / "workspaces"
+    workspace.mkdir()
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    root, profile_id, package_id, run_id = _build_package_fixture(workspace)
+    report_path = (
+        root
+        / "optimization/runs"
+        / run_id
+        / "roundtrip"
+        / package_id
+        / "roundtrip_validation.json"
+    )
+    roundtrip = RoundTripValidation.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    long_warning = "UV loop association is advisory for colliders: " + ", ".join(
+        f"collider-{index:04d}" for index in range(300)
+    )
+    roundtrip.checks = [
+        RoundTripCheck(
+            id="roundtrip.axis.metadata",
+            category="axis",
+            status="warning",
+            message=long_warning,
+        )
+    ]
+    roundtrip.warnings = 1
+    report_path.write_text(roundtrip.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    plan = plan_destination_handoff(
+        root.name,
+        profile_id=profile_id,
+        package_id=package_id,
+        handoff_id="handoff-warning",
+    )
+    validation = generate_destination_handoff(
+        root.name,
+        plan.handoff_id,
+        approved_plan_sha256=sha256_file(
+            root / "handoffs" / plan.handoff_id / "handoff_plan.json"
+        ),
+    )
+    assert validation.ok is True
+    assert validation.status == "warning"
+    assert validation.warnings == 1
+    warning = next(item for item in validation.checks if item.status == "warning")
+    assert len(warning.message) <= 2000
+    assert "full warning remains in round-trip evidence" in warning.message
+    assert hashlib.sha256(long_warning.encode("utf-8")).hexdigest() in warning.message
 
 
 def test_workspace_audit_reports_valid_handoff_counts(

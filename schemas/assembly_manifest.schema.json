@@ -77,6 +77,24 @@
           "default": null,
           "title": "Lod Level"
         },
+        "lod_group_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lod Group Id"
+        },
+        "default_active": {
+          "default": false,
+          "title": "Default Active",
+          "type": "boolean"
+        },
         "collider_target_id": {
           "anyOf": [
             {

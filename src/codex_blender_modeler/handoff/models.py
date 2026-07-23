@@ -192,6 +192,12 @@ class LODColliderSummary(HandoffStrictModel):
 
     lod_present: bool
     lod_levels: list[int] = Field(default_factory=list)
+    lod_group_count: int = Field(default=0, ge=0)
+    default_active_lod: Literal[0] = 0
+    membership_explicit: bool = False
+    switch_policy: Literal["destination_defined_unverified"] = (
+        "destination_defined_unverified"
+    )
     collider_present: bool
     collider_count: int = Field(ge=0)
 
@@ -201,6 +207,8 @@ class LODColliderSummary(HandoffStrictModel):
 
         if self.lod_present != bool(self.lod_levels):
             raise ValueError("lod_present must match lod_levels")
+        if self.lod_present != (self.lod_group_count > 0):
+            raise ValueError("lod_present must match lod_group_count")
         if self.collider_present != (self.collider_count > 0):
             raise ValueError("collider_present must match collider_count")
         if self.lod_levels != sorted(set(self.lod_levels)):
@@ -260,6 +268,8 @@ class AssemblyNode(HandoffStrictModel):
     transform: TransformSnapshot
     material_ids: list[StableId] = Field(default_factory=list)
     lod_level: int | None = Field(default=None, ge=0, le=8)
+    lod_group_id: StableId | None = None
+    default_active: bool = False
     collider_target_id: StableId | None = None
     render_object: bool
     asset_role: Literal["render", "lod", "collider"]
@@ -272,14 +282,23 @@ class AssemblyNode(HandoffStrictModel):
         """Keep render, LOD, and collider fields consistent with the exported role."""
 
         if self.asset_role == "collider":
-            if self.render_object or self.collider_target_id is None:
+            if (
+                self.render_object
+                or self.collider_target_id is None
+                or self.lod_group_id is not None
+                or self.default_active
+            ):
                 raise ValueError("collider nodes must be non-rendering and name a target")
         elif self.collider_target_id is not None:
             raise ValueError("only collider nodes may declare collider_target_id")
+        elif self.lod_group_id is None:
+            raise ValueError("render and LOD nodes require explicit lod_group_id membership")
         if self.asset_role == "render" and self.lod_level not in {None, 0}:
             raise ValueError("render nodes may only represent LOD0")
         if self.asset_role == "lod" and self.lod_level in {None, 0}:
             raise ValueError("derived LOD nodes require a positive lod_level")
+        if self.asset_role != "collider" and self.default_active != (self.lod_level == 0):
+            raise ValueError("only LOD0 render nodes may be active by default")
         if len(self.material_ids) != len(set(self.material_ids)):
             raise ValueError("assembly material IDs must be unique per node")
         return self
@@ -300,7 +319,7 @@ class AssemblyManifest(HandoffStrictModel):
 
     @model_validator(mode="after")
     def validate_coverage(self) -> AssemblyManifest:
-        """Require unique export keys and exact semantic/material identity coverage."""
+        """Require identity coverage and one explicit, mutually exclusive LOD0 per group."""
 
         keys = [item.export_key for item in self.nodes]
         if len(keys) != len(set(keys)):
@@ -313,6 +332,19 @@ class AssemblyManifest(HandoffStrictModel):
             raise ValueError("assembly semantic_ids must exactly cover node identities")
         if sorted(self.material_ids) != observed_material:
             raise ValueError("assembly material_ids must exactly cover node assignments")
+        lod_groups: dict[str, list[AssemblyNode]] = {}
+        for node in self.nodes:
+            if node.lod_group_id is not None:
+                lod_groups.setdefault(node.lod_group_id, []).append(node)
+        for group_id, members in lod_groups.items():
+            identities = {(item.semantic_id, item.instance_index) for item in members}
+            if len(identities) != 1:
+                raise ValueError(f"LOD group {group_id!r} mixes semantic instances")
+            lod0 = [item for item in members if item.lod_level == 0]
+            if len(lod0) != 1 or not lod0[0].default_active:
+                raise ValueError(f"LOD group {group_id!r} requires one active LOD0")
+            if any(item.default_active for item in members if item.lod_level != 0):
+                raise ValueError(f"LOD group {group_id!r} activates more than LOD0")
         return self
 
 
@@ -349,11 +381,35 @@ class MaterialChannelMapping(HandoffStrictModel):
         return self
 
 
+class TextureCoordinateBinding(HandoffStrictModel):
+    """Bind portable material sampling and tangents to one verified UV0 semantic."""
+
+    required_uv_set: str = Field(min_length=1, max_length=128)
+    required_uv_channel_index: Literal[0] = 0
+    destination_semantic: Literal["TEXCOORD_0"] = "TEXCOORD_0"
+    tangent_uv_set: str = Field(min_length=1, max_length=128)
+    export_evidence_verified: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_tangent_basis(self) -> TextureCoordinateBinding:
+        """Require normal-map tangents to use the same portable UV set as textures."""
+
+        if self.required_uv_set != self.tangent_uv_set:
+            raise ValueError("portable textures and tangents must use the same UV set")
+        return self
+
+
 class PortableMaterialMapping(HandoffStrictModel):
     """Map one stable material ID to raw or packed portable channels."""
 
     material_id: StableId
     mapping_mode: str = Field(min_length=1, max_length=64)
+    source_mapping_mode: str = Field(default="unknown", min_length=1, max_length=64)
+    portable_mapping_mode: Literal["uv", "unverified"] = "unverified"
+    texture_representation: Literal[
+        "portable_global_atlas", "preserved_raw_channels", "unavailable"
+    ] = "preserved_raw_channels"
+    texture_coordinate_binding: TextureCoordinateBinding | None = None
     channels: list[MaterialChannelMapping] = Field(min_length=7, max_length=7)
     blender_master_shader_baked: bool
     known_losses: list[str] = Field(default_factory=list)
@@ -375,6 +431,11 @@ class PortableMaterialMapping(HandoffStrictModel):
         actual = {item.channel for item in self.channels}
         if actual != expected or len(self.channels) != len(actual):
             raise ValueError("material mappings require exactly seven unique PBR channels")
+        if self.texture_representation == "portable_global_atlas":
+            if self.portable_mapping_mode != "uv" or self.texture_coordinate_binding is None:
+                raise ValueError("portable atlas materials require a verified UV binding")
+        elif self.texture_coordinate_binding is not None:
+            raise ValueError("only portable atlas materials may declare atlas UV binding")
         return self
 
 
@@ -391,11 +452,22 @@ class MaterialMappingManifest(HandoffStrictModel):
 
     @model_validator(mode="after")
     def validate_materials(self) -> MaterialMappingManifest:
-        """Require one unique mapping entry for every stable material identity."""
+        """Require unique material IDs and one consistent atlas binding when converted."""
 
         ids = [item.material_id for item in self.materials]
         if len(ids) != len(set(ids)):
             raise ValueError("material mapping IDs must be unique")
+        atlas_bindings = {
+            (
+                item.texture_coordinate_binding.required_uv_set,
+                item.texture_coordinate_binding.required_uv_channel_index,
+                item.texture_coordinate_binding.tangent_uv_set,
+            )
+            for item in self.materials
+            if item.texture_coordinate_binding is not None
+        }
+        if len(atlas_bindings) > 1:
+            raise ValueError("converted materials must share one portable atlas UV binding")
         return self
 
 
@@ -624,6 +696,7 @@ class DestinationImportPlan(HandoffStrictModel):
     unit_axis_pivot_plan: list[str] = Field(min_length=1)
     hierarchy_plan: list[str] = Field(min_length=1)
     material_texture_plan: list[str] = Field(min_length=1)
+    uv_coordinate_plan: list[str] = Field(min_length=1)
     lod_collider_plan: list[str] = Field(min_length=1)
     expected_changes: list[RelativePath] = Field(default_factory=list)
     known_losses: list[str] = Field(default_factory=list)
@@ -657,8 +730,29 @@ class DestinationImportValidation(HandoffStrictModel):
     semantic_id_coverage: float = Field(ge=0, le=1)
     material_id_coverage: float = Field(ge=0, le=1)
     bounds_within_tolerance: bool
+    uv_coordinate_binding_verified: bool = False
+    lod_renderer_membership_verified: bool = False
+    default_active_lod_verified: bool = False
+    material_render_verified: bool = False
     missing_dependencies: list[RelativePath] = Field(default_factory=list)
     runtime_parity_verified: Literal[False] = False
     warnings: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
     completed_at: datetime
+
+    @model_validator(mode="after")
+    def validate_destination_result(self) -> DestinationImportValidation:
+        """Prevent a passed destination receipt without UV, LOD, and visual checks."""
+
+        required = (
+            self.bounds_within_tolerance,
+            self.uv_coordinate_binding_verified,
+            self.lod_renderer_membership_verified,
+            self.default_active_lod_verified,
+            self.material_render_verified,
+            not self.missing_dependencies,
+            not self.errors,
+        )
+        if self.status == "passed" and not all(required):
+            raise ValueError("passed destination import requires all portable checks")
+        return self

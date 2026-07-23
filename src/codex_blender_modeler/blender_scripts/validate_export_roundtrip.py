@@ -344,9 +344,13 @@ def _uv_metric_error(first: Any, second: Any) -> float | None:
 
 
 def uv_coordinate_readiness(
-    expected: dict[str, Any], actual: dict[str, Any], tolerance: float = 1e-5
+    expected: dict[str, Any],
+    actual: dict[str, Any],
+    tolerance: float = 1e-5,
+    *,
+    enforce_layer_identity: bool = False,
 ) -> dict[str, Any]:
-    """Compare finite UV bounds and area summaries without claiming loop association."""
+    """Compare UV summaries and vertex-bound loop associations across clean import."""
 
     expected_layers = list(expected.get("topology", {}).get("uv_layers", []))
     actual_layers = list(actual.get("topology", {}).get("uv_layers", []))
@@ -382,21 +386,40 @@ def uv_coordinate_readiness(
             and actual_layer.get("coordinate_fingerprint") is not None
             else None
         )
+        binding_fingerprint_matches = (
+            expected_layer.get("vertex_uv_binding_fingerprint")
+            == actual_layer.get("vertex_uv_binding_fingerprint")
+            if expected_layer.get("vertex_uv_binding_fingerprint") is not None
+            and actual_layer.get("vertex_uv_binding_fingerprint") is not None
+            else None
+        )
+        identity_ready = (
+            name_matches and active_render_matches
+            if enforce_layer_identity
+            else True
+        )
         layer_ready = (
             non_finite == 0
-            and name_matches
-            and active_render_matches
+            and identity_ready
             and bounds_error is not None
             and area_error is not None
             and bounds_error <= tolerance
             and area_error <= tolerance
             and fingerprint_matches is not False
+            and binding_fingerprint_matches is True
         )
         summary_ready = summary_ready and layer_ready
-        summary_failed = summary_failed or non_finite > 0 or (
-            bounds_error is not None
-            and area_error is not None
-            and (bounds_error > tolerance or area_error > tolerance)
+        summary_failed = (
+            summary_failed
+            or non_finite > 0
+            or (enforce_layer_identity and fingerprint_matches is False)
+            or (enforce_layer_identity and binding_fingerprint_matches is False)
+            or (enforce_layer_identity and not identity_ready)
+            or (
+                bounds_error is not None
+                and area_error is not None
+                and (bounds_error > tolerance or area_error > tolerance)
+            )
         )
         layers.append(
             {
@@ -408,8 +431,14 @@ def uv_coordinate_readiness(
                 "bounds_max_abs_error": bounds_error,
                 "total_area_abs_error": area_error,
                 "coordinate_multiset_fingerprint_preserved": fingerprint_matches,
+                "vertex_uv_binding_fingerprint_preserved": (
+                    binding_fingerprint_matches
+                ),
             }
         )
+    loop_association_verified = bool(layers) and all(
+        item["vertex_uv_binding_fingerprint_preserved"] is True for item in layers
+    )
     return {
         "status": (
             "summary_ready"
@@ -420,8 +449,51 @@ def uv_coordinate_readiness(
         ),
         "layer_count": len(layers),
         "summary_tolerance": tolerance,
-        "loop_association_verified": False,
+        "layer_identity_enforced": enforce_layer_identity,
+        "loop_association_verified": loop_association_verified,
         "layers": layers,
+    }
+
+
+def portable_uv_binding_readiness(
+    expected_manifest: dict[str, Any],
+    expected: dict[str, Any],
+    actual: dict[str, Any],
+    uv_readiness: dict[str, Any],
+    tangent: dict[str, Any],
+) -> dict[str, Any]:
+    """Verify one converted FBX mesh binds atlas sampling and tangents to UV0."""
+
+    contract = expected_manifest.get("uv_binding_contract")
+    if not isinstance(contract, dict) or contract.get("status") != "verified":
+        return {"status": "not_applicable", "reason": "no_verified_contract"}
+    if expected.get("asset_role") == "collider":
+        return {"status": "not_applicable", "reason": "collider"}
+    required_name = contract.get("required_uv_set")
+    required_index = contract.get("required_uv_channel_index")
+    if not isinstance(required_name, str) or required_index != 0:
+        return {"status": "failed", "reason": "invalid_export_contract"}
+    expected_layers = list(expected.get("topology", {}).get("uv_layers", []))
+    actual_layers = list(actual.get("topology", {}).get("uv_layers", []))
+    expected_uv0 = expected_layers[0] if expected_layers else {}
+    actual_uv0 = actual_layers[0] if actual_layers else {}
+    association_verified = bool(uv_readiness.get("loop_association_verified"))
+    checks = {
+        "expected_uv0_name": expected_uv0.get("name") == required_name,
+        "actual_uv0_name": actual_uv0.get("name") == required_name,
+        "expected_uv0_active_render": bool(expected_uv0.get("active_render")),
+        "actual_uv0_active_render": bool(actual_uv0.get("active_render")),
+        "tangent_uv_set": tangent.get("uv_set") == required_name,
+        "tangent_status": tangent.get("status") == "ready",
+        "loop_association": association_verified,
+    }
+    return {
+        "status": "verified" if all(checks.values()) else "failed",
+        "required_uv_set": required_name,
+        "required_uv_channel_index": 0,
+        "destination_semantic": contract.get("destination_semantic", "TEXCOORD_0"),
+        "tangent_uv_set": tangent.get("uv_set"),
+        "checks": checks,
     }
 
 
@@ -513,6 +585,8 @@ def main() -> None:
     invalid_normal_objects: list[str] = []
     tangent_unverified_objects: list[str] = []
     uv_unverified_objects: list[str] = []
+    uv_association_unverified_objects: list[str] = []
+    portable_binding_records: list[dict[str, Any]] = []
     for expected_record, actual_record in matches:
         bounds_error = max_bbox_error(expected_record, actual_record)
         expected_triangles = int(
@@ -528,11 +602,22 @@ def main() -> None:
         actual_materials = set(actual_record.get("material_ids", []))
         expected_uv_count = len(expected_record.get("topology", {}).get("uv_layers", []))
         actual_uv_count = len(actual_record.get("topology", {}).get("uv_layers", []))
-        uv_readiness = uv_coordinate_readiness(expected_record, actual_record)
+        uv_readiness = uv_coordinate_readiness(
+            expected_record,
+            actual_record,
+            enforce_layer_identity=args.format == "fbx",
+        )
         face_normal_readiness = actual_record.get("runtime_readiness", {}).get(
             "face_normals", {}
         )
         tangent = actual_record.get("runtime_readiness", {}).get("tangents", {})
+        portable_binding = portable_uv_binding_readiness(
+            expected_manifest,
+            expected_record,
+            actual_record,
+            uv_readiness,
+            tangent,
+        )
         if bounds_error > args.bounds_tolerance:
             errors.append(
                 f"{expected_record['name']}: bounds error {bounds_error:.9f} exceeds "
@@ -566,6 +651,16 @@ def main() -> None:
             )
         elif uv_readiness.get("status") == "unverified":
             uv_unverified_objects.append(str(actual_record["name"]))
+        if not bool(uv_readiness.get("loop_association_verified")):
+            uv_association_unverified_objects.append(str(actual_record["name"]))
+        if portable_binding.get("status") == "failed":
+            errors.append(
+                f"{actual_record['name']}: portable material UV0/tangent binding failed"
+            )
+        if portable_binding.get("status") != "not_applicable":
+            portable_binding_records.append(
+                {"object_name": str(actual_record["name"]), **portable_binding}
+            )
         comparisons.append(
             {
                 "expected_name": expected_record["name"],
@@ -583,6 +678,7 @@ def main() -> None:
                 "uv_coordinate_readiness": uv_readiness,
                 "face_normal_readiness": face_normal_readiness,
                 "tangent_readiness": tangent,
+                "portable_uv_binding": portable_binding,
             }
         )
 
@@ -621,10 +717,13 @@ def main() -> None:
             "validity is checked instead.",
             "Exported tangent vector equivalence is not verified; V0.7 checks only "
             "whether a finite basis can be recomputed from the imported UV set.",
-            "UV loop-to-vertex association is not verified; V0.7 compares finite "
-            "coordinate bounds, total UV area, and coordinate multisets only.",
         ]
     )
+    if uv_association_unverified_objects:
+        warnings.append(
+            "UV loop-to-vertex association could not be verified for: "
+            + ", ".join(uv_association_unverified_objects)
+        )
     if tangent_unverified_objects:
         warnings.append(
             "Tangent readiness could not be verified for: "
@@ -675,7 +774,27 @@ def main() -> None:
             "uv_coordinates": {
                 "summary_metrics_checked": True,
                 "unverified_objects": uv_unverified_objects,
-                "loop_association_verified": False,
+                "loop_association_verified": not uv_association_unverified_objects,
+            },
+            "portable_uv_binding": {
+                "status": (
+                    "verified"
+                    if portable_binding_records
+                    and all(item.get("status") == "verified" for item in portable_binding_records)
+                    else "failed"
+                    if portable_binding_records
+                    else "not_applicable"
+                ),
+                "required_uv_set": expected_manifest.get(
+                    "uv_binding_contract", {}
+                ).get("required_uv_set"),
+                "required_uv_channel_index": expected_manifest.get(
+                    "uv_binding_contract", {}
+                ).get("required_uv_channel_index"),
+                "verified_object_count": sum(
+                    item.get("status") == "verified" for item in portable_binding_records
+                ),
+                "objects": portable_binding_records,
             },
         },
         "tolerances": {

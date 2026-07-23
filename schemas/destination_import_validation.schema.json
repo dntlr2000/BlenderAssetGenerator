@@ -48,6 +48,26 @@
       "title": "Bounds Within Tolerance",
       "type": "boolean"
     },
+    "uv_coordinate_binding_verified": {
+      "default": false,
+      "title": "Uv Coordinate Binding Verified",
+      "type": "boolean"
+    },
+    "lod_renderer_membership_verified": {
+      "default": false,
+      "title": "Lod Renderer Membership Verified",
+      "type": "boolean"
+    },
+    "default_active_lod_verified": {
+      "default": false,
+      "title": "Default Active Lod Verified",
+      "type": "boolean"
+    },
+    "material_render_verified": {
+      "default": false,
+      "title": "Material Render Verified",
+      "type": "boolean"
+    },
     "missing_dependencies": {
       "items": {
         "type": "string"

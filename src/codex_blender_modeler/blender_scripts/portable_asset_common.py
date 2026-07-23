@@ -149,13 +149,14 @@ def _uv_face_area(mesh: Any, polygon: Any, layer: Any) -> float:
 
 
 def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
-    """Summarize finite UV coordinates without claiming vertex-loop equivalence."""
+    """Summarize UV coordinates and bind each loop value to its mesh vertex position."""
 
     coordinates = [(float(loop.uv.x), float(loop.uv.y)) for loop in layer.data]
     finite = [item for item in coordinates if all(math.isfinite(value) for value in item)]
     non_finite_count = len(coordinates) - len(finite)
     bounds = None
     fingerprint = None
+    vertex_uv_binding_fingerprint = None
     if finite:
         bounds = {
             "min": rounded(
@@ -171,6 +172,25 @@ def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
         fingerprint = hashlib.sha256(
             json.dumps(stable_coordinates, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
+    vertex_uv_bindings: list[tuple[float, float, float, float, float]] = []
+    for loop_index, loop in enumerate(mesh.loops):
+        vertex = mesh.vertices[int(loop.vertex_index)].co
+        uv = layer.data[loop_index].uv
+        values = (
+            float(vertex.x),
+            float(vertex.y),
+            float(vertex.z),
+            float(uv.x),
+            float(uv.y),
+        )
+        if all(math.isfinite(value) for value in values):
+            vertex_uv_bindings.append(tuple(round(value, 6) for value in values))
+    if len(vertex_uv_bindings) == len(mesh.loops):
+        vertex_uv_binding_fingerprint = hashlib.sha256(
+            json.dumps(
+                sorted(vertex_uv_bindings), separators=(",", ":")
+            ).encode("utf-8")
+        ).hexdigest()
     face_areas = [_uv_face_area(mesh, polygon, layer) for polygon in mesh.polygons]
     finite_face_areas = [value for value in face_areas if math.isfinite(value)]
     total_face_area = (
@@ -183,6 +203,7 @@ def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
         "non_finite_coordinate_count": non_finite_count,
         "coordinate_bounds": bounds,
         "coordinate_fingerprint": fingerprint,
+        "vertex_uv_binding_fingerprint": vertex_uv_binding_fingerprint,
         "total_face_area": total_face_area,
     }
 

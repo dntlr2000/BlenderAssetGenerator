@@ -32,6 +32,8 @@ PORTABLE_OBJECT_PROPERTIES = frozenset(
     }
 )
 PORTABLE_MATERIAL_PROPERTIES = frozenset({"cbm_id"})
+PORTABLE_ATLAS_UV_DEFAULT = "CBMPortableAtlas"
+LIGHTMAP_UV_DEFAULT = "LightmapUV"
 
 
 def parse_args() -> argparse.Namespace:
@@ -112,6 +114,160 @@ def select_portable_objects(include_colliders: bool) -> list[bpy.types.Object]:
         raise RuntimeError("No portable derived objects matched the export policy")
     bpy.context.view_layer.objects.active = selected[0]
     return selected
+
+
+def _uv_layer_snapshots(mesh: bpy.types.Mesh) -> list[dict[str, Any]]:
+    """Copy UV names, flags, and per-loop coordinates before collection reordering."""
+
+    snapshots: list[dict[str, Any]] = []
+    for layer in mesh.uv_layers:
+        snapshots.append(
+            {
+                "name": str(layer.name),
+                "active_render": bool(layer.active_render),
+                "coordinates": [
+                    (float(loop.uv.x), float(loop.uv.y)) for loop in layer.data
+                ],
+            }
+        )
+    return snapshots
+
+
+def _replace_uv_layers(
+    mesh: bpy.types.Mesh,
+    snapshots: list[dict[str, Any]],
+) -> None:
+    """Rebuild one mesh UV collection in a deterministic order without changing values."""
+
+    while mesh.uv_layers:
+        mesh.uv_layers.remove(mesh.uv_layers[0])
+    for index, snapshot in enumerate(snapshots):
+        layer = mesh.uv_layers.new(name=str(snapshot["name"]), do_init=False)
+        coordinates = list(snapshot["coordinates"])
+        if len(coordinates) != len(layer.data):
+            raise RuntimeError(
+                f"UV loop count changed while reordering {mesh.name!r}: "
+                f"{len(coordinates)} -> {len(layer.data)}"
+            )
+        for loop, coordinate in zip(layer.data, coordinates, strict=True):
+            loop.uv = coordinate
+        layer.active_render = index == 0
+    mesh.uv_layers.active_index = 0
+    mesh.update()
+
+
+def _verify_fbx_tangent_basis(
+    obj: bpy.types.Object,
+    uv_set: str,
+) -> None:
+    """Fail closed when a render mesh cannot produce finite tangents from portable UV0."""
+
+    mesh = obj.data
+    calculator = getattr(mesh, "calc_tangents", None)
+    if calculator is None:
+        raise RuntimeError("Blender runtime exposes no tangent calculator for FBX export")
+    try:
+        calculator(uvmap=uv_set)
+        invalid = 0
+        for loop in mesh.loops:
+            values = tuple(float(value) for value in loop.tangent)
+            sign = float(loop.bitangent_sign)
+            if not all(value == value and abs(value) != float("inf") for value in (*values, sign)):
+                invalid += 1
+        if invalid:
+            raise RuntimeError(
+                f"{obj.name!r} has {invalid} invalid tangent loops on {uv_set!r}"
+            )
+    finally:
+        freer = getattr(mesh, "free_tangents", None)
+        if freer is not None:
+            freer()
+
+
+def normalize_fbx_uv_bindings(
+    selected: list[bpy.types.Object],
+    *,
+    material_conversion_plan_sha256: str | None,
+) -> dict[str, Any]:
+    """Promote the portable atlas to FBX UV0 and bind tangent generation to that set."""
+
+    if not material_conversion_plan_sha256:
+        return {"status": "not_applicable", "reason": "no_material_conversion"}
+    atlas_uv_set = str(
+        bpy.context.scene.get(
+            "cbm_portable_material_atlas_uv", PORTABLE_ATLAS_UV_DEFAULT
+        )
+    )
+    if not atlas_uv_set:
+        raise RuntimeError("Portable material conversion did not declare an atlas UV set")
+    mesh_records: dict[int, dict[str, Any]] = {}
+    object_records: list[dict[str, Any]] = []
+    for obj in selected:
+        if str(obj.get("cbm_asset_role", "")) not in {"render", "lod"}:
+            continue
+        mesh = obj.data
+        mesh_key = int(mesh.as_pointer())
+        if mesh_key not in mesh_records:
+            snapshots = _uv_layer_snapshots(mesh)
+            by_name = {str(item["name"]): item for item in snapshots}
+            if atlas_uv_set not in by_name:
+                raise RuntimeError(
+                    f"{obj.name!r} is missing portable atlas UV {atlas_uv_set!r}"
+                )
+            ordered_names = [atlas_uv_set]
+            if LIGHTMAP_UV_DEFAULT in by_name:
+                ordered_names.append(LIGHTMAP_UV_DEFAULT)
+            ordered_names.extend(
+                name for name in by_name if name not in set(ordered_names)
+            )
+            _replace_uv_layers(mesh, [by_name[name] for name in ordered_names])
+            actual_names = [str(layer.name) for layer in mesh.uv_layers]
+            if actual_names != ordered_names or not mesh.uv_layers[0].active_render:
+                raise RuntimeError(
+                    f"FBX UV ordering verification failed for {obj.name!r}: {actual_names}"
+                )
+            mesh_records[mesh_key] = {
+                "uv_layers": actual_names,
+                "lightmap_uv_channel_index": (
+                    actual_names.index(LIGHTMAP_UV_DEFAULT)
+                    if LIGHTMAP_UV_DEFAULT in actual_names
+                    else None
+                ),
+            }
+        _verify_fbx_tangent_basis(obj, atlas_uv_set)
+        object_records.append(
+            {
+                "object_name": str(obj.name),
+                "semantic_id": str(obj.get("cbm_id", "")),
+                "asset_role": str(obj.get("cbm_asset_role", "")),
+                "required_uv_set": atlas_uv_set,
+                "required_uv_channel_index": 0,
+                "tangent_uv_set": atlas_uv_set,
+                **mesh_records[mesh_key],
+            }
+        )
+    if not object_records:
+        raise RuntimeError("Portable FBX material conversion has no render or LOD meshes")
+    lightmap_indices = {
+        item["lightmap_uv_channel_index"]
+        for item in object_records
+        if item["lightmap_uv_channel_index"] is not None
+    }
+    if lightmap_indices - {1}:
+        raise RuntimeError("Portable FBX lightmap UV must occupy channel index 1")
+    return {
+        "status": "verified",
+        "scope": "all_render_and_lod_objects",
+        "required_uv_set": atlas_uv_set,
+        "required_uv_channel_index": 0,
+        "destination_semantic": "TEXCOORD_0",
+        "tangent_uv_set": atlas_uv_set,
+        "normal_map_uv_set": atlas_uv_set,
+        "lightmap_uv_set": LIGHTMAP_UV_DEFAULT if lightmap_indices else None,
+        "lightmap_uv_channel_index": 1 if lightmap_indices else None,
+        "verified_object_count": len(object_records),
+        "objects": object_records,
+    }
 
 
 def _retain_custom_properties(owner: Any, allowed: frozenset[str]) -> int:
@@ -349,10 +505,14 @@ def export_fbx(path: Path) -> str:
         "object_types": {"MESH"},
         "add_leaf_bones": False,
         "bake_anim": False,
+        "use_tspace": True,
         "axis_forward": "-Z",
         "axis_up": "Y",
     }
-    operator(**operator_kwargs(operator, candidates))
+    kwargs = operator_kwargs(operator, candidates)
+    if kwargs.get("use_tspace") is not True:
+        raise RuntimeError("Blender FBX exporter exposes no tangent-space export option")
+    operator(**kwargs)
     return "bpy.ops.export_scene.fbx"
 
 
@@ -483,6 +643,16 @@ def main() -> None:
         args.expected_material_conversion_plan_sha256,
     )
     selected = select_portable_objects(args.include_colliders)
+    uv_binding_contract = (
+        normalize_fbx_uv_bindings(
+            selected,
+            material_conversion_plan_sha256=derivative.get(
+                "material_conversion_plan_sha256"
+            ),
+        )
+        if args.format == "fbx"
+        else {"status": "not_applicable", "reason": "format_is_not_fbx"}
+    )
     sanitization = sanitize_export_custom_properties(selected)
     if args.format == "obj":
         normalize_obj_material_names(selected)
@@ -541,6 +711,7 @@ def main() -> None:
             "fbx_same_length_relative_rewrite_count": fbx_path_rewrite_count,
         },
         "coordinate_contract": coordinate_contract(args.format),
+        "uv_binding_contract": uv_binding_contract,
         "objects": [export_object_inventory(obj, args.format) for obj in selected],
         "semantic_ids": sorted(
             {str(obj.get("cbm_id")) for obj in selected if obj.get("cbm_id")}

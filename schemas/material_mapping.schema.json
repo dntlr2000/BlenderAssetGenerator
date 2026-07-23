@@ -160,6 +160,43 @@
           "title": "Mapping Mode",
           "type": "string"
         },
+        "source_mapping_mode": {
+          "default": "unknown",
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Mapping Mode",
+          "type": "string"
+        },
+        "portable_mapping_mode": {
+          "default": "unverified",
+          "enum": [
+            "uv",
+            "unverified"
+          ],
+          "title": "Portable Mapping Mode",
+          "type": "string"
+        },
+        "texture_representation": {
+          "default": "preserved_raw_channels",
+          "enum": [
+            "portable_global_atlas",
+            "preserved_raw_channels",
+            "unavailable"
+          ],
+          "title": "Texture Representation",
+          "type": "string"
+        },
+        "texture_coordinate_binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextureCoordinateBinding"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "channels": {
           "items": {
             "$ref": "#/$defs/MaterialChannelMapping"
@@ -257,6 +294,48 @@
         }
       },
       "title": "RawPBRContract",
+      "type": "object"
+    },
+    "TextureCoordinateBinding": {
+      "additionalProperties": false,
+      "description": "Bind portable material sampling and tangents to one verified UV0 semantic.",
+      "properties": {
+        "required_uv_set": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Required Uv Set",
+          "type": "string"
+        },
+        "required_uv_channel_index": {
+          "const": 0,
+          "default": 0,
+          "title": "Required Uv Channel Index",
+          "type": "integer"
+        },
+        "destination_semantic": {
+          "const": "TEXCOORD_0",
+          "default": "TEXCOORD_0",
+          "title": "Destination Semantic",
+          "type": "string"
+        },
+        "tangent_uv_set": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Tangent Uv Set",
+          "type": "string"
+        },
+        "export_evidence_verified": {
+          "const": true,
+          "default": true,
+          "title": "Export Evidence Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "required_uv_set",
+        "tangent_uv_set"
+      ],
+      "title": "TextureCoordinateBinding",
       "type": "object"
     }
   },

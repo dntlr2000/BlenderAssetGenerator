@@ -161,6 +161,12 @@ def render_handoff_pdf(documents: dict[str, dict[str, Any]], output: Path) -> di
                 ],
                 ["Pivot policy", context["pivot_policy"]],
                 ["Export hierarchy", context["hierarchy"]["exported_hierarchy"]],
+                [
+                    "LOD reconstruction",
+                    f"{context['lod_and_collider']['lod_group_count']} explicit groups; "
+                    f"default LOD {context['lod_and_collider']['default_active_lod']}; "
+                    f"{context['lod_and_collider']['switch_policy']}",
+                ],
                 ["Format losses", "; ".join(context["known_format_losses"]) or "none declared"],
                 ["Unverified", "; ".join(context["unverified_items"])],
             ],
@@ -170,39 +176,47 @@ def render_handoff_pdf(documents: dict[str, dict[str, Any]], output: Path) -> di
         PageBreak(),
         _paragraph("Assembly manifest", styles["h1"]),
         _table(
-            ["Semantic ID", "Role", "LOD", "Materials", "Export object"],
+            ["Semantic ID", "Role", "LOD", "Default", "LOD group", "Export object"],
             [
                 [
                     item["semantic_id"],
                     item["asset_role"],
                     item["lod_level"] if item["lod_level"] is not None else "-",
-                    ", ".join(item["material_ids"]) or "-",
+                    item["default_active"],
+                    item["lod_group_id"] or "-",
                     item["object_name"],
                 ]
                 for item in assembly["nodes"]
             ],
-            [44 * mm, 18 * mm, 12 * mm, 45 * mm, 55 * mm],
+            [38 * mm, 16 * mm, 10 * mm, 15 * mm, 43 * mm, 52 * mm],
             styles,
         ),
         PageBreak(),
         _paragraph("Portable material mapping", styles["h1"]),
         _table(
-            ["Material ID", "Available channels", "Master shader baked", "Known loss"],
+            ["Material ID", "Representation", "UV binding", "Available channels", "Known loss"],
             [
                 [
                     item["material_id"],
+                    item["texture_representation"],
+                    (
+                        f"{item['texture_coordinate_binding']['required_uv_set']} -> "
+                        f"{item['texture_coordinate_binding']['destination_semantic']} "
+                        f"(index {item['texture_coordinate_binding']['required_uv_channel_index']})"
+                        if item["texture_coordinate_binding"] is not None
+                        else "not declared"
+                    ),
                     ", ".join(
                         channel["channel"]
                         for channel in item["channels"]
                         if channel["status"] != "unavailable"
                     )
                     or "none",
-                    item["blender_master_shader_baked"],
                     "; ".join(item["known_losses"]) or "none declared",
                 ]
                 for item in materials["materials"]
             ],
-            [45 * mm, 48 * mm, 27 * mm, 54 * mm],
+            [34 * mm, 34 * mm, 42 * mm, 32 * mm, 32 * mm],
             styles,
         ),
         _paragraph("Destination import checklist", styles["h1"]),

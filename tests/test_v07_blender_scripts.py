@@ -244,6 +244,33 @@ def test_export_evidence_is_distinct_and_records_portability_limits() -> None:
     assert "sidecars remain authoritative" in source
 
 
+def test_fbx_export_promotes_portable_atlas_to_uv0_and_exports_tangents() -> None:
+    """Bind portable atlas textures and normal-map tangents to FBX TEXCOORD_0."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assert "def normalize_fbx_uv_bindings" in source
+    assert '"required_uv_channel_index": 0' in source
+    assert '"destination_semantic": "TEXCOORD_0"' in source
+    assert '"tangent_uv_set": atlas_uv_set' in source
+    assert '"use_tspace": True' in source
+    assert "Blender FBX exporter exposes no tangent-space export option" in source
+    assert source.index("normalize_fbx_uv_bindings(") < source.index(
+        "sanitize_export_custom_properties(selected)"
+    )
+
+
+def test_roundtrip_hard_gates_portable_uv_binding_and_loop_association() -> None:
+    """Reject converted FBX imports whose atlas association or tangent UV changed."""
+
+    source = (SCRIPT_ROOT / "validate_export_roundtrip.py").read_text(
+        encoding="utf-8"
+    )
+    assert "vertex_uv_binding_fingerprint_preserved" in source
+    assert "def portable_uv_binding_readiness" in source
+    assert "portable material UV0/tangent binding failed" in source
+    assert '"portable_uv_binding": {' in source
+
+
 def test_obj_export_preserves_portable_material_identity_uv_and_dependencies() -> None:
     """OBJ adapts stable IDs, active UV0, and image sidecars to its legacy contract."""
 
@@ -307,7 +334,7 @@ def test_roundtrip_validator_requires_package_root_and_honest_readiness() -> Non
     assert "package_dependency_path(raw, package_root)" in source
     assert '"custom_normal_equivalence_verified": False' in source
     assert '"preserved_exported_tangents_verified": False' in source
-    assert '"loop_association_verified": False' in source
+    assert '"loop_association_verified": not uv_association_unverified_objects' in source
     assert '"axis_file_metadata_verified": False' in source
     assert '"unit_file_metadata_verified": False' in source
     assert 'node.type == "NORMAL_MAP"' in source

@@ -45,6 +45,7 @@ from .models import (
     PortableMaterialMapping,
     RawPBRContract,
     SourceArtifact,
+    TextureCoordinateBinding,
     TransformSnapshot,
 )
 from .pdf_report import render_handoff_pdf
@@ -275,6 +276,18 @@ def _verify_roundtrip(
         raise FileNotFoundError("round-trip evidence is missing or link-like")
     if sha256_file(evidence_path) != report.imported_inventory.sha256:
         raise RuntimeError("round-trip evidence hash no longer matches its report")
+    if package.profile_id == "fbx_interchange" and package.material_conversion is not None:
+        evidence = _json_object(evidence_path, "round-trip evidence")
+        portable_binding = evidence.get("readiness", {}).get(
+            "portable_uv_binding", {}
+        )
+        if (
+            not isinstance(portable_binding, dict)
+            or portable_binding.get("status") != "verified"
+        ):
+            raise RuntimeError(
+                "converted FBX handoff requires verified atlas UV0 and tangent binding"
+            )
     return report_path, report, evidence_path
 
 
@@ -376,7 +389,7 @@ def _load_handoff_plan(
     plan = load_model(plan_path, DestinationHandoffPlan)
     if plan.handoff_id != handoff_id or plan.job_id != root.name:
         raise ValueError("handoff plan does not match the requested job or ID")
-    if sha256_file(plan_path) != approved_plan_sha256:
+    if sha256_file(plan_path) != approved_plan_sha256.lower():
         raise PermissionError("handoff generation requires the exact current plan SHA-256")
     return plan_path, plan
 
@@ -528,6 +541,13 @@ def _build_assembly_manifest(
         lod_level = record.get("lod_level")
         if role == "render" and lod_level is None:
             lod_level = 0
+        normalized_lod_level = lod_level if isinstance(lod_level, int) else None
+        lod_group_id = None
+        if role != "collider":
+            group_source = f"{semantic_id}\0{instance_index!r}"
+            lod_group_id = "lodgroup." + hashlib.sha256(
+                group_source.encode("utf-8")
+            ).hexdigest()[:20]
         node = AssemblyNode(
             export_key=str(record.get("export_key") or name),
             object_name=name,
@@ -540,7 +560,9 @@ def _build_assembly_manifest(
                 scale=scale,
             ),
             material_ids=material_ids,
-            lod_level=lod_level if isinstance(lod_level, int) else None,
+            lod_level=normalized_lod_level,
+            lod_group_id=lod_group_id,
+            default_active=role != "collider" and normalized_lod_level == 0,
             collider_target_id=semantic_id if role == "collider" else None,
             render_object=role != "collider",
             asset_role=role,
@@ -598,11 +620,19 @@ def _build_material_mapping(
     package_manifest_sha256: str,
     texture_pack: dict[str, Any],
     material_conversion: dict[str, Any],
+    export_evidence: dict[str, Any],
     package_file_receipts: dict[str, HandoffFileReceipt],
 ) -> MaterialMappingManifest:
-    """Build seven-channel portable mappings while preferring preserved raw textures."""
+    """Build portable mappings and prefer one verified global atlas when converted."""
 
     texture_by_source = _texture_receipt_by_source_path(package, package_file_receipts)
+    conversion_hashes = {
+        str(item.get("channel")): str(item.get("sha256"))
+        for item in material_conversion.get("outputs", [])
+        if isinstance(item, dict)
+        and isinstance(item.get("channel"), str)
+        and isinstance(item.get("sha256"), str)
+    }
     candidates: dict[tuple[str, str], list[tuple[int, dict[str, Any], dict[str, Any]]]] = {}
     for texture in texture_pack.get("textures", []):
         if not isinstance(texture, dict):
@@ -613,7 +643,13 @@ def _build_material_mapping(
         if receipt is None:
             continue
         packing = texture.get("packing")
-        priority = 0 if packing == "raw_channels" else 1
+        texture_id = str(texture.get("texture_id", ""))
+        portable_atlas = (
+            texture_id.startswith("texture.conversion.")
+            and isinstance(output_path, str)
+            and "/portable_atlas/" in output_path.replace("\\", "/")
+        )
+        priority = 0 if portable_atlas else 1 if packing == "raw_channels" else 2
         mappings = texture.get("mappings", [])
         material_ids = texture.get("material_ids", [])
         if not isinstance(mappings, list) or not isinstance(material_ids, list):
@@ -642,6 +678,23 @@ def _build_material_mapping(
         for item in material_conversion.get("entries", [])
         if isinstance(item, dict) and isinstance(item.get("material_id"), str)
     }
+    uv_contract = export_evidence.get("uv_binding_contract", {})
+    if material_conversion and (
+        not isinstance(uv_contract, dict) or uv_contract.get("status") != "verified"
+    ):
+        raise RuntimeError("portable material mapping requires verified export UV binding")
+    coordinate_binding = (
+        TextureCoordinateBinding(
+            required_uv_set=str(uv_contract["required_uv_set"]),
+            required_uv_channel_index=uv_contract["required_uv_channel_index"],
+            destination_semantic=str(
+                uv_contract.get("destination_semantic", "TEXCOORD_0")
+            ),
+            tangent_uv_set=str(uv_contract["tangent_uv_set"]),
+        )
+        if material_conversion
+        else None
+    )
     materials: list[PortableMaterialMapping] = []
     channels = (
         "base_color",
@@ -661,6 +714,14 @@ def _build_material_mapping(
                 candidates.get((material_id, channel), []),
                 key=lambda item: (item[0], str(item[1].get("texture_id", ""))),
             )
+            if conversion:
+                options = [
+                    option
+                    for option in options
+                    if option[0] == 0
+                    and option[1].get("output", {}).get("sha256")
+                    == conversion_hashes.get(channel)
+                ]
             if not options:
                 mappings.append(
                     MaterialChannelMapping(
@@ -689,7 +750,15 @@ def _build_material_mapping(
         materials.append(
             PortableMaterialMapping(
                 material_id=material_id,
-                mapping_mode=str(conversion.get("mapping_mode", "portable_package")),
+                mapping_mode="uv" if conversion else "portable_package",
+                source_mapping_mode=str(conversion.get("mapping_mode", "unknown")),
+                portable_mapping_mode="uv" if conversion else "unverified",
+                texture_representation=(
+                    "portable_global_atlas"
+                    if conversion
+                    else "preserved_raw_channels"
+                ),
+                texture_coordinate_binding=coordinate_binding if conversion else None,
                 channels=mappings,
                 blender_master_shader_baked=bool(conversion),
                 known_losses=[str(item) for item in losses] if isinstance(losses, list) else [],
@@ -708,41 +777,67 @@ def _build_import_checklist(handoff_id: str) -> ImportChecklist:
     """Create the fixed destination safety and approval checklist requested for V0.9."""
 
     rows = [
-        ("immutable-evidence", "Treat package files and metadata as immutable evidence."),
-        ("detect-destination", "Detect the destination engine, version, and render pipeline."),
-        ("avoid-support-claims", "Do not claim support from detection alone."),
-        ("draft-import-plan", "Write import_plan.json before copying or modifying files."),
+        (
+            "immutable-evidence",
+            "Treat package files and metadata as immutable evidence.",
+            "pre_plan",
+        ),
+        (
+            "detect-destination",
+            "Detect the destination engine, version, and render pipeline.",
+            "pre_plan",
+        ),
+        ("avoid-support-claims", "Do not claim support from detection alone.", "pre_plan"),
+        ("draft-import-plan", "Write import_plan.json before copying or modifying files.", "plan"),
         (
             "report-reconstruction",
             "Report axis, units, pivot, hierarchy, materials, textures, LOD, and colliders.",
+            "plan",
         ),
         (
             "map-portable-channels",
             "Plan destination channel conversions without assuming Blender shader transfer.",
+            "plan",
         ),
-        ("show-losses", "Show expected files, transformations, and known losses to the user."),
-        ("request-approval", "Obtain explicit user approval for the exact import plan."),
-        ("apply-approved-plan", "Modify the destination only after approval and within the plan."),
-        ("write-receipt", "Write import_receipt.json for all destination changes."),
-        ("validate-import", "Write import_validation.json and report unresolved dependencies."),
+        (
+            "verify-uv0-binding",
+            "Verify required_uv_set imports as TEXCOORD_0 and drives normal-map tangents.",
+            "plan",
+        ),
+        (
+            "plan-lod-membership",
+            "Plan mutually exclusive LOD groups with only each group's LOD0 active by default.",
+            "plan",
+        ),
+        (
+            "show-losses",
+            "Show expected files, transformations, and known losses to the user.",
+            "plan",
+        ),
+        (
+            "request-approval",
+            "Obtain explicit user approval for the exact import plan.",
+            "approval",
+        ),
+        (
+            "apply-approved-plan",
+            "Modify the destination only after approval and within the plan.",
+            "apply",
+        ),
+        ("write-receipt", "Write import_receipt.json for all destination changes.", "apply"),
+        (
+            "validate-import",
+            "Write import_validation.json and report unresolved dependencies.",
+            "validate",
+        ),
         (
             "honor-exclusions",
             "Exclude rigs, animation, gameplay logic, and unapproved advanced shaders.",
+            "validate",
         ),
     ]
     items: list[ImportChecklistItem] = []
-    for index, (item_id, instruction) in enumerate(rows, start=1):
-        gate = (
-            "pre_plan"
-            if index <= 3
-            else "plan"
-            if index <= 7
-            else "approval"
-            if index == 8
-            else "apply"
-            if index <= 10
-            else "validate"
-        )
+    for index, (item_id, instruction, gate) in enumerate(rows, start=1):
         items.append(
             ImportChecklistItem(
                 order=index,
@@ -780,6 +875,11 @@ def _destination_context(
             if node.asset_role == "lod" and node.lod_level is not None
         }
     )
+    lod_group_ids = {
+        node.lod_group_id
+        for node in assembly.nodes
+        if node.asset_role == "lod" and node.lod_group_id is not None
+    }
     collider_count = sum(node.asset_role == "collider" for node in assembly.nodes)
     losses = [*package.known_losses]
     unverified = [
@@ -805,6 +905,8 @@ def _destination_context(
         lod_and_collider=LODColliderSummary(
             lod_present=bool(lod_levels),
             lod_levels=lod_levels,
+            lod_group_count=len(lod_group_ids),
+            membership_explicit=bool(lod_group_ids),
             collider_present=collider_count > 0,
             collider_count=collider_count,
         ),
@@ -944,8 +1046,23 @@ def _write_handoff_pdf(
     return pdf_path, sidecar_path
 
 
-def _validation_checks() -> list[HandoffValidationCheck]:
-    """Return the fixed successful check set after all generation verifiers pass."""
+def _bounded_handoff_warning(message: str, max_length: int = 2000) -> str:
+    """Bound copied warning text while hash-linking it to full round-trip evidence."""
+
+    if len(message) <= max_length:
+        return message
+    digest = hashlib.sha256(message.encode("utf-8")).hexdigest()
+    suffix = (
+        "... [truncated in handoff summary; full warning remains in round-trip "
+        f"evidence; sha256={digest}]"
+    )
+    return message[: max_length - len(suffix)] + suffix
+
+
+def _validation_checks(
+    roundtrip: RoundTripValidation,
+) -> list[HandoffValidationCheck]:
+    """Return handoff checks while preserving non-blocking round-trip warnings."""
 
     rows = [
         ("package-current", "package", "Source package receipts remain current."),
@@ -958,7 +1075,7 @@ def _validation_checks() -> list[HandoffValidationCheck]:
         ("pdf-derived", "pdf", "PDF sidecar binds exact JSON source hashes."),
         ("dependencies-present", "dependency", "No declared package dependency is missing."),
     ]
-    return [
+    checks = [
         HandoffValidationCheck(
             check_id=check_id,
             category=category,  # type: ignore[arg-type]
@@ -967,6 +1084,19 @@ def _validation_checks() -> list[HandoffValidationCheck]:
         )
         for check_id, category, message in rows
     ]
+    checks.extend(
+        HandoffValidationCheck(
+            check_id=f"roundtrip-warning-{index:03d}",
+            category="roundtrip",
+            status="warning",
+            message=_bounded_handoff_warning(item.message),
+        )
+        for index, item in enumerate(
+            (check for check in roundtrip.checks if check.status == "warning"),
+            start=1,
+        )
+    )
+    return checks
 
 
 def generate_destination_handoff(
@@ -1066,6 +1196,7 @@ def generate_destination_handoff(
             package_manifest_hash,
             texture_pack,
             material_conversion,
+            export_evidence,
             package_receipts,
         )
         context = _destination_context(
@@ -1188,7 +1319,10 @@ def generate_destination_handoff(
             )
             for path in actual_files
         ]
-        checks = _validation_checks()
+        checks = _validation_checks(roundtrip)
+        warning_count = sum(item.status == "warning" for item in checks)
+        failed_count = sum(item.status == "failed" for item in checks)
+        passed_count = sum(item.status == "passed" for item in checks)
         validation = DestinationHandoffValidation(
             validation_id=f"handoff-validation-{plan.handoff_id}",
             handoff_id=plan.handoff_id,
@@ -1198,11 +1332,11 @@ def generate_destination_handoff(
             handoff_manifest_sha256=manifest_hash,
             package_manifest_sha256=package_manifest_hash,
             roundtrip_validation_sha256=roundtrip_receipt.sha256,
-            status="passed",
-            ok=True,
-            passed=len(checks),
-            warnings=0,
-            failed=0,
+            status="warning" if warning_count else "passed",
+            ok=failed_count == 0,
+            passed=passed_count,
+            warnings=warning_count,
+            failed=failed_count,
             expected_file_count=len(file_receipts),
             files=file_receipts,
             checks=checks,

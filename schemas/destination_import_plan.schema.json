@@ -73,6 +73,14 @@
       "title": "Material Texture Plan",
       "type": "array"
     },
+    "uv_coordinate_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Uv Coordinate Plan",
+      "type": "array"
+    },
     "lod_collider_plan": {
       "items": {
         "type": "string"
@@ -124,6 +132,7 @@
     "unit_axis_pivot_plan",
     "hierarchy_plan",
     "material_texture_plan",
+    "uv_coordinate_plan",
     "lod_collider_plan",
     "created_at"
   ],

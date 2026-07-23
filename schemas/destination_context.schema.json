@@ -154,6 +154,29 @@
           "title": "Lod Levels",
           "type": "array"
         },
+        "lod_group_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Lod Group Count",
+          "type": "integer"
+        },
+        "default_active_lod": {
+          "const": 0,
+          "default": 0,
+          "title": "Default Active Lod",
+          "type": "integer"
+        },
+        "membership_explicit": {
+          "default": false,
+          "title": "Membership Explicit",
+          "type": "boolean"
+        },
+        "switch_policy": {
+          "const": "destination_defined_unverified",
+          "default": "destination_defined_unverified",
+          "title": "Switch Policy",
+          "type": "string"
+        },
         "collider_present": {
           "title": "Collider Present",
           "type": "boolean"
