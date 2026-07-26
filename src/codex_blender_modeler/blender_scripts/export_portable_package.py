@@ -34,6 +34,7 @@ PORTABLE_OBJECT_PROPERTIES = frozenset(
 PORTABLE_MATERIAL_PROPERTIES = frozenset({"cbm_id"})
 PORTABLE_ATLAS_UV_DEFAULT = "CBMPortableAtlas"
 LIGHTMAP_UV_DEFAULT = "LightmapUV"
+NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"
 
 
 def parse_args() -> argparse.Namespace:
@@ -96,12 +97,52 @@ def verify_derived_scene(
     }
 
 
+def object_source_tags(source: bpy.types.Object) -> set[str]:
+    """Normalize CBM source tags before selecting portable export geometry."""
+
+    raw_tags = source.get("cbm_tags", "")
+    if isinstance(raw_tags, str):
+        return {
+            item.strip().casefold()
+            for item in raw_tags.split(",")
+            if item.strip()
+        }
+    if isinstance(raw_tags, (list, tuple)):
+        return {
+            str(item).strip().casefold()
+            for item in raw_tags
+            if str(item).strip()
+        }
+    return set()
+
+
 def select_portable_objects(include_colliders: bool) -> list[bpy.types.Object]:
     """Select only derived render/LOD objects and optionally their collider proxies."""
 
     permitted = {"render", "lod"}
     if include_colliders:
         permitted.add("collider")
+    unsafe_helpers = sorted(
+        obj.name
+        for obj in bpy.context.scene.objects
+        if obj.type == "MESH"
+        and str(obj.get("cbm_asset_role", "")) in permitted
+        and (
+            NON_RENDER_BOOLEAN_TAG in object_source_tags(obj)
+            or (
+                str(obj.get("cbm_asset_role", "")) in {"render", "lod"}
+                and (
+                    bool(obj.hide_render)
+                    or bool(obj.get("cbm_source_hide_render", False))
+                )
+            )
+        )
+    )
+    if unsafe_helpers:
+        raise RuntimeError(
+            "Portable export scene contains canonical non-render helpers in export roles: "
+            f"{unsafe_helpers}"
+        )
     bpy.ops.object.select_all(action="DESELECT")
     selected = []
     for obj in sorted(bpy.context.scene.objects, key=lambda item: item.name):

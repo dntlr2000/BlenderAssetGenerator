@@ -144,6 +144,7 @@ def main() -> None:
         candidates.append(obj)
     for obj in candidates:
         record = object_inventory(obj)
+        record["hide_render"] = bool(obj.hide_render)
         if policy["require_applied_scale"] and not _scale_is_applied(obj):
             errors.append(f"{obj.name}: unapplied scale={record['scale']}")
         object_errors, object_warnings = evaluate_object(record, policy)

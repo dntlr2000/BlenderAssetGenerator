@@ -30,6 +30,7 @@ from portable_asset_common import (  # noqa: E402
 from uv_runtime import ensure_uv_mapping  # noqa: E402
 
 DERIVED_COLLECTION = "CBM_PORTABLE_DERIVED"
+NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"
 
 
 def parse_args() -> argparse.Namespace:
@@ -141,6 +142,25 @@ def copy_custom_properties(source: bpy.types.Object, target: bpy.types.Object) -
             target[key] = source[key]
 
 
+def object_source_tags(source: bpy.types.Object) -> set[str]:
+    """Normalize CBM source tags used to guard non-render helper geometry."""
+
+    raw_tags = source.get("cbm_tags", "")
+    if isinstance(raw_tags, str):
+        return {
+            item.strip().casefold()
+            for item in raw_tags.split(",")
+            if item.strip()
+        }
+    if isinstance(raw_tags, (list, tuple)):
+        return {
+            str(item).strip().casefold()
+            for item in raw_tags
+            if str(item).strip()
+        }
+    return set()
+
+
 def evaluated_mesh_copy(
     source: bpy.types.Object,
     collection: bpy.types.Collection,
@@ -159,6 +179,7 @@ def evaluated_mesh_copy(
     target.matrix_world = source.matrix_world.copy()
     copy_custom_properties(source, target)
     target["cbm_source_object"] = source.name
+    target["cbm_source_hide_render"] = bool(source.hide_render)
     target["cbm_asset_role"] = "render"
     target["cbm_lod_level"] = 0
     return target
@@ -1206,6 +1227,22 @@ def main() -> None:
         raise RuntimeError(
             "Optimization directives must match canonical semantic geometry exactly; "
             f"missing={missing_directives}, unknown={unknown_directives}"
+        )
+    unsafe_helpers = sorted(
+        {
+            str(source.get("cbm_id"))
+            for source in source_objects
+            if (
+                bool(source.hide_render)
+                or NON_RENDER_BOOLEAN_TAG in object_source_tags(source)
+            )
+            and bool(directives[str(source.get("cbm_id"))].get("include", True))
+        }
+    )
+    if unsafe_helpers:
+        raise RuntimeError(
+            "Optimization directives include canonical non-render helper sources: "
+            f"{unsafe_helpers}"
         )
 
     derived_objects: list[bpy.types.Object] = []

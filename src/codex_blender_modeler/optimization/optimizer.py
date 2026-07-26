@@ -40,6 +40,7 @@ from .models import (
     MeshCleanupRecord,
     MeshOverlapFinding,
     MeshPreflightReport,
+    MeshSummary,
     OptimizationApproval,
     OptimizationDirective,
     OptimizationPlan,
@@ -48,7 +49,12 @@ from .models import (
     UVManifest,
     UVSetRecord,
 )
-from .preflight import load_asset_profile, profile_artifact, run_asset_preflight
+from .preflight import (
+    NON_RENDER_BOOLEAN_TAG,
+    load_asset_profile,
+    profile_artifact,
+    run_asset_preflight,
+)
 from .provenance import collect_source_provenance, require_unchanged_source
 
 
@@ -609,15 +615,104 @@ def _optimization_directives(
 ) -> list[OptimizationDirective]:
     """Build the deterministic semantic-family directives shown before approval."""
 
+    _require_source_classification_evidence(preflight)
     levels = [target.level for target in profile.lod.targets] if profile.lod.enabled else []
-    return [
-        OptimizationDirective(
-            target_id=mesh.target_id,
-            lod_levels=levels,
-            collision_strategy="inherit",
+    directives: list[OptimizationDirective] = []
+    for mesh in preflight.meshes:
+        excluded = _mesh_is_non_render_source(mesh)
+        exclusion_reasons: list[str] = []
+        if mesh.source_renderable is False:
+            exclusion_reasons.append("the canonical Blender source is hidden from render")
+        if NON_RENDER_BOOLEAN_TAG in {
+            tag.casefold() for tag in (mesh.source_tags or [])
+        }:
+            exclusion_reasons.append(
+                f"source tag {NON_RENDER_BOOLEAN_TAG!r} marks a boolean helper"
+            )
+        directives.append(
+            OptimizationDirective(
+                target_id=mesh.target_id,
+                include=not excluded,
+                lod_levels=[] if excluded else levels,
+                collision_strategy="none" if excluded else "inherit",
+                notes=(
+                    [
+                        "Excluded from portable render output because "
+                        + " and ".join(exclusion_reasons)
+                        + "."
+                    ]
+                    if excluded
+                    else []
+                ),
+            )
         )
+    return directives
+
+
+def _require_source_classification_evidence(preflight: MeshPreflightReport) -> None:
+    """Require explicit tag and visibility evidence from a fresh Blender preflight."""
+
+    missing = sorted(
+        mesh.target_id
         for mesh in preflight.meshes
+        if mesh.source_tags is None or mesh.source_renderable is None
+    )
+    if missing:
+        raise RuntimeError(
+            "Preflight lacks source classification evidence for semantic families; start a new "
+            f"V0.7 run: {missing}"
+        )
+
+
+def _mesh_is_non_render_source(mesh: MeshSummary) -> bool:
+    """Classify hidden Blender sources and explicitly tagged cutters as non-render helpers."""
+
+    return mesh.source_renderable is False or NON_RENDER_BOOLEAN_TAG in {
+        tag.casefold() for tag in (mesh.source_tags or [])
+    }
+
+
+def _included_meshes(preflight: MeshPreflightReport) -> list[MeshSummary]:
+    """Return only semantic families eligible for portable render output."""
+
+    _require_source_classification_evidence(preflight)
+    return [
+        mesh
+        for mesh in preflight.meshes
+        if not _mesh_is_non_render_source(mesh)
     ]
+
+
+def _validate_reviewed_directives(
+    plan: OptimizationPlan,
+    preflight: MeshPreflightReport,
+) -> None:
+    """Reject incomplete directives or inclusion of canonical non-render source families."""
+
+    _require_source_classification_evidence(preflight)
+    directives = {item.target_id: item for item in plan.directives}
+    source_ids = {mesh.target_id for mesh in preflight.meshes}
+    directive_ids = set(directives)
+    missing = sorted(source_ids - directive_ids)
+    unknown = sorted(directive_ids - source_ids)
+    if missing or unknown:
+        raise RuntimeError(
+            "Optimization directives must match preflight semantic families exactly; "
+            f"missing={missing}, unknown={unknown}"
+        )
+    unsafe = sorted(
+        mesh.target_id
+        for mesh in preflight.meshes
+        if _mesh_is_non_render_source(mesh)
+        and directives[mesh.target_id].include
+    )
+    if unsafe:
+        raise RuntimeError(
+            "Optimization plan includes canonical non-render source families: "
+            f"{unsafe}"
+        )
+    if not any(item.include for item in plan.directives):
+        raise RuntimeError("Optimization plan must include at least one render family")
 
 
 def _estimated_lod_triangle_ceiling(
@@ -639,9 +734,10 @@ def _lod_review(
 ) -> LODOptimizationReview:
     """Summarize configured LOD generation and its bounded pre-execution cost."""
 
-    family_count = len(preflight.meshes)
-    object_count = sum(mesh.object_count for mesh in preflight.meshes)
-    triangle_count = sum(mesh.triangle_count for mesh in preflight.meshes)
+    included = _included_meshes(preflight)
+    family_count = len(included)
+    object_count = sum(mesh.object_count for mesh in included)
+    triangle_count = sum(mesh.triangle_count for mesh in included)
     levels = [
         LODLevelReview(
             level=target.level,
@@ -653,7 +749,7 @@ def _lod_review(
                     mesh.object_count,
                     target.target_triangle_ratio,
                 )
-                for mesh in preflight.meshes
+                for mesh in included
             ),
             estimated_object_count=object_count,
         )
@@ -691,8 +787,9 @@ def _collision_review(
     """Summarize configured collider generation without claiming runtime suitability."""
 
     strategy = profile.collision.strategy
-    family_count = len(preflight.meshes)
-    object_count = sum(mesh.object_count for mesh in preflight.meshes)
+    included = _included_meshes(preflight)
+    family_count = len(included)
+    object_count = sum(mesh.object_count for mesh in included)
     if strategy == "none":
         return CollisionOptimizationReview(
             strategy="none",
@@ -781,6 +878,7 @@ def plan_asset_optimization(
             != sha256_file(run_root / "mesh_preflight_report.json")
         ):
             raise RuntimeError("Existing optimization review is stale; start a new V0.7 run")
+        _validate_reviewed_directives(existing_plan, preflight)
         return existing_review
     preflight_receipt = _manifest_artifact(
         root,
@@ -802,6 +900,7 @@ def plan_asset_optimization(
             "Canonical authoring geometry and material contracts remain read-only.",
         ],
     )
+    _validate_reviewed_directives(draft, preflight)
     write_model(plan_path, draft)
     write_model(run_root / "optimization_plan.json", draft)
     review = OptimizationReview(
@@ -822,6 +921,16 @@ def plan_asset_optimization(
             "Collider suitability requires destination physics and gameplay context.",
             "Approval authorizes derived artifacts only; canonical authoring data "
             "remains unchanged.",
+            *(
+                [
+                    "Excluded non-render semantic families: "
+                    + ", ".join(
+                        item.target_id for item in draft.directives if not item.include
+                    )
+                ]
+                if any(not item.include for item in draft.directives)
+                else []
+            ),
         ],
         created_at=utc_now(),
     )
@@ -857,6 +966,7 @@ def approve_asset_optimization(
         raise RuntimeError("OptimizationReview is not bound to the current draft plan")
     profile = load_asset_profile(root, plan.profile_id)
     preflight_path = run_root / "mesh_preflight_report.json"
+    preflight = load_model(preflight_path, MeshPreflightReport)
     current_source = collect_source_provenance(root, job_id)
     if (
         plan.job_id != job_id
@@ -867,6 +977,7 @@ def approve_asset_optimization(
         or plan.source != current_source
     ):
         raise RuntimeError("Profile, preflight, source, or review changed; create a new plan")
+    _validate_reviewed_directives(plan, preflight)
     approval = OptimizationApproval(
         approval_id=f"approval.{run_id}",
         job_id=job_id,
@@ -967,6 +1078,7 @@ def optimize_asset(
         != sha256_file(run_root / "mesh_preflight_report.json")
     ):
         raise RuntimeError("Reviewed source, profile, or preflight changed; start a new V0.7 run")
+    _validate_reviewed_directives(plan, preflight)
     approval = _consume_optimization_approval(
         root,
         run_root,

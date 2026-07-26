@@ -532,6 +532,8 @@ class MeshSummary(V07StrictModel):
     """Summarize one semantic mesh family before derived optimization."""
 
     target_id: StableId
+    source_tags: list[str] | None = None
+    source_renderable: bool | None = None
     object_count: int = Field(ge=1)
     vertex_count: int = Field(ge=0)
     triangle_count: int = Field(ge=0)

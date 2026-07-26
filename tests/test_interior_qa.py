@@ -12,6 +12,7 @@ from PIL import Image
 from typer.testing import CliRunner
 
 import codex_blender_modeler.blender_artifact_runner as artifact_runner
+import codex_blender_modeler.interior_qa.service as interior_qa_service
 from codex_blender_modeler.architecture import (
     approve_interior_scope,
     initialize_interior_scope,
@@ -324,6 +325,38 @@ def test_plan_requires_exact_approved_scope(
         plan_job_interior_qa(JOB_ID, run_id="missing-scope")
 
     assert not (root / "qa" / "interior" / "runs" / "missing-scope").exists()
+
+
+def test_entry_camera_uses_local_entry_bounds_above_the_floor() -> None:
+    """Keep entry diagnostics centered on the entry at the requested eye height."""
+
+    entry_id = "building.interior.floor.entry_east_stair"
+    floor_id = "building.interior.floor.l03"
+    groups = {("l03", "entry.east_stair"): [entry_id, floor_id]}
+    semantic_bounds = {
+        entry_id: InteriorQABounds(
+            min=(22.5, -6.6, 7.425),
+            max=(27.5, -2.6, 7.675),
+        ),
+        floor_id: InteriorQABounds(
+            min=(-27.0, -8.5, 7.425),
+            max=(27.0, 10.5, 7.675),
+        ),
+    }
+
+    views, warnings = interior_qa_service._build_views(
+        groups,
+        semantic_bounds,
+        profile="standard",
+        max_views=6,
+        eye_height_m=1.6,
+    )
+
+    assert len(views) == 6
+    assert warnings == []
+    assert views[0].location == pytest.approx((25.0, -4.6, 9.275))
+    assert views[0].target == pytest.approx((25.0, -2.35, 9.275))
+    assert all(view.location[2] > semantic_bounds[floor_id].max[2] for view in views)
 
 
 def test_plan_approve_run_and_pdf_preserve_canonical_authoring(

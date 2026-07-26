@@ -17,10 +17,14 @@ from codex_blender_modeler.optimization.models import (
 )
 from codex_blender_modeler.optimization.optimizer import (
     _consume_optimization_approval,
+    _validate_reviewed_directives,
     approve_asset_optimization,
     plan_asset_optimization,
 )
-from codex_blender_modeler.optimization.preflight import profile_artifact
+from codex_blender_modeler.optimization.preflight import (
+    _mesh_summaries,
+    profile_artifact,
+)
 from codex_blender_modeler.optimization.profiles import create_builtin_profile
 from codex_blender_modeler.workspace import sha256_file
 
@@ -75,6 +79,8 @@ def _prepare_review_fixture(
         meshes=[
             MeshSummary(
                 target_id="building.main",
+                source_tags=[],
+                source_renderable=True,
                 object_count=3,
                 vertex_count=180,
                 triangle_count=120,
@@ -83,7 +89,33 @@ def _prepare_review_fixture(
                 degenerate_face_count=0,
                 negative_scale_count=0,
                 bounds=Bounds3D(minimum=(0, 0, 0), maximum=(3, 2, 4)),
-            )
+            ),
+            MeshSummary(
+                target_id="building.exterior_void.entry",
+                source_tags=["hidden-boolean-target", "exterior-opening-cutter"],
+                source_renderable=False,
+                object_count=1,
+                vertex_count=8,
+                triangle_count=12,
+                boundary_edge_count=0,
+                non_manifold_edge_count=0,
+                degenerate_face_count=0,
+                negative_scale_count=0,
+                bounds=Bounds3D(minimum=(1, -1, 0), maximum=(2, 1, 3)),
+            ),
+            MeshSummary(
+                target_id="building.boolean.cutter.untagged",
+                source_tags=[],
+                source_renderable=False,
+                object_count=1,
+                vertex_count=8,
+                triangle_count=12,
+                boundary_edge_count=0,
+                non_manifold_edge_count=0,
+                degenerate_face_count=0,
+                negative_scale_count=0,
+                bounds=Bounds3D(minimum=(-2, -1, 0), maximum=(-1, 1, 3)),
+            ),
         ],
         created_at="2026-07-20T00:00:00Z",
     )
@@ -129,6 +161,7 @@ def test_review_exposes_lod_and_collider_before_any_derived_execution(
 
     assert review.status == "awaiting_user_approval"
     assert review.lod.enabled is True
+    assert review.lod.semantic_family_count == 1
     assert [item.level for item in review.lod.levels] == [1, 2]
     assert review.lod.source_object_count == 3
     assert review.collision.strategy == "compound"
@@ -138,6 +171,126 @@ def test_review_exposes_lod_and_collider_before_any_derived_execution(
         root / "optimization" / "runs" / run_id / "review_plan.json"
     )
     assert not (root / "optimization" / "runs" / run_id / "optimized").exists()
+    plan = load_model(
+        root / "optimization" / "runs" / run_id / "review_plan.json",
+        OptimizationPlan,
+    )
+    directives = {item.target_id: item for item in plan.directives}
+    helper = directives["building.exterior_void.entry"]
+    assert helper.include is False
+    assert helper.lod_levels == []
+    assert helper.collision_strategy == "none"
+    untagged = directives["building.boolean.cutter.untagged"]
+    assert untagged.include is False
+    assert untagged.lod_levels == []
+    assert untagged.collision_strategy == "none"
+
+
+def test_reviewed_directive_guard_rejects_tagged_boolean_helper_inclusion(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject a reviewed plan that promotes a tagged boolean helper to render output."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    plan_asset_optimization("review_case", profile_id="portable_gltf", run_id=run_id)
+    run_root = root / "optimization" / "runs" / run_id
+    plan = load_model(run_root / "review_plan.json", OptimizationPlan)
+    preflight = load_model(run_root / "mesh_preflight_report.json", MeshPreflightReport)
+    changed = [
+        item.model_copy(update={"include": True})
+        if item.target_id == "building.exterior_void.entry"
+        else item
+        for item in plan.directives
+    ]
+
+    with pytest.raises(RuntimeError, match="non-render source families"):
+        _validate_reviewed_directives(
+            OptimizationPlan.model_validate(
+                plan.model_copy(update={"directives": changed}).model_dump(mode="json")
+            ),
+            preflight,
+        )
+
+
+def test_reviewed_directive_guard_rejects_legacy_missing_tag_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Require a fresh preflight when a legacy report lacks source-tag evidence."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    plan_asset_optimization("review_case", profile_id="portable_gltf", run_id=run_id)
+    run_root = root / "optimization" / "runs" / run_id
+    plan = load_model(run_root / "review_plan.json", OptimizationPlan)
+    preflight = load_model(run_root / "mesh_preflight_report.json", MeshPreflightReport)
+    meshes = [
+        mesh.model_copy(update={"source_tags": None})
+        if mesh.target_id == "building.main"
+        else mesh
+        for mesh in preflight.meshes
+    ]
+
+    with pytest.raises(RuntimeError, match="lacks source classification evidence"):
+        _validate_reviewed_directives(
+            plan,
+            MeshPreflightReport.model_validate(
+                preflight.model_copy(update={"meshes": meshes}).model_dump(mode="json")
+            ),
+        )
+
+
+def test_reviewed_directive_guard_rejects_plan_with_no_render_family(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject a plan that would consume approval without producing render geometry."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    plan_asset_optimization("review_case", profile_id="portable_gltf", run_id=run_id)
+    run_root = root / "optimization" / "runs" / run_id
+    plan = load_model(run_root / "review_plan.json", OptimizationPlan)
+    preflight = load_model(run_root / "mesh_preflight_report.json", MeshPreflightReport)
+    directives = [
+        item.model_copy(
+            update={"include": False, "lod_levels": [], "collision_strategy": "none"}
+        )
+        for item in plan.directives
+    ]
+
+    with pytest.raises(RuntimeError, match="at least one render family"):
+        _validate_reviewed_directives(
+            OptimizationPlan.model_validate(
+                plan.model_copy(update={"directives": directives}).model_dump(mode="json")
+            ),
+            preflight,
+        )
+
+
+def test_preflight_rejects_mixed_boolean_helper_membership_in_one_family() -> None:
+    """Fail closed when one semantic family mixes render and cutter instances."""
+
+    def record(name: str, tags: str) -> dict[str, object]:
+        """Create one minimal raw Blender mesh record for tag-consistency testing."""
+
+        return {
+            "name": name,
+            "semantic_id": "building.mixed",
+            "type": "MESH",
+            "bbox_world": {"min": [0, 0, 0], "max": [1, 1, 1]},
+            "topology": {},
+            "custom_properties": {"cbm_tags": tags},
+        }
+
+    with pytest.raises(ValueError, match="mixes render geometry"):
+        _mesh_summaries(
+            {
+                "objects": [
+                    record("render", "proxy"),
+                    record("cutter", "proxy,hidden-boolean-target"),
+                ]
+            }
+        )
 
 
 def test_exact_approval_is_single_use_and_bound_to_the_reviewed_plan(

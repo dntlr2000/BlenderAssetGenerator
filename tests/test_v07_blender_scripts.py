@@ -185,6 +185,17 @@ def test_prepare_script_rejects_anonymous_authoring_geometry() -> None:
     )
 
 
+def test_prepare_script_rejects_render_inclusion_of_boolean_helpers() -> None:
+    """Keep tagged cutter volumes out of every derived portable render scene."""
+
+    source = (SCRIPT_ROOT / "prepare_optimized_asset.py").read_text(encoding="utf-8")
+    assert "def object_source_tags" in source
+    assert 'NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"' in source
+    assert "bool(source.hide_render)" in source
+    assert "if unsafe_helpers:" in source
+    assert "Optimization directives include canonical non-render helper sources" in source
+
+
 def test_prepare_script_enforces_lod_budget_on_derived_geometry_only() -> None:
     """Clean degenerate derived LOD faces before a bounded budget correction pass."""
 
@@ -242,6 +253,17 @@ def test_export_evidence_is_distinct_and_records_portability_limits() -> None:
     assert "_same_length_relative_path" in source
     assert "raw PBR " in source
     assert "sidecars remain authoritative" in source
+
+
+def test_export_script_rejects_tagged_boolean_helpers_in_render_roles() -> None:
+    """Block old or tampered optimized scenes from exporting cutter solids."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assert "def object_source_tags" in source
+    assert 'NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"' in source
+    assert 'bool(obj.get("cbm_source_hide_render", False))' in source
+    assert "if unsafe_helpers:" in source
+    assert "Portable export scene contains canonical non-render helpers" in source
 
 
 def test_fbx_export_promotes_portable_atlas_to_uv0_and_exports_tangents() -> None:

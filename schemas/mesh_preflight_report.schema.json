@@ -184,6 +184,33 @@
           "title": "Target Id",
           "type": "string"
         },
+        "source_tags": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Tags"
+        },
+        "source_renderable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Renderable"
+        },
         "object_count": {
           "minimum": 1,
           "title": "Object Count",

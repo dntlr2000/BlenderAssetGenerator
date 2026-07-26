@@ -224,6 +224,40 @@ def _union_bounds(
     )
 
 
+def _bounds_xy_area(bounds: InteriorQABounds) -> float:
+    """Measure one semantic bound's horizontal footprint for deterministic focus choice."""
+
+    width = max(0.01, bounds.max[0] - bounds.min[0])
+    depth = max(0.01, bounds.max[1] - bounds.min[1])
+    return width * depth
+
+
+def _entry_focus_bounds(
+    space_id: str | None,
+    target_ids: list[str],
+    semantic_bounds: dict[str, InteriorQABounds],
+) -> tuple[InteriorQABounds, bool]:
+    """Focus entry-space cameras on the localized entry semantic instead of a full floor."""
+
+    grouped_bounds = _union_bounds(target_ids, semantic_bounds)
+    if space_id is None or not space_id.startswith("entry."):
+        return grouped_bounds, False
+    explicit_entry_ids = [
+        target_id
+        for target_id in target_ids
+        if ".entry_" in target_id.casefold() or ".entry." in target_id.casefold()
+    ]
+    candidates = explicit_entry_ids or target_ids
+    focus_id = min(
+        candidates,
+        key=lambda target_id: (
+            _bounds_xy_area(semantic_bounds[target_id]),
+            target_id,
+        ),
+    )
+    return semantic_bounds[focus_id], not explicit_entry_ids
+
+
 def _view_group_slug(level_id: str | None, space_id: str | None) -> str:
     """Create one portable readable prefix for interior view IDs."""
 
@@ -277,16 +311,44 @@ def _build_views(
         strict=True,
     ):
         bounds = _union_bounds(target_ids, semantic_bounds)
-        center = tuple(
-            (bounds.min[axis] + bounds.max[axis]) * 0.5 for axis in range(3)
+        focus_bounds, used_entry_fallback = _entry_focus_bounds(
+            space_id,
+            target_ids,
+            semantic_bounds,
         )
-        width = max(0.01, bounds.max[0] - bounds.min[0])
-        depth = max(0.01, bounds.max[1] - bounds.min[1])
-        height = max(0.01, bounds.max[2] - bounds.min[2])
-        eye_offset = min(eye_height_m, max(0.15, height * 0.55))
-        camera_location = (center[0], center[1], bounds.min[2] + eye_offset)
+        center = tuple(
+            (focus_bounds.min[axis] + focus_bounds.max[axis]) * 0.5
+            for axis in range(3)
+        )
+        width = max(0.01, focus_bounds.max[0] - focus_bounds.min[0])
+        depth = max(0.01, focus_bounds.max[1] - focus_bounds.min[1])
+        height = max(0.01, focus_bounds.max[2] - focus_bounds.min[2])
+        if space_id is not None and space_id.startswith("entry."):
+            camera_location = (
+                center[0],
+                center[1],
+                focus_bounds.max[2] + eye_height_m,
+            )
+            if used_entry_fallback:
+                warnings.append(
+                    f"entry camera for level={level_id} space={space_id} used the "
+                    "smallest target bounds because no entry semantic ID was present"
+                )
+        else:
+            eye_offset = min(eye_height_m, max(0.15, height * 0.55))
+            camera_location = (
+                center[0],
+                center[1],
+                focus_bounds.min[2] + eye_offset,
+            )
         look_distance = max(0.5, max(width, depth) * 0.45)
-        clip_end = max(10.0, math.sqrt(width**2 + depth**2 + height**2) * 4.0)
+        group_width = max(0.01, bounds.max[0] - bounds.min[0])
+        group_depth = max(0.01, bounds.max[1] - bounds.min[1])
+        group_height = max(0.01, bounds.max[2] - bounds.min[2])
+        clip_end = max(
+            10.0,
+            math.sqrt(group_width**2 + group_depth**2 + group_height**2) * 4.0,
+        )
         group_slug = _view_group_slug(level_id, space_id)
         for direction_name, x_axis, y_axis in _PROFILE_DIRECTIONS[profile][
             :direction_count

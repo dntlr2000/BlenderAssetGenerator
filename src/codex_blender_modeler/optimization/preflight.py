@@ -22,6 +22,8 @@ from .models import (
 )
 from .provenance import collect_source_provenance, require_unchanged_source
 
+NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"
+
 
 def profile_path(job_root: Path, profile_id: str) -> Path:
     """Resolve one profile contract under its job-owned asset profile directory."""
@@ -111,6 +113,28 @@ def _raw_checks(
     return checks
 
 
+def _record_source_tags(record: dict[str, Any]) -> set[str]:
+    """Normalize comma-separated CBM source tags from one Blender inventory record."""
+
+    custom = record.get("custom_properties")
+    if not isinstance(custom, dict):
+        return set()
+    raw_tags = custom.get("cbm_tags")
+    if isinstance(raw_tags, str):
+        return {
+            item.strip().casefold()
+            for item in raw_tags.split(",")
+            if item.strip()
+        }
+    if isinstance(raw_tags, list):
+        return {
+            str(item).strip().casefold()
+            for item in raw_tags
+            if str(item).strip()
+        }
+    return set()
+
+
 def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
     """Aggregate Blender object instances into stable semantic mesh-family summaries."""
 
@@ -128,6 +152,30 @@ def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
 
     summaries: list[MeshSummary] = []
     for target_id, records in sorted(groups.items()):
+        visibility_evidence = ["hide_render" in record for record in records]
+        if any(visibility_evidence) and not all(visibility_evidence):
+            raise ValueError(
+                f"Semantic mesh family has incomplete render-visibility evidence: {target_id}"
+            )
+        renderability = (
+            {not bool(record["hide_render"]) for record in records}
+            if all(visibility_evidence)
+            else set()
+        )
+        if renderability and len(renderability) != 1:
+            raise ValueError(
+                "Semantic mesh family mixes render-visible and hidden instances: "
+                f"{target_id}"
+            )
+        helper_membership = {
+            NON_RENDER_BOOLEAN_TAG in _record_source_tags(record)
+            for record in records
+        }
+        if len(helper_membership) != 1:
+            raise ValueError(
+                "Semantic mesh family mixes render geometry with non-render boolean "
+                f"helpers: {target_id}"
+            )
         topology_records = [
             record.get("topology", {})
             for record in records
@@ -142,6 +190,16 @@ def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
         summaries.append(
             MeshSummary(
                 target_id=target_id,
+                source_tags=sorted(
+                    {
+                        tag
+                        for record in records
+                        for tag in _record_source_tags(record)
+                    }
+                ),
+                source_renderable=(
+                    next(iter(renderability)) if renderability else None
+                ),
                 object_count=len(records),
                 vertex_count=sum(int(item.get("vertices", 0)) for item in topology_records),
                 triangle_count=sum(
