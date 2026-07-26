@@ -69,6 +69,12 @@ def _is_interior_object(obj: ObjectSpec) -> bool:
     return tagged or bool(id_parts.intersection(_INTERIOR_ID_SEGMENTS))
 
 
+def list_interior_objects(scene_spec: SceneSpec) -> list[ObjectSpec]:
+    """Return canonical objects that the shared InteriorScope classifier treats as interior."""
+
+    return [obj for obj in scene_spec.objects if _is_interior_object(obj)]
+
+
 def _load_approval(path: Path) -> InteriorScopeApproval | None:
     """Load an optional strict approval receipt from one job workspace."""
 
@@ -266,7 +272,7 @@ def validate_scene_interior_scope(
     approval = _load_approval(approval_path)
     scope_hash = sha256_file(scope_path) if scope_path.is_file() else None
     approval_hash = sha256_file(approval_path) if approval_path.is_file() else None
-    interior_objects = [obj for obj in scene_spec.objects if _is_interior_object(obj)]
+    interior_objects = list_interior_objects(scene_spec)
     errors: list[str] = []
     warnings: list[str] = []
 

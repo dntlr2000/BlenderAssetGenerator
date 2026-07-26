@@ -2,7 +2,7 @@
 
 ## 목적
 
-BlenderAssetGenerator `0.7.2`의 실내 기능은 건물 모델링의 기본 단계가 아닙니다. Codex는 사용자가 외관, 건물 또는 3D 모델을 요청했다는 이유만으로 방, 복도, 계단, 천장, 가구나 보이지 않는 층을 임의로 만들면 안 됩니다.
+BlenderAssetGenerator `0.9.0`의 실내 기능은 건물 모델링의 기본 단계가 아닙니다. Codex는 사용자가 외관, 건물 또는 3D 모델을 요청했다는 이유만으로 방, 복도, 계단, 천장, 가구나 보이지 않는 층을 임의로 만들면 안 됩니다.
 
 실내 authoring은 다음 두 조건을 모두 만족할 때만 허용됩니다.
 
@@ -199,6 +199,120 @@ CLI와 같은 기능을 다음 whitelisted MCP 도구로 제공합니다.
 | `interior-scope-validate` | `validate_interior_scope` |
 
 MCP의 initialize는 승인이나 geometry 변경을 수행하지 않으며 approval 도구 자체를 노출하지 않습니다. Codex는 scope와 hash를 보고하고 사용자의 수동 CLI 승인을 기다려야 합니다.
+
+## 선택적 V0.6 실내 다각도 QA
+
+외관용 고정 카메라 한 장만으로는 방 안쪽, 복도, 천장과 가려진 벽을 충분히 확인하기 어렵습니다. 승인된 정적 실내가 있는 경우에는 외관 Visual QA와 별개로 `qa/interior/runs/<run-id>/` 아래에 임시 카메라 기반 검사를 만들 수 있습니다.
+
+이 검사는 다음 조건을 모두 만족해야 시작됩니다.
+
+- 현재 InteriorScope와 exact-hash approval이 유효함
+- SceneSpec에 승인 범위 안의 interior semantic object가 최소 한 개 있음
+- 최신 `.blend`의 embedded build fingerprint가 현재 canonical 입력과 일치함
+- build/inspect/validate가 성공함
+
+### 1. 카메라 계획
+
+Codex는 다음 MCP 도구를 사용하거나 동일한 CLI 역할을 호출해 계획만 만듭니다.
+
+```powershell
+uv run cbm interior-qa-plan <job-id> `
+  --profile standard `
+  --resolution 512 `
+  --max-views 24
+```
+
+| profile | 공간별 기본 방향 | 용도 |
+|---|---:|---|
+| `minimal` | 4 | 빠른 사방 확인 |
+| `standard` | 6 | 사방과 두 대각선 확인 |
+| `thorough` | 8 | 사방과 네 대각선 확인 |
+
+각 카메라는 승인된 `level:`/`space:` 그룹의 bounds를 기준으로 공간 주위를 회전하며 내부를 향합니다. 전체 view 수는 `--max-views`와 계약상 64개 상한으로 제한됩니다. 계획 단계에서는 렌더하거나 `.blend`를 수정하지 않습니다.
+
+계획 결과의 `plan_sha256`과 view 목록을 확인한 뒤에만 승인합니다.
+
+```powershell
+uv run cbm interior-qa-plan-approve <job-id> `
+  --run-id <run-id> `
+  --plan-sha256 <exact-plan-sha256> `
+  --approval-note "표시된 실내 카메라와 대상 범위를 승인"
+```
+
+필요한 view만 승인하려면 `--view-id`를 반복해 기존 계획 안의 부분집합을 선택할 수 있습니다. 일반적인 “계속 진행”이나 workflow 승인은 이 exact plan 승인을 대신하지 않습니다.
+
+### 2. 승인된 1회 렌더
+
+```powershell
+uv run cbm interior-qa-run <job-id> `
+  --run-id <run-id> `
+  --approved-plan-sha256 <exact-plan-sha256>
+```
+
+승인은 한 번만 소비됩니다. 각 승인 view는 다음 정확히 7개 패스를 생성합니다.
+
+```text
+beauty
+silhouette
+object_id
+material_id
+normal
+depth
+wireframe
+```
+
+렌더 중에는 temporary camera와 target isolation을 사용하지만 authoring `.blend`를 저장하지 않습니다. canonical SceneSpec, geometry, InteriorScope, material 계약과 source texture도 변경하지 않습니다.
+
+주요 산출물:
+
+```text
+qa/interior/
+├─ latest.json
+└─ runs/<run-id>/
+   ├─ source_inventory.json
+   ├─ plan.json
+   ├─ plan_approval.json
+   ├─ render_manifest.json
+   ├─ passes/<view-id>/*.png
+   ├─ contact_sheets/
+   │  ├─ beauty.png
+   │  ├─ object_id.png
+   │  └─ wireframe.png
+   ├─ interior_qa_report.json
+   └─ revision_candidates.json
+```
+
+### 3. 판정 의미
+
+`semantic_visibility_fraction`은 승인된 여러 각도에서 대상 semantic ID가 object-ID 패스에 나타났는지를 측정한 **증거 가시성 비율**입니다. 다음 의미가 아닙니다.
+
+- 실내 완성도 백분율
+- 레퍼런스 유사도
+- 공간 설계의 미적 품질
+- 충돌·동선·게임플레이 검증
+
+현재 계약은 별도로 매핑된 실내 레퍼런스가 없으면 `reference_comparison_status: unavailable`을 기록하고 임의의 유사도 점수를 만들지 않습니다. topology 오류는 구조 finding으로, AABB 겹침은 정밀 충돌 판정이 아닌 advisory finding으로 남깁니다. 수정 후보는 모두 `manual-only`이며 이 QA 승인만으로 geometry를 자동 변경하지 않습니다.
+
+### 4. 사람용 QA PDF
+
+```powershell
+uv run cbm report-pdf <job-id> `
+  --scope qa `
+  --interior-qa-run-id <run-id>
+```
+
+PDF에는 공간·view별 coverage, finding, 제한 사항과 beauty/object-ID/wireframe contact sheet가 포함됩니다. PDF는 JSON의 파생 검토 자료이고 판단 원본은 위 run의 machine-readable 계약입니다.
+
+### 5. MCP와 V0.8
+
+| CLI | MCP |
+|---|---|
+| `interior-qa-plan` | `plan_interior_qa` |
+| `interior-qa-plan-approve` | `approve_interior_qa_plan` |
+| `interior-qa-run` | `run_interior_qa` |
+| `interior-qa-status` | `get_interior_qa_status` |
+
+Codex 채팅에서는 `interior_visual_qa` 의도로 동일한 흐름을 조율할 수 있습니다. Workflow는 scope 검증과 계획 생성 뒤 `interior_qa_plan` 전용 승인 경계에서 멈추며, 일반 workflow approval이 이를 대신하지 못합니다.
 
 ## Scope 교체와 작업 되돌아가기
 

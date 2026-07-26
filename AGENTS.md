@@ -21,14 +21,15 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 6. `analysis/material_plan.json`, `materials/`, and `textures/` — approved material, shader, and texture contracts.
 7. `constraints/constraints.json` — measured requirements.
 8. `geometry/` — referenced deterministic geometry payloads.
-9. `qa/runs/<run-id>/` — immutable fixed-camera QA evidence and revision candidates.
-10. `asset_profiles/<profile-id>.json` — engine-neutral static-asset delivery policy.
-11. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
-12. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
-13. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
-14. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
-15. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
-16. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
+9. `qa/runs/<run-id>/` — immutable exterior fixed-camera QA evidence and revision candidates.
+10. `qa/interior/runs/<run-id>/` — immutable, approval-bound multi-view interior QA evidence; never a replacement for exterior reference QA.
+11. `asset_profiles/<profile-id>.json` — engine-neutral static-asset delivery policy.
+12. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
+13. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
+14. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
+15. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
+16. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
+17. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
 
 The project version is `0.9.0`. The geometry SceneSpec contract remains `0.2.0` so existing v0.2 workspaces can be reused without rewriting approved geometry. Optional InteriorScope contracts use `0.1.0`, material contracts remain `0.5.0`, QA contracts remain `0.6.0`, portable static-asset contracts use `0.7.0`, orchestration contracts use `0.8.0`, and stabilization evidence uses `0.9.0`.
 
@@ -116,6 +117,11 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 64. Failed workflow steps are never retried automatically. A queue re-dispatch requires an explicit single-use failed-retry token and must still obey the V0.8 attempt contract.
 65. V0.9 does not auto-migrate legacy jobs. A compatible legacy contract remains readable; an incompatible contract is reported and requires a separately reviewed migration or rebuild plan.
 66. A V0.9 stability PDF is a derived projection of exact environment-probe and workspace-audit JSON hashes. It cannot change a release status or replace machine-readable evidence.
+67. Interior QA is a separate optional V0.6 evidence path. It requires a current approved InteriorScope and at least one validated interior semantic object; exterior-only jobs must remain unchanged.
+68. Before interior QA rendering, generate an exact camera plan and stop for an approval bound to its SHA-256. The approval is single-use and may select only views already present in that exact plan.
+69. Every approved interior QA view must render the exact seven-pass set. Use temporary cameras and temporary visibility isolation only; never save those changes back to the authoring `.blend`.
+70. Interior semantic visibility is an evidence-coverage ratio, not a completeness or quality percentage. Without explicitly mapped interior references, report reference comparison as unavailable and keep all generated candidates manual-only.
+71. Interior QA contact sheets and PDFs are derived review aids. The plan, approval, source inventory, render manifest, report, candidates, latest pointer, and their hashes remain authoritative.
 
 ## v0.4 reference-analysis workflow
 
@@ -209,6 +215,20 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 8. Rebuild, re-render, re-inspect, re-validate, and reevaluate constraints after application.
 9. Keep canonical replacement and every verification step inside the rollback boundary; restore and rebuild the archived baseline on non-improvement, per-ID constraint regression, or verification failure.
 10. If an external QA target is used, preserve the exact prompt text and provider/model/version/seed/output provenance with the run.
+
+## Optional multi-view interior QA workflow
+
+Use this separate V0.6 path only when an approved InteriorScope already contains validated static interior geometry.
+
+1. Validate that the current scope approval, SceneSpec, build fingerprint, and interior semantic IDs are current.
+2. Inspect the authoring scene read-only and group interior targets by approved `level:` and `space:` locators.
+3. Create a bounded `minimal`, `standard`, or `thorough` temporary-camera plan and show its exact SHA-256 to the user.
+4. Stop until the user approves that exact plan hash and optional subset of existing view IDs.
+5. Consume the approval once, render exactly seven passes per selected view, and leave the authoring `.blend` unchanged.
+6. Report per-view and per-space semantic visibility, topology findings, advisory AABB overlaps, limitations, and manual-only candidates.
+7. Generate beauty, object-ID, and wireframe contact sheets plus a hash-bound QA PDF for human review.
+8. Do not invent an interior similarity score when no interior reference has been mapped. Add mapped-reference comparison only as a separately reviewed future contract.
+9. A geometry correction still requires its own guarded authoring or revision approval; an interior QA plan approval authorizes rendering only.
 
 ## v0.7 portable static-asset workflow
 
@@ -313,7 +333,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - `architecture/`: optional InteriorScope and exact hash-bound user approval; absent means interiors are disabled
 - `materials/`: shader recipes and material-owned contracts
 - `textures/`: authored or generated texture manifests and maps
-- `qa/`: immutable QA runs, approvals, convergence, and rollback reports
+- `qa/`: immutable exterior QA runs plus approval-bound `qa/interior/runs/` evidence, approvals, convergence, and rollback reports
 - `asset_profiles/`: job-owned engine-neutral portable-delivery policy
 - `optimization/`: immutable V0.7 preflight, plans, optimized scenes, LOD, collision, and UV evidence
 - `optimized/`: optional derived convenience outputs; never canonical authoring inputs

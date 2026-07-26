@@ -380,6 +380,25 @@ def _append_cover(
             else False
         )
     )
+    has_interior_qa = "interior_qa_report" in documents
+    qa_availability = (
+        [
+            ("SceneSpec", "scene_spec" in documents),
+            ("실내 QA 계획", "interior_qa_plan" in documents),
+            ("다각도 패스", "interior_qa_render_manifest" in documents),
+            ("실내 QA 보고서", has_interior_qa),
+        ]
+        if has_interior_qa and "visual_qa_report" not in documents
+        else [
+            ("SceneSpec", "scene_spec" in documents),
+            ("QA 패스", "qa_pass_manifest" in documents),
+            ("직접 비교", "visual_qa_report" in documents),
+            (
+                "수정 결과" if qa_revision_state is True else "수정 계획",
+                qa_revision_state,
+            ),
+        ]
+    )
     availability = {
         "build": [
             ("SceneSpec", "scene_spec" in documents),
@@ -393,15 +412,7 @@ def _append_cover(
             ("Blender 검사", "material_validation" in documents),
             ("스와치", "material_swatches" in documents),
         ],
-        "qa": [
-            ("SceneSpec", "scene_spec" in documents),
-            ("QA 패스", "qa_pass_manifest" in documents),
-            ("직접 비교", "visual_qa_report" in documents),
-            (
-                "수정 결과" if qa_revision_state is True else "수정 계획",
-                qa_revision_state,
-            ),
-        ],
+        "qa": qa_availability,
         "export": [
             ("최적화 계획", "optimization_plan" in documents),
             ("메시 사전 검사", "mesh_preflight_report" in documents),
@@ -411,7 +422,7 @@ def _append_cover(
         "full": [
             ("구조 검증", "validation" in documents),
             ("재질 검사", "material_validation" in documents),
-            ("시각 QA", "visual_qa_report" in documents),
+            ("시각 QA", "visual_qa_report" in documents or has_interior_qa),
             ("출처", bool(payload["sources"])),
         ],
     }[payload["scope"]]
@@ -1600,6 +1611,124 @@ def _append_export_section(
     _append_destination_handoff_section(story, documents, styles)
 
 
+def _append_interior_qa_section(
+    story: list[Any],
+    documents: dict[str, dict[str, Any]],
+    images: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Append separately approved multi-view interior evidence to the QA report."""
+
+    report = documents.get("interior_qa_report")
+    if report is None:
+        return
+    plan = documents.get("interior_qa_plan") or {}
+    manifest = documents.get("interior_qa_render_manifest") or {}
+    candidates = documents.get("interior_qa_revision_candidates") or {}
+    story.append(PageBreak())
+    story.append(_paragraph("실내 다각도 QA", styles["h1"]))
+    story.append(
+        _metric_table(
+            [
+                ("상태", report.get("status", "-")),
+                ("검사 뷰", len(manifest.get("views", []))),
+                (
+                    "Semantic visibility",
+                    f"{float(report.get('semantic_visibility_fraction', 0.0)):.3f}",
+                ),
+                ("수정 후보", len(candidates.get("candidates", []))),
+            ],
+            styles,
+        )
+    )
+    story.append(
+        _paragraph(
+            "Semantic visibility는 승인된 실내 semantic ID가 Object ID 패스에서 "
+            "관찰된 비율이며 완성도 백분율이 아닙니다. 실내 전용 레퍼런스 뷰가 "
+            "연결되지 않은 실행에서는 레퍼런스 유사도 점수를 만들지 않습니다.",
+            styles["body"],
+        )
+    )
+    story.append(
+        _data_table(
+            ["항목", "값"],
+            [
+                ["Run ID", report.get("run_id", "-")],
+                ["검사 프로필", plan.get("profile", "-")],
+                ["Reference 비교", report.get("reference_comparison_status", "-")],
+                ["비교 메모", report.get("reference_comparison_note", "-")],
+                ["대상 semantic ID 수", len(report.get("target_ids", []))],
+                ["미관찰 ID 수", len(report.get("unseen_target_ids", []))],
+            ],
+            [52 * mm, 122 * mm],
+            styles,
+        )
+    )
+    coverage_rows = [
+        [
+            item.get("level_id") or "-",
+            item.get("space_id") or "-",
+            len(item.get("view_ids", [])),
+            f"{float(item.get('semantic_visibility_fraction', 0.0)):.3f}",
+            _bounded_table_value(item.get("unseen_target_ids", [])),
+        ]
+        for item in report.get("space_coverage", [])
+    ]
+    if coverage_rows:
+        story.append(_paragraph("공간별 관찰 범위", styles["h2"]))
+        story.append(
+            _data_table(
+                ["Level", "Space", "Views", "Visibility", "Unseen IDs"],
+                coverage_rows,
+                [28 * mm, 34 * mm, 18 * mm, 26 * mm, 68 * mm],
+                styles,
+            )
+        )
+    contact_sheets = images.get("interior_qa_contact_sheets", [])
+    if contact_sheets:
+        story.append(_paragraph("다각도 Contact Sheet", styles["h2"]))
+        cells = [
+            [
+                _scaled_image(item["path"], 53 * mm, 40 * mm),
+                _paragraph(item["kind"], styles["small_center"]),
+            ]
+            for item in contact_sheets
+        ]
+        table = Table([cells], colWidths=[58 * mm] * len(cells), hAlign="LEFT")
+        table.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 0.4, LINE),
+                    ("INNERGRID", (0, 0), (-1, -1), 0.35, LINE),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 6),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                ]
+            )
+        )
+        story.append(table)
+    finding_rows = [
+        [
+            item.get("category", "-"),
+            item.get("severity", "-"),
+            _bounded_table_value(item.get("target_ids", [])),
+            _bounded_table_value(item.get("description", "-")),
+        ]
+        for item in report.get("findings", [])
+    ]
+    if finding_rows:
+        story.append(_paragraph("실내 QA 발견 사항", styles["h2"]))
+        story.append(
+            _data_table(
+                ["Category", "Severity", "Targets", "Description"],
+                finding_rows,
+                [27 * mm, 24 * mm, 54 * mm, 69 * mm],
+                styles,
+            )
+        )
+
+
 def _append_qa_section(
     story: list[Any],
     documents: dict[str, dict[str, Any]],
@@ -1815,7 +1944,12 @@ def render_job_pdf(payload: dict[str, Any], output: Path) -> dict[str, str]:
     if payload["scope"] in {"material", "full"}:
         _append_material_section(story, documents, images, styles)
     if payload["scope"] in {"qa", "full"}:
-        _append_qa_section(story, documents, images, styles)
+        if (
+            "visual_qa_report" in documents
+            or "interior_qa_report" not in documents
+        ):
+            _append_qa_section(story, documents, images, styles)
+        _append_interior_qa_section(story, documents, images, styles)
     if payload["scope"] in {"export", "full"}:
         _append_export_section(story, documents, styles)
     _append_source_appendix(story, payload, styles)

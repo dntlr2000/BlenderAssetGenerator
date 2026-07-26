@@ -19,7 +19,7 @@ Geometry SceneSpec은 `0.2.0`, 재질은 `0.5.0`, QA는 `0.6.0`, portable asset�
 
 ## 의도 라우팅
 
-지원 의도는 다음 일곱 가지다.
+지원 의도는 다음 여덟 가지다.
 
 | intent | 의미 | 안전한 기본 종료점 |
 |---|---|---|
@@ -29,6 +29,7 @@ Geometry SceneSpec은 `0.2.0`, 재질은 `0.5.0`, QA는 `0.6.0`, portable asset�
 | `interior_scope` | 명시적으로 요청한 실내 범위 | 별도 InteriorScope 승인 |
 | `material_authoring` | V0.5 재질·셰이더 작성 | swatch 승인 |
 | `visual_qa` | V0.6 직접 비교와 수정 후보 | QA 검토 |
+| `interior_visual_qa` | 승인된 실내의 별도 다각도 구조 검사 | exact camera-plan 승인 뒤 QA 검토 |
 | `portable_package` | V0.7 최적화·포터블 패키지 | 최종 패키지 승인 |
 
 새 레퍼런스는 항상 새 `job_id`를 사용한다. 기존 job에 다른 primary reference를 넣는 것은 거부한다. 기존 job 요청이 두 의도에 동시에 해당하거나 어떤 의도인지 불분명하면 추측하지 않고 명시적 `--intent`를 요구한다.
@@ -69,7 +70,7 @@ workspaces/<job>/workflows/
 - `host`: 스키마 검증, 분석, Blender 명령, 패키징처럼 결정론적으로 호출 가능한 단계
 - `agent`: 모델링 계획, SceneSpec, 재질 계획처럼 시각 판단과 저작이 필요한 단계
 - `approval`: 프록시, 상세 메시, swatch, QA, 최종 패키지에 대한 일반 사용자 검토
-- `specialized_approval`: InteriorScope, V0.6 revision, V0.7 optimization의 기존 exact-hash 승인
+- `specialized_approval`: InteriorScope, interior QA camera plan, V0.6 revision, V0.7 optimization의 기존 exact-hash 승인
 - `manual`: 검증된 목적지 adapter가 없는 종료 경계
 
 일반 workflow 승인은 specialized approval을 대체할 수 없다.
@@ -122,6 +123,7 @@ workspaces/<job>/reports/pdf/portable_report.pdf
 전용 승인 gate:
 
 - `interior_scope`: 현재 scope SHA-256과 수동 interactive 승인
+- `interior_qa_plan`: 현재 scope/source/build에 묶인 exact multi-view camera plan 승인
 - `visual_revision`: 선택 candidate와 단일 사용 approval
 - `optimization`: 표시된 LOD/collider/consolidation plan SHA-256 승인
 
@@ -130,6 +132,7 @@ V0.8은 승인을 생성하거나 추론하지 않는다.
 ## 안전 경계
 
 - short request만으로 실내를 생성하지 않음
+- short request만으로 실내 QA camera plan을 승인하거나 렌더하지 않음
 - short request만으로 V0.6 수정 후보를 적용하지 않음
 - short request만으로 LOD/collider 기본값을 최적화에 적용하지 않음
 - 외부 이미지 생성 provider budget 기본값은 0

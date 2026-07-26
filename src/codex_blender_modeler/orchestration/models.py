@@ -41,6 +41,7 @@ WorkflowIntent = Literal[
     "revise_asset",
     "add_measured_view",
     "interior_scope",
+    "interior_visual_qa",
     "material_authoring",
     "visual_qa",
     "portable_package",
@@ -51,6 +52,7 @@ IntentHint = Literal[
     "revise_asset",
     "add_measured_view",
     "interior_scope",
+    "interior_visual_qa",
     "material_authoring",
     "visual_qa",
     "portable_package",
@@ -113,6 +115,7 @@ GateKind = Literal[
     "qa_review",
     "final_package",
     "interior_scope",
+    "interior_qa_plan",
     "visual_revision",
     "optimization_plan",
 ]

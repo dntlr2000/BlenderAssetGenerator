@@ -1,0 +1,331 @@
+{
+  "$defs": {
+    "InteriorQABounds": {
+      "additionalProperties": false,
+      "description": "Store one world-space axis-aligned bounding box.",
+      "properties": {
+        "min": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Min",
+          "type": "array"
+        },
+        "max": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Max",
+          "type": "array"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "InteriorQABounds",
+      "type": "object"
+    },
+    "InteriorQAObjectRecord": {
+      "additionalProperties": false,
+      "description": "Describe one Blender object instance selected by an interior semantic ID.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "MESH",
+            "CURVE",
+            "SURFACE",
+            "META",
+            "FONT"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "semantic_id": {
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "instance_index": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Instance Index"
+        },
+        "bbox_world": {
+          "$ref": "#/$defs/InteriorQABounds"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "material_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "topology": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/InteriorQATopology"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "semantic_id",
+        "bbox_world",
+        "dimensions"
+      ],
+      "title": "InteriorQAObjectRecord",
+      "type": "object"
+    },
+    "InteriorQATopology": {
+      "additionalProperties": false,
+      "description": "Record bounded mesh integrity counters from the approved authoring scene.",
+      "properties": {
+        "vertices": {
+          "minimum": 0,
+          "title": "Vertices",
+          "type": "integer"
+        },
+        "edges": {
+          "minimum": 0,
+          "title": "Edges",
+          "type": "integer"
+        },
+        "polygons": {
+          "minimum": 0,
+          "title": "Polygons",
+          "type": "integer"
+        },
+        "triangles_estimated": {
+          "minimum": 0,
+          "title": "Triangles Estimated",
+          "type": "integer"
+        },
+        "non_finite_vertex_count": {
+          "minimum": 0,
+          "title": "Non Finite Vertex Count",
+          "type": "integer"
+        },
+        "non_finite_vertices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Non Finite Vertices",
+          "type": "array"
+        },
+        "degenerate_face_count": {
+          "minimum": 0,
+          "title": "Degenerate Face Count",
+          "type": "integer"
+        },
+        "degenerate_faces": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Degenerate Faces",
+          "type": "array"
+        },
+        "invalid_normal_face_count": {
+          "minimum": 0,
+          "title": "Invalid Normal Face Count",
+          "type": "integer"
+        },
+        "invalid_normal_faces": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Invalid Normal Faces",
+          "type": "array"
+        },
+        "boundary_edge_count": {
+          "minimum": 0,
+          "title": "Boundary Edge Count",
+          "type": "integer"
+        },
+        "overused_edge_count": {
+          "minimum": 0,
+          "title": "Overused Edge Count",
+          "type": "integer"
+        },
+        "loose_edge_count": {
+          "minimum": 0,
+          "title": "Loose Edge Count",
+          "type": "integer"
+        },
+        "loose_vertex_count": {
+          "minimum": 0,
+          "title": "Loose Vertex Count",
+          "type": "integer"
+        },
+        "manifold_closed": {
+          "title": "Manifold Closed",
+          "type": "boolean"
+        },
+        "negative_determinant": {
+          "title": "Negative Determinant",
+          "type": "boolean"
+        },
+        "matrix_determinant": {
+          "title": "Matrix Determinant",
+          "type": "number"
+        },
+        "uv_layers": {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Uv Layers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "vertices",
+        "edges",
+        "polygons",
+        "triangles_estimated",
+        "non_finite_vertex_count",
+        "degenerate_face_count",
+        "invalid_normal_face_count",
+        "boundary_edge_count",
+        "overused_edge_count",
+        "loose_edge_count",
+        "loose_vertex_count",
+        "manifold_closed",
+        "negative_determinant",
+        "matrix_determinant"
+      ],
+      "title": "InteriorQATopology",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind fresh Blender geometry inspection to exact canonical build inputs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "interior_scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Sha256",
+      "type": "string"
+    },
+    "interior_scope_approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Approval Sha256",
+      "type": "string"
+    },
+    "blender_version": {
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/InteriorQAObjectRecord"
+      },
+      "minItems": 1,
+      "title": "Objects",
+      "type": "array"
+    },
+    "missing_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Target Ids",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "scene_spec_sha256",
+    "build_fingerprint",
+    "interior_scope_sha256",
+    "interior_scope_approval_sha256",
+    "blender_version",
+    "objects"
+  ],
+  "title": "InteriorQASourceInventory",
+  "type": "object"
+}

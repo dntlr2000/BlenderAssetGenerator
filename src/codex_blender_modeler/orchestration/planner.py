@@ -458,6 +458,147 @@ def _append_qa_flow(steps: list[WorkflowStep], dependency: str) -> str:
     return "qa.review"
 
 
+def _append_interior_qa_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+    request: WorkflowRequest,
+) -> str:
+    """Append approved multi-view interior planning, rendering, and review steps."""
+
+    suffix = request.workflow_id[-8:]
+    run_id = f"v08-interior-{suffix}"
+    run_root = f"qa/interior/runs/{run_id}"
+    steps.extend(
+        [
+            _step(
+                "interior_qa.scope_validate",
+                "Validate exact approved InteriorScope",
+                "interior",
+                "host",
+                tool="validate_interior_scope",
+                depends_on=[dependency],
+                outputs=[
+                    _artifact(
+                        "interior_qa.scope_validation",
+                        "reports/interior_scope_validation.json",
+                        acceptance="json_ok",
+                    )
+                ],
+            ),
+            _step(
+                "interior_qa.plan",
+                "Plan bounded multi-view interior cameras",
+                "qa",
+                "host",
+                tool="plan_interior_qa",
+                depends_on=["interior_qa.scope_validate"],
+                outputs=[
+                    _artifact(
+                        "interior_qa.source_inventory",
+                        f"{run_root}/source_inventory.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "interior_qa.plan.output",
+                        f"{run_root}/plan.json",
+                        acceptance="valid_json",
+                    ),
+                ],
+                parameters={
+                    "run_id": run_id,
+                    "profile": "standard",
+                    "require_new_output": True,
+                },
+                instructions=[
+                    "Planning is read-only for canonical geometry and the authoring blend.",
+                    "Show the exact plan SHA-256 before requesting specialized approval.",
+                ],
+            ),
+            _step(
+                "interior_qa.plan_approval",
+                "Approve exact interior camera plan",
+                "qa",
+                "specialized_approval",
+                depends_on=["interior_qa.plan"],
+                outputs=[
+                    _artifact(
+                        "interior_qa.plan_approval.output",
+                        f"{run_root}/plan_approval.json",
+                        acceptance="valid_json",
+                    )
+                ],
+                gate="interior_qa_plan",
+                parameters={"run_id": run_id},
+                instructions=[
+                    "Use the exact plan.json SHA-256 and explicit user approval.",
+                    "Generic workflow approval cannot replace this specialized approval.",
+                ],
+            ),
+            _step(
+                "interior_qa.run",
+                "Render and inspect approved interior views",
+                "qa",
+                "host",
+                tool="run_interior_qa",
+                depends_on=["interior_qa.plan_approval"],
+                outputs=[
+                    _artifact(
+                        "interior_qa.render_manifest",
+                        f"{run_root}/render_manifest.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "interior_qa.report",
+                        f"{run_root}/interior_qa_report.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "interior_qa.candidates",
+                        f"{run_root}/revision_candidates.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "interior_qa.latest",
+                        "qa/interior/latest.json",
+                        acceptance="valid_json",
+                    ),
+                ],
+                parameters={"run_id": run_id, "require_new_output": True},
+                instructions=[
+                    "Every approved view must render exactly seven V0.6 pass kinds.",
+                    "Do not save temporary cameras or isolation state to the authoring blend.",
+                ],
+            ),
+        ]
+    )
+    report = _append_pdf_report(
+        steps,
+        "interior_qa.run",
+        "interior_qa",
+        "qa",
+        parameters={
+            "qa_run_id": "latest",
+            "interior_qa_run_id": run_id,
+        },
+    )
+    steps.append(
+        _step(
+            "interior_qa.review",
+            "Review multi-view interior evidence",
+            "qa",
+            "approval",
+            depends_on=[report],
+            gate="qa_review",
+            instructions=[
+                "This review acknowledges the exact evidence only.",
+                "Interior revision candidates remain manual and require a separate "
+                "canonical geometry revision.",
+            ],
+        )
+    )
+    return "interior_qa.review"
+
+
 def _append_portable_flow(
     steps: list[WorkflowStep],
     dependency: str,
@@ -955,6 +1096,28 @@ def build_workflow_plan(
             )
         )
         terminal = _append_qa_flow(steps, "geometry.prerequisite")
+    elif routing.intent == "interior_visual_qa":
+        steps.append(
+            _step(
+                "geometry.prerequisite",
+                "Verify current geometry validation",
+                "geometry",
+                "host",
+                tool="verify_geometry_prerequisite",
+                outputs=[
+                    _artifact(
+                        "interior_qa.geometry_validation",
+                        "reports/validation.json",
+                        acceptance="json_ok",
+                    )
+                ],
+            )
+        )
+        terminal = _append_interior_qa_flow(
+            steps,
+            "geometry.prerequisite",
+            request,
+        )
     else:
         steps.append(
             _step(

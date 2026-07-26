@@ -17,6 +17,7 @@ from ..blender_artifact_runner import inspect_job_materials, render_job_material
 from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..config import load_feature_config
+from ..interior_qa import plan_job_interior_qa, run_job_interior_qa
 from ..materials import create_material_scaffold, validate_job_material_contracts
 from ..optimization import (
     initialize_asset_profile,
@@ -177,6 +178,7 @@ def _default_scope(intent: str, scope: str) -> str:
         "revise_asset": "geometry_only",
         "add_measured_view": "analysis_only",
         "interior_scope": "interior_only",
+        "interior_visual_qa": "qa_only",
         "material_authoring": "material_only",
         "visual_qa": "qa_only",
         "portable_package": "portable_only",
@@ -281,6 +283,7 @@ def plan_workflow(
         "revise_asset",
         "add_measured_view",
         "interior_scope",
+        "interior_visual_qa",
         "material_authoring",
         "visual_qa",
         "portable_package",
@@ -701,6 +704,22 @@ def _specialized_approval_valid(
             and payload.get("status") in {"approved", "consumed"}
             and payload.get("plan_sha256") == sha256_file(plan_path)
         )
+    if step.approval_gate == "interior_qa_plan":
+        run_id = str(step.parameters["run_id"])
+        directory = root / "qa" / "interior" / "runs" / run_id
+        plan_path = directory / "plan.json"
+        approval_path = directory / "plan_approval.json"
+        if not plan_path.is_file() or not approval_path.is_file():
+            return False
+        try:
+            payload = json.loads(approval_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return False
+        return bool(
+            isinstance(payload, dict)
+            and payload.get("status") in {"approved", "consumed"}
+            and payload.get("plan_sha256") == sha256_file(plan_path)
+        )
     if step.approval_gate == "visual_revision":
         return False
     return False
@@ -712,6 +731,8 @@ def _step_milestone(completed_ids: set[str]) -> str:
     if "portable.final_approval" in completed_ids:
         return "portable_ready"
     if "qa.review" in completed_ids:
+        return "qa_review"
+    if "interior_qa.review" in completed_ids:
         return "qa_review"
     if "material.approval" in completed_ids:
         return "material_ready"
@@ -1254,12 +1275,36 @@ def _execute_host_tool(
             include_generated_target=bool(step.parameters.get("include_generated_target", False)),
         )
         return
+    if tool == "validate_interior_scope":
+        report = validate_job_interior_scope(request.job_id, write_report=True)
+        if not report.ok:
+            raise RuntimeError("InteriorScope validation did not report ok=true")
+        return
+    if tool == "plan_interior_qa":
+        plan_job_interior_qa(
+            request.job_id,
+            profile=str(step.parameters.get("profile", "standard")),
+            run_id=str(step.parameters["run_id"]),
+        )
+        return
+    if tool == "run_interior_qa":
+        run_id = str(step.parameters["run_id"])
+        plan_path = root / "qa" / "interior" / "runs" / run_id / "plan.json"
+        run_job_interior_qa(
+            request.job_id,
+            run_id,
+            approved_plan_sha256=sha256_file(plan_path),
+        )
+        return
     if tool == "generate_pdf_report":
         output_path = _resolve_job_path(root, str(step.parameters["output_path"]))
         generate_job_pdf_report(
             request.job_id,
             str(step.parameters["scope"]),  # type: ignore[arg-type]
             qa_run_id=str(step.parameters.get("qa_run_id", "latest")),
+            interior_qa_run_id=str(
+                step.parameters.get("interior_qa_run_id", "latest")
+            ),
             optimization_run_id=str(
                 step.parameters.get("optimization_run_id", "latest")
             ),

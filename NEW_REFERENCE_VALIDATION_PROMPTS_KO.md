@@ -428,6 +428,63 @@ generated target 단독 finding은 revision 실행 후보로 승인하지 마.
 직접 reference 점수와 충돌하면 직접 evidence를 우선하고 차이를 보고해.
 ```
 
+#### 단계 6A — 선택적 실내 다각도 QA
+
+> **승인된 InteriorScope와 실제 실내 geometry가 있을 때만 사용합니다. 외관 자산은 이 단계를 건너뜁니다.**
+
+카메라 계획과 exact hash를 먼저 검토:
+
+```text
+<JOB_ID>의 승인된 실내만 별도 다각도 구조 QA로 검사해.
+
+먼저 current InteriorScope approval, SceneSpec, embedded build fingerprint,
+interior-scope validation과 interior semantic ID가 모두 current인지 확인해.
+외관 고정 카메라 QA와 이 실행을 섞지 마.
+
+plan_interior_qa를 사용해 profile=standard, resolution=512,
+bounded max_views로 공간별 임시 카메라 계획만 작성해.
+아직 렌더하거나 authoring .blend를 저장하지 마.
+
+다음을 보고해:
+- QA run ID <QA_RUN_ID>
+- 공간·level별 대상 semantic ID
+- view ID, 위치, target과 목적
+- 전체 view 수와 예상 7-pass 이미지 수
+- source fingerprint
+- exact plan SHA-256 <PLAN_SHA256>
+- 알려진 사각지대와 제한
+
+semantic visibility는 완성도나 유사도 점수가 아님을 명시해.
+현재 매핑된 실내 레퍼런스가 없으면 reference comparison은 unavailable로 계획해.
+exact plan hash 승인 대기 상태에서 멈춰.
+```
+
+보고된 계획을 승인한 뒤 1회 실행:
+
+```text
+<JOB_ID>의 실내 QA run <QA_RUN_ID>,
+exact camera plan SHA-256 <PLAN_SHA256>의 1회 실행을 승인한다.
+
+현재 plan, scope approval, SceneSpec과 build fingerprint가
+보고 당시와 정확히 일치하는지 먼저 확인해.
+일치하지 않으면 stale로 보고하고 실행하지 마.
+
+approve_interior_qa_plan으로 정확한 계획을 승인한 뒤
+run_interior_qa를 한 번만 실행해.
+각 승인 view에서 beauty, silhouette, object_id, material_id,
+normal, depth, wireframe의 정확히 7개 pass를 확인해.
+
+authoring .blend, canonical SceneSpec, geometry, material 계약과 source texture를
+변경하지 않았는지 hash로 확인해.
+공간·view별 semantic visibility, topology finding, advisory overlap,
+unseen ID와 manual-only candidate를 보고해.
+
+report-pdf의 qa scope와 interior QA run ID를 사용해
+beauty/object-ID/wireframe contact sheet가 포함된 PDF를 생성해.
+매핑된 내부 레퍼런스가 없으면 임의의 유사도 점수를 만들지 마.
+수정 후보를 자동 적용하지 말고 검토 대기 상태로 멈춰.
+```
+
 ### 단계 7 — V0.6 후보 승인과 1회 적용
 
 #### 7-1. 후보와 계획 SHA-256 검토
@@ -670,6 +727,16 @@ compiled plan SHA-256 <PLAN_SHA256>의 1회 적용을 승인한다.
 현재 hash와 binding이 다르면 적용하지 말고 stale로 보고해.
 ```
 
+실내 다각도 QA 계획 승인:
+
+```text
+<JOB_ID> 실내 QA run <QA_RUN_ID>의
+exact camera plan SHA-256 <PLAN_SHA256>을 승인한다.
+현재 scope/source/build binding이 일치할 때만 single-use 승인을 기록하고,
+계획에 포함된 view만 1회 렌더해.
+이 승인은 geometry 수정 권한이 아니다.
+```
+
 기본 `revision_mode=suggest`에서 실제 적용으로 전환할 때의 별도 정책 승인:
 
 ```text
@@ -828,6 +895,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 4 선택적 실내 | 명시적 실내 요청 | InteriorScope draft/approval/validation, 승인 범위 geometry | scope JSON/hash, build preview | 수동 exact-hash 승인 | 5 | 범위 변경 시 새 scope·승인 |
 | 5 V0.5 재질 | 승인된 geometry/camera | MaterialPlan, ShaderRecipe, TextureManifest, swatches | material JSON, swatch, material PDF | material/swatch 승인 | 6 | geometry/material hash 변경, validation 실패 |
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
+| 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback | 전후 점수·constraint·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선은 rollback, 큰 문제는 2 |
 | 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실 | `approve/revise_profile/cancel` | 9 | profile/source/preflight 변경 |
 | 9 V0.7 package | approved exact plan | optimized scene, cost report, FBX/GLB package, manifest, roundtrip | export PDF, roundtrip JSON | exact plan 승인 및 final review | 10 또는 11 | roundtrip 실패, package stale |
@@ -839,6 +907,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 - V0.4는 single-view의 보이지 않는 면과 실제 깊이를 복원된 진실로 만들지 못합니다.
 - V0.4 constraints는 residual을 평가하지만 임의의 CAD B-Rep 또는 비선형 제약을 자동 완전 해결하지 않습니다.
 - V0.6 direct score와 generated target은 사람의 미적 승인이나 metric accuracy를 대체하지 않습니다.
+- 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.
 - V0.9 Destination Handoff는 목적지 Codex를 위한 계약과 안전한 import prompt를 생성할 뿐 목적지 엔진을 실행하거나 프로젝트를 수정하지 않습니다.
 - 현재 문서는 Unity/Unreal 자동 adapter나 V1.1 이후 기능이 구현된 것으로 가정하지 않습니다.

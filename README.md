@@ -19,7 +19,7 @@
 | Stabilization evidence | `0.9.0` |
 | Codex Destination Handoff | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 380 tests passed, Ruff passed |
+| 최신 Python 회귀 | 389 tests passed, Ruff passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -31,6 +31,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - optional interior의 exact-hash scope 승인과 fail-closed 검증
 - MaterialPlan, whitelisted Blender shader recipe, texture manifest와 bake contract
 - 정확히 7개 고정 카메라 패스를 사용하는 Visual QA
+- 승인된 InteriorScope를 위한 별도 다각도 실내 QA, semantic visibility와 contact sheet
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
 - engine-neutral GLB, FBX, OBJ 정적 자산 preflight·최적화·package·clean-import round trip
 - 짧은 요청의 deterministic intent routing, 상태 재구성, 잠금, 재개, 취소와 승인 대기
@@ -65,7 +66,8 @@ BlenderAssetGenerator/
 │  ├─ analysis/                      V0.4 reference diagnostics
 │  ├─ constraints/                   measured residual 평가
 │  ├─ materials/, texturing/, baking/
-│  ├─ qa/                            V0.6 비교와 후보 생성
+│  ├─ qa/                            V0.6 외관 비교와 후보 생성
+│  ├─ interior_qa/                   V0.6 실내 다각도 구조 검사
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
@@ -176,6 +178,7 @@ immutable input
 → optional measured constraints / interior scope
 → V0.5 material, texture and shader
 → V0.6 fixed-camera QA and guarded revision
+→ optional V0.6 approved multi-view interior QA
 → V0.7 derived optimization and portable package
 → V0.8 orchestration, resume and approval boundaries
 → optional V0.9 Codex Destination Handoff
@@ -190,6 +193,8 @@ immutable input
 - 단일 uncalibrated 이미지에서 절대 치수나 보이지 않는 구조를 복원했다고 주장하지 않습니다.
 - 모든 모델링 객체와 재질은 stable semantic ID를 유지합니다.
 - interior는 기본 비활성화이며 exact scope hash 승인 전에는 생성하지 않습니다.
+- 실내 QA도 exact camera-plan hash 승인 뒤에만 실행하며 임시 카메라를 authoring `.blend`에 저장하지 않습니다.
+- 실내 semantic visibility는 검토 범위의 가시성이지 완성도나 레퍼런스 유사도 백분율이 아닙니다.
 - `.blend`를 canonical 수정 수단으로 사용하지 않습니다.
 - 생성 이미지 기반 QA target은 보조 근거이며 단독으로 revision을 승인하지 못합니다.
 - V0.7은 canonical authoring 데이터를 수정하지 않고 run-owned derived directory에서만 최적화합니다.
@@ -235,7 +240,7 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [V0.8 검증 기록](VERIFICATION_V08_KO.md)
 - [V0.7 portable asset 아키텍처](ARCHITECTURE_V07_KO.md)
 - [V0.7.4 최적화 승인 경계](V074_PRE_OPTIMIZATION_REVIEW_KO.md)
-- [선택적 실내 범위](INTERIOR_SCOPE_KO.md)
+- [선택적 실내 범위와 다각도 QA](INTERIOR_SCOPE_KO.md)
 - [Blender 5 호환성](BLENDER_5_COMPATIBILITY_KO.md)
 - [변경 기록](CHANGELOG.md)
 

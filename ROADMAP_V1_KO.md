@@ -209,6 +209,8 @@ V0.5 기능은 V0.6 통합본에 포함되어 있으며 별도 V0.5 프로젝트
 - 정확히 7개 고정 카메라 패스: beauty, silhouette, object ID, material ID, normal, depth, wireframe
 - reference mask, silhouette, bounds, semantic evidence의 직접 비교
 - 이미지 생성 모델 결과를 provenance가 있는 advisory target으로 가져오는 선택적 adapter
+- 승인된 InteriorScope를 공간별 4/6/8방향에서 격리 렌더하는 선택적 실내 다각도 QA
+- 실내 view마다 동일한 7개 pass, semantic visibility, topology/overlap finding과 contact sheet
 - revision candidates, exact candidate compile, hash-bound single-use approval
 - 적용 후 rebuild, rerender, constraint 비회귀, score 개선 확인
 - 검증 실패 또는 비개선 시 canonical SceneSpec 자동 복구
@@ -220,10 +222,14 @@ V0.5 기능은 V0.6 통합본에 포함되어 있으며 별도 V0.5 프로젝트
 - 모든 실행 후보가 명시적 사용자 승인을 요구
 - 승인하지 않은 path가 바뀌지 않음
 - 수정 후 direct score 개선과 constraint 비회귀를 모두 만족
+- 실내 QA 카메라는 exact plan hash 승인 뒤에만 생성되고 authoring `.blend`에 저장되지 않음
+- 매핑된 실내 레퍼런스가 없으면 유사도 점수를 만들지 않고 manual-only 후보만 보고함
 
 QA 점수는 완성도 백분율이나 사람의 최종 품질 승인이 아닙니다. 큰 실루엣·카메라·객체 분해 문제가 발견되면 V0.6의 작은 후보를 반복하기보다 V0.4 형상 작업으로 되돌아갑니다.
 
 `QA 실행 완료`는 7패스와 report/candidate가 생성된 상태일 뿐 수정 승인이 끝났다는 뜻이 아닙니다. `QA 승인 완료`는 사용자가 결과를 승인했거나, 승인된 revision이 점수 개선과 constraint 비회귀를 통과한 상태입니다.
+
+실내 QA는 외관 고정 카메라 QA의 대체물이 아니라 선택적 보완 계층입니다. `semantic_visibility_fraction`은 승인된 view 집합에서 semantic ID가 보였는지를 나타내는 coverage이며 완성도 백분율이 아닙니다. 실내의 실제 유사도를 비교하려면 향후 view별로 명시적으로 매핑된 내부 레퍼런스와 별도 승인 계약이 필요합니다.
 
 ## 9. V0.7 — Engine-neutral Portable Static Asset Core
 

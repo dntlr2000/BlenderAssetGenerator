@@ -26,6 +26,7 @@ immutable input
   → material inspection / swatches / optional Cycles bake
   → fixed-camera 7-pass render
   → direct reference QA
+  → optional approved multi-view interior structural QA
   → approval-required revision candidates
   → explicit single-use approval
   → one revision / rebuild / convergence
@@ -118,6 +119,27 @@ ortho scale, 해상도도 SceneSpec과 비교하므로 SceneSpec이나 payload�
 외부 이미지 생성 결과를 사용할 때 reference는 내용 근거, preview는 카메라/프레이밍 근거입니다. 저장소의 existing-file adapter가 절대 경로와 선택적 allowed root를 검증하고 run 내부로 복사합니다. 실제 prompt 텍스트와 provider/model/version/seed/prompt/output hash를 보존합니다.
 
 생성 target 비교는 edge IoU, 8×8 색상 블록, RGB histogram으로 별도 finding만 만듭니다. 이 finding은 `generated_target`만 근거로 가지며 suggestion이 없고, 직접 점수와 revision candidate 수를 바꾸지 않습니다.
+
+## 선택적 실내 다각도 QA
+
+외관 QA와 별도로 `interior_qa/` host service와 두 개의 whitelisted Blender script가 승인된 InteriorScope 안의 정적 실내만 검사합니다.
+
+```text
+current InteriorScope + approval + fresh build
+  → read-only interior source inventory
+  → bounded 4/6/8-direction temporary camera plan
+  → exact plan SHA-256 approval
+  → selected views × exact seven passes
+  → semantic visibility / topology / advisory overlap
+  → beauty, object-ID, wireframe contact sheets
+  → machine report + manual-only candidates + QA PDF
+```
+
+계획은 `level:`과 `space:` locator로 interior semantic object를 그룹화하고 각 그룹의 world bounds에서 안쪽을 바라보는 camera를 계산합니다. `minimal`, `standard`, `thorough` profile은 공간별 4, 6, 8방향이며 전체 view 수는 plan 상한으로 제한됩니다.
+
+Blender 렌더러는 source `.blend`를 열어 temporary camera와 대상 visibility isolation을 적용하지만 저장하지 않습니다. 각 view의 pass 종류, camera, depth range, semantic color map, file hash와 source binding은 `qa/interior/runs/<run-id>/render_manifest.json`에 기록됩니다.
+
+현재 `reference_comparison_mode`는 `structural_only`입니다. 매핑된 실내 레퍼런스 계약이 없기 때문에 semantic visibility를 유사도나 완성도 점수로 사용하지 않고 `reference_comparison_status=unavailable`을 기록합니다. topology와 AABB overlap finding에서 나온 후보도 모두 `executable=false`이며 별도 geometry revision 승인 없이 적용되지 않습니다.
 
 ## 승인과 복구
 

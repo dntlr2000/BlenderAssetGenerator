@@ -25,6 +25,16 @@ _TERMS: dict[WorkflowIntent, tuple[str, ...]] = {
         "blueprint",
         "add view",
     ),
+    "interior_visual_qa": (
+        "실내 qa",
+        "내부 qa",
+        "실내 다각도",
+        "내부 다각도",
+        "interior qa",
+        "interior visual qa",
+        "room qa",
+        "multi-view interior",
+    ),
     "interior_scope": (
         "실내",
         "내부 공간",
@@ -178,17 +188,20 @@ def route_intent(
         confidence = 1.0
         reasons.append("An explicit auxiliary view kind requires add_measured_view routing.")
     else:
-        active = [
-            candidate
-            for candidate in (
-                "interior_scope",
-                "portable_package",
-                "material_authoring",
-                "visual_qa",
-                "revise_asset",
-            )
-            if matches[candidate]
-        ]
+        if matches["interior_visual_qa"]:
+            active = ["interior_visual_qa"]
+        else:
+            active = [
+                candidate
+                for candidate in (
+                    "interior_scope",
+                    "portable_package",
+                    "material_authoring",
+                    "visual_qa",
+                    "revise_asset",
+                )
+                if matches[candidate]
+            ]
         if len(active) == 1:
             intent = active[0]
             confidence = 0.9

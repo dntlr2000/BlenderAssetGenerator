@@ -33,6 +33,7 @@ class HumanReportManifest(StrictModel):
     pdf_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     source_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     qa_run_id: str | None = None
+    interior_qa_run_id: str | None = None
     optimization_run_id: str | None = None
     package_id: str | None = None
     font: str

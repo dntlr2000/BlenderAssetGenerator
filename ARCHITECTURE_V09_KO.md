@@ -111,10 +111,13 @@ V0.8 workflow에서는 GLB/FBX portable package의 최종 승인 뒤 선택적�
 - immutable source의 존재, containment와 SHA-256
 - known contract의 JSON readability와 version compatibility
 - workflow `latest.json`의 dangling pointer
+- optional interior QA `latest.json`의 plan/approval/source/render/report/candidate hash binding과 stale source
 - 링크나 junction을 통한 source path escape
 - interrupted/temp evidence와 scan limit
 
 Audit는 읽기 전용이다. migration, repair, delete, SceneSpec 재작성 또는 `.blend` 재생성을 수행하지 않는다. 결과는 `reports/v09/audits/<audit-id>/workspace_audit.json`에 immutable하게 저장된다.
+
+실내 QA가 존재하면 audit는 최신 pointer가 가리키는 모든 파일을 strict `0.6.0` 계약으로 읽고 job-relative path, exact plan binding과 source freshness를 확인한다. Finding을 이유로 카메라 계획, `.blend`나 canonical geometry를 자동 수정하지 않는다.
 
 ## single-worker local queue
 

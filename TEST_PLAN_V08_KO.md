@@ -26,6 +26,7 @@ uv run ruff check .
 - 새 작업 기본 scope가 `proxy_only`
 - 기존 job에 다른 primary reference를 넣으면 파일 변경 전에 거부
 - 기존 job의 모호한 요청은 명시적 intent 요구
+- 승인된 실내 다각도 요청은 `interior_visual_qa`로만 라우팅하고 외관 `visual_qa`와 구분
 - auxiliary view는 staging 뒤 `add_view`로 승격
 - 서로 다른 job과 workflow의 파일 경로가 격리됨
 
@@ -53,6 +54,7 @@ uv run ruff check .
 
 - 프록시·상세·swatch·QA·최종 package 일반 승인
 - InteriorScope 일반 승인 대체 불가
+- Interior QA exact camera-plan 일반 승인 대체 불가
 - V0.6 visual revision 일반 승인 대체 불가
 - V0.7 optimization 일반 승인 대체 불가
 - optimization plan이 LOD/collider 설정을 표시한 뒤 exact hash 승인을 기다림

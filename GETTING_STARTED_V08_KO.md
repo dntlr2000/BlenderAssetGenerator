@@ -89,6 +89,17 @@ uv run cbm workflow-plan --request "레퍼런스 기준 Visual QA를 실행해�
   --job-id temple_asset --intent visual_qa
 ```
 
+승인된 InteriorScope의 실내만 여러 각도에서 검사하려면 별도 의도를 사용한다.
+
+```powershell
+uv run cbm workflow-plan `
+  --request "승인된 실내만 여러 각도에서 구조 QA해줘" `
+  --job-id temple_asset `
+  --intent interior_visual_qa
+```
+
+이 workflow는 scope validation → interior QA plan에서 시작하고 `interior_qa_plan` 전용 승인 gate에서 멈춘다. exact plan SHA-256 승인 뒤에만 선택된 view마다 7개 pass를 렌더하고 QA PDF review로 진행한다. 일반 workflow approval은 카메라 계획 승인을 대신하지 않으며, 임시 카메라나 visibility 상태를 authoring `.blend`에 저장하지 않는다.
+
 ## 4. V0.7 최적화와 FBX 패키지
 
 ```powershell

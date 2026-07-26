@@ -44,7 +44,7 @@ uv run cbm workspace-audit `
 uv run cbm workspace-audit --audit-id audit-all-001
 ```
 
-Audit는 파일을 수정하거나 migration하지 않는다. `failed`라면 JSON의 `findings`에서 code, relative path, 영향과 권장 조치를 확인한다.
+Audit는 파일을 수정하거나 migration하지 않는다. `failed`라면 JSON의 `findings`에서 code, relative path, 영향과 권장 조치를 확인한다. 실내 QA가 존재하면 strict `0.6.0` plan/approval/source inventory/render manifest/report/candidate/latest 계약, 상대 경로, 개별 hash와 stale source binding도 읽기 전용으로 검사한다.
 
 ## 4. PDF 보고서
 

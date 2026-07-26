@@ -1,0 +1,454 @@
+{
+  "$defs": {
+    "InteriorQAFinding": {
+      "additionalProperties": false,
+      "description": "Describe one structural or multi-view interior QA observation.",
+      "properties": {
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "visibility",
+            "topology",
+            "overlap",
+            "camera",
+            "render",
+            "reference"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "view_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "View Ids",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Paths",
+          "type": "array"
+        },
+        "measured_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Value"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "description"
+      ],
+      "title": "InteriorQAFinding",
+      "type": "object"
+    },
+    "InteriorQARevisionCandidate": {
+      "additionalProperties": false,
+      "description": "Offer one manual-only semantic correction candidate from interior QA evidence.",
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "action": {
+          "enum": [
+            "review_occlusion",
+            "repair_topology",
+            "review_overlap",
+            "add_reference_view",
+            "review_camera_plan"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "acceptance_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Acceptance Criteria",
+          "type": "array"
+        },
+        "approval_required": {
+          "const": true,
+          "default": true,
+          "title": "Approval Required",
+          "type": "boolean"
+        },
+        "executable": {
+          "const": false,
+          "default": false,
+          "title": "Executable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "finding_id",
+        "target_ids",
+        "action",
+        "recommendation",
+        "acceptance_criteria"
+      ],
+      "title": "InteriorQARevisionCandidate",
+      "type": "object"
+    },
+    "InteriorQASpaceCoverage": {
+      "additionalProperties": false,
+      "description": "Aggregate semantic visibility across all views assigned to one interior space.",
+      "properties": {
+        "level_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level Id"
+        },
+        "space_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Space Id"
+        },
+        "view_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "View Ids",
+          "type": "array"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "visible_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visible Target Ids",
+          "type": "array"
+        },
+        "unseen_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unseen Target Ids",
+          "type": "array"
+        },
+        "semantic_visibility_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Semantic Visibility Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "view_ids",
+        "target_ids",
+        "visible_target_ids",
+        "unseen_target_ids",
+        "semantic_visibility_fraction"
+      ],
+      "title": "InteriorQASpaceCoverage",
+      "type": "object"
+    },
+    "InteriorQAViewCoverage": {
+      "additionalProperties": false,
+      "description": "Report exact-color semantic visibility for one approved interior view.",
+      "properties": {
+        "view_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "View Id",
+          "type": "string"
+        },
+        "level_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level Id"
+        },
+        "space_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Space Id"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "visible_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visible Target Ids",
+          "type": "array"
+        },
+        "unseen_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unseen Target Ids",
+          "type": "array"
+        },
+        "semantic_visibility_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Semantic Visibility Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "view_id",
+        "target_ids",
+        "visible_target_ids",
+        "unseen_target_ids",
+        "semantic_visibility_fraction"
+      ],
+      "title": "InteriorQAViewCoverage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize structural interior evidence without inventing a reference score.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "render_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Manifest Sha256",
+      "type": "string"
+    },
+    "source_inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Inventory Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "reference_comparison_status": {
+      "enum": [
+        "unavailable",
+        "not_requested"
+      ],
+      "title": "Reference Comparison Status",
+      "type": "string"
+    },
+    "reference_comparison_note": {
+      "title": "Reference Comparison Note",
+      "type": "string"
+    },
+    "semantic_visibility_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Semantic Visibility Fraction",
+      "type": "number"
+    },
+    "target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "visible_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Visible Target Ids",
+      "type": "array"
+    },
+    "unseen_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unseen Target Ids",
+      "type": "array"
+    },
+    "view_coverage": {
+      "items": {
+        "$ref": "#/$defs/InteriorQAViewCoverage"
+      },
+      "minItems": 1,
+      "title": "View Coverage",
+      "type": "array"
+    },
+    "space_coverage": {
+      "items": {
+        "$ref": "#/$defs/InteriorQASpaceCoverage"
+      },
+      "minItems": 1,
+      "title": "Space Coverage",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/InteriorQAFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/InteriorQARevisionCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "render_manifest_sha256",
+    "source_inventory_sha256",
+    "status",
+    "reference_comparison_status",
+    "reference_comparison_note",
+    "semantic_visibility_fraction",
+    "target_ids",
+    "visible_target_ids",
+    "unseen_target_ids",
+    "view_coverage",
+    "space_coverage",
+    "generated_at"
+  ],
+  "title": "InteriorQAReport",
+  "type": "object"
+}

@@ -36,6 +36,12 @@ from .handoff import plan_destination_handoff as plan_destination_handoff_intern
 from .handoff import (
     validate_destination_handoff as validate_destination_handoff_internal,
 )
+from .interior_qa import (
+    approve_job_interior_qa_plan,
+    get_job_interior_qa_status,
+    plan_job_interior_qa,
+    run_job_interior_qa,
+)
 from .materials import create_material_scaffold, validate_job_material_contracts
 from .optimization import (
     approve_asset_optimization as approve_asset_optimization_internal,
@@ -201,6 +207,7 @@ def get_job_status(job_id: str) -> dict:
             root / "reports" / "interior_scope_validation.json"
         ).exists(),
         "qa_latest": (root / "qa" / "latest.json").exists(),
+        "interior_qa_latest": (root / "qa" / "interior" / "latest.json").exists(),
         "optimization_latest": (root / "optimization" / "latest.json").exists(),
         "workflow_latest": (root / "workflows" / "latest.json").exists(),
         "build_pdf": (pdf_root / "build_report.pdf").exists(),
@@ -281,6 +288,7 @@ def get_modeling_capabilities() -> dict:
                 "revise_asset",
                 "add_measured_view",
                 "interior_scope",
+                "interior_visual_qa",
                 "material_authoring",
                 "visual_qa",
                 "portable_package",
@@ -291,6 +299,7 @@ def get_modeling_capabilities() -> dict:
             "generic_approval": "exact gate and artifact fingerprint only",
             "specialized_approvals": [
                 "interior_scope",
+                "interior_qa_plan",
                 "visual_revision",
                 "optimization_plan",
             ],
@@ -309,6 +318,13 @@ def get_modeling_capabilities() -> dict:
             "policies": ["disabled", "visible_only", "proxy", "measured", "authored"],
             "approval": "manual interactive CLI approval bound to exact scope SHA-256",
             "scene_spec_contract_unchanged": True,
+            "multi_view_qa": {
+                "profiles": ["minimal", "standard", "thorough"],
+                "approval": "exact plan SHA-256, explicit, single-use",
+                "passes_per_view": 7,
+                "canonical_blend_mutated": False,
+                "reference_score_without_mapped_views": False,
+            },
         },
         "geometry_kinds": [
             "primitive",
@@ -714,6 +730,76 @@ def validate_interior_scope(job_id: str) -> dict:
 
 
 @mcp.tool()
+def plan_interior_qa(
+    job_id: str,
+    profile: str = "standard",
+    resolution: int = 512,
+    max_views: int = 24,
+    eye_height_m: float = 1.6,
+    run_id: str | None = None,
+) -> dict:
+    """Plan bounded multi-view interior cameras and stop for exact user approval."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    return plan_job_interior_qa(
+        job_id,
+        profile=profile,
+        resolution=resolution,
+        max_views=max_views,
+        eye_height_m=eye_height_m,
+        run_id=run_id,
+    )
+
+
+@mcp.tool()
+def approve_interior_qa_plan(
+    job_id: str,
+    run_id: str,
+    plan_sha256: str,
+    approval_note: str,
+    approved_view_ids: list[str] | None = None,
+) -> dict:
+    """Record approval only after the user accepts the exact interior camera-plan hash."""
+
+    return approve_job_interior_qa_plan(
+        job_id,
+        run_id,
+        plan_sha256=plan_sha256,
+        approval_note=approval_note,
+        approved_view_ids=approved_view_ids,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def run_interior_qa(
+    job_id: str,
+    run_id: str,
+    approved_plan_sha256: str,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> dict:
+    """Consume one exact approval and render seven passes for each interior view."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    return run_job_interior_qa(
+        job_id,
+        run_id,
+        approved_plan_sha256=approved_plan_sha256,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+
+
+@mcp.tool()
+def get_interior_qa_status(job_id: str, run_id: str | None = None) -> dict:
+    """Return current plan, approval, render, report, and stale-source status."""
+
+    return get_job_interior_qa_status(job_id, run_id=run_id)
+
+
+@mcp.tool()
 def init_constraints(job_id: str, overwrite: bool = False) -> dict:
     """Create the measured-mode constraints contract without changing SceneSpec."""
     path = initialize_constraints(job_id, overwrite=overwrite)
@@ -880,6 +966,7 @@ def generate_pdf_report(
     job_id: str,
     scope: str = "full",
     qa_run_id: str = "latest",
+    interior_qa_run_id: str = "latest",
     optimization_run_id: str = "latest",
     package_id: str = "latest",
 ) -> dict:
@@ -891,6 +978,7 @@ def generate_pdf_report(
         job_id,
         scope=scope,  # type: ignore[arg-type]
         qa_run_id=qa_run_id,
+        interior_qa_run_id=interior_qa_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
     )

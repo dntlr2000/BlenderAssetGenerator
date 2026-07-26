@@ -25,6 +25,15 @@ from ..handoff.models import (
     ImportChecklist,
     MaterialMappingManifest,
 )
+from ..interior_qa.models import (
+    InteriorQALatest,
+    InteriorQAPlan,
+    InteriorQAPlanApproval,
+    InteriorQARenderManifest,
+    InteriorQAReport,
+    InteriorQARevisionCandidates,
+    InteriorQASourceInventory,
+)
 from ..orchestration import get_workflow_status, resume_workflow
 from ..orchestration.models import (
     WorkflowAttempt,
@@ -342,6 +351,23 @@ def _validate_handoff_contract(path: Path) -> None:
         model.model_validate_json(path.read_text(encoding="utf-8"))
 
 
+def _validate_interior_qa_contract(path: Path) -> None:
+    """Validate recognized multi-view interior QA JSON during read-only audit."""
+
+    model_by_name: dict[str, type[Any]] = {
+        "source_inventory.json": InteriorQASourceInventory,
+        "plan.json": InteriorQAPlan,
+        "plan_approval.json": InteriorQAPlanApproval,
+        "render_manifest.json": InteriorQARenderManifest,
+        "interior_qa_report.json": InteriorQAReport,
+        "revision_candidates.json": InteriorQARevisionCandidates,
+        "latest.json": InteriorQALatest,
+    }
+    model = model_by_name.get(path.name)
+    if model is not None:
+        model.model_validate_json(path.read_text(encoding="utf-8"))
+
+
 def _scan_job_files(
     root: Path,
     job_id: str,
@@ -415,6 +441,8 @@ def _scan_job_files(
                     _validate_workflow_contract(path)
                 if "handoffs" in path.parts or "destination_handoffs" in path.parts:
                     _validate_handoff_contract(path)
+                if "qa" in path.parts and "interior" in path.parts:
+                    _validate_interior_qa_contract(path)
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 findings.append(
                     _finding(
@@ -456,6 +484,53 @@ def _audit_latest_workflow(root: Path, job_id: str) -> list[AuditFinding]:
                 job_id=job_id,
                 path=_workspace_relative(latest),
                 remediation="Restore latest.json from the current workflow state.",
+            )
+        ]
+    return []
+
+
+def _audit_latest_interior_qa(root: Path, job_id: str) -> list[AuditFinding]:
+    """Verify the latest interior QA pointer, hashes, and contained dependencies."""
+
+    latest_path = root / "qa" / "interior" / "latest.json"
+    if not latest_path.is_file():
+        return []
+    try:
+        latest = InteriorQALatest.model_validate_json(
+            latest_path.read_text(encoding="utf-8")
+        )
+        if latest.job_id != job_id:
+            raise ValueError("interior QA latest pointer job_id mismatch")
+        relative_paths = [
+            latest.plan,
+            latest.approval,
+            latest.source_inventory,
+            latest.render_manifest,
+            latest.report,
+            latest.revision_candidates,
+            *latest.contact_sheets,
+        ]
+        resolved: dict[str, Path] = {}
+        for relative in relative_paths:
+            path = (root / relative).resolve()
+            path.relative_to(root.resolve())
+            if not path.is_file():
+                raise FileNotFoundError(relative)
+            resolved[relative] = path
+        if sha256_file(resolved[latest.plan]) != latest.plan_sha256:
+            raise ValueError("latest interior QA plan hash is stale")
+        if sha256_file(resolved[latest.approval]) != latest.approval_sha256:
+            raise ValueError("latest interior QA approval hash is stale")
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        return [
+            _finding(
+                "INTERIOR_QA_LATEST_INVALID",
+                "error",
+                "Latest interior QA pointer or dependency is invalid: "
+                f"{type(exc).__name__}.",
+                job_id=job_id,
+                path=_workspace_relative(latest_path),
+                remediation="Restore the immutable run evidence or select a current run.",
             )
         ]
     return []
@@ -720,6 +795,7 @@ def _audit_job(
 
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
     findings.extend(_audit_latest_workflow(root, job_id))
+    findings.extend(_audit_latest_interior_qa(root, job_id))
     handoff_count, valid_handoff_count, handoff_status, handoff_findings = (
         _audit_destination_handoffs(root, job_id)
     )

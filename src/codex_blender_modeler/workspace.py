@@ -53,6 +53,8 @@ SUBDIRS = [
     "optimized",
     "qa",
     "qa/runs",
+    "qa/interior",
+    "qa/interior/runs",
     "qa/cache/generated_targets",
     "workflows",
     "handoffs",

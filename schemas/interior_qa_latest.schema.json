@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "description": "Point to the latest immutable interior QA evidence using job-relative paths.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan": {
+      "title": "Plan",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "approval": {
+      "title": "Approval",
+      "type": "string"
+    },
+    "approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Sha256",
+      "type": "string"
+    },
+    "source_inventory": {
+      "title": "Source Inventory",
+      "type": "string"
+    },
+    "render_manifest": {
+      "title": "Render Manifest",
+      "type": "string"
+    },
+    "report": {
+      "title": "Report",
+      "type": "string"
+    },
+    "revision_candidates": {
+      "title": "Revision Candidates",
+      "type": "string"
+    },
+    "contact_sheets": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Contact Sheets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan",
+    "plan_sha256",
+    "approval",
+    "approval_sha256",
+    "source_inventory",
+    "render_manifest",
+    "report",
+    "revision_candidates"
+  ],
+  "title": "InteriorQALatest",
+  "type": "object"
+}

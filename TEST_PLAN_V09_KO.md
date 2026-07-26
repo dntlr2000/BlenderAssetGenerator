@@ -26,6 +26,7 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - 읽을 수 있는 compatible legacy job
 - immutable source hash 일치
 - 유효한 workflow latest pointer
+- 유효한 optional interior QA latest/hash/source binding
 
 음성 사례:
 
@@ -33,6 +34,7 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - path/link escape
 - 손상 JSON과 unknown contract version
 - dangling workflow pointer
+- 손상·stale interior QA contract 또는 latest pointer
 - scan limit 초과
 - audit output overwrite
 

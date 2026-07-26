@@ -137,7 +137,47 @@ qa/latest.json
 
 직접 비교는 reference content mask, silhouette, object ID, SceneSpec의 observed evidence bbox를 사용합니다. beauty render나 생성 이미지에 형상 판정을 맡기지 않습니다.
 
-## 7. 외부 이미지 생성 결과를 보조 target으로 사용
+## 7. 선택적 실내 다각도 QA
+
+승인된 InteriorScope와 실제 interior semantic object가 있는 작업만 별도 실내 QA를 실행할 수 있습니다. 외관 작업은 이 단계를 건너뜁니다.
+
+먼저 렌더 전 카메라 계획만 만들고 exact SHA-256을 확인합니다.
+
+```powershell
+uv run cbm interior-qa-plan <job-id> `
+  --profile standard `
+  --resolution 512 `
+  --max-views 24
+```
+
+`minimal`, `standard`, `thorough`은 공간별로 각각 4, 6, 8개 방향을 제안합니다. 계획은 승인된 `level:`/`space:` 그룹과 semantic ID에 묶이며 이 단계에서는 렌더하거나 authoring `.blend`를 변경하지 않습니다.
+
+사용자가 계획의 view 목록과 exact hash를 승인한 뒤:
+
+```powershell
+uv run cbm interior-qa-plan-approve <job-id> `
+  --run-id <run-id> `
+  --plan-sha256 <exact-plan-sha256> `
+  --approval-note "표시된 실내 카메라 계획 승인"
+
+uv run cbm interior-qa-run <job-id> `
+  --run-id <run-id> `
+  --approved-plan-sha256 <exact-plan-sha256>
+```
+
+각 view는 외관 QA와 동일한 정확히 7개 pass를 갖습니다. 다만 결과는 `qa/interior/runs/<run-id>/`에 분리되고 임시 카메라·isolation은 `.blend`에 저장되지 않습니다.
+
+```powershell
+uv run cbm report-pdf <job-id> `
+  --scope qa `
+  --interior-qa-run-id <run-id>
+```
+
+보고서의 semantic visibility는 여러 각도에서 대상 ID를 확인한 비율일 뿐 완성도나 레퍼런스 유사도 점수가 아닙니다. 매핑된 실내 레퍼런스가 없는 현재 구조에서는 reference comparison을 `unavailable`로 기록하고 모든 수정 후보를 manual-only로 남깁니다.
+
+Codex는 같은 역할의 `plan_interior_qa`, `approve_interior_qa_plan`, `run_interior_qa`, `get_interior_qa_status` MCP 도구를 사용할 수 있으므로 사용자가 위 명령을 직접 실행할 필요는 없습니다. 단, exact plan hash에 대한 사용자 승인은 생략할 수 없습니다.
+
+## 8. 외부 이미지 생성 결과를 보조 target으로 사용
 
 기본값은 `image_model_qa = false`입니다. 명시적으로 활성화한 뒤, 외부 Codex/ImageGen 등의 표면에서 reference의 내용과 preview의 카메라·프레이밍을 이용해 이미지를 생성합니다. 정확히 사용한 prompt를 UTF-8 파일로 함께 보존합니다.
 
@@ -153,7 +193,7 @@ uv run cbm visual-qa first_reference_test `
 
 target과 prompt는 QA run 내부로 복사되고 provider/model/version/seed/prompt hash/output hash가 기록됩니다. 저장소는 외부 서비스를 암묵적으로 호출하지 않습니다. 이 target은 저신뢰도 advisory finding만 만들며 직접 점수와 실행 후보 수를 바꾸지 않습니다.
 
-## 8. 승인형 1회 수정
+## 9. 승인형 1회 수정
 
 기본 `revision_mode = "suggest"`에서는 후보만 생성합니다. 적용하려면 `cbm.toml`을 `approve`로 바꾸고 사용자가 정확한 후보 ID를 선택해야 합니다.
 
@@ -170,7 +210,7 @@ uv run cbm qa-apply-approved first_reference_test <run-id>
 
 승인은 후보·계획·SceneSpec hash에 묶이고 한 번만 사용할 수 있습니다. 적용 후 build/render/inspect/validate/constraints/direct QA를 다시 실행합니다. 점수가 개선되지 않거나 오류·constraint 악화가 있으면 이전 SceneSpec을 복구하고 재빌드합니다.
 
-## 9. 사람용 PDF 보고서 만들기
+## 10. 사람용 PDF 보고서 만들기
 
 재질 검사와 swatch가 끝난 뒤:
 
@@ -204,7 +244,7 @@ uv run cbm report-pdf first_reference_test `
 
 PDF는 재질 상태, 경고, swatch, QA 패스와 수정 후보를 사람이 검토하기 쉽게 정리한 결과입니다. 실제 수정과 자동 검증은 계속 `reports/`, `materials/`, `textures/`, `qa/runs/`의 JSON 계약을 기준으로 수행합니다.
 
-## 10. 현재 경계
+## 11. 현재 경계
 
 - 제한된 whitelisted Noise/replace 셰이더와 검증된 image-map 경로만 실행합니다.
 - procedural triplanar는 Object 좌표 근사입니다. image/hybrid triplanar는 거부합니다.
@@ -213,3 +253,4 @@ PDF는 재질 상태, 경고, swatch, QA 패스와 수정 후보를 사람이 �
 - PBR provider는 결정론적 합성 생성기이지 레퍼런스 기반 고품질 재질 생성 모델이 아닙니다.
 - Engine-neutral LOD, collider, raw/glTF packing과 clean-import round trip은 V0.7 범위입니다. Unity/Unreal 전용 import와 runtime material은 대상 엔진 확인 뒤 별도 adapter로 남습니다.
 - 생성 이미지 target은 보조 QA이며 단일 이미지의 숨은 구조를 진실로 복원하지 않습니다.
+- 실내 다각도 QA는 구조·가시성 검사이며 실내 레퍼런스가 없으면 유사도 점수를 만들지 않습니다.

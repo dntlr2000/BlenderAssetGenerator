@@ -1,6 +1,6 @@
 # V0.9 로컬 검증 기록
 
-검증 일자: 2026-07-22
+검증 일자: 2026-07-26
 
 프로젝트: `0.9.0`
 
@@ -12,7 +12,7 @@ Stabilization / Destination Handoff contract: `0.9.0`
 
 | 항목 | 결과 |
 |---|---|
-| 전체 Python 회귀 | 380/380 통과 |
+| 전체 Python 회귀 | 389/389 통과 |
 | Ruff 전체 저장소 | 통과 |
 | Python compile check | 통과 |
 | doctor | Repository / Workspace / Blender / Codex 모두 OK |
@@ -22,6 +22,7 @@ Stabilization / Destination Handoff contract: `0.9.0`
 | isolated V0.9 destination handoff gate | 통과 |
 | destination handoff audit | `1/1 valid`, 오류·경고 0 |
 | stability/export/handoff PDF | 생성과 exact-hash sidecar 검증 통과 |
+| optional interior multi-view QA | Blender 5.0.1 실기동, 4 view × 7 pass, PDF와 V0.9 audit 통과 |
 
 전체 진입 gate의 첫 실행은 Python/Ruff/doctor, Blender compatibility와 V0.7/V0.8 upstream 회귀를 통과한 뒤 V0.9 smoke fixture의 64px atlas/8px margin 설정에서 중단됐다. 이는 제품 코드 문제가 아니라 기존 V0.7 material conversion이 정상적으로 거부한 잘못된 smoke fixture였다. Fixture를 기존 검증 기준인 1024px/16px로 교정한 뒤 upstream 결과를 재사용해 `-SkipV08 -SkipCompatibility`로 V0.9 고유 handoff/audit/PDF gate를 다시 실행했고 통과했다. 생략 옵션을 사용한 재실행만으로 upstream 지원을 주장하지 않으며, 앞선 동일 실행의 통과 증거와 합쳐 판정한다.
 
@@ -54,6 +55,41 @@ Stabilization / Destination Handoff contract: `0.9.0`
 - V0.8 optional `destination.handoff` step 및 exact completion marker
 - V0.9 audit, export/full PDF와 stability PDF의 handoff 상태 투영
 - isolated PowerShell/POSIX gate script
+
+## 선택적 실내 다각도 QA 검증
+
+승인된 `InteriorScope 0.1.0`과 정적 실내 semantic object를 가진 격리 fixture `interior_qa_smoke_01`에서 실제 Blender 5.0.1을 실행했다. 이 fixture는 사용자 workspace와 `first_reference_test`를 사용하지 않았다.
+
+```text
+isolated workspace:
+tmp/interior_qa_smoke_workspaces/
+
+job:
+interior_qa_smoke_01
+
+run:
+blender5-smoke-001
+```
+
+| 항목 | 결과 |
+|---|---|
+| Blender / renderer | `5.0.1` / `BLENDER_EEVEE` |
+| scope/build/geometry validation | 통과 |
+| camera profile | `minimal`, 4방향 |
+| exact plan SHA-256 | `bfd62b924c6442996ae6187bae7fe1b7c88f33e151a7569994bed1b8e6d76821` |
+| approval | exact hash, single-use, `consumed` |
+| render passes | 4 views × 정확히 7 kinds = 28 |
+| semantic visibility | `1.0`, 대상 6 ID, unseen 0 |
+| reference comparison | `unavailable`; 구조·가시성 evidence만 보고 |
+| revision candidates | 0, 지원 후보는 항상 manual-only |
+| contact sheets | beauty, object ID, wireframe 생성·육안 검사 |
+| V0.9 workspace audit | 47 files, 1 job, warning/failed 0, `passed` |
+| QA PDF | 3 pages, warning 0, 모든 페이지 PNG 시각 검사 |
+| QA PDF SHA-256 | `ece77690f77bc68ec8e95fe7eef65a19d92866d8e1b6fdc17649ca03a3a46f3f` |
+
+PDF 표지, 공간별 coverage, 세 종류 contact sheet와 source appendix에서 한글, 표 경계, clipping과 overlap을 확인했다. PDF 텍스트에는 실내 다각도 QA 절이 존재하고 외관 QA 누락 안내가 섞이지 않음을 검사했다.
+
+Python 회귀는 신규 계약, scope fail-closed, exact approval/single-use, 7-pass 실행, PDF, canonical hash 불변, V0.8 specialized gate와 MCP allowlist를 포함해 `389/389` 통과했다.
 
 ## 최신 실제 실행 증거
 

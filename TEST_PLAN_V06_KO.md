@@ -121,6 +121,25 @@ uv run python scripts/run_v06_mcp_regressions.py
 8. 선택적 자료가 없을 때 허위 성공 대신 unavailable/warning 표시
 9. 한국어 텍스트, 표, swatch, QA 이미지의 페이지 잘림 여부를 렌더링으로 검사
 
+## Gate 9 — 선택적 실내 다각도 QA
+
+승인된 InteriorScope를 가진 격리 fixture에서 다음을 검사합니다.
+
+1. scope가 없거나 disabled/draft/stale이면 계획 생성 전 fail-closed
+2. interior semantic object가 없으면 외관 객체를 대신 선택하지 않고 거부
+3. `minimal`, `standard`, `thorough` camera 방향 수와 64-view 상한
+4. source inventory, plan, approval, render manifest, report, candidates와 latest strict schema
+5. exact plan SHA-256과 선택 view 부분집합 승인만 허용
+6. 승인 single-use와 stale SceneSpec/scope/build binding 거부
+7. 승인된 각 view의 정확한 seven-pass set과 immutable hashes
+8. temporary camera/isolation 뒤 authoring `.blend`와 canonical hash 불변
+9. semantic visibility를 완성도나 reference score로 보고하지 않음
+10. 매핑된 interior reference가 없으면 comparison `unavailable`
+11. revision candidate가 모두 manual-only
+12. beauty/object-ID/wireframe contact sheet와 QA PDF/sidecar 생성
+13. V0.8 `interior_visual_qa` specialized approval gate
+14. V0.9 read-only audit의 strict contract/hash/latest 검사
+
 ## 전체 실행
 
 ```powershell

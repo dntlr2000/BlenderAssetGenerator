@@ -1,0 +1,267 @@
+{
+  "$defs": {
+    "InteriorQAView": {
+      "additionalProperties": false,
+      "description": "Declare one temporary perspective camera used only for interior QA.",
+      "properties": {
+        "view_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "View Id",
+          "type": "string"
+        },
+        "level_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level Id"
+        },
+        "space_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Space Id"
+        },
+        "purpose": {
+          "enum": [
+            "room_rotation",
+            "corner_overview",
+            "corridor_axis",
+            "interior_overview"
+          ],
+          "title": "Purpose",
+          "type": "string"
+        },
+        "location": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "target": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target",
+          "type": "array"
+        },
+        "focal_length_mm": {
+          "default": 18.0,
+          "maximum": 120.0,
+          "minimum": 8.0,
+          "title": "Focal Length Mm",
+          "type": "number"
+        },
+        "clip_start_m": {
+          "default": 0.03,
+          "exclusiveMinimum": 0,
+          "title": "Clip Start M",
+          "type": "number"
+        },
+        "clip_end_m": {
+          "exclusiveMinimum": 0,
+          "title": "Clip End M",
+          "type": "number"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "isolate_targets": {
+          "const": true,
+          "default": true,
+          "title": "Isolate Targets",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "view_id",
+        "purpose",
+        "location",
+        "target",
+        "clip_end_m",
+        "target_ids"
+      ],
+      "title": "InteriorQAView",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one bounded multi-view interior inspection plan before rendering.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile": {
+      "enum": [
+        "minimal",
+        "standard",
+        "thorough"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "max_views": {
+      "maximum": 64,
+      "minimum": 1,
+      "title": "Max Views",
+      "type": "integer"
+    },
+    "eye_height_m": {
+      "exclusiveMinimum": 0,
+      "maximum": 3.0,
+      "title": "Eye Height M",
+      "type": "number"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "interior_scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Sha256",
+      "type": "string"
+    },
+    "interior_scope_approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Approval Sha256",
+      "type": "string"
+    },
+    "source_inventory_path": {
+      "title": "Source Inventory Path",
+      "type": "string"
+    },
+    "source_inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Inventory Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "views": {
+      "items": {
+        "$ref": "#/$defs/InteriorQAView"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Views",
+      "type": "array"
+    },
+    "reference_comparison_mode": {
+      "const": "structural_only",
+      "default": "structural_only",
+      "title": "Reference Comparison Mode",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "profile",
+    "resolution",
+    "max_views",
+    "eye_height_m",
+    "scene_spec_sha256",
+    "build_fingerprint",
+    "interior_scope_sha256",
+    "interior_scope_approval_sha256",
+    "source_inventory_path",
+    "source_inventory_sha256",
+    "source_fingerprint",
+    "target_ids",
+    "views",
+    "created_at"
+  ],
+  "title": "InteriorQAPlan",
+  "type": "object"
+}

@@ -1,0 +1,91 @@
+{
+  "additionalProperties": false,
+  "description": "Record explicit single-use approval of one exact interior camera plan.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "approved_view_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Approved View Ids",
+      "type": "array"
+    },
+    "approval_note": {
+      "minLength": 1,
+      "title": "Approval Note",
+      "type": "string"
+    },
+    "recorded_via": {
+      "const": "cli_or_mcp",
+      "default": "cli_or_mcp",
+      "title": "Recorded Via",
+      "type": "string"
+    },
+    "approved_at": {
+      "title": "Approved At",
+      "type": "string"
+    },
+    "status": {
+      "default": "approved",
+      "enum": [
+        "approved",
+        "consumed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "consumed_at": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Consumed At"
+    }
+  },
+  "required": [
+    "approval_id",
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "source_fingerprint",
+    "approved_view_ids",
+    "approval_note",
+    "approved_at"
+  ],
+  "title": "InteriorQAPlanApproval",
+  "type": "object"
+}

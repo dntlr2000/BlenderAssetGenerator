@@ -13,6 +13,7 @@
     "pdf_sha256",
     "source_fingerprint",
     "qa_run_id",
+    "interior_qa_run_id",
     "font",
     "sources",
     "warnings"
@@ -48,6 +49,12 @@
       "pattern": "^[0-9a-f]{64}$"
     },
     "qa_run_id": {
+      "anyOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ]
+    },
+    "interior_qa_run_id": {
       "anyOf": [
         {"type": "string", "minLength": 1},
         {"type": "null"}

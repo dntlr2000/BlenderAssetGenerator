@@ -6,8 +6,13 @@ from typing import Any
 
 from .blender_runner import run_blender
 from .build_provenance import collect_build_provenance
+from .interior_qa.models import (
+    InteriorQAPlan,
+    InteriorQARenderManifest,
+    InteriorQASourceInventory,
+)
 from .qa.models import RenderPassManifest
-from .workspace import job_dir
+from .workspace import job_dir, sha256_file
 
 
 def _blend_path(job_id: str) -> tuple[Path, Path]:
@@ -109,3 +114,101 @@ def render_job_qa_passes(
             args.extend([flag, value])
     run_blender("render_qa_passes.py", args, blend_file=blend)
     return RenderPassManifest.model_validate_json(manifest.read_text(encoding="utf-8"))
+
+
+def inspect_job_interior_qa_source(
+    job_id: str,
+    *,
+    run_id: str,
+    target_ids: list[str],
+    output_path: Path,
+    scene_spec_sha256: str,
+    build_fingerprint: str,
+    interior_scope_sha256: str,
+    interior_scope_approval_sha256: str,
+) -> InteriorQASourceInventory:
+    """Inspect fresh interior bounds and topology against exact canonical build hashes."""
+
+    root, blend = _blend_path(job_id)
+    scene_spec = root / "analysis" / "scene_spec.json"
+    scope = root / "architecture" / "interior_scope.json"
+    approval = root / "architecture" / "interior_scope.approval.json"
+    args = [
+        "--output",
+        str(output_path),
+        "--scene-spec",
+        str(scene_spec),
+        "--build-fingerprint",
+        build_fingerprint,
+        "--scene-spec-sha256",
+        scene_spec_sha256,
+        "--scope",
+        str(scope),
+        "--scope-sha256",
+        interior_scope_sha256,
+        "--scope-approval",
+        str(approval),
+        "--scope-approval-sha256",
+        interior_scope_approval_sha256,
+        "--run-id",
+        run_id,
+    ]
+    for target_id in target_ids:
+        args.extend(["--target-id", target_id])
+    run_blender("inspect_interior_qa_source.py", args, blend_file=blend)
+    return InteriorQASourceInventory.model_validate_json(
+        output_path.read_text(encoding="utf-8")
+    )
+
+
+def render_job_interior_qa(
+    job_id: str,
+    *,
+    plan_path: Path,
+    approval_path: Path,
+    output_dir: Path,
+    manifest_path: Path,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> InteriorQARenderManifest:
+    """Render every approved interior view without saving changes to the authoring blend."""
+
+    root, blend = _blend_path(job_id)
+    plan = InteriorQAPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+    provenance = collect_build_provenance(
+        root,
+        job_id,
+        scene_spec_path=root / "analysis" / "scene_spec.json",
+    )
+    args = [
+        "--plan",
+        str(plan_path),
+        "--plan-sha256",
+        sha256_file(plan_path),
+        "--approval",
+        str(approval_path),
+        "--approval-sha256",
+        sha256_file(approval_path),
+        "--manifest",
+        str(manifest_path),
+        "--output-dir",
+        str(output_dir),
+        "--scene-spec",
+        str(root / "analysis" / "scene_spec.json"),
+        "--build-fingerprint",
+        str(provenance["fingerprint"]),
+        "--scope",
+        str(root / "architecture" / "interior_scope.json"),
+        "--scope-approval",
+        str(root / "architecture" / "interior_scope.approval.json"),
+        "--render-engine",
+        render_engine,
+        "--render-device",
+        render_device,
+    ]
+    if str(provenance["fingerprint"]) != plan.build_fingerprint:
+        raise ValueError("interior QA plan is stale for the current canonical build")
+    run_blender("render_interior_qa.py", args, blend_file=blend)
+    return InteriorQARenderManifest.model_validate_json(
+        manifest_path.read_text(encoding="utf-8")
+    )

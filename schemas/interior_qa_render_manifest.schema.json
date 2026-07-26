@@ -1,0 +1,271 @@
+{
+  "$defs": {
+    "DepthRange": {
+      "additionalProperties": false,
+      "description": "Record the camera-space range used to encode the depth pass.",
+      "properties": {
+        "near": {
+          "minimum": 0,
+          "title": "Near",
+          "type": "number"
+        },
+        "far": {
+          "exclusiveMinimum": 0,
+          "title": "Far",
+          "type": "number"
+        }
+      },
+      "required": [
+        "near",
+        "far"
+      ],
+      "title": "DepthRange",
+      "type": "object"
+    },
+    "InteriorQAViewRender": {
+      "additionalProperties": false,
+      "description": "Bind one temporary interior camera to exactly seven immutable QA passes.",
+      "properties": {
+        "view_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "View Id",
+          "type": "string"
+        },
+        "level_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Level Id"
+        },
+        "space_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Space Id"
+        },
+        "camera": {
+          "additionalProperties": true,
+          "title": "Camera",
+          "type": "object"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "depth_range": {
+          "$ref": "#/$defs/DepthRange"
+        },
+        "passes": {
+          "items": {
+            "$ref": "#/$defs/RenderPassRecord"
+          },
+          "maxItems": 7,
+          "minItems": 7,
+          "title": "Passes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "view_id",
+        "camera",
+        "target_ids",
+        "depth_range",
+        "passes"
+      ],
+      "title": "InteriorQAViewRender",
+      "type": "object"
+    },
+    "RenderPassRecord": {
+      "additionalProperties": false,
+      "description": "Describe one deterministic render-pass artifact and its encoding.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "beauty",
+            "silhouette",
+            "object_id",
+            "material_id",
+            "normal",
+            "depth",
+            "wireframe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "encoding": {
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "width",
+        "height",
+        "encoding"
+      ],
+      "title": "RenderPassRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind all approved interior views to one Blender runtime and exact plan hash.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "plan_approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Approval Sha256",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "interior_scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Sha256",
+      "type": "string"
+    },
+    "interior_scope_approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Interior Scope Approval Sha256",
+      "type": "string"
+    },
+    "blender_version": {
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "render_engine": {
+      "title": "Render Engine",
+      "type": "string"
+    },
+    "render_device": {
+      "title": "Render Device",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "object_id_colors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Object Id Colors",
+      "type": "object"
+    },
+    "material_id_colors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Material Id Colors",
+      "type": "object"
+    },
+    "views": {
+      "items": {
+        "$ref": "#/$defs/InteriorQAViewRender"
+      },
+      "maxItems": 64,
+      "minItems": 1,
+      "title": "Views",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "plan_approval_sha256",
+    "scene_spec_sha256",
+    "build_fingerprint",
+    "interior_scope_sha256",
+    "interior_scope_approval_sha256",
+    "blender_version",
+    "render_engine",
+    "render_device",
+    "resolution",
+    "object_id_colors",
+    "material_id_colors",
+    "views"
+  ],
+  "title": "InteriorQARenderManifest",
+  "type": "object"
+}

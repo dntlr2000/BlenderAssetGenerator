@@ -130,6 +130,34 @@ def _resolve_qa_run(
     return run_id, candidate
 
 
+def _resolve_interior_qa_run(
+    root: Path,
+    requested_run_id: str | None,
+    warnings: list[str],
+) -> tuple[str | None, Path | None]:
+    """Resolve one explicit interior QA run or its hash-bound latest pointer."""
+
+    runs_root = root / "qa" / "interior" / "runs"
+    run_id = requested_run_id
+    if run_id in {None, "latest"}:
+        latest = _load_json(root / "qa" / "interior" / "latest.json")
+        run_id = str(latest.get("run_id", "")) if latest else ""
+    if not run_id:
+        warnings.append("No multi-view interior QA run is available for this job.")
+        return None, None
+    candidate = runs_root / run_id
+    try:
+        candidate.resolve().relative_to(runs_root.resolve())
+    except ValueError as exc:
+        raise ValueError(f"Invalid interior QA run ID: {run_id}") from exc
+    if candidate.resolve().parent != runs_root.resolve():
+        raise ValueError(f"Invalid interior QA run ID: {run_id}")
+    if not candidate.is_dir():
+        warnings.append(f"Interior QA run is missing: {run_id}")
+        return run_id, None
+    return run_id, candidate
+
+
 def _resolve_optimization_run(
     root: Path,
     requested_run_id: str | None,
@@ -575,11 +603,32 @@ def _collect_qa_images(
     return images
 
 
+def _collect_interior_qa_images(
+    root: Path,
+    run_dir: Path | None,
+    sources: list[ReportSource],
+    warnings: list[str],
+) -> list[dict[str, Any]]:
+    """Resolve safe interior contact sheets without treating them as decision sources."""
+
+    if run_dir is None:
+        return []
+    images: list[dict[str, Any]] = []
+    for kind in ("beauty", "object_id", "wireframe"):
+        path = _safe_job_file(root, run_dir / "contact_sheets" / f"{kind}.png", warnings)
+        if path is None:
+            continue
+        sources.append(_source_record(root, f"interior_qa_contact_sheet:{kind}", path))
+        images.append({"kind": kind, "path": str(path)})
+    return images
+
+
 def collect_job_report_payload(
     job_id: str,
     scope: ReportScope,
     *,
     qa_run_id: str | None = "latest",
+    interior_qa_run_id: str | None = "latest",
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
 ) -> dict[str, Any]:
@@ -625,6 +674,8 @@ def collect_job_report_payload(
 
     run_id: str | None = None
     run_dir: Path | None = None
+    resolved_interior_qa_run_id: str | None = None
+    interior_qa_run_dir: Path | None = None
     if scope in {"qa", "full"}:
         run_id, run_dir = _resolve_qa_run(root, qa_run_id, warnings)
         if run_dir is not None:
@@ -640,6 +691,33 @@ def collect_job_report_payload(
                 ("rollback", "rollback_report.json"),
             ):
                 _collect_json_source(root, key, run_dir / filename, documents, sources)
+        resolved_interior_qa_run_id, interior_qa_run_dir = _resolve_interior_qa_run(
+            root,
+            interior_qa_run_id,
+            warnings,
+        )
+        if interior_qa_run_dir is not None and run_dir is None:
+            warnings = [
+                warning
+                for warning in warnings
+                if warning != "No visual QA run is available for this job."
+            ]
+        if interior_qa_run_dir is not None:
+            for key, filename in (
+                ("interior_qa_plan", "plan.json"),
+                ("interior_qa_approval", "plan_approval.json"),
+                ("interior_qa_source_inventory", "source_inventory.json"),
+                ("interior_qa_render_manifest", "render_manifest.json"),
+                ("interior_qa_report", "interior_qa_report.json"),
+                ("interior_qa_revision_candidates", "revision_candidates.json"),
+            ):
+                _collect_json_source(
+                    root,
+                    key,
+                    interior_qa_run_dir / filename,
+                    documents,
+                    sources,
+                )
 
     resolved_optimization_run_id: str | None = None
     resolved_package_id: str | None = None
@@ -664,7 +742,11 @@ def collect_job_report_payload(
     reference = _resolve_reference(metadata, root, warnings)
     if reference is not None:
         sources.append(_source_record(root, "reference", reference))
-    preview = _safe_job_file(root, root / "renders" / "preview.png", warnings)
+    preview = (
+        _safe_job_file(root, root / "renders" / "preview.png", warnings)
+        if scope != "qa" or run_dir is not None
+        else None
+    )
     if preview is not None:
         sources.append(_source_record(root, "preview", preview))
     swatches = (
@@ -674,6 +756,16 @@ def collect_job_report_payload(
     )
     qa_images = (
         _collect_qa_images(root, run_dir, documents, sources, warnings)
+        if scope in {"qa", "full"}
+        else []
+    )
+    interior_qa_images = (
+        _collect_interior_qa_images(
+            root,
+            interior_qa_run_dir,
+            sources,
+            warnings,
+        )
         if scope in {"qa", "full"}
         else []
     )
@@ -688,8 +780,10 @@ def collect_job_report_payload(
             "preview": str(preview) if preview else None,
             "material_swatches": swatches,
             "qa_passes": qa_images,
+            "interior_qa_contact_sheets": interior_qa_images,
         },
         "qa_run_id": run_id,
+        "interior_qa_run_id": resolved_interior_qa_run_id,
         "optimization_run_id": resolved_optimization_run_id,
         "package_id": resolved_package_id,
         "handoff_id": resolved_handoff_id,
@@ -717,6 +811,7 @@ def generate_job_pdf_report(
     scope: ReportScope = "full",
     *,
     qa_run_id: str | None = "latest",
+    interior_qa_run_id: str | None = "latest",
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
     output_path: Path | None = None,
@@ -727,6 +822,7 @@ def generate_job_pdf_report(
         job_id,
         scope,
         qa_run_id=qa_run_id,
+        interior_qa_run_id=interior_qa_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
     )
@@ -750,6 +846,7 @@ def generate_job_pdf_report(
         pdf_sha256=sha256_file(output),
         source_fingerprint=payload["source_fingerprint"],
         qa_run_id=payload["qa_run_id"],
+        interior_qa_run_id=payload["interior_qa_run_id"],
         optimization_run_id=payload["optimization_run_id"],
         package_id=payload["package_id"],
         font=str(render_metadata["font"]),
@@ -766,6 +863,7 @@ def generate_job_pdf_report(
         "manifest": str(manifest_path),
         "pdf_sha256": manifest.pdf_sha256,
         "source_fingerprint": manifest.source_fingerprint,
+        "interior_qa_run_id": manifest.interior_qa_run_id,
         "optimization_run_id": manifest.optimization_run_id,
         "package_id": manifest.package_id,
         "source_count": len(manifest.sources),

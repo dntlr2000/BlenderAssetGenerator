@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "InteriorQARevisionCandidate": {
+      "additionalProperties": false,
+      "description": "Offer one manual-only semantic correction candidate from interior QA evidence.",
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "action": {
+          "enum": [
+            "review_occlusion",
+            "repair_topology",
+            "review_overlap",
+            "add_reference_view",
+            "review_camera_plan"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "recommendation": {
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "acceptance_criteria": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Acceptance Criteria",
+          "type": "array"
+        },
+        "approval_required": {
+          "const": true,
+          "default": true,
+          "title": "Approval Required",
+          "type": "boolean"
+        },
+        "executable": {
+          "const": false,
+          "default": false,
+          "title": "Executable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "finding_id",
+        "target_ids",
+        "action",
+        "recommendation",
+        "acceptance_criteria"
+      ],
+      "title": "InteriorQARevisionCandidate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Collect manual-only candidates without granting geometry-change authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Sha256",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/InteriorQARevisionCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "report_sha256"
+  ],
+  "title": "InteriorQARevisionCandidates",
+  "type": "object"
+}

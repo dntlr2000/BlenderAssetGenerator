@@ -36,6 +36,12 @@ from .handoff import (
     plan_destination_handoff,
     validate_destination_handoff,
 )
+from .interior_qa import (
+    approve_job_interior_qa_plan,
+    get_job_interior_qa_status,
+    plan_job_interior_qa,
+    run_job_interior_qa,
+)
 from .materials import (
     create_material_scaffold,
     load_material_plan,
@@ -587,6 +593,9 @@ def report_pdf(
     job_id: str,
     scope: Annotated[str, typer.Option("--scope")] = "full",
     qa_run_id: Annotated[str, typer.Option("--qa-run-id")] = "latest",
+    interior_qa_run_id: Annotated[
+        str, typer.Option("--interior-qa-run-id")
+    ] = "latest",
     optimization_run_id: Annotated[
         str, typer.Option("--optimization-run-id")
     ] = "latest",
@@ -601,6 +610,7 @@ def report_pdf(
         job_id,
         scope=scope,  # type: ignore[arg-type]
         qa_run_id=qa_run_id,
+        interior_qa_run_id=interior_qa_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
         output_path=output,
@@ -935,6 +945,90 @@ def interior_scope_validate(job_id: str) -> None:
     console.print_json(report.model_dump_json())
     if not report.ok:
         raise typer.Exit(code=2)
+
+
+@app.command("interior-qa-plan")
+def interior_qa_plan(
+    job_id: str,
+    profile: Annotated[str, typer.Option("--profile")] = "standard",
+    resolution: Annotated[int, typer.Option("--resolution", min=128, max=2048)] = 512,
+    max_views: Annotated[int, typer.Option("--max-views", min=1, max=64)] = 24,
+    eye_height_m: Annotated[
+        float, typer.Option("--eye-height-m", min=0.01, max=3.0)
+    ] = 1.6,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Plan isolated multi-view interior QA and stop for exact hash approval."""
+
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = plan_job_interior_qa(
+        job_id,
+        profile=profile,
+        resolution=resolution,
+        max_views=max_views,
+        eye_height_m=eye_height_m,
+        run_id=run_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("interior-qa-plan-approve")
+def interior_qa_plan_approve(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+    view_id: Annotated[list[str] | None, typer.Option("--view-id")] = None,
+) -> None:
+    """Record explicit approval for one exact interior QA camera plan."""
+
+    approval = approve_job_interior_qa_plan(
+        job_id,
+        run_id,
+        plan_sha256=plan_sha256,
+        approval_note=approval_note,
+        approved_view_ids=view_id,
+    )
+    console.print_json(approval.model_dump_json())
+
+
+@app.command("interior-qa-run")
+def interior_qa_run(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    approved_plan_sha256: Annotated[
+        str, typer.Option("--approved-plan-sha256")
+    ],
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+) -> None:
+    """Consume one approved plan and render seven passes from every selected interior view."""
+
+    _validate_render_options(render_engine, render_device)
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = run_job_interior_qa(
+        job_id,
+        run_id,
+        approved_plan_sha256=approved_plan_sha256,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+    if not result["ok"]:
+        raise typer.Exit(code=2)
+
+
+@app.command("interior-qa-status")
+def interior_qa_status(
+    job_id: str,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Show current interior QA plan, approval, execution, and stale-source state."""
+
+    result = get_job_interior_qa_status(job_id, run_id=run_id)
+    console.print_json(json.dumps(result, ensure_ascii=False))
 
 
 @app.command("asset-preflight")

@@ -29,6 +29,15 @@ from codex_blender_modeler.handoff.models import (
     ImportChecklist,
     MaterialMappingManifest,
 )
+from codex_blender_modeler.interior_qa.models import (
+    InteriorQALatest,
+    InteriorQAPlan,
+    InteriorQAPlanApproval,
+    InteriorQARenderManifest,
+    InteriorQAReport,
+    InteriorQARevisionCandidates,
+    InteriorQASourceInventory,
+)
 from codex_blender_modeler.materials.models import MaterialPlan, ShaderRecipe
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.optimization.models import (
@@ -111,6 +120,13 @@ SCHEMAS = {
     "interior_scope.schema.json": InteriorScope,
     "interior_scope_approval.schema.json": InteriorScopeApproval,
     "interior_scope_validation.schema.json": InteriorScopeValidation,
+    "interior_qa_source_inventory.schema.json": InteriorQASourceInventory,
+    "interior_qa_plan.schema.json": InteriorQAPlan,
+    "interior_qa_plan_approval.schema.json": InteriorQAPlanApproval,
+    "interior_qa_render_manifest.schema.json": InteriorQARenderManifest,
+    "interior_qa_report.schema.json": InteriorQAReport,
+    "interior_qa_revision_candidates.schema.json": InteriorQARevisionCandidates,
+    "interior_qa_latest.schema.json": InteriorQALatest,
     "workflow_request.schema.json": WorkflowRequest,
     "intent_routing.schema.json": IntentRouting,
     "workflow_plan.schema.json": WorkflowPlan,

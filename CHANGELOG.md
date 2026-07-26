@@ -7,6 +7,8 @@
 - Added bounded read-only workspace audits for immutable source hashes, contract readability/version compatibility, workflow pointers, path escapes, temporary evidence, and scan limits without automatic repair or migration.
 - Added a one-writer, one-worker local dispatcher for existing V0.8 workflows with leases, immutable receipts, approval/agent boundaries, explicit single-use failed retry, cancellation, and expired-lock recovery.
 - Added an exact-source-hash V0.9 stability PDF and sidecar manifest, CLI/MCP surfaces, checked-in JSON Schemas, isolated Windows/POSIX gate scripts, and release-candidate documentation.
+- Added optional approval-bound V0.6 multi-view interior QA with 4/6/8-direction camera plans, exact seven-pass rendering per selected view, semantic visibility and structural findings, manual-only candidates, contact sheets, QA PDF projection, V0.8 routing, and V0.9 read-only audit coverage.
+- Kept interior QA temporary cameras and object isolation out of the authoring `.blend`, required a current approved InteriorScope, and refused to invent an interior reference-similarity score when no calibrated interior references are mapped.
 - Added strict `0.9.0` Codex Destination Handoff contracts and CLI/MCP plan, generate, validate, and status surfaces for passed GLB/FBX clean-import packages.
 - Added an immutable movable envelope containing the exact package copy, round-trip evidence, semantic assembly, portable material/PBR mapping, LOD/Collider context, safe destination prompt, import schemas, limitations, and exact-hash PDF.
 - Bound optional V0.8 `destination.handoff` completion to exact package and handoff hashes, and extended V0.9 audit, stability/export/full PDF, feature reporting, tests, and isolated gates with handoff validity.
