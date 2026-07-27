@@ -1,11 +1,17 @@
 from __future__ import annotations
 
+import inspect
 import tomllib
 from pathlib import Path
 
+from typer.main import get_command
 from typer.testing import CliRunner
 
 from codex_blender_modeler.cli import app
+from codex_blender_modeler.mcp_server import (
+    get_modeling_capabilities,
+    plan_short_workflow,
+)
 from codex_blender_modeler.versioning import PROJECT_VERSION, WORKFLOW_SCHEMA_VERSION
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,6 +53,47 @@ def test_v08_resume_requires_an_explicit_failed_retry_flag() -> None:
     assert result.exit_code == 0
     assert "--max-host-steps" in result.stdout
     assert "--retry-failed" in result.stdout
+
+
+def test_v08_background_policy_is_available_without_powershell() -> None:
+    """Expose explicit fast-lane choices through both CLI help and the MCP planner."""
+
+    result = CliRunner().invoke(app, ["workflow-plan", "--help"])
+    assert result.exit_code == 0
+    workflow_command = get_command(app).commands["workflow-plan"]
+    option_names = {
+        option
+        for parameter in workflow_command.params
+        for option in getattr(parameter, "opts", [])
+    }
+    assert "--execution-policy" in option_names
+    assert "--delivery-scope" in option_names
+    parameters = inspect.signature(plan_short_workflow).parameters
+    assert parameters["execution_policy"].default == "standard"
+    assert parameters["delivery_scope"].default is None
+
+    capabilities = get_modeling_capabilities()
+    orchestration = capabilities["workflow_orchestration"]
+    assert orchestration["execution_policies"] == [
+        "standard",
+        "background_exterior",
+    ]
+    assert orchestration["delivery_scopes"] == [
+        "preview_only",
+        "portable_package",
+    ]
+    assert orchestration["background_exterior"]["direct_qa_runs"] == 1
+    assert orchestration["background_exterior"]["automatic_revision"] is False
+    assert (
+        orchestration["background_exterior"]["automatic_revision_iterations"]
+        == 0
+    )
+    assert "exact preview plan" in (
+        orchestration["background_exterior"]["package_continuation_binding"]
+    )
+    assert "requires_standard_workflow" in (
+        orchestration["background_exterior"]["disqualification_outcome"]
+    )
 
 
 def test_v08_mcp_tools_are_explicitly_whitelisted() -> None:

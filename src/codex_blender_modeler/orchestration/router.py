@@ -168,8 +168,10 @@ def route_intent(
     new_job: bool,
     has_staged_view: bool,
     destination: DestinationRequest,
+    execution_policy: str = "standard",
+    delivery_scope: str | None = None,
 ) -> IntentRouting:
-    """Route one short request deterministically or reject ambiguous existing-job work."""
+    """Route one request and preserve its explicit execution and delivery policy."""
 
     matches = _matched_terms(request_text)
     matched_flat: list[str] = []
@@ -229,6 +231,8 @@ def route_intent(
         workflow_id=workflow_id,
         job_id=job_id,
         intent=intent,  # type: ignore[arg-type]
+        execution_policy=execution_policy,  # type: ignore[arg-type]
+        delivery_scope=delivery_scope,  # type: ignore[arg-type]
         confidence=confidence,
         reasons=reasons,
         matched_terms=sorted(set(matched_flat)),

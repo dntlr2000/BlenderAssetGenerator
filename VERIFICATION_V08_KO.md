@@ -1,5 +1,47 @@
 # V0.8 로컬 검증 기록
 
+## 2026-07-27 배경 외관 빠른 실행 정책 추가 검증
+
+기존 `standard` 정책을 기본값으로 유지하면서, 명시적으로만 선택되는
+`background_exterior` 실행 정책과 `preview_only` / `portable_package`
+종료 범위를 같은 V0.8 오케스트레이션에 추가했다.
+
+- Project: `0.9.0`
+- Workflow contract: `0.8.0`
+- Blender: `5.0.1`
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| Python 회귀 | 411/411 통과 |
+| Ruff | 통과 |
+| V0.8 격리 smoke | 통과 |
+| `standard` 계획 회귀 | 통과 |
+| 빠른 preview 계획 | 통과 |
+| 빠른 portable package 계획 | 통과 |
+| V0.7 GLB round trip | `passed`, 오류 0 |
+| V0.7 FBX round trip | `passed`, 오류 0 |
+| V0.7 OBJ round trip | `passed`, 오류 0 |
+
+격리 산출물:
+
+- V0.8: `reports/v08_smoke/20260727T064220084Z-47384/`
+- V0.7: `reports/v07_smoke/20260727T063910186Z-47384/`
+
+빠른 실행 정책은 프록시·상세·재질·QA의 일반 검토 gate를 계획에서
+생략하지만, agent-authored 계약의 completion marker와 V0.7 optimization
+plan의 exact-hash 전용 승인은 유지한다. 직접 레퍼런스 QA는 한 번만
+수행하고 생성형 QA target과 자동 revision은 사용하지 않는다. QA에서
+큰 누락, 카메라 위험 또는 실측 위험이 발견되면
+`requires_standard_workflow`로 중단하며 완료로 처리하지 않는다.
+
+이번 smoke는 새 정책의 계약·라우팅·계획·승인 경계를 격리 환경에서
+검증한 것이다. 실제 신규 레퍼런스 자산의 agent-authored SceneSpec,
+재질 및 시각 품질을 무인 완성했다고 주장하는 검증은 아니다.
+
+## 2026-07-20 기존 V0.8 baseline 기록
+
 검증 일자: 2026-07-20  
 프로젝트: `0.8.0`  
 Workflow contract: `0.8.0`  

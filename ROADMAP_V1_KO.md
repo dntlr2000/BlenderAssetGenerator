@@ -291,6 +291,7 @@ V0.7은 정적 자산만 지원합니다. 특정 Unity/Unreal 버전의 import p
    - `material_ready`
    - `qa_review`
    - `portable_ready`
+   - `delivered_for_review`
    - `completed`, `waiting_for_approval`, `failed`
 3. **Idempotent resume**
    - 완료된 단계의 exact fingerprint 확인
@@ -311,6 +312,15 @@ V0.7은 정적 자산만 지원합니다. 특정 Unity/Unreal 버전의 import p
    - handoff는 prompt와 조립 계약만 생성하고 목적지 프로젝트를 직접 수정하지 않음
    - Unity, Unreal 또는 기타 엔진을 기본값으로 추정하지 않음
    - 자동 Destination Adapter는 목적지가 확정된 뒤 V1.1 이후 범위
+7. **Background exterior execution policy**
+   - `standard` 기본값과 명시적 `background_exterior` opt-in 분리
+   - planning 시 `preview_only` 또는 `portable_package` 종료 범위 확정
+   - 단일 unmeasured static exterior에 한해 일반 proxy/detail/swatch/QA 승인을 축약
+   - 빠른 경로에서도 V0.7 exact optimization-plan 승인은 유지
+   - 로컬 결정론적 512 px 이하 재질, 직접 QA 1회, generated target·auto revision·외부 provider 금지
+   - 조건 이탈 시 `requires_standard_workflow`로 중지하고 기존 immutable plan은 변경하지 않음
+
+`background_exterior`는 두 번째 모델링 파이프라인이나 새 계약 버전이 아닙니다. 동일한 SceneSpec, MaterialPlan, QA와 V0.7 package 계약을 사용하는 V0.8 실행 정책이며, 사용자가 수동 검토 비용을 줄이는 대신 허용 범위와 자동 반복을 더 좁게 제한합니다.
 
 ### Artifact freshness 모델
 
@@ -344,6 +354,8 @@ V0.7은 정적 자산만 지원합니다. 특정 Unity/Unreal 버전의 import p
 - 모든 canonical 변경이 archive, fingerprint와 승인 경계를 통과함
 - 프로세스 중단 후 재개해도 완료된 immutable run을 손상시키지 않음
 - concept, add-view, revision, material-only, QA-only, portable-only plan이 기존 단계의 approval 경계를 보존
+- background preview/package plan이 일반 검토만 생략하고 전용 exact-hash 승인을 보존
+- background 정책이 measured, interior, runtime, external-provider 요청을 job 생성 전에 거부
 - 기존 V0.2~V0.7 workspace를 재작성하지 않고 상태를 재구성함
 - host failure, 명시적 retry, interrupted attempt, 동시 실행과 stale lock 복구 테스트 통과
 - 더 넓은 failure injection, junction escape, 장기 queue와 운영체제별 복구는 V0.9에서 확대

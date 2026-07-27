@@ -19,7 +19,7 @@
 | Stabilization evidence | `0.9.0` |
 | Codex Destination Handoff | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 389 tests passed, Ruff passed |
+| 최신 Python 회귀 | 411 tests passed, Ruff passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -35,6 +35,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
 - engine-neutral GLB, FBX, OBJ 정적 자산 preflight·최적화·package·clean-import round trip
 - 짧은 요청의 deterministic intent routing, 상태 재구성, 잠금, 재개, 취소와 승인 대기
+- 명시적으로 선택하는 배경 외관용 `background_exterior` 빠른 실행 정책과 `preview_only`/`portable_package` 종료 범위
 - privacy-safe 환경 probe와 bounded read-only workspace audit
 - 기존 V0.8 workflow만 처리하는 single-worker local queue와 immutable attempt receipt
 - exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
@@ -97,6 +98,28 @@ uv run cbm workflow-adapters
 
 새 자산은 고유한 소문자 `job_id`와 primary reference로 시작합니다.
 
+기본 `standard` 정책은 기존 승인 경계를 그대로 유지합니다. 실내·실측·리깅이 필요 없는 단순 배경 외관은 작업 계획 전에 `background_exterior`를 명시적으로 선택할 수 있습니다. 사용자는 PowerShell을 실행할 필요 없이 Codex에 다음처럼 요청하면 됩니다.
+
+```text
+새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.
+V0.8 plan_short_workflow를 execution_policy=background_exterior,
+delivery_scope=preview_only로 계획하고 MCP 도구로 진행해.
+실내, 치수 추정, 외부 이미지 provider, 생성 타깃, 자동 수정은 사용하지 마.
+한 번의 직접 Visual QA와 통합 PDF까지 완료한 뒤
+status=completed, milestone=delivered_for_review로 보고해.
+자산이 빠른 경로 조건을 벗어나면 완료 처리하지 말고 requires_standard_workflow로 멈춰.
+```
+
+`portable_package`를 선택하면 같은 빠른 제작 단계 뒤 V0.7로 이어지지만, LOD·Collider·cleanup 설정이 들어 있는 정확한 optimization plan SHA-256 승인은 생략하지 않습니다.
+
+```text
+새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 배경 외관 자산을 만들어
+engine-neutral FBX package까지 준비해.
+execution_policy=background_exterior, delivery_scope=portable_package,
+profile_id=fbx_interchange로 V0.8 workflow를 계획하고 MCP로 진행해.
+V0.7 review_plan의 정확한 SHA-256 승인이 필요해지면 반드시 멈춰서 보고해.
+```
+
 ```powershell
 uv run cbm workflow-plan `
   --request "이 이미지로 수정 가능한 정적 3D 프록시를 만들어줘" `
@@ -111,7 +134,7 @@ uv run cbm workflow-status temple_asset
 uv run cbm workflow-resume temple_asset <workflow-id>
 ```
 
-Agent가 작성해야 하는 modeling plan, SceneSpec, material plan 또는 revision plan에서는 workflow가 정상적으로 멈춥니다. 해당 산출물을 작성·검증한 뒤 현재 fingerprint와 함께 completion marker를 남겨야 다음 단계가 열립니다. 프록시, 재질 swatch, Visual QA 수정과 V0.7 optimization은 각각의 승인 경계를 유지합니다.
+Agent가 작성해야 하는 modeling plan, SceneSpec, material plan 또는 revision plan에서는 workflow가 정상적으로 멈춥니다. 해당 산출물을 작성·검증한 뒤 현재 fingerprint와 함께 completion marker를 남겨야 다음 단계가 열립니다. `standard`는 프록시·재질 swatch·QA·package의 일반 승인을 유지합니다. `background_exterior`는 계획에서 그 일반 gate만 생략하며, agent completion과 V0.6 revision·V0.7 optimization 같은 전용 exact-hash 승인은 그대로 유지합니다.
 
 기존 job은 reference hash가 같아도 `new_asset`으로 다시 시작할 수 없습니다.
 

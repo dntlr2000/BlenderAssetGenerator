@@ -221,6 +221,31 @@
       "title": "Request Sha256",
       "type": "string"
     },
+    "execution_policy": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "background_exterior"
+      ],
+      "title": "Execution Policy",
+      "type": "string"
+    },
+    "delivery_scope": {
+      "anyOf": [
+        {
+          "enum": [
+            "preview_only",
+            "portable_package"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Scope"
+    },
     "status": {
       "enum": [
         "planned",
@@ -246,6 +271,7 @@
         "material_ready",
         "qa_review",
         "portable_ready",
+        "delivered_for_review",
         "completed"
       ],
       "title": "Milestone",

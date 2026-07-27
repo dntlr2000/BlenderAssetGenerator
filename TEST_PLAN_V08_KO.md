@@ -29,6 +29,9 @@ uv run ruff check .
 - 승인된 실내 다각도 요청은 `interior_visual_qa`로만 라우팅하고 외관 `visual_qa`와 구분
 - auxiliary view는 staging 뒤 `add_view`로 승격
 - 서로 다른 job과 workflow의 파일 경로가 격리됨
+- `standard`가 생략된 legacy 요청·route·plan·state를 재작성 없이 읽음
+- `background_exterior`가 명시적으로 선택된 경우에만 활성화됨
+- `preview_only`와 `portable_package`가 request/route/plan/state에서 동일하게 보존됨
 
 ## Gate 3 — 상태와 신선도
 
@@ -59,6 +62,31 @@ uv run ruff check .
 - V0.7 optimization 일반 승인 대체 불가
 - optimization plan이 LOD/collider 설정을 표시한 뒤 exact hash 승인을 기다림
 
+### Background exterior approval matrix
+
+- `preview_only` plan에는 일반 승인과 portable 단계가 없음
+- `portable_package` plan에는 일반 승인이 없고 `optimization_plan` 전용 승인만 정확히 1개 존재
+- package/roundtrip은 optimization 승인 뒤에만 실행됨
+- `portable.final_approval` 생략은 runtime parity 승인으로 해석되지 않음
+- 빠른 경로는 InteriorScope, interior QA, visual revision, view replacement와 handoff 승인을 생성하거나 대체하지 않음
+
+## Gate 5.1 — Background exterior 제한
+
+- 새 `concept` 자산의 단일 primary reference만 허용
+- `measured`, scale anchor, auxiliary/replacement view, enabled interior, constraints는 fail-closed
+- 외부 provider budget은 0, texture cap은 512, 직접 QA iteration은 정확히 1
+- generated QA target과 자동 revision 단계가 plan에 없음
+- geometry는 `geometry.background_author` 한 단계에서 canonical SceneSpec을 한 번만 작성
+- 위험 발견 시 agent completion이 기록되지 않고 `requires_standard_workflow` 경계에서 멈춤
+- high-severity direct-reference/constraint finding은 fast plan을 비재시도 `blocked`로 중단
+- package continuation은 exact preview plan·terminal·QA run·source/build fingerprint를 V0.7 전에 재검증
+- 기존 `standard` proxy smoke의 단계 순서와 승인 gate는 변하지 않음
+- preview terminal은 `status=completed`, `milestone=delivered_for_review`로 구분됨
+- 완료된 preview의 package 확장은 새 workflow의 `geometry.prerequisite`에서 시작하며 이전 workflow를 변경하지 않음
+- 기존 job의 auxiliary view, enabled InteriorScope, interior semantic object와 constraints는 package fast lane에서 거부됨
+- 외부 provider 또는 512 px 초과 image manifest는 material agent completion에서 거부됨
+- `standard` 호출의 명시적 fast-only `delivery_scope`는 거부되고 legacy 누락 필드는 계속 읽힘
+
 ## Gate 6 — 목적지 경계
 
 - engine-neutral adapter만 available
@@ -88,6 +116,7 @@ material → build → render → inspect → validate
 - 전체 Python test 통과
 - Ruff 통과
 - V0.8 isolated smoke workflow 생성·분석·중지 성공
+- 격리된 background preview/package plan smoke 통과
 - V0.7.4 Blender 5.0.1 isolated gate 회귀 통과
 - 사용자 workspace와 canonical authoring 파일 변경 없음
 - 미지원 adapter를 지원된 것처럼 보고하지 않음

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
@@ -126,12 +127,16 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     assert state.status == "waiting_for_agent"
     assert state.current_step_id == "geometry.modeling_plan"
     assert state.milestone == "analyzed"
+    assert state.execution_policy == "standard"
+    assert state.delivery_scope == "preview_only"
     workflow = root / "workflows" / state.workflow_id
     assert (workflow / "request.json").is_file()
     assert (workflow / "routing.json").is_file()
     assert (workflow / "plan.json").is_file()
     plan = json.loads((workflow / "plan.json").read_text(encoding="utf-8"))
     step_ids = [item["step_id"] for item in plan["steps"]]
+    assert plan["execution_policy"] == "standard"
+    assert plan["delivery_scope"] == "preview_only"
     assert step_ids.index("proxy.report") < step_ids.index("geometry.proxy_approval")
     report = next(item for item in plan["steps"] if item["step_id"] == "proxy.report")
     assert report["tool_name"] == "generate_pdf_report"
@@ -139,6 +144,489 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     request_text = (workflow / "request.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in request_text
     assert "input/reference.png" in request_text
+
+
+def test_background_preview_plan_skips_only_generic_review_gates(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Plan one bounded exterior preview with direct QA and no generic approvals."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "background.png")
+    state = plan_workflow(
+        "Create a static exterior background prop and stop with a review preview.",
+        job_id="background_preview_asset",
+        reference_path=reference,
+        execution_policy="background_exterior",
+        delivery_scope="preview_only",
+    )
+    workflow_root = (
+        workspace
+        / "background_preview_asset"
+        / "workflows"
+        / state.workflow_id
+    )
+    request = json.loads((workflow_root / "request.json").read_text(encoding="utf-8"))
+    routing = json.loads((workflow_root / "routing.json").read_text(encoding="utf-8"))
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    steps = plan["steps"]
+    step_ids = [item["step_id"] for item in steps]
+
+    assert state.execution_policy == "background_exterior"
+    assert state.delivery_scope == "preview_only"
+    assert request["execution_policy"] == routing["execution_policy"] == (
+        "background_exterior"
+    )
+    assert request["delivery_scope"] == routing["delivery_scope"] == "preview_only"
+    assert request["requested_scope"] == "full"
+    assert request["budgets"]["max_qa_iterations"] == 1
+    assert request["budgets"]["max_texture_resolution"] == 512
+    assert request["budgets"]["external_provider_budget"] == 0
+    assert "geometry.background_author" in step_ids
+    assert "geometry.proxy_author" not in step_ids
+    assert "geometry.detail_author" not in step_ids
+    assert "qa.run" in step_ids
+    assert "background.eligibility" in step_ids
+    assert next(item for item in steps if item["step_id"] == "qa.run")[
+        "parameters"
+    ]["include_generated_target"] is False
+    assert not any(item["execution_mode"] == "approval" for item in steps)
+    assert not any(item["execution_mode"] == "specialized_approval" for item in steps)
+    assert not any(item["phase"] == "portable" for item in steps)
+    assert plan["terminal_step_id"].startswith("background_delivery_")
+    assert plan["terminal_step_id"].endswith(".report")
+
+
+def test_background_portable_plan_keeps_exact_optimization_approval(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep V0.7 optimization approval while omitting generic fast-lane reviews."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "background_package.png")
+    state = plan_workflow(
+        "Create a static exterior background asset and an engine-neutral FBX package.",
+        job_id="background_package_asset",
+        reference_path=reference,
+        execution_policy="background_exterior",
+        delivery_scope="portable_package",
+        profile_id="fbx_interchange",
+        destination_kind="engine_neutral",
+    )
+    workflow_root = (
+        workspace
+        / "background_package_asset"
+        / "workflows"
+        / state.workflow_id
+    )
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    steps = {item["step_id"]: item for item in plan["steps"]}
+    specialized = [
+        item
+        for item in steps.values()
+        if item["execution_mode"] == "specialized_approval"
+    ]
+
+    assert state.delivery_scope == "portable_package"
+    assert not any(
+        item["execution_mode"] == "approval" for item in steps.values()
+    )
+    assert [item["approval_gate"] for item in specialized] == [
+        "optimization_plan"
+    ]
+    assert steps["portable.optimize"]["depends_on"] == [
+        "portable.plan_approval"
+    ]
+    assert "portable.final_approval" not in steps
+    assert "portable.package" in steps
+    assert "portable.roundtrip" in steps
+    assert plan["terminal_step_id"].startswith("background_delivery_")
+    terminal_report = steps[plan["terminal_step_id"]]
+    assert terminal_report["parameters"]["qa_run_id"] != "latest"
+    assert terminal_report["parameters"]["optimization_run_id"] != "latest"
+    assert terminal_report["parameters"]["package_id"] != "latest"
+
+
+def test_background_preview_can_start_a_separate_package_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Extend an eligible preview job through a new immutable package-only workflow."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "background_extend.png")
+    preview = plan_workflow(
+        "Create a static exterior background preview.",
+        job_id="background_extend_asset",
+        reference_path=reference,
+        execution_policy="background_exterior",
+        delivery_scope="preview_only",
+    )
+    binding = orchestration_service.BackgroundPreviewBinding(
+        workflow_id=preview.workflow_id,
+        plan_sha256="1" * 64,
+        terminal_step_id="background_delivery_preview.report",
+        terminal_completion_fingerprint="2" * 64,
+        qa_run_id="v08-preview-qa",
+        source_fingerprint="3" * 64,
+        build_fingerprint="4" * 64,
+        bound_at=datetime.now(UTC),
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "_validate_background_execution",
+        lambda **_kwargs: binding,
+    )
+    root = workspace / "background_extend_asset"
+    seed = json.loads(
+        (ROOT / "examples" / "geometry_showcase" / "scene_spec.seed.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    seed["job_id"] = "background_extend_asset"
+    (root / "analysis" / "scene_spec.json").write_text(
+        json.dumps(seed, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    package = plan_workflow(
+        "Package the approved background asset as engine-neutral FBX.",
+        job_id="background_extend_asset",
+        intent="portable_package",
+        execution_policy="background_exterior",
+        delivery_scope="portable_package",
+        profile_id="fbx_interchange",
+        destination_kind="engine_neutral",
+    )
+    package_plan = json.loads(
+        (
+            root / "workflows" / package.workflow_id / "plan.json"
+        ).read_text(encoding="utf-8")
+    )
+
+    assert preview.workflow_id != package.workflow_id
+    assert package_plan["steps"][0]["step_id"] == "geometry.prerequisite"
+    assert package_plan["steps"][0]["tool_name"] == (
+        "verify_background_preview_prerequisite"
+    )
+    assert package_plan["steps"][0]["parameters"]["preview_workflow_id"] == (
+        preview.workflow_id
+    )
+    assert package_plan["steps"][0]["parameters"]["require_new_output"] is True
+    assert "geometry.background_author" not in {
+        item["step_id"] for item in package_plan["steps"]
+    }
+    assert any(
+        item["approval_gate"] == "optimization_plan"
+        for item in package_plan["steps"]
+    )
+    terminal = next(
+        item
+        for item in package_plan["steps"]
+        if item["step_id"] == package_plan["terminal_step_id"]
+    )
+    assert terminal["parameters"]["qa_run_id"] == binding.qa_run_id
+    assert terminal["parameters"]["optimization_run_id"] != "latest"
+    assert terminal["parameters"]["package_id"] != "latest"
+
+
+def test_background_preview_binding_rejects_changed_source(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Fail closed when a package continuation no longer matches preview provenance."""
+
+    binding = orchestration_service.BackgroundPreviewBinding(
+        workflow_id="wf-preview-binding",
+        plan_sha256="1" * 64,
+        terminal_step_id="background_delivery_preview.report",
+        terminal_completion_fingerprint="2" * 64,
+        qa_run_id="v08-preview-binding-qa",
+        source_fingerprint="3" * 64,
+        build_fingerprint="4" * 64,
+        bound_at=datetime.now(UTC),
+    )
+    request = orchestration_service.WorkflowRequest(
+        workflow_id="wf-package-binding",
+        job_id="background_binding_asset",
+        raw_request="Package the completed background preview.",
+        intent_hint="portable_package",
+        requested_scope="full",
+        execution_policy="background_exterior",
+        delivery_scope="portable_package",
+        background_preview_binding=binding,
+        budgets=orchestration_service.WorkflowBudgets(
+            max_qa_iterations=1,
+            max_texture_resolution=512,
+        ),
+        created_at=datetime.now(UTC),
+    )
+    output = (
+        "reports/background_delivery/"
+        "wf-package-binding_preview_binding.json"
+    )
+    step = orchestration_service.WorkflowStep(
+        step_id="geometry.prerequisite",
+        title="Verify exact preview",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="verify_background_preview_prerequisite",
+        parameters={
+            "require_new_output": True,
+            "output_path": output,
+            "preview_workflow_id": binding.workflow_id,
+            "preview_plan_sha256": binding.plan_sha256,
+            "preview_terminal_fingerprint": (
+                binding.terminal_completion_fingerprint
+            ),
+            "source_fingerprint": binding.source_fingerprint,
+            "build_fingerprint": binding.build_fingerprint,
+        },
+    )
+    returned = iter(
+        [
+            SimpleNamespace(
+                execution_policy="background_exterior",
+                delivery_scope="preview_only",
+            ),
+            SimpleNamespace(terminal_step_id=binding.terminal_step_id),
+            SimpleNamespace(),
+        ]
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "_load_model",
+        lambda *_args, **_kwargs: next(returned),
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "_reconcile_locked",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            status="completed",
+            milestone="delivered_for_review",
+            plan_sha256=binding.plan_sha256,
+            steps=[
+                SimpleNamespace(
+                    step_id=binding.terminal_step_id,
+                    completion_fingerprint=(
+                        binding.terminal_completion_fingerprint
+                    ),
+                )
+            ],
+        ),
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "collect_source_provenance",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            source_fingerprint="5" * 64,
+            build_fingerprint=binding.build_fingerprint,
+        ),
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "load_interior_scope",
+        lambda _root: None,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "load_scene_spec",
+        lambda _path: SimpleNamespace(),
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "list_interior_objects",
+        lambda _spec: [],
+    )
+
+    with pytest.raises(
+        orchestration_service.RequiresStandardWorkflow,
+        match="requires_standard_workflow",
+    ):
+        orchestration_service._verify_background_preview_prerequisite(
+            tmp_path,
+            request,
+            step,
+        )
+    result = json.loads((tmp_path / output).read_text(encoding="utf-8"))
+    assert result["ok"] is False
+    assert result["status"] == "requires_standard_workflow"
+    assert "canonical source fingerprint changed after preview" in (
+        result["blocking_reasons"]
+    )
+
+
+def test_background_package_extension_requires_a_completed_current_preview(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject package-only continuation when no current fast preview is complete."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "background_incomplete.png")
+    create_job("background_incomplete_asset", reference, "concept", [])
+    root = workspace / "background_incomplete_asset"
+    seed = json.loads(
+        (ROOT / "examples" / "geometry_showcase" / "scene_spec.seed.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    seed["job_id"] = "background_incomplete_asset"
+    (root / "analysis" / "scene_spec.json").write_text(
+        json.dumps(seed, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="current completed"):
+        plan_workflow(
+            "Package this background asset.",
+            job_id="background_incomplete_asset",
+            intent="portable_package",
+            execution_policy="background_exterior",
+            delivery_scope="portable_package",
+            profile_id="fbx_interchange",
+        )
+    assert not (root / "workflows" / "latest.json").exists()
+
+
+def test_background_post_qa_eligibility_fails_closed_on_major_direct_findings(
+    tmp_path: Path,
+) -> None:
+    """Block fast delivery on every high-severity direct-reference discrepancy."""
+
+    root = tmp_path / "job"
+    report_path = root / "qa" / "runs" / "run-001" / "visual_qa_report.json"
+    report_path.parent.mkdir(parents=True)
+    report = {
+        "schema_version": "0.6.0",
+        "job_id": "background_eligibility_asset",
+        "run_id": "run-001",
+        "request_sha256": "0" * 64,
+        "camera_fingerprint": "1" * 64,
+        "direct_metrics": {
+            "silhouette_iou": 0.5,
+            "silhouette_union_fraction": 0.5,
+            "global_bbox": {
+                "reference_bbox_norm": [0.1, 0.1, 0.9, 0.9],
+                "rendered_bbox_norm": [0.1, 0.1, 0.9, 0.9],
+                "center_error_norm": 0.0,
+                "size_error_norm": 0.0,
+            },
+            "semantic_deviations": [],
+            "overall_direct_score": 0.5,
+        },
+        "findings": [
+            {
+                "id": "direct.global_silhouette",
+                "target_ids": ["asset.landmark"],
+                "issue_type": "silhouette",
+                "severity": "high",
+                "description": "The overall silhouette differs materially.",
+                "evidence_sources": ["direct_reference"],
+                "confidence": 0.95,
+                "metrics": {},
+                "suggestion": None,
+            }
+        ],
+        "generated_target_status": "not_requested",
+        "warnings": [],
+    }
+    report_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    latest_path = root / "qa" / "latest.json"
+    latest_path.write_text(
+        json.dumps(
+            {
+                "visual_qa_report": (
+                    "qa/runs/run-001/visual_qa_report.json"
+                )
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    request = orchestration_service.WorkflowRequest(
+        workflow_id="wf-background-eligibility",
+        job_id="background_eligibility_asset",
+        raw_request="Create a background exterior.",
+        requested_scope="full",
+        execution_policy="background_exterior",
+        delivery_scope="preview_only",
+        budgets=orchestration_service.WorkflowBudgets(
+            max_qa_iterations=1,
+            max_texture_resolution=512,
+        ),
+        created_at=datetime.now(UTC),
+    )
+    step = orchestration_service.WorkflowStep(
+        step_id="background.eligibility",
+        title="Check eligibility",
+        phase="qa",
+        execution_mode="host",
+        tool_name="evaluate_background_delivery",
+        parameters={
+            "output_path": (
+                "reports/background_delivery/"
+                "wf-background-eligibility_eligibility.json"
+            )
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="requires_standard_workflow"):
+        orchestration_service._evaluate_background_delivery(root, request, step)
+    result = json.loads(
+        (
+            root
+            / "reports"
+            / "background_delivery"
+            / "wf-background-eligibility_eligibility.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert result["ok"] is False
+    assert result["status"] == "requires_standard_workflow"
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"mode": "measured"}, "concept mode"),
+        ({"scale_anchors": ["width = 2 m"]}, "scale anchors"),
+        ({"include_destination_handoff": True}, "destination handoff"),
+        ({"destination_kind": "unity"}, "engine-neutral"),
+        (
+            {"budgets": orchestration_service.WorkflowBudgets(
+                external_provider_budget=1
+            )},
+            "external provider",
+        ),
+    ],
+)
+def test_background_unsafe_inputs_fail_before_job_creation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    kwargs: dict,
+    message: str,
+) -> None:
+    """Reject excluded fast-lane inputs before persisting canonical job evidence."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "unsafe_background.png")
+    with pytest.raises(ValueError, match=message):
+        plan_workflow(
+            "Create a static exterior background prop.",
+            job_id="unsafe_background_asset",
+            reference_path=reference,
+            execution_policy="background_exterior",
+            delivery_scope="preview_only",
+            **kwargs,
+        )
+    assert not (workspace / "unsafe_background_asset").exists()
 
 
 def test_analysis_scaffold_is_valid_but_not_agent_complete(
@@ -395,6 +883,54 @@ def test_failed_host_step_requires_explicit_retry(
         "failed",
         "succeeded",
     ]
+
+
+def test_requires_standard_workflow_is_blocked_and_not_retryable(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Preserve fast-lane disqualification as a terminal blocked decision."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    primary = _image(tmp_path / "background_blocked.png")
+    state = plan_workflow(
+        "Create one static exterior background preview.",
+        job_id="background_blocked_asset",
+        reference_path=primary,
+        execution_policy="background_exterior",
+        delivery_scope="preview_only",
+    )
+
+    def require_standard(*_args, **_kwargs) -> None:
+        """Simulate one deterministic fast-lane eligibility disqualification."""
+
+        raise orchestration_service.RequiresStandardWorkflow(
+            "requires_standard_workflow: fixture"
+        )
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        require_standard,
+    )
+    blocked = resume_workflow(
+        "background_blocked_asset",
+        state.workflow_id,
+        max_host_steps=1,
+    )
+
+    assert blocked.status == "blocked"
+    assert "new immutable standard workflow" in (blocked.next_action or "")
+    assert next(
+        item for item in blocked.steps if item.step_id == "reference.analyze"
+    ).status == "blocked"
+    with pytest.raises(RuntimeError, match="No current failed"):
+        resume_workflow(
+            "background_blocked_asset",
+            state.workflow_id,
+            retry_failed=True,
+        )
 
 
 def test_resume_finalizes_an_interrupted_attempt_receipt(

@@ -294,6 +294,39 @@ def get_modeling_capabilities() -> dict:
                 "portable_package",
             ],
             "default_new_asset_scope": "proxy_only",
+            "execution_policies": ["standard", "background_exterior"],
+            "delivery_scopes": ["preview_only", "portable_package"],
+            "background_exterior": {
+                "opt_in_only": True,
+                "eligible_assets": (
+                    "new concept static exterior background assets, plus package-only "
+                    "extension of an eligible existing job"
+                ),
+                "delivery_scope_behavior": (
+                    "explicit only for background_exterior; standard keeps legacy scope"
+                ),
+                "generic_reviews_skipped": [
+                    "proxy_geometry",
+                    "detailed_geometry",
+                    "material_swatches",
+                    "qa_review",
+                    "final_package",
+                ],
+                "specialized_approvals_preserved": ["optimization_plan"],
+                "direct_qa_runs": 1,
+                "generated_target": False,
+                "automatic_revision": False,
+                "automatic_revision_iterations": 0,
+                "texture_resolution_cap": 512,
+                "external_provider_budget": 0,
+                "package_continuation_binding": (
+                    "exact preview plan, terminal completion, QA run, "
+                    "canonical source, and embedded build fingerprints"
+                ),
+                "disqualification_outcome": (
+                    "blocked requires_standard_workflow; create a new standard workflow"
+                ),
+            },
             "resume": "ready deterministic host steps only",
             "agent_completion": "exact hash-bound completion marker",
             "generic_approval": "exact gate and artifact fingerprint only",
@@ -398,6 +431,8 @@ def plan_short_workflow(
     reference_path: str | None = None,
     intent: str = "auto",
     scope: str = "auto",
+    execution_policy: str = "standard",
+    delivery_scope: str | None = None,
     mode: str = "concept",
     view_kind: str | None = None,
     replace_view: bool = False,
@@ -421,6 +456,8 @@ def plan_short_workflow(
         reference_path=reference_path,
         intent=intent,
         scope=scope,
+        execution_policy=execution_policy,
+        delivery_scope=delivery_scope,
         mode=mode,
         view_kind=view_kind,
         replace_view=replace_view,

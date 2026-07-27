@@ -1250,6 +1250,12 @@ def workflow_plan_command(
     reference_path: Annotated[str | None, typer.Option("--reference-path")] = None,
     intent: Annotated[str, typer.Option("--intent")] = "auto",
     scope: Annotated[str, typer.Option("--scope")] = "auto",
+    execution_policy: Annotated[
+        str, typer.Option("--execution-policy")
+    ] = "standard",
+    delivery_scope: Annotated[
+        str | None, typer.Option("--delivery-scope")
+    ] = None,
     mode: Annotated[str, typer.Option("--mode")] = "concept",
     view_kind: Annotated[str | None, typer.Option("--view-kind")] = None,
     replace_view: Annotated[bool, typer.Option("--replace-view")] = False,
@@ -1290,6 +1296,8 @@ def workflow_plan_command(
         reference_path=reference_path,
         intent=intent,
         scope=scope,
+        execution_policy=execution_policy,
+        delivery_scope=delivery_scope,
         mode=mode,
         view_kind=view_kind,
         replace_view=replace_view,

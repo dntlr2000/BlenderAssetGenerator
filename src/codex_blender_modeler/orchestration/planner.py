@@ -146,6 +146,7 @@ def _append_pdf_report(
         "material": "material",
         "qa": "qa",
         "export": "portable",
+        "full": "qa",
     }[scope]
     steps.append(
         _step(
@@ -256,6 +257,97 @@ def _append_proxy_flow(steps: list[WorkflowStep], dependency: str) -> str:
     return "geometry.proxy_approval"
 
 
+def _append_background_geometry_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+) -> str:
+    """Append one bounded exterior authoring pass without intermediate approvals."""
+
+    steps.extend(
+        [
+            _step(
+                "reference.analyze",
+                "Analyze immutable background reference evidence",
+                "analysis",
+                "host",
+                tool="analyze_reference",
+                depends_on=[dependency],
+                outputs=[
+                    _artifact(
+                        "reference.analysis",
+                        "analysis/reference_analysis.json",
+                        acceptance="valid_json",
+                        canonical=True,
+                    ),
+                    _artifact(
+                        "reference.camera",
+                        "analysis/camera_solution.json",
+                        acceptance="valid_json",
+                        canonical=True,
+                    ),
+                ],
+            ),
+            _step(
+                "geometry.modeling_plan",
+                "Author bounded exterior modeling plan",
+                "analysis",
+                "agent",
+                tool="author_modeling_plan",
+                depends_on=["reference.analyze"],
+                outputs=[
+                    _artifact(
+                        "geometry.modeling_plan.output",
+                        "analysis/modeling_plan.json",
+                        acceptance="valid_json",
+                        canonical=True,
+                    )
+                ],
+                instructions=[
+                    "Plan one static exterior background asset with stable semantic IDs.",
+                    "Record hidden geometry as inferred and never create an interior.",
+                    "If measured, rigged, interactive, or high-ambiguity work is required, "
+                    "stop and report requires_standard_workflow without recording completion.",
+                ],
+            ),
+            _step(
+                "geometry.background_author",
+                "Author moderate-detail background exterior SceneSpec",
+                "geometry",
+                "agent",
+                tool="author_background_exterior_scene_spec",
+                depends_on=["geometry.modeling_plan"],
+                outputs=[
+                    _artifact(
+                        "geometry.background_scene_spec",
+                        "analysis/scene_spec.json",
+                        acceptance="valid_json",
+                        canonical=True,
+                    )
+                ],
+                instructions=[
+                    "Create one bounded moderate-detail exterior pass, not a rough proxy.",
+                    "Prioritize silhouette, proportions, and medium structures over micro-detail.",
+                    "Do not create interiors, rigs, animation, gameplay logic, or "
+                    "engine-specific geometry.",
+                    "If the evidence no longer qualifies for the fast lane, stop and report "
+                    "requires_standard_workflow without recording completion.",
+                ],
+            ),
+        ]
+    )
+    validated = _append_build_cycle(
+        steps,
+        "geometry.background_author",
+        "background_geometry",
+    )
+    return _append_pdf_report(
+        steps,
+        validated,
+        "background_geometry",
+        "build",
+    )
+
+
 def _append_detail_flow(steps: list[WorkflowStep], dependency: str) -> str:
     """Append one agent-authored detail pass and a separately approved result."""
 
@@ -296,8 +388,13 @@ def _append_detail_flow(steps: list[WorkflowStep], dependency: str) -> str:
     return "geometry.detail_approval"
 
 
-def _append_material_flow(steps: list[WorkflowStep], dependency: str) -> str:
-    """Append V0.5 material contracts, runtime inspection, swatches, and approval."""
+def _append_material_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+    *,
+    require_approval: bool = True,
+) -> str:
+    """Append V0.5 material evidence and optionally its generic review gate."""
 
     steps.extend(
         [
@@ -335,6 +432,8 @@ def _append_material_flow(steps: list[WorkflowStep], dependency: str) -> str:
                 instructions=[
                     "Use only whitelisted Blender 5-compatible shader recipes.",
                     "Keep portable surface semantics separate from Blender master graphs.",
+                    "Do not call external texture or image providers unless the immutable "
+                    "workflow budget permits them.",
                 ],
             ),
             _step(
@@ -394,6 +493,8 @@ def _append_material_flow(steps: list[WorkflowStep], dependency: str) -> str:
         ]
     )
     report = _append_pdf_report(steps, "material.swatches", "material", "material")
+    if not require_approval:
+        return report
     steps.append(
         _step(
             "material.approval",
@@ -407,9 +508,21 @@ def _append_material_flow(steps: list[WorkflowStep], dependency: str) -> str:
     return "material.approval"
 
 
-def _append_qa_flow(steps: list[WorkflowStep], dependency: str) -> str:
-    """Append one V0.6 direct-reference QA run and non-executing review gate."""
+def _append_qa_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+    *,
+    require_review: bool = True,
+    run_id: str | None = None,
+) -> str:
+    """Append direct-reference QA and optionally its non-executing review gate."""
 
+    run_parameters: dict[str, str | int | float | bool] = {
+        "include_generated_target": False,
+        "require_new_output": True,
+    }
+    if run_id is not None:
+        run_parameters["run_id"] = run_id
     steps.extend(
         [
             _step(
@@ -426,10 +539,7 @@ def _append_qa_flow(steps: list[WorkflowStep], dependency: str) -> str:
                         acceptance="valid_json",
                     )
                 ],
-                parameters={
-                    "include_generated_target": False,
-                    "require_new_output": True,
-                },
+                parameters=run_parameters,
             ),
         ]
     )
@@ -438,8 +548,10 @@ def _append_qa_flow(steps: list[WorkflowStep], dependency: str) -> str:
         "qa.run",
         "qa",
         "qa",
-        parameters={"qa_run_id": "latest"},
+        parameters={"qa_run_id": run_id or "latest"},
     )
+    if not require_review:
+        return report
     steps.append(
         _step(
             "qa.review",
@@ -456,6 +568,43 @@ def _append_qa_flow(steps: list[WorkflowStep], dependency: str) -> str:
         )
     )
     return "qa.review"
+
+
+def _append_background_eligibility(
+    steps: list[WorkflowStep],
+    dependency: str,
+    request: WorkflowRequest,
+) -> str:
+    """Append a fail-closed post-QA check before fast delivery can complete."""
+
+    output = (
+        "reports/background_delivery/"
+        f"{request.workflow_id}_eligibility.json"
+    )
+    steps.append(
+        _step(
+            "background.eligibility",
+            "Check whether direct QA still qualifies for background delivery",
+            "qa",
+            "host",
+            tool="evaluate_background_delivery",
+            depends_on=[dependency],
+            outputs=[
+                _artifact(
+                    "background.delivery_eligibility",
+                    output,
+                    acceptance="json_ok",
+                )
+            ],
+            parameters={"output_path": output},
+            instructions=[
+                "Every high-severity direct-reference or constraint finding requires "
+                "a separate standard workflow.",
+                "This check never applies a QA candidate or edits canonical geometry.",
+            ],
+        )
+    )
+    return "background.eligibility"
 
 
 def _append_interior_qa_flow(
@@ -603,13 +752,12 @@ def _append_portable_flow(
     steps: list[WorkflowStep],
     dependency: str,
     request: WorkflowRequest,
+    *,
+    require_final_review: bool = True,
 ) -> str:
-    """Append V0.7 preflight, LOD/collider review, packaging, and round-trip gates."""
+    """Append V0.7 packaging while optionally retaining its generic final review."""
 
-    suffix = request.workflow_id[-8:]
-    run_id = f"v08-{suffix}"
-    conversion_id = f"v08-{suffix}-materials"
-    package_id = f"v08-{suffix}-package"
+    run_id, conversion_id, package_id = _portable_ids(request)
     profile_path = f"asset_profiles/{request.profile_id}.json"
     run_root = f"optimization/runs/{run_id}"
     package_root = f"exports/packages/{request.profile_id}/{package_id}"
@@ -790,18 +938,21 @@ def _append_portable_flow(
             "package_id": package_id,
         },
     )
-    steps.append(
-        _step(
-            "portable.final_approval",
-            "Approve exact portable package and round-trip evidence",
-            "portable",
-            "approval",
-            depends_on=[report],
-            gate="final_package",
+    terminal = report
+    if require_final_review:
+        steps.append(
+            _step(
+                "portable.final_approval",
+                "Approve exact portable package and round-trip evidence",
+                "portable",
+                "approval",
+                depends_on=[report],
+                gate="final_package",
+            )
         )
-    )
-    terminal = "portable.final_approval"
+        terminal = "portable.final_approval"
     if request.include_destination_handoff:
+        suffix = request.workflow_id[-8:]
         handoff_id = f"v08-{suffix}-handoff"
         handoff_root = (
             "exports/destination_handoffs/"
@@ -866,6 +1017,17 @@ def _append_portable_flow(
     return terminal
 
 
+def _portable_ids(request: WorkflowRequest) -> tuple[str, str, str]:
+    """Derive stable V0.7 run, material-conversion, and package IDs from a workflow."""
+
+    suffix = request.workflow_id[-8:]
+    return (
+        f"v08-{suffix}",
+        f"v08-{suffix}-materials",
+        f"v08-{suffix}-package",
+    )
+
+
 def _scope_for_routing(request: WorkflowRequest, routing: IntentRouting) -> WorkflowScope:
     """Keep explicit scope while applying conservative intent-specific defaults."""
 
@@ -879,8 +1041,15 @@ def build_workflow_plan(
     request_sha256: str,
     routing_sha256: str,
 ) -> WorkflowPlan:
-    """Build one immutable plan that preserves every V0.4-V0.7 approval boundary."""
+    """Build one immutable plan while preserving every specialized safety approval."""
 
+    if (
+        request.execution_policy != routing.execution_policy
+        or request.delivery_scope != routing.delivery_scope
+    ):
+        raise ValueError(
+            "workflow request and routing execution policies do not match"
+        )
     steps: list[WorkflowStep] = []
     scope = _scope_for_routing(request, routing)
     if routing.intent == "new_asset":
@@ -901,12 +1070,61 @@ def build_workflow_plan(
                 ],
             )
         )
-        terminal = _append_proxy_flow(steps, "job.created")
-        if scope == "full":
-            terminal = _append_detail_flow(steps, terminal)
-            terminal = _append_material_flow(steps, terminal)
-            terminal = _append_qa_flow(steps, terminal)
-            terminal = _append_portable_flow(steps, terminal, request)
+        if request.execution_policy == "background_exterior":
+            qa_run_id = f"v08-{request.workflow_id[-8:]}-qa"
+            terminal = _append_background_geometry_flow(steps, "job.created")
+            terminal = _append_material_flow(
+                steps,
+                terminal,
+                require_approval=False,
+            )
+            terminal = _append_qa_flow(
+                steps,
+                terminal,
+                require_review=False,
+                run_id=qa_run_id,
+            )
+            terminal = _append_background_eligibility(
+                steps,
+                terminal,
+                request,
+            )
+            if request.delivery_scope == "portable_package":
+                terminal = _append_portable_flow(
+                    steps,
+                    terminal,
+                    request,
+                    require_final_review=False,
+                )
+            delivery_prefix = f"background_delivery_{request.workflow_id[-8:]}"
+            report_parameters: dict[str, str | int | float | bool] = {
+                "qa_run_id": qa_run_id,
+            }
+            if request.delivery_scope == "portable_package":
+                optimization_run_id, _conversion_id, package_id = _portable_ids(
+                    request
+                )
+                report_parameters.update(
+                    {
+                        "optimization_run_id": optimization_run_id,
+                        "package_id": package_id,
+                    }
+                )
+            terminal = _append_pdf_report(
+                steps,
+                terminal,
+                delivery_prefix,
+                "full",
+                parameters=report_parameters,
+            )
+        else:
+            terminal = _append_proxy_flow(steps, "job.created")
+            if scope == "full":
+                terminal = _append_detail_flow(steps, terminal)
+                terminal = _append_material_flow(steps, terminal)
+                terminal = _append_qa_flow(steps, terminal)
+                if request.delivery_scope in {None, "portable_package"}:
+                    terminal = _append_portable_flow(steps, terminal, request)
     elif routing.intent == "add_measured_view":
         steps.append(
             _step(
@@ -1119,23 +1337,77 @@ def build_workflow_plan(
             request,
         )
     else:
+        prerequisite_tool = "verify_geometry_prerequisite"
+        prerequisite_title = "Verify current geometry validation"
+        prerequisite_parameters: dict[str, str | int | float | bool] = {}
+        prerequisite_output = _artifact(
+            "portable.geometry_validation",
+            "reports/validation.json",
+            acceptance="json_ok",
+        )
+        if request.execution_policy == "background_exterior":
+            binding = request.background_preview_binding
+            if binding is None:
+                raise ValueError(
+                    "background package continuation requires an exact preview binding"
+                )
+            prerequisite_tool = "verify_background_preview_prerequisite"
+            prerequisite_title = "Verify exact completed background preview binding"
+            binding_output = (
+                "reports/background_delivery/"
+                f"{request.workflow_id}_preview_binding.json"
+            )
+            prerequisite_parameters = {
+                "require_new_output": True,
+                "output_path": binding_output,
+                "preview_workflow_id": binding.workflow_id,
+                "preview_plan_sha256": binding.plan_sha256,
+                "preview_terminal_fingerprint": (
+                    binding.terminal_completion_fingerprint
+                ),
+                "source_fingerprint": binding.source_fingerprint,
+                "build_fingerprint": binding.build_fingerprint,
+            }
+            prerequisite_output = _artifact(
+                "portable.background_preview_binding",
+                binding_output,
+                acceptance="json_ok",
+            )
         steps.append(
             _step(
                 "geometry.prerequisite",
-                "Verify current geometry validation",
+                prerequisite_title,
                 "geometry",
                 "host",
-                tool="verify_geometry_prerequisite",
-                outputs=[
-                    _artifact(
-                        "portable.geometry_validation",
-                        "reports/validation.json",
-                        acceptance="json_ok",
-                    )
-                ],
+                tool=prerequisite_tool,
+                outputs=[prerequisite_output],
+                parameters=prerequisite_parameters,
             )
         )
-        terminal = _append_portable_flow(steps, "geometry.prerequisite", request)
+        terminal = _append_portable_flow(
+            steps,
+            "geometry.prerequisite",
+            request,
+            require_final_review=(
+                request.execution_policy != "background_exterior"
+            ),
+        )
+        if request.execution_policy == "background_exterior":
+            delivery_prefix = f"background_delivery_{request.workflow_id[-8:]}"
+            optimization_run_id, _conversion_id, package_id = _portable_ids(
+                request
+            )
+            terminal = _append_pdf_report(
+                steps,
+                terminal,
+                delivery_prefix,
+                "full",
+                parameters={
+                    "qa_run_id": request.background_preview_binding.qa_run_id,
+                    "optimization_run_id": optimization_run_id,
+                    "package_id": package_id,
+                },
+            )
     return WorkflowPlan(
         workflow_id=request.workflow_id,
         job_id=request.job_id,
@@ -1143,6 +1415,8 @@ def build_workflow_plan(
         routing_sha256=routing_sha256,
         intent=routing.intent,
         scope=scope,
+        execution_policy=request.execution_policy,
+        delivery_scope=request.delivery_scope,
         destination=routing.destination,
         steps=steps,
         terminal_step_id=terminal,
@@ -1150,5 +1424,11 @@ def build_workflow_plan(
         notes=[
             "V0.8 coordinates existing V0.4-V0.7 contracts; it does not infer hidden geometry.",
             "Agent steps require exact output completion markers before dependent host steps run.",
+            (
+                "background_exterior omits generic review gates but never bypasses "
+                "specialized approvals."
+                if request.execution_policy == "background_exterior"
+                else "standard preserves every generic and specialized review boundary."
+            ),
         ],
     )

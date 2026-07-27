@@ -47,3 +47,16 @@ def test_v08_gates_retain_the_v07_regression_path() -> None:
         source = _source(path)
         assert "run_v07_gates" in source
         assert "SkipV07" in source or "skip-v07" in source
+
+
+def test_v08_gates_cover_bounded_background_plans() -> None:
+    """Both gates prove fast preview and package plans without using a user job."""
+
+    for path in (POWERSHELL_GATE, SHELL_GATE):
+        source = _source(path)
+        assert "v08_background_preview_smoke" in source
+        assert "v08_background_package_smoke" in source
+        assert "background_exterior" in source
+        assert "preview_only" in source
+        assert "optimization_plan" in source
+        assert "portable.final_approval" in source

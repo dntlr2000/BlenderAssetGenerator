@@ -67,6 +67,8 @@ WorkflowScope = Literal[
     "portable_only",
     "full",
 ]
+ExecutionPolicy = Literal["standard", "background_exterior"]
+DeliveryScope = Literal["preview_only", "portable_package"]
 ExecutionMode = Literal["host", "agent", "approval", "specialized_approval", "manual"]
 StepStatus = Literal[
     "pending",
@@ -100,6 +102,7 @@ Milestone = Literal[
     "material_ready",
     "qa_review",
     "portable_ready",
+    "delivered_for_review",
     "completed",
 ]
 IntegrityStatus = Literal["valid", "corrupt", "missing"]
@@ -143,6 +146,19 @@ class WorkflowBudgets(V08StrictModel):
     max_texture_resolution: int = Field(default=2048, ge=16, le=8192)
     max_lod0_triangles: int | None = Field(default=None, ge=1)
     external_provider_budget: int = Field(default=0, ge=0, le=100)
+
+
+class BackgroundPreviewBinding(V08StrictModel):
+    """Bind a package continuation to one exact completed fast-preview source."""
+
+    workflow_id: WorkflowId
+    plan_sha256: Sha256
+    terminal_step_id: StepId
+    terminal_completion_fingerprint: Sha256
+    qa_run_id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
+    source_fingerprint: Sha256
+    build_fingerprint: Sha256
+    bound_at: datetime
 
 
 class DestinationRequest(V08StrictModel):
@@ -192,6 +208,9 @@ class WorkflowRequest(V08StrictModel):
     raw_request: str = Field(min_length=1, max_length=4000)
     intent_hint: IntentHint = "auto"
     requested_scope: WorkflowScope
+    execution_policy: ExecutionPolicy = "standard"
+    delivery_scope: DeliveryScope | None = None
+    background_preview_binding: BackgroundPreviewBinding | None = None
     mode: Literal["concept", "measured"] = "concept"
     primary_reference: WorkflowInputArtifact | None = None
     staged_view: WorkflowInputArtifact | None = None
@@ -207,7 +226,7 @@ class WorkflowRequest(V08StrictModel):
 
     @model_validator(mode="after")
     def validate_view_request(self) -> WorkflowRequest:
-        """Keep staged auxiliary views distinct from immutable primary evidence."""
+        """Keep staged views distinct and enforce the bounded background fast lane."""
 
         if self.staged_view is not None and self.staged_view.kind == "reference":
             raise ValueError("staged auxiliary view cannot use kind=reference")
@@ -215,6 +234,63 @@ class WorkflowRequest(V08StrictModel):
             raise ValueError("replace_existing_view requires a staged auxiliary view")
         if self.include_destination_handoff and self.profile_id == "obj_legacy":
             raise ValueError("destination handoff supports GLB and FBX packages only")
+        if self.execution_policy == "background_exterior":
+            if self.intent_hint not in {"auto", "new_asset", "portable_package"}:
+                raise ValueError(
+                    "background_exterior supports only new_asset or portable_package"
+                )
+            if self.requested_scope != "full":
+                raise ValueError(
+                    "background_exterior requires requested_scope=full"
+                )
+            if self.mode != "concept":
+                raise ValueError(
+                    "background_exterior supports only unmeasured concept assets"
+                )
+            if self.staged_view is not None or self.replace_existing_view:
+                raise ValueError(
+                    "background_exterior cannot add or replace measured views"
+                )
+            if self.scale_anchors:
+                raise ValueError(
+                    "background_exterior cannot contain measured scale anchors"
+                )
+            if self.include_destination_handoff:
+                raise ValueError(
+                    "background_exterior cannot generate a destination handoff"
+                )
+            if self.destination.kind not in {"unspecified", "engine_neutral"}:
+                raise ValueError(
+                    "background_exterior supports only an engine-neutral destination"
+                )
+            if self.budgets.max_qa_iterations != 1:
+                raise ValueError(
+                    "background_exterior permits exactly one direct QA iteration"
+                )
+            if self.budgets.max_texture_resolution > 512:
+                raise ValueError(
+                    "background_exterior limits texture resolution to 512"
+                )
+            if self.budgets.external_provider_budget != 0:
+                raise ValueError(
+                    "background_exterior forbids external provider calls"
+                )
+            if self.delivery_scope is None:
+                raise ValueError(
+                    "background_exterior requires an explicit resolved delivery_scope"
+                )
+            if (
+                self.background_preview_binding is not None
+                and self.delivery_scope != "portable_package"
+            ):
+                raise ValueError(
+                    "background preview bindings are valid only for portable_package "
+                    "continuations"
+                )
+        elif self.background_preview_binding is not None:
+            raise ValueError(
+                "background_preview_binding is allowed only for background_exterior"
+            )
         return self
 
 
@@ -225,12 +301,29 @@ class IntentRouting(V08StrictModel):
     workflow_id: WorkflowId
     job_id: JobId
     intent: WorkflowIntent
+    execution_policy: ExecutionPolicy = "standard"
+    delivery_scope: DeliveryScope | None = None
     confidence: float = Field(ge=0, le=1)
     reasons: list[str] = Field(min_length=1)
     matched_terms: list[str] = Field(default_factory=list)
     requires_clarification: bool = False
     destination: DestinationResolution
     routed_at: datetime
+
+    @model_validator(mode="after")
+    def validate_execution_policy(self) -> IntentRouting:
+        """Restrict the background fast lane to a newly routed static asset."""
+
+        if self.execution_policy == "background_exterior":
+            if self.intent not in {"new_asset", "portable_package"}:
+                raise ValueError(
+                    "background_exterior routing requires new_asset or portable_package"
+                )
+            if self.intent == "portable_package" and self.delivery_scope != "portable_package":
+                raise ValueError(
+                    "background_exterior portable routing requires portable_package delivery"
+                )
+        return self
 
 
 class ArtifactRequirement(V08StrictModel):
@@ -289,6 +382,8 @@ class WorkflowPlan(V08StrictModel):
     routing_sha256: Sha256
     intent: WorkflowIntent
     scope: WorkflowScope
+    execution_policy: ExecutionPolicy = "standard"
+    delivery_scope: DeliveryScope | None = None
     destination: DestinationResolution
     steps: list[WorkflowStep] = Field(min_length=1)
     terminal_step_id: StepId
@@ -297,7 +392,7 @@ class WorkflowPlan(V08StrictModel):
 
     @model_validator(mode="after")
     def validate_ordered_dag(self) -> WorkflowPlan:
-        """Require unique ordered steps whose dependencies only point backward."""
+        """Require an ordered DAG and preserve all fast-lane safety boundaries."""
 
         ids = [step.step_id for step in self.steps]
         if len(ids) != len(set(ids)):
@@ -314,6 +409,149 @@ class WorkflowPlan(V08StrictModel):
                     f"workflow step dependencies must precede the step: {sorted(unknown)}"
                 )
             seen.add(step.step_id)
+        if self.execution_policy == "background_exterior":
+            if self.intent not in {"new_asset", "portable_package"} or self.scope != "full":
+                raise ValueError(
+                    "background_exterior plans require new_asset or portable_package "
+                    "with full scope"
+                )
+            if self.delivery_scope is None:
+                raise ValueError(
+                    "background_exterior plans require a resolved delivery_scope"
+                )
+            generic_approvals = [
+                step.step_id
+                for step in self.steps
+                if step.execution_mode == "approval"
+            ]
+            if generic_approvals:
+                raise ValueError(
+                    "background_exterior plans cannot contain generic approvals: "
+                    f"{generic_approvals}"
+                )
+            specialized_gates = [
+                step.approval_gate
+                for step in self.steps
+                if step.execution_mode == "specialized_approval"
+            ]
+            portable_steps = [
+                step for step in self.steps if step.phase == "portable"
+            ]
+            step_map = {step.step_id: step for step in self.steps}
+            required_common = [
+                "job.created",
+                "reference.analyze",
+                "geometry.modeling_plan",
+                "geometry.background_author",
+                "background_geometry.build",
+                "background_geometry.render",
+                "background_geometry.inspect",
+                "background_geometry.validate",
+                "background_geometry.report",
+                "material.scaffold",
+                "material.author",
+                "material.contract_validate",
+                "material.build",
+                "material.inspect",
+                "material.swatches",
+                "material.report",
+                "qa.run",
+                "qa.report",
+                "background.eligibility",
+            ]
+            if self.intent == "new_asset":
+                missing_common = [
+                    step_id for step_id in required_common if step_id not in step_map
+                ]
+                if missing_common:
+                    raise ValueError(
+                        "background_exterior plan is missing required bounded steps: "
+                        f"{missing_common}"
+                    )
+                common_positions = [ids.index(step_id) for step_id in required_common]
+                if common_positions != sorted(common_positions):
+                    raise ValueError(
+                        "background_exterior common steps must preserve their fixed order"
+                    )
+                qa_steps = [step for step in self.steps if step.step_id == "qa.run"]
+                if (
+                    len(qa_steps) != 1
+                    or qa_steps[0].parameters.get("include_generated_target") is not False
+                ):
+                    raise ValueError(
+                        "background_exterior requires one direct QA run without a "
+                        "generated target"
+                    )
+            if self.delivery_scope == "preview_only" and portable_steps:
+                raise ValueError(
+                    "preview_only background plans cannot contain portable steps"
+                )
+            if self.delivery_scope == "preview_only" and specialized_gates:
+                raise ValueError(
+                    "preview_only background plans cannot contain specialized approvals"
+                )
+            if self.delivery_scope == "portable_package":
+                required_portable = [
+                    "portable.profile",
+                    "portable.preflight",
+                    "portable.plan",
+                    "portable.plan_approval",
+                    "portable.optimize",
+                    "portable.material_convert",
+                    "portable.package",
+                    "portable.roundtrip",
+                    "portable.report",
+                ]
+                missing_portable = [
+                    step_id for step_id in required_portable if step_id not in step_map
+                ]
+                if missing_portable:
+                    raise ValueError(
+                        "portable background plan is missing required V0.7 steps: "
+                        f"{missing_portable}"
+                    )
+                portable_positions = [ids.index(step_id) for step_id in required_portable]
+                if portable_positions != sorted(portable_positions):
+                    raise ValueError(
+                        "portable background steps must preserve their fixed order"
+                    )
+                if step_map["portable.optimize"].depends_on != [
+                    "portable.plan_approval"
+                ]:
+                    raise ValueError(
+                        "portable optimization must depend on its specialized approval"
+                    )
+                optimization_approvals = [
+                    step
+                    for step in self.steps
+                    if step.approval_gate == "optimization_plan"
+                ]
+                if len(optimization_approvals) != 1:
+                    raise ValueError(
+                        "portable background plans require exactly one "
+                        "optimization_plan approval"
+                    )
+                if specialized_gates != ["optimization_plan"]:
+                    raise ValueError(
+                        "portable background plans permit only the exact "
+                        "optimization_plan approval"
+                    )
+                if self.intent == "portable_package":
+                    if self.terminal_step_id not in ids:
+                        raise ValueError(
+                            "background package continuation requires a terminal step"
+                        )
+                    prerequisite = step_map.get("geometry.prerequisite")
+                    if (
+                        prerequisite is None
+                        or prerequisite.tool_name
+                        != "verify_background_preview_prerequisite"
+                        or prerequisite.parameters.get("require_new_output") is not True
+                    ):
+                        raise ValueError(
+                            "background package continuation requires an exact "
+                            "preview-binding prerequisite"
+                        )
         return self
 
 
@@ -352,6 +590,8 @@ class WorkflowState(V08StrictModel):
     job_id: JobId
     plan_sha256: Sha256
     request_sha256: Sha256
+    execution_policy: ExecutionPolicy = "standard"
+    delivery_scope: DeliveryScope | None = None
     status: WorkflowStatus
     milestone: Milestone
     current_step_id: StepId | None = None

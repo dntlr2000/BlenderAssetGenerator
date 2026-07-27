@@ -12,7 +12,11 @@ from typing import Any
 from uuid import uuid4
 
 from ..analysis import analyze_job_reference
-from ..architecture import validate_job_interior_scope
+from ..architecture import (
+    list_interior_objects,
+    load_interior_scope,
+    validate_job_interior_scope,
+)
 from ..blender_artifact_runner import inspect_job_materials, render_job_material_swatches
 from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
@@ -26,6 +30,7 @@ from ..optimization import (
     preflight_asset,
 )
 from ..optimization.io import validate_filesystem_id
+from ..optimization.provenance import collect_source_provenance
 from ..packaging import package_asset, validate_asset_package
 from ..packaging.material_conversion import convert_portable_materials
 from ..qa import run_job_visual_qa
@@ -48,6 +53,7 @@ from .locks import workflow_write_lock
 from .models import (
     ArtifactFreshness,
     ArtifactRequirement,
+    BackgroundPreviewBinding,
     DestinationRequest,
     IntentRouting,
     WorkflowApproval,
@@ -72,6 +78,10 @@ _GENERIC_GATES = {
     "final_package",
 }
 _VIEW_KINDS = {"front", "right", "top", "blueprint", "cad"}
+
+
+class RequiresStandardWorkflow(RuntimeError):
+    """Signal that a bounded fast-lane workflow must stop without being retried."""
 
 
 def _utc_now() -> datetime:
@@ -185,6 +195,210 @@ def _default_scope(intent: str, scope: str) -> str:
     }[intent]
 
 
+def _normalize_execution_budgets(
+    execution_policy: str,
+    budgets: WorkflowBudgets | None,
+) -> WorkflowBudgets:
+    """Apply conservative non-expanding budgets to the background fast lane."""
+
+    selected = budgets or WorkflowBudgets()
+    if execution_policy != "background_exterior":
+        return selected
+    if selected.external_provider_budget != 0:
+        raise ValueError(
+            "background_exterior does not permit external provider calls"
+        )
+    return selected.model_copy(
+        update={
+            "max_qa_iterations": 1,
+            "max_texture_resolution": min(
+                selected.max_texture_resolution,
+                512,
+            ),
+            "external_provider_budget": 0,
+        }
+    )
+
+
+def _current_background_preview_binding(
+    root: Path,
+    job_id: str,
+) -> BackgroundPreviewBinding | None:
+    """Return an exact binding for one current completed fast-preview workflow."""
+
+    workflows_root = root / "workflows"
+    if not workflows_root.is_dir():
+        return False
+    for workflow_root in sorted(workflows_root.glob("wf-*"), reverse=True):
+        request_path = workflow_root / "request.json"
+        plan_path = workflow_root / "plan.json"
+        state_path = workflow_root / "state.json"
+        if not all(path.is_file() for path in (request_path, plan_path, state_path)):
+            continue
+        try:
+            request = _load_model(request_path, WorkflowRequest)
+            plan = _load_model(plan_path, WorkflowPlan)
+            previous = _load_model(state_path, WorkflowState)
+            if (
+                request.execution_policy != "background_exterior"
+                or request.delivery_scope != "preview_only"
+                or plan.execution_policy != "background_exterior"
+                or plan.delivery_scope != "preview_only"
+            ):
+                continue
+            reconstructed = _reconcile_locked(
+                root,
+                workflow_root,
+                plan,
+                request,
+                previous=previous,
+            )
+        except (OSError, RuntimeError, ValueError):
+            continue
+        if (
+            reconstructed.status == "completed"
+            and reconstructed.milestone == "delivered_for_review"
+        ):
+            terminal = next(
+                (
+                    item
+                    for item in reconstructed.steps
+                    if item.step_id == plan.terminal_step_id
+                ),
+                None,
+            )
+            qa_step = next(
+                (item for item in plan.steps if item.step_id == "qa.run"),
+                None,
+            )
+            qa_run_id = (
+                qa_step.parameters.get("run_id")
+                if qa_step is not None
+                else None
+            )
+            if not isinstance(qa_run_id, str) or not qa_run_id:
+                latest_path = root / "qa" / "latest.json"
+                if not latest_path.is_file():
+                    continue
+                try:
+                    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+                qa_run_id = latest.get("run_id")
+            if (
+                terminal is None
+                or terminal.completion_fingerprint is None
+                or not isinstance(qa_run_id, str)
+                or not qa_run_id
+            ):
+                continue
+            try:
+                source = collect_source_provenance(root, job_id)
+            except (OSError, RuntimeError, ValueError):
+                continue
+            return BackgroundPreviewBinding(
+                workflow_id=plan.workflow_id,
+                plan_sha256=reconstructed.plan_sha256,
+                terminal_step_id=plan.terminal_step_id,
+                terminal_completion_fingerprint=terminal.completion_fingerprint,
+                qa_run_id=qa_run_id,
+                source_fingerprint=source.source_fingerprint,
+                build_fingerprint=source.build_fingerprint,
+                bound_at=_utc_now(),
+            )
+    return None
+
+
+def _validate_background_execution(
+    *,
+    routing: IntentRouting,
+    new_job: bool,
+    mode: str,
+    scope: str,
+    view_kind: str | None,
+    replace_view: bool,
+    scale_anchors: list[str],
+    destination_kind: str,
+    include_destination_handoff: bool,
+) -> BackgroundPreviewBinding | None:
+    """Reject fast-lane inputs that require measured, interior, or runtime work."""
+
+    if new_job and routing.intent != "new_asset":
+        raise ValueError(
+            "a new background_exterior workflow requires intent=new_asset"
+        )
+    if not new_job and (
+        routing.intent != "portable_package"
+        or routing.delivery_scope != "portable_package"
+    ):
+        raise ValueError(
+            "an existing background_exterior job can only start portable_package delivery"
+        )
+    if mode != "concept":
+        raise ValueError(
+            "background_exterior supports concept mode only; use standard for measured input"
+        )
+    if scope not in {"auto", "full"}:
+        raise ValueError(
+            "background_exterior controls its own bounded full scope; use --scope auto"
+        )
+    if view_kind is not None or replace_view or scale_anchors:
+        raise ValueError(
+            "background_exterior cannot contain measured views, replacement, or scale anchors"
+        )
+    if destination_kind not in {"unspecified", "engine_neutral"}:
+        raise ValueError(
+            "background_exterior stops at an engine-neutral preview or package"
+        )
+    if include_destination_handoff:
+        raise ValueError(
+            "background_exterior cannot include a destination handoff"
+        )
+    if not new_job:
+        metadata = load_job(routing.job_id)
+        root = job_dir(routing.job_id)
+        if metadata.get("mode") != "concept":
+            raise ValueError(
+                "existing background_exterior package delivery requires a concept job"
+            )
+        if metadata.get("scale_anchors"):
+            raise ValueError(
+                "existing measured scale anchors require the standard workflow"
+            )
+        sources = metadata.get("sources", [])
+        if (
+            not isinstance(sources, list)
+            or len(sources) != 1
+            or any(not isinstance(item, dict) for item in sources)
+            or sources[0].get("kind") != "reference"
+        ):
+            raise ValueError(
+                "background package continuation requires exactly one primary reference"
+            )
+        scope_contract = load_interior_scope(root)
+        if scope_contract is not None and scope_contract.policy != "disabled":
+            raise ValueError(
+                "an enabled InteriorScope requires the standard workflow"
+            )
+        scene_spec = load_scene_spec(root / "analysis" / "scene_spec.json")
+        if list_interior_objects(scene_spec):
+            raise ValueError(
+                "interior semantic geometry requires the standard workflow"
+            )
+        if (root / "constraints" / "constraints.json").is_file():
+            raise ValueError(
+                "measured constraints require the standard workflow"
+            )
+        binding = _current_background_preview_binding(root, routing.job_id)
+        if binding is None:
+            raise ValueError(
+                "background package continuation requires one current completed "
+                "background_exterior preview workflow"
+            )
+        return binding
+    return None
+
+
 def _source_artifact(root: Path, path: Path, kind: str) -> WorkflowInputArtifact:
     """Record one already copied job-local source without exposing its original absolute path."""
 
@@ -237,6 +451,8 @@ def _initial_intent(
     job_id: str,
     workflow_id: str,
     destination: DestinationRequest,
+    execution_policy: str,
+    delivery_scope: str | None,
 ) -> IntentRouting:
     """Route early so the normalized scope can be persisted in the immutable request."""
 
@@ -248,6 +464,8 @@ def _initial_intent(
         new_job=new_job,
         has_staged_view=view_kind is not None,
         destination=destination,
+        execution_policy=execution_policy,
+        delivery_scope=delivery_scope,
     )
 
 
@@ -258,6 +476,8 @@ def plan_workflow(
     reference_path: str | Path | None = None,
     intent: str = "auto",
     scope: str = "auto",
+    execution_policy: str = "standard",
+    delivery_scope: str | None = None,
     mode: str = "concept",
     view_kind: str | None = None,
     replace_view: bool = False,
@@ -269,7 +489,7 @@ def plan_workflow(
     include_destination_handoff: bool = False,
     budgets: WorkflowBudgets | None = None,
 ) -> WorkflowState:
-    """Create one isolated routed plan without bypassing any downstream approval gate."""
+    """Create one immutable standard or bounded background-exterior workflow."""
 
     lock_ttl = _require_orchestration()
     normalized_request = request_text.strip()
@@ -301,8 +521,21 @@ def plan_workflow(
         "full",
     }:
         raise ValueError("unsupported workflow scope")
+    if execution_policy not in {"standard", "background_exterior"}:
+        raise ValueError(
+            "execution_policy must be standard or background_exterior"
+        )
+    if delivery_scope not in {None, "preview_only", "portable_package"}:
+        raise ValueError(
+            "delivery_scope must be preview_only or portable_package"
+        )
     if profile_id not in {"portable_gltf", "fbx_interchange", "obj_legacy"}:
         raise ValueError("unsupported portable profile")
+    if execution_policy == "standard" and delivery_scope is not None:
+        raise ValueError(
+            "explicit delivery_scope is currently supported only by "
+            "execution_policy=background_exterior; standard keeps legacy --scope behavior"
+        )
     resolved_profile = _profile_from_request(normalized_request, profile_id)
     if include_destination_handoff and resolved_profile == "obj_legacy":
         raise ValueError("destination handoff supports GLB and FBX packages only")
@@ -343,6 +576,11 @@ def plan_workflow(
         name=destination_name,
         version=destination_version,
     )
+    initial_delivery = (
+        delivery_scope
+        if delivery_scope is not None
+        else ("preview_only" if execution_policy == "background_exterior" else None)
+    )
     routing = _initial_intent(
         intent,
         new_job=new_job,
@@ -351,14 +589,45 @@ def plan_workflow(
         job_id=selected_job_id,
         workflow_id=workflow_id,
         destination=destination,
+        execution_policy=execution_policy,
+        delivery_scope=initial_delivery,
     )
-    selected_scope = _default_scope(routing.intent, scope)
+    normalized_anchors = scale_anchors or []
+    background_preview_binding = None
+    if execution_policy == "background_exterior":
+        background_preview_binding = _validate_background_execution(
+            routing=routing,
+            new_job=new_job,
+            mode=mode,
+            scope=scope,
+            view_kind=normalized_view,
+            replace_view=replace_view,
+            scale_anchors=normalized_anchors,
+            destination_kind=destination_kind,
+            include_destination_handoff=include_destination_handoff,
+        )
+        selected_scope = "full"
+        resolved_delivery = initial_delivery
+    else:
+        selected_scope = _default_scope(routing.intent, scope)
+        resolved_delivery = (
+            "portable_package"
+            if routing.intent == "portable_package" or selected_scope == "full"
+            else "preview_only"
+        )
+        routing = routing.model_copy(
+            update={"delivery_scope": resolved_delivery}
+        )
+    selected_budgets = _normalize_execution_budgets(
+        execution_policy,
+        budgets,
+    )
     if new_job:
         create_job(
             selected_job_id,
             reference or Path(),
             mode,
-            scale_anchors or [],
+            normalized_anchors,
         )
     root = ensure_job_dirs(selected_job_id)
     workflow_root = _workflow_dir(root, workflow_id)
@@ -368,6 +637,18 @@ def plan_workflow(
         workflow_id,
         ttl_seconds=lock_ttl,
     ):
+        if execution_policy == "background_exterior" and not new_job:
+            background_preview_binding = _validate_background_execution(
+                routing=routing,
+                new_job=False,
+                mode=mode,
+                scope=scope,
+                view_kind=normalized_view,
+                replace_view=replace_view,
+                scale_anchors=normalized_anchors,
+                destination_kind=destination_kind,
+                include_destination_handoff=include_destination_handoff,
+            )
         workflow_root.mkdir(parents=True, exist_ok=False)
         staged_view = None
         if normalized_view is not None:
@@ -386,15 +667,18 @@ def plan_workflow(
             raw_request=normalized_request,
             intent_hint=intent,  # type: ignore[arg-type]
             requested_scope=selected_scope,  # type: ignore[arg-type]
+            execution_policy=execution_policy,  # type: ignore[arg-type]
+            delivery_scope=resolved_delivery,  # type: ignore[arg-type]
+            background_preview_binding=background_preview_binding,
             mode=mode,  # type: ignore[arg-type]
             primary_reference=primary,
             staged_view=staged_view,
             replace_existing_view=replace_view,
-            scale_anchors=scale_anchors or [],
+            scale_anchors=normalized_anchors,
             profile_id=resolved_profile,  # type: ignore[arg-type]
             destination=routing.destination.requested,
             include_destination_handoff=include_destination_handoff,
-            budgets=budgets or WorkflowBudgets(),
+            budgets=selected_budgets,
             created_at=_utc_now(),
         )
         request_path = workflow_root / "request.json"
@@ -483,8 +767,12 @@ def _validate_known_json_contract(
         HandoffReportManifest.model_validate(payload)
 
 
-def _validate_agent_completion_semantics(root: Path, step: WorkflowStep) -> None:
-    """Require authored-stage semantics only when an agent records completion."""
+def _validate_agent_completion_semantics(
+    root: Path,
+    step: WorkflowStep,
+    request: WorkflowRequest,
+) -> None:
+    """Require authored semantics and enforce fast-lane material restrictions."""
 
     for requirement in step.outputs:
         path = _resolve_job_path(root, requirement.path)
@@ -494,12 +782,51 @@ def _validate_agent_completion_semantics(root: Path, step: WorkflowStep) -> None
             plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
             if "modeling_plan.output" in requirement.artifact_id and plan.stage != "authored":
                 raise RuntimeError("agent completion requires modeling_plan stage=authored")
+        elif requirement.path == "analysis/scene_spec.json":
+            scene_spec = load_scene_spec(path)
+            if (
+                request.execution_policy == "background_exterior"
+                and list_interior_objects(scene_spec)
+            ):
+                raise RuntimeError(
+                    "background_exterior cannot complete with interior semantic geometry"
+                )
         elif requirement.path == "analysis/material_plan.json":
             from ..materials.models import MaterialPlan
 
             plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
             if "plan.authored" in requirement.artifact_id and plan.stage != "authored":
                 raise RuntimeError("agent completion requires material_plan stage=authored")
+            if request.execution_policy == "background_exterior":
+                from ..texturing.models import TextureManifest
+
+                unsupported: list[str] = []
+                for item in plan.materials:
+                    if item.texture_strategy in {"none", "procedural"}:
+                        continue
+                    if item.texture_strategy != "image" or not item.texture_manifest:
+                        unsupported.append(item.material_id)
+                        continue
+                    manifest_path = _resolve_job_path(root, item.texture_manifest)
+                    manifest = TextureManifest.model_validate_json(
+                        manifest_path.read_text(encoding="utf-8")
+                    )
+                    provider = (
+                        manifest.provenance.provider
+                        if manifest.provenance is not None
+                        else None
+                    )
+                    if (
+                        provider != "cbm_pillow_procedural"
+                        or max(manifest.resolution) > 512
+                    ):
+                        unsupported.append(item.material_id)
+                if unsupported:
+                    raise RuntimeError(
+                        "background_exterior permits only node-procedural materials or "
+                        "512px local cbm_pillow_procedural maps: "
+                        f"{unsupported}"
+                    )
     if step.step_id == "destination.handoff":
         from ..handoff import validate_destination_handoff
 
@@ -725,16 +1052,25 @@ def _specialized_approval_valid(
     return False
 
 
-def _step_milestone(completed_ids: set[str]) -> str:
-    """Map completed checkpoint steps onto the documented V0.8 milestone vocabulary."""
+def _step_milestone(
+    completed_ids: set[str],
+    execution_policy: str,
+) -> str:
+    """Map completed standard or fast-lane evidence onto V0.8 milestones."""
 
     if "portable.final_approval" in completed_ids:
         return "portable_ready"
+    if execution_policy == "background_exterior" and "portable.report" in completed_ids:
+        return "portable_ready"
     if "qa.review" in completed_ids:
+        return "qa_review"
+    if execution_policy == "background_exterior" and "qa.report" in completed_ids:
         return "qa_review"
     if "interior_qa.review" in completed_ids:
         return "qa_review"
     if "material.approval" in completed_ids:
+        return "material_ready"
+    if execution_policy == "background_exterior" and "material.report" in completed_ids:
         return "material_ready"
     if "interior.scope_approval" in completed_ids:
         return "interior_scope_approved"
@@ -746,14 +1082,32 @@ def _step_milestone(completed_ids: set[str]) -> str:
         return "geometry_approved"
     if "proxy.validate" in completed_ids:
         return "proxy_ready"
+    if "background_geometry.validate" in completed_ids:
+        return "proxy_ready"
     if "reference.analyze" in completed_ids:
         return "analyzed"
     return "created"
 
 
-def _next_action(step: WorkflowStep, input_fingerprint: str) -> str:
+def _next_action(
+    step: WorkflowStep,
+    input_fingerprint: str,
+    step_status: str,
+) -> str:
     """Describe the next exact tool or approval action without executing agent judgment."""
 
+    if (
+        step_status == "blocked"
+        and step.tool_name
+        in {
+            "evaluate_background_delivery",
+            "verify_background_preview_prerequisite",
+        }
+    ):
+        return (
+            "Create a new immutable standard workflow for this job; "
+            "do not retry or reinterpret the blocked background_exterior plan."
+        )
     if step.execution_mode == "host":
         return f"Resume to execute host tool {step.tool_name} for step {step.step_id}."
     if step.execution_mode == "agent":
@@ -952,9 +1306,14 @@ def _reconcile_locked(
     elif terminal_complete:
         aggregate_status = "completed"
         current_step = None
-    milestone = _step_milestone(completed_ids)
+    milestone = _step_milestone(completed_ids, plan.execution_policy)
     if aggregate_status == "completed":
-        milestone = "completed"
+        milestone = (
+            "delivered_for_review"
+            if plan.execution_policy == "background_exterior"
+            and plan.delivery_scope == "preview_only"
+            else "completed"
+        )
     if plan.destination.status == "unsupported":
         warnings.append(plan.destination.reason)
     now = _utc_now()
@@ -963,6 +1322,8 @@ def _reconcile_locked(
         job_id=plan.job_id,
         plan_sha256=actual_plan_hash,
         request_sha256=actual_request_hash,
+        execution_policy=plan.execution_policy,
+        delivery_scope=plan.delivery_scope,
         status=aggregate_status,  # type: ignore[arg-type]
         milestone=milestone,  # type: ignore[arg-type]
         current_step_id=current_step.step_id if current_step else None,
@@ -971,6 +1332,7 @@ def _reconcile_locked(
             _next_action(
                 current_step,
                 states[current_step.step_id].input_fingerprint or stable_json_digest({}),
+                states[current_step.step_id].status,
             )
             if current_step
             else None
@@ -1077,7 +1439,7 @@ def complete_workflow_step(
             item.integrity != "valid" for item in step_state.artifacts
         ):
             raise RuntimeError("Completion outputs are missing or invalid")
-        _validate_agent_completion_semantics(root, step)
+        _validate_agent_completion_semantics(root, step, request)
         marker = WorkflowStepCompletion(
             completion_id=f"completion-{uuid4().hex}",
             workflow_id=workflow_id,
@@ -1196,6 +1558,206 @@ def _validate_scene(job_id: str) -> None:
         raise RuntimeError("Scene validation did not report ok=true")
 
 
+def _verify_background_preview_prerequisite(
+    root: Path,
+    request: WorkflowRequest,
+    step: WorkflowStep,
+) -> None:
+    """Verify a package continuation against its exact completed preview and source."""
+
+    binding = request.background_preview_binding
+    if binding is None:
+        raise RequiresStandardWorkflow(
+            "requires_standard_workflow: package continuation has no preview binding"
+        )
+    reasons: list[str] = []
+    expected_parameters = {
+        "preview_workflow_id": binding.workflow_id,
+        "preview_plan_sha256": binding.plan_sha256,
+        "preview_terminal_fingerprint": binding.terminal_completion_fingerprint,
+        "source_fingerprint": binding.source_fingerprint,
+        "build_fingerprint": binding.build_fingerprint,
+    }
+    for name, expected in expected_parameters.items():
+        if step.parameters.get(name) != expected:
+            reasons.append(f"immutable plan parameter mismatch: {name}")
+    preview_root = _workflow_dir(root, binding.workflow_id)
+    try:
+        preview_request = _load_model(
+            preview_root / "request.json",
+            WorkflowRequest,
+        )
+        preview_plan = _load_model(
+            preview_root / "plan.json",
+            WorkflowPlan,
+        )
+        preview_state = _load_model(
+            preview_root / "state.json",
+            WorkflowState,
+        )
+        reconstructed = _reconcile_locked(
+            root,
+            preview_root,
+            preview_plan,
+            preview_request,
+            previous=preview_state,
+        )
+        terminal = next(
+            (
+                item
+                for item in reconstructed.steps
+                if item.step_id == preview_plan.terminal_step_id
+            ),
+            None,
+        )
+        if (
+            preview_request.execution_policy != "background_exterior"
+            or preview_request.delivery_scope != "preview_only"
+            or reconstructed.status != "completed"
+            or reconstructed.milestone != "delivered_for_review"
+        ):
+            reasons.append("bound preview workflow is no longer current and completed")
+        if reconstructed.plan_sha256 != binding.plan_sha256:
+            reasons.append("bound preview plan SHA-256 changed")
+        if (
+            terminal is None
+            or terminal.completion_fingerprint
+            != binding.terminal_completion_fingerprint
+        ):
+            reasons.append("bound preview terminal completion fingerprint changed")
+    except (OSError, RuntimeError, ValueError) as exc:
+        reasons.append(f"bound preview workflow cannot be reconstructed: {type(exc).__name__}")
+    try:
+        source = collect_source_provenance(root, request.job_id)
+        if source.source_fingerprint != binding.source_fingerprint:
+            reasons.append("canonical source fingerprint changed after preview")
+        if source.build_fingerprint != binding.build_fingerprint:
+            reasons.append("embedded build fingerprint changed after preview")
+    except (OSError, RuntimeError, ValueError) as exc:
+        reasons.append(f"current source provenance is unavailable: {type(exc).__name__}")
+    scope_contract = load_interior_scope(root)
+    if scope_contract is not None and scope_contract.policy != "disabled":
+        reasons.append("InteriorScope became enabled after preview")
+    try:
+        scene_spec = load_scene_spec(root / "analysis" / "scene_spec.json")
+        if list_interior_objects(scene_spec):
+            reasons.append("interior semantic geometry appeared after preview")
+    except (OSError, RuntimeError, ValueError) as exc:
+        reasons.append(f"current SceneSpec cannot be validated: {type(exc).__name__}")
+    if (root / "constraints" / "constraints.json").is_file():
+        reasons.append("measured constraints appeared after preview")
+    output_path = _resolve_job_path(root, str(step.parameters["output_path"]))
+    passed = not reasons
+    payload = {
+        "schema_version": "0.8.0",
+        "job_id": request.job_id,
+        "workflow_id": request.workflow_id,
+        "status": "passed" if passed else "requires_standard_workflow",
+        "ok": passed,
+        "preview_binding": binding.model_dump(mode="json"),
+        "blocking_reasons": reasons,
+        "verified_at": _utc_now().isoformat(),
+    }
+    preserve_existing = False
+    if passed and output_path.is_file():
+        try:
+            existing = json.loads(output_path.read_text(encoding="utf-8"))
+            preserve_existing = (
+                existing.get("ok") is True
+                and existing.get("job_id") == request.job_id
+                and existing.get("workflow_id") == request.workflow_id
+                and existing.get("preview_binding")
+                == binding.model_dump(mode="json")
+                and existing.get("blocking_reasons") == []
+            )
+        except (OSError, json.JSONDecodeError):
+            preserve_existing = False
+    if not preserve_existing:
+        write_json_atomic(output_path, payload)
+    if not passed:
+        raise RequiresStandardWorkflow(
+            "requires_standard_workflow: bound background preview or canonical source changed"
+        )
+
+
+def _evaluate_background_delivery(
+    root: Path,
+    request: WorkflowRequest,
+    step: WorkflowStep,
+) -> None:
+    """Write a hash-bound post-QA eligibility report and fail closed on major risks."""
+
+    from ..qa import VisualQAReport
+
+    latest_path = root / "qa" / "latest.json"
+    if not latest_path.is_file():
+        raise RuntimeError("background delivery requires current qa/latest.json")
+    latest = json.loads(latest_path.read_text(encoding="utf-8"))
+    report_relative = latest.get("visual_qa_report")
+    if not isinstance(report_relative, str) or not report_relative:
+        raise RuntimeError("QA latest pointer has no visual_qa_report")
+    report_path = _resolve_job_path(root, report_relative)
+    report = VisualQAReport.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    blocking = [
+        finding
+        for finding in report.findings
+        if (
+            finding.severity == "high"
+            and set(finding.evidence_sources)
+            & {"direct_reference", "constraint"}
+        )
+    ]
+    reasons = [
+        {
+            "finding_id": finding.id,
+            "issue_type": finding.issue_type,
+            "description": finding.description,
+            "target_ids": finding.target_ids,
+        }
+        for finding in blocking
+    ]
+    if report.generated_target_status != "not_requested":
+        reasons.append(
+            {
+                "finding_id": "generated_target_not_disabled",
+                "issue_type": "other",
+                "description": (
+                    "background_exterior requires direct-reference QA without a "
+                    "generated target"
+                ),
+                "target_ids": [],
+            }
+        )
+    passed = not reasons
+    output_path = _resolve_job_path(root, str(step.parameters["output_path"]))
+    write_json_atomic(
+        output_path,
+        {
+            "schema_version": "0.8.0",
+            "job_id": request.job_id,
+            "workflow_id": request.workflow_id,
+            "execution_policy": request.execution_policy,
+            "delivery_scope": request.delivery_scope,
+            "status": "passed" if passed else "requires_standard_workflow",
+            "ok": passed,
+            "qa_latest_path": "qa/latest.json",
+            "qa_latest_sha256": sha256_file(latest_path),
+            "visual_qa_report_path": report_relative,
+            "visual_qa_report_sha256": sha256_file(report_path),
+            "direct_score": report.direct_metrics.overall_direct_score,
+            "blocking_findings": reasons,
+            "evaluated_at": _utc_now().isoformat(),
+        },
+    )
+    if not passed:
+        raise RequiresStandardWorkflow(
+            "requires_standard_workflow: direct QA contains high-severity direct, "
+            "constraint, or generated-target evidence"
+        )
+
+
 def _apply_guarded_revision(job_id: str) -> None:
     """Promote a validated RevisionPlan atomically after archiving the prior SceneSpec."""
 
@@ -1223,6 +1785,9 @@ def _execute_host_tool(
 
     tool = step.tool_name
     if tool in {"create_job", "verify_geometry_prerequisite"}:
+        return
+    if tool == "verify_background_preview_prerequisite":
+        _verify_background_preview_prerequisite(root, request, step)
         return
     if tool == "add_view":
         if request.staged_view is None:
@@ -1273,7 +1838,15 @@ def _execute_host_tool(
         run_job_visual_qa(
             request.job_id,
             include_generated_target=bool(step.parameters.get("include_generated_target", False)),
+            run_id=(
+                str(step.parameters["run_id"])
+                if "run_id" in step.parameters
+                else None
+            ),
         )
+        return
+    if tool == "evaluate_background_delivery":
+        _evaluate_background_delivery(root, request, step)
         return
     if tool == "validate_interior_scope":
         report = validate_job_interior_scope(request.job_id, write_report=True)
@@ -1529,6 +2102,47 @@ def resume_workflow(
         if previous is not None and previous.status == "cancelled":
             raise RuntimeError("Cancelled workflow cannot be resumed")
         _recover_interrupted_attempts(workflow_root, plan)
+        if request.background_preview_binding is not None and previous is not None:
+            prerequisite_state = next(
+                (
+                    item
+                    for item in previous.steps
+                    if item.step_id == "geometry.prerequisite"
+                ),
+                None,
+            )
+            if prerequisite_state is not None and prerequisite_state.status == "complete":
+                prerequisite = next(
+                    item
+                    for item in plan.steps
+                    if item.step_id == "geometry.prerequisite"
+                )
+                try:
+                    _verify_background_preview_prerequisite(
+                        root,
+                        request,
+                        prerequisite,
+                    )
+                except RequiresStandardWorkflow:
+                    blocked = _reconcile_locked(
+                        root,
+                        workflow_root,
+                        plan,
+                        request,
+                        previous=previous,
+                    )
+                    blocked = blocked.model_copy(
+                        update={
+                            "status": "blocked",
+                            "next_action": (
+                                "Create a new immutable standard workflow for this job; "
+                                "do not retry the blocked background_exterior plan."
+                            ),
+                            "updated_at": _utc_now(),
+                        }
+                    )
+                    _write_state(root, workflow_root, blocked)
+                    return blocked
         previous = _prepare_failed_step_retry(previous, retry_failed=retry_failed)
         limit = max_host_steps or request.budgets.max_host_steps_per_resume
         if limit < 1 or limit > 64:
@@ -1552,13 +2166,15 @@ def resume_workflow(
                     step,
                 )
             except Exception as exc:
+                requires_standard = isinstance(exc, RequiresStandardWorkflow)
+                failure_status = "blocked" if requires_standard else "failed"
                 failed_steps = []
                 for item in state.steps:
                     if item.step_id == step.step_id:
                         failed_steps.append(
                             item.model_copy(
                                 update={
-                                    "status": "failed",
+                                    "status": failure_status,
                                     "attempt_count": item.attempt_count + 1,
                                     "error": f"{type(exc).__name__}: {exc}",
                                 }
@@ -1568,10 +2184,18 @@ def resume_workflow(
                         failed_steps.append(item)
                 state = state.model_copy(
                     update={
-                        "status": "failed",
+                        "status": failure_status,
                         "steps": failed_steps,
                         "next_action": (
-                            f"Resolve {type(exc).__name__} in step {step.step_id}, then resume."
+                            (
+                                "Create a new immutable standard workflow for this job; "
+                                "do not retry the blocked background_exterior plan."
+                            )
+                            if requires_standard
+                            else (
+                                f"Resolve {type(exc).__name__} in step "
+                                f"{step.step_id}, then resume."
+                            )
                         ),
                         "updated_at": _utc_now(),
                     }

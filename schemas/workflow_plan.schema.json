@@ -317,6 +317,31 @@
       "title": "Scope",
       "type": "string"
     },
+    "execution_policy": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "background_exterior"
+      ],
+      "title": "Execution Policy",
+      "type": "string"
+    },
+    "delivery_scope": {
+      "anyOf": [
+        {
+          "enum": [
+            "preview_only",
+            "portable_package"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Delivery Scope"
+    },
     "destination": {
       "$ref": "#/$defs/DestinationResolution"
     },

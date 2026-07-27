@@ -6,13 +6,15 @@
 
 ## 사용 방법과 placeholder
 
-`text` 코드 블록은 Codex 채팅에 붙여 넣는 프롬프트입니다. `powershell` 코드 블록은 사용자가 터미널에서 직접 실행해야 하는 명령입니다. 특히 InteriorScope 승인은 Codex가 대신 실행할 수 없습니다.
+`text` 코드 블록은 Codex 채팅에 붙여 넣는 프롬프트입니다. 문서 안의 `powershell` 블록은 구현된 CLI 표면을 확인하기 위한 운영자 참고이며, 일반 사용자는 Codex가 MCP 또는 저장소 명령을 대신 실행하도록 요청할 수 있습니다. 다만 InteriorScope처럼 계약상 interactive 수동 입력만 허용된 전용 승인은 Codex가 대신 승인할 수 없습니다.
 
 | Placeholder | 교체할 값 | 예시 |
 |---|---|---|
 | `<JOB_ID>` | 새 자산의 고유 lowercase job ID | `temple_validation_01` |
 | `<REFERENCE_PATH>` | 기본 레퍼런스 이미지의 절대 경로 | `E:\References\temple.png` |
 | `<MODE>` | `concept` 또는 `measured` | `concept` |
+| `<EXECUTION_POLICY>` | `standard` 또는 `background_exterior` | `standard` |
+| `<DELIVERY_SCOPE>` | 빠른 경로의 `preview_only` 또는 `portable_package` | `preview_only` |
 | `<WORKFLOW_ID>` | Codex가 보고한 V0.8 workflow ID | 실제 보고값 |
 | `<STEP_ID>` | V0.8 workflow가 보고한 현재 agent/review step ID | 실제 보고값 |
 | `<QA_RUN_ID>` | Codex가 보고한 V0.6 QA run ID | 실제 보고값 |
@@ -59,7 +61,7 @@
 - 새로운 자산은 항상 새로운 lowercase job ID를 사용합니다. 유효 형식은 `[a-z0-9][a-z0-9_-]{0,63}`입니다.
 - `floating_island`, `geometry_showcase`, `measured_box`, `first_reference_test`는 예약된 example ID이므로 새 작업에 사용하지 않습니다.
 - 단일 이미지의 기본값은 `concept` mode입니다. 정사영 도면이나 명시적 치수가 처음부터 있으면 `measured`를 선택합니다.
-- 프록시 승인 전에는 재질, 최적화, package 또는 export를 진행하지 않습니다.
+- `standard` 경로에서는 프록시 승인 전 재질, 최적화, package 또는 export를 진행하지 않습니다. `background_exterior`는 1.1의 명시적인 immutable fast plan에서만 일반 프록시 승인을 생략합니다.
 - 실내는 기본 비활성화입니다. 명시적 요청, InteriorScope draft, 정확한 hash의 수동 승인이 모두 있어야 합니다.
 - 보이지 않는 형상은 복원된 사실이 아니라 `inferred`로 기록합니다.
 - V0.6 점수는 완성도 백분율이 아닙니다. 고정 카메라에서 산출된 비교 지표일 뿐입니다.
@@ -69,6 +71,8 @@
 - V0.9는 필수 모델링 단계가 아니라 read-only audit와 선택적 Destination Handoff 계층입니다. 외형을 개선하지 않습니다.
 - Unity, Unreal 또는 다른 엔진의 runtime parity를 검증 없이 주장하지 않습니다.
 - “이후 전부 승인” 같은 포괄적 승인은 InteriorScope, V0.6 revision, V0.7 optimization, Destination Handoff의 전용 exact-hash 승인을 대체하지 못합니다.
+- `standard`가 기본 실행 정책입니다. `background_exterior`는 실내·실측·리깅·게임 로직이 없는 정적 배경 외관에만 작업 계획 전에 명시적으로 선택합니다.
+- 빠른 경로도 다른 파이프라인이 아닙니다. 동일한 V0.4~V0.7 계약을 쓰되 일반 검토만 줄이고 전용 exact-hash 승인은 유지합니다.
 
 ---
 
@@ -110,6 +114,129 @@ agent-authored step에서는 현재 input fingerprint에 결속된 산출물과 
 V0.7 최적화·package·export, V0.9 handoff를 시작하지 마.
 마지막에는 workflow ID, 현재 정지 단계, preview와 PDF 경로,
 validation 결과, proxy approval에 필요한 step ID와 artifact fingerprint를 보고해.
+```
+
+### 1.1 선택적 배경 외관 빠른 시작
+
+실내가 필요 없는 단순 배경 건물·장식물이고 사용자가 중간 검토를 최소화하려는 경우에만 사용합니다. 아래 프롬프트는 PowerShell 실행을 사용자에게 요구하지 않고 Codex가 공개 MCP 표면을 사용하게 합니다.
+
+```text
+현재 저장소의 V0.8 orchestration으로 <REFERENCE_PATH>의 새 레퍼런스를 처리해.
+
+- job_id: <JOB_ID>
+- execution_policy: background_exterior
+- delivery_scope: preview_only
+- mode: concept
+- intent: new_asset
+- scope: auto
+- destination_kind: engine_neutral
+- include_destination_handoff: false
+
+plan_short_workflow를 위 값으로 호출하고 후속 host/agent 단계를 MCP로 진행해.
+하나의 중간 상세 외관 SceneSpec을 작성한 뒤 build, render, inspect, validate,
+V0.5 로컬 결정론적 재질·셰이더, V0.6 직접 reference QA 정확히 1회,
+통합 PDF 생성까지 진행해.
+
+프록시·상세·swatch·QA의 일반 승인만 생략해.
+InteriorScope, measured view, guarded revision, optimization plan과 handoff의
+전용 승인을 추론하거나 생성하지 마.
+외부 texture/image provider, generated QA target, 자동 revision,
+실내, rig, animation, gameplay와 engine-specific 변환은 사용하지 마.
+
+완료하면 status=completed, milestone=delivered_for_review, workflow ID,
+preview, 직접 QA JSON,
+통합 PDF와 sidecar 경로를 보고해.
+조건을 벗어나는 위험이 발견되면 해당 agent completion을 기록하지 말고
+requires_standard_workflow로 멈춘 뒤 별도 standard workflow가 필요한 이유를 보고해.
+post-QA eligibility가 high-severity direct-reference 또는 constraint finding을
+발견해도 delivery를 완료하지 말고 machine report 경로와 차단 이유를 보고해.
+```
+
+처음부터 engine-neutral package까지 필요하면 종료 범위만 바꿉니다.
+
+```text
+<REFERENCE_PATH>의 새 정적 배경 외관을 <JOB_ID>로 만들고
+engine-neutral <PROFILE_ID> package까지 준비해.
+
+plan_short_workflow를 다음 값으로 호출해:
+- execution_policy: background_exterior
+- delivery_scope: portable_package
+- mode: concept
+- profile_id: <PROFILE_ID>
+- destination_kind: engine_neutral
+- intent: new_asset
+- scope: auto
+- include_destination_handoff: false
+
+일반 중간 검토는 생략하되 V0.7 preflight 뒤 review_plan.json,
+optimization_review.json과 현재 review_plan의 정확한 SHA-256을 계산해 보고하고 멈춰.
+내가 그 exact hash를 승인하기 전에는 optimize, package와 round trip을 실행하지 마.
+승인 뒤에는 derived optimization, immutable package, clean-import round trip,
+export/full PDF까지 진행하고 canonical SceneSpec, geometry, authoring blend와
+source texture가 바뀌지 않았음을 확인해.
+```
+
+완료된 빠른 preview를 나중에 package로 확장할 때도 기존 workflow를 고치지 않습니다.
+
+```text
+현재 <JOB_ID>의 완료된 background_exterior preview가 package 확장 조건을
+충족하는지 읽기 전용으로 확인해.
+충족하면 같은 job에 새 immutable V0.8 workflow를
+intent=portable_package, execution_policy=background_exterior,
+delivery_scope=portable_package, profile_id=<PROFILE_ID>로 계획해.
+V0.7 exact optimization-plan 승인에서 멈추고 기존 preview workflow는 변경하지 마.
+```
+
+### 1.2 빠른 경로와 표준 단계별 프롬프트의 관계
+
+`background_exterior`를 사용하더라도 V0.4~V0.6 구현이 생략되는 것은 아닙니다. 사용자가 단계 1, 2, 5, 6의 프롬프트와 일반 승인을 각각 반복 입력하지 않아도 하나의 immutable workflow가 같은 계약을 제한된 범위에서 순서대로 실행하는 방식입니다.
+
+| 선택 | 사용자가 먼저 붙여 넣을 프롬프트 | 내부에서 수행되는 범위 | 추가로 필요한 사용자 승인 |
+|---|---|---|---|
+| `standard` | 아래 단계 0~11에서 필요한 프롬프트 | 요청한 각 단계를 승인 경계별로 수행 | 프록시·상세·재질·QA 검토와 모든 전용 승인 |
+| `background_exterior + preview_only` | 1.1의 빠른 preview 프롬프트 하나 | V0.4 중간 상세 외관, build/render/inspect/validate, V0.5 로컬 재질, V0.6 직접 QA 1회, 통합 PDF | 일반 프록시·상세·swatch·QA 승인 없음 |
+| `background_exterior + portable_package` | 1.1의 빠른 package 프롬프트 하나 | 위 preview 범위와 V0.7 preflight·최적화·package·round trip | V0.7 optimization-plan의 exact SHA-256 승인 |
+
+빠른 preview 완료 후 V0.9 audit는 필요할 때 별도로 실행합니다. Destination Handoff도 통과한 V0.7 package를 대상으로 별도 계획과 exact-hash 승인을 사용합니다.
+
+다음 중 하나라도 해당하면 빠른 경로를 선택하지 않고 `standard`를 사용합니다.
+
+- 정면·측면·평면도, 청사진 또는 실제 치수를 함께 사용해야 함
+- 실내, rig, skinning, animation, gameplay 또는 engine-specific 결과가 필요함
+- 중요 전경 자산이거나 단계별 미술 검토가 필요함
+- 외부 texture/image provider 또는 generated QA target이 필요함
+- 여러 번의 V0.6 guarded revision을 계획하고 있음
+- 빠른 QA가 high-severity 직접 레퍼런스·constraint 문제를 보고함
+
+작업 생성 전에 어느 정책이 적절한지만 확인하려면 다음 프롬프트를 사용합니다.
+
+```text
+아직 새 job, workflow 또는 산출물을 만들지 말고
+<REFERENCE_PATH>와 내 요청을 읽기 전용으로 검토해.
+
+다음 중 하나를 권장해:
+- execution_policy=standard
+- execution_policy=background_exterior, delivery_scope=preview_only
+- execution_policy=background_exterior, delivery_scope=portable_package
+
+단일 concept reference인지, static exterior인지,
+실내·실측·rig·animation·gameplay·외부 provider 요구가 없는지 확인하고
+권장 정책, 종료 범위, 판단 근거, 생략되는 일반 승인,
+여전히 필요한 전용 exact-hash 승인을 보고해.
+검토가 끝날 때까지 create_job이나 plan_short_workflow를 호출하지 마.
+```
+
+빠른 경로가 `requires_standard_workflow`로 차단되면 기존 workflow를 수정하거나 실패 재시도로 우회하지 않습니다.
+
+```text
+<JOB_ID>의 background_exterior workflow <WORKFLOW_ID>가
+requires_standard_workflow로 차단된 이유를 읽기 전용으로 검토해.
+
+기존 빠른 workflow, QA run과 canonical evidence는 변경하지 마.
+차단 finding과 machine report 경로를 먼저 보고하고,
+같은 job의 current evidence를 입력으로 사용하는 새 immutable standard workflow의
+intent, scope, 첫 승인 경계와 예상 단계를 제안해.
+내가 전환 계획을 확인하기 전에는 새 workflow를 생성하거나 canonical 파일을 수정하지 마.
 ```
 
 ## 2. 전체 파이프라인 조율 프롬프트
@@ -889,6 +1016,8 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 단계 | 필수 입력 | 주요 산출물 | 사용자 검토 자료 | 승인 필요 여부 | 다음 단계 | 재진입 조건 |
 |---|---|---|---|---|---|---|
 | 0 환경 점검 | 저장소, `<JOB_ID>`, `<REFERENCE_PATH>` | read-only 상태 보고 | doctor, 기존 compatibility evidence | 없음 | 1 | evidence 누락·stale 해결 후 |
+| 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, 로컬 재질, 직접 QA, eligibility report | preview, 직접 QA JSON, 통합 PDF | 일반 단계 승인 없음; agent completion은 유지 | `status=completed`, `milestone=delivered_for_review` 또는 별도 package workflow | eligibility가 막히면 새 `standard` workflow |
+| 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거, 승인된 V0.7 최적화, package, roundtrip | optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source 변경 또는 roundtrip 실패 |
 | 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend` | preview, build PDF, validation JSON | 프록시 승인 | 2 또는 3 | 실루엣·분해가 부정확할 때 |
 | 2 V0.4 상세 형상 | 승인된 프록시 | 상세 SceneSpec/geometry, 새 build | preview, 변경 ID/수치, build PDF | 상세 형상 승인 | 3, 4 또는 5 | 큰 외형·중형 구조 불만족 시 언제든 |
 | 3 멀티뷰·치수 | 추가 뷰 또는 명시 치수 | source hash, 갱신 분석, constraints, residual report | 뷰 목록, constraint JSON/PDF | canonical 수정 전 승인 | 2 또는 5 | 새 도면·치수 추가, residual 실패 |

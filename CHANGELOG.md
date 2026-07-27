@@ -2,6 +2,12 @@
 
 ## 0.9.0
 
+- Added an explicit V0.8 `background_exterior` execution policy with `preview_only` and `portable_package` delivery scopes while retaining `standard` as the backward-compatible default.
+- Added a bounded single-author exterior geometry pass, deterministic local material limits, one direct suggest-only QA run, combined PDF delivery, and fail-closed `requires_standard_workflow` instructions for fast-lane risk discovery.
+- Added a post-QA machine eligibility report that blocks delivery on every high-severity direct-reference or constraint finding.
+- Bound package-only continuation to the exact completed preview plan, terminal completion, QA run, canonical source, and embedded build fingerprints, with a non-retryable prerequisite recheck before V0.7.
+- Removed only generic review gates from background plans; the exact V0.7 optimization-plan approval, immutable package, and clean-import round trip remain mandatory for portable delivery.
+- Exposed the policy through CLI and MCP, regenerated strict V0.8 schemas, and added isolated preview/package planning gates without changing SceneSpec, material, QA, or portable contract versions.
 - Added strict `0.9.0` environment-probe, workspace-audit, local-queue, attempt-receipt, queue-lock, and stability-PDF manifest contracts while preserving every V0.2-V0.8 asset contract version.
 - Added privacy-safe host evidence that hashes existing Blender compatibility results without persisting repository, workspace, or external-source absolute paths.
 - Added bounded read-only workspace audits for immutable source hashes, contract readability/version compatibility, workflow pointers, path escapes, temporary evidence, and scan limits without automatic repair or migration.

@@ -62,6 +62,26 @@ uv run cbm workflow-status v08_proxy_smoke --workflow-id "$WORKFLOW_ID"
 STATE_PATH="$SMOKE_WORKSPACE/v08_proxy_smoke/workflows/$WORKFLOW_ID/state.json"
 uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["status"] == "waiting_for_agent" and p["current_step_id"] == "geometry.modeling_plan"' "$STATE_PATH"
 
+uv run cbm workflow-plan \
+  --request "Create a static exterior background preview." \
+  --job-id v08_background_preview_smoke --reference-path "$REFERENCE" \
+  --execution-policy background_exterior --delivery-scope preview_only
+BACKGROUND_PREVIEW_LATEST="$SMOKE_WORKSPACE/v08_background_preview_smoke/workflows/latest.json"
+BACKGROUND_PREVIEW_WORKFLOW_ID="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["workflow_id"])' "$BACKGROUND_PREVIEW_LATEST")"
+BACKGROUND_PREVIEW_PLAN="$SMOKE_WORKSPACE/v08_background_preview_smoke/workflows/$BACKGROUND_PREVIEW_WORKFLOW_ID/plan.json"
+BACKGROUND_PREVIEW_REQUEST="$SMOKE_WORKSPACE/v08_background_preview_smoke/workflows/$BACKGROUND_PREVIEW_WORKFLOW_ID/request.json"
+uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); r=json.load(open(sys.argv[2], encoding="utf-8")); q=[x for x in p["steps"] if x["step_id"]=="qa.run"]; t=next(x for x in p["steps"] if x["step_id"]==p["terminal_step_id"]); assert p["execution_policy"]=="background_exterior" and p["delivery_scope"]=="preview_only"; assert r["budgets"]["max_qa_iterations"]==1 and r["budgets"]["max_texture_resolution"]<=512 and r["budgets"]["external_provider_budget"]==0; assert len(q)==1 and q[0]["parameters"]["include_generated_target"] is False and q[0]["parameters"]["run_id"]; assert "background.eligibility" in {x["step_id"] for x in p["steps"]}; assert t["parameters"]["qa_run_id"]!="latest"; assert not [x for x in p["steps"] if "approval" in x["execution_mode"]]; assert not [x for x in p["steps"] if x["phase"]=="portable"]' "$BACKGROUND_PREVIEW_PLAN" "$BACKGROUND_PREVIEW_REQUEST"
+
+uv run cbm workflow-plan \
+  --request "Create a static exterior background FBX package." \
+  --job-id v08_background_package_smoke --reference-path "$REFERENCE" \
+  --execution-policy background_exterior --delivery-scope portable_package \
+  --profile fbx_interchange --destination engine_neutral
+BACKGROUND_PACKAGE_LATEST="$SMOKE_WORKSPACE/v08_background_package_smoke/workflows/latest.json"
+BACKGROUND_PACKAGE_WORKFLOW_ID="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["workflow_id"])' "$BACKGROUND_PACKAGE_LATEST")"
+BACKGROUND_PACKAGE_PLAN="$SMOKE_WORKSPACE/v08_background_package_smoke/workflows/$BACKGROUND_PACKAGE_WORKFLOW_ID/plan.json"
+uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); generic=[x for x in p["steps"] if x["execution_mode"]=="approval"]; specialized=[x for x in p["steps"] if x["execution_mode"]=="specialized_approval"]; ids={x["step_id"] for x in p["steps"]}; t=next(x for x in p["steps"] if x["step_id"]==p["terminal_step_id"]); assert p["execution_policy"]=="background_exterior" and p["delivery_scope"]=="portable_package"; assert not generic and len(specialized)==1 and specialized[0]["approval_gate"]=="optimization_plan"; assert "background.eligibility" in ids and "portable.final_approval" not in ids; assert t["parameters"]["qa_run_id"]!="latest" and t["parameters"]["optimization_run_id"]!="latest" and t["parameters"]["package_id"]!="latest"' "$BACKGROUND_PACKAGE_PLAN"
+
 uv run cbm import-example geometry_showcase
 uv run cbm workflow-plan \
   --request "Prepare an FBX package for Unity." \

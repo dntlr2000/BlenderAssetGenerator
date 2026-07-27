@@ -34,6 +34,53 @@ Geometry SceneSpec은 `0.2.0`, 재질은 `0.5.0`, QA는 `0.6.0`, portable asset�
 
 새 레퍼런스는 항상 새 `job_id`를 사용한다. 기존 job에 다른 primary reference를 넣는 것은 거부한다. 기존 job 요청이 두 의도에 동시에 해당하거나 어떤 의도인지 불분명하면 추측하지 않고 명시적 `--intent`를 요구한다.
 
+## 실행 정책과 종료 범위
+
+V0.8은 모델링 파이프라인을 둘로 복제하지 않는다. 동일한 V0.4~V0.7 host/agent 계약 위에 다음 두 필드를 직교 정책으로 추가한다.
+
+- `execution_policy`: `standard` 또는 명시적 opt-in인 `background_exterior`
+- `delivery_scope`: 빠른 경로에서 사용자가 계획 전에 확정하는 `preview_only` 또는 `portable_package`; `standard`에서는 기존 `scope`와 intent로부터 effective 값이 내부 기록됨
+
+두 값은 `WorkflowRequest`, `IntentRouting`, `WorkflowPlan`, `WorkflowState`에 보존된다. 기존 V0.8 JSON에 필드가 없으면 `standard` legacy evidence로 읽으며 기존 파일을 재작성하지 않는다.
+
+```text
+standard
+└─ 기존 proxy/detail/material/QA/package 일반 검토와 전용 승인 유지
+
+background_exterior + preview_only
+└─ reference analysis
+   → modeling plan
+   → 중간 크기 외형 SceneSpec 1회 저작
+   → build/render/inspect/validate
+   → 로컬 결정론적 material/shader
+   → 직접 reference QA 1회
+   → post-QA eligibility check
+   → 통합 PDF
+   → delivered_for_review
+
+background_exterior + portable_package
+└─ 위 제작 흐름
+   → V0.7 preflight/review
+   → exact optimization-plan 승인
+   → derived optimization/package/clean-import
+   → 통합 PDF
+```
+
+빠른 경로의 적격 범위:
+
+| 허용 | 제외 |
+|---|---|
+| 새 lowercase job ID | 기존 job을 새 자산으로 덮어쓰기 |
+| `concept` 단일 primary reference | measured, blueprint, 치수, 보조 view |
+| 정적 외관 배경·장식물 | 실내, rig, animation, gameplay |
+| whitelisted procedural/local 512 px 재질 | 외부 image/texture provider |
+| 직접 Visual QA 정확히 1회 | generated target, 자동 revision |
+| engine-neutral preview/package | Unity/Unreal/custom runtime parity |
+
+빠른 geometry agent는 proxy와 detail로 canonical SceneSpec을 두 번 교체하지 않고, 하나의 제한된 중간 상세 SceneSpec을 한 번 작성한다. 조건을 벗어나는 위험을 발견하면 `requires_standard_workflow`를 보고하고 completion marker를 남기지 않는다. 직접 QA 뒤에도 모든 high-severity direct-reference 또는 constraint finding을 machine-readable eligibility report로 검사하고 실패 시 delivery를 차단한다. 이 결과는 재시도 가능한 일반 실패가 아니라 `blocked`이며, 기존 immutable plan을 바꾸지 않고 사용자 검토 후 별도 `standard` workflow를 만든다.
+
+완료된 빠른 preview를 나중에 package로 확장할 때는 preview workflow ID, plan SHA-256, terminal completion fingerprint, QA run ID, canonical-source fingerprint와 embedded build fingerprint를 새 request에 결속한다. V0.7 시작 전 전용 host prerequisite가 이를 다시 검사하므로, preview 뒤 SceneSpec·재질·build 또는 관련 정책이 바뀌면 package workflow는 fail-closed로 중단된다.
+
 ## 목적지 해석
 
 의도와 목적지는 별도로 해석한다. 현재 검증된 adapter는 V0.7의 engine-neutral static-asset package뿐이다.
@@ -52,7 +99,7 @@ workspaces/<job>/workflows/
 ├─ stale_locks/
 └─ <workflow-id>/
    ├─ request.json
-   ├─ route.json
+   ├─ routing.json
    ├─ plan.json
    ├─ state.json
    ├─ inputs/
@@ -61,7 +108,7 @@ workspaces/<job>/workflows/
    └─ attempts/<step-id>/<attempt-id>.json
 ```
 
-`request.json`, `route.json`, `plan.json`은 불변이다. `state.json`은 권위 있는 설계 원본이 아니라 현재 파일·hash·영수증을 다시 읽어 만든 projection이다.
+`request.json`, `routing.json`, `plan.json`은 불변이다. `state.json`은 권위 있는 설계 원본이 아니라 현재 파일·hash·영수증을 다시 읽어 만든 projection이다.
 
 ## 단계 실행 모델
 
@@ -128,6 +175,8 @@ workspaces/<job>/reports/pdf/portable_report.pdf
 - `optimization`: 표시된 LOD/collider/consolidation plan SHA-256 승인
 
 V0.8은 승인을 생성하거나 추론하지 않는다.
+
+`background_exterior`는 일반 검토 영수증을 자동 생성하는 방식이 아니다. 빠른 계획에서 proxy/detail/swatch/QA/final-package 일반 gate 자체를 생략할 뿐이다. InteriorScope, interior-QA camera plan, guarded V0.6 revision, measured-view replacement, V0.7 optimization plan, destination handoff 같은 전용 exact-hash 승인은 생략하거나 일반 승인으로 대체할 수 없다.
 
 ## 안전 경계
 

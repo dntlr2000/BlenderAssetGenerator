@@ -122,6 +122,16 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 69. Every approved interior QA view must render the exact seven-pass set. Use temporary cameras and temporary visibility isolation only; never save those changes back to the authoring `.blend`.
 70. Interior semantic visibility is an evidence-coverage ratio, not a completeness or quality percentage. Without explicitly mapped interior references, report reference comparison as unavailable and keep all generated candidates manual-only.
 71. Interior QA contact sheets and PDFs are derived review aids. The plan, approval, source inventory, render manifest, report, candidates, latest pointer, and their hashes remain authoritative.
+72. V0.8 `standard` remains the default execution policy. `background_exterior` is an explicit opt-in policy for new, unmeasured, static, exterior concept assets and for package-only continuation of an eligible existing exterior job.
+73. Select `preview_only` or `portable_package` when planning `background_exterior`. The immutable workflow request, route, plan, and reconstructed state must all preserve the exact selected policy and delivery scope.
+74. `background_exterior` may omit only generic proxy, detail, material-swatch, QA-review, and final-package acknowledgements. It never bypasses InteriorScope, interior-QA camera-plan, guarded visual-revision, measured-view replacement, V0.7 optimization-plan, or destination-handoff approvals.
+75. A background fast-lane geometry pass authors one bounded moderate-detail SceneSpec once. It must not chain proxy and detail replacements of the same canonical SceneSpec or claim that micro-detail, hidden structure, or runtime behavior was recovered.
+76. Background materials are limited to whitelisted node-procedural recipes or local deterministic `cbm_pillow_procedural` maps at no more than 512 px. External providers, generated QA targets, and automatic V0.6 revisions are disabled.
+77. Background Visual QA runs exactly one direct-reference seven-pass comparison in suggest-only mode. Its score is evidence, not a completion percentage, and its candidates are never applied implicitly. A post-QA machine check must stop with `requires_standard_workflow` on every high-severity direct-reference or constraint finding.
+78. `background_exterior + portable_package` must still stop at the exact V0.7 optimization-plan SHA-256 approval. Package creation and clean-import round trip remain mandatory, while the omitted generic final acknowledgement does not certify destination-runtime parity.
+79. If an agent discovers measured requirements, interiors, rigging, animation, gameplay, engine-specific work, unsafe ambiguity, or another excluded condition, stop with `requires_standard_workflow` and do not record that agent step as complete. Create a new immutable `standard` workflow after user review; never mutate the existing fast plan into standard mode.
+80. A completed background preview may be continued to a portable package only through a separate immutable workflow on the same job. Bind that continuation to the exact preview workflow, plan SHA-256, terminal completion fingerprint, QA run, canonical-source fingerprint, and embedded build fingerprint; reverify them before V0.7 starts. Never rewrite the completed preview workflow or treat a combined PDF as a specialized approval.
+81. `requires_standard_workflow` is a non-retryable blocked outcome for the fast plan. Preserve its machine report and create a new immutable `standard` workflow after review; never relabel it as an ordinary host failure.
 
 ## v0.4 reference-analysis workflow
 
@@ -293,6 +303,10 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 8. Reconcile after every step from current files and hashes. Mark changed evidence stale instead of treating it as completed.
 9. Resume from the first incomplete step. Retry a failed host step only with explicit authorization and a new attempt receipt.
 10. Cancellation preserves all evidence. Destination-specific reconstruction remains deferred until a validated adapter is selected and tested.
+11. Keep `execution_policy=standard` unless the user explicitly chooses the background exterior fast lane before planning.
+12. For `background_exterior`, resolve `delivery_scope` before creating the workflow: `preview_only` stops after one direct QA and a combined review PDF; `portable_package` continues through V0.7 but still waits for the exact optimization-plan approval.
+13. Skip generic review steps only by omitting them from the immutable fast-lane plan. Do not auto-create approval receipts or reinterpret a generic instruction as a specialized approval.
+14. Keep fast-lane agent steps fail-closed. If the asset no longer meets the eligibility boundary, report `requires_standard_workflow`, leave the current step incomplete, and propose a separate standard workflow.
 
 ## v0.9 stabilization and release-candidate workflow
 

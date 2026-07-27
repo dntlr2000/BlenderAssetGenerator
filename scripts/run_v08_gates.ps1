@@ -65,6 +65,78 @@ try {
         throw "V0.8 proxy workflow did not stop at the modeling-plan agent boundary."
     }
 
+    Invoke-Uv run cbm workflow-plan `
+        --request "Create a static exterior background preview." `
+        --job-id v08_background_preview_smoke --reference-path $Reference `
+        --execution-policy background_exterior --delivery-scope preview_only
+    $BackgroundPreviewLatest = Join-Path $SmokeWorkspace `
+        "v08_background_preview_smoke/workflows/latest.json"
+    $BackgroundPreviewWorkflowId = `
+        (Get-Content -Raw $BackgroundPreviewLatest | ConvertFrom-Json).workflow_id
+    $BackgroundPreviewPlanPath = Join-Path $SmokeWorkspace `
+        "v08_background_preview_smoke/workflows/$BackgroundPreviewWorkflowId/plan.json"
+    $BackgroundPreviewPlan = `
+        Get-Content -Raw $BackgroundPreviewPlanPath | ConvertFrom-Json
+    $BackgroundPreviewRequestPath = Join-Path $SmokeWorkspace `
+        "v08_background_preview_smoke/workflows/$BackgroundPreviewWorkflowId/request.json"
+    $BackgroundPreviewRequest = `
+        Get-Content -Raw $BackgroundPreviewRequestPath | ConvertFrom-Json
+    $BackgroundPreviewQa = @(
+        $BackgroundPreviewPlan.steps | Where-Object { $_.step_id -eq "qa.run" }
+    )
+    $BackgroundPreviewTerminal = $BackgroundPreviewPlan.steps | `
+        Where-Object { $_.step_id -eq $BackgroundPreviewPlan.terminal_step_id }
+    if ($BackgroundPreviewPlan.execution_policy -ne "background_exterior" -or `
+        $BackgroundPreviewPlan.delivery_scope -ne "preview_only" -or `
+        $BackgroundPreviewRequest.budgets.max_qa_iterations -ne 1 -or `
+        $BackgroundPreviewRequest.budgets.max_texture_resolution -gt 512 -or `
+        $BackgroundPreviewRequest.budgets.external_provider_budget -ne 0 -or `
+        $BackgroundPreviewQa.Count -ne 1 -or `
+        $BackgroundPreviewQa[0].parameters.include_generated_target -ne $false -or `
+        -not $BackgroundPreviewQa[0].parameters.run_id -or `
+        -not ($BackgroundPreviewPlan.steps.step_id -contains "background.eligibility") -or `
+        $BackgroundPreviewTerminal.parameters.qa_run_id -eq "latest" -or `
+        ($BackgroundPreviewPlan.steps | `
+            Where-Object { $_.execution_mode -match "approval" }).Count -ne 0 -or `
+        ($BackgroundPreviewPlan.steps | `
+            Where-Object { $_.phase -eq "portable" }).Count -ne 0) {
+        throw "V0.8 background preview plan violated its bounded fast-lane contract."
+    }
+
+    Invoke-Uv run cbm workflow-plan `
+        --request "Create a static exterior background FBX package." `
+        --job-id v08_background_package_smoke --reference-path $Reference `
+        --execution-policy background_exterior `
+        --delivery-scope portable_package `
+        --profile fbx_interchange --destination engine_neutral
+    $BackgroundPackageLatest = Join-Path $SmokeWorkspace `
+        "v08_background_package_smoke/workflows/latest.json"
+    $BackgroundPackageWorkflowId = `
+        (Get-Content -Raw $BackgroundPackageLatest | ConvertFrom-Json).workflow_id
+    $BackgroundPackagePlanPath = Join-Path $SmokeWorkspace `
+        "v08_background_package_smoke/workflows/$BackgroundPackageWorkflowId/plan.json"
+    $BackgroundPackagePlan = `
+        Get-Content -Raw $BackgroundPackagePlanPath | ConvertFrom-Json
+    $BackgroundPackageTerminal = $BackgroundPackagePlan.steps | `
+        Where-Object { $_.step_id -eq $BackgroundPackagePlan.terminal_step_id }
+    $BackgroundSpecialized = @(
+        $BackgroundPackagePlan.steps | `
+            Where-Object { $_.execution_mode -eq "specialized_approval" }
+    )
+    if (($BackgroundPackagePlan.steps | `
+            Where-Object { $_.execution_mode -eq "approval" }).Count -ne 0 -or `
+        $BackgroundSpecialized.Count -ne 1 -or `
+        $BackgroundSpecialized[0].approval_gate -ne "optimization_plan" -or `
+        $BackgroundPackagePlan.execution_policy -ne "background_exterior" -or `
+        $BackgroundPackagePlan.delivery_scope -ne "portable_package" -or `
+        -not ($BackgroundPackagePlan.steps.step_id -contains "background.eligibility") -or `
+        $BackgroundPackageTerminal.parameters.qa_run_id -eq "latest" -or `
+        $BackgroundPackageTerminal.parameters.optimization_run_id -eq "latest" -or `
+        $BackgroundPackageTerminal.parameters.package_id -eq "latest" -or `
+        ($BackgroundPackagePlan.steps.step_id -contains "portable.final_approval")) {
+        throw "V0.8 background package plan did not preserve only V0.7 approval."
+    }
+
     Invoke-Uv run cbm import-example geometry_showcase
     Invoke-Uv run cbm workflow-plan `
         --request "Prepare an FBX package for Unity." `

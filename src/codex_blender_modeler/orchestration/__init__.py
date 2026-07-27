@@ -2,8 +2,11 @@
 
 from .models import (
     ArtifactFreshness,
+    BackgroundPreviewBinding,
+    DeliveryScope,
     DestinationRequest,
     DestinationResolution,
+    ExecutionPolicy,
     IntentRouting,
     WorkflowApproval,
     WorkflowAttempt,
@@ -28,8 +31,11 @@ from .service import (
 
 __all__ = [
     "ArtifactFreshness",
+    "BackgroundPreviewBinding",
+    "DeliveryScope",
     "DestinationRequest",
     "DestinationResolution",
+    "ExecutionPolicy",
     "IntentRouting",
     "WorkflowApproval",
     "WorkflowAttempt",
