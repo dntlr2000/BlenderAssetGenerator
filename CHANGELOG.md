@@ -2,9 +2,29 @@
 
 ## 0.9.0
 
+- Added an execution-policy-independent `reference_content_scope` for new jobs:
+  backward-compatible `full_reference` or explicit `primary_object_only` with a
+  required target subject.
+- Added fail-closed ModelingPlan, SceneSpec, build-provenance, workflow
+  continuation, and V0.6 subject-mask enforcement so object-only jobs preserve
+  primary/supporting parts while excluding independent terrain, ground,
+  vegetation, rocks, props, backdrops, and atmospheric context.
+- Preserved legacy and standard workflows by defaulting missing scope metadata
+  to `full_reference`; changing a job's scope or target requires a new job.
+- Split new background fast workflows into independent execution and quality outcomes. Structurally successful previews now deliver review evidence as `completed` / `delivered_for_review` with `quality_status=passed|needs_revision|unscorable`.
+- Added workflow-owned primary/supporting/decorative/ground-background role maps and ground-independent primary object-ID silhouette and bbox evidence without changing SceneSpec `0.2.0`.
+- Added at most two low-resolution pre-QA fit refinements with immutable SceneSpec candidates, exact attempt metrics, strict improvement-only promotion, history, and hash-bound promotion receipts. Canonical V0.6 QA remains exactly one seven-pass run.
+- Reserved `requires_standard_workflow` for actual scope and safety boundaries, retained `orchestration_artifact_conflict` for unexpected ownership/fingerprint changes, and kept ordinary Blender/timeout/dependency failures separate.
+- Added hash-bound background quality JSON, first-page PDF quality warnings, standard revision targets, and V0.7 review propagation for non-passing source quality without bypassing exact optimization-plan approval.
+- Fixed new V0.8 workflow artifact lifecycles so expected downstream material promotion and derived rebuilds no longer retroactively stale valid upstream completions.
+- Added separate workflow-owned material scaffold/authored candidates, strict canonical MaterialPlan promotion with history and immutable receipts, and exact candidate-bound agent completion.
+- Added execution-time snapshots for shared derived `.blend`, preview, inventory, validation, and report outputs; exact QA-run binding now treats `qa/latest.json` as a convenience pointer only.
+- Added workflow-owned PDF paths and machine-readable `orchestration_artifact_conflict`, distinct from scope/safety-only `requires_standard_workflow` and ordinary host failures.
+- Preserved legacy V0.8 workflow readability and left existing blocked workflows immutable; the corrected lifecycle contract applies only to newly planned workflows.
+- Verified Blender 5.0.1 fast `preview_only` completion, one direct seven-pass QA without generated targets or automatic revision, exact V0.7 approval stop, FBX package completion, and GLB/FBX/OBJ clean-import regressions in isolated workspaces.
 - Added an explicit V0.8 `background_exterior` execution policy with `preview_only` and `portable_package` delivery scopes while retaining `standard` as the backward-compatible default.
-- Added a bounded single-author exterior geometry pass, deterministic local material limits, one direct suggest-only QA run, combined PDF delivery, and fail-closed `requires_standard_workflow` instructions for fast-lane risk discovery.
-- Added a post-QA machine eligibility report that blocks delivery on every high-severity direct-reference or constraint finding.
+- Added a bounded single-author exterior geometry pass, deterministic local material limits, one direct suggest-only QA run, combined PDF delivery, and fail-closed `requires_standard_workflow` instructions for actual fast-lane scope/safety risk discovery.
+- Replaced the initial high-finding delivery blocker for newly planned workflows with a machine quality report that preserves every visual warning while allowing review delivery.
 - Bound package-only continuation to the exact completed preview plan, terminal completion, QA run, canonical source, and embedded build fingerprints, with a non-retryable prerequisite recheck before V0.7.
 - Removed only generic review gates from background plans; the exact V0.7 optimization-plan approval, immutable package, and clean-import round trip remain mandatory for portable delivery.
 - Exposed the policy through CLI and MCP, regenerated strict V0.8 schemas, and added isolated preview/package planning gates without changing SceneSpec, material, QA, or portable contract versions.

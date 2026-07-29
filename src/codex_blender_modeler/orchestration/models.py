@@ -67,8 +67,11 @@ WorkflowScope = Literal[
     "portable_only",
     "full",
 ]
+ReferenceContentScope = Literal["primary_object_only", "full_reference"]
 ExecutionPolicy = Literal["standard", "background_exterior"]
 DeliveryScope = Literal["preview_only", "portable_package"]
+FastQualityPolicy = Literal["review_delivery_v2"]
+QualityStatus = Literal["passed", "needs_revision", "unscorable"]
 ExecutionMode = Literal["host", "agent", "approval", "specialized_approval", "manual"]
 StepStatus = Literal[
     "pending",
@@ -111,6 +114,12 @@ VerificationStatus = Literal["verified", "partially_verified", "unverified"]
 DestinationKind = Literal["unspecified", "engine_neutral", "unity", "unreal", "custom"]
 DestinationStatus = Literal["not_requested", "available", "unsupported"]
 ArtifactAcceptance = Literal["exists", "valid_json", "json_ok", "nonempty_directory"]
+ArtifactLifecycle = Literal["canonical", "workflow_snapshot", "immutable_run"]
+WorkflowReasonCode = Literal[
+    "requires_standard_workflow",
+    "orchestration_artifact_conflict",
+    "host_failure",
+]
 GateKind = Literal[
     "proxy_geometry",
     "detailed_geometry",
@@ -143,6 +152,7 @@ class WorkflowBudgets(V08StrictModel):
 
     max_host_steps_per_resume: int = Field(default=8, ge=1, le=64)
     max_qa_iterations: int = Field(default=1, ge=0, le=10)
+    max_pre_qa_fit_attempts: int = Field(default=2, ge=0, le=2)
     max_texture_resolution: int = Field(default=2048, ge=16, le=8192)
     max_lod0_triangles: int | None = Field(default=None, ge=1)
     external_provider_budget: int = Field(default=0, ge=0, le=100)
@@ -158,7 +168,27 @@ class BackgroundPreviewBinding(V08StrictModel):
     qa_run_id: str = Field(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
     source_fingerprint: Sha256
     build_fingerprint: Sha256
+    quality_status: QualityStatus | None = None
+    standard_workflow_recommended: bool | None = None
+    quality_report_path: JobRelativePath | None = None
+    quality_report_sha256: Sha256 | None = None
     bound_at: datetime
+
+    @model_validator(mode="after")
+    def validate_optional_quality_binding(self) -> BackgroundPreviewBinding:
+        """Require complete quality evidence whenever a new-policy binding provides it."""
+
+        quality_values = (
+            self.quality_status,
+            self.standard_workflow_recommended,
+            self.quality_report_path,
+            self.quality_report_sha256,
+        )
+        if any(value is not None for value in quality_values) and any(
+            value is None for value in quality_values
+        ):
+            raise ValueError("background preview quality binding must be complete")
+        return self
 
 
 class DestinationRequest(V08StrictModel):
@@ -208,8 +238,11 @@ class WorkflowRequest(V08StrictModel):
     raw_request: str = Field(min_length=1, max_length=4000)
     intent_hint: IntentHint = "auto"
     requested_scope: WorkflowScope
+    reference_content_scope: ReferenceContentScope = "full_reference"
+    target_subject: str | None = Field(default=None, min_length=1, max_length=256)
     execution_policy: ExecutionPolicy = "standard"
     delivery_scope: DeliveryScope | None = None
+    fast_quality_policy: FastQualityPolicy | None = None
     background_preview_binding: BackgroundPreviewBinding | None = None
     mode: Literal["concept", "measured"] = "concept"
     primary_reference: WorkflowInputArtifact | None = None
@@ -228,6 +261,13 @@ class WorkflowRequest(V08StrictModel):
     def validate_view_request(self) -> WorkflowRequest:
         """Keep staged views distinct and enforce the bounded background fast lane."""
 
+        if (
+            self.reference_content_scope == "primary_object_only"
+            and self.target_subject is None
+        ):
+            raise ValueError(
+                "primary_object_only requires an explicit target_subject"
+            )
         if self.staged_view is not None and self.staged_view.kind == "reference":
             raise ValueError("staged auxiliary view cannot use kind=reference")
         if self.replace_existing_view and self.staged_view is None:
@@ -291,6 +331,10 @@ class WorkflowRequest(V08StrictModel):
             raise ValueError(
                 "background_preview_binding is allowed only for background_exterior"
             )
+        elif self.fast_quality_policy is not None:
+            raise ValueError(
+                "fast_quality_policy is allowed only for background_exterior"
+            )
         return self
 
 
@@ -331,8 +375,25 @@ class ArtifactRequirement(V08StrictModel):
 
     artifact_id: StepId
     path: JobRelativePath
+    source_path: JobRelativePath | None = None
+    lifecycle: ArtifactLifecycle = "canonical"
     acceptance: ArtifactAcceptance = "exists"
     canonical: bool = False
+
+    @model_validator(mode="after")
+    def validate_lifecycle(self) -> ArtifactRequirement:
+        """Keep mutable source paths separate from their immutable workflow snapshots."""
+
+        if self.lifecycle == "workflow_snapshot":
+            if self.source_path is None:
+                raise ValueError("workflow_snapshot artifacts require source_path")
+            if self.source_path == self.path:
+                raise ValueError("workflow snapshot path must differ from source_path")
+            if self.canonical:
+                raise ValueError("workflow snapshots cannot themselves be canonical")
+        elif self.source_path is not None:
+            raise ValueError("source_path is valid only for workflow_snapshot artifacts")
+        return self
 
 
 class WorkflowStep(V08StrictModel):
@@ -382,8 +443,11 @@ class WorkflowPlan(V08StrictModel):
     routing_sha256: Sha256
     intent: WorkflowIntent
     scope: WorkflowScope
+    reference_content_scope: ReferenceContentScope = "full_reference"
+    target_subject: str | None = Field(default=None, min_length=1, max_length=256)
     execution_policy: ExecutionPolicy = "standard"
     delivery_scope: DeliveryScope | None = None
+    fast_quality_policy: FastQualityPolicy | None = None
     destination: DestinationResolution
     steps: list[WorkflowStep] = Field(min_length=1)
     terminal_step_id: StepId
@@ -394,6 +458,13 @@ class WorkflowPlan(V08StrictModel):
     def validate_ordered_dag(self) -> WorkflowPlan:
         """Require an ordered DAG and preserve all fast-lane safety boundaries."""
 
+        if (
+            self.reference_content_scope == "primary_object_only"
+            and self.target_subject is None
+        ):
+            raise ValueError(
+                "primary_object_only plans require an explicit target_subject"
+            )
         ids = [step.step_id for step in self.steps]
         if len(ids) != len(set(ids)):
             raise ValueError("workflow step IDs must be unique")
@@ -450,15 +521,22 @@ class WorkflowPlan(V08StrictModel):
                 "background_geometry.report",
                 "material.scaffold",
                 "material.author",
+                "material.promote",
                 "material.contract_validate",
                 "material.build",
                 "material.inspect",
                 "material.swatches",
                 "material.report",
                 "qa.run",
-                "qa.report",
-                "background.eligibility",
             ]
+            if self.fast_quality_policy == "review_delivery_v2":
+                required_common.insert(
+                    required_common.index("background_geometry.build"),
+                    "background.fit",
+                )
+                required_common.extend(["background.eligibility", "qa.report"])
+            else:
+                required_common.extend(["qa.report", "background.eligibility"])
             if self.intent == "new_asset":
                 missing_common = [
                     step_id for step_id in required_common if step_id not in step_map
@@ -482,6 +560,15 @@ class WorkflowPlan(V08StrictModel):
                         "background_exterior requires one direct QA run without a "
                         "generated target"
                     )
+                if self.fast_quality_policy == "review_delivery_v2":
+                    fit_step = step_map["background.fit"]
+                    if (
+                        fit_step.tool_name != "fit_background_exterior"
+                        or int(fit_step.parameters.get("max_attempts", -1)) not in {0, 1, 2}
+                    ):
+                        raise ValueError(
+                            "new background quality plans require one bounded pre-QA fit"
+                        )
             if self.delivery_scope == "preview_only" and portable_steps:
                 raise ValueError(
                     "preview_only background plans cannot contain portable steps"
@@ -552,6 +639,10 @@ class WorkflowPlan(V08StrictModel):
                             "background package continuation requires an exact "
                             "preview-binding prerequisite"
                         )
+        elif self.fast_quality_policy is not None:
+            raise ValueError(
+                "fast_quality_policy is allowed only for background_exterior plans"
+            )
         return self
 
 
@@ -580,6 +671,7 @@ class WorkflowStepState(V08StrictModel):
     started_at: datetime | None = None
     completed_at: datetime | None = None
     error: str | None = None
+    reason_code: WorkflowReasonCode | None = None
 
 
 class WorkflowState(V08StrictModel):
@@ -590,6 +682,8 @@ class WorkflowState(V08StrictModel):
     job_id: JobId
     plan_sha256: Sha256
     request_sha256: Sha256
+    reference_content_scope: ReferenceContentScope = "full_reference"
+    target_subject: str | None = Field(default=None, min_length=1, max_length=256)
     execution_policy: ExecutionPolicy = "standard"
     delivery_scope: DeliveryScope | None = None
     status: WorkflowStatus
@@ -599,6 +693,11 @@ class WorkflowState(V08StrictModel):
     next_action: str | None = None
     waiting_gate: GateKind | None = None
     warnings: list[str] = Field(default_factory=list)
+    reason_code: WorkflowReasonCode | None = None
+    quality_status: QualityStatus | None = None
+    standard_workflow_recommended: bool | None = None
+    quality_report_path: JobRelativePath | None = None
+    quality_report_sha256: Sha256 | None = None
     cancelled_reason: str | None = None
     created_at: datetime
     updated_at: datetime
@@ -607,12 +706,29 @@ class WorkflowState(V08StrictModel):
     def validate_state_summary(self) -> WorkflowState:
         """Synchronize terminal and waiting fields with the aggregate workflow status."""
 
+        if (
+            self.reference_content_scope == "primary_object_only"
+            and self.target_subject is None
+        ):
+            raise ValueError(
+                "primary_object_only state requires an explicit target_subject"
+            )
         if self.status == "completed" and self.current_step_id is not None:
             raise ValueError("completed workflow cannot have a current step")
         if self.status == "cancelled" and not self.cancelled_reason:
             raise ValueError("cancelled workflow requires a reason")
         if self.status != "waiting_for_approval" and self.waiting_gate is not None:
             raise ValueError("waiting_gate is valid only while waiting_for_approval")
+        quality_values = (
+            self.quality_status,
+            self.standard_workflow_recommended,
+            self.quality_report_path,
+            self.quality_report_sha256,
+        )
+        if any(value is not None for value in quality_values) and any(
+            value is None for value in quality_values
+        ):
+            raise ValueError("workflow quality summary must be complete when present")
         return self
 
 
@@ -669,6 +785,7 @@ class WorkflowAttempt(V08StrictModel):
     outputs: list[ArtifactFreshness] = Field(default_factory=list)
     error_type: str | None = None
     error_message: str | None = None
+    reason_code: WorkflowReasonCode | None = None
     started_at: datetime
     completed_at: datetime | None = None
 

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from ..auto_revision.candidate_builder import build_revision_candidates
+from ..build_provenance import collect_build_provenance
 from ..blender_artifacts import write_json_atomic
 from ..config import load_feature_config
 from ..models import SceneSpec
@@ -125,6 +126,53 @@ def _snapshot_render_passes(
     return run_manifest, manifest_path, copied
 
 
+def _resume_interrupted_render_snapshot(
+    root: Path,
+    run_dir: Path,
+    *,
+    job_id: str,
+    run_id: str,
+    scene_spec_sha256: str,
+    camera_fingerprint: str,
+) -> tuple[RenderPassManifest, Path, dict[str, Path]]:
+    """Resume QA only from an exact, hash-valid seven-pass snapshot with no later outputs."""
+
+    allowed_entries = {"passes", "render_pass_manifest.json"}
+    actual_entries = {path.name for path in run_dir.iterdir()}
+    if actual_entries != allowed_entries:
+        raise FileExistsError(run_dir)
+    manifest_path = run_dir / "render_pass_manifest.json"
+    manifest = RenderPassManifest.model_validate_json(
+        manifest_path.read_text(encoding="utf-8")
+    )
+    expected_build = collect_build_provenance(root, job_id)
+    if (
+        manifest.job_id != job_id
+        or manifest.run_id != run_id
+        or manifest.scene_spec_sha256 != scene_spec_sha256
+        or manifest.camera_fingerprint != camera_fingerprint
+        or manifest.build_fingerprint != expected_build["fingerprint"]
+    ):
+        raise ValueError("Interrupted QA pass snapshot no longer matches canonical inputs")
+    kinds = [record.kind for record in manifest.passes]
+    if len(kinds) != len(REQUIRED_QA_PASS_KINDS) or set(kinds) != set(
+        REQUIRED_QA_PASS_KINDS
+    ):
+        raise ValueError("Interrupted QA pass snapshot is not the exact seven-pass set")
+    pass_dir = (run_dir / "passes").resolve()
+    passes: dict[str, Path] = {}
+    for record in manifest.passes:
+        artifact = _resolve_manifest_artifact(manifest_path, record)
+        try:
+            artifact.relative_to(pass_dir)
+        except ValueError as exc:
+            raise ValueError("Interrupted QA pass escapes the run-local pass directory") from exc
+        if not artifact.is_file() or sha256_file(artifact) != record.sha256:
+            raise ValueError(f"Interrupted QA pass is missing or changed: {record.kind}")
+        passes[record.kind] = artifact
+    return manifest, manifest_path, passes
+
+
 def _target_prompt(job_id: str, request: VisualQARequest) -> str:
     """Create a constrained advisory-target prompt that preserves reference and camera roles."""
 
@@ -199,22 +247,31 @@ def run_job_visual_qa(
     fingerprint = camera_fingerprint(spec)
     selected_run_id = _validate_run_id(run_id or _new_run_id(spec_hash))
     run_dir = root / "qa" / "runs" / selected_run_id
-    run_dir.mkdir(parents=True, exist_ok=False)
-
-    rendered = _render_job_qa_passes(
-        job_id,
-        render_engine=render_engine,
-        render_device=render_device,
-        run_id=selected_run_id,
-        camera_fingerprint=fingerprint,
-        scene_spec_sha256=spec_hash,
-    )
-    shared_manifest_path = root / "reports" / "qa_pass_manifest.json"
-    run_manifest, manifest_path, passes = _snapshot_render_passes(
-        rendered,
-        source_manifest_path=shared_manifest_path,
-        run_dir=run_dir,
-    )
+    if run_dir.exists():
+        run_manifest, manifest_path, passes = _resume_interrupted_render_snapshot(
+            root,
+            run_dir,
+            job_id=job_id,
+            run_id=selected_run_id,
+            scene_spec_sha256=spec_hash,
+            camera_fingerprint=fingerprint,
+        )
+    else:
+        run_dir.mkdir(parents=True, exist_ok=False)
+        rendered = _render_job_qa_passes(
+            job_id,
+            render_engine=render_engine,
+            render_device=render_device,
+            run_id=selected_run_id,
+            camera_fingerprint=fingerprint,
+            scene_spec_sha256=spec_hash,
+        )
+        shared_manifest_path = root / "reports" / "qa_pass_manifest.json"
+        run_manifest, manifest_path, passes = _snapshot_render_passes(
+            rendered,
+            source_manifest_path=shared_manifest_path,
+            run_dir=run_dir,
+        )
     reference_path = find_reference(job_id)
     reference_mask_path, reference_mask_manifest_path = prepare_run_reference_mask(
         root=root,
@@ -222,6 +279,9 @@ def run_job_visual_qa(
         reference_path=reference_path,
         analysis_mask_path=_reference_content_mask(root),
         spec=spec,
+        reference_content_scope=str(
+            metadata.get("reference_content_scope", "full_reference")
+        ),
     )
     request = create_visual_qa_request(
         job_id=job_id,

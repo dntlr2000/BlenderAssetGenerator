@@ -173,6 +173,116 @@
       ],
       "title": "SourceProvenance",
       "type": "object"
+    },
+    "SourceQualitySummary": {
+      "additionalProperties": false,
+      "description": "Carry exact fast-preview quality warnings into the V0.7 approval boundary.",
+      "properties": {
+        "report_artifact": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "quality_status": {
+          "enum": [
+            "passed",
+            "needs_revision",
+            "unscorable"
+          ],
+          "title": "Quality Status",
+          "type": "string"
+        },
+        "overall_direct_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overall Direct Score"
+        },
+        "primary_silhouette_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Silhouette Score"
+        },
+        "primary_high_findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Primary High Findings",
+          "type": "array"
+        },
+        "supporting_high_findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting High Findings",
+          "type": "array"
+        },
+        "decorative_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Decorative Warnings",
+          "type": "array"
+        },
+        "environment_findings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Environment Findings",
+          "type": "array"
+        },
+        "standard_workflow_recommended": {
+          "title": "Standard Workflow Recommended",
+          "type": "boolean"
+        },
+        "qa_run_id": {
+          "minLength": 1,
+          "title": "Qa Run Id",
+          "type": "string"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "report_artifact",
+        "quality_status",
+        "standard_workflow_recommended",
+        "qa_run_id",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceQualitySummary",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -211,6 +321,17 @@
     },
     "source": {
       "$ref": "#/$defs/SourceProvenance"
+    },
+    "source_quality": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SourceQualitySummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "status": {
       "default": "draft",

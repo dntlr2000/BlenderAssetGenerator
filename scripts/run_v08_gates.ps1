@@ -39,14 +39,18 @@ if (-not $SkipV07) {
 }
 
 $PreviousWorkspace = $env:CBM_WORKSPACE_ROOT
-$RunStamp = [DateTime]::UtcNow.ToString("yyyyMMddTHHmmssfffZ")
+$RunStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
 $SmokeRoot = Join-Path (Get-Location) "reports/v08_smoke/${RunStamp}-$PID"
 $SmokeWorkspace = Join-Path $SmokeRoot "workspaces"
 New-Item -ItemType Directory -Path $SmokeWorkspace -Force | Out-Null
 
 try {
     $env:CBM_WORKSPACE_ROOT = $SmokeWorkspace
-    $Reference = (Resolve-Path "examples/geometry_showcase/reference.png").Path
+    Invoke-Uv run cbm import-example geometry_showcase
+    Invoke-Uv run cbm build geometry_showcase
+    Invoke-Uv run cbm render geometry_showcase
+    $Reference = (Resolve-Path (Join-Path $SmokeWorkspace `
+        "geometry_showcase/renders/preview.png")).Path
     Invoke-Uv run cbm workflow-plan `
         --request "Create a 3D proxy model from this image." `
         --job-id v08_proxy_smoke --reference-path $Reference
@@ -89,11 +93,15 @@ try {
     if ($BackgroundPreviewPlan.execution_policy -ne "background_exterior" -or `
         $BackgroundPreviewPlan.delivery_scope -ne "preview_only" -or `
         $BackgroundPreviewRequest.budgets.max_qa_iterations -ne 1 -or `
+        $BackgroundPreviewRequest.budgets.max_pre_qa_fit_attempts -ne 2 -or `
         $BackgroundPreviewRequest.budgets.max_texture_resolution -gt 512 -or `
         $BackgroundPreviewRequest.budgets.external_provider_budget -ne 0 -or `
         $BackgroundPreviewQa.Count -ne 1 -or `
         $BackgroundPreviewQa[0].parameters.include_generated_target -ne $false -or `
         -not $BackgroundPreviewQa[0].parameters.run_id -or `
+        $BackgroundPreviewRequest.fast_quality_policy -ne "review_delivery_v2" -or `
+        $BackgroundPreviewPlan.fast_quality_policy -ne "review_delivery_v2" -or `
+        -not ($BackgroundPreviewPlan.steps.step_id -contains "background.fit") -or `
         -not ($BackgroundPreviewPlan.steps.step_id -contains "background.eligibility") -or `
         $BackgroundPreviewTerminal.parameters.qa_run_id -eq "latest" -or `
         ($BackgroundPreviewPlan.steps | `
@@ -123,13 +131,21 @@ try {
         $BackgroundPackagePlan.steps | `
             Where-Object { $_.execution_mode -eq "specialized_approval" }
     )
+    $BackgroundPackageEligibility = $BackgroundPackagePlan.steps | `
+        Where-Object { $_.step_id -eq "background.eligibility" }
+    $BackgroundPackagePortablePlan = $BackgroundPackagePlan.steps | `
+        Where-Object { $_.step_id -eq "portable.plan" }
     if (($BackgroundPackagePlan.steps | `
             Where-Object { $_.execution_mode -eq "approval" }).Count -ne 0 -or `
         $BackgroundSpecialized.Count -ne 1 -or `
         $BackgroundSpecialized[0].approval_gate -ne "optimization_plan" -or `
         $BackgroundPackagePlan.execution_policy -ne "background_exterior" -or `
         $BackgroundPackagePlan.delivery_scope -ne "portable_package" -or `
+        $BackgroundPackagePlan.fast_quality_policy -ne "review_delivery_v2" -or `
+        -not ($BackgroundPackagePlan.steps.step_id -contains "background.fit") -or `
         -not ($BackgroundPackagePlan.steps.step_id -contains "background.eligibility") -or `
+        $BackgroundPackagePortablePlan.parameters.source_quality_path -ne `
+            $BackgroundPackageEligibility.parameters.output_path -or `
         $BackgroundPackageTerminal.parameters.qa_run_id -eq "latest" -or `
         $BackgroundPackageTerminal.parameters.optimization_run_id -eq "latest" -or `
         $BackgroundPackageTerminal.parameters.package_id -eq "latest" -or `
@@ -137,7 +153,14 @@ try {
         throw "V0.8 background package plan did not preserve only V0.7 approval."
     }
 
-    Invoke-Uv run cbm import-example geometry_showcase
+    $FastSceneSpec = (Resolve-Path `
+        "examples/geometry_showcase/scene_spec.seed.json").Path
+    Invoke-Uv run python scripts/run_v08_fast_smoke.py `
+        --job-id v8fast `
+        --reference $Reference `
+        --scene-spec $FastSceneSpec `
+        --profile fbx_interchange
+
     Invoke-Uv run cbm workflow-plan `
         --request "Prepare an FBX package for Unity." `
         --job-id geometry_showcase --intent portable_package `

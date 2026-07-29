@@ -6,6 +6,13 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from codex_blender_modeler.background_quality.models import (
+    BackgroundFitReport,
+    BackgroundQualityReport,
+    BackgroundRoleMap,
+    BackgroundScenePromotionReceipt,
+)
+from codex_blender_modeler.materials.models import MaterialPromotionReceipt
 from codex_blender_modeler.orchestration.models import (
     DestinationRequest,
     DestinationResolution,
@@ -35,6 +42,13 @@ def test_v08_contract_schemas_are_current_and_strict() -> None:
         "workflow_step_completion.schema.json": WorkflowStepCompletion,
         "workflow_attempt.schema.json": WorkflowAttempt,
         "workflow_lock.schema.json": WorkflowLock,
+        "material_promotion_receipt.schema.json": MaterialPromotionReceipt,
+        "background_role_map.schema.json": BackgroundRoleMap,
+        "background_fit_report.schema.json": BackgroundFitReport,
+        "background_scene_promotion_receipt.schema.json": (
+            BackgroundScenePromotionReceipt
+        ),
+        "background_quality_report.schema.json": BackgroundQualityReport,
     }
     for filename, model in contracts.items():
         schema = json.loads((root / "schemas" / filename).read_text(encoding="utf-8"))
@@ -109,11 +123,25 @@ def test_v08_policy_fields_are_strict_but_legacy_optional() -> None:
     ):
         payload.pop("execution_policy")
         payload.pop("delivery_scope")
+        if model in {WorkflowRequest, WorkflowPlan, WorkflowState}:
+            payload.pop("reference_content_scope")
+            payload.pop("target_subject")
         if model is WorkflowRequest:
+            payload.pop("fast_quality_policy")
             payload.pop("background_preview_binding")
+        if model is WorkflowPlan:
+            payload.pop("fast_quality_policy")
+        if model is WorkflowState:
+            payload.pop("quality_status")
+            payload.pop("standard_workflow_recommended")
+            payload.pop("quality_report_path")
+            payload.pop("quality_report_sha256")
         parsed = model.model_validate(payload)
         assert parsed.execution_policy == "standard"
         assert parsed.delivery_scope is None
+        if model in {WorkflowRequest, WorkflowPlan, WorkflowState}:
+            assert parsed.reference_content_scope == "full_reference"
+            assert parsed.target_subject is None
 
     request_schema = WorkflowRequest.model_json_schema()["properties"]
     assert request_schema["execution_policy"]["enum"] == [
@@ -127,3 +155,8 @@ def test_v08_policy_fields_are_strict_but_legacy_optional() -> None:
     ]
     assert request_schema["delivery_scope"]["default"] is None
     assert request_schema["background_preview_binding"]["default"] is None
+    assert request_schema["reference_content_scope"]["enum"] == [
+        "primary_object_only",
+        "full_reference",
+    ]
+    assert request_schema["reference_content_scope"]["default"] == "full_reference"

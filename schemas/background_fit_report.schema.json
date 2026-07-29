@@ -1,0 +1,354 @@
+{
+  "$defs": {
+    "BackgroundFitAttempt": {
+      "additionalProperties": false,
+      "description": "Preserve one immutable baseline or bounded refinement attempt.",
+      "properties": {
+        "attempt_index": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Attempt Index",
+          "type": "integer"
+        },
+        "candidate_path": {
+          "title": "Candidate Path",
+          "type": "string"
+        },
+        "candidate_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Sha256",
+          "type": "string"
+        },
+        "input_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Fingerprint",
+          "type": "string"
+        },
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/BackgroundFitChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "metrics": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BackgroundFitMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "improved": {
+          "default": false,
+          "title": "Improved",
+          "type": "boolean"
+        },
+        "selected": {
+          "default": false,
+          "title": "Selected",
+          "type": "boolean"
+        },
+        "outcome": {
+          "enum": [
+            "baseline",
+            "evaluated",
+            "failed"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_index",
+        "candidate_path",
+        "candidate_sha256",
+        "input_fingerprint",
+        "outcome",
+        "reason"
+      ],
+      "title": "BackgroundFitAttempt",
+      "type": "object"
+    },
+    "BackgroundFitChange": {
+      "additionalProperties": false,
+      "description": "Describe one bounded camera or parametric candidate edit.",
+      "properties": {
+        "path": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Path",
+          "type": "array"
+        },
+        "before": {
+          "title": "Before"
+        },
+        "after": {
+          "title": "After"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "before",
+        "after",
+        "reason"
+      ],
+      "title": "BackgroundFitChange",
+      "type": "object"
+    },
+    "BackgroundFitMetrics": {
+      "additionalProperties": false,
+      "description": "Record low-resolution primary-subject fit evidence for one candidate.",
+      "properties": {
+        "scorable": {
+          "title": "Scorable",
+          "type": "boolean"
+        },
+        "primary_reference_bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Reference Bbox Norm"
+        },
+        "primary_rendered_bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Rendered Bbox Norm"
+        },
+        "primary_silhouette_iou": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Silhouette Iou"
+        },
+        "primary_bbox_similarity": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Bbox Similarity"
+        },
+        "combined_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Combined Score"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "scorable"
+      ],
+      "title": "BackgroundFitMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize bounded pre-QA fitting without claiming canonical QA completion.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "degraded"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "max_refinement_attempts": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Max Refinement Attempts",
+      "type": "integer"
+    },
+    "initial_candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Candidate Sha256",
+      "type": "string"
+    },
+    "selected_candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selected Candidate Sha256",
+      "type": "string"
+    },
+    "selected_attempt_index": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Selected Attempt Index",
+      "type": "integer"
+    },
+    "role_map_path": {
+      "title": "Role Map Path",
+      "type": "string"
+    },
+    "role_map_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Role Map Sha256",
+      "type": "string"
+    },
+    "promotion_receipt_path": {
+      "title": "Promotion Receipt Path",
+      "type": "string"
+    },
+    "promotion_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Promotion Receipt Sha256",
+      "type": "string"
+    },
+    "attempts": {
+      "items": {
+        "$ref": "#/$defs/BackgroundFitAttempt"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Attempts",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "status",
+    "input_fingerprint",
+    "max_refinement_attempts",
+    "initial_candidate_sha256",
+    "selected_candidate_sha256",
+    "selected_attempt_index",
+    "role_map_path",
+    "role_map_sha256",
+    "promotion_receipt_path",
+    "promotion_receipt_sha256",
+    "attempts",
+    "completed_at"
+  ],
+  "title": "BackgroundFitReport",
+  "type": "object"
+}

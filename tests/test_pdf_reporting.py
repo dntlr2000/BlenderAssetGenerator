@@ -192,6 +192,57 @@ def test_external_report_image_is_skipped_without_path_disclosure(
     assert all(str(outside) not in source.path for source in payload["sources"])
 
 
+def test_fast_quality_warning_is_prominent_on_qa_pdf_cover(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Show delivered execution and needs-revision quality separately on page one."""
+
+    root = _seed_material_report_job(tmp_path, monkeypatch)
+    quality_path = (
+        root
+        / "reports"
+        / "background_delivery"
+        / "wf-quality_quality.json"
+    )
+    _write_json(
+        quality_path,
+        {
+            "schema_version": "0.8.0",
+            "job_id": "pdf_report_test",
+            "workflow_id": "wf-quality",
+            "execution_status": "completed",
+            "delivery_status": "ready_for_review",
+            "quality_status": "needs_revision",
+            "quality_accepted": False,
+            "standard_workflow_recommended": True,
+            "overall_direct_score": 0.706882,
+            "primary_silhouette_score": 0.690166,
+            "primary_high_findings": ["quality.primary_silhouette"],
+            "decorative_warnings": ["direct.environment.rocks"],
+        },
+    )
+
+    result = generate_job_pdf_report(
+        "pdf_report_test",
+        scope="qa",
+        qa_run_id=None,
+        background_quality_report_path=quality_path.relative_to(root).as_posix(),
+        output_path=tmp_path / "quality-review.pdf",
+    )
+
+    reader = PdfReader(Path(result["pdf"]))
+    first_page = reader.pages[0].extract_text() or ""
+    assert "needs_revision" in first_page
+    assert "Direct score: 0.706882" in first_page
+    manifest = json.loads(Path(result["manifest"]).read_text(encoding="utf-8"))
+    assert any(
+        source["kind"] == "background_quality_report"
+        and source["sha256"] == sha256_file(quality_path)
+        for source in manifest["sources"]
+    )
+
+
 def test_stale_swatch_is_excluded_from_human_report(
     tmp_path: Path,
     monkeypatch,

@@ -208,9 +208,31 @@ def collect_build_provenance(
             f"SceneSpec job_id {actual_job_id!r} does not match {job_id!r}"
         )
     is_job_workspace = (root / "job.json").is_file() or (root / "architecture").is_dir()
+    reference_scope_payload: dict[str, Any] | None = None
+    metadata_path = root / "job.json"
+    reference_content_scope: str | None = None
+    target_subject: str | None = None
+    if metadata_path.is_file():
+        from .reference_scope import reference_content_scope_from_metadata
+
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            reference_content_scope, target_subject = (
+                reference_content_scope_from_metadata(metadata)
+            )
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise BuildProvenanceError(
+                f"Reference content-scope metadata is invalid: {exc}"
+            ) from exc
+        if reference_content_scope != "full_reference":
+            reference_scope_payload = {
+                "reference_content_scope": reference_content_scope,
+                "target_subject": target_subject,
+            }
     if is_job_workspace and validate_contracts:
         from .architecture.service import validate_scene_interior_scope
         from .models import SceneSpec
+        from .reference_scope import validate_scene_content_scope
 
         try:
             parsed_scene_spec = SceneSpec.model_validate(scene_spec)
@@ -224,6 +246,17 @@ def collect_build_provenance(
         if not interior_report.ok:
             formatted = "; ".join(interior_report.errors)
             raise BuildProvenanceError(f"InteriorScope validation failed: {formatted}")
+        if reference_content_scope is not None:
+            try:
+                validate_scene_content_scope(
+                    parsed_scene_spec,
+                    scope=reference_content_scope,
+                    target_subject=target_subject,
+                )
+            except ValueError as exc:
+                raise BuildProvenanceError(
+                    f"Reference content-scope validation failed: {exc}"
+                ) from exc
     camera = scene_spec.get("camera")
     if not isinstance(camera, dict):
         raise BuildProvenanceError("SceneSpec camera must be an object")
@@ -279,6 +312,8 @@ def collect_build_provenance(
     interior_contracts = _optional_interior_contract_hashes(root)
     if interior_contracts is not None:
         payload["interior_contracts"] = interior_contracts
+    if reference_scope_payload is not None:
+        payload["reference_content_scope"] = reference_scope_payload
     payload["fingerprint"] = canonical_json_sha256(payload)
     return payload
 

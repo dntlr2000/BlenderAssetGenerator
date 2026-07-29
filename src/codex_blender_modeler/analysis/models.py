@@ -88,6 +88,8 @@ class CameraSolution(StrictModel):
 
 
 class ModelingPlanObject(StrictModel):
+    """Describe one semantic modeling target and its optional content-scope role."""
+
     id: str
     label: str
     recommended_geometry: Literal[
@@ -103,6 +105,7 @@ class ModelingPlanObject(StrictModel):
     bbox_norm: BBox4 | None = None
     observed: bool = True
     confidence: float = Field(default=0.5, ge=0, le=1)
+    scope_role: Literal["primary", "supporting", "context"] | None = None
     notes: list[str] = Field(default_factory=list)
 
 

@@ -13,6 +13,8 @@
 | `<JOB_ID>` | 새 자산의 고유 lowercase job ID | `temple_validation_01` |
 | `<REFERENCE_PATH>` | 기본 레퍼런스 이미지의 절대 경로 | `E:\References\temple.png` |
 | `<MODE>` | `concept` 또는 `measured` | `concept` |
+| `<REFERENCE_CONTENT_SCOPE>` | `full_reference` 또는 `primary_object_only` | `primary_object_only` |
+| `<TARGET_SUBJECT>` | 오브젝트 전용 범위에서 만들 대상의 명확한 설명 | `이미지 중앙의 노란 잠수 자동차` |
 | `<EXECUTION_POLICY>` | `standard` 또는 `background_exterior` | `standard` |
 | `<DELIVERY_SCOPE>` | 빠른 경로의 `preview_only` 또는 `portable_package` | `preview_only` |
 | `<WORKFLOW_ID>` | Codex가 보고한 V0.8 workflow ID | 실제 보고값 |
@@ -73,6 +75,13 @@
 - “이후 전부 승인” 같은 포괄적 승인은 InteriorScope, V0.6 revision, V0.7 optimization, Destination Handoff의 전용 exact-hash 승인을 대체하지 못합니다.
 - `standard`가 기본 실행 정책입니다. `background_exterior`는 실내·실측·리깅·게임 로직이 없는 정적 배경 외관에만 작업 계획 전에 명시적으로 선택합니다.
 - 빠른 경로도 다른 파이프라인이 아닙니다. 동일한 V0.4~V0.7 계약을 쓰되 일반 검토만 줄이고 전용 exact-hash 승인은 유지합니다.
+- 레퍼런스의 모델링 범위는 실행 정책과 별개입니다. `full_reference`는 기존
+  전체 장면 동작이고, `primary_object_only`는 명시한 `<TARGET_SUBJECT>`와
+  구조적으로 연결되거나 필요한 부품만 허용합니다.
+- `primary_object_only`에서는 독립 지형, 바닥, 바위, 식생, 잔해, 소품,
+  배경판과 대기 효과를 제외합니다. 대상이 모호하면 job 생성 전에 확인합니다.
+- content scope와 target subject는 job 생성 후 바꾸지 않습니다. 같은
+  reference를 다른 범위로 만들려면 새 job ID를 사용합니다.
 
 ---
 
@@ -80,12 +89,47 @@
 
 이미지를 첨부하거나 `<REFERENCE_PATH>`를 제공한 뒤 아래 프롬프트를 붙여 넣습니다. V0.8 orchestration은 host step과 승인 경계를 관리하지만, agent-authored SceneSpec을 자동으로 승인하지 않습니다.
 
+### 1A. 원하는 오브젝트만 프록시로 만들기
+
+```text
+현재 저장소의 V0.8 orchestration을 사용해 새 레퍼런스에서 원하는
+오브젝트의 프록시까지만 만들어줘.
+
+- job_id: <JOB_ID>
+- reference_path: <REFERENCE_PATH>
+- mode: <MODE>
+- reference_content_scope: primary_object_only
+- target_subject: <TARGET_SUBJECT>
+- execution_policy: standard
+
+<TARGET_SUBJECT> 본체와 구조적으로 붙거나 기능상 필요한 부품만 포함해.
+독립된 지형, 바닥, 바위, 식생, 잔해, 주변 소품, 배경판, 대기 효과는
+모델링하지 마. ModelingPlan에는 primary/supporting/context 역할을,
+SceneSpec에는 모든 객체의 qa_role:primary 또는 qa_role:supporting을
+명시하고 context 객체가 들어가면 completion을 기록하지 마.
+
+plan_short_workflow로 새 job과 workflow를 계획하고 다음까지만 진행해:
+reference analysis → camera solution → modeling plan → proxy SceneSpec
+→ build → render → inspect → validate → proxy approval 대기.
+
+대상이 모호하면 job을 만들기 전에 멈춰서 확인할 내용을 보고해.
+V0.5 이후 단계로 자동 진행하지 마.
+```
+
+붙어 있는 바퀴·문·범퍼·지붕·손잡이는 `supporting`으로 포함할 수 있지만,
+옆의 나무·바위·도로·건물·바닥은 독립된 context이므로 제외합니다.
+
+### 1B. 전체 장면을 프록시로 만들기
+
+아래 기존 프롬프트는 `full_reference` 기본값을 사용합니다.
+
 ```text
 현재 저장소의 V0.8 orchestration을 사용해 새 레퍼런스 자산의 프록시까지만 만들어줘.
 
 - job_id: <JOB_ID>
 - reference_path: <REFERENCE_PATH>
 - mode: <MODE>
+- reference_content_scope: full_reference
 
 먼저 job ID가 유효하고 고유한지, 예약된 example ID가 아닌지 확인해.
 다음 현재 CLI 형태로 workflow를 계획해:
@@ -134,8 +178,9 @@ validation 결과, proxy approval에 필요한 step ID와 artifact fingerprint�
 
 plan_short_workflow를 위 값으로 호출하고 후속 host/agent 단계를 MCP로 진행해.
 하나의 중간 상세 외관 SceneSpec을 작성한 뒤 build, render, inspect, validate,
-V0.5 로컬 결정론적 재질·셰이더, V0.6 직접 reference QA 정확히 1회,
-통합 PDF 생성까지 진행해.
+최대 2회의 bounded pre-QA fit, V0.5 로컬 결정론적 재질·셰이더,
+V0.6 canonical 직접 reference QA 정확히 1회, machine quality JSON,
+QA PDF와 통합 PDF 생성까지 진행해.
 
 프록시·상세·swatch·QA의 일반 승인만 생략해.
 InteriorScope, measured view, guarded revision, optimization plan과 handoff의
@@ -143,13 +188,16 @@ InteriorScope, measured view, guarded revision, optimization plan과 handoff의
 외부 texture/image provider, generated QA target, 자동 revision,
 실내, rig, animation, gameplay와 engine-specific 변환은 사용하지 마.
 
-완료하면 status=completed, milestone=delivered_for_review, workflow ID,
-preview, 직접 QA JSON,
-통합 PDF와 sidecar 경로를 보고해.
-조건을 벗어나는 위험이 발견되면 해당 agent completion을 기록하지 말고
-requires_standard_workflow로 멈춘 뒤 별도 standard workflow가 필요한 이유를 보고해.
-post-QA eligibility가 high-severity direct-reference 또는 constraint finding을
-발견해도 delivery를 완료하지 말고 machine report 경로와 차단 이유를 보고해.
+완료하면 status=completed, milestone=delivered_for_review,
+quality_status=passed|needs_revision|unscorable, standard workflow 권장 여부,
+workflow ID, preview, 직접 QA JSON, quality JSON,
+QA PDF·통합 PDF와 각 sidecar 경로를 보고해.
+high-severity visual finding은 숨기지 말고 needs_revision으로 전달해.
+primary evidence가 신뢰 불가능하면 unscorable로 전달하고 품질 합격을 주장하지 마.
+실내·실측·rig·animation·gameplay·engine-specific 요구나 unsafe ambiguity처럼
+실제 scope·안전 경계를 벗어나는 위험이 발견될 때만 agent completion을 기록하지
+말고 requires_standard_workflow로 멈춘 뒤 별도 standard workflow가 필요한
+이유를 보고해.
 ```
 
 처음부터 engine-neutral package까지 필요하면 종료 범위만 바꿉니다.
@@ -194,10 +242,34 @@ V0.7 exact optimization-plan 승인에서 멈추고 기존 preview workflow는 �
 | 선택 | 사용자가 먼저 붙여 넣을 프롬프트 | 내부에서 수행되는 범위 | 추가로 필요한 사용자 승인 |
 |---|---|---|---|
 | `standard` | 아래 단계 0~11에서 필요한 프롬프트 | 요청한 각 단계를 승인 경계별로 수행 | 프록시·상세·재질·QA 검토와 모든 전용 승인 |
-| `background_exterior + preview_only` | 1.1의 빠른 preview 프롬프트 하나 | V0.4 중간 상세 외관, build/render/inspect/validate, V0.5 로컬 재질, V0.6 직접 QA 1회, 통합 PDF | 일반 프록시·상세·swatch·QA 승인 없음 |
+| `background_exterior + preview_only` | 1.1의 빠른 preview 프롬프트 하나 | V0.4 중간 상세 외관, bounded pre-QA fit, build/render/inspect/validate, V0.5 로컬 재질, V0.6 직접 QA 1회, quality JSON, 통합 PDF | 일반 프록시·상세·swatch·QA 승인 없음 |
 | `background_exterior + portable_package` | 1.1의 빠른 package 프롬프트 하나 | 위 preview 범위와 V0.7 preflight·최적화·package·round trip | V0.7 optimization-plan의 exact SHA-256 승인 |
 
 빠른 preview 완료 후 V0.9 audit는 필요할 때 별도로 실행합니다. Destination Handoff도 통과한 V0.7 package를 대상으로 별도 계획과 exact-hash 승인을 사용합니다.
+
+### 1.3 Artifact lifecycle 충돌이 보고될 때
+
+새 fast workflow는 material scaffold와 authored candidate를 workflow-owned
+경로에 따로 만들고, strict host promotion으로만 canonical MaterialPlan을
+갱신합니다. 사용자는 이 내부 단계 때문에 PowerShell을 직접 실행할 필요가
+없습니다.
+
+`orchestration_artifact_conflict`가 보고되면 다음 프롬프트를 사용합니다.
+
+```text
+<JOB_ID>의 workflow <WORKFLOW_ID>가
+orchestration_artifact_conflict로 차단된 이유를 읽기 전용으로 점검해.
+기존 workflow, completion marker, attempt receipt와 canonical 파일은 수정하지 마.
+이 충돌을 requires_standard_workflow나 QA 품질 문제로 재분류하지 마.
+예상된 downstream supersession인지, 계획되지 않은 canonical/source 변조인지
+exact artifact path와 SHA-256으로 구분해 보고해.
+기존 blocked workflow는 복구하지 말고, 안전하면 수정된 lifecycle 계약을 쓰는
+새 workflow의 요청·종료 범위·승인 경계만 제안한 뒤 내 확인을 기다려.
+```
+
+기존 blocked workflow에는 새 계약을 소급 적용하지 않습니다. 새 workflow부터
+scaffold/authored candidate, promotion receipt, exact QA run, workflow-owned PDF와
+derived snapshot을 사용합니다.
 
 다음 중 하나라도 해당하면 빠른 경로를 선택하지 않고 `standard`를 사용합니다.
 
@@ -206,7 +278,8 @@ V0.7 exact optimization-plan 승인에서 멈추고 기존 preview workflow는 �
 - 중요 전경 자산이거나 단계별 미술 검토가 필요함
 - 외부 texture/image provider 또는 generated QA target이 필요함
 - 여러 번의 V0.6 guarded revision을 계획하고 있음
-- 빠른 QA가 high-severity 직접 레퍼런스·constraint 문제를 보고함
+- 빠른 QA가 `needs_revision` 또는 `unscorable`이고 사용자가 실제 외형 개선을
+  계속하려 함
 
 작업 생성 전에 어느 정책이 적절한지만 확인하려면 다음 프롬프트를 사용합니다.
 
@@ -226,7 +299,22 @@ V0.7 exact optimization-plan 승인에서 멈추고 기존 preview workflow는 �
 검토가 끝날 때까지 create_job이나 plan_short_workflow를 호출하지 마.
 ```
 
-빠른 경로가 `requires_standard_workflow`로 차단되면 기존 workflow를 수정하거나 실패 재시도로 우회하지 않습니다.
+빠른 경로가 `requires_standard_workflow`로 차단되면 기존 workflow를 수정하거나
+실패 재시도로 우회하지 않습니다. 단순한 high visual finding은 이 차단 사유가
+아니며 completed delivery의 `quality_status=needs_revision`으로 남습니다.
+
+완료된 빠른 preview의 품질 상태를 검토하려면 다음 프롬프트를 사용합니다.
+
+```text
+<JOB_ID>의 완료된 background_exterior workflow <WORKFLOW_ID>를 읽기 전용으로 검토해.
+quality report, exact V0.6 QA run, QA PDF와 combined PDF의 hash binding을 확인해.
+execution status와 quality_status를 분리해서 보고하고,
+primary/supporting/decorative/ground_background finding과
+recommended standard revision target을 요약해.
+quality_status가 needs_revision 또는 unscorable여도 기존 workflow를
+blocked로 재분류하거나 자동 revision을 적용하지 마.
+내가 외형 개선을 요청할 때 사용할 별도 standard workflow 계획만 제안해.
+```
 
 ```text
 <JOB_ID>의 background_exterior workflow <WORKFLOW_ID>가
@@ -1016,8 +1104,8 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 단계 | 필수 입력 | 주요 산출물 | 사용자 검토 자료 | 승인 필요 여부 | 다음 단계 | 재진입 조건 |
 |---|---|---|---|---|---|---|
 | 0 환경 점검 | 저장소, `<JOB_ID>`, `<REFERENCE_PATH>` | read-only 상태 보고 | doctor, 기존 compatibility evidence | 없음 | 1 | evidence 누락·stale 해결 후 |
-| 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, 로컬 재질, 직접 QA, eligibility report | preview, 직접 QA JSON, 통합 PDF | 일반 단계 승인 없음; agent completion은 유지 | `status=completed`, `milestone=delivered_for_review` 또는 별도 package workflow | eligibility가 막히면 새 `standard` workflow |
-| 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거, 승인된 V0.7 최적화, package, roundtrip | optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source 변경 또는 roundtrip 실패 |
+| 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, bounded fit, 로컬 재질, 직접 QA, quality report | preview, 직접 QA/quality JSON, QA·통합 PDF | 일반 단계 승인 없음; agent completion은 유지 | `status=completed`, `milestone=delivered_for_review`, 독립 quality status 또는 별도 package workflow | scope 위험은 `standard`; visual needs는 선택적 standard revision |
+| 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거와 quality warning, 승인된 V0.7 최적화, package, roundtrip | quality JSON, optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source/quality binding 변경 또는 roundtrip 실패 |
 | 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend` | preview, build PDF, validation JSON | 프록시 승인 | 2 또는 3 | 실루엣·분해가 부정확할 때 |
 | 2 V0.4 상세 형상 | 승인된 프록시 | 상세 SceneSpec/geometry, 새 build | preview, 변경 ID/수치, build PDF | 상세 형상 승인 | 3, 4 또는 5 | 큰 외형·중형 구조 불만족 시 언제든 |
 | 3 멀티뷰·치수 | 추가 뷰 또는 명시 치수 | source hash, 갱신 분석, constraints, residual report | 뷰 목록, constraint JSON/PDF | canonical 수정 전 승인 | 2 또는 5 | 새 도면·치수 추가, residual 실패 |

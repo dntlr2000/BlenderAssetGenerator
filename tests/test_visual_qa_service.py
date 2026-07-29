@@ -164,6 +164,49 @@ def test_visual_qa_service_persists_isolated_direct_run(tmp_path: Path, monkeypa
         run_job_visual_qa("asset_qa", run_id="run-direct")
 
 
+def test_visual_qa_service_resumes_exact_interrupted_pass_snapshot(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Complete comparison without rerendering an intact interrupted seven-pass snapshot."""
+
+    from codex_blender_modeler.qa import service
+
+    root, target_id = _job_fixture(tmp_path, monkeypatch)
+    scene_path = root / "analysis" / "scene_spec.json"
+    spec_hash = sha256_file(scene_path)
+    spec = service.SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))
+    fingerprint = service.camera_fingerprint(spec)
+    run_id = "run-interrupted"
+    rendered = _mock_render(root, target_id)(
+        "asset_qa",
+        render_engine="eevee",
+        render_device="auto",
+        run_id=run_id,
+        camera_fingerprint=fingerprint,
+        scene_spec_sha256=spec_hash,
+    )
+    run_dir = root / "qa" / "runs" / run_id
+    run_dir.mkdir(parents=True)
+    service._snapshot_render_passes(
+        rendered,
+        source_manifest_path=root / "reports" / "qa_pass_manifest.json",
+        run_dir=run_dir,
+    )
+
+    def reject_rerender(*args, **kwargs):
+        """Fail the test if interrupted-run recovery invokes Blender again."""
+
+        raise AssertionError("interrupted QA recovery must not rerender")
+
+    monkeypatch.setattr(service, "_render_job_qa_passes", reject_rerender)
+    result = run_job_visual_qa("asset_qa", run_id=run_id)
+
+    assert result["direct_score"] == 1.0
+    assert (run_dir / "visual_qa_report.json").is_file()
+    assert (run_dir / "revision_candidates.json").is_file()
+
+
 def test_visual_qa_service_excludes_auxiliary_view_evidence(
     tmp_path: Path,
     monkeypatch,

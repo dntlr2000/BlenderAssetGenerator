@@ -258,6 +258,114 @@ def _entry_focus_bounds(
     return semantic_bounds[focus_id], not explicit_entry_ids
 
 
+def _entry_target_ids(target_ids: list[str]) -> list[str]:
+    """Select explicit entry semantic IDs from one approved interior-space group."""
+
+    return [
+        target_id
+        for target_id in target_ids
+        if ".entry_" in target_id.casefold() or ".entry." in target_id.casefold()
+    ]
+
+
+def _entry_axis_views(
+    level_id: str | None,
+    space_id: str | None,
+    target_ids: list[str],
+    semantic_bounds: dict[str, InteriorQABounds],
+    *,
+    eye_height_m: float,
+) -> list[InteriorQAView]:
+    """Create paired outside-in and inside-out cameras through one entry boundary."""
+
+    entry_ids = _entry_target_ids(target_ids)
+    if not entry_ids:
+        return []
+    anchor_id = min(
+        entry_ids,
+        key=lambda target_id: (
+            _bounds_xy_area(semantic_bounds[target_id]),
+            target_id,
+        ),
+    )
+    anchor = semantic_bounds[anchor_id]
+    group = _union_bounds(target_ids, semantic_bounds)
+    anchor_center = tuple(
+        (anchor.min[axis] + anchor.max[axis]) * 0.5 for axis in range(3)
+    )
+    group_center = tuple(
+        (group.min[axis] + group.max[axis]) * 0.5 for axis in range(3)
+    )
+    inward_x = group_center[0] - anchor_center[0]
+    inward_y = group_center[1] - anchor_center[1]
+    inward_length = math.hypot(inward_x, inward_y)
+    if inward_length <= 1e-6:
+        anchor_width = max(0.01, anchor.max[0] - anchor.min[0])
+        anchor_depth = max(0.01, anchor.max[1] - anchor.min[1])
+        inward_x, inward_y = ((0.0, 1.0) if anchor_depth <= anchor_width else (1.0, 0.0))
+        inward_length = 1.0
+    inward = (inward_x / inward_length, inward_y / inward_length)
+    threshold_ids = [
+        target_id for target_id in entry_ids if "threshold" in target_id.casefold()
+    ]
+    floor_height = (
+        max(semantic_bounds[target_id].max[2] for target_id in threshold_ids)
+        if threshold_ids
+        else anchor.min[2]
+    )
+    eye_z = floor_height + eye_height_m
+    outside_distance = 1.5
+    inside_distance = min(2.0, max(1.25, inward_length * 0.35))
+    group_slug = _view_group_slug(level_id, space_id)
+    common = {
+        "level_id": level_id,
+        "space_id": space_id,
+        "purpose": "corridor_axis",
+        "focal_length_mm": 18.0,
+        "clip_start_m": 0.03,
+        "clip_end_m": max(
+            10.0,
+            math.sqrt(
+                (group.max[0] - group.min[0]) ** 2
+                + (group.max[1] - group.min[1]) ** 2
+                + (group.max[2] - group.min[2]) ** 2
+            )
+            * 4.0,
+        ),
+        "target_ids": target_ids,
+    }
+    return [
+        InteriorQAView(
+            view_id=f"{group_slug}.entry_inbound",
+            location=(
+                anchor_center[0] - inward[0] * outside_distance,
+                anchor_center[1] - inward[1] * outside_distance,
+                eye_z,
+            ),
+            target=(
+                anchor_center[0] + inward[0] * inside_distance,
+                anchor_center[1] + inward[1] * inside_distance,
+                eye_z,
+            ),
+            **common,
+        ),
+        InteriorQAView(
+            view_id=f"{group_slug}.entry_outbound",
+            location=(
+                anchor_center[0] + inward[0] * inside_distance,
+                anchor_center[1] + inward[1] * inside_distance,
+                eye_z,
+            ),
+            target=(
+                anchor_center[0] - inward[0] * 0.5,
+                anchor_center[1] - inward[1] * 0.5,
+                eye_z,
+            ),
+            **common,
+        ),
+    ]
+
+
 def _view_group_slug(level_id: str | None, space_id: str | None) -> str:
     """Create one portable readable prefix for interior view IDs."""
 
@@ -299,10 +407,15 @@ def _build_views(
     max_views: int,
     eye_height_m: float,
 ) -> tuple[list[InteriorQAView], list[str]]:
-    """Create deterministic 360-degree temporary cameras for every interior group."""
+    """Create bounded room rotations plus paired entry-axis temporary cameras."""
 
     entries = list(groups.items())
-    counts = _allocated_direction_counts(len(entries), profile, max_views)
+    entry_view_count = sum(
+        2 if _entry_target_ids(target_ids) else 0
+        for (_group, target_ids) in entries
+    )
+    rotation_budget = max_views - entry_view_count
+    counts = _allocated_direction_counts(len(entries), profile, rotation_budget)
     views: list[InteriorQAView] = []
     warnings: list[str] = []
     for ((level_id, space_id), target_ids), direction_count in zip(
@@ -372,7 +485,18 @@ def _build_views(
                     target_ids=target_ids,
                 )
             )
-    desired_total = len(entries) * len(_PROFILE_DIRECTIONS[profile])
+        views.extend(
+            _entry_axis_views(
+                level_id,
+                space_id,
+                target_ids,
+                semantic_bounds,
+                eye_height_m=eye_height_m,
+            )
+        )
+    desired_total = (
+        len(entries) * len(_PROFILE_DIRECTIONS[profile]) + entry_view_count
+    )
     if len(views) < desired_total:
         warnings.append(
             f"max_views limited profile={profile} from {desired_total} to {len(views)} views"

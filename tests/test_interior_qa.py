@@ -353,10 +353,51 @@ def test_entry_camera_uses_local_entry_bounds_above_the_floor() -> None:
     )
 
     assert len(views) == 6
-    assert warnings == []
+    assert warnings == ["max_views limited profile=standard from 8 to 6 views"]
     assert views[0].location == pytest.approx((25.0, -4.6, 9.275))
     assert views[0].target == pytest.approx((25.0, -2.35, 9.275))
     assert all(view.location[2] > semantic_bounds[floor_id].max[2] for view in views)
+    assert [view.view_id for view in views[-2:]] == [
+        "l03.entry.east_stair.entry_inbound",
+        "l03.entry.east_stair.entry_outbound",
+    ]
+    assert views[-2].purpose == views[-1].purpose == "corridor_axis"
+
+
+def test_entry_axis_views_cross_the_boundary_in_both_directions() -> None:
+    """Aim paired entry cameras from outside-in and inside-out across the same rim."""
+
+    rim_id = "submarine.interior.entry.breach_inner_rim"
+    floor_id = "submarine.interior.floor.level_01"
+    groups = {("level_01", "main_hall"): [rim_id, floor_id]}
+    semantic_bounds = {
+        rim_id: InteriorQABounds(
+            min=(-7.8, -2.82, 2.4),
+            max=(-6.0, -2.74, 5.3),
+        ),
+        floor_id: InteriorQABounds(
+            min=(-4.5, -1.5, 2.42),
+            max=(3.9, 1.5, 2.58),
+        ),
+    }
+
+    views, warnings = interior_qa_service._build_views(
+        groups,
+        semantic_bounds,
+        profile="standard",
+        max_views=6,
+        eye_height_m=1.6,
+    )
+    inbound, outbound = views[-2:]
+    boundary_y = (
+        semantic_bounds[rim_id].min[1] + semantic_bounds[rim_id].max[1]
+    ) * 0.5
+
+    assert warnings == ["max_views limited profile=standard from 8 to 6 views"]
+    assert inbound.view_id.endswith(".entry_inbound")
+    assert inbound.location[1] < boundary_y < inbound.target[1]
+    assert outbound.view_id.endswith(".entry_outbound")
+    assert outbound.target[1] < boundary_y < outbound.location[1]
 
 
 def test_plan_approve_run_and_pdf_preserve_canonical_authoring(

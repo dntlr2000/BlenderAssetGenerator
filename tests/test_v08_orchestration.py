@@ -140,10 +140,65 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     assert step_ids.index("proxy.report") < step_ids.index("geometry.proxy_approval")
     report = next(item for item in plan["steps"] if item["step_id"] == "proxy.report")
     assert report["tool_name"] == "generate_pdf_report"
-    assert report["outputs"][0]["path"] == "reports/pdf/proxy_report.pdf"
+    assert report["outputs"][0]["path"].startswith(
+        f"workflows/{state.workflow_id}/artifacts/pdf/"
+    )
+    assert report["outputs"][0]["lifecycle"] == "immutable_run"
     request_text = (workflow / "request.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in request_text
     assert "input/reference.png" in request_text
+
+
+def test_new_workflow_persists_primary_object_only_scope(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Bind an object-only selection through job, request, plan, state, and instructions."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "car.png")
+    state = plan_workflow(
+        "Model only the central car and exclude the surrounding rocks and seabed.",
+        job_id="subject_only_asset",
+        reference_path=reference,
+        reference_content_scope="primary_object_only",
+        target_subject="central car",
+    )
+    root = workspace / "subject_only_asset"
+    workflow = root / "workflows" / state.workflow_id
+    metadata = json.loads((root / "job.json").read_text(encoding="utf-8"))
+    request = json.loads((workflow / "request.json").read_text(encoding="utf-8"))
+    plan = json.loads((workflow / "plan.json").read_text(encoding="utf-8"))
+    modeling_step = next(
+        item for item in plan["steps"] if item["step_id"] == "geometry.modeling_plan"
+    )
+    scene_step = next(
+        item for item in plan["steps"] if item["step_id"] == "geometry.proxy_author"
+    )
+
+    assert metadata["reference_content_scope"] == "primary_object_only"
+    assert metadata["target_subject"] == "central car"
+    assert request["reference_content_scope"] == "primary_object_only"
+    assert plan["reference_content_scope"] == "primary_object_only"
+    assert state.reference_content_scope == "primary_object_only"
+    assert state.target_subject == "central car"
+    assert any(
+        "Exclude independent terrain" in instruction
+        for instruction in modeling_step["instructions"]
+    )
+    assert any(
+        "qa_role:primary" in instruction
+        for instruction in scene_step["instructions"]
+    )
+
+    with pytest.raises(ValueError, match="immutable"):
+        plan_workflow(
+            "Revise this asset.",
+            job_id="subject_only_asset",
+            intent="revise_asset",
+            reference_content_scope="full_reference",
+        )
 
 
 def test_background_preview_plan_skips_only_generic_review_gates(
@@ -181,14 +236,33 @@ def test_background_preview_plan_skips_only_generic_review_gates(
     )
     assert request["delivery_scope"] == routing["delivery_scope"] == "preview_only"
     assert request["requested_scope"] == "full"
+    assert request["fast_quality_policy"] == "review_delivery_v2"
+    assert plan["fast_quality_policy"] == "review_delivery_v2"
     assert request["budgets"]["max_qa_iterations"] == 1
+    assert request["budgets"]["max_pre_qa_fit_attempts"] == 2
     assert request["budgets"]["max_texture_resolution"] == 512
     assert request["budgets"]["external_provider_budget"] == 0
     assert "geometry.background_author" in step_ids
+    assert "background.fit" in step_ids
+    assert step_ids.index("geometry.background_author") < step_ids.index(
+        "background.fit"
+    )
+    assert step_ids.index("background.fit") < step_ids.index(
+        "background_geometry.build"
+    )
     assert "geometry.proxy_author" not in step_ids
     assert "geometry.detail_author" not in step_ids
     assert "qa.run" in step_ids
     assert "background.eligibility" in step_ids
+    assert step_ids.index("qa.run") < step_ids.index("background.eligibility")
+    assert step_ids.index("background.eligibility") < step_ids.index("qa.report")
+    fit = next(item for item in steps if item["step_id"] == "background.fit")
+    assert fit["parameters"]["max_attempts"] == 2
+    eligibility = next(
+        item for item in steps if item["step_id"] == "background.eligibility"
+    )
+    assert eligibility["parameters"]["quality_policy"] == "review_delivery_v2"
+    assert eligibility["parameters"]["qa_run_id"] != "latest"
     assert next(item for item in steps if item["step_id"] == "qa.run")[
         "parameters"
     ]["include_generated_target"] is False
@@ -244,6 +318,12 @@ def test_background_portable_plan_keeps_exact_optimization_approval(
     assert "portable.final_approval" not in steps
     assert "portable.package" in steps
     assert "portable.roundtrip" in steps
+    quality_path = steps["background.eligibility"]["parameters"]["output_path"]
+    assert steps["portable.plan"]["parameters"]["source_quality_path"] == quality_path
+    assert (
+        steps["portable.report"]["parameters"]["background_quality_report_path"]
+        == quality_path
+    )
     assert plan["terminal_step_id"].startswith("background_delivery_")
     terminal_report = steps[plan["terminal_step_id"]]
     assert terminal_report["parameters"]["qa_run_id"] != "latest"
@@ -275,6 +355,10 @@ def test_background_preview_can_start_a_separate_package_workflow(
         qa_run_id="v08-preview-qa",
         source_fingerprint="3" * 64,
         build_fingerprint="4" * 64,
+        quality_status="needs_revision",
+        standard_workflow_recommended=True,
+        quality_report_path="reports/background_delivery/preview_quality.json",
+        quality_report_sha256="5" * 64,
         bound_at=datetime.now(UTC),
     )
     monkeypatch.setattr(
@@ -332,6 +416,17 @@ def test_background_preview_can_start_a_separate_package_workflow(
     assert terminal["parameters"]["qa_run_id"] == binding.qa_run_id
     assert terminal["parameters"]["optimization_run_id"] != "latest"
     assert terminal["parameters"]["package_id"] != "latest"
+    portable_plan = next(
+        item
+        for item in package_plan["steps"]
+        if item["step_id"] == "portable.plan"
+    )
+    assert portable_plan["parameters"]["source_quality_path"] == (
+        binding.quality_report_path
+    )
+    prerequisite = package_plan["steps"][0]["parameters"]
+    assert prerequisite["quality_status"] == "needs_revision"
+    assert prerequisite["quality_report_sha256"] == binding.quality_report_sha256
 
 
 def test_background_preview_binding_rejects_changed_source(
@@ -444,8 +539,8 @@ def test_background_preview_binding_rejects_changed_source(
     )
 
     with pytest.raises(
-        orchestration_service.RequiresStandardWorkflow,
-        match="requires_standard_workflow",
+        orchestration_service.OrchestrationArtifactConflict,
+        match="orchestration_artifact_conflict",
     ):
         orchestration_service._verify_background_preview_prerequisite(
             tmp_path,
@@ -454,7 +549,7 @@ def test_background_preview_binding_rejects_changed_source(
         )
     result = json.loads((tmp_path / output).read_text(encoding="utf-8"))
     assert result["ok"] is False
-    assert result["status"] == "requires_standard_workflow"
+    assert result["status"] == "orchestration_artifact_conflict"
     assert "canonical source fingerprint changed after preview" in (
         result["blocking_reasons"]
     )
@@ -494,10 +589,10 @@ def test_background_package_extension_requires_a_completed_current_preview(
     assert not (root / "workflows" / "latest.json").exists()
 
 
-def test_background_post_qa_eligibility_fails_closed_on_major_direct_findings(
+def test_legacy_background_eligibility_retains_high_finding_blocker(
     tmp_path: Path,
 ) -> None:
-    """Block fast delivery on every high-severity direct-reference discrepancy."""
+    """Keep the historical high-finding blocker for plans without the new policy."""
 
     root = tmp_path / "job"
     report_path = root / "qa" / "runs" / "run-001" / "visual_qa_report.json"
@@ -629,6 +724,62 @@ def test_background_unsafe_inputs_fail_before_job_creation(
     assert not (workspace / "unsafe_background_asset").exists()
 
 
+@pytest.mark.parametrize(
+    ("request_text", "risk"),
+    [
+        ("Create a background building with an interior.", "interior"),
+        ("Create a rigged background prop.", "rig_or_skinning"),
+        ("Create an animated background prop.", "animation"),
+        ("Create an interactive gameplay object.", "gameplay"),
+        ("Create this directly for Unity.", "engine_specific"),
+    ],
+)
+def test_background_excluded_request_scope_requires_standard_before_job_creation(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    request_text: str,
+    risk: str,
+) -> None:
+    """Keep actual scope and runtime risks outside the visual-quality outcome model."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "excluded_scope.png")
+    with pytest.raises(
+        ValueError,
+        match=rf"requires_standard_workflow:.*{risk}",
+    ):
+        plan_workflow(
+            request_text,
+            job_id="excluded_background_asset",
+            reference_path=reference,
+            execution_policy="background_exterior",
+            delivery_scope="preview_only",
+        )
+    assert not (workspace / "excluded_background_asset").exists()
+
+
+def test_background_negative_scope_limits_do_not_trigger_false_risk(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Allow explicit exclusions such as no interior while retaining the fast policy."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "negative_scope.png")
+    state = plan_workflow(
+        "Create a static exterior prop without interior, rigging, animation, or gameplay.",
+        job_id="negative_scope_background",
+        reference_path=reference,
+        execution_policy="background_exterior",
+        delivery_scope="preview_only",
+    )
+
+    assert state.execution_policy == "background_exterior"
+    assert state.status == "planned"
+
+
 def test_analysis_scaffold_is_valid_but_not_agent_complete(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -749,13 +900,28 @@ def test_agent_completion_and_generic_approval_are_exactly_hash_bound(
         '{"ok":true,"errors":[],"warnings":[]}\n',
         encoding="utf-8",
     )
-    state = reconcile_workflow("workflow_asset", state.workflow_id)
+    original_execute = orchestration_service._execute_host_tool
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        lambda *_args, **_kwargs: None,
+    )
+    state = resume_workflow(
+        "workflow_asset",
+        state.workflow_id,
+        max_host_steps=4,
+    )
     assert state.current_step_id == "proxy.report"
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        original_execute,
+    )
     state = resume_workflow("workflow_asset", state.workflow_id, max_host_steps=1)
     assert state.status == "waiting_for_approval"
     assert state.current_step_id == "geometry.proxy_approval"
-    assert (root / "reports" / "pdf" / "proxy_report.pdf").is_file()
-    assert (root / "reports" / "pdf" / "proxy_report.manifest.json").is_file()
+    report_state = next(item for item in state.steps if item.step_id == "proxy.report")
+    assert all((root / item.path).is_file() for item in report_state.artifacts)
     approval_state = next(
         item for item in state.steps if item.step_id == "geometry.proxy_approval"
     )
@@ -1116,6 +1282,20 @@ def test_human_review_gates_require_a_pdf_projection(
     assert step_ids.index(report_id) < step_ids.index(approval_id)
     approval = next(item for item in plan["steps"] if item["step_id"] == approval_id)
     assert approval["depends_on"] == [report_id]
+    if intent == "material_authoring":
+        scaffold = next(
+            item for item in plan["steps"] if item["step_id"] == "material.scaffold"
+        )
+        authored = next(
+            item for item in plan["steps"] if item["step_id"] == "material.author"
+        )
+        assert "material.promote" in step_ids
+        assert scaffold["outputs"][0]["path"] != authored["outputs"][0]["path"]
+        assert authored["depends_on"] == ["material.scaffold"]
+    else:
+        qa_run = next(item for item in plan["steps"] if item["step_id"] == "qa.run")
+        assert qa_run["outputs"][0]["path"].startswith("qa/runs/")
+        assert qa_run["outputs"][0]["path"] != "qa/latest.json"
 
 
 def test_ambiguous_existing_request_requires_explicit_intent(

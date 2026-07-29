@@ -13,6 +13,28 @@
           "title": "Path",
           "type": "string"
         },
+        "source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Path"
+        },
+        "lifecycle": {
+          "default": "canonical",
+          "enum": [
+            "canonical",
+            "workflow_snapshot",
+            "immutable_run"
+          ],
+          "title": "Lifecycle",
+          "type": "string"
+        },
         "acceptance": {
           "default": "exists",
           "enum": [
@@ -317,6 +339,29 @@
       "title": "Scope",
       "type": "string"
     },
+    "reference_content_scope": {
+      "default": "full_reference",
+      "enum": [
+        "primary_object_only",
+        "full_reference"
+      ],
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "target_subject": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Subject"
+    },
     "execution_policy": {
       "default": "standard",
       "enum": [
@@ -341,6 +386,19 @@
       ],
       "default": null,
       "title": "Delivery Scope"
+    },
+    "fast_quality_policy": {
+      "anyOf": [
+        {
+          "const": "review_delivery_v2",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fast Quality Policy"
     },
     "destination": {
       "$ref": "#/$defs/DestinationResolution"

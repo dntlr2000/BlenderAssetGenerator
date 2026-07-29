@@ -14,6 +14,12 @@ from codex_blender_modeler.auto_revision.models import (
     RevisionApproval,
     RevisionCandidates,
 )
+from codex_blender_modeler.background_quality.models import (
+    BackgroundFitReport,
+    BackgroundQualityReport,
+    BackgroundRoleMap,
+    BackgroundScenePromotionReceipt,
+)
 from codex_blender_modeler.baking.models import BakeManifest
 from codex_blender_modeler.constraints.models import ConstraintSet, ConstraintSolution
 from codex_blender_modeler.handoff.models import (
@@ -38,7 +44,11 @@ from codex_blender_modeler.interior_qa.models import (
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
 )
-from codex_blender_modeler.materials.models import MaterialPlan, ShaderRecipe
+from codex_blender_modeler.materials.models import (
+    MaterialPlan,
+    MaterialPromotionReceipt,
+    ShaderRecipe,
+)
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.optimization.models import (
     AssetProfile,
@@ -93,9 +103,16 @@ SCHEMAS = {
     "constraints.schema.json": ConstraintSet,
     "constraint_solution.schema.json": ConstraintSolution,
     "material_plan.schema.json": MaterialPlan,
+    "material_promotion_receipt.schema.json": MaterialPromotionReceipt,
     "shader_recipe.schema.json": ShaderRecipe,
     "texture_manifest.schema.json": TextureManifest,
     "bake_manifest.schema.json": BakeManifest,
+    "background_role_map.schema.json": BackgroundRoleMap,
+    "background_fit_report.schema.json": BackgroundFitReport,
+    "background_scene_promotion_receipt.schema.json": (
+        BackgroundScenePromotionReceipt
+    ),
+    "background_quality_report.schema.json": BackgroundQualityReport,
     "render_pass_manifest.schema.json": RenderPassManifest,
     "visual_qa_request.schema.json": VisualQARequest,
     "visual_qa_report.schema.json": VisualQAReport,

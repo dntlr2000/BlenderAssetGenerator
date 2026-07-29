@@ -2,6 +2,7 @@
   "$defs": {
     "ModelingPlanObject": {
       "additionalProperties": false,
+      "description": "Describe one semantic modeling target and its optional content-scope role.",
       "properties": {
         "id": {
           "title": "Id",
@@ -71,6 +72,23 @@
           "minimum": 0,
           "title": "Confidence",
           "type": "number"
+        },
+        "scope_role": {
+          "anyOf": [
+            {
+              "enum": [
+                "primary",
+                "supporting",
+                "context"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope Role"
         },
         "notes": {
           "items": {

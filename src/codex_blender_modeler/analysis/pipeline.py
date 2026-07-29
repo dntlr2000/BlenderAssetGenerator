@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Literal
 
+from ..reference_scope import reference_content_scope_from_metadata
 from ..workspace import find_input_images, job_dir, load_job, metadata_path, resolve_metadata_path
 from .basic import analyze_image
 from .camera import solve_camera
@@ -48,8 +49,13 @@ def analyze_job_reference(
     azimuth_deg: float | None = None,
     elevation_deg: float | None = None,
 ) -> dict[str, str]:
+    """Create deterministic diagnostics plus a scope-aware modeling-plan scaffold."""
+
     root = job_dir(job_id)
     metadata = load_job(job_id)
+    reference_content_scope, target_subject = reference_content_scope_from_metadata(
+        metadata
+    )
     diagnostics = root / "analysis" / "diagnostics"
     diagnostics.mkdir(parents=True, exist_ok=True)
 
@@ -135,6 +141,14 @@ def analyze_job_reference(
     analysis_path.write_text(analysis.model_dump_json(indent=2) + "\n", encoding="utf-8")
     camera_path.write_text(camera.model_dump_json(indent=2) + "\n", encoding="utf-8")
     if not plan_path.exists():
+        scope_note = (
+            "Model only the explicitly selected primary subject "
+            f"{target_subject!r} and its structurally attached/supporting components; "
+            "exclude independent terrain, ground, vegetation, rocks, props, backdrop, "
+            "and atmospheric context."
+            if reference_content_scope == "primary_object_only"
+            else "Model the relevant visible reference scene, including selected context."
+        )
         plan = ModelingPlan(
             job_id=job_id,
             reference_analysis_path=metadata_path(analysis_path),
@@ -143,7 +157,12 @@ def analyze_job_reference(
                 (
                     "This scaffold is intentionally empty; Codex should populate semantic "
                     "objects before SceneSpec authoring."
-                )
+                ),
+                (
+                    f"Immutable reference_content_scope={reference_content_scope}; "
+                    f"target_subject={target_subject!r}."
+                ),
+                scope_note,
             ],
         )
         plan_path.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")

@@ -11,6 +11,7 @@ from typing import Any
 from uuid import uuid4
 
 from .config import get_settings
+from .reference_scope import normalize_reference_content_scope
 from .versioning import PROJECT_VERSION
 
 JOB_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
@@ -158,12 +159,19 @@ def create_job(
     mode: str,
     scale_anchors: list[str],
     additional_views: dict[str, Path] | None = None,
+    *,
+    reference_content_scope: str = "full_reference",
+    target_subject: str | None = None,
 ) -> dict[str, Any]:
-    """Atomically create an isolated job; existing IDs are never overwritten."""
+    """Atomically create an isolated job with one immutable modeling-content scope."""
 
     validate_new_job_id(job_id)
     if mode not in {"concept", "measured"}:
         raise ValueError("mode must be concept or measured")
+    resolved_content_scope, resolved_target = normalize_reference_content_scope(
+        reference_content_scope,
+        target_subject,
+    )
     workspace = get_settings().workspace_root
     workspace.mkdir(parents=True, exist_ok=True)
     root = workspace / job_id
@@ -194,6 +202,8 @@ def create_job(
             "reference_sha256": sources[0]["sha256"],
             "sources": sources,
             "scale_anchors": scale_anchors,
+            "reference_content_scope": resolved_content_scope,
+            "target_subject": resolved_target,
         }
         (temp_root / "job.json").write_text(
             json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"

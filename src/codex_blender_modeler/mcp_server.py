@@ -148,14 +148,24 @@ def create_job(
     job_id: str,
     reference_path: str,
     mode: str = "concept",
+    reference_content_scope: str = "full_reference",
+    target_subject: str | None = None,
     scale_anchors: list[str] | None = None,
     additional_views: dict[str, str] | None = None,
 ) -> dict:
-    """Create a job and copy immutable reference/blueprint images into the workspace."""
+    """Create a job with immutable source files and one explicit content boundary."""
     if mode not in {"concept", "measured"}:
         raise ValueError("mode must be concept or measured")
     views = {kind: Path(path) for kind, path in (additional_views or {}).items()}
-    return create_job_internal(job_id, Path(reference_path), mode, scale_anchors or [], views)
+    return create_job_internal(
+        job_id,
+        Path(reference_path),
+        mode,
+        scale_anchors or [],
+        views,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+    )
 
 
 @mcp.tool()
@@ -294,6 +304,11 @@ def get_modeling_capabilities() -> dict:
                 "portable_package",
             ],
             "default_new_asset_scope": "proxy_only",
+            "reference_content_scopes": [
+                "primary_object_only",
+                "full_reference",
+            ],
+            "primary_object_only_requires": "explicit target_subject",
             "execution_policies": ["standard", "background_exterior"],
             "delivery_scopes": ["preview_only", "portable_package"],
             "background_exterior": {
@@ -431,6 +446,8 @@ def plan_short_workflow(
     reference_path: str | None = None,
     intent: str = "auto",
     scope: str = "auto",
+    reference_content_scope: str | None = None,
+    target_subject: str | None = None,
     execution_policy: str = "standard",
     delivery_scope: str | None = None,
     mode: str = "concept",
@@ -456,6 +473,8 @@ def plan_short_workflow(
         reference_path=reference_path,
         intent=intent,
         scope=scope,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
         execution_policy=execution_policy,
         delivery_scope=delivery_scope,
         mode=mode,

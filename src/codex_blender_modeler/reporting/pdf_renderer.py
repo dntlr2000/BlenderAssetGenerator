@@ -351,6 +351,65 @@ def _scope_title(scope: str) -> str:
     }[scope]
 
 
+def _append_background_quality_banner(
+    story: list[Any],
+    documents: dict[str, dict[str, Any]],
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Show fast-preview execution and visual acceptance as separate cover outcomes."""
+
+    quality = documents.get("background_quality_report")
+    if quality is None:
+        return
+    status = str(quality.get("quality_status", "unscorable"))
+    label, foreground, background = {
+        "passed": ("품질 상태: passed", GREEN, PALE_GREEN),
+        "needs_revision": ("품질 상태: needs_revision", RED, PALE_RED),
+        "unscorable": ("품질 상태: unscorable", AMBER, PALE_AMBER),
+    }.get(status, ("품질 상태: unknown", AMBER, PALE_AMBER))
+    direct_score = quality.get("overall_direct_score")
+    primary_score = quality.get("primary_silhouette_score")
+    message = (
+        "파이프라인 실행 및 검토 자료 전달은 완료되었습니다. "
+        + (
+            "현재 시각 품질도 fast-lane 기준을 통과했습니다."
+            if status == "passed"
+            else "이는 품질 합격을 의미하지 않으며 표준 수정 workflow 검토가 권장됩니다."
+        )
+    )
+    table = Table(
+        [
+            [_paragraph(label, styles["h2"])],
+            [_paragraph(message, styles["body"])],
+            [
+                _paragraph(
+                    "Direct score: "
+                    f"{direct_score if direct_score is not None else 'unavailable'}"
+                    "  |  Primary silhouette: "
+                    f"{primary_score if primary_score is not None else 'unavailable'}",
+                    styles["metric_label"],
+                )
+            ],
+        ],
+        colWidths=[174 * mm],
+    )
+    table.setStyle(
+        TableStyle(
+            [
+                ("BACKGROUND", (0, 0), (-1, -1), background),
+                ("TEXTCOLOR", (0, 0), (-1, -1), foreground),
+                ("BOX", (0, 0), (-1, -1), 1, foreground),
+                ("LEFTPADDING", (0, 0), (-1, -1), 8),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+                ("TOPPADDING", (0, 0), (-1, -1), 6),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ]
+        )
+    )
+    story.append(Spacer(1, 4 * mm))
+    story.append(table)
+
+
 def _append_cover(
     story: list[Any],
     payload: dict[str, Any],
@@ -369,6 +428,7 @@ def _append_cover(
             styles["subtitle"],
         )
     )
+    _append_background_quality_banner(story, payload["documents"], styles)
     story.append(Spacer(1, 6 * mm))
     documents = payload["documents"]
     qa_revision_state: bool | str = (
@@ -1116,6 +1176,7 @@ def _append_export_section(
         story.append(_paragraph("Pre-optimization LOD and Collider Review", styles["h2"]))
         lod_review = review.get("lod") or {}
         collision_review = review.get("collision") or {}
+        source_quality = review.get("source_quality") or {}
         level_summary = [
             {
                 "level": item.get("level"),
@@ -1145,6 +1206,22 @@ def _append_export_section(
                         collision_review.get("maximum_triangle_ceiling"),
                     ],
                     ["Consolidation", review.get("consolidation_mode")],
+                    [
+                        "Source quality status",
+                        source_quality.get("quality_status", "not supplied"),
+                    ],
+                    [
+                        "Primary high findings",
+                        source_quality.get("primary_high_findings") or "None",
+                    ],
+                    [
+                        "Decorative warnings",
+                        source_quality.get("decorative_warnings") or "None",
+                    ],
+                    [
+                        "Standard revision recommended",
+                        source_quality.get("standard_workflow_recommended"),
+                    ],
                     ["Approval recorded", bool(approval)],
                     ["Approval consumed", approval.get("used") if approval else None],
                 ],

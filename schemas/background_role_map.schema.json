@@ -1,0 +1,135 @@
+{
+  "$defs": {
+    "BackgroundRoleAssignment": {
+      "additionalProperties": false,
+      "description": "Assign one stable semantic object to its review-priority role.",
+      "properties": {
+        "object_id": {
+          "minLength": 1,
+          "title": "Object Id",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "explicit_tag",
+            "semantic_rule",
+            "parent_rule",
+            "largest_observed_fallback",
+            "namespace_fallback"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "role",
+        "source",
+        "reason"
+      ],
+      "title": "BackgroundRoleAssignment",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind deterministic QA roles to one exact initial SceneSpec.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "classification_version": {
+      "const": "background_roles_v1",
+      "default": "background_roles_v1",
+      "title": "Classification Version",
+      "type": "string"
+    },
+    "assignments": {
+      "items": {
+        "$ref": "#/$defs/BackgroundRoleAssignment"
+      },
+      "minItems": 1,
+      "title": "Assignments",
+      "type": "array"
+    },
+    "primary_subject_roles": {
+      "items": {
+        "enum": [
+          "primary",
+          "supporting",
+          "decorative",
+          "ground_background"
+        ],
+        "type": "string"
+      },
+      "title": "Primary Subject Roles",
+      "type": "array"
+    },
+    "environment_roles": {
+      "items": {
+        "enum": [
+          "primary",
+          "supporting",
+          "decorative",
+          "ground_background"
+        ],
+        "type": "string"
+      },
+      "title": "Environment Roles",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "scene_spec_sha256",
+    "assignments",
+    "generated_at"
+  ],
+  "title": "BackgroundRoleMap",
+  "type": "object"
+}

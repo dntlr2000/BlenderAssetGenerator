@@ -8,6 +8,7 @@ from PIL import Image
 
 from ..blender_artifacts import write_json_atomic
 from ..models import EvidenceSpec, ObjectSpec, SceneSpec
+from ..reference_scope import subject_object_ids
 from ..workspace import sha256_file
 
 
@@ -45,14 +46,20 @@ def _best_reference_evidence(
     return max(observed, key=lambda evidence: evidence.confidence, default=None)
 
 
-def select_reference_evidence_seeds(spec: SceneSpec) -> list[EvidenceSeed]:
-    """Choose one broad, high-confidence observed seed per semantic asset group."""
+def select_reference_evidence_seeds(
+    spec: SceneSpec,
+    *,
+    allowed_object_ids: set[str] | None = None,
+) -> list[EvidenceSeed]:
+    """Choose one observed seed per group, optionally limited to the selected subject."""
 
     reference_source_ids = {
         source.id for source in spec.sources if source.kind == "reference"
     }
     grouped: dict[str, list[tuple[ObjectSpec, EvidenceSpec]]] = {}
     for obj in spec.objects:
+        if allowed_object_ids is not None and obj.id not in allowed_object_ids:
+            continue
         evidence = _best_reference_evidence(
             obj,
             reference_source_ids=reference_source_ids,
@@ -82,6 +89,57 @@ def select_reference_evidence_seeds(spec: SceneSpec) -> list[EvidenceSeed]:
             )
         )
     return seeds
+
+
+def _subject_evidence_bbox(
+    spec: SceneSpec,
+    selected_ids: set[str],
+) -> tuple[float, float, float, float] | None:
+    """Union observed primary-reference boxes for the immutable subject-only scope."""
+
+    reference_source_ids = {
+        source.id for source in spec.sources if source.kind == "reference"
+    }
+    boxes = [
+        evidence.bbox_norm
+        for obj in spec.objects
+        if obj.id in selected_ids
+        for evidence in obj.evidence
+        if (
+            evidence.status == "observed"
+            and evidence.source_id in reference_source_ids
+            and evidence.confidence >= 0.5
+        )
+    ]
+    if not boxes:
+        return None
+    return (
+        min(box[0] for box in boxes),
+        min(box[1] for box in boxes),
+        max(box[2] for box in boxes),
+        max(box[3] for box in boxes),
+    )
+
+
+def _clip_mask_to_normalized_bbox(
+    mask: Image.Image,
+    bbox_norm: tuple[float, float, float, float],
+) -> Image.Image:
+    """Remove unrelated reference foreground outside a padded subject evidence box."""
+
+    x0, y0, x1, y1 = bbox_norm
+    padding_x = max(0.01, (x1 - x0) * 0.03)
+    padding_y = max(0.01, (y1 - y0) * 0.03)
+    padded = (
+        max(0.0, x0 - padding_x),
+        max(0.0, y0 - padding_y),
+        min(1.0, x1 + padding_x),
+        min(1.0, y1 + padding_y),
+    )
+    bounds = _pixel_bbox(padded, width=mask.width, height=mask.height)
+    clipped = Image.new("L", mask.size, 0)
+    clipped.paste(mask.crop(bounds), (bounds[0], bounds[1]))
+    return clipped
 
 
 def _pixel_bbox(
@@ -226,8 +284,9 @@ def prepare_run_reference_mask(
     reference_path: Path,
     analysis_mask_path: Path,
     spec: SceneSpec,
+    reference_content_scope: str = "full_reference",
 ) -> tuple[Path, Path]:
-    """Write one immutable run-local refined mask and its provenance manifest."""
+    """Write one immutable run-local mask honoring the selected reference content."""
 
     output_path = run_dir / "reference_mask.png"
     manifest_path = run_dir / "reference_mask_manifest.json"
@@ -237,11 +296,34 @@ def prepare_run_reference_mask(
     with Image.open(reference_path) as opened_reference:
         reference = opened_reference.convert("RGB")
     with Image.open(analysis_mask_path) as opened_mask:
-        analysis_mask = opened_mask.convert("L")
+        source_analysis_mask = opened_mask.convert("L")
+    analysis_mask = source_analysis_mask
     if analysis_mask.size != reference.size:
         analysis_mask = analysis_mask.resize(reference.size, Image.Resampling.NEAREST)
     analysis_mask = analysis_mask.point(lambda value: 255 if value >= 128 else 0)
-    seeds = select_reference_evidence_seeds(spec)
+    selected_subject_ids: set[str] | None = None
+    subject_bbox = None
+    if reference_content_scope == "primary_object_only":
+        selected_subject_ids = subject_object_ids(spec)
+        if not selected_subject_ids:
+            raise ValueError(
+                "primary_object_only QA requires explicit primary/supporting SceneSpec roles"
+            )
+        subject_bbox = _subject_evidence_bbox(spec, selected_subject_ids)
+        if subject_bbox is None:
+            raise ValueError(
+                "primary_object_only QA requires observed subject evidence bounds"
+            )
+        analysis_mask = _clip_mask_to_normalized_bbox(
+            analysis_mask,
+            subject_bbox,
+        )
+    elif reference_content_scope != "full_reference":
+        raise ValueError("unsupported reference_content_scope for QA")
+    seeds = select_reference_evidence_seeds(
+        spec,
+        allowed_object_ids=selected_subject_ids,
+    )
 
     method = "analysis_mask_fallback"
     reason = "OpenCV refinement was not attempted"
@@ -262,7 +344,13 @@ def prepare_run_reference_mask(
         "reason": reason,
         "source_mask_path": analysis_mask_path.resolve().relative_to(root.resolve()).as_posix(),
         "source_mask_sha256": sha256_file(analysis_mask_path),
-        "source_mask_metrics": _mask_diagnostics(analysis_mask),
+        "source_mask_metrics": _mask_diagnostics(source_analysis_mask),
+        "scoped_source_mask_metrics": _mask_diagnostics(analysis_mask),
+        "reference_content_scope": reference_content_scope,
+        "subject_object_ids": sorted(selected_subject_ids or []),
+        "subject_evidence_bbox_norm": (
+            list(subject_bbox) if subject_bbox is not None else None
+        ),
         "reference_sha256": sha256_file(reference_path),
         "output_path": output_path.name,
         "output_sha256": sha256_file(output_path),

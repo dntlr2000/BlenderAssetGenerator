@@ -1,0 +1,363 @@
+{
+  "$defs": {
+    "BackgroundQualityFinding": {
+      "additionalProperties": false,
+      "description": "Classify one immutable V0.6 finding without rewriting the source QA report.",
+      "properties": {
+        "finding_id": {
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "original_severity": {
+          "enum": [
+            "info",
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Original Severity",
+          "type": "string"
+        },
+        "delivery_severity": {
+          "enum": [
+            "info",
+            "warning",
+            "important",
+            "revision_required"
+          ],
+          "title": "Delivery Severity",
+          "type": "string"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "enum": [
+                "primary",
+                "supporting",
+                "decorative",
+                "ground_background"
+              ],
+              "type": "string"
+            },
+            {
+              "const": "unscoped",
+              "type": "string"
+            }
+          ],
+          "title": "Role"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "issue_type": {
+          "minLength": 1,
+          "title": "Issue Type",
+          "type": "string"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_sources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "finding_id",
+        "original_severity",
+        "delivery_severity",
+        "role",
+        "issue_type",
+        "description"
+      ],
+      "title": "BackgroundQualityFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Separate successful review delivery from visual quality acceptance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.8.0",
+      "default": "0.8.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "ok": {
+      "const": true,
+      "default": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "execution_status": {
+      "const": "completed",
+      "default": "completed",
+      "title": "Execution Status",
+      "type": "string"
+    },
+    "delivery_status": {
+      "const": "ready_for_review",
+      "default": "ready_for_review",
+      "title": "Delivery Status",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "default": "full_reference",
+      "enum": [
+        "primary_object_only",
+        "full_reference"
+      ],
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "target_subject": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Subject"
+    },
+    "quality_status": {
+      "enum": [
+        "passed",
+        "needs_revision",
+        "unscorable"
+      ],
+      "title": "Quality Status",
+      "type": "string"
+    },
+    "quality_accepted": {
+      "title": "Quality Accepted",
+      "type": "boolean"
+    },
+    "standard_workflow_recommended": {
+      "title": "Standard Workflow Recommended",
+      "type": "boolean"
+    },
+    "overall_direct_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Overall Direct Score"
+    },
+    "primary_silhouette_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Silhouette Score"
+    },
+    "primary_bbox_similarity": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Bbox Similarity"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/BackgroundQualityFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "primary_high_findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Primary High Findings",
+      "type": "array"
+    },
+    "supporting_high_findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Supporting High Findings",
+      "type": "array"
+    },
+    "decorative_warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Decorative Warnings",
+      "type": "array"
+    },
+    "environment_findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Environment Findings",
+      "type": "array"
+    },
+    "unscorable_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unscorable Evidence",
+      "type": "array"
+    },
+    "recommended_standard_revision_targets": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Recommended Standard Revision Targets",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "qa_run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Qa Run Id",
+      "type": "string"
+    },
+    "qa_request_path": {
+      "title": "Qa Request Path",
+      "type": "string"
+    },
+    "qa_request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qa Request Sha256",
+      "type": "string"
+    },
+    "visual_qa_report_path": {
+      "title": "Visual Qa Report Path",
+      "type": "string"
+    },
+    "visual_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Visual Qa Report Sha256",
+      "type": "string"
+    },
+    "render_pass_manifest_path": {
+      "title": "Render Pass Manifest Path",
+      "type": "string"
+    },
+    "render_pass_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Pass Manifest Sha256",
+      "type": "string"
+    },
+    "role_map_path": {
+      "title": "Role Map Path",
+      "type": "string"
+    },
+    "role_map_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Role Map Sha256",
+      "type": "string"
+    },
+    "fit_report_path": {
+      "title": "Fit Report Path",
+      "type": "string"
+    },
+    "fit_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Fit Report Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "qa_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qa Scene Spec Sha256",
+      "type": "string"
+    },
+    "qa_camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qa Camera Fingerprint",
+      "type": "string"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "quality_status",
+    "quality_accepted",
+    "standard_workflow_recommended",
+    "qa_run_id",
+    "qa_request_path",
+    "qa_request_sha256",
+    "visual_qa_report_path",
+    "visual_qa_report_sha256",
+    "render_pass_manifest_path",
+    "render_pass_manifest_sha256",
+    "role_map_path",
+    "role_map_sha256",
+    "fit_report_path",
+    "fit_report_sha256",
+    "source_fingerprint",
+    "build_fingerprint",
+    "qa_scene_spec_sha256",
+    "qa_camera_fingerprint",
+    "evaluated_at"
+  ],
+  "title": "BackgroundQualityReport",
+  "type": "object"
+}

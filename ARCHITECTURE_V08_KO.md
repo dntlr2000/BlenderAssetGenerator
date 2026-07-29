@@ -34,14 +34,38 @@ Geometry SceneSpec은 `0.2.0`, 재질은 `0.5.0`, QA는 `0.6.0`, portable asset�
 
 새 레퍼런스는 항상 새 `job_id`를 사용한다. 기존 job에 다른 primary reference를 넣는 것은 거부한다. 기존 job 요청이 두 의도에 동시에 해당하거나 어떤 의도인지 불분명하면 추측하지 않고 명시적 `--intent`를 요구한다.
 
+## 레퍼런스 내용 범위
+
+`reference_content_scope`는 `execution_policy` 및 `delivery_scope`와 독립된
+job-level 계약이다.
+
+- `full_reference`: 하위 호환 기본값이며 관련 환경까지 허용한다.
+- `primary_object_only`: 명시적 `target_subject`와 primary/supporting
+  구성요소만 허용한다.
+
+object-only workflow는 agent 지시만 신뢰하지 않는다. ModelingPlan의
+`scope_role`과 SceneSpec의 `qa_role:primary|supporting`을 host가 검증하고,
+context 역할이나 독립 지형·식생·배경 semantic이 들어오면 build provenance
+생성 전에 실패한다. content scope와 target은 request, plan, state와
+`job.json`에 보존되며, 기존 job에서 변경할 수 없다.
+
+V0.6 reference mask는 object-only job에서 관찰된 primary/supporting evidence
+bbox의 합집합으로 제한된다. 따라서 주변 지형이 reference foreground에
+포함돼도 주 피사체 점수를 왜곡하지 않는다. 대상 evidence가 없거나 모호하면
+전체 장면 점수를 대신 만들지 않고 unscorable 또는 사용자 확인 상태로 남긴다.
+
 ## 실행 정책과 종료 범위
 
 V0.8은 모델링 파이프라인을 둘로 복제하지 않는다. 동일한 V0.4~V0.7 host/agent 계약 위에 다음 두 필드를 직교 정책으로 추가한다.
 
 - `execution_policy`: `standard` 또는 명시적 opt-in인 `background_exterior`
 - `delivery_scope`: 빠른 경로에서 사용자가 계획 전에 확정하는 `preview_only` 또는 `portable_package`; `standard`에서는 기존 `scope`와 intent로부터 effective 값이 내부 기록됨
+- `fast_quality_policy`: 새 빠른 경로의 `review_delivery_v2`; 실행 완료와 품질 합격을 분리하고 legacy plan에는 없을 수 있는 optional 필드
 
-두 값은 `WorkflowRequest`, `IntentRouting`, `WorkflowPlan`, `WorkflowState`에 보존된다. 기존 V0.8 JSON에 필드가 없으면 `standard` legacy evidence로 읽으며 기존 파일을 재작성하지 않는다.
+정책 값은 `WorkflowRequest`, `IntentRouting`, `WorkflowPlan`,
+`WorkflowState`에 보존된다. 기존 V0.8 JSON에 `fast_quality_policy`가 없으면
+기존 eligibility 차단 규칙을 사용하는 legacy evidence로 읽으며 파일을
+재작성하거나 이전 blocked workflow를 재분류하지 않는다.
 
 ```text
 standard
@@ -50,11 +74,13 @@ standard
 background_exterior + preview_only
 └─ reference analysis
    → modeling plan
-   → 중간 크기 외형 SceneSpec 1회 저작
+   → workflow-owned 중간 크기 외형 SceneSpec candidate
+   → bounded pre-QA fit diagnostic 최대 2회
+   → 선택 candidate strict validation 및 canonical promotion 최대 1회
    → build/render/inspect/validate
    → 로컬 결정론적 material/shader
-   → 직접 reference QA 1회
-   → post-QA eligibility check
+   → canonical 직접 reference QA 정확히 1회
+   → execution/quality 분리 report
    → 통합 PDF
    → delivered_for_review
 
@@ -77,7 +103,21 @@ background_exterior + portable_package
 | 직접 Visual QA 정확히 1회 | generated target, 자동 revision |
 | engine-neutral preview/package | Unity/Unreal/custom runtime parity |
 
-빠른 geometry agent는 proxy와 detail로 canonical SceneSpec을 두 번 교체하지 않고, 하나의 제한된 중간 상세 SceneSpec을 한 번 작성한다. 조건을 벗어나는 위험을 발견하면 `requires_standard_workflow`를 보고하고 completion marker를 남기지 않는다. 직접 QA 뒤에도 모든 high-severity direct-reference 또는 constraint finding을 machine-readable eligibility report로 검사하고 실패 시 delivery를 차단한다. 이 결과는 재시도 가능한 일반 실패가 아니라 `blocked`이며, 기존 immutable plan을 바꾸지 않고 사용자 검토 후 별도 `standard` workflow를 만든다.
+빠른 geometry agent는 proxy와 detail로 canonical SceneSpec을 두 번 교체하지 않고,
+하나의 제한된 중간 상세 SceneSpec을 workflow-owned initial candidate로 작성한다.
+host는 최대 두 번의 저해상도 primary-only fit diagnostic으로 제한된 카메라
+후보만 비교하고, 점수가 실제로 개선된 strict candidate만 canonical
+SceneSpec으로 한 번 promotion한다. 각 candidate, 변경 경로, metric, 선택/rollback
+이유와 promotion receipt는 exact hash로 보존된다. 이 fit은 canonical V0.6 QA
+run이 아니며 semantic/material ID, custom-mesh vertex 또는 실내를 바꾸지 않는다.
+
+조건을 벗어나는 scope·안전 위험을 발견하면
+`requires_standard_workflow`를 보고하고 completion marker를 남기지 않는다.
+반면 직접 QA의 high visual finding은 workflow 실행 실패가 아니다. exact
+quality report가 `passed`, `needs_revision`, `unscorable` 중 하나로 분류하고,
+QA JSON/PDF와 combined PDF가 만들어졌다면 `preview_only`는
+`completed` / `delivered_for_review`로 종료한다. 이는 delivery 성공일 뿐
+`needs_revision` 또는 `unscorable` 자산의 품질 합격을 뜻하지 않는다.
 
 완료된 빠른 preview를 나중에 package로 확장할 때는 preview workflow ID, plan SHA-256, terminal completion fingerprint, QA run ID, canonical-source fingerprint와 embedded build fingerprint를 새 request에 결속한다. V0.7 시작 전 전용 host prerequisite가 이를 다시 검사하므로, preview 뒤 SceneSpec·재질·build 또는 관련 정책이 바뀌면 package workflow는 fail-closed로 중단된다.
 
@@ -103,6 +143,11 @@ workspaces/<job>/workflows/
    ├─ plan.json
    ├─ state.json
    ├─ inputs/
+   ├─ artifacts/
+   │  ├─ g/                        SceneSpec fit/role/promotion evidence
+   │  ├─ m/                        material candidate/promotion evidence
+   │  ├─ s/                        shared derived output snapshots
+   │  └─ pdf/                      workflow-owned PDF와 sidecar
    ├─ completions/
    ├─ approvals/
    └─ attempts/<step-id>/<attempt-id>.json
@@ -135,6 +180,57 @@ workspaces/<job>/workflows/
 5. 하나라도 바뀌면 해당 완료를 `stale`로 바꾸고 후속 단계를 다시 실행하지 않는다.
 
 `integrity`, `currentness`, `verification`은 서로 다른 필드로 기록하여 “파일이 읽힌다”와 “현재 입력에서 만들어졌다”를 혼동하지 않는다.
+
+### Artifact lifecycle과 canonical promotion
+
+V0.8은 artifact를 다음 lifecycle로 구분한다.
+
+- `canonical`: 현재 job의 설계 원본. 예상하지 않은 변경은 stale/tampering으로 차단
+- `workflow_snapshot`: 공유 derived path를 실행 시점 hash로 복제한 불변 증거
+- `immutable_run`: QA run, optimization run, package처럼 처음부터 run-owned인 증거
+
+V0.5 fast material 흐름은
+`material.scaffold → material.author → material.promote`로 구성된다. Scaffold와
+authored candidate는 서로 다른 workflow-owned 디렉터리에 있고 agent completion은
+authored candidate의 exact hash를 사용한다. `material.promote`만 strict contract
+validation 뒤 canonical MaterialPlan을 교체하며 이전 canonical history,
+candidate hash, 전후 canonical hash, workflow/step/input fingerprint를
+promotion receipt에 기록한다.
+
+`.blend`, preview, inventory, validation과 같은 공유 derived path는 host attempt가
+끝날 때 workflow snapshot으로 보존된다. 계획된 successor가 공유 path를 갱신하면
+이전 snapshot/receipt는 당시 실행 증거로 계속 current이다. 반대로 successor가
+아닌 외부 변경이나 현재 prerequisite의 source mismatch는
+`orchestration_artifact_conflict`로 fail-closed한다. 단순히 공유 파일을
+fingerprint 계산에서 제외하지 않는다.
+
+QA completion은 `qa/latest.json`이 아니라 계획에 고정된 exact
+`qa/runs/<run-id>/` 디렉터리에 결속된다. Workflow PDF도
+`workflows/<workflow-id>/artifacts/pdf/` 아래에 있어 후속 workflow 보고서와
+충돌하지 않는다.
+
+차단 원인과 품질 결과는 machine-readable하게 구분한다.
+
+- `requires_standard_workflow`: constraint/measured, interior, rig, animation,
+  gameplay, engine-specific 요구, unsafe ambiguity 등 실제 범위·안전 위험
+- `orchestration_artifact_conflict`: 예상하지 않은 artifact ownership 또는
+  source/fingerprint 충돌
+- `host_failure`: Blender 예외, timeout 등의 실행 실패
+- `quality_status=needs_revision`: primary/supporting high visual finding이 있지만
+  review evidence delivery는 완료됨
+- `quality_status=unscorable`: primary mask/role evidence를 신뢰할 수 없어 품질
+  합격을 주장할 수 없지만 review evidence delivery는 완료됨
+
+QA 역할은 SceneSpec `0.2.0`을 변경하는 새 필수 필드가 아니라 V0.8 run-owned
+`BackgroundRoleMap`으로 분리한다. explicit `qa_role:*` tag를 우선하고 semantic,
+parent, largest-observed fallback을 적용한다. `primary` high는 표준 수정 권장,
+`supporting` high는 중요 finding, `decorative` high는 warning,
+`ground_background`는 environment evidence이다. 마지막 역할은 primary
+silhouette mask에서 제외되어 넓은 ground plane이 점수를 왜곡하지 않는다.
+
+기존 V0.8 plan에는 새 lifecycle 필드가 없을 수 있다. 이 경우 legacy 규칙으로
+읽으며 파일을 재작성하지 않는다. 이미 blocked인 workflow는 역사적 evidence로
+보존하고, 수정된 lifecycle 계약은 새 workflow부터 사용한다.
 
 ## 재개, 실패, 잠금
 

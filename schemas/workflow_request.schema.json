@@ -39,6 +39,60 @@
           "title": "Build Fingerprint",
           "type": "string"
         },
+        "quality_status": {
+          "anyOf": [
+            {
+              "enum": [
+                "passed",
+                "needs_revision",
+                "unscorable"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Status"
+        },
+        "standard_workflow_recommended": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Standard Workflow Recommended"
+        },
+        "quality_report_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Report Path"
+        },
+        "quality_report_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quality Report Sha256"
+        },
         "bound_at": {
           "format": "date-time",
           "title": "Bound At",
@@ -122,6 +176,13 @@
           "maximum": 10,
           "minimum": 0,
           "title": "Max Qa Iterations",
+          "type": "integer"
+        },
+        "max_pre_qa_fit_attempts": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Max Pre Qa Fit Attempts",
           "type": "integer"
         },
         "max_texture_resolution": {
@@ -245,6 +306,29 @@
       "title": "Requested Scope",
       "type": "string"
     },
+    "reference_content_scope": {
+      "default": "full_reference",
+      "enum": [
+        "primary_object_only",
+        "full_reference"
+      ],
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "target_subject": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Subject"
+    },
     "execution_policy": {
       "default": "standard",
       "enum": [
@@ -269,6 +353,19 @@
       ],
       "default": null,
       "title": "Delivery Scope"
+    },
+    "fast_quality_policy": {
+      "anyOf": [
+        {
+          "const": "review_delivery_v2",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Fast Quality Policy"
     },
     "background_preview_binding": {
       "anyOf": [

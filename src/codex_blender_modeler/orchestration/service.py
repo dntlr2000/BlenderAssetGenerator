@@ -17,12 +17,24 @@ from ..architecture import (
     load_interior_scope,
     validate_job_interior_scope,
 )
+from ..background_quality import (
+    BackgroundFitConflict,
+    BackgroundQualityConflict,
+    BackgroundQualityReport,
+    evaluate_background_quality,
+    run_background_pre_qa_fit,
+)
 from ..blender_artifact_runner import inspect_job_materials, render_job_material_swatches
 from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..config import load_feature_config
 from ..interior_qa import plan_job_interior_qa, run_job_interior_qa
-from ..materials import create_material_scaffold, validate_job_material_contracts
+from ..materials import (
+    create_material_scaffold,
+    create_workflow_material_candidates,
+    promote_workflow_material_candidate,
+    validate_job_material_contracts,
+)
 from ..optimization import (
     initialize_asset_profile,
     optimize_asset,
@@ -34,6 +46,12 @@ from ..optimization.provenance import collect_source_provenance
 from ..packaging import package_asset, validate_asset_package
 from ..packaging.material_conversion import convert_portable_materials
 from ..qa import run_job_visual_qa
+from ..reference_scope import (
+    normalize_reference_content_scope,
+    reference_content_scope_from_metadata,
+    validate_modeling_plan_content_scope,
+    validate_scene_content_scope,
+)
 from ..reporting import generate_job_pdf_report
 from ..revision import apply_revision_plan
 from ..validation import load_scene_spec
@@ -82,6 +100,10 @@ _VIEW_KINDS = {"front", "right", "top", "blueprint", "cad"}
 
 class RequiresStandardWorkflow(RuntimeError):
     """Signal that a bounded fast-lane workflow must stop without being retried."""
+
+
+class OrchestrationArtifactConflict(RuntimeError):
+    """Signal unexpected mutation of workflow-owned evidence or its current source."""
 
 
 def _utc_now() -> datetime:
@@ -296,6 +318,52 @@ def _current_background_preview_binding(
                 source = collect_source_provenance(root, job_id)
             except (OSError, RuntimeError, ValueError):
                 continue
+            eligibility_step = next(
+                (
+                    item
+                    for item in plan.steps
+                    if item.step_id == "background.eligibility"
+                ),
+                None,
+            )
+            quality_status = None
+            standard_workflow_recommended = None
+            quality_report_path = None
+            quality_report_sha256 = None
+            if eligibility_step is not None and eligibility_step.outputs:
+                eligibility_path = _resolve_job_path(
+                    root,
+                    eligibility_step.outputs[0].path,
+                )
+                try:
+                    eligibility = json.loads(
+                        eligibility_path.read_text(encoding="utf-8")
+                    )
+                except (OSError, json.JSONDecodeError):
+                    continue
+                recorded_source = eligibility.get("source_fingerprint")
+                recorded_build = eligibility.get("build_fingerprint")
+                if recorded_source is not None and (
+                    recorded_source != source.source_fingerprint
+                    or recorded_build != source.build_fingerprint
+                ):
+                    continue
+                if (
+                    eligibility_step.parameters.get("quality_policy")
+                    == "review_delivery_v2"
+                ):
+                    try:
+                        quality = BackgroundQualityReport.model_validate(
+                            eligibility
+                        )
+                    except ValueError:
+                        continue
+                    quality_status = quality.quality_status
+                    standard_workflow_recommended = (
+                        quality.standard_workflow_recommended
+                    )
+                    quality_report_path = _job_relative(root, eligibility_path)
+                    quality_report_sha256 = sha256_file(eligibility_path)
             return BackgroundPreviewBinding(
                 workflow_id=plan.workflow_id,
                 plan_sha256=reconstructed.plan_sha256,
@@ -304,6 +372,10 @@ def _current_background_preview_binding(
                 qa_run_id=qa_run_id,
                 source_fingerprint=source.source_fingerprint,
                 build_fingerprint=source.build_fingerprint,
+                quality_status=quality_status,
+                standard_workflow_recommended=standard_workflow_recommended,
+                quality_report_path=quality_report_path,
+                quality_report_sha256=quality_report_sha256,
                 bound_at=_utc_now(),
             )
     return None
@@ -312,6 +384,7 @@ def _current_background_preview_binding(
 def _validate_background_execution(
     *,
     routing: IntentRouting,
+    request_text: str,
     new_job: bool,
     mode: str,
     scope: str,
@@ -323,6 +396,12 @@ def _validate_background_execution(
 ) -> BackgroundPreviewBinding | None:
     """Reject fast-lane inputs that require measured, interior, or runtime work."""
 
+    scope_risks = _background_request_scope_risks(request_text)
+    if scope_risks:
+        raise ValueError(
+            "requires_standard_workflow: background_exterior request contains "
+            f"excluded scope: {', '.join(scope_risks)}"
+        )
     if new_job and routing.intent != "new_asset":
         raise ValueError(
             "a new background_exterior workflow requires intent=new_asset"
@@ -346,9 +425,14 @@ def _validate_background_execution(
         raise ValueError(
             "background_exterior cannot contain measured views, replacement, or scale anchors"
         )
-    if destination_kind not in {"unspecified", "engine_neutral"}:
+    resolved_destination = routing.destination.requested.kind
+    if (
+        destination_kind not in {"unspecified", "engine_neutral"}
+        or resolved_destination not in {"unspecified", "engine_neutral"}
+    ):
         raise ValueError(
-            "background_exterior stops at an engine-neutral preview or package"
+            "requires_standard_workflow: background_exterior stops at an "
+            "engine-neutral preview or package"
         )
     if include_destination_handoff:
         raise ValueError(
@@ -397,6 +481,50 @@ def _validate_background_execution(
             )
         return binding
     return None
+
+
+def _background_request_scope_risks(request_text: str) -> list[str]:
+    """Detect explicit fast-lane exclusions without treating negative limits as requests."""
+
+    normalized = request_text.casefold()
+    negative_patterns = (
+        r"\bwithout\b[^.?!]*",
+        r"\bdo\s+not\b[^.?!]*",
+        r"\b(?:no|without)\s+(?:an?\s+)?(?:interior|rig|rigging|skinning|animation|gameplay)\b",
+        r"\bdo\s+not\s+(?:create|include|add|use)\s+(?:an?\s+)?"
+        r"(?:interior|rig|rigging|skinning|animation|gameplay)\b",
+        r"(?:실내|인테리어).{0,12}(?:필요\s*없|만들지|생성하지|제외|비활성)",
+        r"(?:리그|리깅|스키닝|애니메이션|게임플레이).{0,12}(?:없이|제외|하지\s*마)",
+    )
+    for pattern in negative_patterns:
+        normalized = re.sub(pattern, " ", normalized)
+    categories = {
+        "interior": (
+            r"\b(?:interior|room|corridor|furnishing)\b",
+            r"(?:실내|인테리어|방\s*(?:을|도)?|복도)",
+        ),
+        "rig_or_skinning": (
+            r"\b(?:rig|rigged|rigging|skin|skinned|skinning)\b",
+            r"(?:리그|리깅|스키닝|본\s*세팅)",
+        ),
+        "animation": (
+            r"\b(?:animation|animate|animated)\b",
+            r"(?:애니메이션|움직이게)",
+        ),
+        "gameplay": (
+            r"\b(?:gameplay|interactive|interaction)\b",
+            r"(?:게임플레이|상호작용|인터랙션)",
+        ),
+        "engine_specific": (
+            r"\b(?:unity|unreal(?:\s+engine)?|engine-specific)\b",
+            r"(?:유니티|언리얼|엔진\s*전용)",
+        ),
+    }
+    return [
+        category
+        for category, patterns in categories.items()
+        if any(re.search(pattern, normalized) for pattern in patterns)
+    ]
 
 
 def _source_artifact(root: Path, path: Path, kind: str) -> WorkflowInputArtifact:
@@ -476,6 +604,8 @@ def plan_workflow(
     reference_path: str | Path | None = None,
     intent: str = "auto",
     scope: str = "auto",
+    reference_content_scope: str | None = None,
+    target_subject: str | None = None,
     execution_policy: str = "standard",
     delivery_scope: str | None = None,
     mode: str = "concept",
@@ -489,7 +619,7 @@ def plan_workflow(
     include_destination_handoff: bool = False,
     budgets: WorkflowBudgets | None = None,
 ) -> WorkflowState:
-    """Create one immutable standard or bounded background-exterior workflow."""
+    """Create one immutable workflow with an explicit reference-content boundary."""
 
     lock_ttl = _require_orchestration()
     normalized_request = request_text.strip()
@@ -568,8 +698,34 @@ def plan_workflow(
         validate_new_job_id(selected_job_id)
         if intent not in {"auto", "new_asset"}:
             raise ValueError("a missing job can only start with new_asset intent")
+        resolved_content_scope, resolved_target_subject = (
+            normalize_reference_content_scope(
+                reference_content_scope,
+                target_subject,
+            )
+        )
     else:
         validate_job_id(selected_job_id)
+        stored_content_scope, stored_target_subject = (
+            reference_content_scope_from_metadata(load_job(selected_job_id))
+        )
+        resolved_content_scope, resolved_target_subject = (
+            normalize_reference_content_scope(
+                reference_content_scope or stored_content_scope,
+                target_subject
+                if target_subject is not None
+                else stored_target_subject,
+            )
+        )
+        if (
+            resolved_content_scope != stored_content_scope
+            or resolved_target_subject != stored_target_subject
+        ):
+            raise ValueError(
+                "An existing job's reference content scope is immutable. "
+                "Create a new job to change primary_object_only/full_reference "
+                "or target_subject."
+            )
     workflow_id = _new_workflow_id()
     destination = DestinationRequest(
         kind=destination_kind,  # type: ignore[arg-type]
@@ -597,6 +753,7 @@ def plan_workflow(
     if execution_policy == "background_exterior":
         background_preview_binding = _validate_background_execution(
             routing=routing,
+            request_text=normalized_request,
             new_job=new_job,
             mode=mode,
             scope=scope,
@@ -628,6 +785,8 @@ def plan_workflow(
             reference or Path(),
             mode,
             normalized_anchors,
+            reference_content_scope=resolved_content_scope,
+            target_subject=resolved_target_subject,
         )
     root = ensure_job_dirs(selected_job_id)
     workflow_root = _workflow_dir(root, workflow_id)
@@ -640,6 +799,7 @@ def plan_workflow(
         if execution_policy == "background_exterior" and not new_job:
             background_preview_binding = _validate_background_execution(
                 routing=routing,
+                request_text=normalized_request,
                 new_job=False,
                 mode=mode,
                 scope=scope,
@@ -667,8 +827,15 @@ def plan_workflow(
             raw_request=normalized_request,
             intent_hint=intent,  # type: ignore[arg-type]
             requested_scope=selected_scope,  # type: ignore[arg-type]
+            reference_content_scope=resolved_content_scope,
+            target_subject=resolved_target_subject,
             execution_policy=execution_policy,  # type: ignore[arg-type]
             delivery_scope=resolved_delivery,  # type: ignore[arg-type]
+            fast_quality_policy=(
+                "review_delivery_v2"
+                if execution_policy == "background_exterior"
+                else None
+            ),
             background_preview_binding=background_preview_binding,
             mode=mode,  # type: ignore[arg-type]
             primary_reference=primary,
@@ -726,13 +893,99 @@ def _artifact_digest(path: Path) -> str:
     return stable_json_digest(records)
 
 
+def _copy_artifact_immutable(source: Path, destination: Path) -> None:
+    """Snapshot one file or directory without permitting evidence replacement."""
+
+    if destination.exists():
+        raise OrchestrationArtifactConflict(
+            f"Immutable workflow snapshot already exists: {destination}"
+        )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.parent / f".{destination.name}.{uuid4().hex}.tmp"
+    if source.is_file():
+        shutil.copy2(source, temporary)
+        os.replace(temporary, destination)
+        return
+    if source.is_dir():
+        shutil.copytree(source, temporary)
+        os.replace(temporary, destination)
+        return
+    raise FileNotFoundError(source)
+
+
+def _materialize_step_snapshots(root: Path, step: WorkflowStep) -> None:
+    """Copy mutable host outputs into their exact workflow-owned evidence paths."""
+
+    for requirement in step.outputs:
+        if requirement.lifecycle != "workflow_snapshot":
+            continue
+        if requirement.source_path is None:
+            raise RuntimeError("workflow snapshot has no mutable source path")
+        source = _resolve_job_path(root, requirement.source_path)
+        destination = _resolve_job_path(root, requirement.path)
+        _copy_artifact_immutable(source, destination)
+
+
+def _transitive_dependencies(
+    plan: WorkflowPlan,
+    step: WorkflowStep,
+) -> set[str]:
+    """Return all direct and indirect prerequisite step IDs for one plan step."""
+
+    step_map = {item.step_id: item for item in plan.steps}
+    pending = list(step.depends_on)
+    dependencies: set[str] = set()
+    while pending:
+        dependency = pending.pop()
+        if dependency in dependencies:
+            continue
+        dependencies.add(dependency)
+        pending.extend(step_map[dependency].depends_on)
+    return dependencies
+
+
+def _verify_dependency_sources(
+    root: Path,
+    plan: WorkflowPlan,
+    step: WorkflowStep,
+) -> None:
+    """Reject current sources that differ from their latest planned ancestor snapshot."""
+
+    dependencies = _transitive_dependencies(plan, step)
+    latest: dict[str, ArtifactRequirement] = {}
+    for candidate_step in plan.steps:
+        if candidate_step.step_id == step.step_id:
+            break
+        if candidate_step.step_id not in dependencies:
+            continue
+        for requirement in candidate_step.outputs:
+            if (
+                requirement.lifecycle == "workflow_snapshot"
+                and requirement.source_path is not None
+            ):
+                latest[requirement.source_path] = requirement
+    for source_relative, requirement in latest.items():
+        source = _resolve_job_path(root, source_relative)
+        snapshot = _resolve_job_path(root, requirement.path)
+        if not source.exists() or not snapshot.exists():
+            raise OrchestrationArtifactConflict(
+                "orchestration_artifact_conflict: planned source or snapshot is missing "
+                f"for {source_relative}"
+            )
+        if _artifact_digest(source) != _artifact_digest(snapshot):
+            raise OrchestrationArtifactConflict(
+                "orchestration_artifact_conflict: current source differs from the "
+                f"latest planned snapshot for {source_relative}"
+            )
+
+
 def _validate_known_json_contract(
     requirement: ArtifactRequirement,
     payload: dict[str, Any],
 ) -> None:
     """Validate agent-authored canonical JSON with its existing strict host contract."""
 
-    relative_path = requirement.path
+    relative_path = requirement.source_path or requirement.path
     if relative_path == "analysis/modeling_plan.json":
         from ..analysis.models import ModelingPlan
 
@@ -753,6 +1006,15 @@ def _validate_known_json_contract(
         from ..materials.models import MaterialPlan
 
         MaterialPlan.model_validate(payload)
+    elif requirement.artifact_id == "material.plan.promotion_receipt":
+        from ..materials.models import MaterialPromotionReceipt
+
+        MaterialPromotionReceipt.model_validate(payload)
+    elif (
+        requirement.artifact_id == "background.delivery_eligibility"
+        and relative_path.endswith("_quality.json")
+    ):
+        BackgroundQualityReport.model_validate(payload)
     elif relative_path.endswith("/codex_handoff/handoff_manifest.json"):
         from ..handoff.models import DestinationHandoffManifest
 
@@ -767,6 +1029,48 @@ def _validate_known_json_contract(
         HandoffReportManifest.model_validate(payload)
 
 
+def _validate_authored_material_plan(
+    root: Path,
+    path: Path,
+    request: WorkflowRequest,
+) -> None:
+    """Require authored material semantics and bounded fast-lane texture providers."""
+
+    from ..materials.models import MaterialPlan
+
+    plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    if plan.stage != "authored":
+        raise RuntimeError("agent completion requires material_plan stage=authored")
+    if request.execution_policy != "background_exterior":
+        return
+    from ..texturing.models import TextureManifest
+
+    unsupported: list[str] = []
+    for item in plan.materials:
+        if item.texture_strategy in {"none", "procedural"}:
+            continue
+        if item.texture_strategy != "image" or not item.texture_manifest:
+            unsupported.append(item.material_id)
+            continue
+        manifest_path = _resolve_job_path(root, item.texture_manifest)
+        manifest = TextureManifest.model_validate_json(
+            manifest_path.read_text(encoding="utf-8")
+        )
+        provider = (
+            manifest.provenance.provider
+            if manifest.provenance is not None
+            else None
+        )
+        if provider != "cbm_pillow_procedural" or max(manifest.resolution) > 512:
+            unsupported.append(item.material_id)
+    if unsupported:
+        raise RuntimeError(
+            "background_exterior permits only node-procedural materials or "
+            "512px local cbm_pillow_procedural maps: "
+            f"{unsupported}"
+        )
+
+
 def _validate_agent_completion_semantics(
     root: Path,
     step: WorkflowStep,
@@ -774,16 +1078,39 @@ def _validate_agent_completion_semantics(
 ) -> None:
     """Require authored semantics and enforce fast-lane material restrictions."""
 
+    if step.step_id == "material.author" and "candidate_plan_path" in step.parameters:
+        candidate = _resolve_job_path(
+            root,
+            str(step.parameters["candidate_plan_path"]),
+        )
+        _validate_authored_material_plan(root, candidate, request)
     for requirement in step.outputs:
         path = _resolve_job_path(root, requirement.path)
-        if requirement.path == "analysis/modeling_plan.json":
+        if (
+            requirement.lifecycle == "workflow_snapshot"
+            and not path.exists()
+            and requirement.source_path is not None
+        ):
+            path = _resolve_job_path(root, requirement.source_path)
+        contract_path = requirement.source_path or requirement.path
+        if contract_path == "analysis/modeling_plan.json":
             from ..analysis.models import ModelingPlan
 
             plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
             if "modeling_plan.output" in requirement.artifact_id and plan.stage != "authored":
                 raise RuntimeError("agent completion requires modeling_plan stage=authored")
-        elif requirement.path == "analysis/scene_spec.json":
+            validate_modeling_plan_content_scope(
+                plan,
+                scope=request.reference_content_scope,
+                target_subject=request.target_subject,
+            )
+        elif contract_path == "analysis/scene_spec.json":
             scene_spec = load_scene_spec(path)
+            validate_scene_content_scope(
+                scene_spec,
+                scope=request.reference_content_scope,
+                target_subject=request.target_subject,
+            )
             if (
                 request.execution_policy == "background_exterior"
                 and list_interior_objects(scene_spec)
@@ -791,42 +1118,8 @@ def _validate_agent_completion_semantics(
                 raise RuntimeError(
                     "background_exterior cannot complete with interior semantic geometry"
                 )
-        elif requirement.path == "analysis/material_plan.json":
-            from ..materials.models import MaterialPlan
-
-            plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
-            if "plan.authored" in requirement.artifact_id and plan.stage != "authored":
-                raise RuntimeError("agent completion requires material_plan stage=authored")
-            if request.execution_policy == "background_exterior":
-                from ..texturing.models import TextureManifest
-
-                unsupported: list[str] = []
-                for item in plan.materials:
-                    if item.texture_strategy in {"none", "procedural"}:
-                        continue
-                    if item.texture_strategy != "image" or not item.texture_manifest:
-                        unsupported.append(item.material_id)
-                        continue
-                    manifest_path = _resolve_job_path(root, item.texture_manifest)
-                    manifest = TextureManifest.model_validate_json(
-                        manifest_path.read_text(encoding="utf-8")
-                    )
-                    provider = (
-                        manifest.provenance.provider
-                        if manifest.provenance is not None
-                        else None
-                    )
-                    if (
-                        provider != "cbm_pillow_procedural"
-                        or max(manifest.resolution) > 512
-                    ):
-                        unsupported.append(item.material_id)
-                if unsupported:
-                    raise RuntimeError(
-                        "background_exterior permits only node-procedural materials or "
-                        "512px local cbm_pillow_procedural maps: "
-                        f"{unsupported}"
-                    )
+        elif contract_path == "analysis/material_plan.json":
+            _validate_authored_material_plan(root, path, request)
     if step.step_id == "destination.handoff":
         from ..handoff import validate_destination_handoff
 
@@ -992,6 +1285,40 @@ def _load_approval(
     return _load_model(path, WorkflowApproval) if path.is_file() else None
 
 
+def _matching_succeeded_attempt(
+    workflow_root: Path,
+    step: WorkflowStep,
+    *,
+    plan_sha256: str,
+    input_fingerprint: str,
+    output_fingerprint: str,
+) -> WorkflowAttempt | None:
+    """Find the immutable host receipt matching the exact current lifecycle evidence."""
+
+    attempt_root = workflow_root / "attempts" / step.step_id
+    if not attempt_root.is_dir():
+        return None
+    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+        try:
+            attempt = _load_model(path, WorkflowAttempt)
+        except (OSError, ValueError):
+            continue
+        if (
+            attempt.status == "succeeded"
+            and attempt.plan_sha256 == plan_sha256
+            and attempt.input_fingerprint == input_fingerprint
+            and attempt.output_fingerprint == output_fingerprint
+        ):
+            return attempt
+    return None
+
+
+def _step_uses_immutable_lifecycle(step: WorkflowStep) -> bool:
+    """Return whether one step opts into snapshot/run-owned V0.8 evidence."""
+
+    return any(output.lifecycle != "canonical" for output in step.outputs)
+
+
 def _specialized_approval_valid(
     root: Path,
     step: WorkflowStep,
@@ -1016,6 +1343,8 @@ def _specialized_approval_valid(
             and payload.get("scope_sha256") == sha256_file(scope)
         )
     if step.approval_gate == "optimization_plan":
+        from ..optimization.models import OptimizationApproval
+
         run_id = str(step.parameters["run_id"])
         directory = root / "optimization" / "runs" / run_id
         plan_path = directory / "review_plan.json"
@@ -1023,13 +1352,19 @@ def _specialized_approval_valid(
         if not plan_path.is_file() or not approval_path.is_file():
             return False
         try:
-            payload = json.loads(approval_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
+            approval = OptimizationApproval.model_validate_json(
+                approval_path.read_text(encoding="utf-8")
+            )
+        except (OSError, ValueError):
             return False
         return bool(
-            isinstance(payload, dict)
-            and payload.get("status") in {"approved", "consumed"}
-            and payload.get("plan_sha256") == sha256_file(plan_path)
+            approval.job_id == root.name
+            and approval.run_id == run_id
+            and approval.profile_id == step.parameters.get(
+                "profile_id",
+                approval.profile_id,
+            )
+            and approval.plan_sha256 == sha256_file(plan_path)
         )
     if step.approval_gate == "interior_qa_plan":
         run_id = str(step.parameters["run_id"])
@@ -1050,6 +1385,42 @@ def _specialized_approval_valid(
     if step.approval_gate == "visual_revision":
         return False
     return False
+
+
+def _specialized_approval_identity(
+    root: Path,
+    step: WorkflowStep,
+    artifact_fingerprint: str,
+) -> str:
+    """Keep specialized approval identity stable across expected single-use consumption."""
+
+    run_id = str(step.parameters.get("run_id", ""))
+    if step.approval_gate == "optimization_plan":
+        approval_path = (
+            root
+            / "optimization"
+            / "runs"
+            / run_id
+            / "optimization_approval.json"
+        )
+        payload = json.loads(approval_path.read_text(encoding="utf-8"))
+        payload.pop("used", None)
+        payload.pop("used_at", None)
+        return stable_json_digest(payload)
+    if step.approval_gate == "interior_qa_plan":
+        approval_path = (
+            root
+            / "qa"
+            / "interior"
+            / "runs"
+            / run_id
+            / "plan_approval.json"
+        )
+        payload = json.loads(approval_path.read_text(encoding="utf-8"))
+        payload.pop("status", None)
+        payload.pop("consumed_at", None)
+        return stable_json_digest(payload)
+    return artifact_fingerprint
 
 
 def _step_milestone(
@@ -1087,6 +1458,41 @@ def _step_milestone(
     if "reference.analyze" in completed_ids:
         return "analyzed"
     return "created"
+
+
+def _background_quality_state_summary(
+    root: Path,
+    plan: WorkflowPlan,
+    states: list[WorkflowStepState],
+) -> tuple[str | None, bool | None, str | None, str | None]:
+    """Load a completed new-policy quality report into the workflow state projection."""
+
+    completed = {item.step_id for item in states if item.status == "complete"}
+    step = next(
+        (
+            item
+            for item in plan.steps
+            if item.step_id == "background.eligibility"
+            and item.parameters.get("quality_policy") == "review_delivery_v2"
+        ),
+        None,
+    )
+    if step is None or step.step_id not in completed or not step.outputs:
+        return None, None, None, None
+    path = _resolve_job_path(root, step.outputs[0].path)
+    report = BackgroundQualityReport.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+    if report.workflow_id != plan.workflow_id or report.job_id != plan.job_id:
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: quality report identity changed"
+        )
+    return (
+        report.quality_status,
+        report.standard_workflow_recommended,
+        _job_relative(root, path),
+        sha256_file(path),
+    )
 
 
 def _next_action(
@@ -1146,6 +1552,13 @@ def _reconcile_locked(
         raise RuntimeError("Workflow request changed after plan creation")
     if request.job_id != plan.job_id or request.workflow_id != plan.workflow_id:
         raise RuntimeError("Workflow request and plan identities do not match")
+    if (
+        request.reference_content_scope != plan.reference_content_scope
+        or request.target_subject != plan.target_subject
+    ):
+        raise RuntimeError(
+            "Workflow request and plan reference-content scopes do not match"
+        )
     previous_states = {item.step_id: item for item in previous.steps} if previous else {}
     states: dict[str, WorkflowStepState] = {}
     current_step: WorkflowStep | None = None
@@ -1169,6 +1582,7 @@ def _reconcile_locked(
         completion_fingerprint = None
         approval_id = None
         error = None
+        reason_code = None
         started_at = prior.started_at if prior else None
         completed_at = prior.completed_at if prior else None
         attempt_count = prior.attempt_count if prior else 0
@@ -1198,6 +1612,7 @@ def _reconcile_locked(
                 else:
                     status = "stale"
                     error = "Agent completion marker is stale relative to current inputs/outputs."
+                    reason_code = "orchestration_artifact_conflict"
             else:
                 status = "waiting_for_agent"
         elif step.execution_mode == "approval":
@@ -1219,13 +1634,19 @@ def _reconcile_locked(
                 else:
                     status = "stale"
                     error = "Workflow approval is stale relative to current evidence."
+                    reason_code = "orchestration_artifact_conflict"
             else:
                 status = "waiting_for_approval"
         elif step.execution_mode == "specialized_approval":
             if _specialized_approval_valid(root, step, artifacts):
                 status = "complete"
+                approval_identity = _specialized_approval_identity(
+                    root,
+                    step,
+                    artifact_fingerprint,
+                )
                 completion_fingerprint = stable_json_digest(
-                    {"input": input_fingerprint, "output": artifact_fingerprint}
+                    {"input": input_fingerprint, "approval": approval_identity}
                 )
                 completed_at = _utc_now()
             else:
@@ -1233,6 +1654,7 @@ def _reconcile_locked(
         elif step.execution_mode == "manual":
             status = "blocked"
             error = "No validated destination adapter is available."
+            reason_code = "host_failure"
         else:
             same_input = prior is not None and prior.input_fingerprint == input_fingerprint
             same_outputs = bool(
@@ -1246,7 +1668,40 @@ def _reconcile_locked(
             )
             require_new = bool(step.parameters.get("require_new_output", False))
             can_adopt = previous is None and not require_new
-            if artifacts_valid and (
+            immutable_lifecycle = _step_uses_immutable_lifecycle(step)
+            matching_attempt = (
+                _matching_succeeded_attempt(
+                    workflow_root,
+                    step,
+                    plan_sha256=actual_plan_hash,
+                    input_fingerprint=input_fingerprint,
+                    output_fingerprint=artifact_fingerprint,
+                )
+                if immutable_lifecycle and artifacts_valid
+                else None
+            )
+            if immutable_lifecycle and matching_attempt is not None:
+                status = "complete"
+                completion_fingerprint = stable_json_digest(
+                    {
+                        "input": input_fingerprint,
+                        "output": artifact_fingerprint,
+                        "attempt_id": matching_attempt.attempt_id,
+                    }
+                )
+                completed_at = matching_attempt.completed_at
+            elif (
+                immutable_lifecycle
+                and prior is not None
+                and prior.status == "complete"
+                and (not same_input or not same_outputs)
+            ):
+                status = "blocked"
+                error = (
+                    "Immutable workflow evidence changed after its successful host attempt."
+                )
+                reason_code = "orchestration_artifact_conflict"
+            elif not immutable_lifecycle and artifacts_valid and (
                 (prior is not None and prior.status == "complete" and same_input and same_outputs)
                 or can_adopt
                 or (prior is not None and not same_outputs)
@@ -1260,9 +1715,15 @@ def _reconcile_locked(
             elif prior is not None and prior.status == "failed" and same_input:
                 status = "failed"
                 error = prior.error
+                reason_code = prior.reason_code or "host_failure"
             elif artifacts and any(item.integrity == "corrupt" for item in artifacts):
                 status = "blocked"
                 error = "One or more host-step outputs are corrupt."
+                reason_code = (
+                    "orchestration_artifact_conflict"
+                    if immutable_lifecycle
+                    else "host_failure"
+                )
             else:
                 status = "ready"
         state = WorkflowStepState(
@@ -1276,6 +1737,7 @@ def _reconcile_locked(
             started_at=started_at,
             completed_at=completed_at,
             error=error,
+            reason_code=reason_code,  # type: ignore[arg-type]
         )
         states[step.step_id] = state
         if step.step_id == plan.terminal_step_id and status == "complete":
@@ -1316,12 +1778,28 @@ def _reconcile_locked(
         )
     if plan.destination.status == "unsupported":
         warnings.append(plan.destination.reason)
+    (
+        quality_status,
+        standard_workflow_recommended,
+        quality_report_path,
+        quality_report_sha256,
+    ) = _background_quality_state_summary(root, plan, ordered_states)
+    if quality_status == "needs_revision":
+        warnings.append(
+            "Preview execution completed, but visual quality needs a standard revision."
+        )
+    elif quality_status == "unscorable":
+        warnings.append(
+            "Preview execution completed, but quality evidence was unscorable."
+        )
     now = _utc_now()
     state = WorkflowState(
         workflow_id=plan.workflow_id,
         job_id=plan.job_id,
         plan_sha256=actual_plan_hash,
         request_sha256=actual_request_hash,
+        reference_content_scope=plan.reference_content_scope,
+        target_subject=plan.target_subject,
         execution_policy=plan.execution_policy,
         delivery_scope=plan.delivery_scope,
         status=aggregate_status,  # type: ignore[arg-type]
@@ -1329,16 +1807,32 @@ def _reconcile_locked(
         current_step_id=current_step.step_id if current_step else None,
         steps=ordered_states,
         next_action=(
-            _next_action(
-                current_step,
-                states[current_step.step_id].input_fingerprint or stable_json_digest({}),
-                states[current_step.step_id].status,
+            (
+                "Inspect the immutable workflow evidence and mutable source ownership "
+                "conflict; do not classify it as a standard-workflow quality risk."
+                if states[current_step.step_id].reason_code
+                == "orchestration_artifact_conflict"
+                else _next_action(
+                    current_step,
+                    states[current_step.step_id].input_fingerprint
+                    or stable_json_digest({}),
+                    states[current_step.step_id].status,
+                )
             )
             if current_step
             else None
         ),
         waiting_gate=waiting_gate,  # type: ignore[arg-type]
         warnings=warnings,
+        reason_code=(
+            states[current_step.step_id].reason_code
+            if current_step is not None
+            else None
+        ),
+        quality_status=quality_status,  # type: ignore[arg-type]
+        standard_workflow_recommended=standard_workflow_recommended,
+        quality_report_path=quality_report_path,
+        quality_report_sha256=quality_report_sha256,
         cancelled_reason=previous.cancelled_reason if previous else None,
         created_at=previous.created_at if previous else now,
         updated_at=now,
@@ -1432,9 +1926,30 @@ def complete_workflow_step(
             raise ValueError(f"Unknown workflow step: {step_id}")
         if step.execution_mode not in {"agent", "manual"}:
             raise ValueError("Only agent/manual steps accept completion markers")
+        _verify_dependency_sources(root, plan, step)
         step_state = next(item for item in state.steps if item.step_id == step_id)
         if step_state.input_fingerprint != input_fingerprint:
             raise ValueError("Completion input fingerprint does not match current workflow state")
+        if any(
+            output.lifecycle == "workflow_snapshot"
+            and not _resolve_job_path(root, output.path).exists()
+            for output in step.outputs
+        ):
+            _validate_agent_completion_semantics(root, step, request)
+            _materialize_step_snapshots(root, step)
+            state = _reconcile_locked(
+                root,
+                workflow_root,
+                plan,
+                request,
+                previous=state,
+            )
+            step_state = next(item for item in state.steps if item.step_id == step_id)
+            if step_state.input_fingerprint != input_fingerprint:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: input changed while materializing "
+                    "the agent-owned workflow snapshot"
+                )
         if not step_state.artifacts or any(
             item.integrity != "valid" for item in step_state.artifacts
         ):
@@ -1570,7 +2085,8 @@ def _verify_background_preview_prerequisite(
         raise RequiresStandardWorkflow(
             "requires_standard_workflow: package continuation has no preview binding"
         )
-    reasons: list[str] = []
+    conflict_reasons: list[str] = []
+    scope_reasons: list[str] = []
     expected_parameters = {
         "preview_workflow_id": binding.workflow_id,
         "preview_plan_sha256": binding.plan_sha256,
@@ -1578,9 +2094,20 @@ def _verify_background_preview_prerequisite(
         "source_fingerprint": binding.source_fingerprint,
         "build_fingerprint": binding.build_fingerprint,
     }
+    if binding.quality_report_path is not None:
+        expected_parameters.update(
+            {
+                "quality_status": binding.quality_status,
+                "standard_workflow_recommended": (
+                    binding.standard_workflow_recommended
+                ),
+                "quality_report_path": binding.quality_report_path,
+                "quality_report_sha256": binding.quality_report_sha256,
+            }
+        )
     for name, expected in expected_parameters.items():
         if step.parameters.get(name) != expected:
-            reasons.append(f"immutable plan parameter mismatch: {name}")
+            conflict_reasons.append(f"immutable plan parameter mismatch: {name}")
     preview_root = _workflow_dir(root, binding.workflow_id)
     try:
         preview_request = _load_model(
@@ -1610,49 +2137,86 @@ def _verify_background_preview_prerequisite(
             ),
             None,
         )
+        preview_content_scope = getattr(
+            preview_request,
+            "reference_content_scope",
+            "full_reference",
+        )
+        preview_target_subject = getattr(preview_request, "target_subject", None)
         if (
             preview_request.execution_policy != "background_exterior"
             or preview_request.delivery_scope != "preview_only"
+            or preview_content_scope != request.reference_content_scope
+            or preview_target_subject != request.target_subject
             or reconstructed.status != "completed"
             or reconstructed.milestone != "delivered_for_review"
         ):
-            reasons.append("bound preview workflow is no longer current and completed")
+            conflict_reasons.append(
+                "bound preview workflow is no longer current and completed"
+            )
         if reconstructed.plan_sha256 != binding.plan_sha256:
-            reasons.append("bound preview plan SHA-256 changed")
+            conflict_reasons.append("bound preview plan SHA-256 changed")
         if (
             terminal is None
             or terminal.completion_fingerprint
             != binding.terminal_completion_fingerprint
         ):
-            reasons.append("bound preview terminal completion fingerprint changed")
+            conflict_reasons.append(
+                "bound preview terminal completion fingerprint changed"
+            )
     except (OSError, RuntimeError, ValueError) as exc:
-        reasons.append(f"bound preview workflow cannot be reconstructed: {type(exc).__name__}")
+        conflict_reasons.append(
+            f"bound preview workflow cannot be reconstructed: {type(exc).__name__}"
+        )
     try:
         source = collect_source_provenance(root, request.job_id)
         if source.source_fingerprint != binding.source_fingerprint:
-            reasons.append("canonical source fingerprint changed after preview")
+            conflict_reasons.append(
+                "canonical source fingerprint changed after preview"
+            )
         if source.build_fingerprint != binding.build_fingerprint:
-            reasons.append("embedded build fingerprint changed after preview")
+            conflict_reasons.append(
+                "embedded build fingerprint changed after preview"
+            )
     except (OSError, RuntimeError, ValueError) as exc:
-        reasons.append(f"current source provenance is unavailable: {type(exc).__name__}")
+        conflict_reasons.append(
+            f"current source provenance is unavailable: {type(exc).__name__}"
+        )
+    if binding.quality_report_path is not None:
+        quality_path = _resolve_job_path(root, binding.quality_report_path)
+        if (
+            not quality_path.is_file()
+            or sha256_file(quality_path) != binding.quality_report_sha256
+        ):
+            conflict_reasons.append("bound background quality report changed")
     scope_contract = load_interior_scope(root)
     if scope_contract is not None and scope_contract.policy != "disabled":
-        reasons.append("InteriorScope became enabled after preview")
+        scope_reasons.append("InteriorScope became enabled after preview")
     try:
         scene_spec = load_scene_spec(root / "analysis" / "scene_spec.json")
         if list_interior_objects(scene_spec):
-            reasons.append("interior semantic geometry appeared after preview")
+            scope_reasons.append("interior semantic geometry appeared after preview")
     except (OSError, RuntimeError, ValueError) as exc:
-        reasons.append(f"current SceneSpec cannot be validated: {type(exc).__name__}")
+        conflict_reasons.append(
+            f"current SceneSpec cannot be validated: {type(exc).__name__}"
+        )
     if (root / "constraints" / "constraints.json").is_file():
-        reasons.append("measured constraints appeared after preview")
+        scope_reasons.append("measured constraints appeared after preview")
     output_path = _resolve_job_path(root, str(step.parameters["output_path"]))
+    reasons = [*conflict_reasons, *scope_reasons]
     passed = not reasons
+    status = (
+        "passed"
+        if passed
+        else "orchestration_artifact_conflict"
+        if conflict_reasons
+        else "requires_standard_workflow"
+    )
     payload = {
         "schema_version": "0.8.0",
         "job_id": request.job_id,
         "workflow_id": request.workflow_id,
-        "status": "passed" if passed else "requires_standard_workflow",
+        "status": status,
         "ok": passed,
         "preview_binding": binding.model_dump(mode="json"),
         "blocking_reasons": reasons,
@@ -1674,7 +2238,11 @@ def _verify_background_preview_prerequisite(
             preserve_existing = False
     if not preserve_existing:
         write_json_atomic(output_path, payload)
-    if not passed:
+    if conflict_reasons:
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: bound background preview evidence changed"
+        )
+    if scope_reasons:
         raise RequiresStandardWorkflow(
             "requires_standard_workflow: bound background preview or canonical source changed"
         )
@@ -1685,18 +2253,60 @@ def _evaluate_background_delivery(
     request: WorkflowRequest,
     step: WorkflowStep,
 ) -> None:
-    """Write a hash-bound post-QA eligibility report and fail closed on major risks."""
+    """Classify new review delivery while retaining the legacy fail-closed policy."""
+
+    if step.parameters.get("quality_policy") == "review_delivery_v2":
+        try:
+            evaluate_background_quality(
+                root,
+                job_id=request.job_id,
+                workflow_id=request.workflow_id,
+                qa_run_id=str(step.parameters["qa_run_id"]),
+                role_map_path=_resolve_job_path(
+                    root,
+                    str(step.parameters["role_map_path"]),
+                ),
+                fit_report_path=_resolve_job_path(
+                    root,
+                    str(step.parameters["fit_report_path"]),
+                ),
+                output_path=_resolve_job_path(
+                    root,
+                    str(step.parameters["output_path"]),
+                ),
+            )
+        except BackgroundQualityConflict as exc:
+            raise OrchestrationArtifactConflict(
+                f"orchestration_artifact_conflict: {exc}"
+            ) from exc
+        return
 
     from ..qa import VisualQAReport
 
-    latest_path = root / "qa" / "latest.json"
-    if not latest_path.is_file():
-        raise RuntimeError("background delivery requires current qa/latest.json")
-    latest = json.loads(latest_path.read_text(encoding="utf-8"))
-    report_relative = latest.get("visual_qa_report")
-    if not isinstance(report_relative, str) or not report_relative:
-        raise RuntimeError("QA latest pointer has no visual_qa_report")
-    report_path = _resolve_job_path(root, report_relative)
+    exact_run_id = step.parameters.get("qa_run_id")
+    if exact_run_id is None:
+        latest_path = root / "qa" / "latest.json"
+        if not latest_path.is_file():
+            raise RuntimeError("background delivery requires QA evidence")
+        latest = json.loads(latest_path.read_text(encoding="utf-8"))
+        report_relative = latest.get("visual_qa_report")
+        if not isinstance(report_relative, str) or not report_relative:
+            raise RuntimeError("Legacy QA latest pointer has no visual_qa_report")
+        report_path = _resolve_job_path(root, report_relative)
+        qa_run_root = report_path.parent
+        qa_run_id = str(latest.get("run_id") or qa_run_root.name)
+    else:
+        qa_run_id = str(exact_run_id)
+        qa_run_root = root / "qa" / "runs" / qa_run_id
+        report_path = qa_run_root / "visual_qa_report.json"
+    report_path = qa_run_root / "visual_qa_report.json"
+    request_path = qa_run_root / "request.json"
+    pass_manifest_path = qa_run_root / "render_pass_manifest.json"
+    if not report_path.is_file() or (
+        exact_run_id is not None
+        and not all(path.is_file() for path in (request_path, pass_manifest_path))
+    ):
+        raise RuntimeError("background delivery requires the exact planned QA run evidence")
     report = VisualQAReport.model_validate_json(
         report_path.read_text(encoding="utf-8")
     )
@@ -1732,6 +2342,33 @@ def _evaluate_background_delivery(
         )
     passed = not reasons
     output_path = _resolve_job_path(root, str(step.parameters["output_path"]))
+    source = (
+        collect_source_provenance(root, request.job_id)
+        if exact_run_id is not None
+        else None
+    )
+    qa_evidence = {
+        "qa_run_id": qa_run_id,
+        "visual_qa_report_path": _job_relative(root, report_path),
+        "visual_qa_report_sha256": sha256_file(report_path),
+    }
+    if request_path.is_file():
+        qa_evidence.update(
+            {
+                "qa_request_path": _job_relative(root, request_path),
+                "qa_request_sha256": sha256_file(request_path),
+            }
+        )
+    if pass_manifest_path.is_file():
+        qa_evidence.update(
+            {
+                "render_pass_manifest_path": _job_relative(
+                    root,
+                    pass_manifest_path,
+                ),
+                "render_pass_manifest_sha256": sha256_file(pass_manifest_path),
+            }
+        )
     write_json_atomic(
         output_path,
         {
@@ -1742,12 +2379,15 @@ def _evaluate_background_delivery(
             "delivery_scope": request.delivery_scope,
             "status": "passed" if passed else "requires_standard_workflow",
             "ok": passed,
-            "qa_latest_path": "qa/latest.json",
-            "qa_latest_sha256": sha256_file(latest_path),
-            "visual_qa_report_path": report_relative,
-            "visual_qa_report_sha256": sha256_file(report_path),
+            **qa_evidence,
             "direct_score": report.direct_metrics.overall_direct_score,
             "blocking_findings": reasons,
+            "source_fingerprint": (
+                source.source_fingerprint if source is not None else None
+            ),
+            "build_fingerprint": (
+                source.build_fingerprint if source is not None else None
+            ),
             "evaluated_at": _utc_now().isoformat(),
         },
     )
@@ -1780,6 +2420,8 @@ def _execute_host_tool(
     workflow_root: Path,
     request: WorkflowRequest,
     step: WorkflowStep,
+    *,
+    input_fingerprint: str,
 ) -> None:
     """Execute one whitelisted deterministic host step with explicit parameters."""
 
@@ -1803,6 +2445,27 @@ def _execute_host_tool(
     if tool == "analyze_reference":
         analyze_job_reference(request.job_id, provider="auto")
         return
+    if tool == "fit_background_exterior":
+        try:
+            run_background_pre_qa_fit(
+                request.job_id,
+                workflow_id=request.workflow_id,
+                input_fingerprint=input_fingerprint,
+                initial_candidate_path=_resolve_job_path(
+                    root,
+                    str(step.parameters["initial_candidate_path"]),
+                ),
+                fit_root=_resolve_job_path(
+                    root,
+                    str(step.parameters["fit_root"]),
+                ),
+                max_attempts=int(step.parameters["max_attempts"]),
+            )
+        except BackgroundFitConflict as exc:
+            raise OrchestrationArtifactConflict(
+                f"orchestration_artifact_conflict: {exc}"
+            ) from exc
+        return
     if tool == "build_scene":
         _build_scene(request.job_id)
         return
@@ -1820,6 +2483,26 @@ def _execute_host_tool(
         return
     if tool == "material_scaffold":
         create_material_scaffold(request.job_id, overwrite=False)
+        return
+    if tool == "material_scaffold_candidate":
+        created = create_workflow_material_candidates(
+            request.job_id,
+            request.workflow_id,
+        )
+        if (
+            created["scaffold_root"] != step.parameters.get("scaffold_root")
+            or created["authored_root"] != step.parameters.get("authored_root")
+        ):
+            raise RuntimeError("Workflow material scaffold paths do not match the plan")
+        return
+    if tool == "promote_material_contracts":
+        promote_workflow_material_candidate(
+            request.job_id,
+            request.workflow_id,
+            candidate_plan_path=str(step.parameters["candidate_plan_path"]),
+            receipt_path=str(step.parameters["promotion_receipt_path"]),
+            input_fingerprint=input_fingerprint,
+        )
         return
     if tool == "validate_material_contracts":
         result = validate_job_material_contracts(request.job_id)
@@ -1882,6 +2565,11 @@ def _execute_host_tool(
                 step.parameters.get("optimization_run_id", "latest")
             ),
             package_id=str(step.parameters.get("package_id", "latest")),
+            background_quality_report_path=(
+                str(step.parameters["background_quality_report_path"])
+                if "background_quality_report_path" in step.parameters
+                else None
+            ),
             output_path=output_path,
         )
         return
@@ -1905,6 +2593,11 @@ def _execute_host_tool(
             request.job_id,
             profile_id=str(step.parameters["profile_id"]),
             run_id=str(step.parameters["run_id"]),
+            source_quality_path=(
+                str(step.parameters["source_quality_path"])
+                if "source_quality_path" in step.parameters
+                else None
+            ),
         )
         return
     if tool == "optimize_portable_asset":
@@ -2002,7 +2695,15 @@ def _prepare_failed_step_retry(
     for item in previous.steps:
         if item.step_id == previous.current_step_id and item.status == "failed":
             found = True
-            steps.append(item.model_copy(update={"status": "ready", "error": None}))
+            steps.append(
+                item.model_copy(
+                    update={
+                        "status": "ready",
+                        "error": None,
+                        "reason_code": None,
+                    }
+                )
+            )
         else:
             steps.append(item)
     if not found:
@@ -2011,6 +2712,7 @@ def _prepare_failed_step_retry(
         update={
             "status": "running",
             "steps": steps,
+            "reason_code": None,
             "next_action": (
                 f"Explicit retry requested for failed step {previous.current_step_id}."
             ),
@@ -2047,7 +2749,15 @@ def _execute_ready_host_step(
     )
     _write_immutable(attempt_path, running.model_dump(mode="json"))
     try:
-        _execute_host_tool(root, workflow_root, request, step)
+        _verify_dependency_sources(root, plan, step)
+        _execute_host_tool(
+            root,
+            workflow_root,
+            request,
+            step,
+            input_fingerprint=current.input_fingerprint,
+        )
+        _materialize_step_snapshots(root, step)
         outputs = [
             _inspect_artifact(root, output, None)
             for output in step.outputs
@@ -2068,6 +2778,13 @@ def _execute_ready_host_step(
             completed_at=_utc_now(),
         )
     except Exception as exc:
+        reason_code = (
+            "requires_standard_workflow"
+            if isinstance(exc, RequiresStandardWorkflow)
+            else "orchestration_artifact_conflict"
+            if isinstance(exc, OrchestrationArtifactConflict)
+            else "host_failure"
+        )
         failed = WorkflowAttempt(
             attempt_id=attempt_id,
             workflow_id=plan.workflow_id,
@@ -2078,6 +2795,7 @@ def _execute_ready_host_step(
             status="failed",
             error_type=type(exc).__name__,
             error_message=str(exc)[:4000],
+            reason_code=reason_code,  # type: ignore[arg-type]
             started_at=started,
             completed_at=_utc_now(),
         )
@@ -2167,7 +2885,19 @@ def resume_workflow(
                 )
             except Exception as exc:
                 requires_standard = isinstance(exc, RequiresStandardWorkflow)
-                failure_status = "blocked" if requires_standard else "failed"
+                artifact_conflict = isinstance(exc, OrchestrationArtifactConflict)
+                failure_status = (
+                    "blocked"
+                    if requires_standard or artifact_conflict
+                    else "failed"
+                )
+                reason_code = (
+                    "requires_standard_workflow"
+                    if requires_standard
+                    else "orchestration_artifact_conflict"
+                    if artifact_conflict
+                    else "host_failure"
+                )
                 failed_steps = []
                 for item in state.steps:
                     if item.step_id == step.step_id:
@@ -2177,6 +2907,7 @@ def resume_workflow(
                                     "status": failure_status,
                                     "attempt_count": item.attempt_count + 1,
                                     "error": f"{type(exc).__name__}: {exc}",
+                                    "reason_code": reason_code,
                                 }
                             )
                         )
@@ -2186,12 +2917,19 @@ def resume_workflow(
                     update={
                         "status": failure_status,
                         "steps": failed_steps,
+                        "reason_code": reason_code,
                         "next_action": (
                             (
                                 "Create a new immutable standard workflow for this job; "
                                 "do not retry the blocked background_exterior plan."
                             )
                             if requires_standard
+                            else (
+                                "Inspect the reported orchestration artifact ownership or "
+                                "fingerprint conflict. Do not reinterpret it as a quality "
+                                "risk or auto-switch workflow policy."
+                            )
+                            if artifact_conflict
                             else (
                                 f"Resolve {type(exc).__name__} in step "
                                 f"{step.step_id}, then resume."
@@ -2221,6 +2959,7 @@ def resume_workflow(
                                 ),
                                 "completed_at": attempt.completed_at,
                                 "error": None,
+                                "reason_code": None,
                             }
                         )
                     )

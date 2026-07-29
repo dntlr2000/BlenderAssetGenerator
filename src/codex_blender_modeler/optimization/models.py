@@ -284,6 +284,37 @@ class AssetProfile(V07StrictModel):
         return self
 
 
+class SourceQualitySummary(V07StrictModel):
+    """Carry exact fast-preview quality warnings into the V0.7 approval boundary."""
+
+    report_artifact: HashedArtifact
+    quality_status: Literal["passed", "needs_revision", "unscorable"]
+    overall_direct_score: float | None = Field(default=None, ge=0, le=1)
+    primary_silhouette_score: float | None = Field(default=None, ge=0, le=1)
+    primary_high_findings: list[str] = Field(default_factory=list)
+    supporting_high_findings: list[str] = Field(default_factory=list)
+    decorative_warnings: list[str] = Field(default_factory=list)
+    environment_findings: list[str] = Field(default_factory=list)
+    standard_workflow_recommended: bool
+    qa_run_id: str = Field(min_length=1)
+    source_fingerprint: Sha256
+    build_fingerprint: Sha256
+    limitations: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_quality_summary(self) -> SourceQualitySummary:
+        """Require a generic hashed artifact and preserve non-passing recommendations."""
+
+        if self.report_artifact.kind != "other":
+            raise ValueError("source quality report artifact must use kind=other")
+        if (
+            self.quality_status != "passed"
+            and not self.standard_workflow_recommended
+        ):
+            raise ValueError("non-passing source quality must recommend standard revision")
+        return self
+
+
 class OptimizationDirective(V07StrictModel):
     """Apply explicit derived-asset policies to one stable semantic object family."""
 
@@ -318,6 +349,7 @@ class OptimizationPlan(V07StrictModel):
     profile_artifact: HashedArtifact
     preflight_report: HashedArtifact
     source: SourceProvenance
+    source_quality: SourceQualitySummary | None = None
     status: Literal["draft", "approved", "running", "complete", "failed"] = "draft"
     directives: list[OptimizationDirective] = Field(default_factory=list)
     approved_at: datetime | None = None
@@ -460,6 +492,7 @@ class OptimizationReview(V07StrictModel):
     profile_artifact: HashedArtifact
     preflight_report: HashedArtifact
     source: SourceProvenance
+    source_quality: SourceQualitySummary | None = None
     plan_sha256: Sha256
     lod: LODOptimizationReview
     collision: CollisionOptimizationReview

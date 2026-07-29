@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
+from pathlib import PurePosixPath
 
 from .models import (
     ArtifactRequirement,
@@ -18,6 +20,8 @@ def _artifact(
     artifact_id: str,
     path: str,
     *,
+    source_path: str | None = None,
+    lifecycle: str = "canonical",
     acceptance: str = "exists",
     canonical: bool = False,
 ) -> ArtifactRequirement:
@@ -26,6 +30,8 @@ def _artifact(
     return ArtifactRequirement(
         artifact_id=artifact_id,
         path=path,
+        source_path=source_path,
+        lifecycle=lifecycle,  # type: ignore[arg-type]
         acceptance=acceptance,  # type: ignore[arg-type]
         canonical=canonical,
     )
@@ -58,6 +64,32 @@ def _step(
         parameters=parameters or {},
         instructions=instructions or [],
     )
+
+
+def _reference_content_instructions(request: WorkflowRequest) -> list[str]:
+    """Translate one immutable content-scope selection into agent authoring rules."""
+
+    if request.reference_content_scope == "primary_object_only":
+        return [
+            (
+                f"Model only target_subject={request.target_subject!r} and components "
+                "structurally belonging to that subject."
+            ),
+            (
+                "Exclude independent terrain, ground planes, vegetation, rocks, props, "
+                "backdrops, atmospheric effects, and other surrounding scene context."
+            ),
+            (
+                "ModelingPlan objects must declare scope_role=primary or supporting; "
+                "SceneSpec objects must declare qa_role:primary or qa_role:supporting."
+            ),
+        ]
+    return [
+        (
+            "reference_content_scope=full_reference permits relevant visible context; "
+            "keep primary, supporting, decorative, and ground/background roles explicit."
+        )
+    ]
 
 
 def _append_build_cycle(
@@ -170,9 +202,14 @@ def _append_pdf_report(
     return step_id
 
 
-def _append_proxy_flow(steps: list[WorkflowStep], dependency: str) -> str:
+def _append_proxy_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+    request: WorkflowRequest,
+) -> str:
     """Append analysis, proxy authoring, deterministic build, and user approval."""
 
+    content_instructions = _reference_content_instructions(request)
     steps.extend(
         [
             _step(
@@ -215,6 +252,7 @@ def _append_proxy_flow(steps: list[WorkflowStep], dependency: str) -> str:
                 instructions=[
                     "Use deterministic reference diagnostics as evidence, not recovered truth.",
                     "Record observed and inferred objects with stable semantic IDs.",
+                    *content_instructions,
                 ],
             ),
             _step(
@@ -235,6 +273,7 @@ def _append_proxy_flow(steps: list[WorkflowStep], dependency: str) -> str:
                 instructions=[
                     "Do not create interiors without an exact approved InteriorScope.",
                     "Stop at major silhouette, proportions, and semantic decomposition.",
+                    *content_instructions,
                 ],
             ),
         ]
@@ -260,8 +299,18 @@ def _append_proxy_flow(steps: list[WorkflowStep], dependency: str) -> str:
 def _append_background_geometry_flow(
     steps: list[WorkflowStep],
     dependency: str,
+    *,
+    request: WorkflowRequest,
+    max_fit_attempts: int,
 ) -> str:
-    """Append one bounded exterior authoring pass without intermediate approvals."""
+    """Append bounded exterior authoring plus one workflow-owned pre-QA fit."""
+
+    workflow_id = request.workflow_id
+    content_instructions = _reference_content_instructions(request)
+    geometry_root = f"workflows/{workflow_id}/artifacts/g"
+    initial_candidate = f"{geometry_root}/initial_scene_spec.json"
+    fit_root = f"{geometry_root}/fit"
+    promoted_snapshot = f"{geometry_root}/promoted_scene_spec.json"
 
     steps.extend(
         [
@@ -305,6 +354,7 @@ def _append_background_geometry_flow(
                 instructions=[
                     "Plan one static exterior background asset with stable semantic IDs.",
                     "Record hidden geometry as inferred and never create an interior.",
+                    *content_instructions,
                     "If measured, rigged, interactive, or high-ambiguity work is required, "
                     "stop and report requires_standard_workflow without recording completion.",
                 ],
@@ -319,25 +369,63 @@ def _append_background_geometry_flow(
                 outputs=[
                     _artifact(
                         "geometry.background_scene_spec",
-                        "analysis/scene_spec.json",
+                        initial_candidate,
+                        source_path="analysis/scene_spec.json",
+                        lifecycle="workflow_snapshot",
                         acceptance="valid_json",
-                        canonical=True,
                     )
                 ],
                 instructions=[
                     "Create one bounded moderate-detail exterior pass, not a rough proxy.",
                     "Prioritize silhouette, proportions, and medium structures over micro-detail.",
+                    "Assign one appropriate qa_role:primary, qa_role:supporting, "
+                    "qa_role:decorative, or qa_role:ground_background tag to each object; "
+                    "primary_object_only requires an explicit role on every object.",
+                    *content_instructions,
                     "Do not create interiors, rigs, animation, gameplay logic, or "
                     "engine-specific geometry.",
                     "If the evidence no longer qualifies for the fast lane, stop and report "
                     "requires_standard_workflow without recording completion.",
                 ],
             ),
+            _step(
+                "background.fit",
+                "Run bounded primary-subject pre-QA fit",
+                "geometry",
+                "host",
+                tool="fit_background_exterior",
+                depends_on=["geometry.background_author"],
+                outputs=[
+                    _artifact(
+                        "background.fit.evidence",
+                        fit_root,
+                        acceptance="nonempty_directory",
+                        lifecycle="immutable_run",
+                    ),
+                    _artifact(
+                        "background.fit.promoted_scene_spec",
+                        promoted_snapshot,
+                        source_path="analysis/scene_spec.json",
+                        lifecycle="workflow_snapshot",
+                        acceptance="valid_json",
+                    ),
+                ],
+                parameters={
+                    "initial_candidate_path": initial_candidate,
+                    "fit_root": fit_root,
+                    "max_attempts": max_fit_attempts,
+                },
+                instructions=[
+                    "Render low-resolution primary-only diagnostics for at most two refinements.",
+                    "Promote only a strictly validated improvement; retain baseline otherwise.",
+                    "This is not the canonical seven-pass V0.6 QA run.",
+                ],
+            ),
         ]
     )
     validated = _append_build_cycle(
         steps,
-        "geometry.background_author",
+        "background.fit",
         "background_geometry",
     )
     return _append_pdf_report(
@@ -348,7 +436,11 @@ def _append_background_geometry_flow(
     )
 
 
-def _append_detail_flow(steps: list[WorkflowStep], dependency: str) -> str:
+def _append_detail_flow(
+    steps: list[WorkflowStep],
+    dependency: str,
+    request: WorkflowRequest,
+) -> str:
     """Append one agent-authored detail pass and a separately approved result."""
 
     steps.append(
@@ -370,6 +462,7 @@ def _append_detail_flow(steps: list[WorkflowStep], dependency: str) -> str:
             instructions=[
                 "Archive the previous SceneSpec before canonical replacement.",
                 "Preserve camera, stable IDs, and every unrequested property.",
+                *_reference_content_instructions(request),
             ],
         )
     )
@@ -392,9 +485,17 @@ def _append_material_flow(
     steps: list[WorkflowStep],
     dependency: str,
     *,
+    workflow_id: str,
     require_approval: bool = True,
 ) -> str:
-    """Append V0.5 material evidence and optionally its generic review gate."""
+    """Append candidate-based V0.5 authoring and an exact canonical promotion."""
+
+    material_root = f"workflows/{workflow_id}/artifacts/m"
+    scaffold_root = f"{material_root}/scaffold"
+    authored_root = f"{material_root}/authored"
+    authored_plan = f"{authored_root}/material_plan.json"
+    promotion_receipt = f"{material_root}/promotion.json"
+    promoted_snapshot = f"{material_root}/promoted.json"
 
     steps.extend(
         [
@@ -403,16 +504,20 @@ def _append_material_flow(
                 "Initialize stable material contracts",
                 "material",
                 "host",
-                tool="material_scaffold",
+                tool="material_scaffold_candidate",
                 depends_on=[dependency],
                 outputs=[
                     _artifact(
                         "material.plan.scaffold",
-                        "analysis/material_plan.json",
-                        acceptance="valid_json",
-                        canonical=True,
+                        scaffold_root,
+                        acceptance="nonempty_directory",
+                        lifecycle="immutable_run",
                     )
                 ],
+                parameters={
+                    "scaffold_root": scaffold_root,
+                    "authored_root": authored_root,
+                },
             ),
             _step(
                 "material.author",
@@ -424,12 +529,14 @@ def _append_material_flow(
                 outputs=[
                     _artifact(
                         "material.plan.authored",
-                        "analysis/material_plan.json",
-                        acceptance="valid_json",
-                        canonical=True,
+                        authored_root,
+                        acceptance="nonempty_directory",
+                        lifecycle="immutable_run",
                     )
                 ],
+                parameters={"candidate_plan_path": authored_plan},
                 instructions=[
+                    "Edit only the workflow-owned authored candidate directory.",
                     "Use only whitelisted Blender 5-compatible shader recipes.",
                     "Keep portable surface semantics separate from Blender master graphs.",
                     "Do not call external texture or image providers unless the immutable "
@@ -437,12 +544,39 @@ def _append_material_flow(
                 ],
             ),
             _step(
+                "material.promote",
+                "Validate and promote exact material contracts",
+                "material",
+                "host",
+                tool="promote_material_contracts",
+                depends_on=["material.author"],
+                outputs=[
+                    _artifact(
+                        "material.plan.promotion_receipt",
+                        promotion_receipt,
+                        acceptance="json_ok",
+                        lifecycle="immutable_run",
+                    ),
+                    _artifact(
+                        "material.plan.promoted_snapshot",
+                        promoted_snapshot,
+                        source_path="analysis/material_plan.json",
+                        lifecycle="workflow_snapshot",
+                        acceptance="valid_json",
+                    ),
+                ],
+                parameters={
+                    "candidate_plan_path": authored_plan,
+                    "promotion_receipt_path": promotion_receipt,
+                },
+            ),
+            _step(
                 "material.contract_validate",
                 "Validate material contracts",
                 "material",
                 "host",
                 tool="validate_material_contracts",
-                depends_on=["material.author"],
+                depends_on=["material.promote"],
                 outputs=[
                     _artifact(
                         "material.contract_report",
@@ -514,8 +648,9 @@ def _append_qa_flow(
     *,
     require_review: bool = True,
     run_id: str | None = None,
+    append_report: bool = True,
 ) -> str:
-    """Append direct-reference QA and optionally its non-executing review gate."""
+    """Append direct QA, optionally deferring its PDF until quality classification."""
 
     run_parameters: dict[str, str | int | float | bool] = {
         "include_generated_target": False,
@@ -523,6 +658,18 @@ def _append_qa_flow(
     }
     if run_id is not None:
         run_parameters["run_id"] = run_id
+        qa_output = _artifact(
+            "qa.run.evidence",
+            f"qa/runs/{run_id}",
+            acceptance="nonempty_directory",
+            lifecycle="immutable_run",
+        )
+    else:
+        qa_output = _artifact(
+            "qa.latest",
+            "qa/latest.json",
+            acceptance="valid_json",
+        )
     steps.extend(
         [
             _step(
@@ -532,17 +679,13 @@ def _append_qa_flow(
                 "host",
                 tool="run_visual_qa",
                 depends_on=[dependency],
-                outputs=[
-                    _artifact(
-                        "qa.latest",
-                        "qa/latest.json",
-                        acceptance="valid_json",
-                    )
-                ],
+                outputs=[qa_output],
                 parameters=run_parameters,
             ),
         ]
     )
+    if not append_report:
+        return "qa.run"
     report = _append_pdf_report(
         steps,
         "qa.run",
@@ -574,17 +717,20 @@ def _append_background_eligibility(
     steps: list[WorkflowStep],
     dependency: str,
     request: WorkflowRequest,
+    *,
+    qa_run_id: str,
 ) -> str:
-    """Append a fail-closed post-QA check before fast delivery can complete."""
+    """Append review-delivery quality classification without rewriting V0.6 evidence."""
 
     output = (
         "reports/background_delivery/"
-        f"{request.workflow_id}_eligibility.json"
+        f"{request.workflow_id}_quality.json"
     )
+    fit_root = f"workflows/{request.workflow_id}/artifacts/g/fit"
     steps.append(
         _step(
             "background.eligibility",
-            "Check whether direct QA still qualifies for background delivery",
+            "Classify completed preview quality for user review",
             "qa",
             "host",
             tool="evaluate_background_delivery",
@@ -594,12 +740,21 @@ def _append_background_eligibility(
                     "background.delivery_eligibility",
                     output,
                     acceptance="json_ok",
+                    lifecycle="immutable_run",
                 )
             ],
-            parameters={"output_path": output},
+            parameters={
+                "output_path": output,
+                "qa_run_id": qa_run_id,
+                "role_map_path": f"{fit_root}/role_map.json",
+                "fit_report_path": f"{fit_root}/fit_report.json",
+                "quality_policy": "review_delivery_v2",
+            },
             instructions=[
-                "Every high-severity direct-reference or constraint finding requires "
-                "a separate standard workflow.",
+                "Visual findings classify quality as passed, needs_revision, or unscorable.",
+                "A high visual finding recommends standard revision but does not block "
+                "preview review delivery.",
+                "Scope, safety, tampering, and host failures retain their distinct blockers.",
                 "This check never applies a QA candidate or edits canonical geometry.",
             ],
         )
@@ -754,6 +909,7 @@ def _append_portable_flow(
     request: WorkflowRequest,
     *,
     require_final_review: bool = True,
+    source_quality_path: str | None = None,
 ) -> str:
     """Append V0.7 packaging while optionally retaining its generic final review."""
 
@@ -761,6 +917,12 @@ def _append_portable_flow(
     profile_path = f"asset_profiles/{request.profile_id}.json"
     run_root = f"optimization/runs/{run_id}"
     package_root = f"exports/packages/{request.profile_id}/{package_id}"
+    plan_parameters: dict[str, str | int | float | bool] = {
+        "profile_id": request.profile_id,
+        "run_id": run_id,
+    }
+    if source_quality_path is not None:
+        plan_parameters["source_quality_path"] = source_quality_path
     steps.extend(
         [
             _step(
@@ -815,7 +977,7 @@ def _append_portable_flow(
                         acceptance="valid_json",
                     ),
                 ],
-                parameters={"profile_id": request.profile_id, "run_id": run_id},
+                parameters=plan_parameters,
             ),
             _step(
                 "portable.plan_approval",
@@ -928,15 +1090,18 @@ def _append_portable_flow(
             ),
         ]
     )
+    report_parameters: dict[str, str | int | float | bool] = {
+        "optimization_run_id": run_id,
+        "package_id": package_id,
+    }
+    if source_quality_path is not None:
+        report_parameters["background_quality_report_path"] = source_quality_path
     report = _append_pdf_report(
         steps,
         "portable.roundtrip",
         "portable",
         "export",
-        parameters={
-            "optimization_run_id": run_id,
-            "package_id": package_id,
-        },
+        parameters=report_parameters,
     )
     terminal = report
     if require_final_review:
@@ -1034,6 +1199,99 @@ def _scope_for_routing(request: WorkflowRequest, routing: IntentRouting) -> Work
     return request.requested_scope
 
 
+def _is_run_owned_path(path: str, workflow_id: str) -> bool:
+    """Identify paths already isolated by an exact workflow, run, or package ID."""
+
+    return path.startswith(
+        (
+            f"workflows/{workflow_id}/",
+            "qa/runs/",
+            "qa/interior/runs/",
+            "optimization/runs/",
+            "exports/packages/",
+            "exports/material_conversions/",
+            f"reports/background_delivery/{workflow_id}_",
+        )
+    )
+
+
+def _bind_artifact_lifecycle(
+    steps: list[WorkflowStep],
+    workflow_id: str,
+) -> list[WorkflowStep]:
+    """Bind host outputs to immutable evidence while retaining mutable source locations."""
+
+    bound: list[WorkflowStep] = []
+    for step in steps:
+        parameters = dict(step.parameters)
+        outputs: list[ArtifactRequirement] = []
+        if step.tool_name == "generate_pdf_report":
+            report_key = hashlib.sha256(step.step_id.encode("utf-8")).hexdigest()[:12]
+            output_path = f"workflows/{workflow_id}/artifacts/pdf/{report_key}.pdf"
+            parameters["output_path"] = output_path
+            outputs = [
+                _artifact(
+                    f"{step.step_id}.pdf",
+                    output_path,
+                    lifecycle="immutable_run",
+                ),
+                _artifact(
+                    f"{step.step_id}.manifest",
+                    output_path.removesuffix(".pdf") + ".manifest.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                ),
+            ]
+        else:
+            for output in step.outputs:
+                if output.lifecycle != "canonical":
+                    outputs.append(output)
+                    continue
+                if step.execution_mode != "host":
+                    outputs.append(output)
+                    continue
+                if step.tool_name == "create_job":
+                    outputs.append(output)
+                    continue
+                if _is_run_owned_path(output.path, workflow_id):
+                    outputs.append(
+                        output.model_copy(
+                            update={
+                                "lifecycle": "immutable_run",
+                                "canonical": False,
+                            }
+                        )
+                    )
+                    continue
+                snapshot_key = hashlib.sha256(
+                    f"{step.step_id}\0{output.path}".encode()
+                ).hexdigest()[:16]
+                suffix = PurePosixPath(output.path).suffix
+                snapshot_path = (
+                    f"workflows/{workflow_id}/artifacts/s/"
+                    f"{snapshot_key}{suffix}"
+                )
+                outputs.append(
+                    output.model_copy(
+                        update={
+                            "path": snapshot_path,
+                            "source_path": output.path,
+                            "lifecycle": "workflow_snapshot",
+                            "canonical": False,
+                        }
+                    )
+                )
+        bound.append(
+            step.model_copy(
+                update={
+                    "outputs": outputs,
+                    "parameters": parameters,
+                }
+            )
+        )
+    return bound
+
+
 def build_workflow_plan(
     request: WorkflowRequest,
     routing: IntentRouting,
@@ -1072,10 +1330,20 @@ def build_workflow_plan(
         )
         if request.execution_policy == "background_exterior":
             qa_run_id = f"v08-{request.workflow_id[-8:]}-qa"
-            terminal = _append_background_geometry_flow(steps, "job.created")
+            quality_path = (
+                "reports/background_delivery/"
+                f"{request.workflow_id}_quality.json"
+            )
+            terminal = _append_background_geometry_flow(
+                steps,
+                "job.created",
+                request=request,
+                max_fit_attempts=request.budgets.max_pre_qa_fit_attempts,
+            )
             terminal = _append_material_flow(
                 steps,
                 terminal,
+                workflow_id=request.workflow_id,
                 require_approval=False,
             )
             terminal = _append_qa_flow(
@@ -1083,11 +1351,23 @@ def build_workflow_plan(
                 terminal,
                 require_review=False,
                 run_id=qa_run_id,
+                append_report=False,
             )
             terminal = _append_background_eligibility(
                 steps,
                 terminal,
                 request,
+                qa_run_id=qa_run_id,
+            )
+            terminal = _append_pdf_report(
+                steps,
+                terminal,
+                "qa",
+                "qa",
+                parameters={
+                    "qa_run_id": qa_run_id,
+                    "background_quality_report_path": quality_path,
+                },
             )
             if request.delivery_scope == "portable_package":
                 terminal = _append_portable_flow(
@@ -1095,10 +1375,12 @@ def build_workflow_plan(
                     terminal,
                     request,
                     require_final_review=False,
+                    source_quality_path=quality_path,
                 )
             delivery_prefix = f"background_delivery_{request.workflow_id[-8:]}"
             report_parameters: dict[str, str | int | float | bool] = {
                 "qa_run_id": qa_run_id,
+                "background_quality_report_path": quality_path,
             }
             if request.delivery_scope == "portable_package":
                 optimization_run_id, _conversion_id, package_id = _portable_ids(
@@ -1118,11 +1400,19 @@ def build_workflow_plan(
                 parameters=report_parameters,
             )
         else:
-            terminal = _append_proxy_flow(steps, "job.created")
+            terminal = _append_proxy_flow(steps, "job.created", request)
             if scope == "full":
-                terminal = _append_detail_flow(steps, terminal)
-                terminal = _append_material_flow(steps, terminal)
-                terminal = _append_qa_flow(steps, terminal)
+                terminal = _append_detail_flow(steps, terminal, request)
+                terminal = _append_material_flow(
+                    steps,
+                    terminal,
+                    workflow_id=request.workflow_id,
+                )
+                terminal = _append_qa_flow(
+                    steps,
+                    terminal,
+                    run_id=f"v08-{request.workflow_id[-8:]}-qa",
+                )
                 if request.delivery_scope in {None, "portable_package"}:
                     terminal = _append_portable_flow(steps, terminal, request)
     elif routing.intent == "add_measured_view":
@@ -1278,7 +1568,11 @@ def build_workflow_plan(
         )
         terminal = _append_build_cycle(steps, "interior.geometry_author", "interior")
     elif routing.intent == "material_authoring":
-        terminal = _append_material_flow(steps, "geometry.prerequisite")
+        terminal = _append_material_flow(
+            steps,
+            "geometry.prerequisite",
+            workflow_id=request.workflow_id,
+        )
         steps.insert(
             0,
             _step(
@@ -1313,7 +1607,11 @@ def build_workflow_plan(
                 ],
             )
         )
-        terminal = _append_qa_flow(steps, "geometry.prerequisite")
+        terminal = _append_qa_flow(
+            steps,
+            "geometry.prerequisite",
+            run_id=f"v08-{request.workflow_id[-8:]}-qa",
+        )
     elif routing.intent == "interior_visual_qa":
         steps.append(
             _step(
@@ -1368,6 +1666,19 @@ def build_workflow_plan(
                 "source_fingerprint": binding.source_fingerprint,
                 "build_fingerprint": binding.build_fingerprint,
             }
+            if binding.quality_report_path is not None:
+                prerequisite_parameters.update(
+                    {
+                        "quality_status": str(binding.quality_status),
+                        "standard_workflow_recommended": bool(
+                            binding.standard_workflow_recommended
+                        ),
+                        "quality_report_path": binding.quality_report_path,
+                        "quality_report_sha256": str(
+                            binding.quality_report_sha256
+                        ),
+                    }
+                )
             prerequisite_output = _artifact(
                 "portable.background_preview_binding",
                 binding_output,
@@ -1391,6 +1702,12 @@ def build_workflow_plan(
             require_final_review=(
                 request.execution_policy != "background_exterior"
             ),
+            source_quality_path=(
+                request.background_preview_binding.quality_report_path
+                if request.execution_policy == "background_exterior"
+                and request.background_preview_binding is not None
+                else None
+            ),
         )
         if request.execution_policy == "background_exterior":
             delivery_prefix = f"background_delivery_{request.workflow_id[-8:]}"
@@ -1406,8 +1723,19 @@ def build_workflow_plan(
                     "qa_run_id": request.background_preview_binding.qa_run_id,
                     "optimization_run_id": optimization_run_id,
                     "package_id": package_id,
+                    **(
+                        {
+                            "background_quality_report_path": (
+                                request.background_preview_binding.quality_report_path
+                            )
+                        }
+                        if request.background_preview_binding.quality_report_path
+                        is not None
+                        else {}
+                    ),
                 },
             )
+    steps = _bind_artifact_lifecycle(steps, request.workflow_id)
     return WorkflowPlan(
         workflow_id=request.workflow_id,
         job_id=request.job_id,
@@ -1415,8 +1743,11 @@ def build_workflow_plan(
         routing_sha256=routing_sha256,
         intent=routing.intent,
         scope=scope,
+        reference_content_scope=request.reference_content_scope,
+        target_subject=request.target_subject,
         execution_policy=request.execution_policy,
         delivery_scope=request.delivery_scope,
+        fast_quality_policy=request.fast_quality_policy,
         destination=routing.destination,
         steps=steps,
         terminal_step_id=terminal,
@@ -1424,6 +1755,10 @@ def build_workflow_plan(
         notes=[
             "V0.8 coordinates existing V0.4-V0.7 contracts; it does not infer hidden geometry.",
             "Agent steps require exact output completion markers before dependent host steps run.",
+            (
+                f"Reference content scope is {request.reference_content_scope}; "
+                f"target subject is {request.target_subject!r}."
+            ),
             (
                 "background_exterior omits generic review gates but never bypasses "
                 "specialized approvals."

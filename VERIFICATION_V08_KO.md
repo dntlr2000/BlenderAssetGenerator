@@ -1,5 +1,134 @@
 # V0.8 로컬 검증 기록
 
+## 2026-07-28 레퍼런스 오브젝트 전용 범위 검증
+
+새 job에 실행 정책과 독립적인 `reference_content_scope`를 추가했다.
+기존 동작은 `full_reference` 기본값으로 유지하고,
+`primary_object_only`는 명시적 `target_subject` 및
+primary/supporting 역할이 있는 객체만 허용한다.
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| content-scope·reference-mask·workflow targeted | 58/58 통과 |
+| 전체 Python 회귀 | 436/436 통과 |
+| Ruff | 통과 |
+| Schema 재생성과 계약 테스트 | 통과 |
+| legacy/standard 기본값 | `full_reference`, 기존 build provenance shape 유지 |
+| object-only CLI smoke | job/request/plan/state 모두 동일 scope와 target 보존 |
+| object-only SceneSpec context 차단 | build 전 fail-closed |
+| object-only V0.6 reference mask | 관찰된 primary/supporting evidence bbox로 제한 |
+| V0.8 격리 orchestration gate | 통과 |
+| V0.7 GLB/FBX/OBJ clean-import 회귀 | 모두 통과 |
+| 실제 사용자 job 변경 | 없음 |
+
+격리 증거:
+
+- V0.8: `reports/v08_smoke/192534942-46932/`
+- V0.7: `reports/v07_smoke/20260727T192113549Z-46932/`
+- object-only plan:
+  `reports/object_scope_smoke/20260727T192740236Z/`
+
+텍스트 target이 모호한 이미지에서 자동으로 정확한 대상 mask를 복원한다고
+주장하지 않는다. 이 경우 job 생성 전에 대상 설명을 구체화해야 하며,
+향후 사용자가 제공하는 명시적 mask/bbox 입력은 별도 계약으로 검토한다.
+
+## 2026-07-27 execution/quality 분리와 bounded fit 최종 검증
+
+새로 계획되는 `background_exterior` workflow에
+`fast_quality_policy=review_delivery_v2`를 적용했다. 기존 blocked workflow와
+사용자 job은 수정·재개·재분류하지 않았다.
+
+검증 환경:
+
+- Project: `0.9.0`
+- Workflow contract: `0.8.0`
+- Blender: `5.0.1`
+- Render engine: `BLENDER_EEVEE`
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| targeted quality/lifecycle/orchestration/PDF/Schema | 65/65 통과 |
+| 전체 Python 회귀 | 431/431 통과 |
+| Ruff | 통과 |
+| Schema generation/parity | 통과 |
+| 단순 isolated quality fixture | `passed`, review delivery 완료 |
+| 복잡 isolated quality fixture | `needs_revision`, high finding 보존, review delivery 완료 |
+| 불충분 evidence fixture | `unscorable`, 품질 합격 비주장 |
+| pre-QA fit | refinement 최대 2회, 개선 candidate만 promotion, 비개선 baseline 유지 |
+| 실제 Blender fast preview | `completed` / `delivered_for_review` |
+| 실제 smoke quality | `unscorable`, standard workflow 권장 |
+| canonical QA | 정확히 1 run, 정확히 7 pass |
+| generated target / automatic revision / external provider | 없음 / 없음 / 없음 |
+| scope·안전 위험 회귀 | `requires_standard_workflow` 유지 |
+| artifact/candidate tampering 회귀 | `orchestration_artifact_conflict` 유지 |
+| fast portable approval 경계 | exact V0.7 optimization-plan SHA-256에서 정지 |
+| V0.7 GLB/FBX/OBJ clean-import round trip | 모두 `passed`, 오류 0 |
+| 기존 사용자 job 변경 | 없음 |
+
+최종 격리 게이트:
+
+- V0.8: `reports/v08_smoke/163329903-19304/`
+- V0.7: `reports/v07_smoke/20260727T163054181Z-19304/`
+
+실제 fast preview는 direct score `0.875507`을 기록했지만 primary role/reference
+evidence를 신뢰할 수 없어 `quality_status=unscorable`로 정직하게 분류했다.
+이는 `status=completed`가 품질 합격을 뜻하지 않는다는 새 상태 모델을 실제
+Blender run에서 확인한 결과다.
+
+pre-QA fit은 workflow-owned SceneSpec candidate, role map, attempt evidence와
+promotion receipt를 exact hash로 묶는다. 최종 quality report는 canonical
+SceneSpec, embedded build, canonical QA request model, seven-pass manifest,
+role map과 fit report를 다시 검사한다. 시각적 high finding은
+`needs_revision`이지만 preview 실행을 막지 않는다. InteriorScope, measured
+constraint, rig/animation/gameplay, engine-specific 요구와 unsafe ambiguity는
+계속 `requires_standard_workflow`이며, unexpected source/candidate/receipt
+변조는 `orchestration_artifact_conflict`다.
+
+## 2026-07-27 artifact lifecycle 충돌 수정 검증
+
+새로 계획되는 workflow에 material candidate/promotion, shared-derived snapshot,
+exact QA run과 workflow-owned PDF lifecycle을 적용했다. 기존 blocked workflow는
+수정·재개·재시도하지 않았다.
+
+검증 환경:
+
+- Project: `0.9.0`
+- Workflow contract: `0.8.0`
+- Blender: `5.0.1`
+- Render engine: `BLENDER_EEVEE`
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| targeted lifecycle/Schema/material 회귀 | 56/56 통과 |
+| 전체 Python 회귀 | 416/416 통과 |
+| Ruff | 통과 |
+| Schema generation/parity | 통과 |
+| fast `preview_only` 실제 lifecycle | `completed` / `delivered_for_review` |
+| 직접 QA | 정확히 1 run, 7 pass, generated target 없음 |
+| 자동 revision / external provider | 없음 / 없음 |
+| fast `portable_package` 승인 경계 | exact V0.7 plan SHA-256에서 정지 |
+| 승인 fixture 뒤 FBX package/round trip | 통과 |
+| V0.7 GLB/FBX/OBJ round trip 회귀 | 전부 통과 |
+| 기존 사용자 job 변경 | 없음 |
+
+최종 격리 게이트:
+
+- V0.8: `reports/v08_smoke/095354909-16296/`
+- V0.7: 같은 통합 gate가 생성한 최신 `reports/v07_smoke/` run
+
+예상된 downstream supersession은 이전 step의 실행 시점 snapshot과 receipt를
+보존한다. 예상하지 않은 canonical/source 변경은 계속 stale 또는
+`orchestration_artifact_conflict`로 차단한다.
+이 lifecycle 검증 뒤 추가된 `review_delivery_v2` 정책에서는 high-severity
+visual finding을 `needs_revision`으로 전달한다. `requires_standard_workflow`는
+constraint/measured 또는 제외된 scope·안전 위험에만 사용한다.
+
 ## 2026-07-27 배경 외관 빠른 실행 정책 추가 검증
 
 기존 `standard` 정책을 기본값으로 유지하면서, 명시적으로만 선택되는
@@ -14,7 +143,7 @@
 
 | 항목 | 결과 |
 |---|---|
-| Python 회귀 | 411/411 통과 |
+| Python 회귀 | 416/416 통과 |
 | Ruff | 통과 |
 | V0.8 격리 smoke | 통과 |
 | `standard` 계획 회귀 | 통과 |
@@ -29,12 +158,14 @@
 - V0.8: `reports/v08_smoke/20260727T064220084Z-47384/`
 - V0.7: `reports/v07_smoke/20260727T063910186Z-47384/`
 
+이 절은 최초 fast-lane baseline의 역사적 검증 기록이다. 이후
+`review_delivery_v2`가 high visual finding 처리와 pre-QA fit을 보완했다.
 빠른 실행 정책은 프록시·상세·재질·QA의 일반 검토 gate를 계획에서
 생략하지만, agent-authored 계약의 completion marker와 V0.7 optimization
 plan의 exact-hash 전용 승인은 유지한다. 직접 레퍼런스 QA는 한 번만
-수행하고 생성형 QA target과 자동 revision은 사용하지 않는다. QA에서
-큰 누락, 카메라 위험 또는 실측 위험이 발견되면
-`requires_standard_workflow`로 중단하며 완료로 처리하지 않는다.
+수행하고 생성형 QA target과 자동 revision은 사용하지 않는다. 현재 정책은
+큰 시각 차이를 `needs_revision`으로 전달하고, 실측·실내 등 실제 scope 위험만
+`requires_standard_workflow`로 중단한다.
 
 이번 smoke는 새 정책의 계약·라우팅·계획·승인 경계를 격리 환경에서
 검증한 것이다. 실제 신규 레퍼런스 자산의 agent-authored SceneSpec,

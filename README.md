@@ -100,14 +100,39 @@ uv run cbm workflow-adapters
 
 기본 `standard` 정책은 기존 승인 경계를 그대로 유지합니다. 실내·실측·리깅이 필요 없는 단순 배경 외관은 작업 계획 전에 `background_exterior`를 명시적으로 선택할 수 있습니다. 사용자는 PowerShell을 실행할 필요 없이 Codex에 다음처럼 요청하면 됩니다.
 
+레퍼런스에서 무엇을 만들지는 실행 정책과 별도의
+`reference_content_scope`로 선택합니다.
+
+- `full_reference`(기본값): 주 피사체와 관련 주변 환경을 함께 모델링합니다.
+- `primary_object_only`: 명시한 `target_subject`와 그 대상에 구조적으로 붙거나
+  기능상 필요한 부품만 모델링합니다. 독립 지형, 바닥, 바위, 식생, 소품,
+  배경판과 대기 효과는 제외합니다.
+
+이 선택은 새 job을 계획하기 전에 확정하며 job 생성 후에는 변경할 수 없습니다.
+같은 이미지라도 전체 장면 버전과 오브젝트 전용 버전은 서로 다른 job으로
+만들어야 합니다. `primary_object_only`에서는 modeling plan과 SceneSpec 역할을
+검증하고, V0.6도 전체 전경이 아니라 관찰된 주 피사체 영역으로 마스크를
+제한합니다.
+
+```text
+새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.
+reference_content_scope=primary_object_only,
+target_subject="이미지 중앙의 자동차"로 계획해.
+자동차 본체와 구조적으로 연결된 바퀴·문·범퍼만 포함하고,
+독립된 지형·바닥·바위·식생·잔해·배경은 모델링하지 마.
+```
+
 ```text
 새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.
 V0.8 plan_short_workflow를 execution_policy=background_exterior,
 delivery_scope=preview_only로 계획하고 MCP 도구로 진행해.
 실내, 치수 추정, 외부 이미지 provider, 생성 타깃, 자동 수정은 사용하지 마.
-한 번의 직접 Visual QA와 통합 PDF까지 완료한 뒤
-status=completed, milestone=delivered_for_review로 보고해.
-자산이 빠른 경로 조건을 벗어나면 완료 처리하지 말고 requires_standard_workflow로 멈춰.
+최대 2회의 bounded pre-QA fit 뒤 한 번의 canonical 직접 Visual QA와
+machine quality JSON, QA PDF, 통합 PDF까지 완료해.
+status=completed, milestone=delivered_for_review와
+quality_status=passed|needs_revision|unscorable를 따로 보고해.
+시각적 high finding은 needs_revision으로 전달하고, 실제 scope·안전 조건을
+벗어날 때만 requires_standard_workflow로 멈춰.
 ```
 
 `portable_package`를 선택하면 같은 빠른 제작 단계 뒤 V0.7로 이어지지만, LOD·Collider·cleanup 설정이 들어 있는 정확한 optimization plan SHA-256 승인은 생략하지 않습니다.
@@ -135,6 +160,38 @@ uv run cbm workflow-resume temple_asset <workflow-id>
 ```
 
 Agent가 작성해야 하는 modeling plan, SceneSpec, material plan 또는 revision plan에서는 workflow가 정상적으로 멈춥니다. 해당 산출물을 작성·검증한 뒤 현재 fingerprint와 함께 completion marker를 남겨야 다음 단계가 열립니다. `standard`는 프록시·재질 swatch·QA·package의 일반 승인을 유지합니다. `background_exterior`는 계획에서 그 일반 gate만 생략하며, agent completion과 V0.6 revision·V0.7 optimization 같은 전용 exact-hash 승인은 그대로 유지합니다.
+
+새 workflow의 V0.5 재질 단계는 scaffold와 authored candidate를
+`workflows/<workflow-id>/artifacts/m/` 아래에서 서로 다른 불변 산출물로
+관리합니다. 검증된 host promotion만 canonical
+`analysis/material_plan.json`을 교체하고 promotion receipt를 남깁니다.
+`.blend`, preview, inventory, validation, QA latest pointer와 PDF처럼 정상적인
+후속 단계가 갱신할 수 있는 결과는 실행 시점 hash가 workflow snapshot/receipt에
+보존됩니다. 따라서 예상된 downstream supersession은 과거 completion을 stale로
+만들지 않지만, 계획되지 않은 SceneSpec·MaterialPlan·source 변경은 계속
+fail-closed입니다.
+
+새 fast workflow는 material 전에 최대 두 번의 workflow-owned 저해상도 fit
+diagnostic을 수행합니다. 이 단계는 primary 역할의 화면 점유율·bbox·실루엣을
+근거로 제한된 카메라 후보만 비교하고, 개선된 후보만 strict validation 뒤
+canonical SceneSpec으로 한 번 승격합니다. semantic/material ID, custom-mesh
+vertex, 실내와 외부 provider는 건드리지 않으며 canonical V0.6 QA run 수에도
+포함되지 않습니다.
+
+실행 완료와 품질 합격은 분리됩니다. QA evidence와 보고서 생성이 정상이면
+high visual finding이 있어도 preview는 `completed` / `delivered_for_review`로
+끝날 수 있습니다. 별도 `quality_status`는 `passed`, `needs_revision`,
+`unscorable` 중 하나이고, non-passing 결과는 standard revision을 권장하되
+품질 합격으로 표시하지 않습니다. primary, supporting, decorative,
+ground/background 역할을 구분하며 ground/background는 primary silhouette에서
+제외됩니다.
+
+차단 원인도 구분됩니다. 실내·실측/constraint·rig·animation·gameplay·
+engine-specific 요구 같은 실제 범위·안전 위험은 `requires_standard_workflow`,
+예상하지 않은 소유권 또는 fingerprint 충돌은
+`orchestration_artifact_conflict`, Blender 예외와 timeout은 일반 host
+failure입니다. 이전에 차단된 workflow는 자동 복구되지 않으며 이 계약은 새로
+계획한 workflow부터 적용됩니다.
 
 기존 job은 reference hash가 같아도 `new_asset`으로 다시 시작할 수 없습니다.
 

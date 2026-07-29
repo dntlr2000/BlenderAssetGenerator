@@ -183,6 +183,23 @@
           ],
           "default": null,
           "title": "Error"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "requires_standard_workflow",
+                "orchestration_artifact_conflict",
+                "host_failure"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
         }
       },
       "required": [
@@ -220,6 +237,29 @@
       "pattern": "^[0-9a-f]{64}$",
       "title": "Request Sha256",
       "type": "string"
+    },
+    "reference_content_scope": {
+      "default": "full_reference",
+      "enum": [
+        "primary_object_only",
+        "full_reference"
+      ],
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "target_subject": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Subject"
     },
     "execution_policy": {
       "default": "standard",
@@ -338,6 +378,77 @@
       },
       "title": "Warnings",
       "type": "array"
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "enum": [
+            "requires_standard_workflow",
+            "orchestration_artifact_conflict",
+            "host_failure"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
+    "quality_status": {
+      "anyOf": [
+        {
+          "enum": [
+            "passed",
+            "needs_revision",
+            "unscorable"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quality Status"
+    },
+    "standard_workflow_recommended": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Standard Workflow Recommended"
+    },
+    "quality_report_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quality Report Path"
+    },
+    "quality_report_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quality Report Sha256"
     },
     "cancelled_reason": {
       "anyOf": [

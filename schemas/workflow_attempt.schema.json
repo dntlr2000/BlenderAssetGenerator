@@ -162,6 +162,23 @@
       "default": null,
       "title": "Error Message"
     },
+    "reason_code": {
+      "anyOf": [
+        {
+          "enum": [
+            "requires_standard_workflow",
+            "orchestration_artifact_conflict",
+            "host_failure"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason Code"
+    },
     "started_at": {
       "format": "date-time",
       "title": "Started At",

@@ -38,6 +38,7 @@ def parse_args() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", required=True)
+    parser.add_argument("--job-root")
     parser.add_argument("--output", required=True)
     parser.add_argument("--render-engine", choices=("eevee", "cycles"), default="eevee")
     parser.add_argument("--render-device", choices=("auto", "cpu", "gpu"), default="auto")
@@ -50,7 +51,15 @@ def main() -> None:
 
     args = parse_args()
     spec_path = Path(args.spec).expanduser().resolve()
-    job_root = spec_path.parent.parent
+    job_root = (
+        Path(args.job_root).expanduser().resolve()
+        if args.job_root
+        else spec_path.parent.parent
+    )
+    try:
+        spec_path.relative_to(job_root)
+    except ValueError as exc:
+        raise RuntimeError("SceneSpec must remain inside the declared job root") from exc
     output = ensure_parent(args.output)
     spec = json.loads(spec_path.read_text(encoding="utf-8"))
     build_provenance = collect_build_provenance(

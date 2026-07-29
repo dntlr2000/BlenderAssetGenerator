@@ -133,3 +133,46 @@ def test_prepare_run_reference_mask_falls_back_without_mutating_source(
     assert "OpenCV vision extras are unavailable" in manifest["reason"]
     assert sha256_file(output) == source_hash
     assert sha256_file(analysis_mask) == source_hash
+
+
+def test_primary_object_scope_excludes_surrounding_reference_foreground(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Clip object-only QA evidence to the explicitly tagged subject region."""
+
+    root = tmp_path / "job"
+    run_dir = root / "qa" / "runs" / "run-subject-only"
+    run_dir.mkdir(parents=True)
+    reference = root / "input" / "reference.png"
+    analysis_mask = root / "analysis" / "masks" / "reference_content.png"
+    _rectangle(reference, (5, 5, 95, 95))
+    _rectangle(analysis_mask, (5, 5, 95, 95))
+    raw = _showcase_spec().model_dump(mode="json")
+    raw["objects"][0]["tags"] = ["qa_role:primary"]
+    raw["objects"][0]["evidence"][0]["bbox_norm"] = [0.1, 0.1, 0.4, 0.9]
+    raw["objects"][1]["tags"] = ["qa_role:decorative"]
+    raw["objects"][1]["evidence"][0]["bbox_norm"] = [0.6, 0.1, 0.9, 0.9]
+    spec = SceneSpec.model_validate(raw)
+
+    def unavailable(reference_image, source_mask, seeds):
+        """Force the deterministic scoped analysis-mask fallback."""
+
+        assert [seed.object_id for seed in seeds] == [raw["objects"][0]["id"]]
+        raise RuntimeError("OpenCV unavailable")
+
+    monkeypatch.setattr(reference_mask, "_grabcut_refinement", unavailable)
+    output, manifest_path = reference_mask.prepare_run_reference_mask(
+        root=root,
+        run_dir=run_dir,
+        reference_path=reference,
+        analysis_mask_path=analysis_mask,
+        spec=spec,
+        reference_content_scope="primary_object_only",
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["reference_content_scope"] == "primary_object_only"
+    assert manifest["subject_object_ids"] == [raw["objects"][0]["id"]]
+    assert manifest["output_mask_metrics"]["bbox_norm"][2] < 0.5
+    assert sha256_file(analysis_mask) != ""
+    assert output.is_file()

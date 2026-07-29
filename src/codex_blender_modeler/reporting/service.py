@@ -631,6 +631,7 @@ def collect_job_report_payload(
     interior_qa_run_id: str | None = "latest",
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
+    background_quality_report_path: str | None = None,
 ) -> dict[str, Any]:
     """Collect safe machine reports and visual evidence for one PDF presentation scope."""
 
@@ -718,6 +719,23 @@ def collect_job_report_payload(
                     documents,
                     sources,
                 )
+    if (
+        scope in {"qa", "export", "full"}
+        and background_quality_report_path is not None
+    ):
+        quality_path = _safe_job_file(
+            root,
+            root / background_quality_report_path,
+            warnings,
+        )
+        if quality_path is not None:
+            _collect_json_source(
+                root,
+                "background_quality_report",
+                quality_path,
+                documents,
+                sources,
+            )
 
     resolved_optimization_run_id: str | None = None
     resolved_package_id: str | None = None
@@ -814,6 +832,7 @@ def generate_job_pdf_report(
     interior_qa_run_id: str | None = "latest",
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
+    background_quality_report_path: str | None = None,
     output_path: Path | None = None,
 ) -> dict[str, Any]:
     """Generate one atomic human-readable PDF without changing machine report sources."""
@@ -825,6 +844,7 @@ def generate_job_pdf_report(
         interior_qa_run_id=interior_qa_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
+        background_quality_report_path=background_quality_report_path,
     )
     output = (output_path or _default_output_path(job_id, scope)).expanduser().resolve()
     if output.suffix.lower() != ".pdf":

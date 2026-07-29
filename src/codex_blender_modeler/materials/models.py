@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -71,6 +72,33 @@ class MaterialPlan(StrictModel):
         if self.stage == "authored" and not self.materials:
             raise ValueError("An authored material plan must contain at least one material")
         return self
+
+
+class MaterialPromotionReceipt(StrictModel):
+    """Bind one workflow-owned authored candidate to its canonical promotion."""
+
+    schema_version: Literal["0.8.0"] = "0.8.0"
+    status: Literal["promoted"] = "promoted"
+    ok: Literal[True] = True
+    workflow_id: str
+    job_id: str
+    step_id: Literal["material.promote"] = "material.promote"
+    input_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_plan_path: str
+    candidate_plan_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_bundle_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    previous_canonical_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    canonical_plan_path: Literal["analysis/material_plan.json"] = (
+        "analysis/material_plan.json"
+    )
+    canonical_plan_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    history_path: str | None = None
+    scene_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    dependency_sha256: dict[str, str] = Field(default_factory=dict)
+    promoted_at: datetime
 
 
 class SurfaceSpec(StrictModel):

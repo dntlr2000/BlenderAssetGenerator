@@ -14,10 +14,37 @@ uv run cbm workflow-adapters
 
 일반 자산은 `execution_policy=standard`가 기본값이다. 실내·실측·리깅·애니메이션·게임 로직이 필요 없는 새 정적 배경 외관만 명시적으로 `background_exterior`를 선택한다. 이것은 별도 모델링 파이프라인이 아니라 같은 V0.4~V0.7 단계를 보수적으로 축약한 V0.8 실행 정책이다.
 
+모델링할 이미지 내용은 실행 정책과 별도로 새 job 생성 전에 선택한다.
+
+| `reference_content_scope` | 모델링 범위 |
+|---|---|
+| `full_reference` | 기본값. 주 피사체와 관련 주변 환경을 함께 처리 |
+| `primary_object_only` | 필수 `target_subject`와 구조적으로 붙거나 필요한 부품만 처리 |
+
+`primary_object_only`는 대상의 바퀴, 문, 지붕처럼 본체에 종속된 부품은
+`supporting`으로 포함하지만, 독립 지형·바닥·바위·식생·잔해·소품·배경판·
+대기 효과는 제외한다. 범위와 대상은 job의 불변 증거이므로 나중에 바꾸지
+않는다. 다른 범위가 필요하면 새 job ID를 사용한다.
+
+```text
+<REFERENCE_PATH>의 이미지에서 <TARGET_SUBJECT>만 모델링해.
+새 job <JOB_ID>를 reference_content_scope=primary_object_only,
+target_subject=<TARGET_SUBJECT>로 계획해.
+본체와 구조적으로 연결된 부품만 포함하고 독립된 주변 환경은 제외해.
+대상이 모호하면 job을 만들기 전에 멈춰서 어떤 대상을 뜻하는지 보고해.
+```
+
+전체 장면이 필요하면 다음처럼 명시하거나 기본값을 사용한다.
+
+```text
+<REFERENCE_PATH>의 전체 장면을 새 job <JOB_ID>로 모델링해.
+reference_content_scope=full_reference로 계획해.
+```
+
 | 선택 | 종료 범위 | 생략되는 일반 검토 | 반드시 남는 경계 |
 |---|---|---|---|
 | `standard` | 기존 `scope` 규칙 | 없음 | 기존 일반·전용 승인 전체 |
-| `background_exterior + preview_only` | 재질·직접 QA·통합 PDF | 프록시, 상세, swatch, QA 일반 승인 | agent completion; 별도 전용 작업은 별도 workflow와 exact-hash 승인 |
+| `background_exterior + preview_only` | bounded pre-QA fit·재질·직접 QA·quality JSON·통합 PDF | 프록시, 상세, swatch, QA 일반 승인 | agent completion; 별도 전용 작업은 별도 workflow와 exact-hash 승인 |
 | `background_exterior + portable_package` | V0.7 package와 round trip | 위 일반 승인과 최종 package 일반 승인 | 정확한 V0.7 optimization-plan 승인 |
 
 이미지를 첨부한 Codex 대화에서 다음 내용을 복사해 사용할 수 있다. Codex가 `plan_short_workflow`와 후속 MCP 도구를 호출하므로 사용자가 PowerShell 명령을 직접 실행할 필요가 없다.
@@ -28,17 +55,103 @@ V0.8 workflow를 intent=new_asset, scope=auto,
 execution_policy=background_exterior, delivery_scope=preview_only,
 mode=concept, destination_kind=engine_neutral,
 include_destination_handoff=false로 계획해.
-V0.4 분석과 중간 크기 외형 1회 작성, V0.5 로컬 결정론적 재질,
-V0.6 직접 reference QA 1회와 통합 PDF까지만 MCP로 진행해.
+V0.4 분석과 중간 크기 외형 1회 작성, 최대 2회의 bounded pre-QA fit,
+V0.5 로컬 결정론적 재질, V0.6 canonical 직접 reference QA 정확히 1회와
+machine quality JSON, QA PDF, 통합 PDF까지만 MCP로 진행해.
 실내, measured input, rig, animation, gameplay, 외부 provider,
 생성 QA target과 자동 revision은 사용하지 마.
-완료하면 status=completed, milestone=delivered_for_review와
-preview/PDF 경로를 보고해.
-조건을 벗어나는 문제가 발견되면 completion marker를 기록하지 말고
+완료하면 status=completed, milestone=delivered_for_review,
+quality_status=passed|needs_revision|unscorable와 preview/PDF 경로를 보고해.
+시각적 high finding은 needs_revision으로 숨김없이 전달하고,
+실제 scope·안전 조건을 벗어나는 문제가 발견될 때만 completion marker를 기록하지 말고
 requires_standard_workflow로 멈춰서 이유를 설명해.
 ```
 
-직접 QA에서 high-severity direct-reference 또는 constraint 문제가 하나라도 발견되면 post-QA eligibility report가 `ok=false`와 `requires_standard_workflow`를 기록하고 통합 delivery를 차단한다. 이 상태는 같은 fast plan의 재시도 대상이 아니며 새 `standard` workflow를 계획해야 한다. 낮은 점수 자체를 완성도 백분율이나 자동 수정 승인으로 해석하지 않는다.
+직접 QA의 high-severity visual finding은 더 이상 `preview_only` 실행 차단 사유가
+아니다. QA evidence와 보고서가 신뢰 가능하면 `quality_status=needs_revision`으로
+검토 delivery를 완료하고 standard workflow에서 수정할 semantic ID를 제안한다.
+primary evidence가 없거나 신뢰할 수 없으면 `unscorable`로 완료하되 품질 합격을
+주장하지 않는다. 낮은 점수 자체를 완성도 백분율이나 자동 수정 승인으로
+해석하지 않는다.
+
+`requires_standard_workflow`는 실내, measured/blueprint/constraint, rig,
+animation, gameplay, engine-specific 요구, unsafe ambiguity 또는 fast lane이
+허용하지 않는 canonical 변경처럼 실제 scope·안전 경계를 벗어날 때만 사용한다.
+
+### 1.2 bounded pre-QA fit과 품질 상태
+
+새 `background_exterior` workflow는 material authoring과 최종 QA 전에 다음
+workflow-owned evidence를 만든다.
+
+```text
+workflows/<workflow-id>/artifacts/g/
+├─ initial_scene_spec.json
+├─ fit/
+│  ├─ candidates/attempt-00.json
+│  ├─ attempts/
+│  ├─ role_map.json
+│  ├─ promotion_receipt.json
+│  └─ fit_report.json
+└─ promoted_scene_spec.json
+```
+
+fit은 최대 두 번의 refinement만 허용하며 primary bbox·실루엣 diagnostic이
+개선된 후보만 선택한다. 현재 구현은 보수적으로 comparison camera의 target,
+location과 orthographic scale 또는 perspective distance만 조정한다. 개선되지
+않거나 diagnostic이 실패하면 baseline을 유지한다. semantic ID 추가·삭제,
+custom mesh vertex 편집, material ID 변경, 실내 생성, generated target,
+external provider와 post-QA revision은 금지된다.
+
+역할은 SceneSpec을 바꾸지 않는 run-owned `role_map.json`에 기록된다. 명시적인
+`qa_role:primary|supporting|decorative|ground_background` 태그를 우선하고,
+없으면 semantic ID와 parent 관계로 결정론적으로 보완한다. ground/background는
+primary silhouette 점수에서 제외된다.
+
+최종 `reports/background_delivery/<workflow-id>_quality.json`은 다음을 분리한다.
+
+- `execution_status=completed`, `delivery_status=ready_for_review`
+- `quality_status=passed|needs_revision|unscorable`
+- primary/supporting/decorative/environment finding
+- standard workflow 권장 여부와 revision 대상
+- exact source/build/QA/fit/role-map hash
+
+QA PDF와 combined PDF 첫 페이지에도 non-passing 품질을 표시하지만, 판단 원본은
+항상 JSON이다.
+
+### 1.3 새 fast workflow의 artifact lifecycle
+
+새로 계획한 fast workflow는 재질 scaffold와 authored 결과를 같은
+`analysis/material_plan.json`에 순차 덮어쓰지 않는다.
+
+```text
+workflows/<workflow-id>/artifacts/m/
+├─ scaffold/
+├─ authored/
+├─ promoted.json
+└─ promotion.json
+```
+
+Agent completion은 `authored/` candidate의 정확한 hash에 결속되고, strict
+host promotion만 canonical `analysis/material_plan.json`을 갱신한다.
+`promotion.json`에는 candidate, 이전 canonical, 새 canonical과 dependency
+hash가 기록된다. 뒤 단계가 `blender/scene.blend`, preview, inventory,
+validation 또는 PDF를 정상적으로 다시 만들더라도 각 단계의 실행 시점
+snapshot/receipt는 유지되므로 앞 단계 completion은 뒤늦게 stale이 되지 않는다.
+
+QA는 계획에 고정된 `qa/runs/<run-id>/`를 사용한다. `qa/latest.json`은 편의
+포인터일 뿐 completion evidence가 아니다. PDF와 sidecar도 workflow-owned
+경로에 생성되어 같은 job의 다음 workflow와 충돌하지 않는다.
+
+- `requires_standard_workflow`: 실제 scope 또는 안전 위험
+- `orchestration_artifact_conflict`: 예상하지 않은 source/ownership/fingerprint 충돌
+- 일반 host failure: Blender 예외, timeout, 누락 dependency 등
+
+`orchestration_artifact_conflict`를 품질 문제로 바꾸거나 자동으로 standard로
+전환하지 않는다. 기존 blocked workflow도 자동 복구하지 않는다. 원본 evidence는
+그대로 두고 수정된 계약으로 새 workflow를 계획한다.
+
+시각적 high finding은 위 세 차단 사유가 아니다. 그것은 immutable quality
+report에 `needs_revision`으로 남고 review delivery를 허용한다.
 
 패키지까지 필요한 경우에는 시작할 때 종료 범위를 바꾼다.
 

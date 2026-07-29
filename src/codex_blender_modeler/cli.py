@@ -167,6 +167,12 @@ def new_job(
     job_id: str,
     image: Annotated[Path, typer.Option("--image", exists=True, file_okay=True, dir_okay=False)],
     mode: Annotated[str, typer.Option("--mode")] = "concept",
+    reference_content_scope: Annotated[
+        str, typer.Option("--reference-content-scope")
+    ] = "full_reference",
+    target_subject: Annotated[
+        str | None, typer.Option("--target-subject")
+    ] = None,
     scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
     view: Annotated[
         list[str] | None,
@@ -188,7 +194,15 @@ def new_job(
         if not candidate.is_file():
             raise typer.BadParameter(f"View file does not exist: {candidate}")
         additional_views[kind] = candidate
-    metadata = create_job(job_id, image, mode, scale_anchor or [], additional_views)
+    metadata = create_job(
+        job_id,
+        image,
+        mode,
+        scale_anchor or [],
+        additional_views,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+    )
     console.print_json(json.dumps(metadata, ensure_ascii=False))
 
 
@@ -1250,6 +1264,12 @@ def workflow_plan_command(
     reference_path: Annotated[str | None, typer.Option("--reference-path")] = None,
     intent: Annotated[str, typer.Option("--intent")] = "auto",
     scope: Annotated[str, typer.Option("--scope")] = "auto",
+    reference_content_scope: Annotated[
+        str | None, typer.Option("--reference-content-scope")
+    ] = None,
+    target_subject: Annotated[
+        str | None, typer.Option("--target-subject")
+    ] = None,
     execution_policy: Annotated[
         str, typer.Option("--execution-policy")
     ] = "standard",
@@ -1296,6 +1316,8 @@ def workflow_plan_command(
         reference_path=reference_path,
         intent=intent,
         scope=scope,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
         execution_policy=execution_policy,
         delivery_scope=delivery_scope,
         mode=mode,

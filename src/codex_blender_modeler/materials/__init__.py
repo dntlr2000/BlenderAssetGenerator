@@ -4,24 +4,29 @@ from .io import load_material_plan, load_shader_recipe
 from .models import (
     MaterialPlan,
     MaterialPlanItem,
+    MaterialPromotionReceipt,
     MaterialValidationCheck,
     MaterialValidationReport,
     ShaderRecipe,
 )
-from .scaffold import create_material_scaffold
+from .promotion import promote_workflow_material_candidate
+from .scaffold import create_material_scaffold, create_workflow_material_candidates
 from .service import load_job_material_contract_report, validate_job_material_contracts
 from .validation import validate_material_contracts, write_material_validation_report
 
 __all__ = [
     "MaterialPlan",
     "MaterialPlanItem",
+    "MaterialPromotionReceipt",
     "MaterialValidationCheck",
     "MaterialValidationReport",
     "ShaderRecipe",
     "create_material_scaffold",
+    "create_workflow_material_candidates",
     "load_material_plan",
     "load_job_material_contract_report",
     "load_shader_recipe",
+    "promote_workflow_material_candidate",
     "validate_job_material_contracts",
     "validate_material_contracts",
     "write_material_validation_report",

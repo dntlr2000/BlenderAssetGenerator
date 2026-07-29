@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
+from codex_blender_modeler.background_quality.models import BackgroundQualityReport
 from codex_blender_modeler.optimization.io import load_model, write_model
 from codex_blender_modeler.optimization.models import (
     Bounds3D,
@@ -184,6 +186,85 @@ def test_review_exposes_lod_and_collider_before_any_derived_execution(
     assert untagged.include is False
     assert untagged.lod_levels == []
     assert untagged.collision_strategy == "none"
+
+
+def test_review_preserves_nonpassing_fast_quality_at_exact_approval_boundary(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Carry needs-revision evidence into V0.7 without bypassing exact approval."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    quality_path = root / "reports" / "background_delivery" / "quality.json"
+    quality_path.parent.mkdir(parents=True)
+    source = _source_provenance()
+    quality = BackgroundQualityReport(
+        job_id="review_case",
+        workflow_id="wf-quality",
+        quality_status="needs_revision",
+        quality_accepted=False,
+        standard_workflow_recommended=True,
+        overall_direct_score=0.7,
+        primary_silhouette_score=0.69,
+        primary_bbox_similarity=0.72,
+        primary_high_findings=["quality.primary_silhouette"],
+        decorative_warnings=["direct.environment.rocks"],
+        recommended_standard_revision_targets=["building.main"],
+        qa_run_id="v08-quality-qa",
+        qa_request_path="qa/runs/v08-quality-qa/request.json",
+        qa_request_sha256="5" * 64,
+        visual_qa_report_path="qa/runs/v08-quality-qa/visual_qa_report.json",
+        visual_qa_report_sha256="6" * 64,
+        render_pass_manifest_path=(
+            "qa/runs/v08-quality-qa/render_pass_manifest.json"
+        ),
+        render_pass_manifest_sha256="7" * 64,
+        role_map_path="workflows/wf-quality/artifacts/g/fit/role_map.json",
+        role_map_sha256="8" * 64,
+        fit_report_path="workflows/wf-quality/artifacts/g/fit/fit_report.json",
+        fit_report_sha256="9" * 64,
+        source_fingerprint=source.source_fingerprint,
+        build_fingerprint=source.build_fingerprint,
+        qa_scene_spec_sha256="a" * 64,
+        qa_camera_fingerprint="b" * 64,
+        limitations=["Review delivery is not a visual quality pass."],
+        evaluated_at=datetime.now(UTC),
+    )
+    quality_path.write_text(
+        quality.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    review = plan_asset_optimization(
+        "review_case",
+        profile_id="portable_gltf",
+        run_id=run_id,
+        source_quality_path=quality_path.relative_to(root).as_posix(),
+    )
+
+    assert review.source_quality is not None
+    assert review.source_quality.quality_status == "needs_revision"
+    assert review.source_quality.primary_high_findings == [
+        "quality.primary_silhouette"
+    ]
+    assert review.source_quality.decorative_warnings == [
+        "direct.environment.rocks"
+    ]
+    assert any("needs_revision" in warning for warning in review.warnings)
+    plan = load_model(
+        root / "optimization" / "runs" / run_id / "review_plan.json",
+        OptimizationPlan,
+    )
+    assert plan.source_quality == review.source_quality
+
+    quality_path.write_text("{}\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="quality evidence changed"):
+        approve_asset_optimization(
+            "review_case",
+            run_id=run_id,
+            plan_sha256=review.plan_sha256,
+            approval_note="Do not accept stale source quality.",
+        )
 
 
 def test_reviewed_directive_guard_rejects_tagged_boolean_helper_inclusion(

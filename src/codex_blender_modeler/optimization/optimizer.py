@@ -16,6 +16,7 @@ from .io import (
     latest_complete_run_id,
     load_model,
     new_run_id,
+    resolve_inside,
     run_directory,
     utc_now,
     write_latest_run,
@@ -45,6 +46,8 @@ from .models import (
     OptimizationDirective,
     OptimizationPlan,
     OptimizationReview,
+    SourceProvenance,
+    SourceQualitySummary,
     StaticAssetCostReport,
     UVManifest,
     UVSetRecord,
@@ -846,11 +849,80 @@ def _collision_review(
     )
 
 
+def _source_quality_summary(
+    root: Path,
+    job_id: str,
+    value: str | None,
+    source: SourceProvenance,
+) -> SourceQualitySummary | None:
+    """Load and hash one exact fast-preview quality report for V0.7 review."""
+
+    if value is None:
+        return None
+    from ..background_quality.models import BackgroundQualityReport
+
+    path = resolve_inside(root, value, "source quality report")
+    report = BackgroundQualityReport.model_validate_json(
+        path.read_text(encoding="utf-8")
+    )
+    if (
+        report.job_id != job_id
+        or report.source_fingerprint != source.source_fingerprint
+        or report.build_fingerprint != source.build_fingerprint
+    ):
+        raise RuntimeError(
+            "Background quality report is stale for the current V0.7 source"
+        )
+    return SourceQualitySummary(
+        report_artifact=HashedArtifact(
+            id=f"source_quality.{report.workflow_id.replace('-', '_')}",
+            kind="other",
+            path=job_relative(root, path),
+            sha256=sha256_file(path),
+        ),
+        quality_status=report.quality_status,
+        overall_direct_score=report.overall_direct_score,
+        primary_silhouette_score=report.primary_silhouette_score,
+        primary_high_findings=list(report.primary_high_findings),
+        supporting_high_findings=list(report.supporting_high_findings),
+        decorative_warnings=list(report.decorative_warnings),
+        environment_findings=list(report.environment_findings),
+        standard_workflow_recommended=report.standard_workflow_recommended,
+        qa_run_id=report.qa_run_id,
+        source_fingerprint=report.source_fingerprint,
+        build_fingerprint=report.build_fingerprint,
+        limitations=list(report.limitations),
+    )
+
+
+def _require_source_quality_current(
+    root: Path,
+    summary: SourceQualitySummary | None,
+) -> None:
+    """Reject a changed quality report after V0.7 review or exact approval."""
+
+    if summary is None:
+        return
+    path = resolve_inside(
+        root,
+        summary.report_artifact.path,
+        "source quality report",
+    )
+    if (
+        not path.is_file()
+        or sha256_file(path) != summary.report_artifact.sha256
+    ):
+        raise RuntimeError(
+            "Reviewed background quality evidence changed; start a new V0.7 run"
+        )
+
+
 def plan_asset_optimization(
     job_id: str,
     *,
     profile_id: str = "portable_gltf",
     run_id: str | None = None,
+    source_quality_path: str | None = None,
 ) -> OptimizationReview:
     """Create a non-mutating LOD/collider review that requires exact user approval."""
 
@@ -860,6 +932,12 @@ def plan_asset_optimization(
     profile = load_asset_profile(root, profile_id)
     selected, preflight, run_root = _load_or_run_preflight(job_id, profile_id, run_id)
     source = collect_source_provenance(root, job_id)
+    source_quality = _source_quality_summary(
+        root,
+        job_id,
+        source_quality_path,
+        source,
+    )
     if source != preflight.source:
         raise RuntimeError("Canonical source changed after preflight; start a new V0.7 run")
     plan_path = run_root / "review_plan.json"
@@ -873,6 +951,7 @@ def plan_asset_optimization(
             existing_plan.status != "draft"
             or existing_review.plan_sha256 != sha256_file(plan_path)
             or existing_plan.source != source
+            or existing_plan.source_quality != source_quality
             or existing_plan.profile_artifact != profile_artifact(root, profile)
             or existing_plan.preflight_report.sha256
             != sha256_file(run_root / "mesh_preflight_report.json")
@@ -893,6 +972,7 @@ def plan_asset_optimization(
         profile_artifact=profile_artifact(root, profile),
         preflight_report=preflight_receipt,
         source=source,
+        source_quality=source_quality,
         status="draft",
         directives=_optimization_directives(profile, preflight),
         notes=[
@@ -912,6 +992,7 @@ def plan_asset_optimization(
         profile_artifact=draft.profile_artifact,
         preflight_report=preflight_receipt,
         source=source,
+        source_quality=source_quality,
         plan_sha256=sha256_file(plan_path),
         lod=_lod_review(profile, preflight),
         collision=_collision_review(profile, preflight),
@@ -921,6 +1002,17 @@ def plan_asset_optimization(
             "Collider suitability requires destination physics and gameplay context.",
             "Approval authorizes derived artifacts only; canonical authoring data "
             "remains unchanged.",
+            *(
+                [
+                    "Fast-preview execution completed, but source visual quality is "
+                    f"{source_quality.quality_status}; review its primary and decorative "
+                    "findings before approving this package.",
+                    *source_quality.limitations,
+                ]
+                if source_quality is not None
+                and source_quality.quality_status != "passed"
+                else []
+            ),
             *(
                 [
                     "Excluded non-render semantic families: "
@@ -968,6 +1060,7 @@ def approve_asset_optimization(
     preflight_path = run_root / "mesh_preflight_report.json"
     preflight = load_model(preflight_path, MeshPreflightReport)
     current_source = collect_source_provenance(root, job_id)
+    _require_source_quality_current(root, plan.source_quality)
     if (
         plan.job_id != job_id
         or review.job_id != job_id
@@ -1070,6 +1163,7 @@ def optimize_asset(
         raise RuntimeError("Requested profile does not match the reviewed optimization run")
     profile = load_asset_profile(root, profile_id)
     source = collect_source_provenance(root, job_id)
+    _require_source_quality_current(root, plan.source_quality)
     if (
         source != preflight.source
         or source != plan.source
@@ -1129,6 +1223,7 @@ def optimize_asset(
         ):
             raise RuntimeError("Optimized Blender evidence has a stale build fingerprint")
         require_unchanged_source(source, root, job_id)
+        _require_source_quality_current(root, plan.source_quality)
         cost = _asset_cost_report(selected, profile, source, raw)
         cost_path = run_root / "asset_cost_report.json"
         write_model(cost_path, cost)
