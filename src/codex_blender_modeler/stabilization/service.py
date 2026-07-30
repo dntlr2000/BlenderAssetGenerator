@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import platform
@@ -12,8 +13,32 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from ..auto_revision.convergence import compare_constraint_results
+from ..auto_revision.convergence_policy import (
+    ConvergenceCandidateSelection,
+    select_convergence_candidates,
+    validate_convergence_activation,
+    validate_iteration_receipt_chain,
+)
+from ..auto_revision.convergence_session import (
+    _audit_qa_authoritative_evidence,
+    _candidate_baselines,
+    _require_host_safety_envelope,
+)
+from ..auto_revision.convergence_session_models import (
+    HashBoundConvergenceArtifact,
+    VisualConvergenceApproval,
+    VisualConvergenceCancellation,
+    VisualConvergenceIteration,
+    VisualConvergenceIterationAuthorization,
+    VisualConvergencePlan,
+    VisualConvergenceReport,
+    VisualConvergenceReportManifest,
+)
+from ..auto_revision.models import RevisionCandidates
 from ..blender_artifacts import sha256_file, write_json_atomic
 from ..config import get_settings, load_feature_config
+from ..constraints.models import ConstraintResult
 from ..handoff import get_destination_handoff_status
 from ..handoff.models import (
     AssemblyManifest,
@@ -42,6 +67,8 @@ from ..orchestration.models import (
     WorkflowRequest,
     WorkflowState,
 )
+from ..qa.models import VisualQAReport
+from ..revision import RevisionPlan
 from ..versioning import (
     CONSTRAINT_SCHEMA_VERSION,
     DESTINATION_HANDOFF_SCHEMA_VERSION,
@@ -368,6 +395,25 @@ def _validate_interior_qa_contract(path: Path) -> None:
         model.model_validate_json(path.read_text(encoding="utf-8"))
 
 
+def _validate_visual_convergence_contract(path: Path) -> None:
+    """Validate recognized bounded-convergence JSON without changing session evidence."""
+
+    model_by_name: dict[str, type[Any]] = {
+        "plan.json": VisualConvergencePlan,
+        "approval.json": VisualConvergenceApproval,
+        "selection.json": ConvergenceCandidateSelection,
+        "execution_authorization.json": VisualConvergenceIterationAuthorization,
+        "authorization.json": VisualConvergenceIterationAuthorization,
+        "receipt.json": VisualConvergenceIteration,
+        "cancellation_receipt.json": VisualConvergenceCancellation,
+        "convergence_report.json": VisualConvergenceReport,
+        "convergence_report.manifest.json": VisualConvergenceReportManifest,
+    }
+    model = model_by_name.get(path.name)
+    if model is not None:
+        model.model_validate_json(path.read_text(encoding="utf-8"))
+
+
 def _scan_job_files(
     root: Path,
     job_id: str,
@@ -443,6 +489,8 @@ def _scan_job_files(
                     _validate_handoff_contract(path)
                 if "qa" in path.parts and "interior" in path.parts:
                     _validate_interior_qa_contract(path)
+                if "qa" in path.parts and "convergence" in path.parts:
+                    _validate_visual_convergence_contract(path)
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 findings.append(
                     _finding(
@@ -534,6 +582,1770 @@ def _audit_latest_interior_qa(root: Path, job_id: str) -> list[AuditFinding]:
             )
         ]
     return []
+
+
+def _resolve_convergence_artifact(
+    root: Path,
+    artifact: HashBoundConvergenceArtifact,
+) -> Path:
+    """Resolve and verify one hash-bound convergence artifact inside its owning job."""
+
+    path = (root / artifact.relative_path).resolve()
+    path.relative_to(root.resolve())
+    if _is_link_like(path) or not path.is_file():
+        raise FileNotFoundError(artifact.relative_path)
+    if sha256_file(path) != artifact.sha256:
+        raise ValueError(f"visual convergence artifact hash mismatch: {artifact.relative_path}")
+    return path
+
+
+def _canonical_json_sha256(value: Any) -> str:
+    """Hash JSON-compatible convergence evidence with deterministic serialization."""
+
+    encoded = json.dumps(
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _current_convergence_input_fingerprint(root: Path) -> str:
+    """Recreate the bounded-session fingerprint over immutable input-file hashes."""
+
+    input_root = root / "input"
+    if not input_root.is_dir() or _is_link_like(input_root):
+        raise FileNotFoundError("input")
+    hashes = {
+        path.relative_to(input_root).as_posix(): sha256_file(path)
+        for path in sorted(input_root.rglob("*"))
+        if path.is_file() and not _is_link_like(path)
+    }
+    return _canonical_json_sha256(hashes)
+
+
+def _convergence_qa_report(
+    root: Path,
+    run_id: str,
+    expected_sha256: str,
+) -> tuple[Path, VisualQAReport]:
+    """Verify one exact immutable QA report referenced by a convergence contract."""
+
+    path = root / "qa" / "runs" / run_id / "visual_qa_report.json"
+    if _is_link_like(path) or not path.is_file():
+        raise FileNotFoundError(f"qa/runs/{run_id}/visual_qa_report.json")
+    if sha256_file(path) != expected_sha256:
+        raise ValueError(f"visual convergence QA report hash mismatch: {run_id}")
+    report = VisualQAReport.model_validate_json(path.read_text(encoding="utf-8"))
+    if report.run_id != run_id:
+        raise ValueError(f"visual convergence QA report run_id mismatch: {run_id}")
+    return path, report
+
+
+def _audit_complete_convergence_qa(
+    root: Path,
+    *,
+    job_id: str,
+    run_id: str,
+    scene_spec_sha256: str,
+    report_sha256: str,
+    candidates_sha256: str,
+    build_fingerprint: str | None = None,
+) -> dict[str, str]:
+    """Verify one convergence QA request, exact seven passes, sources, report, and candidates."""
+
+    (
+        _report_path,
+        _candidates_path,
+        _report,
+        _candidates,
+        artifacts,
+    ) = _audit_qa_authoritative_evidence(
+        root=root,
+        job_id=job_id,
+        run_id=run_id,
+        expected_scene_spec_sha256=scene_spec_sha256,
+        expected_report_sha256=report_sha256,
+        expected_candidates_sha256=candidates_sha256,
+        expected_build_fingerprint=build_fingerprint,
+    )
+    return {
+        artifact.relative_path: artifact.sha256
+        for artifact in artifacts
+    }
+
+
+def _collect_complete_convergence_qa_artifacts(
+    root: Path,
+    *,
+    job_id: str,
+    plan: VisualConvergencePlan,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> dict[str, str]:
+    """Collect complete provenance for every QA run referenced by one session."""
+
+    initial_candidates_path = (
+        root
+        / "qa"
+        / "runs"
+        / plan.initial_qa_run_id
+        / "revision_candidates.json"
+    )
+    if not initial_candidates_path.is_file():
+        raise ValueError("terminal visual convergence initial candidates are missing")
+    artifacts = _audit_complete_convergence_qa(
+        root,
+        job_id=job_id,
+        run_id=plan.initial_qa_run_id,
+        scene_spec_sha256=plan.initial_scene_spec_sha256,
+        report_sha256=plan.initial_qa_report_sha256,
+        candidates_sha256=(
+            plan.initial_candidates_sha256 or sha256_file(initial_candidates_path)
+        ),
+        build_fingerprint=plan.initial_build_fingerprint,
+    )
+    for receipt, _receipt_sha256, _receipt_path in receipts:
+        artifacts.update(
+            _audit_complete_convergence_qa(
+                root,
+                job_id=job_id,
+                run_id=receipt.source_qa_run_id,
+                scene_spec_sha256=receipt.base_scene_spec_sha256,
+                report_sha256=receipt.source_qa_report_sha256,
+                candidates_sha256=receipt.candidates_sha256,
+                build_fingerprint=receipt.source_build_fingerprint,
+            )
+        )
+        result_qa_fields = (
+            receipt.result_qa_run_id,
+            receipt.result_qa_report_sha256,
+            receipt.result_candidates_sha256,
+        )
+        if all(value is not None for value in result_qa_fields):
+            if receipt.result_scene_spec_sha256 is None:
+                raise ValueError(
+                    "terminal visual convergence result QA lacks a SceneSpec snapshot"
+                )
+            artifacts.update(
+                _audit_complete_convergence_qa(
+                    root,
+                    job_id=job_id,
+                    run_id=receipt.result_qa_run_id or "",
+                    scene_spec_sha256=receipt.result_scene_spec_sha256,
+                    report_sha256=receipt.result_qa_report_sha256 or "",
+                    candidates_sha256=receipt.result_candidates_sha256 or "",
+                    build_fingerprint=receipt.result_build_fingerprint,
+                )
+            )
+        elif any(value is not None for value in result_qa_fields):
+            raise ValueError(
+                "terminal visual convergence result QA evidence is partial"
+            )
+    return artifacts
+
+
+def _load_convergence_receipts(
+    root: Path,
+    session_root: Path,
+) -> list[tuple[VisualConvergenceIteration, str, Path]]:
+    """Load contiguous iteration directories and reject incomplete receipt evidence."""
+
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]] = []
+    iterations_root = session_root / "iterations"
+    if not iterations_root.exists():
+        return receipts
+    if not iterations_root.is_dir() or _is_link_like(iterations_root):
+        raise ValueError("visual convergence iterations path is not a contained directory")
+    iteration_dirs: list[Path] = []
+    for child in sorted(iterations_root.iterdir()):
+        if _is_link_like(child) or not child.is_dir():
+            raise ValueError("visual convergence iterations contain an unexpected entry")
+        iteration_dirs.append(child)
+    for expected_index, iteration_root in enumerate(iteration_dirs, start=1):
+        if iteration_root.name != f"{expected_index:03d}":
+            raise ValueError("visual convergence iteration directories are not contiguous")
+        path = iteration_root / "receipt.json"
+        if not path.is_file():
+            raise ValueError("visual convergence iteration directory has no receipt")
+        if _is_link_like(path):
+            raise ValueError("visual convergence receipt is link-like")
+        receipt = VisualConvergenceIteration.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+        if iteration_root.name != f"{receipt.iteration_index:03d}":
+            raise ValueError("visual convergence receipt directory/index mismatch")
+        receipts.append((receipt, sha256_file(path), path))
+    return receipts
+
+
+def _verify_terminal_convergence_inputs(
+    root: Path,
+    plan: VisualConvergencePlan,
+    *,
+    current_fingerprint_matches: bool,
+) -> str | None:
+    """Verify historical input evidence while permitting later additive job views."""
+
+    initial_hashes = getattr(plan, "initial_input_hashes", None)
+    if not initial_hashes:
+        return "legacy_unverifiable"
+    input_root = (root / "input").resolve()
+    for relative_path, expected_sha256 in sorted(initial_hashes.items()):
+        path = (input_root / relative_path).resolve()
+        try:
+            path.relative_to(input_root)
+        except ValueError as exc:
+            raise ValueError("historical convergence input path escapes input root") from exc
+        if not path.is_file() or _is_link_like(path):
+            raise FileNotFoundError(f"input/{relative_path}")
+        if sha256_file(path) != expected_sha256:
+            raise ValueError(
+                f"historical convergence input hash mismatch: {relative_path}"
+            )
+    return None if current_fingerprint_matches else "verified_additions"
+
+
+def _verify_current_convergence_candidates(
+    root: Path,
+    plan: VisualConvergencePlan,
+    *,
+    qa_run_id: str,
+    qa_report_sha256: str,
+    canonical_scene_spec_sha256: str,
+) -> str:
+    """Validate and return the candidate hash required to resume an active session."""
+
+    candidates_path = (
+        root / "qa" / "runs" / qa_run_id / "revision_candidates.json"
+    )
+    if not candidates_path.is_file() or _is_link_like(candidates_path):
+        raise FileNotFoundError(f"qa/runs/{qa_run_id}/revision_candidates.json")
+    candidates = RevisionCandidates.model_validate_json(
+        candidates_path.read_text(encoding="utf-8")
+    )
+    if (
+        candidates.job_id != plan.job_id
+        or candidates.base_spec_sha256 != canonical_scene_spec_sha256
+        or candidates.camera_fingerprint != plan.camera_fingerprint
+        or candidates.source_report_sha256 != qa_report_sha256
+    ):
+        raise ValueError("active visual convergence candidates are stale or misbound")
+    return sha256_file(candidates_path)
+
+
+def _audit_convergence_build_snapshot(
+    root: Path,
+    path: Path,
+    *,
+    expected_file_sha256: str,
+    expected_fingerprint: str,
+    expected_scene_spec_sha256: str | None = None,
+    expected_camera_fingerprint: str | None = None,
+) -> tuple[str, dict[str, Any]]:
+    """Verify one immutable build snapshot, its fingerprint, and direct contract bindings."""
+
+    if _is_link_like(path) or not path.is_file():
+        raise FileNotFoundError(path.resolve().relative_to(root.resolve()).as_posix())
+    if sha256_file(path) != expected_file_sha256:
+        raise ValueError("visual convergence build-provenance snapshot hash mismatch")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("visual convergence build provenance must be a JSON object")
+    declared_fingerprint = payload.get("fingerprint")
+    unsigned = dict(payload)
+    unsigned.pop("fingerprint", None)
+    if (
+        declared_fingerprint != expected_fingerprint
+        or _canonical_json_sha256(unsigned) != expected_fingerprint
+    ):
+        raise ValueError("visual convergence build-provenance fingerprint mismatch")
+    if (
+        expected_scene_spec_sha256 is not None
+        and payload.get("scene_spec_sha256") != expected_scene_spec_sha256
+    ):
+        raise ValueError("visual convergence build provenance SceneSpec binding mismatch")
+    if (
+        expected_camera_fingerprint is not None
+        and payload.get("camera_fingerprint") != expected_camera_fingerprint
+    ):
+        raise ValueError("visual convergence build provenance camera binding mismatch")
+    return path.resolve().relative_to(root.resolve()).as_posix(), payload
+
+
+def _validate_convergence_build_transition(
+    source: dict[str, Any],
+    result: dict[str, Any],
+    *,
+    expected_source_scene_spec_sha256: str,
+    expected_result_scene_spec_sha256: str,
+    expected_camera_fingerprint: str,
+) -> None:
+    """Allow only the approved SceneSpec hash to change between two build snapshots."""
+
+    if (
+        source.get("scene_spec_sha256")
+        != expected_source_scene_spec_sha256
+        or result.get("scene_spec_sha256")
+        != expected_result_scene_spec_sha256
+    ):
+        raise ValueError("visual convergence build transition SceneSpec binding mismatch")
+    if (
+        source.get("camera_fingerprint") != expected_camera_fingerprint
+        or result.get("camera_fingerprint") != expected_camera_fingerprint
+    ):
+        raise ValueError("visual convergence build transition camera binding mismatch")
+    source_contracts = dict(source)
+    result_contracts = dict(result)
+    for payload in (source_contracts, result_contracts):
+        payload.pop("fingerprint", None)
+        payload.pop("scene_spec_sha256", None)
+    if source_contracts != result_contracts:
+        raise ValueError(
+            "visual convergence build transition changed geometry, material, shader, "
+            "texture, camera, interior, or reference-scope provenance"
+        )
+
+
+def _load_convergence_constraint_evidence(
+    path: Path,
+    *,
+    expected_sha256: str,
+) -> dict[str, Any]:
+    """Load and validate one exact before/after measured-constraint snapshot."""
+
+    if _is_link_like(path) or not path.is_file():
+        raise FileNotFoundError(path)
+    if sha256_file(path) != expected_sha256:
+        raise ValueError("visual convergence constraint evidence hash mismatch")
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("visual convergence constraint evidence must be an object")
+    failures = payload.get("failures")
+    results = payload.get("results")
+    if (
+        not isinstance(failures, int)
+        or isinstance(failures, bool)
+        or failures < 0
+        or not isinstance(results, list)
+    ):
+        raise ValueError("visual convergence constraint evidence is malformed")
+    validated = [ConstraintResult.model_validate(item) for item in results]
+    expected_failures = sum(
+        result.status in {"failed", "missing"} for result in validated
+    )
+    if failures != expected_failures:
+        raise ValueError(
+            "visual convergence constraint failure count differs from its results"
+        )
+    compare_constraint_results(results, results)
+    return payload
+
+
+def _audit_initial_convergence_snapshots(
+    root: Path,
+    session_root: Path,
+    plan: VisualConvergencePlan,
+) -> dict[str, str]:
+    """Verify new-plan SceneSpec, build, candidates, and constraint baseline evidence."""
+
+    if plan.initial_candidates_sha256 is None:
+        return {}
+    required_values = (
+        plan.initial_build_fingerprint,
+        plan.initial_build_provenance_sha256,
+        plan.initial_constraints_present,
+    )
+    if any(value is None for value in required_values):
+        raise ValueError("new visual convergence plan has partial baseline bindings")
+    scene_path = session_root / "initial_scene_spec.json"
+    if (
+        _is_link_like(scene_path)
+        or not scene_path.is_file()
+        or sha256_file(scene_path) != plan.initial_scene_spec_sha256
+    ):
+        raise ValueError("visual convergence initial SceneSpec snapshot mismatch")
+    build_path = session_root / "initial_build_provenance.json"
+    build_relative, _build_payload = _audit_convergence_build_snapshot(
+        root,
+        build_path,
+        expected_file_sha256=plan.initial_build_provenance_sha256 or "",
+        expected_fingerprint=plan.initial_build_fingerprint or "",
+        expected_scene_spec_sha256=plan.initial_scene_spec_sha256,
+        expected_camera_fingerprint=plan.camera_fingerprint,
+    )
+    candidates_path = (
+        root
+        / "qa"
+        / "runs"
+        / plan.initial_qa_run_id
+        / "revision_candidates.json"
+    )
+    if (
+        _is_link_like(candidates_path)
+        or not candidates_path.is_file()
+        or sha256_file(candidates_path) != plan.initial_candidates_sha256
+    ):
+        raise ValueError("visual convergence initial candidate bundle mismatch")
+    artifacts = {
+        scene_path.resolve().relative_to(root.resolve()).as_posix(): (
+            plan.initial_scene_spec_sha256
+        ),
+        build_relative: plan.initial_build_provenance_sha256 or "",
+        candidates_path.resolve().relative_to(root.resolve()).as_posix(): (
+            plan.initial_candidates_sha256
+        ),
+    }
+    if plan.host_safety_envelope_sha256 is not None:
+        _require_host_safety_envelope(root, session_root, plan)
+        host_safety_path = session_root / "host_safety_envelope.json"
+        artifacts[
+            host_safety_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = plan.host_safety_envelope_sha256
+    constraints_path = session_root / "initial_constraints.json"
+    if plan.initial_constraints_present:
+        if (
+            plan.initial_constraints_sha256 is None
+            or _is_link_like(constraints_path)
+            or not constraints_path.is_file()
+            or sha256_file(constraints_path) != plan.initial_constraints_sha256
+        ):
+            raise ValueError("visual convergence initial constraint snapshot mismatch")
+        artifacts[
+            constraints_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = plan.initial_constraints_sha256
+    elif constraints_path.exists():
+        raise ValueError("unexpected visual convergence constraint snapshot")
+    return artifacts
+
+
+def _recompute_convergence_selection(
+    plan: VisualConvergencePlan,
+    candidates: RevisionCandidates,
+    selection: ConvergenceCandidateSelection,
+    *,
+    candidates_sha256: str,
+    base_scene_spec_path: Path,
+) -> None:
+    """Recompute host candidate selection from the exact approved policy and base spec."""
+
+    expected = select_convergence_candidates(
+        plan,
+        candidates,
+        candidates_sha256=candidates_sha256,
+        expected_base_scene_spec_sha256=selection.base_scene_spec_sha256,
+        expected_source_qa_report_sha256=selection.source_qa_report_sha256,
+        baseline_values=_candidate_baselines(base_scene_spec_path, candidates),
+    )
+    if selection.model_dump(mode="json") != expected.model_dump(mode="json"):
+        raise ValueError(
+            "visual convergence candidate selection exceeds or differs from "
+            "the exact approved envelope"
+        )
+
+
+def _validate_convergence_iteration_outcome(
+    plan: VisualConvergencePlan,
+    receipt: VisualConvergenceIteration,
+    *,
+    recomputed_constraint_regression_count: int | None = None,
+) -> None:
+    """Re-evaluate runtime predicates, preferring independently derived constraints."""
+
+    if receipt.status not in {"accepted", "rolled_back"}:
+        return
+    if (
+        receipt.after_direct_score is None
+        or receipt.after_silhouette_iou is None
+        or receipt.score_delta is None
+    ):
+        raise ValueError("executed visual convergence receipt lacks result metrics")
+    gain_satisfied = (
+        receipt.score_delta + 1e-9 >= plan.minimum_iteration_gain
+    )
+    silhouette_preserved = (
+        receipt.after_silhouette_iou + 1e-9
+        >= receipt.before_silhouette_iou
+    )
+    effective_regression_count = (
+        receipt.constraint_regression_count
+        if recomputed_constraint_regression_count is None
+        else recomputed_constraint_regression_count
+    )
+    if (
+        recomputed_constraint_regression_count is not None
+        and receipt.constraint_regression_count
+        != recomputed_constraint_regression_count
+    ):
+        raise ValueError(
+            "visual convergence constraint-regression count differs from exact evidence"
+        )
+    constraints_preserved = effective_regression_count == 0
+    predicates_accepted = (
+        gain_satisfied and silhouette_preserved and constraints_preserved
+    )
+    if receipt.status == "accepted" and not predicates_accepted:
+        raise ValueError(
+            "accepted visual convergence receipt violates runtime acceptance predicates"
+        )
+    if receipt.status == "rolled_back" and predicates_accepted:
+        raise ValueError(
+            "rolled-back visual convergence receipt falsely reports all predicates passing"
+        )
+    constraint_reason = "measured_constraint_regression"
+    if effective_regression_count and constraint_reason not in receipt.reason_codes:
+        raise ValueError(
+            "visual convergence constraint regression lacks explicit receipt evidence"
+        )
+    if (
+        not effective_regression_count
+        and constraint_reason in receipt.reason_codes
+    ):
+        raise ValueError(
+            "visual convergence receipt claims a constraint regression without evidence"
+        )
+
+
+def _receipt_chain_requires_terminal_report(
+    plan: VisualConvergencePlan,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+    session_root: Path,
+) -> bool:
+    """Identify receipt or cancellation evidence that has already consumed the session."""
+
+    if any(
+        (session_root / name).exists()
+        for name in (
+            "cancellation_receipt.json",
+            "convergence_report.manifest.json",
+            "convergence_report.pdf",
+            "final_scene_spec.json",
+            "final_build_provenance.json",
+        )
+    ):
+        return True
+    if not receipts:
+        return False
+    final = receipts[-1][0]
+    if final.status != "accepted" or len(receipts) >= plan.max_iterations:
+        return True
+    return (
+        final.after_direct_score is not None
+        and final.after_silhouette_iou is not None
+        and final.after_direct_score >= plan.target_direct_score
+        and final.after_silhouette_iou >= plan.target_silhouette_iou
+    )
+
+
+def _uses_complete_convergence_terminal_contract(
+    plan: VisualConvergencePlan,
+) -> bool:
+    """Use immutable plan input bindings as the discriminator for new terminals."""
+
+    return bool(plan.initial_input_hashes)
+
+
+def _validate_terminal_convergence_semantics(
+    report: VisualConvergenceReport,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> None:
+    """Cross-check target, reason, review, and final-receipt terminal semantics."""
+
+    scores_reached = (
+        report.final_direct_score >= report.target_direct_score
+        and report.final_silhouette_iou >= report.target_silhouette_iou
+    )
+    if report.target_reached != scores_reached:
+        raise ValueError("terminal visual convergence target flag is false")
+    if (report.termination_reason == "target_reached") != report.target_reached:
+        raise ValueError("terminal visual convergence target reason is inconsistent")
+    manual_review_reasons = {
+        "plateau",
+        "no_eligible_candidates",
+        "manual_review_required",
+        "iteration_budget_exhausted",
+        "constraint_regression",
+        "stale_or_tampered",
+        "failed",
+    }
+    if report.manual_review_required != (
+        report.termination_reason in manual_review_reasons
+    ):
+        raise ValueError(
+            "terminal visual convergence manual-review semantics are inconsistent"
+        )
+    if not receipts:
+        if report.termination_reason not in {"target_reached", "cancelled"}:
+            raise ValueError(
+                "empty visual convergence terminal has an impossible reason"
+            )
+        return
+    final_status = receipts[-1][0].status
+    allowed_reasons = {
+        "accepted": {"target_reached", "iteration_budget_exhausted", "cancelled"},
+        "rolled_back": {"plateau", "constraint_regression"},
+        "manual_review_required": {
+            "manual_review_required",
+            "no_eligible_candidates",
+        },
+        "failed": {"failed", "stale_or_tampered"},
+    }[final_status]
+    if report.termination_reason not in allowed_reasons:
+        raise ValueError(
+            "terminal visual convergence reason conflicts with final receipt"
+        )
+
+
+def _current_convergence_qa_identity(
+    plan: VisualConvergencePlan,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> tuple[str, str]:
+    """Recover the current QA run and report hash from accepted iteration receipts."""
+
+    run_id = plan.initial_qa_run_id
+    report_sha256 = plan.initial_qa_report_sha256
+    for receipt, _receipt_sha256, _receipt_path in receipts:
+        if receipt.status == "accepted":
+            if (
+                receipt.result_qa_run_id is None
+                or receipt.result_qa_report_sha256 is None
+            ):
+                raise ValueError("accepted convergence receipt lacks result QA evidence")
+            run_id = receipt.result_qa_run_id
+            report_sha256 = receipt.result_qa_report_sha256
+    return run_id, report_sha256
+
+
+def _current_convergence_build_fingerprint(
+    plan: VisualConvergencePlan,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> str | None:
+    """Recover the build fingerprint that corresponds to the accepted canonical chain."""
+
+    fingerprint = plan.initial_build_fingerprint
+    for receipt, _receipt_sha256, _receipt_path in receipts:
+        if receipt.status == "accepted":
+            if receipt.result_build_fingerprint is None and fingerprint is not None:
+                raise ValueError(
+                    "accepted visual convergence receipt lacks result build provenance"
+                )
+            fingerprint = receipt.result_build_fingerprint
+    return fingerprint
+
+
+def _audit_terminal_convergence_build_snapshots(
+    root: Path,
+    session_root: Path,
+    plan: VisualConvergencePlan,
+    report: VisualConvergenceReport,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> dict[str, str]:
+    """Verify fixed initial/final build snapshots referenced by a new terminal report."""
+
+    if plan.initial_build_fingerprint is None:
+        return {}
+    if (
+        report.initial_build_provenance_snapshot is None
+        or report.final_build_provenance_snapshot is None
+        or report.initial_build_fingerprint != plan.initial_build_fingerprint
+    ):
+        raise ValueError("terminal visual convergence build snapshot bindings are incomplete")
+    expected_final_fingerprint = _current_convergence_build_fingerprint(
+        plan,
+        receipts,
+    )
+    if report.final_build_fingerprint != expected_final_fingerprint:
+        raise ValueError("terminal visual convergence final build fingerprint mismatch")
+    initial_path = _resolve_convergence_artifact(
+        root,
+        report.initial_build_provenance_snapshot,
+    )
+    final_path = _resolve_convergence_artifact(
+        root,
+        report.final_build_provenance_snapshot,
+    )
+    if initial_path != (session_root / "initial_build_provenance.json").resolve():
+        raise ValueError("terminal convergence initial build snapshot path mismatch")
+    if final_path != (session_root / "final_build_provenance.json").resolve():
+        raise ValueError("terminal convergence final build snapshot path mismatch")
+    _initial_relative, initial_payload = _audit_convergence_build_snapshot(
+        root,
+        initial_path,
+        expected_file_sha256=report.initial_build_provenance_snapshot.sha256,
+        expected_fingerprint=plan.initial_build_fingerprint,
+        expected_scene_spec_sha256=plan.initial_scene_spec_sha256,
+        expected_camera_fingerprint=plan.camera_fingerprint,
+    )
+    _final_relative, final_payload = _audit_convergence_build_snapshot(
+        root,
+        final_path,
+        expected_file_sha256=report.final_build_provenance_snapshot.sha256,
+        expected_fingerprint=expected_final_fingerprint or "",
+        expected_scene_spec_sha256=report.final_scene_spec_sha256,
+        expected_camera_fingerprint=plan.camera_fingerprint,
+    )
+    _validate_convergence_build_transition(
+        initial_payload,
+        final_payload,
+        expected_source_scene_spec_sha256=plan.initial_scene_spec_sha256,
+        expected_result_scene_spec_sha256=report.final_scene_spec_sha256,
+        expected_camera_fingerprint=plan.camera_fingerprint,
+    )
+    return {
+        report.initial_build_provenance_snapshot.relative_path: (
+            report.initial_build_provenance_snapshot.sha256
+        ),
+        report.final_build_provenance_snapshot.relative_path: (
+            report.final_build_provenance_snapshot.sha256
+        ),
+    }
+
+
+def _audit_terminal_convergence_cancellation(
+    root: Path,
+    session_root: Path,
+    plan: VisualConvergencePlan,
+    report: VisualConvergenceReport,
+    *,
+    plan_sha256: str,
+    approval_sha256: str,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> dict[str, str]:
+    """Verify a user cancellation receipt against the exact current session chain."""
+
+    cancellation_path = session_root / "cancellation_receipt.json"
+    if report.termination_reason != "cancelled":
+        if cancellation_path.exists() or report.cancellation_receipt is not None:
+            raise ValueError("non-cancelled convergence terminal carries cancellation evidence")
+        return {}
+    if report.cancellation_receipt is None:
+        raise ValueError("cancelled convergence terminal lacks cancellation evidence")
+    resolved = _resolve_convergence_artifact(root, report.cancellation_receipt)
+    if resolved != cancellation_path.resolve():
+        raise ValueError("visual convergence cancellation receipt path mismatch")
+    cancellation = VisualConvergenceCancellation.model_validate_json(
+        cancellation_path.read_text(encoding="utf-8")
+    )
+    current_qa_run_id, current_qa_sha256 = _current_convergence_qa_identity(
+        plan,
+        receipts,
+    )
+    current_candidates_path = (
+        root
+        / "qa"
+        / "runs"
+        / current_qa_run_id
+        / "revision_candidates.json"
+    )
+    expected_previous = receipts[-1][1] if receipts else None
+    checks = {
+        "session_id": (cancellation.session_id, plan.session_id),
+        "job_id": (cancellation.job_id, plan.job_id),
+        "plan_sha256": (cancellation.plan_sha256, plan_sha256),
+        "approval_sha256": (cancellation.approval_sha256, approval_sha256),
+        "input_fingerprint": (
+            cancellation.input_fingerprint,
+            plan.input_fingerprint,
+        ),
+        "canonical_scene_spec_sha256": (
+            cancellation.canonical_scene_spec_sha256,
+            report.final_scene_spec_sha256,
+        ),
+        "current_qa_run_id": (
+            cancellation.current_qa_run_id,
+            current_qa_run_id,
+        ),
+        "current_qa_report_sha256": (
+            cancellation.current_qa_report_sha256,
+            current_qa_sha256,
+        ),
+        "current_candidates_sha256": (
+            cancellation.current_candidates_sha256,
+            sha256_file(current_candidates_path),
+        ),
+        "current_build_fingerprint": (
+            cancellation.current_build_fingerprint,
+            _current_convergence_build_fingerprint(plan, receipts),
+        ),
+        "previous_iteration_receipt_sha256": (
+            cancellation.previous_iteration_receipt_sha256,
+            expected_previous,
+        ),
+    }
+    mismatches = sorted(
+        label for label, (actual, expected) in checks.items() if actual != expected
+    )
+    if mismatches:
+        raise ValueError(
+            f"visual convergence cancellation binding mismatch: {mismatches}"
+        )
+    return {
+        report.cancellation_receipt.relative_path: (
+            report.cancellation_receipt.sha256
+        )
+    }
+
+
+def _verify_convergence_iteration_artifacts(
+    root: Path,
+    session_root: Path,
+    plan: VisualConvergencePlan,
+    receipt: VisualConvergenceIteration,
+    receipt_sha256: str,
+    previous_receipt: VisualConvergenceIteration | None = None,
+) -> dict[str, str]:
+    """Verify one receipt's immutable support files and return their exact hash map."""
+
+    iteration_root = session_root / "iterations" / f"{receipt.iteration_index:03d}"
+    receipt_path = iteration_root / "receipt.json"
+    artifacts = {
+        receipt_path.resolve().relative_to(root.resolve()).as_posix(): receipt_sha256,
+    }
+    base_scene_path = iteration_root / "base_scene_spec.json"
+    exact_base_snapshot = receipt.base_scene_spec_snapshot_sha256 is not None
+    if exact_base_snapshot or plan.initial_candidates_sha256 is not None:
+        expected_base_snapshot_sha256 = (
+            receipt.base_scene_spec_snapshot_sha256
+            or receipt.base_scene_spec_sha256
+        )
+        if (
+            _is_link_like(base_scene_path)
+            or not base_scene_path.is_file()
+            or sha256_file(base_scene_path) != expected_base_snapshot_sha256
+            or expected_base_snapshot_sha256 != receipt.base_scene_spec_sha256
+        ):
+            raise ValueError("visual convergence base SceneSpec snapshot mismatch")
+        artifacts[
+            base_scene_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = expected_base_snapshot_sha256
+    elif base_scene_path.exists():
+        if (
+            _is_link_like(base_scene_path)
+            or not base_scene_path.is_file()
+            or sha256_file(base_scene_path) != receipt.base_scene_spec_sha256
+        ):
+            raise ValueError("legacy visual convergence base SceneSpec snapshot mismatch")
+        artifacts[
+            base_scene_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.base_scene_spec_sha256
+    new_bound_receipt = plan.initial_build_fingerprint is not None
+    if new_bound_receipt and (
+        receipt.base_scene_spec_snapshot_sha256
+        != receipt.base_scene_spec_sha256
+        or receipt.source_build_fingerprint is None
+    ):
+        raise ValueError(
+            "new visual convergence receipt lacks its exact base or source build"
+        )
+    source_build_payload: dict[str, Any] | None = None
+    if receipt.source_build_fingerprint is not None:
+        if previous_receipt is None:
+            source_build_path = session_root / "initial_build_provenance.json"
+            source_build_sha256 = plan.initial_build_provenance_sha256
+            source_scene_spec_sha256 = plan.initial_scene_spec_sha256
+        else:
+            source_build_path = (
+                session_root
+                / "iterations"
+                / f"{previous_receipt.iteration_index:03d}"
+                / "result_build_provenance.json"
+            )
+            source_build_sha256 = previous_receipt.result_build_provenance_sha256
+            source_scene_spec_sha256 = previous_receipt.result_scene_spec_sha256
+        if (
+            source_build_sha256 is None
+            or source_scene_spec_sha256 is None
+            or source_scene_spec_sha256 != receipt.base_scene_spec_sha256
+        ):
+            raise ValueError("visual convergence source build receipt chain is incomplete")
+        source_build_relative, source_build_payload = (
+            _audit_convergence_build_snapshot(
+                root,
+                source_build_path,
+                expected_file_sha256=source_build_sha256,
+                expected_fingerprint=receipt.source_build_fingerprint,
+                expected_scene_spec_sha256=receipt.base_scene_spec_sha256,
+                expected_camera_fingerprint=plan.camera_fingerprint,
+            )
+        )
+        artifacts[source_build_relative] = source_build_sha256
+    selection_path = iteration_root / "selection.json"
+    selection = ConvergenceCandidateSelection.model_validate_json(
+        selection_path.read_text(encoding="utf-8")
+    )
+    selection_file_sha256 = sha256_file(selection_path)
+    artifacts[
+        selection_path.resolve().relative_to(root.resolve()).as_posix()
+    ] = selection_file_sha256
+    selection_payload = {
+        "schema_version": selection.schema_version,
+        "session_id": selection.session_id,
+        "job_id": selection.job_id,
+        "candidates_sha256": selection.candidates_sha256,
+        "selected_candidate_ids": selection.selected_candidate_ids,
+        "rejected": [
+            item.model_dump(mode="json")
+            for item in sorted(
+                selection.rejected,
+                key=lambda record: record.candidate_id,
+            )
+        ],
+    }
+    if (
+        selection.session_id != receipt.session_id
+        or selection.job_id != receipt.job_id
+        or selection_file_sha256 != receipt.selection_sha256
+        or selection.candidates_sha256 != receipt.candidates_sha256
+        or selection.base_scene_spec_sha256 != receipt.base_scene_spec_sha256
+        or selection.source_qa_report_sha256
+        != receipt.source_qa_report_sha256
+        or selection.selected_candidate_ids != receipt.selected_candidate_ids
+    ):
+        raise ValueError("visual convergence selection does not match its receipt")
+    if selection.selection_sha256 != _canonical_json_sha256(selection_payload):
+        raise ValueError("visual convergence selection internal hash mismatch")
+
+    candidates_path = (
+        root
+        / "qa"
+        / "runs"
+        / receipt.source_qa_run_id
+        / "revision_candidates.json"
+    )
+    if not candidates_path.is_file() or _is_link_like(candidates_path):
+        raise FileNotFoundError(
+            f"qa/runs/{receipt.source_qa_run_id}/revision_candidates.json"
+        )
+    if sha256_file(candidates_path) != receipt.candidates_sha256:
+        raise ValueError("visual convergence candidates hash mismatch")
+    artifacts[
+        candidates_path.resolve().relative_to(root.resolve()).as_posix()
+    ] = receipt.candidates_sha256
+    candidates = RevisionCandidates.model_validate_json(
+        candidates_path.read_text(encoding="utf-8")
+    )
+    if (
+        candidates.job_id != receipt.job_id
+        or candidates.base_spec_sha256 != receipt.base_scene_spec_sha256
+        or candidates.source_report_sha256 != receipt.source_qa_report_sha256
+        or candidates.camera_fingerprint != plan.camera_fingerprint
+    ):
+        raise ValueError("visual convergence candidates binding mismatch")
+    if base_scene_path.is_file():
+        _recompute_convergence_selection(
+            plan,
+            candidates,
+            selection,
+            candidates_sha256=receipt.candidates_sha256,
+            base_scene_spec_path=base_scene_path,
+        )
+    candidate_ids = {candidate.id for candidate in candidates.candidates}
+    decided_ids = set(selection.selected_candidate_ids) | {
+        item.candidate_id for item in selection.rejected
+    }
+    if decided_ids != candidate_ids:
+        raise ValueError(
+            "visual convergence selection does not cover the exact candidate bundle"
+        )
+    source_qa_path, source_qa = _convergence_qa_report(
+        root,
+        receipt.source_qa_run_id,
+        receipt.source_qa_report_sha256,
+    )
+    artifacts[
+        source_qa_path.resolve().relative_to(root.resolve()).as_posix()
+    ] = receipt.source_qa_report_sha256
+    if (
+        source_qa.job_id != receipt.job_id
+        or source_qa.camera_fingerprint != plan.camera_fingerprint
+        or source_qa.direct_metrics.scoring_version != plan.scoring_version
+        or source_qa.direct_metrics.overall_direct_score
+        != receipt.before_direct_score
+        or source_qa.direct_metrics.silhouette_iou
+        != receipt.before_silhouette_iou
+    ):
+        raise ValueError("visual convergence source QA binding mismatch")
+    if receipt.source_build_fingerprint is not None:
+        artifacts.update(
+            _audit_complete_convergence_qa(
+                root,
+                job_id=receipt.job_id,
+                run_id=receipt.source_qa_run_id,
+                scene_spec_sha256=receipt.base_scene_spec_sha256,
+                report_sha256=receipt.source_qa_report_sha256,
+                candidates_sha256=receipt.candidates_sha256,
+                build_fingerprint=receipt.source_build_fingerprint,
+            )
+        )
+
+    if receipt.compiled_plan_sha256 is not None:
+        compiled_path = iteration_root / "revision_plan.json"
+        if not compiled_path.is_file() or _is_link_like(compiled_path):
+            raise FileNotFoundError(
+                f"qa/convergence/{receipt.session_id}/iterations/"
+                f"{receipt.iteration_index:03d}/revision_plan.json"
+            )
+        if sha256_file(compiled_path) != receipt.compiled_plan_sha256:
+            raise ValueError("visual convergence compiled plan hash mismatch")
+        artifacts[
+            compiled_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.compiled_plan_sha256
+        compiled = RevisionPlan.model_validate_json(
+            compiled_path.read_text(encoding="utf-8")
+        )
+        selected_candidates = {
+            candidate.id: candidate
+            for candidate in candidates.candidates
+            if candidate.id in set(selection.selected_candidate_ids)
+        }
+        expected_operations = [
+            {
+                "op": selected_candidates[candidate_id].op,
+                "target_type": selected_candidates[candidate_id].target_type,
+                "target_id": selected_candidates[candidate_id].target_id,
+                "path": selected_candidates[candidate_id].path,
+                "value": selected_candidates[candidate_id].value,
+                "reason": selected_candidates[candidate_id].reason,
+            }
+            for candidate_id in selection.selected_candidate_ids
+        ]
+        actual_operations = [
+            operation.model_dump(mode="json") for operation in compiled.operations
+        ]
+        if (
+            compiled.job_id != receipt.job_id
+            or compiled.base_spec_sha256 != receipt.base_scene_spec_sha256
+            or actual_operations != expected_operations
+        ):
+            raise ValueError(
+                "visual convergence revision plan does not match selected candidates"
+            )
+
+    if receipt.execution_authorization_sha256 is not None:
+        authorization_path = iteration_root / "authorization.json"
+        if not authorization_path.is_file():
+            authorization_path = iteration_root / "execution_authorization.json"
+        authorization = VisualConvergenceIterationAuthorization.model_validate_json(
+            authorization_path.read_text(encoding="utf-8")
+        )
+        if sha256_file(authorization_path) != receipt.execution_authorization_sha256:
+            raise ValueError("visual convergence authorization hash mismatch")
+        artifacts[
+            authorization_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.execution_authorization_sha256
+        if (
+            authorization.session_id != receipt.session_id
+            or authorization.job_id != receipt.job_id
+            or authorization.iteration_index != receipt.iteration_index
+            or authorization.plan_sha256 != receipt.plan_sha256
+            or authorization.approval_sha256 != receipt.approval_sha256
+            or authorization.base_scene_spec_sha256
+            != receipt.base_scene_spec_sha256
+            or authorization.source_qa_report_sha256
+            != receipt.source_qa_report_sha256
+            or authorization.candidates_sha256 != receipt.candidates_sha256
+            or authorization.source_build_fingerprint
+            != receipt.source_build_fingerprint
+            or authorization.selection_sha256 != receipt.selection_sha256
+            or authorization.compiled_plan_sha256 != receipt.compiled_plan_sha256
+            or authorization.selected_candidate_ids
+            != receipt.selected_candidate_ids
+        ):
+            raise ValueError(
+                "visual convergence authorization does not match its receipt"
+            )
+
+    if receipt.result_scene_spec_sha256 is not None:
+        result_scene_path = iteration_root / "result_scene_spec.json"
+        if not result_scene_path.is_file() or _is_link_like(result_scene_path):
+            raise FileNotFoundError(
+                f"qa/convergence/{receipt.session_id}/iterations/"
+                f"{receipt.iteration_index:03d}/result_scene_spec.json"
+            )
+        if sha256_file(result_scene_path) != receipt.result_scene_spec_sha256:
+            raise ValueError("visual convergence result SceneSpec snapshot hash mismatch")
+        artifacts[
+            result_scene_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.result_scene_spec_sha256
+
+    before_constraint_evidence: dict[str, Any] | None = None
+    after_constraint_evidence: dict[str, Any] | None = None
+    if receipt.before_constraints_sha256 is not None:
+        before_constraints_path = iteration_root / "before_constraints.json"
+        before_constraint_evidence = _load_convergence_constraint_evidence(
+            before_constraints_path,
+            expected_sha256=receipt.before_constraints_sha256,
+        )
+        artifacts[
+            before_constraints_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.before_constraints_sha256
+    if receipt.after_constraints_sha256 is not None:
+        after_constraints_path = iteration_root / "after_constraints.json"
+        after_constraint_evidence = _load_convergence_constraint_evidence(
+            after_constraints_path,
+            expected_sha256=receipt.after_constraints_sha256,
+        )
+        artifacts[
+            after_constraints_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.after_constraints_sha256
+    if new_bound_receipt and receipt.status in {"accepted", "rolled_back"} and (
+        before_constraint_evidence is None or after_constraint_evidence is None
+    ):
+        raise ValueError(
+            "new executed visual convergence receipt lacks exact constraint evidence"
+        )
+    recomputed_constraint_regression_count: int | None = None
+    if (
+        before_constraint_evidence is not None
+        and after_constraint_evidence is not None
+    ):
+        recomputed_constraint_regression_count = len(
+            compare_constraint_results(
+                list(before_constraint_evidence["results"]),
+                list(after_constraint_evidence["results"]),
+            )
+        )
+
+    result_build_fields = (
+        receipt.result_build_fingerprint,
+        receipt.result_build_provenance_sha256,
+    )
+    if any(item is not None for item in result_build_fields) and any(
+        item is None for item in result_build_fields
+    ):
+        raise ValueError("visual convergence result build evidence is incomplete")
+    if all(item is not None for item in result_build_fields):
+        if receipt.result_scene_spec_sha256 is None:
+            raise ValueError(
+                "visual convergence result build lacks its result SceneSpec binding"
+            )
+        result_build_path = iteration_root / "result_build_provenance.json"
+        result_build_relative, result_build_payload = (
+            _audit_convergence_build_snapshot(
+                root,
+                result_build_path,
+                expected_file_sha256=receipt.result_build_provenance_sha256,
+                expected_fingerprint=receipt.result_build_fingerprint,
+                expected_scene_spec_sha256=receipt.result_scene_spec_sha256,
+                expected_camera_fingerprint=plan.camera_fingerprint,
+            )
+        )
+        artifacts[result_build_relative] = receipt.result_build_provenance_sha256
+        if source_build_payload is not None:
+            _validate_convergence_build_transition(
+                source_build_payload,
+                result_build_payload,
+                expected_source_scene_spec_sha256=receipt.base_scene_spec_sha256,
+                expected_result_scene_spec_sha256=receipt.result_scene_spec_sha256,
+                expected_camera_fingerprint=plan.camera_fingerprint,
+            )
+
+    result_qa_fields = (
+        receipt.result_qa_run_id,
+        receipt.result_qa_report_sha256,
+        receipt.result_candidates_sha256,
+        receipt.after_direct_score,
+        receipt.after_silhouette_iou,
+        receipt.score_delta,
+    )
+    if any(item is not None for item in result_qa_fields) and any(
+        item is None for item in result_qa_fields
+    ):
+        raise ValueError("visual convergence result QA evidence is incomplete")
+    if all(item is not None for item in result_qa_fields):
+        result_qa_path, result_qa = _convergence_qa_report(
+            root,
+            receipt.result_qa_run_id,
+            receipt.result_qa_report_sha256,
+        )
+        artifacts[
+            result_qa_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = receipt.result_qa_report_sha256
+        if (
+            result_qa.job_id != receipt.job_id
+            or result_qa.camera_fingerprint != plan.camera_fingerprint
+            or result_qa.direct_metrics.scoring_version != plan.scoring_version
+            or (
+                receipt.after_direct_score is not None
+                and result_qa.direct_metrics.overall_direct_score
+                != receipt.after_direct_score
+            )
+            or (
+                receipt.after_silhouette_iou is not None
+                and result_qa.direct_metrics.silhouette_iou
+                != receipt.after_silhouette_iou
+            )
+        ):
+            raise ValueError("visual convergence result QA binding mismatch")
+        result_candidates_path = (
+            root
+            / "qa"
+            / "runs"
+            / receipt.result_qa_run_id
+            / "revision_candidates.json"
+        )
+        result_candidates_sha256 = receipt.result_candidates_sha256
+        if (
+            not result_candidates_path.is_file()
+            or _is_link_like(result_candidates_path)
+            or sha256_file(result_candidates_path) != result_candidates_sha256
+        ):
+            raise ValueError("visual convergence result candidates hash mismatch")
+        result_candidates = RevisionCandidates.model_validate_json(
+            result_candidates_path.read_text(encoding="utf-8")
+        )
+        if (
+            result_candidates.job_id != receipt.job_id
+            or result_candidates.base_spec_sha256
+            != receipt.result_scene_spec_sha256
+            or result_candidates.source_report_sha256
+            != receipt.result_qa_report_sha256
+            or result_candidates.camera_fingerprint != plan.camera_fingerprint
+        ):
+            raise ValueError("visual convergence result candidates binding mismatch")
+        artifacts[
+            result_candidates_path.resolve().relative_to(root.resolve()).as_posix()
+        ] = result_candidates_sha256
+        if receipt.result_build_fingerprint is not None:
+            artifacts.update(
+                _audit_complete_convergence_qa(
+                    root,
+                    job_id=receipt.job_id,
+                    run_id=receipt.result_qa_run_id,
+                    scene_spec_sha256=receipt.result_scene_spec_sha256,
+                    report_sha256=receipt.result_qa_report_sha256,
+                    candidates_sha256=result_candidates_sha256,
+                    build_fingerprint=receipt.result_build_fingerprint,
+                )
+            )
+    _validate_convergence_iteration_outcome(
+        plan,
+        receipt,
+        recomputed_constraint_regression_count=(
+            recomputed_constraint_regression_count
+        ),
+    )
+    return artifacts
+
+
+def _audit_one_visual_convergence_session(
+    root: Path,
+    job_id: str,
+    session_root: Path,
+) -> tuple[bool, str | None]:
+    """Validate one session and return terminal state plus any historical limitation."""
+
+    session_id = session_root.name
+    if not _PORTABLE_ID_RE.fullmatch(session_id):
+        raise ValueError("visual convergence session_id is invalid")
+    plan_path = session_root / "plan.json"
+    plan = VisualConvergencePlan.model_validate_json(
+        plan_path.read_text(encoding="utf-8")
+    )
+    if plan.job_id != job_id or plan.session_id != session_id:
+        raise ValueError("visual convergence plan identity mismatch")
+    if (
+        plan.initial_input_hashes
+        and _canonical_json_sha256(plan.initial_input_hashes)
+        != plan.input_fingerprint
+    ):
+        raise ValueError("visual convergence initial input map binding mismatch")
+    current_input_matches = (
+        plan.input_fingerprint == _current_convergence_input_fingerprint(root)
+    )
+    plan_sha256 = sha256_file(plan_path)
+    initial_snapshot_artifacts = _audit_initial_convergence_snapshots(
+        root,
+        session_root,
+        plan,
+    )
+    _initial_qa_path, initial_qa = _convergence_qa_report(
+        root,
+        plan.initial_qa_run_id,
+        plan.initial_qa_report_sha256,
+    )
+    if (
+        initial_qa.job_id != job_id
+        or initial_qa.camera_fingerprint != plan.camera_fingerprint
+        or initial_qa.direct_metrics.scoring_version != plan.scoring_version
+        or initial_qa.direct_metrics.overall_direct_score
+        != plan.initial_direct_score
+        or initial_qa.direct_metrics.silhouette_iou
+        != plan.initial_silhouette_iou
+    ):
+        raise ValueError("visual convergence initial QA binding mismatch")
+
+    approval_path = session_root / "approval.json"
+    approval: VisualConvergenceApproval | None = None
+    approval_sha256: str | None = None
+    if approval_path.is_file():
+        approval = VisualConvergenceApproval.model_validate_json(
+            approval_path.read_text(encoding="utf-8")
+        )
+        approval_sha256 = sha256_file(approval_path)
+        validate_convergence_activation(
+            plan,
+            approval,
+            plan_sha256=plan_sha256,
+        )
+
+    receipts_with_paths = _load_convergence_receipts(root, session_root)
+    if receipts_with_paths and (approval is None or approval_sha256 is None):
+        raise ValueError("visual convergence receipts require an exact approval")
+    if approval is not None and approval_sha256 is not None:
+        validate_iteration_receipt_chain(
+            plan,
+            approval,
+            plan_sha256=plan_sha256,
+            approval_sha256=approval_sha256,
+            receipts=[
+                (receipt, receipt_sha256)
+                for receipt, receipt_sha256, _path in receipts_with_paths
+            ],
+        )
+    iteration_artifacts: dict[str, str] = dict(initial_snapshot_artifacts)
+    previous_receipt: VisualConvergenceIteration | None = None
+    for receipt, receipt_sha256, _path in receipts_with_paths:
+        verified_artifacts = _verify_convergence_iteration_artifacts(
+            root,
+            session_root,
+            plan,
+            receipt,
+            receipt_sha256,
+            previous_receipt,
+        )
+        for relative_path, artifact_sha256 in verified_artifacts.items():
+            existing_sha256 = iteration_artifacts.get(relative_path)
+            if existing_sha256 is not None and existing_sha256 != artifact_sha256:
+                raise ValueError(
+                    "visual convergence support artifact has conflicting hashes"
+                )
+            iteration_artifacts[relative_path] = artifact_sha256
+        previous_receipt = receipt
+
+    report_path = session_root / "convergence_report.json"
+    staging_root = session_root / "staging"
+    if report_path.is_file() and staging_root.exists():
+        if _is_link_like(staging_root) or not staging_root.is_dir():
+            raise ValueError(
+                "terminal visual convergence staging root is not a safe directory"
+            )
+        staged_entries = sorted(path.name for path in staging_root.iterdir())
+        if staged_entries:
+            raise ValueError(
+                "terminal visual convergence session conflicts with receipt-less "
+                f"iteration staging: {staged_entries}"
+            )
+    if not report_path.is_file():
+        if _receipt_chain_requires_terminal_report(
+            plan,
+            receipts_with_paths,
+            session_root,
+        ):
+            raise ValueError(
+                "terminal visual convergence receipt exists without terminal JSON"
+            )
+        if not current_input_matches:
+            raise ValueError("active visual convergence immutable input changed")
+        expected_sha256 = (
+            receipts_with_paths[-1][0].canonical_scene_spec_sha256
+            if receipts_with_paths
+            else plan.initial_scene_spec_sha256
+        )
+        canonical_path = root / "analysis" / "scene_spec.json"
+        if not canonical_path.is_file() or sha256_file(canonical_path) != expected_sha256:
+            raise ValueError("active visual convergence canonical SceneSpec is stale")
+        current_qa_run_id, current_qa_report_sha256 = (
+            _current_convergence_qa_identity(plan, receipts_with_paths)
+        )
+        _current_qa_path, current_qa = _convergence_qa_report(
+            root,
+            current_qa_run_id,
+            current_qa_report_sha256,
+        )
+        if (
+            current_qa.job_id != job_id
+            or current_qa.camera_fingerprint != plan.camera_fingerprint
+            or current_qa.direct_metrics.scoring_version != plan.scoring_version
+        ):
+            raise ValueError("active visual convergence current QA binding mismatch")
+        current_candidates_sha256 = _verify_current_convergence_candidates(
+            root,
+            plan,
+            qa_run_id=current_qa_run_id,
+            qa_report_sha256=current_qa_report_sha256,
+            canonical_scene_spec_sha256=expected_sha256,
+        )
+        _audit_complete_convergence_qa(
+            root,
+            job_id=job_id,
+            run_id=current_qa_run_id,
+            scene_spec_sha256=expected_sha256,
+            report_sha256=current_qa_report_sha256,
+            candidates_sha256=current_candidates_sha256,
+            build_fingerprint=(
+                receipts_with_paths[-1][0].result_build_fingerprint
+                if receipts_with_paths
+                else plan.initial_build_fingerprint
+            ),
+        )
+        return False, None
+
+    if approval is None or approval_sha256 is None:
+        raise ValueError("terminal visual convergence report requires an approval")
+    historical_input_limitation = _verify_terminal_convergence_inputs(
+        root,
+        plan,
+        current_fingerprint_matches=current_input_matches,
+    )
+    report = VisualConvergenceReport.model_validate_json(
+        report_path.read_text(encoding="utf-8")
+    )
+    if (
+        report.job_id != job_id
+        or report.session_id != session_id
+        or report.plan_sha256 != plan_sha256
+        or report.approval_sha256 != approval_sha256
+        or report.input_fingerprint != plan.input_fingerprint
+        or report.camera_fingerprint != plan.camera_fingerprint
+        or report.scoring_version != plan.scoring_version
+        or report.initial_scene_spec_sha256 != plan.initial_scene_spec_sha256
+        or report.initial_qa_report_sha256 != plan.initial_qa_report_sha256
+        or report.initial_candidates_sha256 != plan.initial_candidates_sha256
+        or report.initial_build_fingerprint != plan.initial_build_fingerprint
+        or report.initial_constraints_present != plan.initial_constraints_present
+        or report.initial_constraints_sha256 != plan.initial_constraints_sha256
+        or report.initial_direct_score != plan.initial_direct_score
+        or report.initial_silhouette_iou != plan.initial_silhouette_iou
+        or report.target_direct_score != plan.target_direct_score
+        or report.target_silhouette_iou != plan.target_silhouette_iou
+    ):
+        raise ValueError("terminal visual convergence report binding mismatch")
+    if plan.initial_candidates_sha256 is not None:
+        if report.initial_scene_spec_snapshot is None:
+            raise ValueError(
+                "terminal visual convergence omits its initial SceneSpec snapshot"
+            )
+        initial_scene_snapshot_path = _resolve_convergence_artifact(
+            root,
+            report.initial_scene_spec_snapshot,
+        )
+        if (
+            initial_scene_snapshot_path
+            != (session_root / "initial_scene_spec.json").resolve()
+            or report.initial_scene_spec_snapshot.sha256
+            != plan.initial_scene_spec_sha256
+        ):
+            raise ValueError(
+                "terminal visual convergence initial SceneSpec snapshot mismatch"
+            )
+
+    receipt_artifacts = {
+        path.resolve().relative_to(root.resolve()).as_posix(): receipt_sha256
+        for _receipt, receipt_sha256, path in receipts_with_paths
+    }
+    report_receipts = {
+        item.relative_path: item.sha256 for item in report.iteration_receipts
+    }
+    if report_receipts != receipt_artifacts:
+        raise ValueError("terminal visual convergence receipt set is incomplete or stale")
+    report_iteration_evidence = {
+        item.relative_path: item.sha256 for item in report.iteration_evidence
+    }
+    expected_iteration_artifacts = dict(iteration_artifacts)
+    terminal_build_artifacts = _audit_terminal_convergence_build_snapshots(
+        root,
+        session_root,
+        plan,
+        report,
+        receipts_with_paths,
+    )
+    cancellation_artifacts = _audit_terminal_convergence_cancellation(
+        root,
+        session_root,
+        plan,
+        report,
+        plan_sha256=plan_sha256,
+        approval_sha256=approval_sha256,
+        receipts=receipts_with_paths,
+    )
+    complete_contract = _uses_complete_convergence_terminal_contract(plan)
+    if complete_contract:
+        if report.final_scene_spec_snapshot is None:
+            raise ValueError(
+                "new visual convergence terminal was downgraded to legacy evidence"
+            )
+        expected_iteration_artifacts.update(
+            _collect_complete_convergence_qa_artifacts(
+                root,
+                job_id=job_id,
+                plan=plan,
+                receipts=receipts_with_paths,
+            )
+        )
+        if report_iteration_evidence != expected_iteration_artifacts:
+            missing = sorted(
+                set(expected_iteration_artifacts) - set(report_iteration_evidence)
+            )
+            extra = sorted(
+                set(report_iteration_evidence) - set(expected_iteration_artifacts)
+            )
+            changed = sorted(
+                path
+                for path in set(report_iteration_evidence).intersection(
+                    expected_iteration_artifacts
+                )
+                if report_iteration_evidence[path]
+                != expected_iteration_artifacts[path]
+            )
+            raise ValueError(
+                "terminal visual convergence support evidence set is incomplete or "
+                f"stale: missing={missing}, extra={extra}, changed={changed}"
+            )
+    elif report_iteration_evidence != expected_iteration_artifacts:
+        optional_complete_artifacts = dict(iteration_artifacts)
+        optional_complete_artifacts.update(
+            _collect_complete_convergence_qa_artifacts(
+                root,
+                job_id=job_id,
+                plan=plan,
+                receipts=receipts_with_paths,
+            )
+        )
+        if report_iteration_evidence != optional_complete_artifacts:
+            raise ValueError(
+                "legacy visual convergence support evidence set is incomplete or stale"
+            )
+        expected_iteration_artifacts = optional_complete_artifacts
+    if report.final_scene_spec_snapshot is not None:
+        snapshot_path = _resolve_convergence_artifact(
+            root,
+            report.final_scene_spec_snapshot,
+        )
+        expected_snapshot_path = (session_root / "final_scene_spec.json").resolve()
+        if (
+            snapshot_path != expected_snapshot_path
+            or report.final_scene_spec_snapshot.sha256
+            != report.final_scene_spec_sha256
+        ):
+            raise ValueError(
+                "terminal visual convergence final SceneSpec snapshot mismatch"
+            )
+    if receipts_with_paths:
+        final_receipt = receipts_with_paths[-1][0]
+        if report.final_scene_spec_sha256 != final_receipt.canonical_scene_spec_sha256:
+            raise ValueError("terminal visual convergence final SceneSpec hash mismatch")
+        known_final_qa_hashes = {
+            value
+            for value in (
+                final_receipt.source_qa_report_sha256,
+                final_receipt.result_qa_report_sha256,
+            )
+            if value is not None
+        }
+    else:
+        if report.final_scene_spec_sha256 != plan.initial_scene_spec_sha256:
+            raise ValueError("empty visual convergence session changed the SceneSpec")
+        known_final_qa_hashes = {plan.initial_qa_report_sha256}
+    if report.final_qa_report_sha256 not in known_final_qa_hashes:
+        raise ValueError("terminal visual convergence final QA hash is not evidenced")
+    accepted_count = sum(
+        receipt.status == "accepted"
+        for receipt, _receipt_sha256, _path in receipts_with_paths
+    )
+    rolled_back_count = sum(
+        receipt.status == "rolled_back"
+        for receipt, _receipt_sha256, _path in receipts_with_paths
+    )
+    if (
+        report.accepted_iterations != accepted_count
+        or report.rolled_back_iterations != rolled_back_count
+    ):
+        raise ValueError("terminal visual convergence iteration counts mismatch")
+    _validate_terminal_convergence_semantics(report, receipts_with_paths)
+
+    manifest_path = session_root / "convergence_report.manifest.json"
+    manifest = VisualConvergenceReportManifest.model_validate_json(
+        manifest_path.read_text(encoding="utf-8")
+    )
+    if manifest.job_id != job_id or manifest.session_id != session_id:
+        raise ValueError("visual convergence PDF manifest identity mismatch")
+    report_artifact_path = _resolve_convergence_artifact(root, manifest.report_json)
+    if report_artifact_path != report_path.resolve():
+        raise ValueError("visual convergence manifest references another terminal report")
+    pdf_artifact_path = _resolve_convergence_artifact(root, manifest.pdf)
+    expected_pdf_path = (session_root / "convergence_report.pdf").resolve()
+    if pdf_artifact_path != expected_pdf_path:
+        raise ValueError("visual convergence manifest references a noncanonical PDF path")
+    for artifact in manifest.sources:
+        _resolve_convergence_artifact(root, artifact)
+    expected_manifest_fingerprint = _canonical_json_sha256(
+        [
+            {
+                "relative_path": artifact.relative_path,
+                "sha256": artifact.sha256,
+            }
+            for artifact in manifest.sources
+        ]
+    )
+    if manifest.source_fingerprint != expected_manifest_fingerprint:
+        raise ValueError("visual convergence PDF source fingerprint mismatch")
+    final_qa_run_id = next(
+        (
+            receipt.result_qa_run_id
+            for receipt, _receipt_sha256, _path in reversed(receipts_with_paths)
+            if receipt.status == "accepted" and receipt.result_qa_run_id is not None
+        ),
+        plan.initial_qa_run_id,
+    )
+    final_qa_path, final_qa = _convergence_qa_report(
+        root,
+        final_qa_run_id,
+        report.final_qa_report_sha256,
+    )
+    if (
+        final_qa.job_id != job_id
+        or final_qa.camera_fingerprint != plan.camera_fingerprint
+        or final_qa.direct_metrics.scoring_version != plan.scoring_version
+        or final_qa.direct_metrics.overall_direct_score != report.final_direct_score
+        or final_qa.direct_metrics.silhouette_iou != report.final_silhouette_iou
+    ):
+        raise ValueError("terminal visual convergence final QA metrics mismatch")
+    remaining_high_findings = sorted(
+        finding.id
+        for finding in final_qa.findings
+        if finding.severity == "high"
+        and "direct_reference" in finding.evidence_sources
+    )
+    if report.remaining_high_finding_ids != remaining_high_findings:
+        raise ValueError("terminal visual convergence high-finding summary mismatch")
+    final_qa_relative = final_qa_path.resolve().relative_to(root.resolve()).as_posix()
+    required_source_pairs = {
+        (
+            plan_path.resolve().relative_to(root.resolve()).as_posix(),
+            plan_sha256,
+        ),
+        (
+            approval_path.resolve().relative_to(root.resolve()).as_posix(),
+            approval_sha256,
+        ),
+        (
+            report_path.resolve().relative_to(root.resolve()).as_posix(),
+            sha256_file(report_path),
+        ),
+        *expected_iteration_artifacts.items(),
+        *terminal_build_artifacts.items(),
+        *cancellation_artifacts.items(),
+        (final_qa_relative, report.final_qa_report_sha256),
+    }
+    if report.final_scene_spec_snapshot is not None:
+        required_source_pairs.add(
+            (
+                report.final_scene_spec_snapshot.relative_path,
+                report.final_scene_spec_snapshot.sha256,
+            )
+        )
+    actual_source_pairs = {
+        (artifact.relative_path, artifact.sha256) for artifact in manifest.sources
+    }
+    if not required_source_pairs.issubset(actual_source_pairs):
+        raise ValueError("visual convergence PDF manifest omits authoritative sources")
+    return True, historical_input_limitation
+
+
+def _audit_visual_convergence_sessions(
+    root: Path,
+    job_id: str,
+) -> tuple[int, int, str, list[AuditFinding]]:
+    """Classify bounded convergence sessions without invalidating historical results."""
+
+    sessions_root = root / "qa" / "convergence"
+    if not sessions_root.is_dir():
+        return 0, 0, "not_requested", []
+    sessions = [
+        child
+        for child in sorted(sessions_root.iterdir())
+        if child.is_dir() and not _is_link_like(child)
+    ]
+    if not sessions:
+        return 0, 0, "not_requested", []
+
+    valid_count = 0
+    active_count = 0
+    findings: list[AuditFinding] = []
+    for session_root in sessions:
+        try:
+            terminal, historical_limitation = _audit_one_visual_convergence_session(
+                root,
+                job_id,
+                session_root,
+            )
+            if terminal:
+                valid_count += 1
+                if historical_limitation == "verified_additions":
+                    findings.append(
+                        _finding(
+                            "VISUAL_CONVERGENCE_HISTORICAL_INPUT_ADDITIONS",
+                            "info",
+                            "Completed visual convergence evidence remains valid; "
+                            "the job now contains additional input files that were not "
+                            "part of the approved historical session.",
+                            job_id=job_id,
+                            path=_workspace_relative(session_root),
+                        )
+                    )
+                elif historical_limitation == "legacy_unverifiable":
+                    findings.append(
+                        _finding(
+                            "VISUAL_CONVERGENCE_HISTORICAL_INPUT_SET_UNVERIFIABLE",
+                            "warning",
+                            "Completed legacy visual convergence evidence remains "
+                            "historically readable, but its aggregate input fingerprint "
+                            "cannot distinguish later additions from original-file changes.",
+                            job_id=job_id,
+                            path=_workspace_relative(session_root),
+                            remediation=(
+                                "Preserve the terminal evidence. Use a new convergence "
+                                "session for the current input set; do not rewrite the "
+                                "legacy session."
+                            ),
+                        )
+                    )
+            else:
+                active_count += 1
+                findings.append(
+                    _finding(
+                        "VISUAL_CONVERGENCE_ACTIVE",
+                        "info",
+                        f"Visual convergence session {session_root.name} is active.",
+                        job_id=job_id,
+                        path=_workspace_relative(session_root),
+                    )
+                )
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            findings.append(
+                _finding(
+                    "VISUAL_CONVERGENCE_INVALID",
+                    "error",
+                    "Visual convergence session failed contract or hash-chain "
+                    f"validation: {type(exc).__name__}.",
+                    job_id=job_id,
+                    path=_workspace_relative(session_root),
+                    remediation=(
+                        "Preserve the session, inspect its immutable plan, approval, "
+                        "iteration receipts, QA evidence, and PDF sidecar, then start "
+                        "a new session if repair would rewrite history."
+                    ),
+                )
+            )
+    status = (
+        "invalid"
+        if any(item.severity == "error" for item in findings)
+        else "active"
+        if active_count
+        else "valid"
+    )
+    return len(sessions), valid_count, status, findings
 
 
 def _audit_destination_handoffs(
@@ -796,6 +2608,13 @@ def _audit_job(
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
     findings.extend(_audit_latest_workflow(root, job_id))
     findings.extend(_audit_latest_interior_qa(root, job_id))
+    (
+        visual_convergence_session_count,
+        valid_visual_convergence_session_count,
+        visual_convergence_status,
+        visual_convergence_findings,
+    ) = _audit_visual_convergence_sessions(root, job_id)
+    findings.extend(visual_convergence_findings)
     handoff_count, valid_handoff_count, handoff_status, handoff_findings = (
         _audit_destination_handoffs(root, job_id)
     )
@@ -829,6 +2648,11 @@ def _audit_job(
         handoff_count=handoff_count,
         valid_handoff_count=valid_handoff_count,
         handoff_status=handoff_status,  # type: ignore[arg-type]
+        visual_convergence_session_count=visual_convergence_session_count,
+        valid_visual_convergence_session_count=(
+            valid_visual_convergence_session_count
+        ),
+        visual_convergence_status=visual_convergence_status,  # type: ignore[arg-type]
         findings=findings,
     )
 
@@ -909,6 +2733,12 @@ def audit_workspace_state(
         failed_job_count=failed,
         handoff_count=sum(item.handoff_count for item in jobs),
         valid_handoff_count=sum(item.valid_handoff_count for item in jobs),
+        visual_convergence_session_count=sum(
+            item.visual_convergence_session_count for item in jobs
+        ),
+        valid_visual_convergence_session_count=sum(
+            item.valid_visual_convergence_session_count for item in jobs
+        ),
         status=status,  # type: ignore[arg-type]
         jobs=jobs,
         findings=global_findings,

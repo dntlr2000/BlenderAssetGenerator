@@ -76,7 +76,8 @@ run_destination_handoff_gate() {
   local envelope="$SMOKE_WORKSPACE/geometry_showcase/exports/destination_handoffs/portable_gltf/$package_id/$handoff_id"
   local package_hash_after
   package_hash_after="$(uv run python -c 'import hashlib,sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "$package_manifest")"
-  uv run python -c 'import json,sys,pathlib; e=pathlib.Path(sys.argv[1]); v=json.load(open(e/"destination_handoff_validation.json", encoding="utf-8")); assert v["ok"] and v["status"] == "passed"; assert (e/"codex_handoff/handoff_manifest.json").is_file(); assert (e/"codex_handoff/handoff_report.pdf").is_file(); assert (e/"codex_handoff/handoff_report.manifest.json").is_file(); assert sys.argv[2] == sys.argv[3]' "$envelope" "$package_hash_before" "$package_hash_after"
+  # Known non-blocking round-trip limitations produce status=warning while ok remains true.
+  uv run python -c 'import json,sys,pathlib; e=pathlib.Path(sys.argv[1]); v=json.load(open(e/"destination_handoff_validation.json", encoding="utf-8")); assert v["ok"] and v["status"] in {"passed","warning"}; assert (e/"codex_handoff/handoff_manifest.json").is_file(); assert (e/"codex_handoff/handoff_report.pdf").is_file(); assert (e/"codex_handoff/handoff_report.manifest.json").is_file(); assert sys.argv[2] == sys.argv[3]' "$envelope" "$package_hash_before" "$package_hash_after"
 }
 
 if [[ "$SKIP_VISION" -eq 1 ]]; then

@@ -2,6 +2,14 @@
 
 ## 0.9.0
 
+- Added optional standard-only V0.6 bounded visual-convergence sessions with exact plan-hash approval, current direct-QA/camera/source binding, default three and hard maximum five iterations, direct-score and silhouette-IoU targets, constraint non-regression, immutable per-iteration receipts, rollback, and terminal JSON/PDF evidence.
+- Added CLI/MCP plan, approve, run, status, and cancel surfaces plus V0.9 read-only active/history audit coverage. Manual candidate-by-candidate guarded revision remains the default, `background_exterior` still performs exactly one canonical QA with no post-QA auto revision, and convergence never replaces InteriorScope, V0.7 optimization, or Destination Handoff approvals.
+- Hardened convergence with a non-empty exact initial-input hash map, exact initial candidate/build/constraint snapshots, a shared canonical SceneSpec write lock and compare-and-swap, source/result build-contract validation, immutable before/after constraint evidence, QA/candidate/build receipt continuity, durable cancellation receipts, orphan-terminal replay detection, and explicit execution/status-only flags plus next-action reporting for legacy partial plans.
+- Added a strict hash-bound visual-convergence host-safety-envelope Schema. Excluded all InteriorScope-classified objects and material edits regardless of plan contents, re-derived the envelope at approval/run time, and allowed CLI/MCP path limits to narrow—but never broaden—its path, operation, or delta authority.
+- Limited each host/MCP invocation to one recoverable staged Blender iteration so timeouts do not create an unresumable immutable directory. Receipt-less staging must be recovered before cancellation or terminalization, and a terminal session with remaining staging is an integrity failure.
+- Added canonical V0.6 timestamp QA-run ID compatibility, complete seven-pass provenance auditing, terminal SceneSpec snapshots, rollback archive/current-content compare-and-swap checks, and fail-closed fast-workflow QA ownership detection.
+- Hardened converted portable glTF delivery by promoting the portable atlas to UV0, verifying every converted material TextureInfo uses effective `TEXCOORD_0`, requiring textured primitives to expose `TEXCOORD_0` and normal-mapped primitives to expose tangents, and rejecting malformed texture indices, format mismatches, missing converted-material bindings, or unverified round-trip UV contracts.
+- Propagated accepted clean-import UV-association warnings into Destination Handoff context, limitations, and PDF evidence. The warning remains explicit because file-level binding and imported UV0 readiness do not prove topology-independent loop-to-vertex UV identity or destination-runtime parity.
 - Added an execution-policy-independent `reference_content_scope` for new jobs:
   backward-compatible `full_reference` or explicit `primary_object_only` with a
   required target subject.

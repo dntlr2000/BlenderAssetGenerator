@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from ..auto_revision.candidate_builder import build_revision_candidates
-from ..build_provenance import collect_build_provenance
 from ..blender_artifacts import write_json_atomic
+from ..build_provenance import collect_build_provenance
 from ..config import load_feature_config
 from ..models import SceneSpec
 from ..workspace import find_reference, job_dir, load_job, sha256_file

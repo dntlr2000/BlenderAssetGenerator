@@ -136,3 +136,71 @@ PDF는 Poppler로 모든 페이지를 PNG로 렌더링한 뒤 한글, 표, 재�
 - image/hybrid triplanar는 아직 실행하지 않으며 procedural triplanar는 Object 좌표 근사입니다.
 - Blender 4.x fallback 코드는 유지하지만 V0.5/V0.6 신규 스크립트는 현재 Blender 5.0.1에서만 실기동 검증했습니다.
 - 단일 이미지의 가려진 면·실제 깊이·절대 치수는 계속 inferred입니다.
+
+## 2026-07-30 선택적 bounded convergence 추가 검증
+
+기존 candidate-by-candidate guarded revision을 기본값으로 유지하면서,
+`standard` 작업에서만 exact plan SHA-256을 한 번 승인해 제한된 국소 수정 반복을
+허용하는 convergence session을 추가 검증했습니다.
+
+| 검증 | 결과 |
+|---|---|
+| 전체 Python 회귀 | 602/602 통과 (`76.15s`) |
+| convergence/V0.9 집중 회귀 | 150/150 통과 |
+| Schema 재생성 및 parity 집중 검사 | 5/5 통과 |
+| Ruff | 전체 저장소 통과 |
+| CLI | plan/approve/run/status/cancel 5개 help와 공개 호출 확인 |
+| MCP | 5개 공개 메서드 구현·allowlist·wrapper 회귀 통과 |
+| V0.6 Blender host gate | Blender 5.0.1 build/material/bake/7-pass QA/PDF 통과 |
+| V0.8 isolated gate | standard·background fast plan과 package approval 경계 통과 |
+| V0.9 isolated gate | GLB package·clean-import·handoff·audit·stability PDF 통과 |
+
+실제 QA가 생성하는 sortable run ID는 대문자 `T`와 `Z`를 포함합니다.
+초기 smoke에서 convergence 전용 소문자 ID 검증이 이 정상 run ID를 거부하는
+문제를 발견했고, session ID와 QA run ID 계약을 분리해 수정했습니다. 또한
+`VisualQAReport.request_sha256`이 request 파일 hash가 아니라 canonical contract
+hash라는 기존 V0.6 의미를 convergence 감사가 정확히 해석하도록 보강했습니다.
+
+격리된 `geometry_showcase`의 실제 7-pass QA를 사용한 exact terminal smoke:
+
+```text
+workspace:
+reports/v06_convergence_smoke/20260730T141041062Z/workspaces/geometry_showcase/
+
+session:
+exact-smoke-20260730t141041z
+
+initial QA:
+20260730T141113.483990Z-0cc1d59d53c9
+```
+
+| 증거 | 값 |
+|---|---|
+| exact plan SHA-256 | `f926969039c32b4c27759e68b7f2e217c55aacb7599bdc1e844be6a108a05d7d` |
+| approval SHA-256 | `5e1548d521690b663c4036d58f22d4d8ef3278571f66bc33a322893daf24f9fb` |
+| host safety envelope SHA-256 | `6a30f993f28865623657b3e60ff8afc968bc71a3deb4dfda9c444d3e9f493c89` |
+| 종료 이유 | `target_reached` |
+| accepted / rolled back | `0 / 0` |
+| canonical SceneSpec 전후 SHA-256 | 동일: `0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158` |
+| terminal JSON SHA-256 | `0995cb66e945a24e459847f9db080a50638d73ed94e3adf55f68d40b3cea8638` |
+| PDF SHA-256 | `38440ed6fe20eba3b3210b626da727d046310946b9135deaf379b71a7f52ba8d` |
+| PDF manifest SHA-256 | `3d4f0ed3c83125e798230c69446cf94969ed1c98022cee0f239126ad76ba6f4a` |
+
+terminal PDF 2개 페이지를 Poppler로 PNG 렌더한 뒤 한글, 표, 경로 wrapping,
+clipping과 overlap을 확인했습니다. 결함은 없었습니다. 이 smoke는 initial direct
+score와 silhouette 목표가 이미 충족된 경우 exact 승인 뒤 canonical 형상을 바꾸지
+않고 안전하게 terminalize하는 계약을 검증합니다. 실제 개선 iteration의
+accept/rollback, plateau, constraint regression, 취소, tampering, concurrent writer,
+receipt-less staging 복구, status-only legacy와 fast-workflow 소유 QA 거부는 isolated
+service fixture에서 검증했습니다.
+
+제한 사항:
+
+- convergence는 목표 달성을 보장하지 않으며 기본 3회, 하드 상한 5회입니다.
+- 카메라, 재질, custom-mesh vertex, 실내, generated-target-only와 계획 밖 경로는
+  자동 권한 밖입니다.
+- `background_exterior`의 단일 canonical QA는 initial convergence QA로 재사용할 수
+  없습니다. review delivery 뒤 별도 `standard` direct QA가 필요합니다.
+- 이번 실제 Blender terminal smoke는 eligible 후보가 없는 안전 종료를 검증했습니다.
+  Blender가 실제 형상을 수정하는 accepted iteration은 deterministic host service와
+  rollback fixture로 검증했으며 별도 사용자 자산에는 실행하지 않았습니다.

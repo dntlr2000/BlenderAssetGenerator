@@ -191,3 +191,78 @@ V0.7 clean-import 결과:
 - 공개 배포, 설치 프로그램과 코드 서명
 
 결론: **V0.9는 수정된 로컬 완료 기준인 engine-neutral GLB/FBX package, clean-import round trip, complete assembly/material handoff, safe destination Codex prompt, hash-bound manifest, V0.8 workflow 연결, V0.9 audit/PDF/gate 연결과 기존 V0.7~V0.9 회귀를 충족했다.** 이는 목적 엔진 자동 adapter나 runtime parity의 완료를 뜻하지 않는다. V1.0 승격은 사용자의 지시에 따라 중단된 상태이며 자동 Destination Adapter는 목적지가 확정된 뒤 V1.1 이후에 검토한다.
+
+## 2026-07-30 bounded convergence audit 추가 검증
+
+V0.9 read-only workspace audit가 optional V0.6 convergence의 active current-state
+evidence와 terminal historical evidence를 구분하도록 확장했습니다.
+
+추가 회귀는 다음을 포함합니다.
+
+- active session의 request, render manifest, 정확히 7개 pass, reference, mask,
+  beauty, report와 candidates hash 검증
+- terminal plan/approval, contiguous receipt와 support artifact chain 검증
+- 신규 terminal의 final SceneSpec snapshot과 모든 QA provenance 필수화
+- 진짜 legacy plan의 `legacy_unverifiable` warning 보존
+- new-to-legacy evidence downgrade, pass tamper, 거짓 target reason과
+  manual-review flag 불일치 거부
+- 완료 뒤 추가 view는 verified historical addition으로 허용하되, 원래 input이나
+  immutable session artifact 변경은 실패 처리
+
+격리 V0.6 smoke workspace의 실제 terminal session을 V0.9 audit로 검사한 결과:
+
+```text
+reports/v09/audits/convergence-exact-20260730t141041z/workspace_audit.json
+```
+
+| 항목 | 결과 |
+|---|---|
+| scanned jobs | 1 |
+| convergence sessions | 1 |
+| valid convergence sessions | 1 |
+| warning / failed jobs | 0 / 0 |
+| audit status | `passed` |
+| audit JSON SHA-256 | `340d868b77a38f5f4d528df1fd40d1df566af73ad44a00e9a01781c2c2229d34` |
+
+감사는 세션을 resume, repair, cancel하거나 새 승인을 만들지 않았고 사용자
+workspace 대신
+`reports/v06_convergence_smoke/20260730T141041062Z/workspaces/`의 격리 fixture만
+읽었습니다.
+
+## 2026-07-30 최종 V0.9 isolated Blender 5.0.1 회귀
+
+convergence hardening과 portable glTF UV0 검증 보강을 모두 포함한 최종 게이트:
+
+```text
+reports/v09_smoke/20260730T151958075Z-28320/
+```
+
+| 검증 | 결과 |
+|---|---|
+| 전체 Python | 602/602 통과 (`76.15s`) |
+| Ruff | 전체 저장소 통과 |
+| Schema 재생성·parity 집중 검사 | 5/5 통과 |
+| package manifest SHA-256 | `26e1c29574a8fa46457c32c0ab072c9f08adcf13c8d2c0ebe2f02347dcbd346d` |
+| export evidence SHA-256 | `90cb2e1fbc792df2c93060c010ef7cf3d7d1497b717a3df2e20811aad59540c1` |
+| clean-import roundtrip | `passed`, `ok=true`, semantic/material coverage `1.0 / 1.0` |
+| roundtrip JSON SHA-256 | `a70593dadad565ae429bdd957f6cb241d4852edd37372b657427fae516f835f3` |
+| handoff validation | `ok=true`, `status=warning` |
+| handoff validation SHA-256 | `6e7be1ff4e7324ffe2e459dff8f0adee775beb5706a55736bc500b6dcb6e7b68` |
+| handoff audit | `passed`, SHA-256 `238ebde059b435d83f4e867ce10373bb6314ba4fda0a51e2b62bf1a8b3c3c848` |
+| queue/workspace audit | `passed`, SHA-256 `4dce3124ab7c2aec79c00d1bad69101470451f33d864473f4f18b0a422a3bd12` |
+| environment probe SHA-256 | `662f0be32102b7b615f5a97c6a486653ab99d712d987f870e375750e53b631cf` |
+| stability PDF SHA-256 | `b03ba7509055ee2eedd823f7b9f7c3eb4827fb002f2275bf388896fcc95d78b8` |
+| stability PDF manifest SHA-256 | `72eea3119318181fa97ea889d677c647a17bfec756e305473c482c755946605b` |
+
+converted GLB의 portable atlas는 UV channel 0으로 승격되었고,
+`verification_basis=gltf_material_textureinfo_texcoord0` 기준으로 16개
+TextureInfo binding과 33개 textured primitive의 `TEXCOORD_0`을 검증했습니다.
+normal texture가 있는 primitive는 tangent 존재도 확인했습니다. 잘못된
+TextureInfo type, nonzero transform texCoord, 누락된 converted-material texture,
+CLI/manifest/contract format 불일치는 fail-closed 실행형 음성 테스트로 검증했습니다.
+
+`status=warning`은 실패를 성공으로 바꾼 것이 아닙니다. clean-import는 file-level
+texture binding, imported UV0 bounds/area와 tangent readiness를 검증하지만,
+topology-independent loop-to-vertex UV association의 완전 동일성이나 목적 엔진의
+runtime parity는 증명하지 않습니다. 이 제한은 roundtrip JSON, DestinationContext,
+known limitations와 handoff PDF에 보존됩니다.

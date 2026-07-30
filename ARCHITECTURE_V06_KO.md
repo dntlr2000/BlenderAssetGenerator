@@ -28,9 +28,17 @@ immutable input
   → direct reference QA
   → optional approved multi-view interior structural QA
   → approval-required revision candidates
-  → explicit single-use approval
-  → one revision / rebuild / convergence
-  → accept or restore baseline
+  ├─ default manual path
+  │    → exact candidate + single-use approval
+  │    → one revision / rebuild / direct QA
+  │    → accept or restore baseline
+  └─ optional standard bounded convergence
+       → immutable score/ID/path/budget plan
+       → exact plan SHA-256 approval
+       → host-policy candidate selection
+       → bounded revision / rebuild / direct QA
+       → accept and continue, or restore baseline and terminate
+       → terminal machine report + PDF
 ```
 
 ## 사람용 보고서 projection
@@ -141,6 +149,127 @@ Blender 렌더러는 source `.blend`를 열어 temporary camera와 대상 visibi
 
 현재 `reference_comparison_mode`는 `structural_only`입니다. 매핑된 실내 레퍼런스 계약이 없기 때문에 semantic visibility를 유사도나 완성도 점수로 사용하지 않고 `reference_comparison_status=unavailable`을 기록합니다. topology와 AABB overlap finding에서 나온 후보도 모두 `executable=false`이며 별도 geometry revision 승인 없이 적용되지 않습니다.
 
+## 선택적 bounded standard convergence
+
+후보별 1회 승인은 계속 기본 경로입니다. 같은 fixed-camera direct QA와 국소
+guarded revision을 반복해야 할 때만 사용자가 별도의 immutable convergence
+plan을 검토하고 exact SHA-256을 승인할 수 있습니다. 이 기능은
+`background_exterior` fast workflow 안에서 실행되지 않으며, fast workflow의
+canonical direct QA 1회와 post-QA 자동 수정 금지 계약을 변경하지 않습니다.
+
+```text
+current direct QA report + candidates + SceneSpec
+  → strict host_safety_envelope.json
+     └─ exact SHA-256 bound into plan and approval
+  → plan.json
+     ├─ non-empty exact original input-file hash map and input fingerprint
+     ├─ initial SceneSpec / QA report / camera / scoring hashes
+     ├─ target direct score and target silhouette IoU
+     ├─ allowed and locked semantic IDs
+     ├─ allowed path families / operations / per-iteration deltas
+     ├─ minimum score gain and candidate confidence
+     └─ iteration, group, candidate and changed-ID budgets
+  → exact plan SHA-256 user approval
+  → deterministic host-policy selection
+  → exact RevisionPlan + execution authorization
+  → guarded canonical replacement under one job write lock
+  → build / render / inspect / validate / constraints / direct QA
+  → immutable iteration receipt
+```
+
+기본 반복 수는 3, 하드 상한은 5입니다. 각 iteration은 승인된 minimum direct
+gain을 만족하고 silhouette IoU가 비회귀이며 measured constraint가 보존될 때만
+accepted가 됩니다. 그 외에는 해당 iteration의 baseline SceneSpec을 복구하고
+재빌드한 뒤 `plateau`, `constraint_regression` 등의 종료 이유를 남깁니다.
+
+실행 후보는 direct-reference evidence가 있고, plan의 semantic ID와 숫자
+path/operation/delta 한계를 만족하며, confidence와 iteration budget 안에 있어야
+합니다. 카메라, 재질, custom-mesh geometry, generated-target-only,
+manual-required와 계획 밖 후보는 권한 밖입니다. 전역 `qa.revision_mode`나
+`automatic_revision` 설정은 이 세션의 승인 근거가 아니며 바꿀 필요도 없습니다.
+
+세션 evidence는 다음처럼 분리됩니다.
+
+```text
+qa/convergence/<session-id>/
+├─ plan.json
+├─ approval.json
+├─ host_safety_envelope.json
+├─ initial_scene_spec.json
+├─ initial_build_provenance.json
+├─ initial_constraints.json              # 제약 계약이 있을 때
+├─ staging/<nnn>/                        # 현재 호출의 미완료 작업
+├─ interrupted_attempts/<nnn>-<id>/      # 검증·복구한 중단 evidence
+├─ iterations/
+│  └─ <nnn>/
+│     ├─ base_scene_spec.json
+│     ├─ selection.json
+│     ├─ revision_plan.json
+│     ├─ authorization.json
+│     ├─ result_scene_spec.json
+│     ├─ result_build_provenance.json
+│     ├─ before_constraints.json
+│     ├─ after_constraints.json
+│     └─ receipt.json
+├─ cancellation_receipt.json             # 취소한 세션만
+├─ final_scene_spec.json
+├─ final_build_provenance.json
+├─ convergence_report.json
+├─ convergence_report.pdf
+└─ convergence_report.manifest.json
+```
+
+receipt는 이전 receipt hash, source/result QA와 candidates, source/result build
+fingerprint와 provenance, selection, RevisionPlan, authorization, base/result
+SceneSpec, exact before/after constraint evidence와 canonical relation을 결속합니다.
+`final_scene_spec.json`은 종료 시점의 canonical SceneSpec을 고정하는 immutable
+snapshot이며 `final_build_provenance.json`, terminal JSON과 같은 source/build
+chain에 결속됩니다.
+지원 파일 누락, 비연속 iteration, source/canonical drift 또는 계획 밖 변경은
+fail-closed입니다. 세션은 target reached, plateau, eligible candidate 없음,
+manual review, iteration budget, constraint regression, cancellation,
+stale/tampered evidence 또는 host failure에서 종료합니다.
+
+호출당 full Blender iteration은 최대 하나입니다. 작업 중에는 receipt-less
+evidence를 `staging/<nnn>/`에 두고 immutable receipt가 완성된 뒤에만 같은 번호의
+`iterations/<nnn>/`로 원자적으로 승격합니다. 프로세스 중단 뒤 다음 호출은
+staging과 exact activation/base/build/QA hash를 검사하고 baseline을 복구한 뒤
+`interrupted_attempts/`로 보존합니다. completed iteration은 복구 과정에서
+덮어쓰지 않습니다. Receipt-less staging이 남아 있는 동안 cancellation과
+terminalization도 거부됩니다. 먼저 convergence run을 한 번 호출해 복구해야 하며,
+terminal evidence와 receipt-less staging이 동시에 있으면 세션 integrity
+conflict입니다.
+
+신규 plan은 non-empty exact input hash map, initial candidates, build
+provenance/fingerprint, host-safety-envelope hash와 optional constraint snapshot을
+정확히 결속해야 실행할 수 있습니다. 이 필드가 없는 기존 partial plan은
+historical 조회와 V0.9 감사만 가능하며 `approve`와 `run`은 거부됩니다. 기존
+evidence를 보충하거나 다시 쓰지 않고 current direct QA에서 새 plan을 작성해야
+합니다.
+
+`host_safety_envelope.json`은 initial SceneSpec·QA·candidate evidence에서 host가
+재도출한 allowed/locked/custom-mesh/interior/material 정책이며
+`schemas/visual_convergence_host_safety_envelope.schema.json`으로 strict
+검증됩니다. CLI의 repeatable `--path-limit-json`과 MCP의 `path_limits`는 이
+envelope보다 좁은 path/operation/delta만 요청할 수 있습니다. Plan hash를
+사용자가 새로 승인하더라도 exact envelope SHA-256과 다르면 approval/run이
+실패하므로 plan 파일 편집으로 자동 권한을 넓힐 수 없습니다.
+
+Read-only 상태 응답은 실행 상태와 역사적 가독성을 구분합니다.
+
+| 필드 | 의미 |
+|---|---|
+| `execution_eligible` | 현재 exact binding과 integrity가 실행 가능함 |
+| `status_only_legacy` | legacy partial plan이라 조회·감사만 가능함 |
+| `execution_block_reason` | 실행할 수 없는 정확한 이유 |
+| `execution_binding_gaps` | 누락된 exact binding 목록 |
+| `next_action` | 승인, 다음 iteration, staging 복구 또는 terminalization 중 다음 host 행동 |
+
+terminal JSON과 iteration chain이 판단 원본입니다. PDF는 exact plan, approval,
+iteration evidence와 final QA hash에 묶인 사용자용 projection일 뿐입니다.
+세션 승인은 InteriorScope, V0.7 optimization, package, Destination Handoff 또는
+engine-specific 작업의 승인이 아닙니다.
+
 ## 승인과 복구
 
 ```text
@@ -160,6 +289,11 @@ VisualQAReport
 archive, 승인 소비, 임시 명세 생성, canonical 교체, 보고서 기록과 후속 검증은 하나의
 예외/rollback 경계에 있습니다. constraint 비회귀는 총 실패 수가 아니라 stable
 constraint ID별 status, tolerance와 residual/tolerance 비율로 판정합니다.
+
+bounded convergence도 같은 guarded replacement와 rollback 코드를 공유하지만,
+사용자 권한은 candidate별 approval이 아니라 exact session plan에 있습니다. 각
+iteration의 `authorization.json`은 사용자를 대신하는 새 승인이 아니라 승인된
+plan envelope를 host가 검증했다는 실행 receipt입니다.
 
 ## Blender 5.0.1 호환성
 

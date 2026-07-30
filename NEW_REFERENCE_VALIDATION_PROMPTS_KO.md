@@ -21,6 +21,12 @@
 | `<STEP_ID>` | V0.8 workflow가 보고한 현재 agent/review step ID | 실제 보고값 |
 | `<QA_RUN_ID>` | Codex가 보고한 V0.6 QA run ID | 실제 보고값 |
 | `<CANDIDATE_ID>` | 적용을 검토할 V0.6 후보 ID | 실제 보고값 |
+| `<CONVERGENCE_SESSION_ID>` | Codex가 보고한 optional standard V0.6 convergence session ID | 실제 보고값 |
+| `<TARGET_DIRECT_SCORE>` | 계획할 direct score 목표. 현재 점수보다 낮을 수 없음 | `0.78` |
+| `<TARGET_SILHOUETTE_IOU>` | 계획할 silhouette IoU 목표. 현재 값보다 낮을 수 없음 | `0.80` |
+| `<ALLOWED_TARGET_IDS>` | 자동 후보 선택을 허용할 existing semantic ID 목록 | Codex가 보고한 실제 ID |
+| `<MAX_ITERATIONS>` | bounded convergence 반복 상한. `1`~`5` | `3` |
+| `<MINIMUM_ITERATION_GAIN>` | iteration별 최소 direct-score 개선량 | `0.005` |
 | `<RUN_ID>` | Codex가 보고한 V0.7 optimization run ID | 실제 보고값 |
 | `<PLAN_SHA256>` | 현재 계획 파일의 정확한 SHA-256 | 실제 보고값 |
 | `<PROFILE_ID>` | `fbx_interchange` 또는 `portable_gltf` | `fbx_interchange` |
@@ -73,6 +79,8 @@
 - V0.9는 필수 모델링 단계가 아니라 read-only audit와 선택적 Destination Handoff 계층입니다. 외형을 개선하지 않습니다.
 - Unity, Unreal 또는 다른 엔진의 runtime parity를 검증 없이 주장하지 않습니다.
 - “이후 전부 승인” 같은 포괄적 승인은 InteriorScope, V0.6 revision, V0.7 optimization, Destination Handoff의 전용 exact-hash 승인을 대체하지 못합니다.
+- `standard`의 V0.6 기본 경로는 후보별 exact 승인과 1회 적용입니다. 반복 승인을 줄이는 bounded convergence는 별도 opt-in이며, exact convergence plan SHA-256 승인을 받은 세션 안에서만 per-iteration 후보 승인을 대체합니다. 일반적인 “전부 승인”은 convergence 승인도 아닙니다.
+- bounded convergence는 default 3회, hard maximum 5회이며 목표에 도달할 때까지 무제한 실행하지 않습니다. 카메라, 재질, custom-mesh geometry, generated-target-only와 계획 밖 ID·경로는 자동 권한 밖입니다.
 - `standard`가 기본 실행 정책입니다. `background_exterior`는 실내·실측·리깅·게임 로직이 없는 정적 배경 외관에만 작업 계획 전에 명시적으로 선택합니다.
 - 빠른 경로도 다른 파이프라인이 아닙니다. 동일한 V0.4~V0.7 계약을 쓰되 일반 검토만 줄이고 전용 exact-hash 승인은 유지합니다.
 - 레퍼런스의 모델링 범위는 실행 정책과 별개입니다. `full_reference`는 기존
@@ -353,6 +361,7 @@ uv run cbm workflow-plan --request "승인 경계형 전체 static-asset 검증"
 3. V0.5 MaterialPlan, ShaderRecipe, swatch, material PDF 후 material approval
 4. V0.6 직접 Visual QA와 QA PDF 후 QA review
 5. V0.6 수정 후보가 선택되면 별도의 exact candidate/plan 승인
+5A. 수정 승인이 반복될 때에만 선택적으로 standard bounded convergence plan을 만들고 exact plan SHA-256 승인
 6. V0.7 preflight와 review plan 후 exact plan SHA-256 승인
 7. V0.7 package와 clean-import round trip 후 portable final review
 8. 선택적으로 V0.9 read-only audit
@@ -363,7 +372,7 @@ agent-authored artifact 또는 승인 단계에 도달하면 멈춰서
 workflow ID, 단계 ID, 입력·산출물 fingerprint, 검토 파일,
 정확히 필요한 다음 승인이나 작업을 보고해.
 
-generic workflow approval로 InteriorScope, V0.6 revision,
+generic workflow approval로 InteriorScope, V0.6 revision 또는 convergence plan,
 V0.7 optimization 또는 Destination Handoff 승인을 대신하지 마.
 Unity/Unreal 전용 import, prefab/actor, engine material graph 또는 runtime parity는 범위 밖이다.
 ```
@@ -624,6 +633,8 @@ QA run ID는 <QA_RUN_ID>를 사용해.
 기본 revision_mode=suggest 경계에서 멈추고 후보를 자동 승인·적용하지 마.
 큰 실루엣 문제는 V0.4 재진입 대상으로 분리하고,
 V0.6 후보는 국소적이고 안전하게 주소 지정 가능한 수정만 남겨.
+후보별 수동 승인이 반복될 것으로 예상되면 자동 시작하지 말고,
+단계 7B의 별도 standard bounded convergence 계획 선택지만 보고해.
 
 생성 이미지 기반 target은 이번 실행에서 기본적으로 사용하지 마.
 별도로 요청될 경우에도 advisory evidence로만 기록하고
@@ -753,6 +764,106 @@ validation 실패가 있으면 자동 rollback과 baseline rebuild를 확인해.
 ```
 
 `qa-approve-revision` CLI는 plan hash 인자를 받지 않습니다. 따라서 Codex가 먼저 `<PLAN_SHA256>`을 현재 파일 hash와 대조한 뒤, CLI가 current plan/candidate binding으로 승인 파일을 만들게 해야 합니다.
+
+### 단계 7B — 선택적 bounded V0.6 수렴 세션
+
+이 단계는 `standard` workflow에서 국소적인 direct-reference 후보의 수동 승인이 반복될 때만 선택합니다. 기본 경로는 여전히 단계 7의 후보별 1회 승인입니다. `background_exterior` fast lane, custom-mesh 정점 편집, 재질 수정, 실내, generated-target-only 후보, 측정 제약을 무시하는 수정에는 사용할 수 없습니다.
+
+#### 7B-1. 계획만 생성하고 exact SHA-256 검토
+
+```text
+<JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
+선택적 standard bounded visual convergence 계획만 작성해.
+
+- session_id: <CONVERGENCE_SESSION_ID>
+- target_direct_score: <TARGET_DIRECT_SCORE>
+- target_silhouette_iou: <TARGET_SILHOUETTE_IOU>
+- allowed_target_ids: <ALLOWED_TARGET_IDS>
+- max_iterations: <MAX_ITERATIONS>
+- minimum_iteration_gain: <MINIMUM_ITERATION_GAIN>
+
+먼저 current SceneSpec, fixed camera, direct QA report/candidates,
+measured constraint baseline과 source/build fingerprint를 검증해.
+plan_visual_convergence를 사용하되 canonical SceneSpec이나 Blender 파일은
+아직 수정하지 마.
+
+계획에는 정확한 입력 hash, 허용 semantic ID, 허용 경로·연산·delta,
+최소 candidate confidence, iteration/candidate/changed-ID budget,
+direct score와 silhouette IoU 목표, constraint non-regression 규칙,
+material/custom-mesh/interior/generated-target 제외를 명시해.
+`initial_input_hashes`는 비어 있지 않은 exact relative-path→SHA-256 map으로
+기록하고, strict `visual_convergence_host_safety_envelope.schema.json`을
+통과한 host safety envelope의 경로와 exact SHA-256도 계획에 결속해.
+CLI의 반복 가능한 `--path-limit-json` 또는 MCP의 `path_limits`를 쓸 때는
+host envelope의 경로·연산·delta 권한을 좁히는 데만 사용하고 확대하지 마.
+initial candidates SHA-256, initial build fingerprint/provenance SHA-256,
+constraint 존재 여부와 snapshot SHA-256도 함께 보고해.
+
+이 실행 binding이 없는 legacy partial plan이면 승인 가능한 것처럼 보고하지 말고,
+status-only historical evidence임을 알린 뒤 current direct QA에서 새 plan이
+필요하다고 보고해.
+
+기본 3회, 절대 최대 5회를 넘기지 마.
+계획 파일 경로와 exact plan SHA-256을 보고하고 승인 대기 상태로 멈춰.
+이 계획 승인은 InteriorScope, V0.7 optimization,
+Destination Handoff 또는 다른 specialized approval을 대신하지 않는다.
+```
+
+#### 7B-2. exact plan 승인 후 bounded 실행
+
+```text
+<JOB_ID>의 convergence session <CONVERGENCE_SESSION_ID>,
+exact plan SHA-256 <PLAN_SHA256>의 bounded 실행을 승인한다.
+
+현재 계획 hash, initial QA run, SceneSpec, camera, source/build fingerprint와
+constraint baseline이 모두 current인지 먼저 확인해.
+일치할 때만 approve_visual_convergence로 이 exact plan을 승인하고
+run_visual_convergence를 실행해.
+
+각 iteration에서 plan envelope 안의 direct-reference candidate만 선택하고,
+result SceneSpec, revision authorization, 전후 수치와 exact hash receipt를 남겨.
+새 fixed-camera 7-pass QA의 direct score가 최소 gain 이상 개선되고
+silhouette IoU와 constraint가 regression하지 않을 때만 결과를 유지해.
+비개선, regression 또는 검증 실패면 해당 iteration을 rollback하고 종료해.
+
+목표 달성, plateau, 실행 가능한 후보 없음, manual-only 후보,
+budget 소진, stale/tampering, constraint regression, 취소 또는 host failure에서
+자동으로 멈춰. 승인 범위를 넓히거나 최대 5회를 넘기지 마.
+
+완료 후 terminal JSON, PDF와 sidecar manifest,
+iteration별 receipt, 최종 score/IoU/constraint,
+accepted·rolled_back 변경과 terminal reason을 보고해.
+`run_visual_convergence` 한 번의 호출에서는 full Blender iteration을 최대 1회만
+처리해. 세션이 active이면 current receipt와 `next_action`을 보고하고,
+`invoke_run_again`, `invoke_run_to_recover`, `invoke_run_to_finalize` 중 보고된
+행동에 따라 같은 exact approval 범위에서 다음 호출로 안전하게 재개해.
+V0.7로 자동 진입하지 말고 다음 사용자 결정을 기다려.
+```
+
+#### 7B-3. 상태 확인 또는 명시적 취소
+
+```text
+<JOB_ID> convergence session <CONVERGENCE_SESSION_ID>을 read-only로 확인해.
+get_visual_convergence_status를 사용해 계획·승인·iteration·terminal evidence의
+current hash와 상태를 보고하고 어떤 파일도 수정하지 마.
+특히 `execution_eligible`, `status_only_legacy`, `execution_block_reason`,
+`execution_binding_gaps`, `next_action`을 그대로 보고해.
+legacy partial plan은 status/audit-only이며 새 승인·실행·수리 대상으로 제안하지 마.
+```
+
+```text
+<JOB_ID> convergence session <CONVERGENCE_SESSION_ID>의 남은 반복을 취소한다.
+먼저 get_visual_convergence_status로 상태를 확인해.
+receipt 없는 staging 또는 `status=recovery_required`이면 아직 취소하지 말고
+`run_visual_convergence`를 정확히 한 번 호출해 staging을 복구한 뒤 결과를 보고해.
+terminal evidence와 staging이 동시에 있으면 integrity failure로 보고하고
+취소나 재실행으로 덮어쓰지 마.
+복구가 끝나고 취소 가능한 current active session일 때만
+cancel_visual_convergence를 사용해 명시적인 취소 사유를 기록하고,
+이미 accepted된 iteration evidence와 canonical 결과는 임의로 되돌리지 마.
+취소 terminal JSON/PDF와 sidecar, immutable cancellation_receipt.json의
+경로와 SHA-256을 보고해.
+```
 
 ### 단계 8 — V0.7 최적화 사전 검토
 
@@ -942,6 +1053,16 @@ compiled plan SHA-256 <PLAN_SHA256>의 1회 적용을 승인한다.
 현재 hash와 binding이 다르면 적용하지 말고 stale로 보고해.
 ```
 
+선택적 V0.6 bounded convergence 승인:
+
+```text
+<JOB_ID> convergence session <CONVERGENCE_SESSION_ID>의
+exact plan SHA-256 <PLAN_SHA256>에 한해 최대 <MAX_ITERATIONS>회의
+bounded direct-reference 반복 실행을 승인한다.
+현재 plan/input/QA/camera/constraint binding이 다르면 승인하지 말고 stale로 보고해.
+계획에 잠긴 semantic ID, 경로, 연산, delta와 budget 밖의 수정은 수행하지 마.
+```
+
 실내 다각도 QA 계획 승인:
 
 ```text
@@ -1002,7 +1123,8 @@ workflow-status와 workflow-reconcile로 정확한 step ID와 input fingerprint�
 어떤 전문 승인 또는 generic review인지 구분하고,
 검토 파일, exact artifact fingerprint/SHA-256, 승인 시 다음 동작을 보고해.
 내 승인 없이 workflow-approve나 전문 승인 명령을 실행하지 마.
-generic approval로 InteriorScope, QA revision, V0.7 optimization을 우회하지 마.
+generic approval로 InteriorScope, QA revision, bounded convergence plan,
+V0.7 optimization을 우회하지 마.
 ```
 
 ### Stale fingerprint
@@ -1043,6 +1165,34 @@ convergence와 rollback_report를 확인하고 archived baseline SceneSpec이 �
 baseline rebuild/render/inspect/validate가 성공했는지 검증해.
 실패한 후보를 accepted로 재분류하지 마.
 남은 문제를 V0.4 authoring과 새 V0.6 후보 중 어디로 돌려야 하는지 보고해.
+```
+
+### Bounded convergence plateau·manual-only·rollback
+
+```text
+<JOB_ID> convergence session <CONVERGENCE_SESSION_ID>의 terminal evidence를 조사해.
+terminal reason이 target_reached, plateau, no_eligible_candidates,
+manual_review_required, iteration_budget_exhausted, constraint_regression,
+stale_or_tampered, cancelled 또는 failed 중 무엇인지 정확히 구분해.
+
+iteration별 direct score, silhouette IoU, constraint 비교,
+accepted 또는 rolled_back receipt와 최종 canonical SceneSpec hash를 보고해.
+rollback된 iteration을 accepted로 바꾸거나 plan envelope를 자동 확대하지 마.
+큰 외형 문제나 custom-mesh 수정이 남으면 V0.4 authoring 또는
+후보별 수동 V0.6 revision으로 되돌릴 것을 제안하고 멈춰.
+```
+
+### Bounded convergence stale·tampering·불완전 세션
+
+```text
+<JOB_ID> convergence session <CONVERGENCE_SESSION_ID>의
+stale 또는 tampering 원인을 read-only로 추적해.
+계획이 결속한 input, initial QA, SceneSpec, camera, candidate,
+iteration receipt와 현재 hash를 비교해.
+
+누락·변경된 exact evidence와 영향받은 iteration을 보고하고,
+기존 plan/approval/receipt를 current로 재분류하거나 다시 쓰지 마.
+새 current QA와 새 session plan이 필요하면 그 경계까지만 제안해.
 ```
 
 ### V0.7 preflight 실패
@@ -1114,6 +1264,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback | 전후 점수·constraint·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선은 rollback, 큰 문제는 2 |
+| 7B 선택적 bounded convergence | standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF | plan envelope/hash, iteration별 전후 점수·IoU·constraint | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
 | 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실 | `approve/revise_profile/cancel` | 9 | profile/source/preflight 변경 |
 | 9 V0.7 package | approved exact plan | optimized scene, cost report, FBX/GLB package, manifest, roundtrip | export PDF, roundtrip JSON | exact plan 승인 및 final review | 10 또는 11 | roundtrip 실패, package stale |
 | 10 V0.9 audit | current workspace/package | probe, audit JSON, stability PDF | warning/failure 목록 | 수리에는 별도 승인 | 선택적 11 또는 종료 | 환경·workspace 변경 |
@@ -1124,6 +1275,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 - V0.4는 single-view의 보이지 않는 면과 실제 깊이를 복원된 진실로 만들지 못합니다.
 - V0.4 constraints는 residual을 평가하지만 임의의 CAD B-Rep 또는 비선형 제약을 자동 완전 해결하지 않습니다.
 - V0.6 direct score와 generated target은 사람의 미적 승인이나 metric accuracy를 대체하지 않습니다.
+- V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다.
 - 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.
 - V0.9 Destination Handoff는 목적지 Codex를 위한 계약과 안전한 import prompt를 생성할 뿐 목적지 엔진을 실행하거나 프로젝트를 수정하지 않습니다.

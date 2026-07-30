@@ -21,7 +21,7 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 6. `analysis/material_plan.json`, `materials/`, and `textures/` — approved material, shader, and texture contracts.
 7. `constraints/constraints.json` — measured requirements.
 8. `geometry/` — referenced deterministic geometry payloads.
-9. `qa/runs/<run-id>/` — immutable exterior fixed-camera QA evidence and revision candidates.
+9. `qa/runs/<run-id>/` — immutable exterior fixed-camera QA evidence and revision candidates. Optional `qa/convergence/<session-id>/` evidence contains exact-plan-approved standard-only bounded convergence sessions and never grants fast-lane or V0.7 authority.
 10. `qa/interior/runs/<run-id>/` — immutable, approval-bound multi-view interior QA evidence; never a replacement for exterior reference QA.
 11. `asset_profiles/<profile-id>.json` — engine-neutral static-asset delivery policy.
 12. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
@@ -70,8 +70,8 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 17. Shader graphs must be produced from whitelisted recipes; never expose arbitrary Blender Python or arbitrary node execution.
 18. Direct reference evidence and measured constraints outrank beauty-render or generated-image judgments.
 19. Generated QA targets are advisory, cached with provenance, and can never independently authorize a revision.
-20. Visual revisions require exact candidate selection and a hash-bound, single-use user approval before application.
-21. A visual revision is accepted only when fixed-camera direct score improves and measured constraints do not regress; otherwise restore the archived SceneSpec and rebuild.
+20. The default manual Visual QA revision path requires exact candidate selection and a hash-bound, single-use user approval before application. An optional standard-only bounded convergence session may replace per-iteration user candidate approvals only after the user approves the exact immutable convergence-plan SHA-256; host selection remains limited to the approved semantic IDs, path families, operations, deltas, confidence threshold, iteration budgets, fixed camera, and direct-reference evidence.
+21. A manual visual revision is accepted only when fixed-camera direct score improves and measured constraints do not regress. Every automatic convergence iteration must also reach the approved minimum direct-score gain, preserve or improve silhouette IoU, and preserve measured constraints; otherwise restore the archived SceneSpec and rebuild.
 22. QA and baking require a fresh `.blend` whose embedded build fingerprint matches the current SceneSpec, external geometry payloads, material contracts, and texture channels.
 23. Fixed-camera QA must validate the actual Blender camera and contain exactly seven pass kinds: beauty, silhouette, object ID, material ID, normal, depth, and wireframe.
 24. Revision rollback protection begins before canonical SceneSpec replacement; compare measured regressions by stable constraint ID, status, tolerance, and residual-to-tolerance ratio.
@@ -151,6 +151,18 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 98. In `primary_object_only`, independent terrain, ground, vegetation, rocks, props, backdrops, and atmospheric context are excluded even if visible in the source image. Every SceneSpec object must carry an explicit primary/supporting QA role, and contextual roles must fail closed before build.
 99. Reference content scope and target subject are immutable job evidence. Changing either means creating a new job; it must never be silently converted during revision, fast-lane continuation, QA, or packaging.
 100. Object-only V0.6 comparison must derive its reference mask from observed primary/supporting evidence rather than the full reference foreground. Ambiguous targets or missing observed subject evidence are unscorable or require clarification, never a fabricated full-scene score.
+101. Standard suggest/one-shot revision remains the default. Bounded visual convergence is explicit opt-in, standard-only, and unavailable inside `background_exterior`; the fast lane still performs exactly one canonical direct QA and never applies a post-QA revision automatically.
+102. One exact convergence-plan approval authorizes only that session, with three iterations by default and a hard maximum of five. It is never an unbounded “until perfect” approval and never authorizes a path, target, operation, delta, or budget omitted from the exact plan.
+103. Convergence locks the comparison camera and material identities. Generated-target-only evidence, custom-mesh geometry edits, manual-required candidates, interiors, material edits, and arbitrary code execution remain outside the automatic envelope.
+104. Every convergence iteration must write an exact candidate selection, compiled RevisionPlan, host-policy execution authorization, result SceneSpec snapshot, result QA/candidate hashes, and an immutable hash-chained receipt. A live job write lock must prevent concurrent manual revision, convergence, or workflow writers.
+105. A convergence session stops on target reached, plateau, no eligible candidates, manual-only work, iteration budget, constraint regression, cancellation, stale/tampered evidence, or host failure. Non-improving or regressing iterations roll back instead of consuming further authority.
+106. Convergence plan approval never replaces InteriorScope, interior-QA camera-plan, V0.7 optimization, Destination Handoff, generic workflow, or any other specialized approval. It does not authorize package creation or engine-specific work.
+107. V0.9 audit treats active convergence sessions as current-state evidence and completed sessions as historical immutable evidence. Later canonical work or added auxiliary inputs may supersede a completed session without invalidating its intact original input map and receipt chain; changing an original input or immutable session artifact remains invalid.
+108. Every newly executable convergence plan binds a non-empty exact `initial_input_hashes` map, the initial SceneSpec, QA report and candidates, build fingerprint and provenance, the host-safety-envelope hash, and the optional measured-constraint snapshot. Legacy partial plans that lack any of these bindings are status/audit-only and must never be approved, resumed, repaired, or rewritten in place.
+109. Convergence receipts bind source/result QA, candidates, build provenance, base/result SceneSpec snapshots, and exact before/after constraint evidence. Recompute score gain, silhouette non-regression, constraint regressions, and source-to-result build-contract continuity instead of trusting receipt summary fields.
+110. Convergence never edits InteriorScope-classified objects or material identities. The strict `visual_convergence_host_safety_envelope.schema.json` contract is hash-bound into the plan and approval, and approval-time and run-time host policy must be re-derived from immutable source evidence. Public CLI/MCP path limits may only narrow that host envelope; editing a plan cannot broaden allowed IDs, custom-mesh eligibility, path/operation/delta limits, or material permissions.
+111. Process at most one full Blender convergence iteration per host/MCP invocation. Long-running work uses recoverable staging and publishes an immutable numbered iteration only after its receipt is complete; a later call may recover an interrupted stage but must never overwrite a completed receipt.
+112. Re-read and re-hash the exact plan and approval after acquiring the shared job write lock and before canonical promotion or terminalization. Receipt-less iteration staging must be recovered by one convergence-run invocation before cancellation or terminalization; terminal evidence combined with receipt-less staging is invalid. Orphan cancellation, final snapshot, PDF, or incomplete iteration evidence must block replay rather than silently reopening consumed authority.
 
 ## v0.4 reference-analysis workflow
 
@@ -244,6 +256,11 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 8. Rebuild, re-render, re-inspect, re-validate, and reevaluate constraints after application.
 9. Keep canonical replacement and every verification step inside the rollback boundary; restore and rebuild the archived baseline on non-improvement, per-ID constraint regression, or verification failure.
 10. If an external QA target is used, preserve the exact prompt text and provider/model/version/seed/output provenance with the run.
+11. Keep the candidate-by-candidate one-shot flow as the default. For repeated standard revisions only, the user may request one bounded convergence plan from a current direct QA run.
+12. Show the target direct score, target silhouette IoU, allowed and locked semantic IDs, path/operation/delta rules, minimum gain, confidence threshold, per-iteration budgets, hard iteration limit, stop conditions, non-empty exact input-map status, host-safety-envelope path/SHA-256, and exact plan SHA-256. Planning must not modify canonical geometry.
+13. Stop until the user approves that exact plan hash. After approval, host policy may select only eligible direct-reference candidates inside the immutable envelope and does not require another user approval for each accepted iteration.
+14. Do not change global `qa.revision_mode`, enable `automatic_revision`, use a generated target as authority, or widen the envelope during a session. Any such need terminates for manual review.
+15. Persist every iteration receipt and terminal machine report under `qa/convergence/<session-id>/`, generate its hash-bound PDF projection, and report whether both targets were reached or the exact reason the bounded session stopped. Process at most one full Blender iteration per host/MCP invocation and use the status response's execution flags and `next_action` to approve, continue, recover, or finalize.
 
 ## Optional multi-view interior QA workflow
 
@@ -330,7 +347,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 ## v0.9 stabilization and release-candidate workflow
 
 1. Run `stability-probe` to snapshot the detected host, project/contract versions, and the hash of existing Blender compatibility evidence without copying absolute paths.
-2. Run `workspace-audit` against all jobs or one explicit job. Treat warnings and failures as evidence; do not repair or migrate during the audit.
+2. Run `workspace-audit` against all jobs or one explicit job. Treat warnings and failures as evidence; do not repair or migrate during the audit. For bounded convergence, verify active current-state bindings and completed historical plan/approval/iteration/QA/PDF hash chains without rewriting them.
 3. Generate `stability-report-pdf` only from the exact immutable probe and audit IDs. Keep its sidecar manifest and source hashes with the PDF.
 4. Use the local queue only for already planned V0.8 workflows. Enqueue one active entry per job/workflow and keep `max_concurrency=1`.
 5. Run one bounded queue dispatch. Stop normally at every agent-authored or approval boundary and preserve the V0.8 workflow state as authoritative.

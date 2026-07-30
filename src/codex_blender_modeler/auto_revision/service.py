@@ -1,9 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
-import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -11,8 +11,15 @@ from typing import Any
 from ..blender_artifacts import write_json_atomic
 from ..blender_runner import run_blender
 from ..constraints import evaluate_job_constraints
+from ..orchestration.locks import workflow_write_lock
 from ..validation import load_scene_spec
-from ..workspace import archive_scene_spec, job_dir, sha256_file
+from ..workspace import (
+    archive_scene_spec,
+    current_job_write_lock_owner,
+    job_dir,
+    replace_scene_spec_if_current,
+    sha256_file,
+)
 from .approval import create_revision_approval, load_revision_approval
 from .convergence import evaluate_convergence
 from .guard import apply_approved_revision, compile_revision_plan
@@ -231,8 +238,9 @@ def _run_post_visual_qa(
     job_id: str,
     render_engine: str,
     render_device: str,
+    run_id: str | None = None,
 ) -> dict[str, Any]:
-    """Run one direct-reference-only fixed-camera QA pass after the approved edit."""
+    """Run one optionally named direct-reference fixed-camera QA pass after an edit."""
 
     from ..qa import run_job_visual_qa
 
@@ -240,6 +248,7 @@ def _run_post_visual_qa(
         job_id,
         render_engine=render_engine,
         render_device=render_device,
+        run_id=run_id,
         include_generated_target=False,
     )
 
@@ -290,13 +299,34 @@ def _semantic_change_sets(
     return changed, preserved
 
 
-def _replace_with_archive(scene_spec_path: Path, archived: Path) -> str:
-    """Atomically restore the archived canonical SceneSpec while retaining history."""
+def _replace_with_archive(
+    job_id: str,
+    scene_spec_path: Path,
+    archived: Path,
+    *,
+    expected_archive_sha256: str,
+    expected_current_sha256: str,
+    lock_owner_id: str,
+) -> str:
+    """Restore only a verified archive over the exact caller-owned canonical hash."""
 
-    temporary = scene_spec_path.with_suffix(".json.rollback.tmp")
-    shutil.copy2(archived, temporary)
-    os.replace(temporary, scene_spec_path)
-    return sha256_file(scene_spec_path)
+    if (
+        not archived.is_file()
+        or sha256_file(archived) != expected_archive_sha256
+    ):
+        raise RuntimeError(
+            "archived SceneSpec changed before rollback; "
+            "refusing to replace canonical content"
+        )
+    replacement = replace_scene_spec_if_current(
+        job_id,
+        archived,
+        expected_current_sha256=expected_current_sha256,
+        expected_candidate_sha256=expected_archive_sha256,
+        lock_owner_id=lock_owner_id,
+        archive_current=False,
+    )
+    return str(replacement["result_scene_spec_sha256"])
 
 
 def _rollback_job(
@@ -307,16 +337,26 @@ def _rollback_job(
     scene_spec_path: Path,
     archived: Path,
     expected_spec_sha256: str,
+    expected_current_spec_sha256: str,
     expected_input_hashes: dict[str, str],
     latest_snapshot: bytes | None,
     render_engine: str,
     render_device: str,
     reason: str,
+    lock_owner_id: str | None = None,
     rebuild_baseline: bool = True,
 ) -> dict[str, Any]:
     """Restore the archived SceneSpec and rebuild derived state when it may be stale."""
 
-    restored_hash = _replace_with_archive(scene_spec_path, archived)
+    resolved_lock_owner = lock_owner_id or current_job_write_lock_owner(job_id)
+    restored_hash = _replace_with_archive(
+        job_id,
+        scene_spec_path,
+        archived,
+        expected_archive_sha256=expected_spec_sha256,
+        expected_current_sha256=expected_current_spec_sha256,
+        lock_owner_id=resolved_lock_owner,
+    )
     rebuild_error: str | None = None
     rebuild: dict[str, Any] | None = None
     if rebuild_baseline:
@@ -437,6 +477,13 @@ def approve_job_qa_revision(
     }
 
 
+def _manual_revision_lock_id(run_id: str) -> str:
+    """Map one QA run to a portable lock owner ID without exposing its full name."""
+
+    digest = hashlib.sha256(run_id.encode("utf-8")).hexdigest()[:12]
+    return f"qa-revision-{digest}"
+
+
 def apply_job_approved_revision(
     job_id: str,
     run_id: str,
@@ -446,12 +493,46 @@ def apply_job_approved_revision(
     render_device: str = "auto",
     minimum_improvement: float = 0.001,
 ) -> dict[str, Any]:
-    """Apply one approval and conservatively validate or roll back its single iteration."""
+    """Serialize one manual apply against every canonical job writer."""
 
     _validate_render_selection(render_engine, render_device)
     if minimum_improvement < 0:
         raise ValueError("minimum_improvement must be non-negative")
     root, run_dir = _resolve_run(job_id, run_id)
+    lock_owner_id = _manual_revision_lock_id(run_id)
+    with workflow_write_lock(
+        root,
+        job_id,
+        lock_owner_id,
+        ttl_seconds=86400,
+    ):
+        return _apply_job_approved_revision_under_job_lock(
+            job_id,
+            run_id,
+            root=root,
+            run_dir=run_dir,
+            run_pipeline=run_pipeline,
+            render_engine=render_engine,
+            render_device=render_device,
+            minimum_improvement=minimum_improvement,
+            lock_owner_id=lock_owner_id,
+        )
+
+
+def _apply_job_approved_revision_under_job_lock(
+    job_id: str,
+    run_id: str,
+    *,
+    root: Path,
+    run_dir: Path,
+    run_pipeline: bool,
+    render_engine: str,
+    render_device: str,
+    minimum_improvement: float,
+    lock_owner_id: str,
+) -> dict[str, Any]:
+    """Apply and verify one approval while the public caller owns the job write lock."""
+
     candidates_path = run_dir / "revision_candidates.json"
     plan_path = run_dir / "revision_plan.json"
     approval_path = run_dir / "revision_approval.json"
@@ -510,6 +591,7 @@ def apply_job_approved_revision(
 
     archived: Path | None = None
     canonical_replaced_once = False
+    result_spec_sha256: str | None = None
     next_spec_path = run_dir / "scene_spec.approved.next.json"
     try:
         (root / "history").mkdir(parents=True, exist_ok=True)
@@ -529,7 +611,15 @@ def apply_job_approved_revision(
         )
         _require_input_hashes(root, expected_input_hashes)
         result_spec_sha256 = sha256_file(next_spec_path)
-        os.replace(next_spec_path, scene_spec_path)
+        replace_scene_spec_if_current(
+            job_id,
+            next_spec_path,
+            expected_current_sha256=before_spec_sha256,
+            expected_candidate_sha256=result_spec_sha256,
+            lock_owner_id=lock_owner_id,
+            archive_current=False,
+        )
+        next_spec_path.unlink(missing_ok=True)
         canonical_replaced_once = True
         application.update(
             {
@@ -606,11 +696,13 @@ def apply_job_approved_revision(
             scene_spec_path=scene_spec_path,
             archived=archived,
             expected_spec_sha256=before_spec_sha256,
+            expected_current_spec_sha256=result_spec_sha256,
             expected_input_hashes=expected_input_hashes,
             latest_snapshot=latest_snapshot,
             render_engine=render_engine,
             render_device=render_device,
             reason="convergence did not improve direct reference score without regressions",
+            lock_owner_id=lock_owner_id,
         )
         application.update(
             {
@@ -648,6 +740,7 @@ def apply_job_approved_revision(
                     scene_spec_path=scene_spec_path,
                     archived=archived,
                     expected_spec_sha256=before_spec_sha256,
+                    expected_current_spec_sha256=result_spec_sha256 or "",
                     expected_input_hashes=expected_input_hashes,
                     latest_snapshot=latest_snapshot,
                     render_engine=render_engine,
@@ -656,6 +749,7 @@ def apply_job_approved_revision(
                         "approved apply failed after canonical replacement: "
                         f"{type(exc).__name__}: {exc}"
                     ),
+                    lock_owner_id=lock_owner_id,
                     rebuild_baseline=run_pipeline,
                 )
                 canonical_matches_baseline = True

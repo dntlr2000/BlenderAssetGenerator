@@ -4,6 +4,7 @@ import json
 import shutil
 from pathlib import Path
 from typing import Annotated
+from uuid import uuid4
 
 import typer
 from rich.console import Console
@@ -17,9 +18,15 @@ from .architecture import (
     validate_job_interior_scope,
 )
 from .auto_revision import (
+    ConvergencePathLimit,
     apply_job_approved_revision,
     approve_job_qa_revision,
+    approve_job_visual_convergence,
+    cancel_job_visual_convergence,
     compile_job_qa_revision,
+    get_job_visual_convergence_status,
+    plan_job_visual_convergence,
+    run_job_visual_convergence,
 )
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
@@ -95,13 +102,14 @@ from .validation import load_scene_spec
 from .versioning import PROJECT_VERSION
 from .workspace import (
     add_job_view,
-    archive_scene_spec,
+    canonical_scene_spec_write_lock,
     create_job,
     ensure_job_dirs,
     find_input_images,
     job_dir,
     load_job,
     metadata_path,
+    replace_scene_spec_if_current,
 )
 
 app = typer.Typer(no_args_is_help=True, help="Codex Blender Modeler CLI")
@@ -114,6 +122,45 @@ def _scene_spec_path(job_id: str) -> Path:
     return job_dir(job_id) / "analysis" / "scene_spec.json"
 
 
+def _scene_spec_candidate_path(job_id: str, operation: str) -> Path:
+    """Create one collision-resistant job-local candidate path for a CLI writer."""
+
+    return (
+        job_dir(job_id)
+        / "analysis"
+        / f".scene_spec.{operation}-{uuid4().hex}.next.json"
+    )
+
+
+def _cli_scene_spec_lock_owner(operation: str) -> str:
+    """Create one valid shared-lock owner ID for a canonical CLI operation."""
+
+    return f"cli-{operation}-{uuid4().hex[:12]}"
+
+
+def _promote_cli_scene_spec(
+    job_id: str,
+    candidate_path: Path,
+    *,
+    expected_current_sha256: str | None,
+    operation: str,
+) -> dict:
+    """Serialize and compare-promote one validated CLI SceneSpec candidate."""
+
+    candidate_sha256 = sha256_file(candidate_path)
+    owner = _cli_scene_spec_lock_owner(operation)
+    with canonical_scene_spec_write_lock(job_id, owner):
+        result = replace_scene_spec_if_current(
+            job_id,
+            candidate_path,
+            expected_current_sha256=expected_current_sha256,
+            expected_candidate_sha256=candidate_sha256,
+            lock_owner_id=owner,
+        )
+    candidate_path.unlink(missing_ok=True)
+    return result
+
+
 def _validate_render_options(render_engine: str, render_device: str) -> None:
     """Reject renderer/device combinations unsupported by deterministic runners."""
 
@@ -123,6 +170,26 @@ def _validate_render_options(render_engine: str, render_device: str) -> None:
         raise typer.BadParameter("render-device must be auto, cpu, or gpu")
     if render_engine == "eevee" and render_device != "auto":
         raise typer.BadParameter("render-device must be auto for EEVEE")
+
+
+def _parse_convergence_path_limits(
+    encoded_limits: list[str] | None,
+) -> list[ConvergencePathLimit] | None:
+    """Parse repeatable strict JSON path limits without broadening host policy."""
+
+    if encoded_limits is None:
+        return None
+    parsed: list[ConvergencePathLimit] = []
+    for index, encoded in enumerate(encoded_limits, start=1):
+        try:
+            payload = json.loads(encoded)
+            parsed.append(ConvergencePathLimit.model_validate(payload))
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            raise typer.BadParameter(
+                f"--path-limit-json item {index} is not a valid strict "
+                f"ConvergencePathLimit: {exc}"
+            ) from exc
+    return parsed
 
 
 @app.command()
@@ -318,15 +385,26 @@ def analyze(job_id: str) -> None:
         + f"\nTarget job directory: {job_dir(job_id)}\n"
     )
     output = _scene_spec_path(job_id)
-    archive_scene_spec(job_id)
+    expected_current_sha256 = sha256_file(output) if output.is_file() else None
+    candidate = _scene_spec_candidate_path(job_id, "analyze")
     run_codex_json(
         prompt=prompt,
         images=images,
         schema=settings.repo_root / "schemas" / "scene_spec.schema.json",
-        output=output,
+        output=candidate,
     )
-    spec = load_scene_spec(output)
+    spec = load_scene_spec(candidate)
+    replacement = _promote_cli_scene_spec(
+        job_id,
+        candidate,
+        expected_current_sha256=expected_current_sha256,
+        operation="analyze",
+    )
     console.print(f"SceneSpec created: {output} ({len(spec.objects)} objects)")
+    if replacement["archived_scene_spec"]:
+        console.print(
+            f"Previous revision archived: {replacement['archived_scene_spec']}"
+        )
 
 
 @app.command()
@@ -346,7 +424,8 @@ def revise(job_id: str, request: str) -> None:
         + f"\nCurrent SceneSpec path: {current}\n"
         + f"Current job ID: {spec.job_id}\n"
     )
-    temp = job_dir(job_id) / "analysis" / "scene_spec.next.json"
+    expected_current_sha256 = sha256_file(current)
+    temp = _scene_spec_candidate_path(job_id, "revise")
     run_codex_json(
         prompt=prompt,
         images=images,
@@ -356,11 +435,17 @@ def revise(job_id: str, request: str) -> None:
     next_spec = load_scene_spec(temp)
     if next_spec.job_id != job_id:
         raise ValueError(f"Revised SceneSpec job_id changed to {next_spec.job_id}")
-    archived = archive_scene_spec(job_id)
-    temp.replace(current)
+    replacement = _promote_cli_scene_spec(
+        job_id,
+        temp,
+        expected_current_sha256=expected_current_sha256,
+        operation="revise",
+    )
     console.print(f"Revised SceneSpec written: {current}")
-    if archived:
-        console.print(f"Previous revision archived: {archived}")
+    if replacement["archived_scene_spec"]:
+        console.print(
+            f"Previous revision archived: {replacement['archived_scene_spec']}"
+        )
 
 
 @app.command("migrate-spec")
@@ -373,12 +458,21 @@ def migrate_spec(job_id: str) -> None:
     if raw.get("schema_version") == "0.2.0":
         console.print(f"Already on SceneSpec v0.2.0: {current}")
         return
-    archived = archive_scene_spec(job_id)
-    migrate_v1_file(current)
-    load_scene_spec(current)
+    expected_current_sha256 = sha256_file(current)
+    candidate = _scene_spec_candidate_path(job_id, "migrate")
+    migrate_v1_file(current, candidate)
+    load_scene_spec(candidate)
+    replacement = _promote_cli_scene_spec(
+        job_id,
+        candidate,
+        expected_current_sha256=expected_current_sha256,
+        operation="migrate",
+    )
     console.print(f"Migrated to SceneSpec v0.2.0: {current}")
-    if archived:
-        console.print(f"Previous revision archived: {archived}")
+    if replacement["archived_scene_spec"]:
+        console.print(
+            f"Previous revision archived: {replacement['archived_scene_spec']}"
+        )
 
 
 
@@ -422,21 +516,31 @@ def apply_revision(job_id: str) -> None:
     plan = root / "analysis" / "revision_plan.json"
     if not plan.is_file():
         raise typer.BadParameter(f"Revision plan does not exist: {plan}")
-    temp = root / "analysis" / "scene_spec.next.json"
-    _validated, report = apply_revision_plan(
-        scene_spec_path=current,
-        plan_path=plan,
-        output_path=temp,
-    )
-    archived = archive_scene_spec(job_id)
-    temp.replace(current)
+    temp = _scene_spec_candidate_path(job_id, "apply-revision")
+    owner = _cli_scene_spec_lock_owner("apply-revision")
+    with canonical_scene_spec_write_lock(job_id, owner):
+        _validated, report = apply_revision_plan(
+            scene_spec_path=current,
+            plan_path=plan,
+            output_path=temp,
+        )
+        replacement = replace_scene_spec_if_current(
+            job_id,
+            temp,
+            expected_current_sha256=report["base_spec_sha256"],
+            expected_candidate_sha256=report["result_spec_sha256"],
+            lock_owner_id=owner,
+        )
+    temp.unlink(missing_ok=True)
     report_path = root / "reports" / "revision_diff.json"
     report_path.write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
     )
     console.print(f"Guarded revision applied: {current}")
-    if archived:
-        console.print(f"Previous revision archived: {archived}")
+    if replacement["archived_scene_spec"]:
+        console.print(
+            f"Previous revision archived: {replacement['archived_scene_spec']}"
+        )
     console.print(f"Exact diff report: {report_path}")
 
 
@@ -769,6 +873,137 @@ def qa_apply_approved(
         render_engine=render_engine,
         render_device=render_device,
         minimum_improvement=minimum_improvement,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-convergence-plan")
+def qa_convergence_plan(
+    job_id: str,
+    initial_qa_run_id: str,
+    target_direct_score: Annotated[
+        float, typer.Option("--target-direct-score", min=0.0, max=1.0)
+    ],
+    target_silhouette_iou: Annotated[
+        float, typer.Option("--target-silhouette-iou", min=0.0, max=1.0)
+    ],
+    allowed_target_id: Annotated[
+        list[str] | None, typer.Option("--allowed-target-id")
+    ] = None,
+    session_id: Annotated[str | None, typer.Option("--session-id")] = None,
+    minimum_iteration_gain: Annotated[
+        float, typer.Option("--minimum-iteration-gain", min=0.000001, max=1.0)
+    ] = 0.001,
+    minimum_candidate_confidence: Annotated[
+        float, typer.Option("--minimum-candidate-confidence", min=0.0, max=1.0)
+    ] = 0.8,
+    max_iterations: Annotated[
+        int, typer.Option("--max-iterations", min=1, max=5)
+    ] = 3,
+    max_candidate_groups: Annotated[
+        int, typer.Option("--max-candidate-groups", min=1, max=20)
+    ] = 3,
+    max_candidates: Annotated[
+        int, typer.Option("--max-candidates", min=1, max=100)
+    ] = 12,
+    max_changed_ids: Annotated[
+        int, typer.Option("--max-changed-ids", min=1, max=50)
+    ] = 6,
+    path_limit_json: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--path-limit-json",
+            help=(
+                "Repeatable strict JSON ConvergencePathLimit object that may only "
+                "narrow the host-derived path, operation, and delta envelope."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Plan one standard-only exact-hash envelope without changing geometry."""
+
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = plan_job_visual_convergence(
+        job_id,
+        initial_qa_run_id,
+        target_direct_score=target_direct_score,
+        target_silhouette_iou=target_silhouette_iou,
+        allowed_target_ids=allowed_target_id,
+        session_id=session_id,
+        minimum_iteration_gain=minimum_iteration_gain,
+        minimum_candidate_confidence=minimum_candidate_confidence,
+        max_iterations=max_iterations,
+        max_candidate_groups_per_iteration=max_candidate_groups,
+        max_candidates_per_iteration=max_candidates,
+        max_changed_ids_per_iteration=max_changed_ids,
+        path_limits=_parse_convergence_path_limits(path_limit_json),
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-convergence-approve")
+def qa_convergence_approve(
+    job_id: str,
+    session_id: str,
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+) -> None:
+    """Record explicit user approval for one exact bounded-convergence plan hash."""
+
+    result = approve_job_visual_convergence(
+        job_id,
+        session_id,
+        plan_sha256=plan_sha256,
+        approval_note=approval_note,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-convergence-run")
+def qa_convergence_run(
+    job_id: str,
+    session_id: str,
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+) -> None:
+    """Run or recover at most one full approved convergence iteration."""
+
+    _validate_render_options(render_engine, render_device)
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = run_job_visual_convergence(
+        job_id,
+        session_id,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-convergence-status")
+def qa_convergence_status(
+    job_id: str,
+    session_id: str,
+) -> None:
+    """Read one bounded visual-convergence session without changing its evidence."""
+
+    result = get_job_visual_convergence_status(job_id, session_id)
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-convergence-cancel")
+def qa_convergence_cancel(
+    job_id: str,
+    session_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Cancel one approved active convergence session with an explicit reason."""
+
+    result = cancel_job_visual_convergence(
+        job_id,
+        session_id,
+        reason=reason,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 

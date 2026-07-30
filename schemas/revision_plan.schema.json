@@ -8,7 +8,8 @@
             "set",
             "multiply",
             "add",
-            "append"
+            "append",
+            "remove"
           ],
           "title": "Op",
           "type": "string"

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from uuid import uuid4
 
 from mcp.server.fastmcp import FastMCP
 
@@ -14,9 +15,15 @@ from .architecture import (
 )
 from .architecture import validate_job_interior_scope
 from .auto_revision import (
+    ConvergencePathLimit,
     apply_job_approved_revision,
     approve_job_qa_revision,
+    approve_job_visual_convergence,
+    cancel_job_visual_convergence,
     compile_job_qa_revision,
+    get_job_visual_convergence_status,
+    plan_job_visual_convergence,
+    run_job_visual_convergence,
 )
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
@@ -117,7 +124,15 @@ from .versioning import (
     VISUAL_QA_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
 )
-from .workspace import add_job_view, archive_scene_spec, ensure_job_dirs, job_dir, load_job
+from .workspace import (
+    add_job_view,
+    canonical_scene_spec_write_lock,
+    ensure_job_dirs,
+    job_dir,
+    load_job,
+    replace_scene_spec_if_current,
+    sha256_file,
+)
 from .workspace import create_job as create_job_internal
 
 mcp = FastMCP(
@@ -1157,19 +1172,135 @@ def apply_approved_visual_revision(
 
 
 @mcp.tool()
+def plan_visual_convergence(
+    job_id: str,
+    initial_qa_run_id: str,
+    target_direct_score: float,
+    target_silhouette_iou: float,
+    allowed_target_ids: list[str] | None = None,
+    session_id: str | None = None,
+    minimum_iteration_gain: float = 0.001,
+    minimum_candidate_confidence: float = 0.8,
+    max_iterations: int = 3,
+    max_candidate_groups_per_iteration: int = 3,
+    max_candidates_per_iteration: int = 12,
+    max_changed_ids_per_iteration: int = 6,
+    path_limits: list[dict] | None = None,
+) -> dict:
+    """Plan a standard-only exact-hash envelope; limits may only narrow host policy."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    strict_path_limits = (
+        [ConvergencePathLimit.model_validate(item) for item in path_limits]
+        if path_limits is not None
+        else None
+    )
+    return plan_job_visual_convergence(
+        job_id,
+        initial_qa_run_id,
+        target_direct_score=target_direct_score,
+        target_silhouette_iou=target_silhouette_iou,
+        allowed_target_ids=allowed_target_ids,
+        session_id=session_id,
+        minimum_iteration_gain=minimum_iteration_gain,
+        minimum_candidate_confidence=minimum_candidate_confidence,
+        max_iterations=max_iterations,
+        max_candidate_groups_per_iteration=max_candidate_groups_per_iteration,
+        max_candidates_per_iteration=max_candidates_per_iteration,
+        max_changed_ids_per_iteration=max_changed_ids_per_iteration,
+        path_limits=strict_path_limits,
+    )
+
+
+@mcp.tool()
+def approve_visual_convergence(
+    job_id: str,
+    session_id: str,
+    plan_sha256: str,
+    approval_note: str,
+) -> dict:
+    """Record exact user approval; callers must not infer it from a general request."""
+
+    return approve_job_visual_convergence(
+        job_id,
+        session_id,
+        plan_sha256=plan_sha256,
+        approval_note=approval_note,
+    )
+
+
+@mcp.tool()
+def run_visual_convergence(
+    job_id: str,
+    session_id: str,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> dict:
+    """Run or recover at most one full exact-plan-approved iteration per call."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    return run_job_visual_convergence(
+        job_id,
+        session_id,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+
+
+@mcp.tool()
+def get_visual_convergence_status(
+    job_id: str,
+    session_id: str,
+) -> dict:
+    """Inspect one convergence session read-only even after feature deactivation."""
+
+    return get_job_visual_convergence_status(job_id, session_id)
+
+
+@mcp.tool()
+def cancel_visual_convergence(
+    job_id: str,
+    session_id: str,
+    reason: str,
+) -> dict:
+    """Cancel one approved active session without authorizing another revision."""
+
+    return cancel_job_visual_convergence(
+        job_id,
+        session_id,
+        reason=reason,
+    )
+
+
+@mcp.tool()
 def apply_revision_plan(job_id: str) -> dict:
     """Apply analysis/revision_plan.json without allowing unrelated SceneSpec fields to change."""
+
     root = ensure_job_dirs(job_id)
     current = root / "analysis" / "scene_spec.json"
     plan = root / "analysis" / "revision_plan.json"
-    temp = root / "analysis" / "scene_spec.next.json"
-    _validated, report = apply_guarded_revision(
-        scene_spec_path=current,
-        plan_path=plan,
-        output_path=temp,
+    temp = (
+        root
+        / "analysis"
+        / f".scene_spec.mcp-apply-revision-{uuid4().hex}.next.json"
     )
-    archived = archive_scene_spec(job_id)
-    temp.replace(current)
+    owner = f"mcp-apply-revision-{uuid4().hex[:12]}"
+    with canonical_scene_spec_write_lock(job_id, owner):
+        _validated, report = apply_guarded_revision(
+            scene_spec_path=current,
+            plan_path=plan,
+            output_path=temp,
+        )
+        replacement = replace_scene_spec_if_current(
+            job_id,
+            temp,
+            expected_current_sha256=report["base_spec_sha256"],
+            expected_candidate_sha256=sha256_file(temp),
+            lock_owner_id=owner,
+        )
+    temp.unlink(missing_ok=True)
     report_path = root / "reports" / "revision_diff.json"
     report_path.write_text(
         json.dumps(report, indent=2, ensure_ascii=False) + "\n",
@@ -1178,7 +1309,7 @@ def apply_revision_plan(job_id: str) -> dict:
     return {
         "ok": True,
         "scene_spec": str(current),
-        "archived": str(archived) if archived else None,
+        "archived": replacement["archived_scene_spec"],
         "report": str(report_path),
         "changes": report["changes"],
     }

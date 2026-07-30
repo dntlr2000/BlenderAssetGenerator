@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import ast
 import importlib.util
+import json
+import sys
 from pathlib import Path
 from types import ModuleType
 
@@ -28,6 +30,69 @@ def load_common() -> ModuleType:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def load_export_script(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    """Load export verification helpers with a harmless fake bpy module."""
+
+    path = SCRIPT_ROOT / "export_portable_package.py"
+    monkeypatch.setitem(sys.modules, "bpy", ModuleType("bpy"))
+    spec = importlib.util.spec_from_file_location("portable_export_test", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load export_portable_package.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def load_roundtrip_script(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
+    """Load round-trip policy helpers with a harmless fake bpy module."""
+
+    path = SCRIPT_ROOT / "validate_export_roundtrip.py"
+    monkeypatch.setitem(sys.modules, "bpy", ModuleType("bpy"))
+    spec = importlib.util.spec_from_file_location("portable_roundtrip_test", path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError("Unable to load validate_export_roundtrip.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _gltf_uv0_fixture() -> tuple[dict, dict]:
+    """Return one minimal converted glTF document and matching export contract."""
+
+    document = {
+        "textures": [{"source": 0}],
+        "materials": [
+            {
+                "extras": {"cbm_id": "mat.body"},
+                "normalTexture": {"index": 0},
+                "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}},
+            }
+        ],
+        "meshes": [
+            {
+                "primitives": [
+                    {
+                        "material": 0,
+                        "attributes": {
+                            "POSITION": 0,
+                            "TEXCOORD_0": 1,
+                            "TANGENT": 2,
+                        },
+                    }
+                ]
+            }
+        ],
+    }
+    contract = {
+        "status": "verified",
+        "export_format": "gltf",
+        "required_uv_set": "CBMPortableAtlas",
+        "required_uv_channel_index": 0,
+        "objects": [{"material_ids": ["mat.body"]}],
+    }
+    return document, contract
 
 
 def test_portable_script_functions_have_descriptions() -> None:
@@ -271,18 +336,100 @@ def test_fbx_export_promotes_portable_atlas_to_uv0_and_exports_tangents() -> Non
 
     source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
     assert "def normalize_fbx_uv_bindings" in source
+    assert "def normalize_portable_uv_bindings" in source
     assert '"required_uv_channel_index": 0' in source
     assert '"destination_semantic": "TEXCOORD_0"' in source
     assert '"tangent_uv_set": atlas_uv_set' in source
     assert '"use_tspace": True' in source
     assert "Blender FBX exporter exposes no tangent-space export option" in source
-    assert source.index("normalize_fbx_uv_bindings(") < source.index(
+    assert source.index("normalize_portable_uv_bindings(") < source.index(
         "sanitize_export_custom_properties(selected)"
     )
 
 
+def test_glb_export_verifies_file_level_texcoord0_and_tangent_attributes() -> None:
+    """Require converted glTF materials and primitives to expose portable UV0 evidence."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assert "def verify_gltf_texture_coordinate_binding" in source
+    assert "gltf_material_textureinfo_texcoord0" in source
+    assert "TEXCOORD_0" in source
+    assert "TANGENT" in source
+    assert 'if args.format in {"glb", "gltf"}:' in source
+
+
+def test_gltf_uv0_file_verifier_accepts_complete_portable_contract(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Accept an exact converted material, TEXCOORD_0, and tangent binding."""
+
+    module = load_export_script(monkeypatch)
+    document, contract = _gltf_uv0_fixture()
+    path = tmp_path / "asset.gltf"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    result = module.verify_gltf_texture_coordinate_binding(path, "gltf", contract)
+    assert result["status"] == "verified"
+    assert result["verified_texture_binding_count"] == 2
+    assert result["verified_primitive_count"] == 1
+
+
+@pytest.mark.parametrize(
+    ("case", "message"),
+    [
+        ("missing_index", "exact integer texture index"),
+        ("string_index", "exact integer texture index"),
+        ("bool_index", "exact integer texture index"),
+        ("nonzero_transform_texcoord", "TEXCOORD_0"),
+        ("missing_texcoord0", "no TEXCOORD_0"),
+        ("missing_tangent", "no TANGENT"),
+        ("untextured_converted_material", "no texture bindings"),
+        ("format_mismatch", "contract format differs"),
+    ],
+)
+def test_gltf_uv0_file_verifier_rejects_incomplete_or_mismatched_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    case: str,
+    message: str,
+) -> None:
+    """Fail closed for malformed TextureInfo, geometry binding, or format evidence."""
+
+    module = load_export_script(monkeypatch)
+    document, contract = _gltf_uv0_fixture()
+    normal = document["materials"][0]["normalTexture"]
+    primitive = document["meshes"][0]["primitives"][0]
+    if case == "missing_index":
+        del normal["index"]
+    elif case == "string_index":
+        normal["index"] = "0"
+    elif case == "bool_index":
+        normal["index"] = True
+    elif case == "nonzero_transform_texcoord":
+        normal["extensions"] = {"KHR_texture_transform": {"texCoord": 2}}
+    elif case == "missing_texcoord0":
+        del primitive["attributes"]["TEXCOORD_0"]
+    elif case == "missing_tangent":
+        del primitive["attributes"]["TANGENT"]
+    elif case == "untextured_converted_material":
+        document["materials"].append({"extras": {"cbm_id": "mat.trim"}})
+        document["meshes"][0]["primitives"].append(
+            {
+                "material": 1,
+                "attributes": {"POSITION": 0, "TEXCOORD_0": 1},
+            }
+        )
+        contract["objects"][0]["material_ids"].append("mat.trim")
+    elif case == "format_mismatch":
+        contract["export_format"] = "glb"
+    path = tmp_path / "asset.gltf"
+    path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(RuntimeError, match=message):
+        module.verify_gltf_texture_coordinate_binding(path, "gltf", contract)
+
+
 def test_roundtrip_hard_gates_portable_uv_binding_and_loop_association() -> None:
-    """Reject converted FBX imports whose atlas association or tangent UV changed."""
+    """Keep strict FBX identity and explicit glTF semantic-binding verification."""
 
     source = (SCRIPT_ROOT / "validate_export_roundtrip.py").read_text(
         encoding="utf-8"
@@ -290,7 +437,66 @@ def test_roundtrip_hard_gates_portable_uv_binding_and_loop_association() -> None
     assert "vertex_uv_binding_fingerprint_preserved" in source
     assert "def portable_uv_binding_readiness" in source
     assert "portable material UV0/tangent binding failed" in source
+    assert "glTF_file_texcoord0_plus_imported_uv0_summary" in source
+    assert "has no verified export UV0 binding contract" in source
+    assert "manifest_import_format_mismatch" in source
+    assert "export_contract_format_mismatch" in source
     assert '"portable_uv_binding": {' in source
+
+
+def test_roundtrip_uv_policy_rejects_manifest_cli_and_contract_format_confusion(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject mismatched importer, manifest, and verified UV-contract formats."""
+
+    module = load_roundtrip_script(monkeypatch)
+    manifest = {
+        "format": "glb",
+        "uv_binding_contract": {
+            "status": "verified",
+            "export_format": "fbx",
+            "required_uv_set": "CBMPortableAtlas",
+            "required_uv_channel_index": 0,
+        },
+    }
+    expected = {
+        "asset_role": "render",
+        "topology": {
+            "uv_layers": [{"name": "CBMPortableAtlas", "active_render": True}]
+        },
+    }
+    actual = {
+        "topology": {"uv_layers": [{"name": "UVMap", "active_render": True}]}
+    }
+    uv_readiness = {
+        "summary_tolerance": 1e-5,
+        "layers": [
+            {
+                "non_finite_coordinate_count": 0,
+                "bounds_max_abs_error": 0.0,
+                "total_area_abs_error": 0.0,
+            }
+        ],
+    }
+    tangent = {"status": "ready", "uv_set": "UVMap"}
+    importer_mismatch = module.portable_uv_binding_readiness(
+        manifest,
+        expected,
+        actual,
+        uv_readiness,
+        tangent,
+        format_name="fbx",
+    )
+    contract_mismatch = module.portable_uv_binding_readiness(
+        manifest,
+        expected,
+        actual,
+        uv_readiness,
+        tangent,
+        format_name="glb",
+    )
+    assert importer_mismatch["reason"] == "manifest_import_format_mismatch"
+    assert contract_mismatch["reason"] == "export_contract_format_mismatch"
 
 
 def test_obj_export_preserves_portable_material_identity_uv_and_dependencies() -> None:

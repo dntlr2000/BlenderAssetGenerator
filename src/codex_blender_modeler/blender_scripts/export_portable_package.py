@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import copy
+import json
 import shutil
+import struct
 import sys
 from pathlib import Path
 from typing import Any
@@ -197,7 +199,7 @@ def _replace_uv_layers(
     mesh.update()
 
 
-def _verify_fbx_tangent_basis(
+def _verify_portable_tangent_basis(
     obj: bpy.types.Object,
     uv_set: str,
 ) -> None:
@@ -206,7 +208,7 @@ def _verify_fbx_tangent_basis(
     mesh = obj.data
     calculator = getattr(mesh, "calc_tangents", None)
     if calculator is None:
-        raise RuntimeError("Blender runtime exposes no tangent calculator for FBX export")
+        raise RuntimeError("Blender runtime exposes no portable tangent calculator")
     try:
         calculator(uvmap=uv_set)
         invalid = 0
@@ -225,15 +227,21 @@ def _verify_fbx_tangent_basis(
             freer()
 
 
-def normalize_fbx_uv_bindings(
+def normalize_portable_uv_bindings(
     selected: list[bpy.types.Object],
     *,
     material_conversion_plan_sha256: str | None,
+    export_format: str,
 ) -> dict[str, Any]:
-    """Promote the portable atlas to FBX UV0 and bind tangent generation to that set."""
+    """Promote the portable atlas to UV0 for FBX or glTF material interchange."""
 
     if not material_conversion_plan_sha256:
         return {"status": "not_applicable", "reason": "no_material_conversion"}
+    if export_format not in {"fbx", "glb", "gltf"}:
+        return {
+            "status": "not_applicable",
+            "reason": "format_has_no_portable_uv0_contract",
+        }
     atlas_uv_set = str(
         bpy.context.scene.get(
             "cbm_portable_material_atlas_uv", PORTABLE_ATLAS_UV_DEFAULT
@@ -265,7 +273,8 @@ def normalize_fbx_uv_bindings(
             actual_names = [str(layer.name) for layer in mesh.uv_layers]
             if actual_names != ordered_names or not mesh.uv_layers[0].active_render:
                 raise RuntimeError(
-                    f"FBX UV ordering verification failed for {obj.name!r}: {actual_names}"
+                    f"Portable UV ordering verification failed for {obj.name!r}: "
+                    f"{actual_names}"
                 )
             mesh_records[mesh_key] = {
                 "uv_layers": actual_names,
@@ -275,12 +284,15 @@ def normalize_fbx_uv_bindings(
                     else None
                 ),
             }
-        _verify_fbx_tangent_basis(obj, atlas_uv_set)
+        _verify_portable_tangent_basis(obj, atlas_uv_set)
         object_records.append(
             {
                 "object_name": str(obj.name),
                 "semantic_id": str(obj.get("cbm_id", "")),
                 "asset_role": str(obj.get("cbm_asset_role", "")),
+                "material_ids": list(
+                    object_inventory(obj, include_topology=False)["material_ids"]
+                ),
                 "required_uv_set": atlas_uv_set,
                 "required_uv_channel_index": 0,
                 "tangent_uv_set": atlas_uv_set,
@@ -288,16 +300,18 @@ def normalize_fbx_uv_bindings(
             }
         )
     if not object_records:
-        raise RuntimeError("Portable FBX material conversion has no render or LOD meshes")
+        raise RuntimeError("Portable material conversion has no render or LOD meshes")
     lightmap_indices = {
         item["lightmap_uv_channel_index"]
         for item in object_records
         if item["lightmap_uv_channel_index"] is not None
     }
     if lightmap_indices - {1}:
-        raise RuntimeError("Portable FBX lightmap UV must occupy channel index 1")
+        raise RuntimeError("Portable lightmap UV must occupy channel index 1")
     return {
         "status": "verified",
+        "export_format": export_format,
+        "verification_basis": "blender_uv0_and_tangent_preflight",
         "scope": "all_render_and_lod_objects",
         "required_uv_set": atlas_uv_set,
         "required_uv_channel_index": 0,
@@ -309,6 +323,231 @@ def normalize_fbx_uv_bindings(
         "verified_object_count": len(object_records),
         "objects": object_records,
     }
+
+
+def normalize_fbx_uv_bindings(
+    selected: list[bpy.types.Object],
+    *,
+    material_conversion_plan_sha256: str | None,
+) -> dict[str, Any]:
+    """Preserve the historical FBX helper while delegating to portable UV0 policy."""
+
+    return normalize_portable_uv_bindings(
+        selected,
+        material_conversion_plan_sha256=material_conversion_plan_sha256,
+        export_format="fbx",
+    )
+
+
+def _gltf_document(path: Path, format_name: str) -> dict[str, Any]:
+    """Read the JSON document from one exported GLB or separate glTF file."""
+
+    if format_name == "gltf":
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    elif format_name == "glb":
+        data = path.read_bytes()
+        if len(data) < 20:
+            raise RuntimeError("Exported GLB is too short to contain a JSON chunk")
+        magic, version, total_length = struct.unpack_from("<4sII", data, 0)
+        chunk_length, chunk_type = struct.unpack_from("<II", data, 12)
+        if magic != b"glTF" or version != 2 or total_length != len(data):
+            raise RuntimeError("Exported GLB header is invalid")
+        if chunk_type != 0x4E4F534A or 20 + chunk_length > len(data):
+            raise RuntimeError("Exported GLB has no valid leading JSON chunk")
+        text = data[20 : 20 + chunk_length].decode("utf-8").rstrip(" \t\r\n\x00")
+        payload = json.loads(text)
+    else:
+        raise ValueError(f"Unsupported glTF document format: {format_name!r}")
+    if not isinstance(payload, dict):
+        raise RuntimeError("Exported glTF JSON root is not an object")
+    return payload
+
+
+def _material_texture_bindings(material: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect and validate every standard or extension TextureInfo object."""
+
+    bindings: list[dict[str, Any]] = []
+
+    def visit(value: Any, path: tuple[str, ...]) -> None:
+        """Walk one material JSON subtree and collect texture-info dictionaries."""
+
+        if path and path[-1].casefold().endswith("texture"):
+            if not isinstance(value, dict):
+                raise RuntimeError("Exported glTF TextureInfo is not an object")
+            texture_index = value.get("index")
+            if type(texture_index) is not int:
+                raise RuntimeError(
+                    "Exported glTF TextureInfo has no exact integer texture index"
+                )
+            extensions = value.get("extensions", {})
+            if not isinstance(extensions, dict):
+                raise RuntimeError("Exported glTF TextureInfo extensions are malformed")
+            transform = extensions.get("KHR_texture_transform", {})
+            if not isinstance(transform, dict):
+                raise RuntimeError("Exported glTF texture-transform extension is malformed")
+            tex_coord = (
+                transform.get("texCoord")
+                if "texCoord" in transform
+                else value.get("texCoord", 0)
+            )
+            if type(tex_coord) is not int:
+                raise RuntimeError(
+                    "Exported glTF TextureInfo has no exact integer texCoord"
+                )
+            bindings.append(
+                {
+                    "slot": ".".join(path),
+                    "texture_index": texture_index,
+                    "tex_coord": tex_coord,
+                }
+            )
+        if isinstance(value, dict):
+            if not (path and path[-1].casefold().endswith("texture")):
+                for key, child in value.items():
+                    visit(child, (*path, str(key)))
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                visit(child, (*path, str(index)))
+
+    visit(material, ())
+    return bindings
+
+
+def verify_gltf_texture_coordinate_binding(
+    output: Path,
+    format_name: str,
+    contract: dict[str, Any],
+) -> dict[str, Any]:
+    """Verify glTF texture slots and mesh primitives use portable UV0 and tangents."""
+
+    if contract.get("status") != "verified":
+        return contract
+    if contract.get("export_format") != format_name:
+        raise RuntimeError("Portable UV contract format differs from the glTF export")
+    document = _gltf_document(output, format_name)
+    textures = document.get("textures", [])
+    materials = document.get("materials", [])
+    meshes = document.get("meshes", [])
+    if (
+        not isinstance(textures, list)
+        or not isinstance(materials, list)
+        or not isinstance(meshes, list)
+    ):
+        raise RuntimeError("Exported glTF materials, textures, or meshes are malformed")
+    expected_material_ids = {
+        str(material_id)
+        for item in contract.get("objects", [])
+        if isinstance(item, dict)
+        for material_id in item.get("material_ids", [])
+        if isinstance(material_id, str) and material_id
+    }
+    if not expected_material_ids:
+        raise RuntimeError("Portable UV contract declares no converted material IDs")
+    material_indices: dict[str, int] = {}
+    for material_index, material in enumerate(materials):
+        if not isinstance(material, dict):
+            raise RuntimeError("Exported glTF contains a malformed material")
+        extras = material.get("extras", {})
+        material_id = extras.get("cbm_id") if isinstance(extras, dict) else None
+        if material_id not in expected_material_ids:
+            continue
+        if material_id in material_indices:
+            raise RuntimeError("Exported glTF duplicates one portable material ID")
+        material_indices[str(material_id)] = material_index
+    if set(material_indices) != expected_material_ids:
+        raise RuntimeError("Exported glTF is missing one or more portable material IDs")
+    expected_material_indices = set(material_indices.values())
+    records: list[dict[str, Any]] = []
+    textured_materials: set[int] = set()
+    normal_mapped_materials: set[int] = set()
+    for material_index, material in enumerate(materials):
+        if not isinstance(material, dict):
+            raise RuntimeError("Exported glTF contains a malformed material")
+        if material_index not in expected_material_indices:
+            continue
+        material_id = str(material.get("extras", {}).get("cbm_id"))
+        bindings = _material_texture_bindings(material)
+        if not bindings:
+            raise RuntimeError("Exported portable glTF material has no texture bindings")
+        for binding in bindings:
+            texture_index = binding["texture_index"]
+            tex_coord = binding["tex_coord"]
+            if not 0 <= texture_index < len(textures):
+                raise RuntimeError("Exported glTF material references an invalid texture index")
+            if tex_coord != 0:
+                raise RuntimeError(
+                    "Exported glTF portable material does not bind every texture to "
+                    "TEXCOORD_0"
+                )
+            records.append(
+                {
+                    "material_id": material_id,
+                    "material_index": material_index,
+                    **binding,
+                }
+            )
+            textured_materials.add(material_index)
+            if str(binding["slot"]).casefold().endswith("normaltexture"):
+                normal_mapped_materials.add(material_index)
+    if not records:
+        raise RuntimeError("Exported glTF portable material exposes no texture bindings")
+    primitive_records: list[dict[str, Any]] = []
+    referenced_materials: set[int] = set()
+    for mesh_index, mesh in enumerate(meshes):
+        if not isinstance(mesh, dict) or not isinstance(mesh.get("primitives", []), list):
+            raise RuntimeError("Exported glTF contains a malformed mesh")
+        for primitive_index, primitive in enumerate(mesh.get("primitives", [])):
+            if not isinstance(primitive, dict):
+                raise RuntimeError("Exported glTF contains a malformed primitive")
+            material_index = primitive.get("material")
+            if material_index not in textured_materials:
+                continue
+            referenced_materials.add(material_index)
+            attributes = primitive.get("attributes", {})
+            if not isinstance(attributes, dict) or "TEXCOORD_0" not in attributes:
+                raise RuntimeError(
+                    "Exported glTF textured primitive exposes no TEXCOORD_0 attribute"
+                )
+            tangent_required = material_index in normal_mapped_materials
+            tangent_present = "TANGENT" in attributes
+            if tangent_required and not tangent_present:
+                raise RuntimeError(
+                    "Exported glTF normal-mapped primitive exposes no TANGENT attribute"
+                )
+            primitive_records.append(
+                {
+                    "mesh_index": mesh_index,
+                    "primitive_index": primitive_index,
+                    "material_index": material_index,
+                    "material_id": next(
+                        material_id
+                        for material_id, index in material_indices.items()
+                        if index == material_index
+                    ),
+                    "texcoord_0_present": True,
+                    "tangent_required": tangent_required,
+                    "tangent_present": tangent_present,
+                }
+            )
+    if not primitive_records:
+        raise RuntimeError("Exported glTF has no textured mesh primitive")
+    if referenced_materials != expected_material_indices:
+        raise RuntimeError(
+            "Exported glTF leaves one or more portable materials unreferenced"
+        )
+    verified = copy.deepcopy(contract)
+    verified.update(
+        {
+            "status": "verified",
+            "verification_basis": "gltf_material_textureinfo_texcoord0",
+            "file_metadata_verified": True,
+            "verified_texture_binding_count": len(records),
+            "verified_primitive_count": len(primitive_records),
+            "texture_bindings": records,
+            "primitives": primitive_records,
+        }
+    )
+    return verified
 
 
 def _retain_custom_properties(owner: Any, allowed: frozenset[str]) -> int:
@@ -685,14 +924,18 @@ def main() -> None:
     )
     selected = select_portable_objects(args.include_colliders)
     uv_binding_contract = (
-        normalize_fbx_uv_bindings(
+        normalize_portable_uv_bindings(
             selected,
             material_conversion_plan_sha256=derivative.get(
                 "material_conversion_plan_sha256"
             ),
+            export_format=args.format,
         )
-        if args.format == "fbx"
-        else {"status": "not_applicable", "reason": "format_is_not_fbx"}
+        if args.format in {"fbx", "glb", "gltf"}
+        else {
+            "status": "not_applicable",
+            "reason": "format_has_no_portable_uv0_contract",
+        }
     )
     sanitization = sanitize_export_custom_properties(selected)
     if args.format == "obj":
@@ -713,6 +956,12 @@ def main() -> None:
         if args.format == "fbx"
         else 0
     )
+    if args.format in {"glb", "gltf"}:
+        uv_binding_contract = verify_gltf_texture_coordinate_binding(
+            output,
+            args.format,
+            uv_binding_contract,
+        )
     if sha256_file(input_blend) != input_blend_sha256:
         raise RuntimeError("Portable input blend changed while the export was running")
     after = {path.resolve() for path in root.rglob("*") if path.is_file()}

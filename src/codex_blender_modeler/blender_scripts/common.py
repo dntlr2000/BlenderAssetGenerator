@@ -178,11 +178,25 @@ def _apply_manifest_graph(
 
     channels = manifest.get("channels", {})
     procedural = manifest.get("procedural", {})
-    vector_socket = _coordinate_socket(nodes, links, manifest)
-    noise = _noise_node(nodes, links, vector_socket, procedural)
+    image_vector_socket = _coordinate_socket(nodes, links, manifest)
+    procedural_vector_socket = image_vector_socket
+    procedural_uv_set = procedural.get("coordinate_uv_set")
+    if procedural_uv_set is not None:
+        procedural_vector_socket = _coordinate_socket(
+            nodes,
+            links,
+            {
+                "uv_set": procedural_uv_set,
+                "intended_scale_m": procedural.get(
+                    "coordinate_scale_m",
+                    manifest["intended_scale_m"],
+                ),
+            },
+        )
+    noise = _noise_node(nodes, links, procedural_vector_socket, procedural)
 
     image_nodes = {
-        name: _image_node(nodes, links, vector_socket, name, channel)
+        name: _image_node(nodes, links, image_vector_socket, name, channel)
         for name, channel in channels.items()
         if channel.get("source") == "image"
     }

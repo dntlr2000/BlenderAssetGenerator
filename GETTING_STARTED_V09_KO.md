@@ -46,6 +46,14 @@ uv run cbm workspace-audit --audit-id audit-all-001
 
 Audit는 파일을 수정하거나 migration하지 않는다. `failed`라면 JSON의 `findings`에서 code, relative path, 영향과 권장 조치를 확인한다. 실내 QA가 존재하면 strict `0.6.0` plan/approval/source inventory/render manifest/report/candidate/latest 계약, 상대 경로, 개별 hash와 stale source binding도 읽기 전용으로 검사한다.
 
+선택적 V0.6 bounded convergence 세션이 있으면 audit는 initial
+SceneSpec/build/constraint snapshot, exact plan/approval, QA·candidate·build receipt
+chain, before/after constraint evidence, terminal JSON과 PDF sidecar를 함께
+검증합니다. `visual_convergence_status=valid`는 해당 세션의 historical evidence가
+온전하다는 뜻이며 현재 모델의 품질 합격이나 재실행 승인이 아닙니다.
+신규 실행 binding이 없는 legacy partial plan은 status-only evidence로 취급되므로
+승인하거나 재개하지 말고 current direct QA에서 새 plan을 작성합니다.
+
 ## 4. PDF 보고서
 
 ```powershell

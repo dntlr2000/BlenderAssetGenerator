@@ -276,7 +276,10 @@ def _verify_roundtrip(
         raise FileNotFoundError("round-trip evidence is missing or link-like")
     if sha256_file(evidence_path) != report.imported_inventory.sha256:
         raise RuntimeError("round-trip evidence hash no longer matches its report")
-    if package.profile_id == "fbx_interchange" and package.material_conversion is not None:
+    if (
+        package.profile_id in {"fbx_interchange", "portable_gltf"}
+        and package.material_conversion is not None
+    ):
         evidence = _json_object(evidence_path, "round-trip evidence")
         portable_binding = evidence.get("readiness", {}).get(
             "portable_uv_binding", {}
@@ -286,7 +289,8 @@ def _verify_roundtrip(
             or portable_binding.get("status") != "verified"
         ):
             raise RuntimeError(
-                "converted FBX handoff requires verified atlas UV0 and tangent binding"
+                "converted portable handoff requires verified atlas UV0 and tangent "
+                "binding"
             )
     return report_path, report, evidence_path
 
@@ -890,6 +894,11 @@ def _destination_context(
     ]
     if not axis.file_metadata_verified:
         unverified.append("interchange file metadata beyond export-operator evidence")
+    unverified.extend(
+        "clean-import warning: " + _bounded_handoff_warning(check.message, max_length=500)
+        for check in roundtrip.checks
+        if check.status == "warning"
+    )
     return DestinationContext(
         handoff_id=plan.handoff_id,
         profile_id=plan.profile_id,

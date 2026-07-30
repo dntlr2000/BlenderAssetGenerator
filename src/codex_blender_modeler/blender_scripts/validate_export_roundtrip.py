@@ -461,9 +461,13 @@ def portable_uv_binding_readiness(
     actual: dict[str, Any],
     uv_readiness: dict[str, Any],
     tangent: dict[str, Any],
+    *,
+    format_name: str,
 ) -> dict[str, Any]:
-    """Verify one converted FBX mesh binds atlas sampling and tangents to UV0."""
+    """Verify one converted mesh binds portable sampling and tangents to UV0."""
 
+    if expected_manifest.get("format") != format_name:
+        return {"status": "failed", "reason": "manifest_import_format_mismatch"}
     contract = expected_manifest.get("uv_binding_contract")
     if not isinstance(contract, dict) or contract.get("status") != "verified":
         return {"status": "not_applicable", "reason": "no_verified_contract"}
@@ -477,6 +481,52 @@ def portable_uv_binding_readiness(
     actual_layers = list(actual.get("topology", {}).get("uv_layers", []))
     expected_uv0 = expected_layers[0] if expected_layers else {}
     actual_uv0 = actual_layers[0] if actual_layers else {}
+    contract_format = contract.get("export_format")
+    if contract_format is not None and contract_format != format_name:
+        return {"status": "failed", "reason": "export_contract_format_mismatch"}
+    if format_name in {"glb", "gltf"} and contract_format is None:
+        return {"status": "failed", "reason": "missing_glTF_export_contract_format"}
+    if (
+        format_name in {"glb", "gltf"}
+        and contract.get("verification_basis")
+        == "gltf_material_textureinfo_texcoord0"
+    ):
+        summary_layers = list(uv_readiness.get("layers", []))
+        summary = summary_layers[0] if summary_layers else {}
+        tolerance = float(uv_readiness.get("summary_tolerance", 1e-5))
+        bounds_error = summary.get("bounds_max_abs_error")
+        area_error = summary.get("total_area_abs_error")
+        actual_uv0_name = actual_uv0.get("name")
+        checks = {
+            "file_texture_binding_verified": bool(
+                contract.get("file_metadata_verified")
+            ),
+            "expected_uv0_name": expected_uv0.get("name") == required_name,
+            "expected_uv0_active_render": bool(expected_uv0.get("active_render")),
+            "actual_uv0_present": isinstance(actual_uv0_name, str)
+            and bool(actual_uv0_name),
+            "actual_uv0_active_render": bool(actual_uv0.get("active_render")),
+            "tangent_uv0": tangent.get("uv_set") == actual_uv0_name,
+            "tangent_status": tangent.get("status") == "ready",
+            "finite_uv0": int(summary.get("non_finite_coordinate_count", 1)) == 0,
+            "uv0_bounds_summary": isinstance(bounds_error, (int, float))
+            and float(bounds_error) <= tolerance,
+            "uv0_area_summary": isinstance(area_error, (int, float))
+            and float(area_error) <= tolerance,
+        }
+        return {
+            "status": "verified" if all(checks.values()) else "failed",
+            "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary",
+            "required_uv_set": required_name,
+            "required_uv_channel_index": 0,
+            "destination_semantic": "TEXCOORD_0",
+            "imported_uv_set": actual_uv0_name,
+            "tangent_uv_set": tangent.get("uv_set"),
+            "loop_association_verified": bool(
+                uv_readiness.get("loop_association_verified")
+            ),
+            "checks": checks,
+        }
     association_verified = bool(uv_readiness.get("loop_association_verified"))
     checks = {
         "expected_uv0_name": expected_uv0.get("name") == required_name,
@@ -565,6 +615,16 @@ def main() -> None:
     expected_records = list(expected_manifest.get("objects", []))
     matches, errors = match_records(expected_records, actual_records, args.format)
     warnings = [str(value) for value in expected_manifest.get("warnings", [])]
+    conversion_plan_sha256 = expected_manifest.get("source", {}).get(
+        "material_conversion_plan_sha256"
+    )
+    uv_contract = expected_manifest.get("uv_binding_contract", {})
+    if conversion_plan_sha256 and args.format in {"fbx", "glb", "gltf"} and (
+        not isinstance(uv_contract, dict) or uv_contract.get("status") != "verified"
+    ):
+        errors.append(
+            "Portable material conversion has no verified export UV0 binding contract"
+        )
     coordinate = coordinate_readiness(expected_manifest)
     if coordinate["status"] == "failed":
         errors.append("Export coordinate declaration differs from the V0.7 contract")
@@ -617,6 +677,7 @@ def main() -> None:
             actual_record,
             uv_readiness,
             tangent,
+            format_name=args.format,
         )
         if bounds_error > args.bounds_tolerance:
             errors.append(

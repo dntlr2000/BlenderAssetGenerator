@@ -1,0 +1,78 @@
+{
+  "$defs": {
+    "HashBoundConvergenceArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative convergence artifact to its exact content hash.",
+      "properties": {
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "title": "HashBoundConvergenceArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a derived convergence PDF to authoritative JSON and receipt hashes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "report_json": {
+      "$ref": "#/$defs/HashBoundConvergenceArtifact"
+    },
+    "pdf": {
+      "$ref": "#/$defs/HashBoundConvergenceArtifact"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/HashBoundConvergenceArtifact"
+      },
+      "minItems": 2,
+      "title": "Sources",
+      "type": "array"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "job_id",
+    "source_fingerprint",
+    "report_json",
+    "pdf",
+    "sources",
+    "generated_at"
+  ],
+  "title": "VisualConvergenceReportManifest",
+  "type": "object"
+}

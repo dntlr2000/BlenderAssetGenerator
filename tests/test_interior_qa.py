@@ -327,6 +327,131 @@ def test_plan_requires_exact_approved_scope(
     assert not (root / "qa" / "interior" / "runs" / "missing-scope").exists()
 
 
+def test_plan_keeps_hidden_boolean_helpers_out_of_render_targets(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retain hidden cutters in source evidence without rendering or scoring them."""
+
+    root = _seed_job(tmp_path, monkeypatch)
+    scene_path = root / "analysis" / "scene_spec.json"
+    scene_payload = json.loads(scene_path.read_text(encoding="utf-8"))
+    cutter_id = "building.interior.lobby.forward_wall_cutter"
+    cutter = {
+        **scene_payload["objects"][0],
+        "id": cutter_id,
+        "name": "Forward wall Boolean cutter",
+        "geometry": {
+            "kind": "primitive",
+            "primitive": "cube",
+            "dimensions": [1.8, 0.4, 2.2],
+        },
+        "tags": [
+            "interior",
+            "level:level_01",
+            "space:lobby",
+            "hidden-boolean-target",
+        ],
+    }
+    scene_payload["objects"].append(cutter)
+    scene_path.write_text(
+        json.dumps(scene_payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    def inspect_with_hidden_helper(
+        job_id: str,
+        *,
+        run_id: str,
+        target_ids: list[str],
+        output_path: Path,
+        scene_spec_sha256: str,
+        build_fingerprint: str,
+        interior_scope_sha256: str,
+        interior_scope_approval_sha256: str,
+    ) -> InteriorQASourceInventory:
+        """Write both renderable and hidden-helper records for planning coverage."""
+
+        assert target_ids == [
+            "building.interior.lobby.forward_wall_cutter",
+            "building.interior.lobby.shell",
+        ]
+        topology = InteriorQATopology(
+            vertices=8,
+            edges=12,
+            polygons=6,
+            triangles_estimated=12,
+            non_finite_vertex_count=0,
+            non_finite_vertices=[],
+            degenerate_face_count=0,
+            degenerate_faces=[],
+            invalid_normal_face_count=0,
+            invalid_normal_faces=[],
+            boundary_edge_count=0,
+            overused_edge_count=0,
+            loose_edge_count=0,
+            loose_vertex_count=0,
+            manifold_closed=True,
+            negative_determinant=False,
+            matrix_determinant=1.0,
+            uv_layers=[],
+        )
+        inventory = InteriorQASourceInventory(
+            job_id=job_id,
+            run_id=run_id,
+            scene_spec_sha256=scene_spec_sha256,
+            build_fingerprint=build_fingerprint,
+            interior_scope_sha256=interior_scope_sha256,
+            interior_scope_approval_sha256=interior_scope_approval_sha256,
+            blender_version="5.0.1",
+            objects=[
+                InteriorQAObjectRecord(
+                    name=semantic_id.rsplit(".", 1)[-1],
+                    type="MESH",
+                    semantic_id=semantic_id,
+                    instance_index=0,
+                    bbox_world=InteriorQABounds(
+                        min=(-3.0, -2.0, 0.0),
+                        max=(3.0, 2.0, 2.8),
+                    ),
+                    dimensions=(6.0, 4.0, 2.8),
+                    material_ids=["mat.wall"],
+                    topology=topology,
+                )
+                for semantic_id in target_ids
+            ],
+        )
+        write_json_atomic(output_path, inventory.model_dump(mode="json"))
+        return inventory
+
+    monkeypatch.setattr(
+        artifact_runner,
+        "inspect_job_interior_qa_source",
+        inspect_with_hidden_helper,
+    )
+    planned = plan_job_interior_qa(
+        JOB_ID,
+        profile="minimal",
+        resolution=128,
+        max_views=8,
+        run_id="interior-hidden-helper",
+    )
+    plan = InteriorQAPlan.model_validate_json(
+        Path(planned["plan"]).read_text(encoding="utf-8")
+    )
+    inventory = InteriorQASourceInventory.model_validate_json(
+        Path(planned["source_inventory"]).read_text(encoding="utf-8")
+    )
+
+    assert plan.target_ids == ["building.interior.lobby.shell"]
+    assert all(cutter_id not in view.target_ids for view in plan.views)
+    assert {record.semantic_id for record in inventory.objects} == {
+        cutter_id,
+        "building.interior.lobby.shell",
+    }
+    assert any(cutter_id in warning for warning in plan.warnings)
+
+
 def test_entry_camera_uses_local_entry_bounds_above_the_floor() -> None:
     """Keep entry diagnostics centered on the entry at the requested eye height."""
 
@@ -398,6 +523,63 @@ def test_entry_axis_views_cross_the_boundary_in_both_directions() -> None:
     assert inbound.location[1] < boundary_y < inbound.target[1]
     assert outbound.view_id.endswith(".entry_outbound")
     assert outbound.target[1] < boundary_y < outbound.location[1]
+
+
+def test_entry_axis_views_use_hidden_cutter_as_camera_anchor_only() -> None:
+    """Center paired cameras on a hidden cutter without adding it to render targets."""
+
+    threshold_id = "submarine.interior.entry.breach_threshold"
+    cutter_id = "submarine.interior.entry.forward_wall_cutter"
+    floor_id = "submarine.interior.floor.level_01"
+    groups = {("level_01", "main_hall"): [threshold_id, floor_id]}
+    semantic_bounds = {
+        threshold_id: InteriorQABounds(
+            min=(-7.36, -3.28, 2.42),
+            max=(-4.10, -0.20, 2.58),
+        ),
+        cutter_id: InteriorQABounds(
+            min=(-4.89, -1.38, 2.55),
+            max=(-4.24, -0.03, 4.90),
+        ),
+        floor_id: InteriorQABounds(
+            min=(-4.5, -1.5, 2.42),
+            max=(4.2, 1.5, 2.58),
+        ),
+    }
+
+    views, _warnings = interior_qa_service._build_views(
+        groups,
+        semantic_bounds,
+        profile="standard",
+        max_views=6,
+        eye_height_m=1.6,
+        entry_anchor_groups={("level_01", "main_hall"): [cutter_id]},
+    )
+    inbound, outbound = views[-2:]
+    cutter_center = tuple(
+        (
+            semantic_bounds[cutter_id].min[axis]
+            + semantic_bounds[cutter_id].max[axis]
+        )
+        * 0.5
+        for axis in range(2)
+    )
+    inbound_direction = (
+        inbound.target[0] - inbound.location[0],
+        inbound.target[1] - inbound.location[1],
+    )
+    anchor_offset = (
+        cutter_center[0] - inbound.location[0],
+        cutter_center[1] - inbound.location[1],
+    )
+    cross_product = (
+        inbound_direction[0] * anchor_offset[1]
+        - inbound_direction[1] * anchor_offset[0]
+    )
+
+    assert cross_product == pytest.approx(0.0, abs=1e-8)
+    assert cutter_id not in inbound.target_ids
+    assert cutter_id not in outbound.target_ids
 
 
 def test_plan_approve_run_and_pdf_preserve_canonical_authoring(

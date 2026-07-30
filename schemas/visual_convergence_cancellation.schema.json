@@ -1,0 +1,117 @@
+{
+  "additionalProperties": false,
+  "description": "Consume one approved session with an immutable user cancellation receipt.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "cancellation_id": {
+      "title": "Cancellation Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Sha256",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "canonical_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Scene Spec Sha256",
+      "type": "string"
+    },
+    "current_qa_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$",
+      "title": "Current Qa Run Id",
+      "type": "string"
+    },
+    "current_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Qa Report Sha256",
+      "type": "string"
+    },
+    "current_candidates_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Current Candidates Sha256",
+      "type": "string"
+    },
+    "current_build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current Build Fingerprint"
+    },
+    "previous_iteration_receipt_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Iteration Receipt Sha256"
+    },
+    "cancelled_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Cancelled By",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "cancelled_at": {
+      "title": "Cancelled At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "cancellation_id",
+    "session_id",
+    "job_id",
+    "plan_sha256",
+    "approval_sha256",
+    "input_fingerprint",
+    "canonical_scene_spec_sha256",
+    "current_qa_run_id",
+    "current_qa_report_sha256",
+    "current_candidates_sha256",
+    "reason",
+    "cancelled_at"
+  ],
+  "title": "VisualConvergenceCancellation",
+  "type": "object"
+}

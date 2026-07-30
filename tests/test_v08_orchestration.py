@@ -9,6 +9,7 @@ import pytest
 from PIL import Image
 
 import codex_blender_modeler.orchestration.service as orchestration_service
+from codex_blender_modeler.optimization.service import initialize_asset_profile
 from codex_blender_modeler.orchestration.locks import (
     acquire_workflow_lock,
     release_workflow_lock,
@@ -1180,6 +1181,39 @@ def test_explicit_unity_target_stops_at_engine_neutral_package(
         item for item in adapters["adapters"] if item["destination"] == "unity"
     )
     assert unity["status"] == "unsupported"
+
+
+def test_portable_workflow_reuses_existing_customized_profile(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Preserve an existing reviewed profile instead of replacing it with defaults."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    primary = _image(tmp_path / "primary.png")
+    create_job("portable_profile_reuse", primary, "concept", [])
+    profile = initialize_asset_profile(
+        "portable_profile_reuse",
+        lod_mode="disabled",
+        collision_strategy="compound",
+    )
+    profile_path = (
+        workspace
+        / "portable_profile_reuse"
+        / "asset_profiles"
+        / "portable_gltf.json"
+    )
+    before = profile_path.read_bytes()
+
+    orchestration_service._ensure_workflow_asset_profile(
+        workspace / "portable_profile_reuse",
+        "portable_profile_reuse",
+        "portable_gltf",
+    )
+
+    assert profile.lod.enabled is False
+    assert profile_path.read_bytes() == before
 
 
 def test_optional_destination_handoff_follows_passed_portable_roundtrip(

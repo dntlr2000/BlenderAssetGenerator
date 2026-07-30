@@ -27,6 +27,11 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - immutable source hash 일치
 - 유효한 workflow latest pointer
 - 유효한 optional interior QA latest/hash/source binding
+- convergence가 없는 job의 `not_requested`
+- current plan-only 또는 approved convergence session의 `active`
+- exact plan/approval/iteration/QA/PDF chain을 가진 terminal convergence session의 `valid`
+- terminal 뒤 별도 canonical revision 또는 auxiliary input 추가에도 원래 input map과 historical chain이 intact이면 `valid`
+- 비어 있지 않은 exact initial input map과 신규 activation binding이 없는 legacy partial plan은 실행 가능으로 오인하지 않고 status-only warning
 
 음성 사례:
 
@@ -35,6 +40,21 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - 손상 JSON과 unknown contract version
 - dangling workflow pointer
 - 손상·stale interior QA contract 또는 latest pointer
+- active convergence의 input, canonical SceneSpec, current QA 또는 candidates drift
+- 신규 convergence의 initial SceneSpec/build/constraint snapshot 누락 또는 hash mismatch
+- strict host-safety envelope 누락, Schema 불일치, plan·approval의 envelope hash mismatch 또는 public path-limit의 권한 확대
+- source/result build provenance의 SceneSpec·camera binding 불일치
+- source→result build에서 SceneSpec hash 외 geometry/material/shader/texture 계약 변경
+- iteration 간 QA/candidate/build chain splice
+- before/after constraint evidence 변조 또는 receipt regression count 위조
+- terminal convergence의 원래 input hash 변경
+- missing/noncontiguous receipt, previous-receipt hash 불일치 또는 orphan iteration entry
+- modified selection, RevisionPlan, authorization, result SceneSpec, result QA 또는 result candidates
+- terminal score/high-finding/receipt set 불일치
+- terminal JSON 없이 남은 cancellation receipt, final snapshot 또는 PDF artifact
+- receipt 없는 staging이 남아 있는데 취소·terminal 처리됐거나 terminal evidence와 staging이 동시에 존재함
+- legacy/status-only 세션이 `execution_eligible=true`로 잘못 분류되거나 `next_action`이 승인·실행을 권고함
+- convergence PDF source 누락, hash mismatch 또는 source fingerprint 불일치
 - scan limit 초과
 - audit output overwrite
 
@@ -87,7 +107,7 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - 2페이지 이상, 텍스트 추출 가능
 - representative page PNG render와 육안 clipping/overlap/한글 검사
 
-Export/full PDF는 newest valid handoff를 선택된 package에 결속해 표시하고, stability PDF는 audit의 handoff count와 valid count를 표시한다. Handoff PDF도 machine JSON의 파생 보고서이며 판단 입력으로 다시 읽지 않는다.
+Export/full PDF는 newest valid handoff를 선택된 package에 결속해 표시하고, stability PDF는 audit의 handoff count/valid count와 convergence session count/valid count를 표시한다. Handoff와 convergence PDF도 machine JSON의 파생 보고서이며 판단 입력으로 다시 읽지 않는다.
 
 ## Gate 7 — V0.8/V0.7 회귀와 Blender
 
@@ -95,6 +115,9 @@ Export/full PDF는 newest valid handoff를 선택된 package에 결속해 표시
 - 실제 Blender compatibility probe
 - V0.8 isolated workflow regression
 - V0.8 optional `destination.handoff` step이 exact package approval 뒤에 위치하고 output completion marker가 hash-bound인지 확인
+- V0.6 manual one-shot revision 기본 경로와 optional exact-plan bounded convergence 공개 표면·job-lock·strict path-limit narrowing 회귀
+- 한 host/MCP 호출당 full Blender iteration 최대 1회, receipt 없는 staging 복구 후에만 취소·terminalization, terminal+staging audit failure 회귀
+- `background_exterior`가 계속 canonical QA 1회, generated target 없음, post-QA automatic revision 없음으로 종료되는지 확인
 - V0.7 portable asset 회귀와 실제 GLB package clean-import를 격리 smoke workspace에서 실행
 - EEVEE feature probe, AgX, `stdin=DEVNULL`, `--python-exit-code 1`
 - compatibility smoke export의 GLB/FBX/OBJ

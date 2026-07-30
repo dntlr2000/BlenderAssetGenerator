@@ -46,6 +46,7 @@ MigrationStatus = Literal[
     "corrupt",
 ]
 HandoffAuditStatus = Literal["not_requested", "generated", "valid", "invalid", "stale"]
+VisualConvergenceAuditStatus = Literal["not_requested", "active", "valid", "invalid"]
 QueueEntryStatus = Literal[
     "queued",
     "running",
@@ -144,6 +145,9 @@ class JobAudit(V09StrictModel):
     handoff_count: int = Field(default=0, ge=0)
     valid_handoff_count: int = Field(default=0, ge=0)
     handoff_status: HandoffAuditStatus = "not_requested"
+    visual_convergence_session_count: int = Field(default=0, ge=0)
+    valid_visual_convergence_session_count: int = Field(default=0, ge=0)
+    visual_convergence_status: VisualConvergenceAuditStatus = "not_requested"
     findings: list[AuditFinding] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -154,10 +158,31 @@ class JobAudit(V09StrictModel):
             raise ValueError("verified source count cannot exceed source count")
         if self.valid_handoff_count > self.handoff_count:
             raise ValueError("valid handoff count cannot exceed handoff count")
+        if (
+            self.valid_visual_convergence_session_count
+            > self.visual_convergence_session_count
+        ):
+            raise ValueError(
+                "valid visual convergence count cannot exceed session count"
+            )
         if self.handoff_count == 0 and self.handoff_status != "not_requested":
             raise ValueError("jobs without handoffs must report not_requested")
         if self.handoff_count > 0 and self.handoff_status == "not_requested":
             raise ValueError("jobs with handoffs cannot report not_requested")
+        if (
+            self.visual_convergence_session_count == 0
+            and self.visual_convergence_status != "not_requested"
+        ):
+            raise ValueError(
+                "jobs without visual convergence sessions must report not_requested"
+            )
+        if (
+            self.visual_convergence_session_count > 0
+            and self.visual_convergence_status == "not_requested"
+        ):
+            raise ValueError(
+                "jobs with visual convergence sessions cannot report not_requested"
+            )
         has_error = any(item.severity == "error" for item in self.findings)
         has_warning = any(item.severity == "warning" for item in self.findings)
         expected = "failed" if has_error else "warning" if has_warning else "passed"
@@ -182,6 +207,8 @@ class WorkspaceAuditReport(V09StrictModel):
     failed_job_count: int = Field(ge=0)
     handoff_count: int = Field(default=0, ge=0)
     valid_handoff_count: int = Field(default=0, ge=0)
+    visual_convergence_session_count: int = Field(default=0, ge=0)
+    valid_visual_convergence_session_count: int = Field(default=0, ge=0)
     status: AuditStatus
     jobs: list[JobAudit] = Field(default_factory=list)
     findings: list[AuditFinding] = Field(default_factory=list)
@@ -203,6 +230,18 @@ class WorkspaceAuditReport(V09StrictModel):
             item.valid_handoff_count for item in self.jobs
         ):
             raise ValueError("workspace valid handoff count does not match job records")
+        if self.visual_convergence_session_count != sum(
+            item.visual_convergence_session_count for item in self.jobs
+        ):
+            raise ValueError(
+                "workspace visual convergence count does not match job records"
+            )
+        if self.valid_visual_convergence_session_count != sum(
+            item.valid_visual_convergence_session_count for item in self.jobs
+        ):
+            raise ValueError(
+                "workspace valid visual convergence count does not match job records"
+            )
         if self.completed_at < self.started_at:
             raise ValueError("workspace audit completion cannot precede its start")
         all_findings = self.findings + [item for job in self.jobs for item in job.findings]

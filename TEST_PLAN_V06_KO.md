@@ -101,13 +101,52 @@ uv run cbm visual-qa geometry_showcase
 
 실제 사용자 자산에는 후보를 자동 승인하지 않습니다.
 
+## Gate 6A — 선택적 bounded standard convergence
+
+사용자 job이 아닌 isolated temporary workspace에서 다음을 검사합니다.
+
+1. current direct QA report/candidates/SceneSpec으로 plan을 만들고 planning 전후 canonical hash가 동일함
+2. exact plan SHA-256 승인 전 `run` 거부
+3. 기본 3회, hard maximum 5회와 group/candidate/changed-ID budget 검증
+4. allowed/locked semantic ID, path family, operation, absolute/relative delta와 minimum confidence 검증
+5. generated-target-only, manual-required, custom-mesh geometry, camera, material과 plan 밖 후보 거부
+6. selected candidate bundle, compiled RevisionPlan과 host-policy authorization exact hash 결속
+7. accepted iteration은 minimum direct-score gain, silhouette IoU 비회귀와 stable-ID constraint 비회귀를 모두 만족
+8. score 비개선, IoU 악화와 constraint regression은 baseline restore/rebuild 후 terminal rollback
+9. iteration directory가 `001..N`으로 연속이고 receipt previous-hash chain이 정확함
+10. result SceneSpec snapshot, source/result QA report와 candidates, selection, plan, authorization hash 보존
+11. target, plateau, no candidate, manual review, budget, cancel, stale/tampered와 host failure 종료 상태
+12. terminal `convergence_report.json`, PDF와 sidecar가 exact iteration evidence에 결속
+13. manual one-shot apply, convergence와 V0.8 workflow가 같은 job write lock에서 경쟁하면 승인 소비 전에 fail-closed
+14. active session의 input/SceneSpec/QA/candidate drift는 차단하고 completed session은 후속 canonical 작업 때문에 소급 stale 처리하지 않음
+15. legacy one-shot revision과 `background_exterior`의 exact-one-QA/no-auto-revision 회귀 통과
+16. 신규 실행 binding이 없는 legacy partial plan은 status/audit만 허용하고 approve/run은 fail-closed
+17. initial SceneSpec, candidates, build provenance/fingerprint와 optional constraint snapshot 변조 차단
+18. 연속 iteration 사이 source/result QA, candidate bundle과 build fingerprint splice 차단
+19. source→result build에서 승인된 SceneSpec hash 외 geometry/material/shader/texture/camera 계약 변경 차단
+20. exact before/after constraint snapshot으로 regression count와 acceptance를 재계산하고 receipt 숫자 위조 차단
+21. terminal JSON 삭제 뒤 남은 cancellation receipt, final snapshot 또는 PDF evidence가 재실행을 차단
+22. 취소 receipt가 exact plan, approval, canonical SceneSpec과 current QA/build에 결속됨
+23. 실내 semantic object는 승인된 InteriorScope가 있더라도 자동 convergence 대상에서 제외
+24. plan 파일 편집으로 material/custom-mesh/locked-ID 또는 host delta 정책을 완화할 수 없음
+25. 한 번의 host/MCP 호출은 bounded iteration 하나만 처리하고 다음 호출에서 안전하게 재개
+26. 중단된 미완료 staging은 completed receipt와 구분해 복구하며 immutable completed evidence는 덮어쓰지 않음
+27. 비어 있거나 누락된 `initial_input_hashes`는 legacy status-only로 분류하고 `execution_eligible=false`, 누락 binding과 차단 사유를 보고하며 approve/run을 거부
+28. strict `visual_convergence_host_safety_envelope.schema.json` 검증, plan·approval의 exact envelope SHA-256 결속, unknown field와 변조·권한 확대 차단
+29. CLI의 repeatable `--path-limit-json`과 MCP의 `path_limits`가 host envelope를 좁히는 요청만 허용하고 경로·연산·delta 권한 확대는 거부
+30. receipt 없는 staging이 있으면 `next_action=invoke_run_to_recover`를 보고하고 복구 전 취소·terminalization을 거부하며, terminal과 staging의 동시 존재를 integrity failure로 판정
+
+이 gate는 global `qa.revision_mode` 또는 `automatic_revision`을 변경하지 않습니다.
+한 exact plan 승인은 해당 세션의 iteration만 허용하며 InteriorScope, V0.7,
+Destination Handoff 권한을 만들지 않습니다.
+
 ## Gate 7 — stdio MCP
 
 ```powershell
 uv run python scripts/run_v06_mcp_regressions.py
 ```
 
-완료 조건: preset 조회, PBR 생성/연결, material validate, Blender build, Cycles bake, material inspect/swatch, direct QA가 실제 stdio MCP 경로에서 종료됩니다. Blender 자식 프로세스는 MCP stdin을 상속하지 않습니다.
+완료 조건: preset 조회, PBR 생성/연결, material validate, Blender build, Cycles bake, material inspect/swatch, direct QA가 실제 stdio MCP 경로에서 종료됩니다. `plan_visual_convergence`, `approve_visual_convergence`, `run_visual_convergence`, `get_visual_convergence_status`, `cancel_visual_convergence`가 allowlist에 존재하고 exact-plan 경계를 보존해야 합니다. Blender 자식 프로세스는 MCP stdin을 상속하지 않습니다.
 
 ## Gate 8 — 사람용 PDF 보고서
 
@@ -120,6 +159,8 @@ uv run python scripts/run_v06_mcp_regressions.py
 7. 선택한 QA run ID와 실제 보고서 내용 일치
 8. 선택적 자료가 없을 때 허위 성공 대신 unavailable/warning 표시
 9. 한국어 텍스트, 표, swatch, QA 이미지의 페이지 잘림 여부를 렌더링으로 검사
+10. bounded convergence PDF가 terminal JSON, exact plan/approval, 모든 iteration support artifact와 final QA hash에 결속
+11. convergence PDF 누락 재생성은 source integrity가 모두 current일 때만 허용
 
 ## Gate 9 — 선택적 실내 다각도 QA
 

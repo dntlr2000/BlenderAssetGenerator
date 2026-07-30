@@ -112,12 +112,43 @@ V0.8 workflow에서는 GLB/FBX portable package의 최종 승인 뒤 선택적�
 - known contract의 JSON readability와 version compatibility
 - workflow `latest.json`의 dangling pointer
 - optional interior QA `latest.json`의 plan/approval/source/render/report/candidate hash binding과 stale source
+- optional standard Visual QA convergence의 plan/approval, contiguous iteration receipt와 support-artifact hash chain
+- active convergence session의 current input/SceneSpec/QA/candidate/build/constraint freshness
+- initial SceneSpec, build provenance와 optional constraint snapshot exact binding
+- source/result QA·candidate·build lineage와 SceneSpec 외 build-contract 불변
+- exact before/after constraint evidence에서 재계산한 regression count와 acceptance
+- terminal convergence report, final QA metrics/high findings, historical input map과 PDF sidecar source binding
+- orphan cancellation/final/PDF evidence와 terminal replay 시도
 - 링크나 junction을 통한 source path escape
 - interrupted/temp evidence와 scan limit
 
 Audit는 읽기 전용이다. migration, repair, delete, SceneSpec 재작성 또는 `.blend` 재생성을 수행하지 않는다. 결과는 `reports/v09/audits/<audit-id>/workspace_audit.json`에 immutable하게 저장된다.
 
 실내 QA가 존재하면 audit는 최신 pointer가 가리키는 모든 파일을 strict `0.6.0` 계약으로 읽고 job-relative path, exact plan binding과 source freshness를 확인한다. Finding을 이유로 카메라 계획, `.blend`나 canonical geometry를 자동 수정하지 않는다.
+
+convergence가 존재하면 job과 workspace summary에 session count,
+valid-session count와 `not_requested|active|valid|invalid` 상태를 기록한다. Active
+session은 현재 immutable input set, canonical SceneSpec, current exact QA와
+candidate bundle, build provenance와 optional constraint snapshot이 plan/receipt
+chain에 그대로 묶여 있어야 한다. Planning만
+완료된 세션도 current source가 달라지면 invalid다.
+
+Terminal session은 현재 canonical asset을 다시 승인하는 상태가 아니라 immutable
+historical evidence다. Audit는 plan에 저장된 원래 input-file hash map, exact
+approval, contiguous receipts와 selection/RevisionPlan/authorization/base/result
+SceneSpec, source/result QA와 candidates, source/result build provenance,
+before/after constraint snapshot, terminal report와 PDF sidecar를 검증한다.
+완료 뒤 추가된 auxiliary input이나 별도 authoring revision은 원래 파일과
+iteration chain이 보존된 경우 historical session을 invalid로 바꾸지 않는다.
+반대로 원래 input 파일이나 session-owned artifact가 바뀌면 invalid다. 원래
+파일별 map이 없는 compatible legacy terminal session은 aggregate fingerprint로
+읽되 후속 파일 추가와 원본 변경을 구분할 수 없다는 warning을 남긴다.
+신규 initial binding이 없는 legacy active/partial plan은 historical status-only로
+분류하며 승인이나 실행 가능한 상태로 보고하지 않는다.
+
+V0.9 audit는 convergence를 resume, cancel, repair하거나 새로운 approval을 만들지
+않는다. V0.9 local queue도 기존 V0.8 workflow 전용이므로 별도 V0.6 convergence
+session을 실행하지 않는다.
 
 ## single-worker local queue
 
@@ -157,9 +188,14 @@ output/pdf/v09/<report-id>/
 
 Sidecar는 PDF SHA-256, source fingerprint, repository-relative source paths, 각 JSON의 SHA-256과 byte size를 보존한다. PDF는 사람이 읽는 표현일 뿐이며 release 판정, migration 또는 revision 입력으로 다시 파싱하지 않는다.
 
+Workspace audit가 convergence evidence를 발견하면 stability PDF는 valid/total
+session count와 job별 상태를 투영한다. 이 표시는 audit JSON의 파생 결과이며
+active session을 완료하거나 invalid session을 복구하지 않는다.
+
 ## 실패와 복구 모델
 
 - Audit failure: 데이터를 고치지 않고 finding과 영향만 보고한다.
+- Convergence audit failure: plan, approval, iteration evidence, QA 또는 PDF binding을 고치지 않고 invalid finding과 별도 새 session 필요 여부만 보고한다.
 - Queue host failure: failed receipt를 남기고 explicit requeue를 기다린다.
 - Process interruption: V0.8 workflow attempt와 queue lease를 기준으로 다음 실행에서 abandoned state를 식별한다.
 - Live lock: 기다리거나 명시적으로 중단하며 덮어쓰지 않는다.

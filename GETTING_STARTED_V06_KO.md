@@ -193,7 +193,7 @@ uv run cbm visual-qa first_reference_test `
 
 target과 prompt는 QA run 내부로 복사되고 provider/model/version/seed/prompt hash/output hash가 기록됩니다. 저장소는 외부 서비스를 암묵적으로 호출하지 않습니다. 이 target은 저신뢰도 advisory finding만 만들며 직접 점수와 실행 후보 수를 바꾸지 않습니다.
 
-## 9. 승인형 1회 수정
+## 9A. 승인형 1회 수정 — 기본 경로
 
 기본 `revision_mode = "suggest"`에서는 후보만 생성합니다. 적용하려면 `cbm.toml`을 `approve`로 바꾸고 사용자가 정확한 후보 ID를 선택해야 합니다.
 
@@ -209,6 +209,153 @@ uv run cbm qa-apply-approved first_reference_test <run-id>
 ```
 
 승인은 후보·계획·SceneSpec hash에 묶이고 한 번만 사용할 수 있습니다. 적용 후 build/render/inspect/validate/constraints/direct QA를 다시 실행합니다. 점수가 개선되지 않거나 오류·constraint 악화가 있으면 이전 SceneSpec을 복구하고 재빌드합니다.
+
+## 9B. 선택적 bounded convergence — standard 전용
+
+기본값은 계속 9A의 후보별 1회 승인입니다. 큰 형상과 비교 카메라는 이미
+승인됐지만 비슷한 국소 수정 승인이 여러 번 반복될 때만 이 세션을 선택합니다.
+`background_exterior` fast workflow 안에서는 사용할 수 없으며, 그 경로의
+canonical 직접 QA 1회와 post-QA 자동 수정 금지 규칙은 그대로 유지됩니다.
+
+일반 사용자는 PowerShell을 실행할 필요가 없습니다. Codex에 다음처럼 요청하면
+`plan_visual_convergence` MCP 도구로 canonical 파일을 바꾸지 않은 채 계획만
+작성합니다.
+
+```text
+<JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
+standard bounded Visual QA convergence 계획만 작성해.
+
+- target direct score: <TARGET_DIRECT_SCORE>
+- target silhouette IoU: <TARGET_SILHOUETTE_IOU>
+- allowed semantic IDs: <ALLOWED_TARGET_IDS>
+- max iterations: 3
+
+허용 path/operation/delta, minimum gain, confidence,
+candidate group·candidate·changed-ID budget, locked ID와 stop 조건을 모두 보고해.
+non-empty exact input hash map과 strict host-safety-envelope 경로/SHA-256도 보고해.
+canonical SceneSpec은 수정하지 말고 exact plan SHA-256 승인에서 멈춰.
+```
+
+운영자용 CLI 표면은 다음과 같습니다. `--allowed-target-id`는 필요한 semantic
+ID마다 반복할 수 있습니다. `--path-limit-json`도 strict JSON object로 반복할 수
+있지만 host가 계산한 기본 path/operation/delta보다 좁은 권한만 요청할 수 있습니다.
+
+```powershell
+uv run cbm qa-convergence-plan <JOB_ID> <QA_RUN_ID> `
+  --target-direct-score <TARGET_DIRECT_SCORE> `
+  --target-silhouette-iou <TARGET_SILHOUETTE_IOU> `
+  --allowed-target-id <SEMANTIC_ID> `
+  --path-limit-json '{"path_family":"transform.location","allowed_operations":["add"],"max_absolute_delta":0.25}' `
+  --max-iterations 3
+
+uv run cbm qa-convergence-status <JOB_ID> <SESSION_ID>
+```
+
+계획에는 non-empty exact input map, initial SceneSpec/QA report, fixed camera와
+scoring version, 목표, 허용·잠긴 ID, path/delta 규칙, candidate confidence,
+per-iteration budget과 session-owned `host_safety_envelope.json`의 exact hash가
+들어갑니다. Envelope는
+`schemas/visual_convergence_host_safety_envelope.schema.json`으로 strict
+검증됩니다. 기본 반복 수는 3, 하드 상한은 5입니다. 계획 자체는 canonical
+SceneSpec이나 `.blend`를 수정하지 않습니다.
+
+Codex가 보고한 exact plan SHA-256을 검토한 뒤에만 다음 승인을 사용합니다.
+
+```text
+<JOB_ID> convergence session <SESSION_ID>의
+exact plan SHA-256 <PLAN_SHA256>을 승인한다.
+현재 activation hash가 모두 일치할 때만 승인 기록 후 실행해.
+```
+
+동일한 운영자용 CLI:
+
+```powershell
+uv run cbm qa-convergence-approve <JOB_ID> <SESSION_ID> `
+  --plan-sha256 <PLAN_SHA256> `
+  --approval-note "검토한 bounded V0.6 convergence envelope 승인"
+
+uv run cbm qa-convergence-run <JOB_ID> <SESSION_ID>
+```
+
+이 exact plan 승인은 해당 세션 안의 host-selected per-iteration 후보 승인만
+대체합니다. 전역 `qa.revision_mode`를 `approve`/`auto`로 바꾸거나
+`automatic_revision`을 켤 필요가 없습니다. 후보는 direct-reference evidence,
+허용 semantic ID와 숫자 path/delta 안에 있어야 하며 카메라, 재질, custom-mesh
+geometry, generated-target-only와 manual-required 후보는 자동 적용하지 않습니다.
+
+각 iteration은 build/render/inspect/validate, constraint 재평가와 새 direct QA를
+수행합니다. 승인된 minimum direct-score gain에 못 미치거나 silhouette IoU 또는
+constraint가 악화되면 baseline SceneSpec을 복구하고 종료합니다. 목표 도달,
+plateau, eligible candidate 없음, manual review, budget, regression, cancellation,
+stale/tampered evidence 또는 host failure에서도 더 넓은 권한을 추론하지 않고
+멈춥니다.
+
+한 번의 `run_visual_convergence` 호출은 full Blender iteration을 최대 한 번만
+수행합니다. 응답이 `active`이고 `next_action=invoke_run_again`이면 Codex가 같은
+exact plan/approval을 다시 검증해 다음 iteration을 이어갑니다. 호출이 중단된
+경우 다음 호출은 새 수정을 시작하지 않고 먼저 staging의 exact hash를 검증하고
+baseline SceneSpec·build·QA 상태를 복구한 뒤 recovery 결과를 보고합니다.
+그 다음 호출부터 새 iteration을 시작할 수 있습니다.
+
+완료 결과는 다음 위치에 저장됩니다.
+
+```text
+qa/convergence/<session-id>/
+├─ plan.json
+├─ approval.json
+├─ host_safety_envelope.json
+├─ initial_scene_spec.json
+├─ initial_build_provenance.json
+├─ initial_constraints.json              # 제약 계약이 있을 때
+├─ staging/<nnn>/                        # 현재 호출의 미완료 작업
+├─ interrupted_attempts/<nnn>-<id>/      # 복구 후 보존한 중단 evidence
+├─ iterations/<nnn>/base_scene_spec.json
+├─ iterations/<nnn>/selection.json
+├─ iterations/<nnn>/revision_plan.json
+├─ iterations/<nnn>/authorization.json
+├─ iterations/<nnn>/result_scene_spec.json
+├─ iterations/<nnn>/result_build_provenance.json
+├─ iterations/<nnn>/before_constraints.json
+├─ iterations/<nnn>/after_constraints.json
+├─ iterations/<nnn>/receipt.json
+├─ cancellation_receipt.json             # 취소한 세션만
+├─ final_scene_spec.json
+├─ final_build_provenance.json
+├─ convergence_report.json
+├─ convergence_report.pdf
+└─ convergence_report.manifest.json
+```
+
+새로 작성한 plan은 non-empty exact input hash map, initial candidates, build
+fingerprint/provenance, host-safety-envelope와 현재 constraint 계약까지 exact
+hash로 결속합니다. 이 신규 실행 binding이 없는 기존 partial plan은
+조회·감사용 historical evidence로만 읽을 수 있고 승인하거나 재실행할 수
+없습니다. 그런 세션은 수정하지 말고 current direct QA에서 새 convergence
+plan을 작성합니다.
+Host는 initial evidence에서 `host_safety_envelope.json`을 다시 계산해 exact
+hash로 비교하므로 plan을 직접 고쳐 material, interior, custom-mesh 또는 locked
+ID 권한을 추가할 수 없습니다.
+
+상태 확인과 명시적 취소는 `get_visual_convergence_status`,
+`cancel_visual_convergence` MCP 도구 또는 다음 CLI로 수행합니다.
+
+상태 응답의 `execution_eligible`, `status_only_legacy`,
+`execution_block_reason`, `execution_binding_gaps`를 먼저 확인합니다.
+`next_action`은 `approve_exact_plan`, `invoke_run_again`,
+`invoke_run_to_recover`, `invoke_run_to_finalize` 중 현재 허용되는 다음 host
+행동을 나타냅니다. `recovery_required`이거나 receipt-less staging이 있으면
+취소하거나 terminalize하지 말고 `qa-convergence-run`을 한 번 호출해 복구한 뒤
+다시 상태를 확인합니다. Terminal evidence와 receipt-less staging이 함께 있으면
+세션은 stale/tampered integrity failure입니다.
+
+```powershell
+uv run cbm qa-convergence-status <JOB_ID> <SESSION_ID>
+uv run cbm qa-convergence-cancel <JOB_ID> <SESSION_ID> `
+  --reason "사용자 검토를 위해 bounded session 중단"
+```
+
+수렴 세션 승인은 InteriorScope, 실내 QA 카메라, V0.7 optimization, package,
+Destination Handoff 또는 engine-specific 작업의 승인이 아닙니다.
 
 ## 10. 사람용 PDF 보고서 만들기
 
@@ -254,3 +401,4 @@ PDF는 재질 상태, 경고, swatch, QA 패스와 수정 후보를 사람이 �
 - Engine-neutral LOD, collider, raw/glTF packing과 clean-import round trip은 V0.7 범위입니다. Unity/Unreal 전용 import와 runtime material은 대상 엔진 확인 뒤 별도 adapter로 남습니다.
 - 생성 이미지 target은 보조 QA이며 단일 이미지의 숨은 구조를 진실로 복원하지 않습니다.
 - 실내 다각도 QA는 구조·가시성 검사이며 실내 레퍼런스가 없으면 유사도 점수를 만들지 않습니다.
+- bounded convergence는 standard의 선택 기능이며 default one-shot 승인을 바꾸지 않습니다. exact plan의 최대 5회 밖으로 자동 확장하거나 background fast workflow에서 사용하지 않습니다.

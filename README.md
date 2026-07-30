@@ -33,6 +33,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - 정확히 7개 고정 카메라 패스를 사용하는 Visual QA
 - 승인된 InteriorScope를 위한 별도 다각도 실내 QA, semantic visibility와 contact sheet
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
+- exact plan SHA-256을 한 번 승인해 기본 3회·최대 5회의 국소 수정을 제한적으로 반복하는 선택적 standard Visual QA convergence, iteration receipt, terminal JSON/PDF와 V0.9 audit
 - engine-neutral GLB, FBX, OBJ 정적 자산 preflight·최적화·package·clean-import round trip
 - 짧은 요청의 deterministic intent routing, 상태 재구성, 잠금, 재개, 취소와 승인 대기
 - 명시적으로 선택하는 배경 외관용 `background_exterior` 빠른 실행 정책과 `preview_only`/`portable_package` 종료 범위
@@ -68,6 +69,7 @@ BlenderAssetGenerator/
 │  ├─ constraints/                   measured residual 평가
 │  ├─ materials/, texturing/, baking/
 │  ├─ qa/                            V0.6 외관 비교와 후보 생성
+│  ├─ auto_revision/                 V0.6 one-shot revision과 bounded convergence
 │  ├─ interior_qa/                   V0.6 실내 다각도 구조 검사
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
@@ -178,6 +180,12 @@ canonical SceneSpec으로 한 번 승격합니다. semantic/material ID, custom-
 vertex, 실내와 외부 provider는 건드리지 않으며 canonical V0.6 QA run 수에도
 포함되지 않습니다.
 
+이 pre-QA fit은 아래의 optional standard convergence와 다른 기능입니다.
+`background_exterior` 안에서는 canonical 직접 QA를 정확히 한 번만 실행하고
+post-QA 후보를 자동 적용하지 않습니다. 반복적인 QA↔revision이 필요하면
+review delivery 뒤 별도의 `standard` 작업에서 사용자가 수렴 계획을 검토해야
+합니다.
+
 실행 완료와 품질 합격은 분리됩니다. QA evidence와 보고서 생성이 정상이면
 high visual finding이 있어도 preview는 `completed` / `delivered_for_review`로
 끝날 수 있습니다. 별도 `quality_status`는 `passed`, `needs_revision`,
@@ -214,6 +222,57 @@ uv run cbm workflow-plan `
   --profile portable_gltf `
   --include-destination-handoff
 ```
+
+## 선택적 standard V0.6 수렴 세션
+
+기본 `standard` 경로는 계속 후보별 exact 승인과 1회 적용입니다. 이미 큰 형상과
+비교 카메라가 승인됐고 같은 종류의 국소 수정 승인이 반복될 때만 bounded
+convergence를 선택할 수 있습니다. 사용자는 current direct QA run에서 생성된
+계획의 목표 direct score·silhouette IoU, 허용 semantic ID, path/operation/delta
+한계, minimum gain, candidate confidence와 iteration budget을 확인하고 exact plan
+SHA-256을 한 번 승인합니다. 기본 상한은 3회이고 하드 상한은 5회입니다.
+신규 plan은 non-empty exact input hash map, initial candidates, build
+fingerprint/provenance, strict host-safety-envelope SHA-256과 optional constraint
+snapshot에도 정확히 결속됩니다. 이 binding이 없는 legacy partial plan은
+historical status/audit 전용이며 승인·실행하지 않고 current direct QA에서 새
+plan을 작성합니다.
+
+PowerShell을 직접 실행할 필요는 없습니다. Codex에 다음처럼 요청하면
+`plan_visual_convergence` MCP 도구로 계획만 만들고 exact hash 승인에서
+멈춥니다.
+
+```text
+<JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
+standard bounded Visual QA convergence 계획만 작성해.
+목표 direct score와 silhouette IoU, 허용 semantic ID, path/delta 규칙,
+minimum gain, confidence와 모든 iteration budget을 보고해.
+strict host-safety-envelope 경로/SHA-256과 non-empty exact input map 상태도 보고해.
+canonical SceneSpec은 아직 수정하지 말고 exact plan SHA-256 승인에서 멈춰.
+```
+
+승인 뒤에는 Codex가 `approve_visual_convergence`와
+`run_visual_convergence`를 사용합니다. 각 iteration은 direct score가 승인된
+최소량 이상 개선되고 silhouette IoU와 measured constraint가 비회귀일 때만
+accept됩니다. 아니면 baseline을 복구하고 plateau·constraint regression·manual
+review 등의 정확한 이유로 종료합니다. generated-target-only 후보, 카메라,
+재질, custom-mesh geometry와 계획 밖 ID/경로는 자동 권한 밖입니다.
+CLI의 repeatable `--path-limit-json`과 MCP의 `path_limits`는 host 기본 규칙보다
+좁은 path/operation/delta만 요청할 수 있으며 자동 권한을 넓히지 못합니다.
+한 번의 host/MCP 실행은 전체 Blender 반복을 최대 한 번만 처리하고, active
+세션은 같은 exact approval과 immutable receipt chain을 검증한 뒤 다음 호출에서
+이어갑니다. 중단된 작업은 staging evidence를 보존한 채 먼저 baseline
+복구를 수행하며 completed iteration을 덮어쓰지 않습니다.
+상태 응답의 `execution_eligible`, `status_only_legacy`,
+`execution_block_reason`, `execution_binding_gaps`와 `next_action`을 따라
+승인·계속·복구·종료합니다. Receipt-less staging이 있으면 취소나
+terminalization보다 `run_visual_convergence` 1회 복구가 먼저이며,
+terminal evidence와 receipt-less staging이 함께 있으면 integrity failure입니다.
+
+이 exact plan 승인은 해당 세션의 per-iteration 후보 승인만 대체합니다.
+InteriorScope, V0.7 optimization, Destination Handoff 또는 package 승인을
+대체하지 않으며, 목표에 도달하지 못해도 iteration budget을 자동으로 늘리지
+않습니다. 완료 시 authoritative `convergence_report.json`, iteration hash chain,
+사용자용 PDF와 sidecar가 `qa/convergence/<session-id>/` 아래에 남습니다.
 
 ## V0.9 안정화 표면
 
@@ -277,6 +336,7 @@ immutable input
 - 실내 semantic visibility는 검토 범위의 가시성이지 완성도나 레퍼런스 유사도 백분율이 아닙니다.
 - `.blend`를 canonical 수정 수단으로 사용하지 않습니다.
 - 생성 이미지 기반 QA target은 보조 근거이며 단독으로 revision을 승인하지 못합니다.
+- standard bounded convergence는 exact plan 승인 안에서만 per-iteration 승인을 줄이며, 계획 밖 수정이나 다른 전문 승인을 허용하지 않습니다.
 - V0.7은 canonical authoring 데이터를 수정하지 않고 run-owned derived directory에서만 최적화합니다.
 - Handoff 생성은 원본 package와 canonical authoring 데이터를 변경하지 않고 모든 파일을 상대 경로와 SHA-256으로 결속합니다.
 - 일반 workflow 승인은 InteriorScope, Visual QA revision 또는 optimization의 전용 승인을 대체하지 못합니다.

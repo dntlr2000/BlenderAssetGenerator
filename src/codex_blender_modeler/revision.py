@@ -15,7 +15,7 @@ PathPart = str | int
 
 
 class RevisionOperation(StrictModel):
-    op: Literal["set", "multiply", "add", "append"]
+    op: Literal["set", "multiply", "add", "append", "remove"]
     target_type: Literal["object", "material", "camera", "scene"]
     target_id: str | None = None
     path: list[PathPart] = Field(min_length=1)
@@ -24,6 +24,8 @@ class RevisionOperation(StrictModel):
 
     @model_validator(mode="after")
     def validate_target(self) -> RevisionOperation:
+        """Restrict each operation to deterministic targets and safe path semantics."""
+
         if self.target_type in {"object", "material"} and not self.target_id:
             raise ValueError(f"{self.target_type} operation requires target_id")
         if self.target_type in {"camera", "scene"} and self.target_id is not None:
@@ -33,6 +35,19 @@ class RevisionOperation(StrictModel):
                 raise ValueError("Unsafe or empty revision path component")
             if isinstance(part, int) and part < 0:
                 raise ValueError("Negative revision path indices are not allowed")
+        if self.op == "remove":
+            if self.target_type != "scene" or self.path != ["objects"]:
+                raise ValueError(
+                    "remove is limited to target_type='scene' and path=['objects']"
+                )
+            if (
+                not isinstance(self.value, list)
+                or not self.value
+                or any(not isinstance(item, str) or not item for item in self.value)
+            ):
+                raise ValueError("remove requires a non-empty list of stable object IDs")
+            if len(self.value) != len(set(self.value)):
+                raise ValueError("remove object IDs must be unique")
         return self
 
 
@@ -115,6 +130,8 @@ def _read_path(target: Any, path: list[PathPart]) -> Any:
 
 
 def _apply_operation(raw: dict[str, Any], operation: RevisionOperation) -> tuple[Any, Any]:
+    """Apply one validated deterministic operation and return its before/after values."""
+
     target = _resolve_target(raw, operation)
     parent = target
     for part in operation.path[:-1]:
@@ -134,11 +151,44 @@ def _apply_operation(raw: dict[str, Any], operation: RevisionOperation) -> tuple
             raise TypeError(f"{operation.op} requires a numeric value")
         after = before * operation.value if operation.op == "multiply" else before + operation.value
         _set_child(parent, leaf, after)
-    else:
+    elif operation.op == "append":
         destination = _get_child(parent, leaf)
         if not isinstance(destination, list):
             raise TypeError("append requires a list target")
         destination.append(copy.deepcopy(operation.value))
+        after = copy.deepcopy(destination)
+    else:
+        destination = _get_child(parent, leaf)
+        if not isinstance(destination, list):
+            raise TypeError("remove requires a list target")
+        requested_ids = list(operation.value)
+        matches = {
+            target_id: [
+                index
+                for index, item in enumerate(destination)
+                if isinstance(item, dict) and item.get("id") == target_id
+            ]
+            for target_id in requested_ids
+        }
+        invalid = {
+            target_id: indices
+            for target_id, indices in matches.items()
+            if len(indices) != 1
+        }
+        if invalid:
+            details = ", ".join(
+                f"{target_id}={len(indices)}" for target_id, indices in sorted(invalid.items())
+            )
+            raise ValueError(
+                "remove requires exactly one scene object for every stable ID: "
+                f"{details}"
+            )
+        requested = set(requested_ids)
+        destination[:] = [
+            item
+            for item in destination
+            if not (isinstance(item, dict) and item.get("id") in requested)
+        ]
         after = copy.deepcopy(destination)
     return before, after
 

@@ -231,6 +231,13 @@ def _append_cover(
                     "Valid handoffs",
                     f"{audit.valid_handoff_count}/{audit.handoff_count}",
                 ),
+                (
+                    "Valid convergence",
+                    (
+                        f"{audit.valid_visual_convergence_session_count}/"
+                        f"{audit.visual_convergence_session_count}"
+                    ),
+                ),
             ],
             styles,
         )
@@ -294,7 +301,15 @@ def _append_audit(
     )
     story.append(
         _data_table(
-            ["Job", "Status", "Migration", "Sources", "Workflows", "Handoffs"],
+            [
+                "Job",
+                "Status",
+                "Migration",
+                "Sources",
+                "Workflows",
+                "Handoffs",
+                "Convergence",
+            ],
             [
                 [
                     job.job_id,
@@ -303,10 +318,15 @@ def _append_audit(
                     f"{job.verified_source_count}/{job.source_count}",
                     job.workflow_count,
                     f"{job.handoff_status} {job.valid_handoff_count}/{job.handoff_count}",
+                    (
+                        f"{job.visual_convergence_status} "
+                        f"{job.valid_visual_convergence_session_count}/"
+                        f"{job.visual_convergence_session_count}"
+                    ),
                 ]
                 for job in audit.jobs
             ],
-            [37 * mm, 22 * mm, 38 * mm, 23 * mm, 20 * mm, 34 * mm],
+            [30 * mm, 19 * mm, 31 * mm, 20 * mm, 18 * mm, 28 * mm, 28 * mm],
             styles,
         )
     )

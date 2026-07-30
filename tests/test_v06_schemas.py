@@ -16,6 +16,15 @@ def test_v06_contract_schemas_are_valid_draft_2020_12() -> None:
         "revision_candidates.schema.json",
         "revision_approval.schema.json",
         "convergence_report.schema.json",
+        "visual_convergence_plan.schema.json",
+        "visual_convergence_approval.schema.json",
+        "visual_convergence_cancellation.schema.json",
+        "visual_convergence_host_safety_envelope.schema.json",
+        "visual_convergence_selection.schema.json",
+        "visual_convergence_iteration_authorization.schema.json",
+        "visual_convergence_iteration.schema.json",
+        "visual_convergence_report.schema.json",
+        "visual_convergence_report_manifest.schema.json",
         "human_report_manifest.schema.json",
     ]
     for name in names:

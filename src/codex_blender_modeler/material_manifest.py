@@ -106,17 +106,34 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
 
     if not isinstance(value, dict):
         raise MaterialManifestError("procedural must be an object")
+    result = dict(value)
+    procedural_uv_set = result.get("coordinate_uv_set")
+    if procedural_uv_set is not None and procedural_uv_set not in UV_SETS:
+        raise MaterialManifestError(
+            f"procedural.coordinate_uv_set must be one of {sorted(UV_SETS)}"
+        )
+    procedural_scale = result.get("coordinate_scale_m")
+    if procedural_scale is not None and (
+        not isinstance(procedural_scale, (int, float))
+        or isinstance(procedural_scale, bool)
+        or float(procedural_scale) <= 0
+    ):
+        raise MaterialManifestError(
+            "procedural.coordinate_scale_m must be a positive number"
+        )
+    if procedural_scale is not None:
+        result["coordinate_scale_m"] = float(procedural_scale)
     procedural_channels = {
         name for name, channel in channels.items() if channel["source"] == "procedural"
     }
     if not procedural_channels:
-        return value
+        return result
     unsupported = sorted(procedural_channels - RUNTIME_PROCEDURAL_CHANNELS)
     if unsupported:
         raise MaterialManifestError(
             f"Procedural channels are outside the Blender runtime subset: {unsupported}"
         )
-    noise = value.get("noise")
+    noise = result.get("noise")
     if not isinstance(noise, dict):
         raise MaterialManifestError("Procedural channels require procedural.noise")
     for name in ("scale", "detail", "roughness", "distortion"):
@@ -126,16 +143,16 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
         ):
             raise MaterialManifestError(f"procedural.noise.{name} must be non-negative")
     if "base_color" in procedural_channels:
-        _validate_ramp(value.get("base_color_ramp"), "procedural.base_color_ramp")
+        _validate_ramp(result.get("base_color_ramp"), "procedural.base_color_ramp")
     if "roughness" in procedural_channels:
-        _validate_ramp(value.get("roughness_ramp"), "procedural.roughness_ramp")
+        _validate_ramp(result.get("roughness_ramp"), "procedural.roughness_ramp")
     if "height" in procedural_channels:
-        strength = value.get("bump_strength")
+        strength = result.get("bump_strength")
         if not isinstance(strength, (int, float)) or float(strength) <= 0:
             raise MaterialManifestError(
                 "Procedural height requires a positive procedural.bump_strength"
             )
-    return value
+    return result
 
 
 def load_material_manifest(

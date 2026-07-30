@@ -522,6 +522,27 @@ def test_handoff_validation_preserves_nonblocking_roundtrip_warning(
     assert len(warning.message) <= 2000
     assert "full warning remains in round-trip evidence" in warning.message
     assert hashlib.sha256(long_warning.encode("utf-8")).hexdigest() in warning.message
+    envelope = (
+        root
+        / "exports/destination_handoffs"
+        / profile_id
+        / package_id
+        / plan.handoff_id
+    )
+    context = json.loads(
+        (envelope / "codex_handoff/destination_context.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert any(
+        item.startswith("clean-import warning: UV loop association")
+        for item in context["unverified_items"]
+    )
+    extracted = "\n".join(
+        page.extract_text() or ""
+        for page in PdfReader(envelope / "codex_handoff/handoff_report.pdf").pages
+    )
+    assert "clean-import warning" in extracted
 
 
 def test_workspace_audit_reports_valid_handoff_counts(

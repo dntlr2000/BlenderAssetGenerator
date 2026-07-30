@@ -261,8 +261,14 @@ def compile_revision_plan(
     selected_candidate_ids: list[str],
     request: str,
     output_path: Path,
+    authorization_assumption: str = (
+        "Only explicitly approved QA candidates may be applied."
+    ),
 ) -> RevisionPlan:
-    """Compile only safe, selected QA candidates into the existing RevisionPlan contract."""
+    """Compile safe selected QA candidates with an explicit authorization assumption."""
+
+    if not authorization_assumption.strip():
+        raise ValueError("authorization_assumption must not be empty")
 
     candidates = RevisionCandidates.model_validate_json(
         candidates_path.read_text(encoding="utf-8")
@@ -307,7 +313,7 @@ def compile_revision_plan(
             for criterion in candidate.acceptance_criteria
         ],
         assumptions=[
-            "Only explicitly approved QA candidates may be applied.",
+            authorization_assumption.strip(),
             "Generated image targets remain advisory and cannot independently authorize edits.",
         ],
     )
@@ -339,48 +345,55 @@ def _require_locked_ids_unchanged(
             raise ValueError(f"approved revision changed locked semantic ID: {semantic_id}")
 
 
-def apply_approved_revision(
+def apply_hash_bound_revision(
     *,
     scene_spec_path: Path,
     candidates_path: Path,
     plan_path: Path,
-    approval_path: Path,
+    selected_candidate_ids: list[str],
+    expected_candidates_sha256: str,
+    expected_plan_sha256: str,
+    expected_base_spec_sha256: str,
+    authorization_id: str,
     output_path: Path,
 ) -> dict[str, Any]:
-    """Apply one exact approved plan, preserve locks, and consume approval after success."""
+    """Apply one exact candidate/plan bundle after a caller validates its authorization."""
 
+    if not selected_candidate_ids:
+        raise ValueError("hash-bound revision requires at least one selected candidate")
     candidates = RevisionCandidates.model_validate_json(
         candidates_path.read_text(encoding="utf-8")
     )
-    approval = load_revision_approval(approval_path)
     plan = load_revision_plan(plan_path)
-    if approval.used:
-        raise ValueError(f"revision approval was already used: {approval.approval_id}")
-    if approval.job_id != candidates.job_id or plan.job_id != candidates.job_id:
-        raise ValueError("approval, candidates, and plan must belong to the same job")
-    if sha256_file(candidates_path) != approval.candidates_sha256:
-        raise ValueError("revision candidate file changed after approval")
-    if sha256_file(plan_path) != approval.plan_sha256:
-        raise ValueError("revision plan changed after approval")
-    if sha256_file(scene_spec_path) != approval.base_spec_sha256:
-        raise ValueError("SceneSpec changed after revision approval")
-    if candidates.base_spec_sha256 != approval.base_spec_sha256:
-        raise ValueError("candidate base hash does not match revision approval")
+    if sha256_file(candidates_path) != expected_candidates_sha256:
+        raise ValueError("revision candidate file changed after authorization")
+    if sha256_file(plan_path) != expected_plan_sha256:
+        raise ValueError("revision plan changed after authorization")
+    if sha256_file(scene_spec_path) != expected_base_spec_sha256:
+        raise ValueError("SceneSpec changed after revision authorization")
+    if candidates.base_spec_sha256 != expected_base_spec_sha256:
+        raise ValueError("candidate base hash does not match revision authorization")
+    if plan.base_spec_sha256 != expected_base_spec_sha256:
+        raise ValueError("plan base hash does not match revision authorization")
+    if plan.job_id != candidates.job_id:
+        raise ValueError("candidates and RevisionPlan must belong to the same job")
     require_camera_fingerprint(scene_spec_path, candidates.camera_fingerprint)
     _require_source_report_integrity(candidates, candidates_path, scene_spec_path)
 
     by_id = {candidate.id: candidate for candidate in candidates.candidates}
-    missing = sorted(set(approval.approved_candidate_ids) - set(by_id))
+    missing = sorted(set(selected_candidate_ids) - set(by_id))
     if missing:
-        raise ValueError(f"revision approval references unknown candidates: {missing}")
-    selected = [by_id[candidate_id] for candidate_id in approval.approved_candidate_ids]
+        raise ValueError(f"revision authorization references unknown candidates: {missing}")
+    if len(selected_candidate_ids) != len(set(selected_candidate_ids)):
+        raise ValueError("revision authorization candidate IDs must be unique")
+    selected = [by_id[candidate_id] for candidate_id in selected_candidate_ids]
     _require_selected_candidate_integrity(candidates, selected, scene_spec_path)
     if any(candidate.applicability == "manual_required" for candidate in selected):
-        raise ValueError("revision approval contains a manual_required candidate")
+        raise ValueError("revision authorization contains a manual_required candidate")
     expected = Counter(_candidate_signature(candidate) for candidate in selected)
     actual = Counter(_plan_signature(operation) for operation in plan.operations)
     if expected != actual:
-        raise ValueError("RevisionPlan operations do not exactly match approved candidates")
+        raise ValueError("RevisionPlan operations do not exactly match authorized candidates")
 
     before = json.loads(scene_spec_path.read_text(encoding="utf-8"))
     _validated, report = apply_revision_plan(
@@ -400,7 +413,44 @@ def apply_approved_revision(
     dynamic_locks = sorted((all_semantic_ids - selected_targets) | set(candidates.locked_ids))
     _require_locked_ids_unchanged(before, after, dynamic_locks)
     if before["camera"] != after["camera"]:
-        raise ValueError("approved visual QA revision changed the fixed comparison camera")
+        raise ValueError("authorized visual QA revision changed the fixed comparison camera")
+    return {
+        **report,
+        "authorization_id": authorization_id,
+        "selected_candidate_ids": selected_candidate_ids,
+    }
+
+
+def apply_approved_revision(
+    *,
+    scene_spec_path: Path,
+    candidates_path: Path,
+    plan_path: Path,
+    approval_path: Path,
+    output_path: Path,
+) -> dict[str, Any]:
+    """Apply one exact approved plan, preserve locks, and consume approval after success."""
+
+    approval = load_revision_approval(approval_path)
+    if approval.used:
+        raise ValueError(f"revision approval was already used: {approval.approval_id}")
+    candidates = RevisionCandidates.model_validate_json(
+        candidates_path.read_text(encoding="utf-8")
+    )
+    plan = load_revision_plan(plan_path)
+    if approval.job_id != candidates.job_id or plan.job_id != candidates.job_id:
+        raise ValueError("approval, candidates, and plan must belong to the same job")
+    report = apply_hash_bound_revision(
+        scene_spec_path=scene_spec_path,
+        candidates_path=candidates_path,
+        plan_path=plan_path,
+        selected_candidate_ids=approval.approved_candidate_ids,
+        expected_candidates_sha256=approval.candidates_sha256,
+        expected_plan_sha256=approval.plan_sha256,
+        expected_base_spec_sha256=approval.base_spec_sha256,
+        authorization_id=approval.approval_id,
+        output_path=output_path,
+    )
     consumed = consume_revision_approval(approval_path)
     return {
         **report,

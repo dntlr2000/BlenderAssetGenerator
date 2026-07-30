@@ -28,6 +28,7 @@ def test_v09_windows_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "handoff-validate" in text
     assert "valid_handoff_count" in text
     assert "geometry_showcase" in text
+    assert '@("passed", "warning")' in text
     assert '$V08Arguments = @()' in text
     assert "Remove-Item" not in text.replace(
         "Remove-Item Env:CBM_WORKSPACE_ROOT -ErrorAction SilentlyContinue",
@@ -52,6 +53,7 @@ def test_v09_posix_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "handoff-validate" in text
     assert "valid_handoff_count" in text
     assert "geometry_showcase" in text
+    assert 'in {"passed","warning"}' in text
     assert "V08_ARGS=()" in text
     assert "${RUN_STAMP,,}" not in text
     assert "rm -" not in text

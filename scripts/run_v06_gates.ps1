@@ -68,6 +68,8 @@ try {
 
     if (-not $SkipV06Mcp) {
         Invoke-Uv run python scripts/run_v06_mcp_regressions.py
+        # Rebind the combined PDF to the exact latest QA run created by the MCP smoke.
+        Invoke-Uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
         Invoke-Uv run python scripts/verify_v06_artifacts.py
     }
 }

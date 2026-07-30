@@ -9,6 +9,19 @@ from codex_blender_modeler.architecture.models import (
     InteriorScopeApproval,
     InteriorScopeValidation,
 )
+from codex_blender_modeler.auto_revision.convergence_policy import (
+    ConvergenceCandidateSelection,
+)
+from codex_blender_modeler.auto_revision.convergence_session_models import (
+    VisualConvergenceApproval,
+    VisualConvergenceCancellation,
+    VisualConvergenceHostSafetyEnvelope,
+    VisualConvergenceIteration,
+    VisualConvergenceIterationAuthorization,
+    VisualConvergencePlan,
+    VisualConvergenceReport,
+    VisualConvergenceReportManifest,
+)
 from codex_blender_modeler.auto_revision.models import (
     ConvergenceReport,
     RevisionApproval,
@@ -120,6 +133,19 @@ SCHEMAS = {
     "revision_candidates.schema.json": RevisionCandidates,
     "revision_approval.schema.json": RevisionApproval,
     "convergence_report.schema.json": ConvergenceReport,
+    "visual_convergence_plan.schema.json": VisualConvergencePlan,
+    "visual_convergence_approval.schema.json": VisualConvergenceApproval,
+    "visual_convergence_cancellation.schema.json": VisualConvergenceCancellation,
+    "visual_convergence_host_safety_envelope.schema.json": (
+        VisualConvergenceHostSafetyEnvelope
+    ),
+    "visual_convergence_selection.schema.json": ConvergenceCandidateSelection,
+    "visual_convergence_iteration.schema.json": VisualConvergenceIteration,
+    "visual_convergence_iteration_authorization.schema.json": (
+        VisualConvergenceIterationAuthorization
+    ),
+    "visual_convergence_report.schema.json": VisualConvergenceReport,
+    "visual_convergence_report_manifest.schema.json": VisualConvergenceReportManifest,
     "asset_profile.schema.json": AssetProfile,
     "optimization_plan.schema.json": OptimizationPlan,
     "optimization_review.schema.json": OptimizationReview,

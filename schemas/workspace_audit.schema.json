@@ -161,6 +161,29 @@
           "title": "Handoff Status",
           "type": "string"
         },
+        "visual_convergence_session_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Visual Convergence Session Count",
+          "type": "integer"
+        },
+        "valid_visual_convergence_session_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Valid Visual Convergence Session Count",
+          "type": "integer"
+        },
+        "visual_convergence_status": {
+          "default": "not_requested",
+          "enum": [
+            "not_requested",
+            "active",
+            "valid",
+            "invalid"
+          ],
+          "title": "Visual Convergence Status",
+          "type": "string"
+        },
         "findings": {
           "items": {
             "$ref": "#/$defs/AuditFinding"
@@ -259,6 +282,18 @@
       "default": 0,
       "minimum": 0,
       "title": "Valid Handoff Count",
+      "type": "integer"
+    },
+    "visual_convergence_session_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Visual Convergence Session Count",
+      "type": "integer"
+    },
+    "valid_visual_convergence_session_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Valid Visual Convergence Session Count",
       "type": "integer"
     },
     "status": {

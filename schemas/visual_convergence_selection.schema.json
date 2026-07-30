@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "ConvergenceCandidateRejection": {
+      "additionalProperties": false,
+      "description": "Explain why one candidate could not use the bounded session authority.",
+      "properties": {
+        "candidate_id": {
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "manual_required",
+            "generated_target_only",
+            "missing_direct_reference",
+            "target_type_not_allowed",
+            "material_edits_disabled",
+            "target_not_allowed",
+            "target_locked",
+            "custom_mesh_geometry",
+            "path_not_allowed",
+            "operation_not_allowed",
+            "missing_baseline_value",
+            "invalid_numeric_delta",
+            "absolute_delta_exceeded",
+            "relative_delta_exceeded",
+            "confidence_below_threshold",
+            "partial_group_selection",
+            "candidate_conflict",
+            "iteration_group_budget",
+            "iteration_candidate_budget",
+            "iteration_target_budget"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "code",
+        "message"
+      ],
+      "title": "ConvergenceCandidateRejection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record deterministic selected IDs and fail-closed candidate decisions.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "candidates_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidates Sha256",
+      "type": "string"
+    },
+    "base_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Scene Spec Sha256",
+      "type": "string"
+    },
+    "source_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Qa Report Sha256",
+      "type": "string"
+    },
+    "selected_candidate_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Candidate Ids",
+      "type": "array"
+    },
+    "rejected": {
+      "items": {
+        "$ref": "#/$defs/ConvergenceCandidateRejection"
+      },
+      "title": "Rejected",
+      "type": "array"
+    },
+    "selection_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selection Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "job_id",
+    "candidates_sha256",
+    "base_scene_spec_sha256",
+    "source_qa_report_sha256",
+    "selection_sha256"
+  ],
+  "title": "ConvergenceCandidateSelection",
+  "type": "object"
+}

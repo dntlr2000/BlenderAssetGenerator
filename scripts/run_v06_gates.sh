@@ -55,6 +55,8 @@ uv run python scripts/run_advisory_target_smoke.py
 
 if [[ "$SKIP_V06_MCP" -eq 0 ]]; then
   uv run python scripts/run_v06_mcp_regressions.py
+  # Rebind the combined PDF to the exact latest QA run created by the MCP smoke.
+  uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
   uv run python scripts/verify_v06_artifacts.py
 fi
 

@@ -40,6 +40,7 @@ from .models import (
 )
 
 _RUN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
+_NON_RENDER_INTERIOR_TAGS = {"hidden-boolean-target"}
 _PROFILE_DIRECTIONS: dict[str, tuple[tuple[str, float, float], ...]] = {
     "minimal": (
         ("north", 0.0, 1.0),
@@ -168,6 +169,27 @@ def _object_locators(obj: ObjectSpec) -> tuple[list[str | None], list[str | None
     return levels or [None], spaces or [None]
 
 
+def _renderable_interior_objects(
+    objects: list[ObjectSpec],
+) -> tuple[list[ObjectSpec], list[str]]:
+    """Exclude non-render helpers from QA views while retaining them in source inventory."""
+
+    renderable: list[ObjectSpec] = []
+    excluded_ids: list[str] = []
+    for obj in objects:
+        tags = {tag.strip().casefold() for tag in obj.tags}
+        if tags.intersection(_NON_RENDER_INTERIOR_TAGS):
+            excluded_ids.append(obj.id)
+        else:
+            renderable.append(obj)
+    if not renderable:
+        raise ValueError(
+            "Interior QA requires at least one renderable interior object after "
+            "excluding non-render helpers"
+        )
+    return renderable, sorted(excluded_ids)
+
+
 def _semantic_bounds(
     inventory: InteriorQASourceInventory,
 ) -> dict[str, InteriorQABounds]:
@@ -275,14 +297,21 @@ def _entry_axis_views(
     semantic_bounds: dict[str, InteriorQABounds],
     *,
     eye_height_m: float,
+    camera_anchor_ids: list[str] | None = None,
 ) -> list[InteriorQAView]:
-    """Create paired outside-in and inside-out cameras through one entry boundary."""
+    """Create paired entry cameras, optionally aligned by non-render helper bounds."""
 
     entry_ids = _entry_target_ids(target_ids)
     if not entry_ids:
         return []
+    helper_anchor_ids = [
+        target_id
+        for target_id in (camera_anchor_ids or [])
+        if target_id in semantic_bounds and _entry_target_ids([target_id])
+    ]
+    anchor_candidates = helper_anchor_ids or entry_ids
     anchor_id = min(
-        entry_ids,
+        anchor_candidates,
         key=lambda target_id: (
             _bounds_xy_area(semantic_bounds[target_id]),
             target_id,
@@ -406,8 +435,11 @@ def _build_views(
     profile: str,
     max_views: int,
     eye_height_m: float,
+    entry_anchor_groups: (
+        dict[tuple[str | None, str | None], list[str]] | None
+    ) = None,
 ) -> tuple[list[InteriorQAView], list[str]]:
-    """Create bounded room rotations plus paired entry-axis temporary cameras."""
+    """Create bounded room rotations plus helper-aligned entry-axis cameras."""
 
     entries = list(groups.items())
     entry_view_count = sum(
@@ -492,6 +524,9 @@ def _build_views(
                 target_ids,
                 semantic_bounds,
                 eye_height_m=eye_height_m,
+                camera_anchor_ids=(entry_anchor_groups or {}).get(
+                    (level_id, space_id)
+                ),
             )
         )
     desired_total = (
@@ -563,14 +598,18 @@ def plan_job_interior_qa(
         job_id,
         scene_spec_path=root / "analysis" / "scene_spec.json",
     )
-    target_ids = sorted({obj.id for obj in interior_objects})
+    renderable_objects, excluded_render_ids = _renderable_interior_objects(
+        interior_objects
+    )
+    inventory_target_ids = sorted({obj.id for obj in interior_objects})
+    target_ids = sorted({obj.id for obj in renderable_objects})
     source_inventory_path = run_dir / "source_inventory.json"
     from ..blender_artifact_runner import inspect_job_interior_qa_source
 
     inventory = inspect_job_interior_qa_source(
         job_id,
         run_id=selected_run_id,
-        target_ids=target_ids,
+        target_ids=inventory_target_ids,
         output_path=source_inventory_path,
         scene_spec_sha256=str(provenance["scene_spec_sha256"]),
         build_fingerprint=str(provenance["fingerprint"]),
@@ -590,13 +629,18 @@ def plan_job_interior_qa(
         raise RuntimeError(
             "Interior QA could not resolve Blender bounds for: " + ", ".join(missing_bounds)
         )
-    groups = _group_targets(interior_objects)
+    groups = _group_targets(renderable_objects)
+    excluded_render_set = set(excluded_render_ids)
+    entry_anchor_groups = _group_targets(
+        [obj for obj in interior_objects if obj.id in excluded_render_set]
+    )
     views, planning_warnings = _build_views(
         groups,
         semantic_bounds,
         profile=profile,
         max_views=max_views,
         eye_height_m=eye_height_m,
+        entry_anchor_groups=entry_anchor_groups,
     )
     inventory_hash = sha256_file(source_inventory_path)
     resolution_tuple = (resolution, resolution)
@@ -629,7 +673,19 @@ def plan_job_interior_qa(
         target_ids=target_ids,
         views=views,
         created_at=_utc_now(),
-        warnings=[*inventory.warnings, *planning_warnings],
+        warnings=[
+            *inventory.warnings,
+            *(
+                [
+                    "Excluded non-render interior helpers from cameras and visibility "
+                    "coverage while retaining them in source inventory: "
+                    + ", ".join(excluded_render_ids)
+                ]
+                if excluded_render_ids
+                else []
+            ),
+            *planning_warnings,
+        ],
     )
     plan_path = run_dir / "plan.json"
     write_json_atomic(plan_path, plan.model_dump(mode="json"))

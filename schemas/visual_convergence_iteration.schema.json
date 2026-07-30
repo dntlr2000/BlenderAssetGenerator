@@ -1,0 +1,356 @@
+{
+  "additionalProperties": false,
+  "description": "Record one immutable, hash-chained candidate selection and verification result.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "iteration_index": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Iteration Index",
+      "type": "integer"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Sha256",
+      "type": "string"
+    },
+    "previous_iteration_receipt_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Iteration Receipt Sha256"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "base_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Scene Spec Sha256",
+      "type": "string"
+    },
+    "base_scene_spec_snapshot_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Base Scene Spec Snapshot Sha256"
+    },
+    "source_qa_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$",
+      "title": "Source Qa Run Id",
+      "type": "string"
+    },
+    "source_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Qa Report Sha256",
+      "type": "string"
+    },
+    "candidates_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidates Sha256",
+      "type": "string"
+    },
+    "source_build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Build Fingerprint"
+    },
+    "selection_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selection Sha256",
+      "type": "string"
+    },
+    "selected_candidate_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Selected Candidate Ids",
+      "type": "array"
+    },
+    "compiled_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Compiled Plan Sha256"
+    },
+    "execution_authorization_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Execution Authorization Sha256"
+    },
+    "result_scene_spec_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Scene Spec Sha256"
+    },
+    "result_qa_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Qa Run Id"
+    },
+    "result_qa_report_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Qa Report Sha256"
+    },
+    "result_candidates_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Candidates Sha256"
+    },
+    "result_build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Build Fingerprint"
+    },
+    "result_build_provenance_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result Build Provenance Sha256"
+    },
+    "before_constraints_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Before Constraints Sha256"
+    },
+    "after_constraints_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "After Constraints Sha256"
+    },
+    "before_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Before Direct Score",
+      "type": "number"
+    },
+    "after_direct_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "After Direct Score"
+    },
+    "before_silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Before Silhouette Iou",
+      "type": "number"
+    },
+    "after_silhouette_iou": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "After Silhouette Iou"
+    },
+    "score_delta": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score Delta"
+    },
+    "changed_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Ids",
+      "type": "array"
+    },
+    "constraint_regression_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Constraint Regression Count",
+      "type": "integer"
+    },
+    "canonical_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Scene Spec Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "accepted",
+        "rolled_back",
+        "manual_review_required",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "reason_codes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "completed_at": {
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "job_id",
+    "iteration_index",
+    "plan_sha256",
+    "approval_sha256",
+    "input_fingerprint",
+    "base_scene_spec_sha256",
+    "source_qa_run_id",
+    "source_qa_report_sha256",
+    "candidates_sha256",
+    "selection_sha256",
+    "before_direct_score",
+    "before_silhouette_iou",
+    "canonical_scene_spec_sha256",
+    "status",
+    "reason_codes",
+    "completed_at"
+  ],
+  "title": "VisualConvergenceIteration",
+  "type": "object"
+}

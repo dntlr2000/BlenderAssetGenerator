@@ -12,7 +12,7 @@ from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..build_provenance import collect_build_provenance
 from ..models import SceneSpec
-from ..workspace import archive_scene_spec, job_dir, sha256_file
+from ..workspace import job_dir, replace_scene_spec_if_current, sha256_file
 from .models import (
     BackgroundFitAttempt,
     BackgroundFitChange,
@@ -545,13 +545,23 @@ def run_background_pre_qa_fit(
     archived_path: Path | None = None
     canonical_changed = best_index != 0
     if canonical_changed:
-        archived_path = archive_scene_spec(job_id)
-        write_json_atomic(
-            canonical_path,
-            SceneSpec.model_validate_json(
-                selected_path.read_text(encoding="utf-8")
-            ).model_dump(mode="json"),
+        selected_model = SceneSpec.model_validate_json(
+            selected_path.read_text(encoding="utf-8")
         )
+        if selected_model.job_id != job_id:
+            raise BackgroundFitConflict(
+                "selected background-fit SceneSpec belongs to another job"
+            )
+        selected_hash = sha256_file(selected_path)
+        replacement = replace_scene_spec_if_current(
+            job_id,
+            selected_path,
+            expected_current_sha256=previous_hash,
+            expected_candidate_sha256=selected_hash,
+            lock_owner_id=workflow_id,
+        )
+        archived_value = replacement["archived_scene_spec"]
+        archived_path = Path(archived_value) if archived_value is not None else None
     new_hash = sha256_file(canonical_path)
     receipt = BackgroundScenePromotionReceipt(
         job_id=job_id,

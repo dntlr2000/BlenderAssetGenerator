@@ -85,7 +85,8 @@ function Invoke-DestinationHandoffGate {
         Join-Path $Envelope "codex_handoff/handoff_report.manifest.json"
     $PackageHashAfter = `
         (Get-FileHash -Algorithm SHA256 $PackageManifest).Hash.ToLowerInvariant()
-    if (-not $Validation.ok -or $Validation.status -ne "passed" -or `
+    # Known non-blocking round-trip limitations produce status=warning while ok remains true.
+    if (-not $Validation.ok -or $Validation.status -notin @("passed", "warning") -or `
         -not (Test-Path $HandoffManifest) -or -not (Test-Path $HandoffPdf) -or `
         -not (Test-Path $HandoffPdfManifest) -or `
         $PackageHashBefore -ne $PackageHashAfter) {

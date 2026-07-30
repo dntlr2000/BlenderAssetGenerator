@@ -1,0 +1,359 @@
+{
+  "$defs": {
+    "ConvergencePathLimit": {
+      "additionalProperties": false,
+      "description": "Bound one approved SceneSpec path family and its per-iteration numeric delta.",
+      "properties": {
+        "path_family": {
+          "enum": [
+            "transform.location",
+            "transform.rotation_deg",
+            "transform.scale",
+            "geometry.dimensions",
+            "geometry.depth",
+            "geometry.size",
+            "geometry.bevel_depth",
+            "geometry.skirt_depth",
+            "material.base_color",
+            "material.roughness",
+            "material.metallic",
+            "material.emission_strength"
+          ],
+          "title": "Path Family",
+          "type": "string"
+        },
+        "allowed_operations": {
+          "items": {
+            "enum": [
+              "set",
+              "add",
+              "multiply"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Operations",
+          "type": "array"
+        },
+        "max_absolute_delta": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Absolute Delta"
+        },
+        "max_relative_delta": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Delta"
+        }
+      },
+      "required": [
+        "path_family",
+        "allowed_operations"
+      ],
+      "title": "ConvergencePathLimit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the score target, immutable baseline, and automatic-edit envelope.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "initial_input_hashes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Exact input-directory-relative POSIX paths and SHA-256 hashes captured when the convergence plan was created. An empty map is accepted only for historical status-only plans and is never executable.",
+      "title": "Initial Input Hashes",
+      "type": "object"
+    },
+    "initial_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Scene Spec Sha256",
+      "type": "string"
+    },
+    "initial_qa_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$",
+      "title": "Initial Qa Run Id",
+      "type": "string"
+    },
+    "initial_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Qa Report Sha256",
+      "type": "string"
+    },
+    "initial_candidates_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact initial revision-candidate file hash. None is accepted only for historical plans created before candidate binding was introduced.",
+      "title": "Initial Candidates Sha256"
+    },
+    "initial_build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact initial build fingerprint. None is accepted only for historical status-only plans.",
+      "title": "Initial Build Fingerprint"
+    },
+    "initial_build_provenance_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact initial build-provenance snapshot hash. None is accepted only for historical status-only plans.",
+      "title": "Initial Build Provenance Sha256"
+    },
+    "host_safety_envelope_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact workflow-owned host safety envelope. None is accepted only for historical status-only plans.",
+      "title": "Host Safety Envelope Sha256"
+    },
+    "initial_constraints_present": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Whether a measured-constraint contract existed at planning time. None is accepted only for historical status-only plans.",
+      "title": "Initial Constraints Present"
+    },
+    "initial_constraints_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact initial constraint-contract hash when present; otherwise null.",
+      "title": "Initial Constraints Sha256"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "scoring_version": {
+      "enum": [
+        "legacy_bbox_v1",
+        "semantic_bbox_v2"
+      ],
+      "title": "Scoring Version",
+      "type": "string"
+    },
+    "initial_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Initial Direct Score",
+      "type": "number"
+    },
+    "initial_silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Initial Silhouette Iou",
+      "type": "number"
+    },
+    "target_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Target Direct Score",
+      "type": "number"
+    },
+    "target_silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Target Silhouette Iou",
+      "type": "number"
+    },
+    "minimum_iteration_gain": {
+      "default": 0.001,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Minimum Iteration Gain",
+      "type": "number"
+    },
+    "minimum_candidate_confidence": {
+      "default": 0.8,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Candidate Confidence",
+      "type": "number"
+    },
+    "max_iterations": {
+      "default": 3,
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Max Iterations",
+      "type": "integer"
+    },
+    "max_candidate_groups_per_iteration": {
+      "default": 3,
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Max Candidate Groups Per Iteration",
+      "type": "integer"
+    },
+    "max_candidates_per_iteration": {
+      "default": 12,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Max Candidates Per Iteration",
+      "type": "integer"
+    },
+    "max_changed_ids_per_iteration": {
+      "default": 6,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Max Changed Ids Per Iteration",
+      "type": "integer"
+    },
+    "allowed_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Target Ids",
+      "type": "array"
+    },
+    "locked_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Locked Target Ids",
+      "type": "array"
+    },
+    "custom_mesh_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Custom Mesh Target Ids",
+      "type": "array"
+    },
+    "path_limits": {
+      "items": {
+        "$ref": "#/$defs/ConvergencePathLimit"
+      },
+      "minItems": 1,
+      "title": "Path Limits",
+      "type": "array"
+    },
+    "allow_material_edits": {
+      "default": false,
+      "title": "Allow Material Edits",
+      "type": "boolean"
+    },
+    "camera_locked": {
+      "const": true,
+      "default": true,
+      "title": "Camera Locked",
+      "type": "boolean"
+    },
+    "generated_target_policy": {
+      "const": "advisory_only",
+      "default": "advisory_only",
+      "title": "Generated Target Policy",
+      "type": "string"
+    },
+    "constraint_regression_policy": {
+      "const": "forbid",
+      "default": "forbid",
+      "title": "Constraint Regression Policy",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "job_id",
+    "input_fingerprint",
+    "initial_scene_spec_sha256",
+    "initial_qa_run_id",
+    "initial_qa_report_sha256",
+    "camera_fingerprint",
+    "scoring_version",
+    "initial_direct_score",
+    "initial_silhouette_iou",
+    "target_direct_score",
+    "target_silhouette_iou",
+    "allowed_target_ids",
+    "path_limits",
+    "created_at"
+  ],
+  "title": "VisualConvergencePlan",
+  "type": "object"
+}

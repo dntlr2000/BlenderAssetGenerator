@@ -1,0 +1,272 @@
+{
+  "$defs": {
+    "ConvergencePathLimit": {
+      "additionalProperties": false,
+      "description": "Bound one approved SceneSpec path family and its per-iteration numeric delta.",
+      "properties": {
+        "path_family": {
+          "enum": [
+            "transform.location",
+            "transform.rotation_deg",
+            "transform.scale",
+            "geometry.dimensions",
+            "geometry.depth",
+            "geometry.size",
+            "geometry.bevel_depth",
+            "geometry.skirt_depth",
+            "material.base_color",
+            "material.roughness",
+            "material.metallic",
+            "material.emission_strength"
+          ],
+          "title": "Path Family",
+          "type": "string"
+        },
+        "allowed_operations": {
+          "items": {
+            "enum": [
+              "set",
+              "add",
+              "multiply"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Operations",
+          "type": "array"
+        },
+        "max_absolute_delta": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Absolute Delta"
+        },
+        "max_relative_delta": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 10,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Relative Delta"
+        }
+      },
+      "required": [
+        "path_family",
+        "allowed_operations"
+      ],
+      "title": "ConvergencePathLimit",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the host-derived maximum authority for one convergence session.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "initial_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Scene Spec Sha256",
+      "type": "string"
+    },
+    "initial_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Qa Report Sha256",
+      "type": "string"
+    },
+    "initial_candidates_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial Candidates Sha256",
+      "type": "string"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "scoring_version": {
+      "enum": [
+        "legacy_bbox_v1",
+        "semantic_bbox_v2"
+      ],
+      "title": "Scoring Version",
+      "type": "string"
+    },
+    "initial_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Initial Direct Score",
+      "type": "number"
+    },
+    "initial_silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Initial Silhouette Iou",
+      "type": "number"
+    },
+    "target_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Target Direct Score",
+      "type": "number"
+    },
+    "target_silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Target Silhouette Iou",
+      "type": "number"
+    },
+    "minimum_iteration_gain": {
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Minimum Iteration Gain",
+      "type": "number"
+    },
+    "minimum_candidate_confidence": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Candidate Confidence",
+      "type": "number"
+    },
+    "max_iterations": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Max Iterations",
+      "type": "integer"
+    },
+    "max_candidate_groups_per_iteration": {
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Max Candidate Groups Per Iteration",
+      "type": "integer"
+    },
+    "max_candidates_per_iteration": {
+      "maximum": 100,
+      "minimum": 1,
+      "title": "Max Candidates Per Iteration",
+      "type": "integer"
+    },
+    "max_changed_ids_per_iteration": {
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Max Changed Ids Per Iteration",
+      "type": "integer"
+    },
+    "allowed_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Target Ids",
+      "type": "array"
+    },
+    "locked_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Locked Target Ids",
+      "type": "array"
+    },
+    "custom_mesh_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Custom Mesh Target Ids",
+      "type": "array"
+    },
+    "interior_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Interior Target Ids",
+      "type": "array"
+    },
+    "manual_candidate_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Manual Candidate Ids",
+      "type": "array"
+    },
+    "path_limits": {
+      "items": {
+        "$ref": "#/$defs/ConvergencePathLimit"
+      },
+      "minItems": 1,
+      "title": "Path Limits",
+      "type": "array"
+    },
+    "allow_material_edits": {
+      "const": false,
+      "default": false,
+      "title": "Allow Material Edits",
+      "type": "boolean"
+    },
+    "camera_locked": {
+      "const": true,
+      "default": true,
+      "title": "Camera Locked",
+      "type": "boolean"
+    },
+    "generated_target_policy": {
+      "const": "advisory_only",
+      "default": "advisory_only",
+      "title": "Generated Target Policy",
+      "type": "string"
+    },
+    "constraint_regression_policy": {
+      "const": "forbid",
+      "default": "forbid",
+      "title": "Constraint Regression Policy",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "job_id",
+    "initial_scene_spec_sha256",
+    "initial_qa_report_sha256",
+    "initial_candidates_sha256",
+    "camera_fingerprint",
+    "scoring_version",
+    "initial_direct_score",
+    "initial_silhouette_iou",
+    "target_direct_score",
+    "target_silhouette_iou",
+    "minimum_iteration_gain",
+    "minimum_candidate_confidence",
+    "max_iterations",
+    "max_candidate_groups_per_iteration",
+    "max_candidates_per_iteration",
+    "max_changed_ids_per_iteration",
+    "allowed_target_ids",
+    "path_limits"
+  ],
+  "title": "VisualConvergenceHostSafetyEnvelope",
+  "type": "object"
+}

@@ -24,6 +24,7 @@ from codex_blender_modeler.background_quality.models import (
     BackgroundScenePromotionReceipt,
 )
 from codex_blender_modeler.models import SceneSpec
+from codex_blender_modeler.orchestration.locks import workflow_write_lock
 from codex_blender_modeler.qa.hashing import canonical_model_sha256
 from codex_blender_modeler.qa.models import (
     DirectVisualMetrics,
@@ -518,14 +519,15 @@ def test_pre_qa_fit_promotes_only_improved_camera_candidate(
         return _mask(attempt_root / "primary_silhouette.png", box)
 
     monkeypatch.setattr(fit_service, "_render_candidate", fake_render)
-    report = run_background_pre_qa_fit(
-        root.name,
-        workflow_id="wf-fit",
-        input_fingerprint="f" * 64,
-        initial_candidate_path=initial,
-        fit_root=root / "workflows" / "wf-fit" / "artifacts" / "g" / "fit",
-        max_attempts=2,
-    )
+    with workflow_write_lock(root, root.name, "wf-fit", ttl_seconds=60):
+        report = run_background_pre_qa_fit(
+            root.name,
+            workflow_id="wf-fit",
+            input_fingerprint="f" * 64,
+            initial_candidate_path=initial,
+            fit_root=root / "workflows" / "wf-fit" / "artifacts" / "g" / "fit",
+            max_attempts=2,
+        )
     promoted = SceneSpec.model_validate_json(scene.read_text(encoding="utf-8"))
 
     assert report.status == "completed"
@@ -567,14 +569,15 @@ def test_pre_qa_fit_retains_baseline_on_non_improvement(
         return _mask(attempt_root / "primary_silhouette.png", (0, 8, 15, 23))
 
     monkeypatch.setattr(fit_service, "_render_candidate", fake_render)
-    report = run_background_pre_qa_fit(
-        root.name,
-        workflow_id="wf-fit",
-        input_fingerprint="f" * 64,
-        initial_candidate_path=initial,
-        fit_root=root / "workflows" / "wf-fit" / "artifacts" / "g" / "fit",
-        max_attempts=2,
-    )
+    with workflow_write_lock(root, root.name, "wf-fit", ttl_seconds=60):
+        report = run_background_pre_qa_fit(
+            root.name,
+            workflow_id="wf-fit",
+            input_fingerprint="f" * 64,
+            initial_candidate_path=initial,
+            fit_root=root / "workflows" / "wf-fit" / "artifacts" / "g" / "fit",
+            max_attempts=2,
+        )
 
     assert report.selected_attempt_index == 0
     assert sha256_file(scene) == baseline_hash

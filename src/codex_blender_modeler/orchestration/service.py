@@ -42,6 +42,7 @@ from ..optimization import (
     preflight_asset,
 )
 from ..optimization.io import validate_filesystem_id
+from ..optimization.preflight import load_asset_profile, profile_path
 from ..optimization.provenance import collect_source_provenance
 from ..packaging import package_asset, validate_asset_package
 from ..packaging.material_conversion import convert_portable_materials
@@ -57,12 +58,12 @@ from ..revision import apply_revision_plan
 from ..validation import load_scene_spec
 from ..workspace import (
     add_job_view,
-    archive_scene_spec,
     create_job,
     ensure_job_dirs,
     find_reference,
     job_dir,
     load_job,
+    replace_scene_spec_if_current,
     sha256_file,
     validate_job_id,
     validate_new_job_id,
@@ -104,6 +105,25 @@ class RequiresStandardWorkflow(RuntimeError):
 
 class OrchestrationArtifactConflict(RuntimeError):
     """Signal unexpected mutation of workflow-owned evidence or its current source."""
+
+
+def _ensure_workflow_asset_profile(
+    root: Path,
+    job_id: str,
+    profile_id: str,
+) -> None:
+    """Reuse a valid job-owned profile or initialize it when none exists."""
+
+    existing_path = profile_path(root, profile_id)
+    if not existing_path.is_file():
+        initialize_asset_profile(job_id, profile_id=profile_id)
+        return
+    existing = load_asset_profile(root, profile_id)
+    if existing.job_id != job_id or existing.profile_id != profile_id:
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: existing asset profile identity "
+            "does not match the workflow job and profile"
+        )
 
 
 def _utc_now() -> datetime:
@@ -2398,20 +2418,30 @@ def _evaluate_background_delivery(
         )
 
 
-def _apply_guarded_revision(job_id: str) -> None:
+def _apply_guarded_revision(job_id: str, workflow_id: str) -> None:
     """Promote a validated RevisionPlan atomically after archiving the prior SceneSpec."""
 
     root = job_dir(job_id)
     current = root / "analysis" / "scene_spec.json"
     plan = root / "analysis" / "revision_plan.json"
-    candidate = root / "analysis" / "scene_spec.next.json"
+    candidate = (
+        root
+        / "analysis"
+        / f".scene_spec.workflow-{workflow_id}-{uuid4().hex}.next.json"
+    )
     _validated, report = apply_revision_plan(
         scene_spec_path=current,
         plan_path=plan,
         output_path=candidate,
     )
-    archive_scene_spec(job_id)
-    os.replace(candidate, current)
+    replace_scene_spec_if_current(
+        job_id,
+        candidate,
+        expected_current_sha256=report["base_spec_sha256"],
+        expected_candidate_sha256=report["result_spec_sha256"],
+        lock_owner_id=workflow_id,
+    )
+    candidate.unlink(missing_ok=True)
     write_json_atomic(root / "reports" / "revision_diff.json", report)
 
 
@@ -2479,7 +2509,7 @@ def _execute_host_tool(
         _validate_scene(request.job_id)
         return
     if tool == "apply_revision_plan":
-        _apply_guarded_revision(request.job_id)
+        _apply_guarded_revision(request.job_id, request.workflow_id)
         return
     if tool == "material_scaffold":
         create_material_scaffold(request.job_id, overwrite=False)
@@ -2574,9 +2604,10 @@ def _execute_host_tool(
         )
         return
     if tool == "initialize_asset_profile":
-        initialize_asset_profile(
+        _ensure_workflow_asset_profile(
+            root,
             request.job_id,
-            profile_id=str(step.parameters["profile_id"]),
+            str(step.parameters["profile_id"]),
         )
         return
     if tool == "run_asset_preflight":
