@@ -163,6 +163,11 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 110. Convergence never edits InteriorScope-classified objects or material identities. The strict `visual_convergence_host_safety_envelope.schema.json` contract is hash-bound into the plan and approval, and approval-time and run-time host policy must be re-derived from immutable source evidence. Public CLI/MCP path limits may only narrow that host envelope; editing a plan cannot broaden allowed IDs, custom-mesh eligibility, path/operation/delta limits, or material permissions.
 111. Process at most one full Blender convergence iteration per host/MCP invocation. Long-running work uses recoverable staging and publishes an immutable numbered iteration only after its receipt is complete; a later call may recover an interrupted stage but must never overwrite a completed receipt.
 112. Re-read and re-hash the exact plan and approval after acquiring the shared job write lock and before canonical promotion or terminalization. Receipt-less iteration staging must be recovered by one convergence-run invocation before cancellation or terminalization; terminal evidence combined with receipt-less staging is invalid. Orphan cancellation, final snapshot, PDF, or incomplete iteration evidence must block replay rather than silently reopening consumed authority.
+113. New modeling plans must explicitly classify small surface-attached details. Shallow windows, seams, labels, rivets, painted panels, and repeated marks belong in `surface_details` when they do not affect silhouette, structure, gameplay, or physical transparency; geometry-worthy parts remain normal modeling objects.
+114. A texture-routed surface-detail ID must never also exist as a SceneSpec object. Its parent object and target material must exist and remain stable, and a changed non-empty surface-detail plan participates in the Blender build fingerprint.
+115. Every non-omitted surface detail requires an authored UVMap image/hybrid TextureManifest that lists its exact stable ID in `surface_detail_ids` and contains every planned PBR channel. A coverage claim is not pixel-level proof and must not be fabricated.
+116. V0.6 reports surface-detail contract coverage separately from geometry similarity. Missing or incorrect pixels return to V0.5 material/texture authoring; a newly discovered silhouette or structural requirement returns to V0.4 geometry authoring.
+117. `baked_decal` means portable PBR maps, not an engine-specific runtime decal graph. V0.7 may preserve or derive those maps but still cannot claim destination shader parity.
 
 ## v0.4 reference-analysis workflow
 
@@ -174,8 +179,8 @@ For a revision of the current asset, keep the same job ID and use the guarded re
    - `analysis/diagnostics/*_edges.png`
    - `analysis/masks/*_content.png`
 4. Use diagnostics as evidence, not as ground truth. The basic provider measures image bounds, content bounds, edge density, symmetry, and dominant colors. The optional OpenCV provider adds line-angle diagnostics.
-5. Populate `analysis/modeling_plan.json` with semantic objects before SceneSpec authoring.
-6. Separate observed and inferred geometry and record confidence.
+5. Populate `analysis/modeling_plan.json` with semantic objects and an explicit small surface-detail policy before SceneSpec authoring.
+6. Separate observed and inferred geometry, record confidence, and route non-structural shallow marks to `surface_details` instead of individual meshes.
 
 ## Geometry strategy order
 
@@ -243,6 +248,7 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 9. Separate Blender master shaders from GLTF-safe baked outputs and future engine-adapter inputs. V0.6 writes separate portable channels; V0.7 may derive glTF ORM but does not claim Unity/Unreal packing.
 10. Do not bake or replace approved material identities before swatch approval.
 11. Rebuild after changing SceneSpec, external geometry/heightmap, MaterialPlan, ShaderRecipe, TextureManifest, or an image channel; stale scenes must be rejected before baking.
+12. For each non-omitted ModelingPlan surface detail, require an authored UVMap image/hybrid TextureManifest with the exact detail ID and planned channels before material build.
 
 ## v0.6 visual QA and revision workflow
 
@@ -259,6 +265,7 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 11. Keep the candidate-by-candidate one-shot flow as the default. For repeated standard revisions only, the user may request one bounded convergence plan from a current direct QA run.
 12. Show the target direct score, target silhouette IoU, allowed and locked semantic IDs, path/operation/delta rules, minimum gain, confidence threshold, per-iteration budgets, hard iteration limit, stop conditions, non-empty exact input-map status, host-safety-envelope path/SHA-256, and exact plan SHA-256. Planning must not modify canonical geometry.
 13. Stop until the user approves that exact plan hash. After approval, host policy may select only eligible direct-reference candidates inside the immutable envelope and does not require another user approval for each accepted iteration.
+14. Keep texture-routed surface details out of geometry candidates. Report their manifest coverage separately; route missing pixels to V0.5 and newly discovered silhouette/structural needs to V0.4.
 14. Do not change global `qa.revision_mode`, enable `automatic_revision`, use a generated target as authority, or widen the envelope during a session. Any such need terminates for manual review.
 15. Persist every iteration receipt and terminal machine report under `qa/convergence/<session-id>/`, generate its hash-bound PDF projection, and report whether both targets were reached or the exact reason the bounded session stopped. Process at most one full Blender iteration per host/MCP invocation and use the status response's execution flags and `next_action` to approve, continue, recover, or finalize.
 

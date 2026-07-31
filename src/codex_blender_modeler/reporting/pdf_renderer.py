@@ -543,6 +543,21 @@ def _append_build_section(
             styles,
         )
     )
+    surface_detail = documents.get("surface_detail_validation") or {}
+    if surface_detail:
+        story.append(_paragraph("표면 디테일 텍스처 결속", styles["h2"]))
+        story.append(
+            _metric_table(
+                [
+                    ("검증", _status(surface_detail.get("ok"))[0]),
+                    ("계약 상태", surface_detail.get("material_status", "-")),
+                    ("텍스처 대상", surface_detail.get("textured", 0)),
+                    ("명시적 생략", surface_detail.get("omitted", 0)),
+                    ("실패 검사", surface_detail.get("failed", 0)),
+                ],
+                styles,
+            )
+        )
     runtime = validation.get("runtime", {})
     story.append(_paragraph("실행 환경", styles["h2"]))
     story.append(
@@ -711,6 +726,21 @@ def _append_material_section(
             styles,
         )
     )
+    surface_detail = documents.get("surface_detail_validation") or {}
+    if surface_detail:
+        story.append(_paragraph("표면 디테일 텍스처 결속", styles["h2"]))
+        story.append(
+            _metric_table(
+                [
+                    ("검증", _status(surface_detail.get("ok"))[0]),
+                    ("계약 상태", surface_detail.get("material_status", "-")),
+                    ("텍스처 대상", surface_detail.get("textured", 0)),
+                    ("명시적 생략", surface_detail.get("omitted", 0)),
+                    ("실패 검사", surface_detail.get("failed", 0)),
+                ],
+                styles,
+            )
+        )
     _append_material_scene_preview(story, images, styles)
     if contract:
         story.append(_paragraph("호스트 계약 검증", styles["h2"]))
@@ -1832,6 +1862,32 @@ def _append_qa_section(
             styles,
         )
     )
+    surface_detail = report.get("surface_detail_summary")
+    if isinstance(surface_detail, dict):
+        story.append(_paragraph("표면 디테일 전달 상태", styles["h2"]))
+        story.append(
+            _metric_table(
+                [
+                    ("계약 상태", surface_detail.get("contract_status", "-")),
+                    ("선언된 디테일", surface_detail.get("declared_details", 0)),
+                    (
+                        "텍스처 결속 디테일",
+                        surface_detail.get("texture_bound_details", 0),
+                    ),
+                    ("명시적 생략", surface_detail.get("omitted_details", 0)),
+                    ("실패 검사", surface_detail.get("failed_checks", 0)),
+                ],
+                styles,
+            )
+        )
+        story.append(
+            _paragraph(
+                "이 값은 TextureManifest 결속 상태입니다. 작은 무늬의 픽셀 유사도나 "
+                "전체 모델 완성도 점수가 아니며, 표면 디테일은 geometry 후보에서 "
+                "제외됩니다.",
+                styles["body"],
+            )
+        )
     story.append(
         _paragraph(
             "직접 점수는 고정 카메라에서 reference mask와 Blender render를 비교한 지표이며, "

@@ -181,6 +181,41 @@ def _optional_interior_contract_hashes(root: Path) -> dict[str, Any] | None:
     }
 
 
+def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | None:
+    """Bind non-empty surface-detail decisions into the build fingerprint."""
+
+    plan_path = root / "analysis" / "modeling_plan.json"
+    if not plan_path.is_file():
+        return None
+    try:
+        raw = json.loads(plan_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise BuildProvenanceError(
+            f"ModelingPlan is invalid JSON: {plan_path}"
+        ) from exc
+    details = raw.get("surface_details") if isinstance(raw, dict) else None
+    if not details:
+        return None
+    if not isinstance(details, list):
+        raise BuildProvenanceError(
+            f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
+        )
+    from .analysis.models import ModelingPlan
+
+    try:
+        plan = ModelingPlan.model_validate(raw)
+    except ValueError as exc:
+        raise BuildProvenanceError(
+            f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
+        ) from exc
+    detail_ids = [item.id for item in plan.surface_details]
+    return {
+        "modeling_plan_path": _relative_path(root, plan_path, "modeling plan"),
+        "modeling_plan_sha256": sha256_file(plan_path),
+        "surface_detail_ids": sorted(detail_ids),
+    }
+
+
 def collect_build_provenance(
     job_root: Path,
     job_id: str,
@@ -230,7 +265,10 @@ def collect_build_provenance(
                 "target_subject": target_subject,
             }
     if is_job_workspace and validate_contracts:
+        from .analysis.models import ModelingPlan
+        from .analysis.surface_details import validate_surface_detail_contract
         from .architecture.service import validate_scene_interior_scope
+        from .materials.io import load_material_plan
         from .models import SceneSpec
         from .reference_scope import validate_scene_content_scope
 
@@ -257,6 +295,38 @@ def collect_build_provenance(
                 raise BuildProvenanceError(
                     f"Reference content-scope validation failed: {exc}"
                 ) from exc
+        modeling_plan_path = root / "analysis" / "modeling_plan.json"
+        if modeling_plan_path.is_file():
+            try:
+                modeling_plan = ModelingPlan.model_validate_json(
+                    modeling_plan_path.read_text(encoding="utf-8")
+                )
+                material_plan_path = root / "analysis" / "material_plan.json"
+                material_plan = (
+                    load_material_plan(material_plan_path)
+                    if material_plan_path.is_file()
+                    else None
+                )
+                surface_report = validate_surface_detail_contract(
+                    modeling_plan,
+                    parsed_scene_spec,
+                    root,
+                    material_plan=material_plan,
+                    require_materials=material_plan is not None,
+                )
+            except (OSError, ValueError) as exc:
+                raise BuildProvenanceError(
+                    f"Surface-detail contract validation failed: {exc}"
+                ) from exc
+            if not surface_report.ok:
+                failures = "; ".join(
+                    item.message
+                    for item in surface_report.checks
+                    if item.status == "failed"
+                )
+                raise BuildProvenanceError(
+                    f"Surface-detail contract validation failed: {failures}"
+                )
     camera = scene_spec.get("camera")
     if not isinstance(camera, dict):
         raise BuildProvenanceError("SceneSpec camera must be an object")
@@ -314,6 +384,9 @@ def collect_build_provenance(
         payload["interior_contracts"] = interior_contracts
     if reference_scope_payload is not None:
         payload["reference_content_scope"] = reference_scope_payload
+    surface_detail_contracts = _optional_surface_detail_contract_hashes(root)
+    if surface_detail_contracts is not None:
+        payload["surface_detail_contracts"] = surface_detail_contracts
     payload["fingerprint"] = canonical_json_sha256(payload)
     return payload
 

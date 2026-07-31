@@ -3,7 +3,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from codex_blender_modeler.analysis.models import CameraSolution, ModelingPlan, ReferenceAnalysis
+from codex_blender_modeler.analysis.models import (
+    CameraSolution,
+    ModelingPlan,
+    ReferenceAnalysis,
+    SurfaceDetailValidationReport,
+)
 from codex_blender_modeler.architecture.models import (
     InteriorScope,
     InteriorScopeApproval,
@@ -113,6 +118,7 @@ SCHEMAS = {
     "reference_analysis.schema.json": ReferenceAnalysis,
     "camera_solution.schema.json": CameraSolution,
     "modeling_plan.schema.json": ModelingPlan,
+    "surface_detail_validation.schema.json": SurfaceDetailValidationReport,
     "constraints.schema.json": ConstraintSet,
     "constraint_solution.schema.json": ConstraintSolution,
     "material_plan.schema.json": MaterialPlan,

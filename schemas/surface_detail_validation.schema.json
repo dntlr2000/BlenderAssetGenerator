@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "SurfaceDetailValidationCheck": {
+      "additionalProperties": false,
+      "description": "Record one host-side geometry or material binding check for a surface detail.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "modeling",
+            "geometry",
+            "material",
+            "qa"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "detail_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail Id"
+        },
+        "parent_object_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Object Id"
+        },
+        "material_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Id"
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "phase",
+        "message"
+      ],
+      "title": "SurfaceDetailValidationCheck",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize whether planned surface details remain non-mesh and texture-bound.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "material_status": {
+      "enum": [
+        "not_required",
+        "pending",
+        "validated"
+      ],
+      "title": "Material Status",
+      "type": "string"
+    },
+    "total": {
+      "minimum": 0,
+      "title": "Total",
+      "type": "integer"
+    },
+    "textured": {
+      "minimum": 0,
+      "title": "Textured",
+      "type": "integer"
+    },
+    "omitted": {
+      "minimum": 0,
+      "title": "Omitted",
+      "type": "integer"
+    },
+    "passed": {
+      "minimum": 0,
+      "title": "Passed",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/SurfaceDetailValidationCheck"
+      },
+      "title": "Checks",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "ok",
+    "material_status",
+    "total",
+    "textured",
+    "omitted",
+    "passed",
+    "warnings",
+    "failed"
+  ],
+  "title": "SurfaceDetailValidationReport",
+  "type": "object"
+}

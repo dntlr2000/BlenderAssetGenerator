@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from ..analysis import validate_job_surface_details
 from ..auto_revision.candidate_builder import build_revision_candidates
 from ..blender_artifacts import write_json_atomic
 from ..build_provenance import collect_build_provenance
@@ -21,6 +22,7 @@ from .models import (
     QATargetManifest,
     RenderPassManifest,
     RenderPassRecord,
+    SurfaceDetailQASummary,
     VisualQARequest,
 )
 from .reference_mask import prepare_run_reference_mask
@@ -346,6 +348,43 @@ def run_job_visual_qa(
                 update={"warnings": [*report.warnings, *advisory_warnings]}
             )
 
+    surface_report = validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+    )
+    if not surface_report.ok:
+        failures = "; ".join(
+            item.message
+            for item in surface_report.checks
+            if item.status == "failed"
+        )
+        raise ValueError(f"Surface-detail QA prerequisite failed: {failures}")
+    surface_warnings = [
+        item.message for item in surface_report.checks if item.status == "warning"
+    ]
+    surface_status = (
+        surface_report.material_status
+        if (root / "analysis" / "modeling_plan.json").is_file()
+        else "not_declared"
+    )
+    report = report.model_copy(
+        update={
+            "surface_detail_summary": SurfaceDetailQASummary(
+                contract_status=surface_status,
+                declared_details=surface_report.total,
+                texture_bound_details=(
+                    surface_report.textured
+                    if surface_report.material_status == "validated"
+                    else 0
+                ),
+                omitted_details=surface_report.omitted,
+                failed_checks=surface_report.failed,
+                report_path="reports/surface_detail_validation.json",
+                warnings=surface_warnings,
+            )
+        }
+    )
     report = enrich_direct_qa_suggestions(report, spec)
     report_path = run_dir / "visual_qa_report.json"
     write_json_atomic(report_path, report.model_dump(mode="json"))

@@ -9,6 +9,7 @@ COLOR_CHANNELS = {"base_color", "emission"}
 DATA_CHANNELS = IMAGE_CHANNELS - COLOR_CHANNELS
 SOURCE_TYPES = {"image", "procedural", "hybrid"}
 UV_SETS = {"UVMap", "Generated", "Object"}
+PROCEDURAL_COORDINATE_SETS = UV_SETS | {"World"}
 RUNTIME_PROCEDURAL_CHANNELS = {"base_color", "roughness", "height"}
 
 
@@ -108,9 +109,13 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
         raise MaterialManifestError("procedural must be an object")
     result = dict(value)
     procedural_uv_set = result.get("coordinate_uv_set")
-    if procedural_uv_set is not None and procedural_uv_set not in UV_SETS:
+    if (
+        procedural_uv_set is not None
+        and procedural_uv_set not in PROCEDURAL_COORDINATE_SETS
+    ):
         raise MaterialManifestError(
-            f"procedural.coordinate_uv_set must be one of {sorted(UV_SETS)}"
+            "procedural.coordinate_uv_set must be one of "
+            f"{sorted(PROCEDURAL_COORDINATE_SETS)}"
         )
     procedural_scale = result.get("coordinate_scale_m")
     if procedural_scale is not None and (

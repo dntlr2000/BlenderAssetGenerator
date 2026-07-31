@@ -6,6 +6,7 @@
 
 - 전체 현황과 기본 명령: [README.md](README.md)
 - 새 레퍼런스 단계별 검증 프롬프트: [NEW_REFERENCE_VALIDATION_PROMPTS_KO.md](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
+- 작은 창문·라벨·이음선의 메시/텍스처 분류: [SURFACE_DETAIL_ROUTING_KO.md](SURFACE_DETAIL_ROUTING_KO.md)
 - 안정화, workspace audit와 queue: [GETTING_STARTED_V09_KO.md](GETTING_STARTED_V09_KO.md)
 - 재질·텍스처·셰이더와 Visual QA: [GETTING_STARTED_V06_KO.md](GETTING_STARTED_V06_KO.md)
 - 정적 자산 최적화와 portable package: [GETTING_STARTED_V07_KO.md](GETTING_STARTED_V07_KO.md)

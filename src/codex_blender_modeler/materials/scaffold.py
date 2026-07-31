@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from uuid import uuid4
 
+from ..analysis.models import ModelingPlan
 from ..material_manifest import load_material_manifest
 from ..validation import load_scene_spec
 from ..workspace import job_dir
@@ -104,6 +105,24 @@ def _write_atomic(path: Path, content: str) -> None:
     os.replace(temporary, path)
 
 
+def _surface_detail_requirements(root: Path) -> dict[str, list[str]]:
+    """Group planned non-mesh detail IDs by their target material for V0.5 authoring."""
+
+    plan_path = root / "analysis" / "modeling_plan.json"
+    if not plan_path.is_file():
+        return {}
+    plan = ModelingPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+    requirements: dict[str, list[str]] = {}
+    for detail in plan.surface_details:
+        if detail.representation == "omit" or detail.target_material_id is None:
+            continue
+        requirements.setdefault(detail.target_material_id, []).append(detail.id)
+    return {
+        material_id: sorted(detail_ids)
+        for material_id, detail_ids in sorted(requirements.items())
+    }
+
+
 def _material_scaffold_payload(
     job_id: str,
     root: Path,
@@ -116,6 +135,7 @@ def _material_scaffold_payload(
 
     recipes: list[tuple[Path, ShaderRecipe]] = []
     plan_items: list[MaterialPlanItem] = []
+    surface_requirements = _surface_detail_requirements(root)
     for material in sorted(scene_spec["materials"], key=lambda item: item["id"]):
         material_id = str(material["id"])
         family, surface = _surface_from_scene_material(material)
@@ -141,6 +161,13 @@ def _material_scaffold_payload(
             assumptions=["Generated from approved SceneSpec material defaults."],
         )
         recipes.append((root / recipe_relative, recipe))
+        item_notes = ["Scaffold preserves the current SceneSpec material appearance."]
+        required_details = surface_requirements.get(material_id, [])
+        if required_details:
+            item_notes.append(
+                "Author a UVMap image/hybrid manifest that explicitly covers surface-detail "
+                f"IDs: {required_details}"
+            )
         plan_items.append(
             MaterialPlanItem(
                 material_id=material_id,
@@ -152,7 +179,7 @@ def _material_scaffold_payload(
                 shader_recipe=recipe_relative,
                 evidence_status="observed",
                 confidence=1.0,
-                notes=["Scaffold preserves the current SceneSpec material appearance."],
+                notes=item_notes,
             )
         )
 
@@ -162,7 +189,11 @@ def _material_scaffold_payload(
         stage="scaffold",
         materials=plan_items,
         global_notes=[
-            "Review and approve material evidence before texture generation or baking."
+            "Review and approve material evidence before texture generation or baking.",
+            (
+                "Surface-attached detail decisions require exact TextureManifest coverage "
+                "IDs and portable UVMap channels before the material build."
+            ),
         ],
     )
     return plan, recipes

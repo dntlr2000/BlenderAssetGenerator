@@ -125,3 +125,14 @@ OpenCV 설치를 생략하려면 `-SkipVision`, export 검사를 생략하려면
 GPU MCP 회귀를 생략하려면 `-SkipMcpCycles`를 사용합니다. 기본 실행은 Python 검사,
 Blender 5 호환성 probe, Geometry Core 8종 modifier, measured pass/fail, authored plan,
 승인된 실제 작업 구조, stdio MCP Cycles/GPU를 순서대로 검증합니다.
+
+## 작은 표면 디테일 분류
+
+새 ModelingPlan은 창문 무늬, 이음선, 리벳, 라벨, 얕은 패널처럼 외곽과 구조를
+바꾸지 않는 항목을 `surface_details`로 분리합니다. 이 ID는 SceneSpec geometry에
+동시에 존재할 수 없습니다. 반대로 실루엣, 구조, gameplay 또는 실제 투명 개구부에
+필요한 부품은 정상 geometry object로 유지합니다.
+
+V0.4에서는 분류와 geometry 중복 방지만 수행합니다. 실제 UVMap PBR 맵 결속은
+V0.5에서 완료하며, 상세 계약은 [표면 디테일 분류 가이드](SURFACE_DETAIL_ROUTING_KO.md)를
+참조합니다.

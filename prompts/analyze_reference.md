@@ -22,6 +22,12 @@ Requirements:
 - Use deterministic diagnostics as evidence, not as metric truth.
 - Use stable semantic object and material IDs.
 - Populate or respect the semantic modeling plan before final SceneSpec authoring.
+- Populate `surface_detail_policy` and classify visible small surface-attached details before
+  SceneSpec authoring. Route shallow windows, seams, labels, rivets, painted panels, and repeated
+  marks to `surface_details` when they do not affect silhouette, structure, gameplay, or physical
+  transparency. Keep geometry-worthy parts in `objects`.
+- Never create a SceneSpec object for an ID routed through `surface_details`. Record its parent,
+  target material, PBR channels, UV strategy, observed bbox, and confidence instead.
 - First reproduce silhouette, proportions, camera framing, and semantic layout; defer decoration.
 - Choose the least complex deterministic geometry recipe:
   - `primitive` for simple masses;

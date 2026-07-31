@@ -2,6 +2,12 @@
 
 ## 0.9.0
 
+- Added backward-compatible ModelingPlan surface-detail routing so shallow windows, seams,
+  labels, rivets, painted panels, and repeated marks remain outside SceneSpec geometry unless
+  silhouette, structure, gameplay, or physical transparency requires a mesh. Added exact V0.5
+  UVMap/PBR TextureManifest bindings, build provenance, V0.6 coverage reporting, PDF summaries,
+  V0.8 completion checks, CLI/MCP validation, schemas, tests, and Korean guidance without changing
+  SceneSpec `0.2.0`, material `0.5.0`, QA `0.6.0`, or orchestration `0.8.0` contract versions.
 - Added optional standard-only V0.6 bounded visual-convergence sessions with exact plan-hash approval, current direct-QA/camera/source binding, default three and hard maximum five iterations, direct-score and silhouette-IoU targets, constraint non-regression, immutable per-iteration receipts, rollback, and terminal JSON/PDF evidence.
 - Added CLI/MCP plan, approve, run, status, and cancel surfaces plus V0.9 read-only active/history audit coverage. Manual candidate-by-candidate guarded revision remains the default, `background_exterior` still performs exactly one canonical QA with no post-QA auto revision, and convergence never replaces InteriorScope, V0.7 optimization, or Destination Handoff approvals.
 - Hardened convergence with a non-empty exact initial-input hash map, exact initial candidate/build/constraint snapshots, a shared canonical SceneSpec write lock and compare-and-swap, source/result build-contract validation, immutable before/after constraint evidence, QA/candidate/build receipt continuity, durable cancellation receipts, orphan-terminal replay detection, and explicit execution/status-only flags plus next-action reporting for legacy partial plans.

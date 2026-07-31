@@ -49,7 +49,7 @@ def _valid_payload() -> dict:
             "seed": 17,
             "noise": {"scale": 3.0},
             "bump_strength": 0.2,
-            "coordinate_uv_set": "Object",
+            "coordinate_uv_set": "World",
             "coordinate_scale_m": 0.75,
         },
     }
@@ -80,7 +80,7 @@ def test_valid_hybrid_manifest_resolves_channels_and_color_spaces(tmp_path: Path
     assert manifest is not None
     assert manifest["channels"]["base_color"]["color_space"] == "sRGB"
     assert manifest["channels"]["roughness"]["color_space"] == "Non-Color"
-    assert manifest["procedural"]["coordinate_uv_set"] == "Object"
+    assert manifest["procedural"]["coordinate_uv_set"] == "World"
     assert manifest["procedural"]["coordinate_scale_m"] == 0.75
     assert Path(manifest["channels"]["base_color"]["resolved_path"]).is_file()
 
@@ -88,7 +88,7 @@ def test_valid_hybrid_manifest_resolves_channels_and_color_spaces(tmp_path: Path
 @pytest.mark.parametrize(
     ("field", "value", "message"),
     [
-        ("coordinate_uv_set", "World", "coordinate_uv_set"),
+        ("coordinate_uv_set", "View", "coordinate_uv_set"),
         ("coordinate_scale_m", 0.0, "coordinate_scale_m"),
         ("coordinate_scale_m", True, "coordinate_scale_m"),
     ],

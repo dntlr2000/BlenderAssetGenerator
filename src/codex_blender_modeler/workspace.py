@@ -416,6 +416,7 @@ def replace_scene_spec_if_current(
 ) -> dict[str, Any]:
     """Atomically promote one validated candidate only over the expected canonical hash."""
 
+    from .analysis.surface_details import validate_scene_surface_details
     from .models import SceneSpec
     from .validation import validate_scene_spec_interior_contract
 
@@ -446,6 +447,7 @@ def replace_scene_spec_if_current(
             f"SceneSpec candidate job_id changed to {candidate_model.job_id!r}"
         )
     validate_scene_spec_interior_contract(candidate_model, current)
+    validate_scene_surface_details(candidate_model, current)
 
     if expected_current_sha256 is None:
         if current.exists():

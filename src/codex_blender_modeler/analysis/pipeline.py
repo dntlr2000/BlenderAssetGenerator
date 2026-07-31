@@ -7,7 +7,7 @@ from ..reference_scope import reference_content_scope_from_metadata
 from ..workspace import find_input_images, job_dir, load_job, metadata_path, resolve_metadata_path
 from .basic import analyze_image
 from .camera import solve_camera
-from .models import CameraSolution, ModelingPlan, ReferenceAnalysis
+from .models import CameraSolution, ModelingPlan, ReferenceAnalysis, SurfaceDetailPolicy
 
 
 def _source_records(metadata: dict) -> list[dict]:
@@ -153,6 +153,12 @@ def analyze_job_reference(
             job_id=job_id,
             reference_analysis_path=metadata_path(analysis_path),
             camera_solution_path=metadata_path(camera_path),
+            surface_detail_policy=SurfaceDetailPolicy(
+                notes=[
+                    "Route small surface-attached details to portable PBR texture evidence; "
+                    "keep silhouette, structural, transparent, and gameplay parts as geometry."
+                ]
+            ),
             global_notes=[
                 (
                     "This scaffold is intentionally empty; Codex should populate semantic "
@@ -163,6 +169,10 @@ def analyze_job_reference(
                     f"target_subject={target_subject!r}."
                 ),
                 scope_note,
+                (
+                    "Classify visible small surface details before SceneSpec authoring; do not "
+                    "create one mesh per painted, embossed, recessed, or repeated mark."
+                ),
             ],
         )
         plan_path.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")

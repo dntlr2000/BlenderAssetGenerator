@@ -8,8 +8,12 @@ For every material ID, produce a MaterialPlan v0.5 entry with:
 - shader family and portable Principled surface behavior;
 - UV, object, generated, or triplanar mapping with real-world scale;
 - none, procedural, image, or hybrid texture strategy;
+- exact coverage for every non-omitted `surface_details` entry. Localized details require a
+  portable `UVMap` image/hybrid TextureManifest whose `surface_detail_ids` and PBR channels match
+  the ModelingPlan decision;
 - Blender EEVEE/Cycles and GLTF/Unity export profiles;
 - whether baking is required and why.
 
-Do not generate textures, edit SceneSpec, or build arbitrary Blender nodes in this step.
-
+Do not generate textures, edit SceneSpec, convert a texture-routed detail back into geometry, or
+build arbitrary Blender nodes in this step. Blender master shaders may remain richer, but localized
+surface details must also exist in portable flattened PBR maps rather than an engine-specific graph.

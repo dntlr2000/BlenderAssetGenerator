@@ -10,7 +10,11 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from .analysis import analyze_job_reference, load_modeling_plan
+from .analysis import (
+    analyze_job_reference,
+    load_modeling_plan,
+    validate_job_surface_details,
+)
 from .architecture import (
     approve_interior_scope,
     get_interior_scope_status,
@@ -586,6 +590,32 @@ def validate_materials(job_id: str) -> None:
     console.print_json(json.dumps(report, ensure_ascii=False))
     if not report["ok"]:
         raise typer.Exit(code=2)
+
+
+@app.command("validate-surface-details")
+def validate_surface_details(job_id: str) -> None:
+    """Validate non-mesh detail routing and current V0.5 texture coverage."""
+
+    report = validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+    )
+    console.print_json(report.model_dump_json())
+    if not report.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("surface-detail-status")
+def surface_detail_status(job_id: str) -> None:
+    """Inspect current surface-detail geometry and texture bindings without writing files."""
+
+    report = validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=False,
+    )
+    console.print_json(report.model_dump_json())
 
 
 @app.command("material-presets")
@@ -1805,6 +1835,12 @@ def build(job_id: str) -> None:
     root = job_dir(job_id)
     spec_path = root / "analysis" / "scene_spec.json"
     load_scene_spec(spec_path)
+    validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+        raise_on_error=True,
+    )
     output = root / "blender" / "scene.blend"
     result = run_blender("build_scene.py", ["--spec", str(spec_path), "--output", str(output)])
     console.print(result.stdout.strip())
@@ -1843,6 +1879,12 @@ def validate(job_id: str) -> None:
     spec_path = root / "analysis" / "scene_spec.json"
     load_scene_spec(spec_path)
     validate_job_interior_scope(job_id, write_report=True)
+    validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+        raise_on_error=True,
+    )
     blend = root / "blender" / "scene.blend"
     output = root / "reports" / "validation.json"
     run_blender(
@@ -1909,6 +1951,7 @@ def status(job_id: str) -> None:
         "reports/material_validation.json",
         "reports/material_swatches.json",
         "reports/material_bakes.json",
+        "reports/surface_detail_validation.json",
         "reports/interior_scope_validation.json",
         "qa/latest.json",
         "optimization/latest.json",

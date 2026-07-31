@@ -11,3 +11,10 @@ Use the repository V0.8 workflow contracts to route the user's short request. Do
 7. Resume deterministic host steps only. Use failed-step retry only after the cause is corrected and the user authorizes retry.
 8. Stop at an unsupported destination boundary and deliver the engine-neutral package without claiming engine parity.
 9. Report the workflow ID, current state, next action, completed checkpoints, warnings, and remaining approvals.
+# Surface-attached detail routing
+
+During ModelingPlan authoring, explicitly separate geometry-worthy parts from small surface detail.
+Use `surface_details` for shallow non-structural windows, seams, labels, rivets, painted panels, and
+repeated marks. Never emit one SceneSpec object per texture-routed mark. V0.5 must bind those IDs to
+portable UVMap PBR channels before material build, while V0.6 reports their coverage separately
+from geometry similarity.

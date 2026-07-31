@@ -327,3 +327,12 @@ V0.8 orchestration만 빠르게 검사하고 이미 검증된 V0.7 Blender gate�
 ```powershell
 .\scripts\run_v08_gates.ps1 -SkipV07
 ```
+
+## 7. 작은 표면 디테일의 workflow 경계
+
+새 standard 및 `background_exterior` ModelingPlan 단계는 명시적인
+`surface_detail_policy`를 요구합니다. 얕은 창문·라벨·리벳·이음선·반복 마크는
+`surface_details`로 계획하고 SceneSpec 객체로 중복 생성하지 않습니다. V0.5 agent
+completion은 authored candidate가 exact UVMap PBR manifest coverage를 가질 때만
+통과합니다. 기존 workflow와 ModelingPlan은 그대로 읽을 수 있으며 이 요구는 새로
+계획된 workflow부터 적용됩니다.

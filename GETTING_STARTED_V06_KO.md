@@ -402,3 +402,6 @@ PDF는 재질 상태, 경고, swatch, QA 패스와 수정 후보를 사람이 �
 - 생성 이미지 target은 보조 QA이며 단일 이미지의 숨은 구조를 진실로 복원하지 않습니다.
 - 실내 다각도 QA는 구조·가시성 검사이며 실내 레퍼런스가 없으면 유사도 점수를 만들지 않습니다.
 - bounded convergence는 standard의 선택 기능이며 default one-shot 승인을 바꾸지 않습니다. exact plan의 최대 5회 밖으로 자동 확장하거나 background fast workflow에서 사용하지 않습니다.
+- V0.4에서 `surface_details`로 분류한 작은 창문·라벨·이음선은 V0.5의 exact
+  `TextureManifest.surface_detail_ids`와 UVMap PBR 채널로 결속합니다. V0.6은 이 상태를
+  geometry 점수와 분리해 보고하며, 빠진 픽셀은 material/texture revision으로 되돌립니다.

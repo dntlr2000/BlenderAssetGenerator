@@ -139,6 +139,11 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     assert plan["execution_policy"] == "standard"
     assert plan["delivery_scope"] == "preview_only"
     assert step_ids.index("proxy.report") < step_ids.index("geometry.proxy_approval")
+    modeling_step = next(
+        item for item in plan["steps"] if item["step_id"] == "geometry.modeling_plan"
+    )
+    assert modeling_step["parameters"]["require_surface_detail_policy"] is True
+    assert any("surface" in text.lower() for text in modeling_step["instructions"])
     report = next(item for item in plan["steps"] if item["step_id"] == "proxy.report")
     assert report["tool_name"] == "generate_pdf_report"
     assert report["outputs"][0]["path"].startswith(
@@ -148,6 +153,44 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     request_text = (workflow / "request.json").read_text(encoding="utf-8")
     assert str(tmp_path) not in request_text
     assert "input/reference.png" in request_text
+
+
+def test_new_workflow_rejects_removed_surface_detail_policy(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Require explicit small-detail routing on newly planned agent modeling steps."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path)
+    path = root / "analysis" / "modeling_plan.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["stage"] = "authored"
+    payload["objects"] = [
+        {
+            "id": "asset.body",
+            "label": "body",
+            "recommended_geometry": "primitive",
+            "source_ids": ["reference"],
+            "bbox_norm": [0.1, 0.1, 0.9, 0.9],
+            "observed": True,
+            "confidence": 0.8,
+            "notes": [],
+        }
+    ]
+    payload.pop("surface_detail_policy", None)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    current = next(
+        item for item in state.steps if item.step_id == "geometry.modeling_plan"
+    )
+
+    with pytest.raises(RuntimeError, match="requires surface_detail_policy"):
+        complete_workflow_step(
+            "workflow_asset",
+            state.workflow_id,
+            "geometry.modeling_plan",
+            input_fingerprint=str(current.input_fingerprint),
+            note="Attempted to omit the required surface-detail policy.",
+        )
 
 
 def test_new_workflow_persists_primary_object_only_scope(

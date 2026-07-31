@@ -195,6 +195,19 @@ class QAFinding(StrictModel):
     suggestion: SuggestedEdit | None = None
 
 
+class SurfaceDetailQASummary(StrictModel):
+    """Expose non-mesh detail coverage without pretending geometry QA scored each mark."""
+
+    contract_status: Literal["not_declared", "not_required", "pending", "validated"]
+    declared_details: int = Field(ge=0)
+    texture_bound_details: int = Field(ge=0)
+    omitted_details: int = Field(ge=0)
+    failed_checks: int = Field(ge=0)
+    geometry_scoring_excluded: Literal[True] = True
+    report_path: str | None = None
+    warnings: list[str] = Field(default_factory=list)
+
+
 class VisualQAReport(StrictModel):
     """Combine direct evidence with optional advisory target findings without conflation."""
 
@@ -212,6 +225,7 @@ class VisualQAReport(StrictModel):
         "cached",
         "failed",
     ]
+    surface_detail_summary: SurfaceDetailQASummary | None = None
     warnings: list[str] = Field(default_factory=list)
 
 

@@ -326,6 +326,17 @@ immutable input
 
 작업 단계는 일방통행이 아닙니다. 형상이 마음에 들지 않으면 현재 저장소를 유지한 채 V0.4 authoring으로 돌아가고, 국소적인 레퍼런스 오차는 V0.6 guarded revision으로 처리합니다. canonical 입력이 바뀌면 이후 build, QA와 package는 stale 상태가 되며 새 run ID로 재검증합니다.
 
+## 작은 표면 디테일: 메시 또는 텍스처
+
+새 작업은 V0.4 ModelingPlan에서 창문 무늬, 이음선, 리벳, 라벨, 얕은 패널과
+반복 마크를 geometry와 분리합니다. 실루엣·구조·물리적 투명성·gameplay에 필요한
+부분만 geometry로 유지하고, 나머지는 V0.5의 UVMap PBR 채널이나 baked decal로
+전달합니다. TextureManifest는 실제로 포함한 exact surface-detail ID를 기록하며,
+V0.6은 이 coverage를 geometry 유사도와 별도로 보고합니다.
+
+자세한 계약과 예시는 [표면 디테일 분류 가이드](SURFACE_DETAIL_ROUTING_KO.md)를
+참조하세요.
+
 ## 안전 원칙
 
 - `workspaces/*/input/`은 수정하지 않습니다.

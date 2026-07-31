@@ -64,6 +64,7 @@ class TextureManifest(StrictModel):
     resolution: tuple[int, int]
     source_type: Literal["image", "procedural", "hybrid"]
     channels: dict[TextureChannelName, TextureChannel] = Field(default_factory=dict)
+    surface_detail_ids: list[str] = Field(default_factory=list)
     procedural: dict[str, Any] = Field(default_factory=dict)
     shader_recipe: str | None = None
     provenance: TextureProvenance | None = None
@@ -99,4 +100,6 @@ class TextureManifest(StrictModel):
             expected = "sRGB" if name in {"base_color", "emission"} else "Non-Color"
             if channel.color_space not in {None, expected}:
                 raise ValueError(f"Channel {name} color_space must be {expected}")
+        if len(self.surface_detail_ids) != len(set(self.surface_detail_ids)):
+            raise ValueError("TextureManifest surface_detail_ids must be unique")
         return self

@@ -82,18 +82,26 @@ def _coordinate_socket(
     links: bpy.types.NodeLinks,
     manifest: dict,
 ) -> bpy.types.NodeSocket:
-    """Create deterministic object, generated, or UV coordinates at the declared scale."""
+    """Create deterministic world, object, generated, or UV coordinates at the declared scale."""
 
-    coordinates = nodes.new("ShaderNodeTexCoord")
-    coordinates.label = "CBM Texture Coordinates"
     mapping = nodes.new("ShaderNodeMapping")
     mapping.label = "CBM Real-World Scale"
     scale = 1.0 / float(manifest["intended_scale_m"])
     mapping.inputs["Scale"].default_value = (scale, scale, scale)
-    coordinate_name = {"UVMap": "UV", "Generated": "Generated", "Object": "Object"}[
-        manifest.get("uv_set", "Object")
-    ]
-    links.new(coordinates.outputs[coordinate_name], mapping.inputs["Vector"])
+    coordinate_kind = manifest.get("uv_set", "Object")
+    if coordinate_kind == "World":
+        geometry = nodes.new("ShaderNodeNewGeometry")
+        geometry.label = "CBM Shared World Coordinates"
+        links.new(geometry.outputs["Position"], mapping.inputs["Vector"])
+    else:
+        coordinates = nodes.new("ShaderNodeTexCoord")
+        coordinates.label = "CBM Texture Coordinates"
+        coordinate_name = {
+            "UVMap": "UV",
+            "Generated": "Generated",
+            "Object": "Object",
+        }[coordinate_kind]
+        links.new(coordinates.outputs[coordinate_name], mapping.inputs["Vector"])
     return mapping.outputs["Vector"]
 
 

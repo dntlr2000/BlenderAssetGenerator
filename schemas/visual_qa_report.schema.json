@@ -318,6 +318,76 @@
       ],
       "title": "SuggestedEdit",
       "type": "object"
+    },
+    "SurfaceDetailQASummary": {
+      "additionalProperties": false,
+      "description": "Expose non-mesh detail coverage without pretending geometry QA scored each mark.",
+      "properties": {
+        "contract_status": {
+          "enum": [
+            "not_declared",
+            "not_required",
+            "pending",
+            "validated"
+          ],
+          "title": "Contract Status",
+          "type": "string"
+        },
+        "declared_details": {
+          "minimum": 0,
+          "title": "Declared Details",
+          "type": "integer"
+        },
+        "texture_bound_details": {
+          "minimum": 0,
+          "title": "Texture Bound Details",
+          "type": "integer"
+        },
+        "omitted_details": {
+          "minimum": 0,
+          "title": "Omitted Details",
+          "type": "integer"
+        },
+        "failed_checks": {
+          "minimum": 0,
+          "title": "Failed Checks",
+          "type": "integer"
+        },
+        "geometry_scoring_excluded": {
+          "const": true,
+          "default": true,
+          "title": "Geometry Scoring Excluded",
+          "type": "boolean"
+        },
+        "report_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Path"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "contract_status",
+        "declared_details",
+        "texture_bound_details",
+        "omitted_details",
+        "failed_checks"
+      ],
+      "title": "SurfaceDetailQASummary",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -367,6 +437,17 @@
       ],
       "title": "Generated Target Status",
       "type": "string"
+    },
+    "surface_detail_summary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SurfaceDetailQASummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "warnings": {
       "items": {

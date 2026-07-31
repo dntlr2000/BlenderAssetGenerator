@@ -252,8 +252,13 @@ def _append_proxy_flow(
                 instructions=[
                     "Use deterministic reference diagnostics as evidence, not recovered truth.",
                     "Record observed and inferred objects with stable semantic IDs.",
+                    "Classify small surface-attached marks before geometry authoring: route "
+                    "non-structural windows, seams, labels, rivets, and repeated shallow detail "
+                    "to surface_details; keep silhouette, structural, transparent, or "
+                    "gameplay-relevant parts in objects.",
                     *content_instructions,
                 ],
+                parameters={"require_surface_detail_policy": True},
             ),
             _step(
                 "geometry.proxy_author",
@@ -273,6 +278,7 @@ def _append_proxy_flow(
                 instructions=[
                     "Do not create interiors without an exact approved InteriorScope.",
                     "Stop at major silhouette, proportions, and semantic decomposition.",
+                    "Do not create SceneSpec objects for IDs routed through surface_details.",
                     *content_instructions,
                 ],
             ),
@@ -354,10 +360,13 @@ def _append_background_geometry_flow(
                 instructions=[
                     "Plan one static exterior background asset with stable semantic IDs.",
                     "Record hidden geometry as inferred and never create an interior.",
+                    "Route non-structural surface-attached micro-detail to surface_details "
+                    "instead of one mesh per mark; keep geometry-worthy parts in objects.",
                     *content_instructions,
                     "If measured, rigged, interactive, or high-ambiguity work is required, "
                     "stop and report requires_standard_workflow without recording completion.",
                 ],
+                parameters={"require_surface_detail_policy": True},
             ),
             _step(
                 "geometry.background_author",
@@ -378,6 +387,7 @@ def _append_background_geometry_flow(
                 instructions=[
                     "Create one bounded moderate-detail exterior pass, not a rough proxy.",
                     "Prioritize silhouette, proportions, and medium structures over micro-detail.",
+                    "Do not create SceneSpec objects for IDs routed through surface_details.",
                     "Assign one appropriate qa_role:primary, qa_role:supporting, "
                     "qa_role:decorative, or qa_role:ground_background tag to each object; "
                     "primary_object_only requires an explicit role on every object.",
@@ -539,6 +549,9 @@ def _append_material_flow(
                     "Edit only the workflow-owned authored candidate directory.",
                     "Use only whitelisted Blender 5-compatible shader recipes.",
                     "Keep portable surface semantics separate from Blender master graphs.",
+                    "For every textured surface_detail, author a UVMap image/hybrid manifest "
+                    "whose surface_detail_ids and PBR channels exactly cover that decision; "
+                    "flatten decals into portable maps instead of creating runtime-engine graphs.",
                     "Do not call external texture or image providers unless the immutable "
                     "workflow budget permits them.",
                 ],

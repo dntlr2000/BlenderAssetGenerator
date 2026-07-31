@@ -9,6 +9,7 @@ from .models import (
     QAFinding,
     QATargetManifest,
     RenderPassManifest,
+    SurfaceDetailQASummary,
     VisualQAReport,
     VisualQARequest,
 )
@@ -55,6 +56,7 @@ __all__ = [
     "QATargetManifest",
     "QATargetProvider",
     "RenderPassManifest",
+    "SurfaceDetailQASummary",
     "VisualQAReport",
     "VisualQARequest",
     "camera_fingerprint",

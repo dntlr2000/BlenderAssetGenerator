@@ -217,6 +217,13 @@
       "title": "Channels",
       "type": "object"
     },
+    "surface_detail_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Surface Detail Ids",
+      "type": "array"
+    },
     "procedural": {
       "additionalProperties": true,
       "title": "Procedural",

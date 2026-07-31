@@ -433,7 +433,11 @@ uv run cbm workflow-plan --request "V0.4 새 자산 프록시 검증"
 2. analyze-reference 실행
 3. reference_analysis.json과 camera_solution.json 검토
 4. stable semantic ID를 가진 modeling_plan.json 작성
+   - 작은 창문 무늬, 이음선, 리벳, 라벨, 얕은 패널과 반복 마크를 먼저 분류
+   - 실루엣·구조·gameplay·물리적 투명성에 필요하지 않으면 surface_details로 기록
+   - 각 surface detail의 parent, material, PBR channel, UV 전략, bbox와 confidence 기록
 5. SceneSpec 0.2.0 proxy 작성
+   - surface_details로 분류한 ID를 개별 geometry object로 중복 생성하지 않음
 6. build → render → inspect → validate
 7. build scope PDF 또는 preview를 사용자 검토용으로 제시
 
@@ -470,6 +474,7 @@ workflow ID, preview/PDF, semantic ID 목록, validation 결과,
 
 미세 문양, 고밀도 subdivision, 재질로 가릴 디테일,
 보이지 않는 내부 구조를 임의로 만들지 마.
+이미 surface_details로 분류한 항목을 별도 메시로 되돌리지 마.
 필요한 경우 이전 SceneSpec을 history에 보존하고 canonical SceneSpec 또는
 geometry payload를 최소 범위로 수정해.
 
@@ -598,6 +603,10 @@ uv run cbm interior-scope-validate <JOB_ID>를 먼저 통과시켜.
    UV 필요 여부와 texel-density 전략을 기록해.
 4. base_color, normal, metallic, roughness, occlusion,
    emission, opacity 중 필요한 raw PBR 채널을 분리해 보존해.
+   ModelingPlan의 non-omitted surface_details마다 실제 디테일이 포함된 UVMap
+   image/hybrid TextureManifest를 만들고 exact surface_detail_ids와 요구 채널을 기록해.
+   맵에 실제 디테일을 만들지 못했다면 coverage를 주장하지 말고 대기 또는 명시적
+   omission으로 보고해.
 5. Base Color는 sRGB, data channel은 Non-Color로 설정해.
 6. Blender master shader와 portable/bake 결과를 분리해.
 7. Blender 5에서 runtime feature probe가 가능한 whitelisted recipe만 사용해.
@@ -625,6 +634,8 @@ QA run ID는 <QA_RUN_ID>를 사용해.
    정확히 다음 7개 pass를 생성해:
    beauty, silhouette, object_id, material_id, normal, depth, wireframe.
 4. reference mask와 observed semantic evidence를 직접 비교해.
+   surface-detail contract coverage는 geometry 유사도와 별도로 보고하고,
+   이 항목을 geometry revision candidate로 만들지 마.
 5. machine-readable request, pass manifest, visual report,
    revision_candidates.json을 qa/runs/<QA_RUN_ID>/ 아래에 보존해.
 6. uv run cbm report-pdf <JOB_ID> --scope qa --qa-run-id <QA_RUN_ID>로 QA PDF를 생성해.
@@ -633,6 +644,7 @@ QA run ID는 <QA_RUN_ID>를 사용해.
 기본 revision_mode=suggest 경계에서 멈추고 후보를 자동 승인·적용하지 마.
 큰 실루엣 문제는 V0.4 재진입 대상으로 분리하고,
 V0.6 후보는 국소적이고 안전하게 주소 지정 가능한 수정만 남겨.
+작은 표면 무늬가 빠졌거나 잘못 보이면 V0.5 texture/material revision으로 분리해.
 후보별 수동 승인이 반복될 것으로 예상되면 자동 시작하지 말고,
 단계 7B의 별도 standard bounded convergence 계획 선택지만 보고해.
 

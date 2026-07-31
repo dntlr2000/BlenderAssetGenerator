@@ -104,6 +104,262 @@
       ],
       "title": "ModelingPlanObject",
       "type": "object"
+    },
+    "SurfaceDetailDecision": {
+      "additionalProperties": false,
+      "description": "Route one non-structural visible detail to portable texture evidence or omission.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "parent_object_id": {
+          "title": "Parent Object Id",
+          "type": "string"
+        },
+        "representation": {
+          "enum": [
+            "texture_channels",
+            "baked_decal",
+            "omit"
+          ],
+          "title": "Representation",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Norm"
+        },
+        "target_material_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Material Id"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "uv_strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "existing_uv",
+                "projected_patch",
+                "material_atlas"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Strategy"
+        },
+        "projected_size_px": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projected Size Px"
+        },
+        "estimated_relief_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Relief M"
+        },
+        "repeated_count": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Repeated Count",
+          "type": "integer"
+        },
+        "silhouette_affecting": {
+          "default": false,
+          "title": "Silhouette Affecting",
+          "type": "boolean"
+        },
+        "structural": {
+          "default": false,
+          "title": "Structural",
+          "type": "boolean"
+        },
+        "gameplay_relevant": {
+          "default": false,
+          "title": "Gameplay Relevant",
+          "type": "boolean"
+        },
+        "physical_transparency_required": {
+          "default": false,
+          "title": "Physical Transparency Required",
+          "type": "boolean"
+        },
+        "evidence_status": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "parent_object_id",
+        "representation"
+      ],
+      "title": "SurfaceDetailDecision",
+      "type": "object"
+    },
+    "SurfaceDetailPolicy": {
+      "additionalProperties": false,
+      "description": "Define how small, surface-attached reference details should be represented.",
+      "properties": {
+        "mode": {
+          "default": "auto_balanced",
+          "enum": [
+            "auto_balanced",
+            "texture_preferred",
+            "geometry_preferred",
+            "explicit"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "default_representation": {
+          "default": "texture_channels",
+          "enum": [
+            "texture_channels",
+            "baked_decal",
+            "omit"
+          ],
+          "title": "Default Representation",
+          "type": "string"
+        },
+        "prefer_texture_for_repeated_details": {
+          "default": true,
+          "title": "Prefer Texture For Repeated Details",
+          "type": "boolean"
+        },
+        "max_texture_projected_size_px": {
+          "default": 128,
+          "minimum": 1,
+          "title": "Max Texture Projected Size Px",
+          "type": "integer"
+        },
+        "max_texture_relief_m": {
+          "default": 0.01,
+          "minimum": 0,
+          "title": "Max Texture Relief M",
+          "type": "number"
+        },
+        "geometry_required_conditions": {
+          "items": {
+            "enum": [
+              "silhouette",
+              "structural",
+              "gameplay",
+              "physical_transparency"
+            ],
+            "type": "string"
+          },
+          "title": "Geometry Required Conditions",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "title": "SurfaceDetailPolicy",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -164,6 +420,24 @@
         "$ref": "#/$defs/ModelingPlanObject"
       },
       "title": "Objects",
+      "type": "array"
+    },
+    "surface_detail_policy": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SurfaceDetailPolicy"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "surface_details": {
+      "items": {
+        "$ref": "#/$defs/SurfaceDetailDecision"
+      },
+      "title": "Surface Details",
       "type": "array"
     },
     "global_notes": {

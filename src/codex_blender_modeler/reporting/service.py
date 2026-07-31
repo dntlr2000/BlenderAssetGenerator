@@ -649,6 +649,14 @@ def collect_job_report_payload(
         documents,
         sources,
     )
+    if scope in {"build", "material", "qa", "full"}:
+        _collect_json_source(
+            root,
+            "surface_detail_validation",
+            root / "reports" / "surface_detail_validation.json",
+            documents,
+            sources,
+        )
 
     if scope in {"build", "full"}:
         for key, relative in (

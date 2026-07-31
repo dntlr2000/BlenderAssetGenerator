@@ -235,6 +235,18 @@ class BooleanModifier(StrictModel):
     hide_target: bool = True
 
 
+class NormalTransferModifier(StrictModel):
+    """Transfer split normals only across a bounded source-facing boundary ring."""
+
+    kind: Literal["normal_transfer"] = "normal_transfer"
+    target_id: str
+    max_distance: float = Field(default=0.08, gt=0)
+    boundary_axis: Literal["X", "Y", "Z"] = "X"
+    boundary_side: Literal["MIN", "MAX"] = "MIN"
+    boundary_width: float = Field(default=0.12, gt=0)
+    mix_factor: float = Field(default=1.0, gt=0, le=1)
+
+
 ModifierSpec = Annotated[
     BevelModifier
     | MirrorModifier
@@ -243,7 +255,8 @@ ModifierSpec = Annotated[
     | ArrayModifier
     | DecimateModifier
     | RemeshModifier
-    | BooleanModifier,
+    | BooleanModifier
+    | NormalTransferModifier,
     Field(discriminator="kind"),
 ]
 
@@ -294,6 +307,8 @@ class SceneSpec(StrictModel):
 
     @model_validator(mode="after")
     def validate_ids_and_links(self) -> SceneSpec:
+        """Validate stable identities and every object-to-object modifier link."""
+
         material_ids = [material.id for material in self.materials]
         object_ids = [obj.id for obj in self.objects]
         object_id_set = set(object_ids)
@@ -309,15 +324,15 @@ class SceneSpec(StrictModel):
         )
         if missing_parents:
             raise ValueError(f"Objects reference missing parents: {missing_parents}")
-        boolean_targets = {
+        modifier_targets = {
             modifier.target_id
             for obj in self.objects
             for modifier in obj.modifiers
-            if isinstance(modifier, BooleanModifier)
+            if isinstance(modifier, (BooleanModifier, NormalTransferModifier))
         }
-        missing_targets = sorted(boolean_targets - object_id_set)
+        missing_targets = sorted(modifier_targets - object_id_set)
         if missing_targets:
-            raise ValueError(f"Boolean modifiers reference missing objects: {missing_targets}")
+            raise ValueError(f"Object modifiers reference missing objects: {missing_targets}")
         if any(value <= 0 for value in self.nominal_scene_size):
             raise ValueError("nominal_scene_size must be positive")
         return self

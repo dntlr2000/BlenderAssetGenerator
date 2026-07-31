@@ -619,6 +619,65 @@
       "title": "MirrorModifier",
       "type": "object"
     },
+    "NormalTransferModifier": {
+      "additionalProperties": false,
+      "description": "Transfer split normals only across a bounded source-facing boundary ring.",
+      "properties": {
+        "kind": {
+          "const": "normal_transfer",
+          "default": "normal_transfer",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "max_distance": {
+          "default": 0.08,
+          "exclusiveMinimum": 0,
+          "title": "Max Distance",
+          "type": "number"
+        },
+        "boundary_axis": {
+          "default": "X",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Boundary Axis",
+          "type": "string"
+        },
+        "boundary_side": {
+          "default": "MIN",
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Boundary Side",
+          "type": "string"
+        },
+        "boundary_width": {
+          "default": 0.12,
+          "exclusiveMinimum": 0,
+          "title": "Boundary Width",
+          "type": "number"
+        },
+        "mix_factor": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Mix Factor",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "title": "NormalTransferModifier",
+      "type": "object"
+    },
     "ObjectSpec": {
       "additionalProperties": false,
       "properties": {
@@ -680,6 +739,7 @@
                 "boolean": "#/$defs/BooleanModifier",
                 "decimate": "#/$defs/DecimateModifier",
                 "mirror": "#/$defs/MirrorModifier",
+                "normal_transfer": "#/$defs/NormalTransferModifier",
                 "remesh": "#/$defs/RemeshModifier",
                 "solidify": "#/$defs/SolidifyModifier",
                 "subdivision": "#/$defs/SubdivisionModifier"
@@ -710,6 +770,9 @@
               },
               {
                 "$ref": "#/$defs/BooleanModifier"
+              },
+              {
+                "$ref": "#/$defs/NormalTransferModifier"
               }
             ]
           },

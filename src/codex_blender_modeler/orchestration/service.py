@@ -1061,6 +1061,34 @@ def _validate_authored_material_plan(
     plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
     if plan.stage != "authored":
         raise RuntimeError("agent completion requires material_plan stage=authored")
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    if modeling_plan_path.is_file():
+        from ..analysis.models import ModelingPlan
+        from ..analysis.surface_details import validate_surface_detail_contract
+        from ..models import SceneSpec
+
+        modeling_plan = ModelingPlan.model_validate_json(
+            modeling_plan_path.read_text(encoding="utf-8")
+        )
+        scene_spec = SceneSpec.model_validate_json(
+            (root / "analysis" / "scene_spec.json").read_text(encoding="utf-8")
+        )
+        detail_report = validate_surface_detail_contract(
+            modeling_plan,
+            scene_spec,
+            root,
+            material_plan=plan,
+            require_materials=True,
+        )
+        if not detail_report.ok:
+            failures = "; ".join(
+                item.message
+                for item in detail_report.checks
+                if item.status == "failed"
+            )
+            raise RuntimeError(
+                f"agent material completion fails surface-detail coverage: {failures}"
+            )
     if request.execution_policy != "background_exterior":
         return
     from ..texturing.models import TextureManifest
@@ -1119,6 +1147,13 @@ def _validate_agent_completion_semantics(
             plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
             if "modeling_plan.output" in requirement.artifact_id and plan.stage != "authored":
                 raise RuntimeError("agent completion requires modeling_plan stage=authored")
+            if (
+                bool(step.parameters.get("require_surface_detail_policy", False))
+                and plan.surface_detail_policy is None
+            ):
+                raise RuntimeError(
+                    "new modeling-plan completion requires surface_detail_policy"
+                )
             validate_modeling_plan_content_scope(
                 plan,
                 scope=request.reference_content_scope,
@@ -1126,6 +1161,33 @@ def _validate_agent_completion_semantics(
             )
         elif contract_path == "analysis/scene_spec.json":
             scene_spec = load_scene_spec(path)
+            modeling_plan_path = root / "analysis" / "modeling_plan.json"
+            if modeling_plan_path.is_file():
+                from ..analysis.models import ModelingPlan
+                from ..analysis.surface_details import validate_surface_detail_contract
+
+                modeling_plan = ModelingPlan.model_validate_json(
+                    modeling_plan_path.read_text(encoding="utf-8")
+                )
+                detail_report = validate_surface_detail_contract(
+                    modeling_plan,
+                    scene_spec,
+                    root,
+                    require_materials=False,
+                )
+                structural_failures = [
+                    item
+                    for item in detail_report.checks
+                    if item.status == "failed" and item.phase != "material"
+                ]
+                if structural_failures:
+                    failures = "; ".join(
+                        item.message for item in structural_failures
+                    )
+                    raise RuntimeError(
+                        "agent SceneSpec completion violates surface-detail routing: "
+                        f"{failures}"
+                    )
             validate_scene_content_scope(
                 scene_spec,
                 scope=request.reference_content_scope,

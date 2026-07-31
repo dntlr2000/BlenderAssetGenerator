@@ -6,7 +6,12 @@ from uuid import uuid4
 
 from mcp.server.fastmcp import FastMCP
 
-from .analysis import analyze_job_reference, load_camera_solution, load_reference_analysis
+from .analysis import (
+    analyze_job_reference,
+    load_camera_solution,
+    load_reference_analysis,
+    validate_job_surface_details,
+)
 from .architecture import (
     get_interior_scope_status as get_interior_scope_status_internal,
 )
@@ -228,6 +233,9 @@ def get_job_status(job_id: str) -> dict:
         ).exists(),
         "material_validation": (root / "reports" / "material_validation.json").exists(),
         "material_bakes": (root / "reports" / "material_bakes.json").exists(),
+        "surface_detail_validation": (
+            root / "reports" / "surface_detail_validation.json"
+        ).exists(),
         "interior_scope_validation": (
             root / "reports" / "interior_scope_validation.json"
         ).exists(),
@@ -293,6 +301,22 @@ def get_modeling_capabilities() -> dict:
             "fbx_interchange",
             "obj_legacy",
         ],
+        "surface_detail_routing": {
+            "modeling_contract": "optional ModelingPlan 0.4.0 fields",
+            "representations": ["texture_channels", "baked_decal", "omit"],
+            "geometry_required_for": [
+                "silhouette",
+                "structural",
+                "gameplay",
+                "physical_transparency",
+            ],
+            "portable_material_requirement": (
+                "exact TextureManifest surface_detail_ids, UVMap, and PBR channels"
+            ),
+            "qa_behavior": (
+                "coverage is reported separately and never treated as geometry similarity"
+            ),
+        },
         "portable_cost_optimization": {
             "consolidation_modes": [
                 "none",
@@ -899,6 +923,28 @@ def validate_material_contracts(job_id: str) -> dict:
     """Validate material IDs, recipes, texture manifests, paths, and color-space contracts."""
 
     return validate_job_material_contracts(job_id)
+
+
+@mcp.tool()
+def validate_surface_details(job_id: str) -> dict:
+    """Validate non-mesh detail routing and exact V0.5 texture-manifest coverage."""
+
+    return validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_surface_detail_status(job_id: str) -> dict:
+    """Return current surface-detail coverage without changing canonical or report files."""
+
+    return validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=False,
+    ).model_dump(mode="json")
 
 
 @mcp.tool()
@@ -1596,6 +1642,12 @@ def build_scene(
     root = ensure_job_dirs(job_id)
     spec = root / "analysis" / "scene_spec.json"
     parsed = load_scene_spec(spec)
+    validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+        raise_on_error=True,
+    )
     output = root / "blender" / "scene.blend"
     result = run_blender(
         "build_scene.py",
@@ -1666,6 +1718,12 @@ def validate_scene(job_id: str) -> dict:
     spec = root / "analysis" / "scene_spec.json"
     load_scene_spec(spec)
     validate_job_interior_scope(job_id, write_report=True)
+    validate_job_surface_details(
+        job_id,
+        require_materials=None,
+        write_report=True,
+        raise_on_error=True,
+    )
     blend = root / "blender" / "scene.blend"
     output = root / "reports" / "validation.json"
     run_blender(

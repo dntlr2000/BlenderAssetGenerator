@@ -21,11 +21,11 @@ def _mark_modifier_applied(obj: bpy.types.Object, kind: str) -> None:
 
 
 def apply_immediate_modifiers(obj: bpy.types.Object, modifiers: list[dict]) -> None:
-    """Configure non-boolean modifiers and record each successful application."""
+    """Configure modifiers that do not require another constructed scene object."""
 
     for spec in modifiers:
         kind = spec["kind"]
-        if kind == "boolean":
+        if kind in {"boolean", "normal_transfer"}:
             continue
         if kind == "bevel":
             modifier = obj.modifiers.new(name="CBM_Bevel", type="BEVEL")
@@ -78,20 +78,60 @@ def apply_deferred_modifiers(
     object_map: dict[str, list[bpy.types.Object]],
     instance_index: int,
 ) -> None:
-    """Resolve boolean targets after all object families exist in the scene."""
+    """Resolve Boolean and bounded normal-transfer targets after scene construction."""
 
     for spec in modifier_specs:
-        if spec["kind"] != "boolean":
+        kind = spec["kind"]
+        if kind not in {"boolean", "normal_transfer"}:
             continue
         targets = object_map.get(spec["target_id"])
         if not targets:
-            raise ValueError(f"Boolean target is not built: {spec['target_id']}")
+            raise ValueError(f"Modifier target is not built: {spec['target_id']}")
         target = targets[min(instance_index, len(targets) - 1)]
-        modifier = obj.modifiers.new(name="CBM_Boolean", type="BOOLEAN")
-        modifier.operation = spec["operation"]
-        modifier.solver = spec.get("solver", "EXACT")
+        if kind == "boolean":
+            modifier = obj.modifiers.new(name="CBM_Boolean", type="BOOLEAN")
+            modifier.operation = spec["operation"]
+            modifier.solver = spec.get("solver", "EXACT")
+            modifier.object = target
+            if spec.get("hide_target", True):
+                target.hide_render = True
+                target.hide_set(True)
+            _mark_modifier_applied(obj, "boolean")
+            continue
+
+        if obj.type != "MESH" or obj.data is None:
+            raise ValueError(f"Normal transfer requires a mesh object: {obj.name}")
+        axis_index = {"X": 0, "Y": 1, "Z": 2}[spec.get("boundary_axis", "X")]
+        coordinates = [float(vertex.co[axis_index]) for vertex in obj.data.vertices]
+        if not coordinates:
+            raise ValueError(f"Normal transfer source has no vertices: {obj.name}")
+        boundary_side = spec.get("boundary_side", "MIN")
+        boundary = min(coordinates) if boundary_side == "MIN" else max(coordinates)
+        width = float(spec.get("boundary_width", 0.12))
+        selected = [
+            vertex.index
+            for vertex in obj.data.vertices
+            if (
+                float(vertex.co[axis_index]) <= boundary + width
+                if boundary_side == "MIN"
+                else float(vertex.co[axis_index]) >= boundary - width
+            )
+        ]
+        if not selected:
+            raise ValueError(f"Normal transfer boundary selected no vertices: {obj.name}")
+        group = obj.vertex_groups.new(name="CBM_NORMAL_TRANSFER_BOUNDARY")
+        group.add(selected, 1.0, "REPLACE")
+
+        modifier = obj.modifiers.new(name="CBM_NormalTransfer", type="DATA_TRANSFER")
         modifier.object = target
-        if spec.get("hide_target", True):
-            target.hide_render = True
-            target.hide_set(True)
-        _mark_modifier_applied(obj, "boolean")
+        modifier.use_loop_data = True
+        modifier.data_types_loops = {"CUSTOM_NORMAL"}
+        # Interpolate loop normals at the nearest source-surface point so a coarse
+        # target ring does not inherit one flat normal per source polygon.
+        modifier.loop_mapping = "POLYINTERP_NEAREST"
+        modifier.mix_mode = "REPLACE"
+        modifier.mix_factor = float(spec.get("mix_factor", 1.0))
+        modifier.vertex_group = group.name
+        modifier.use_max_distance = True
+        modifier.max_distance = float(spec.get("max_distance", 0.08))
+        _mark_modifier_applied(obj, "normal_transfer")
