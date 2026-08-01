@@ -146,6 +146,39 @@ def test_asset_profile_initialization_is_job_scoped_and_idempotent(
     assert profile_path.read_bytes() == before
 
 
+def test_asset_profile_initialization_persists_pickup_delivery_controls(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Persist explicit pickup LOD, UV1, pivot, collider, and proxy budgets."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    profile = initialize_asset_profile(
+        "pickup_profile_case",
+        profile_id="fbx_interchange",
+        lod_mode="disabled",
+        generate_uv1=False,
+        pivot_policy="bounds_center",
+        collision_strategy="compound",
+        budget_enforcement="fail",
+        max_lod0_render_objects=16,
+        max_lod0_material_slots=16,
+        max_lod0_estimated_draw_calls=16,
+        max_lod0_triangles=5000,
+        max_collider_triangles=256,
+    )
+
+    assert profile.lod.enabled is False
+    assert profile.uv.generate_uv1 is False
+    assert profile.pivot_policy == "bounds_center"
+    assert profile.collision.strategy == "compound"
+    assert profile.budgets.enforcement == "fail"
+    assert profile.budgets.max_lod0_triangles == 5000
+    assert profile.budgets.max_lod0_estimated_draw_calls == 16
+    assert profile.budgets.max_collider_triangles == 256
+
+
 @pytest.mark.parametrize(
     "value",
     [

@@ -994,7 +994,7 @@ def _append_portable_flow(
             ),
             _step(
                 "portable.plan_approval",
-                "Approve exact LOD and collider plan",
+                "Review exact LOD, collider, and asset-revision choices",
                 "portable",
                 "specialized_approval",
                 depends_on=["portable.plan"],
@@ -1008,8 +1008,18 @@ def _append_portable_flow(
                 gate="optimization_plan",
                 parameters={"profile_id": request.profile_id, "run_id": run_id},
                 instructions=[
-                    "Use asset-plan-approve with the exact review_plan.json SHA-256.",
-                    "Changing LOD or collider settings requires a new run and new approval.",
+                    "Inspect optimization_review.json and choose approve, revise_asset, "
+                    "revise_profile, or cancel.",
+                    "Use asset-plan-approve with the exact review_plan.json SHA-256 only "
+                    "for approve.",
+                    "Choose revise_asset for geometry, silhouette, proportion, or semantic "
+                    "corrections. After explicit user selection, use plan_short_workflow "
+                    "with intent=revise_asset and execution_policy=standard to create a new "
+                    "immutable workflow; do not convert or approve this portable workflow.",
+                    "Choose revise_profile only for LOD, collider, consolidation, UV, "
+                    "texture, or budget settings; then create a fresh V0.7 run and approval.",
+                    "After any canonical asset revision, rebuild and rerun QA before "
+                    "starting a fresh V0.7 preflight and review.",
                 ],
             ),
             _step(

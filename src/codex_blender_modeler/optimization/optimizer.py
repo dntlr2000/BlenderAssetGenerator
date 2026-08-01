@@ -917,6 +917,21 @@ def _require_source_quality_current(
         )
 
 
+def _optimization_review_decision_guidance(
+    source_quality: SourceQualitySummary | None,
+) -> tuple[str | None, str | None]:
+    """Recommend asset revision only when exact source QA says geometry needs revision."""
+
+    if source_quality is None or source_quality.quality_status != "needs_revision":
+        return None, None
+    return (
+        "revise_asset",
+        "Direct-reference QA reports primary visual differences. Start a new standard "
+        "revise_asset workflow before creating a fresh V0.7 review; revise_profile is "
+        "reserved for LOD, collider, consolidation, UV, texture, or budget settings.",
+    )
+
+
 def plan_asset_optimization(
     job_id: str,
     *,
@@ -983,6 +998,9 @@ def plan_asset_optimization(
     _validate_reviewed_directives(draft, preflight)
     write_model(plan_path, draft)
     write_model(run_root / "optimization_plan.json", draft)
+    recommended_decision, decision_reason = _optimization_review_decision_guidance(
+        source_quality
+    )
     review = OptimizationReview(
         review_id=f"review.{selected}",
         job_id=job_id,
@@ -994,9 +1012,19 @@ def plan_asset_optimization(
         source=source,
         source_quality=source_quality,
         plan_sha256=sha256_file(plan_path),
+        units=profile.units,
+        up_axis=profile.up_axis,
+        forward_axis=profile.forward_axis,
+        pivot_policy=profile.pivot_policy,
         lod=_lod_review(profile, preflight),
         collision=_collision_review(profile, preflight),
         consolidation_mode=profile.consolidation.mode,
+        consolidation=profile.consolidation,
+        uv=profile.uv,
+        textures=profile.textures,
+        budgets=profile.budgets,
+        recommended_decision=recommended_decision,
+        decision_reason=decision_reason,
         warnings=[
             "LOD switch distances and runtime memory cost require a selected destination adapter.",
             "Collider suitability requires destination physics and gameplay context.",
@@ -1006,7 +1034,8 @@ def plan_asset_optimization(
                 [
                     "Fast-preview execution completed, but source visual quality is "
                     f"{source_quality.quality_status}; review its primary and decorative "
-                    "findings before approving this package.",
+                    "findings before approving this package. Choose revise_asset for "
+                    "authoring or similarity corrections, not revise_profile.",
                     *source_quality.limitations,
                 ]
                 if source_quality is not None

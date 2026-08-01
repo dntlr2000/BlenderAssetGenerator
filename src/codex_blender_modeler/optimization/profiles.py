@@ -17,6 +17,7 @@ from .models import (
 AssetKind = Literal["static_prop", "static_environment", "static_architecture"]
 ConsolidationMode = Literal["none", "by_semantic_group", "by_spatial_cell"]
 LODMode = Literal["profile_default", "enabled", "disabled"]
+PivotPolicy = Literal["keep", "bounds_center", "base_center"]
 CollisionStrategy = Literal[
     "profile_default",
     "none",
@@ -38,6 +39,8 @@ def create_builtin_profile(
     spatial_cell_size_m: float = 25.0,
     maximum_objects_per_batch: int = 64,
     lod_mode: LODMode = "profile_default",
+    generate_uv1: bool | None = None,
+    pivot_policy: PivotPolicy = "keep",
     collision_strategy: CollisionStrategy = "profile_default",
     max_collider_hulls_per_object: int = 8,
     max_collider_triangles_per_object: int = 256,
@@ -85,6 +88,10 @@ def create_builtin_profile(
         max_hulls_per_object=max_collider_hulls_per_object,
         max_triangles_per_object=max_collider_triangles_per_object,
     )
+    default_generate_uv1 = profile_id != "obj_legacy"
+    selected_generate_uv1 = (
+        default_generate_uv1 if generate_uv1 is None else generate_uv1
+    )
 
     if profile_id == "portable_gltf":
         return AssetProfile(
@@ -94,9 +101,13 @@ def create_builtin_profile(
             primary_format="glb",
             up_axis="+Y",
             forward_axis="-Z",
+            pivot_policy=pivot_policy,
             lod=lod,
             collision=collision,
-            uv=UVPolicy(generate_uv0_if_missing=True, generate_uv1=True),
+            uv=UVPolicy(
+                generate_uv0_if_missing=True,
+                generate_uv1=selected_generate_uv1,
+            ),
             textures=TexturePolicy(packing="gltf_orm"),
             consolidation=consolidation,
             budgets=budgets,
@@ -114,9 +125,13 @@ def create_builtin_profile(
             primary_format="fbx",
             up_axis="+Y",
             forward_axis="-Z",
+            pivot_policy=pivot_policy,
             lod=lod,
             collision=collision,
-            uv=UVPolicy(generate_uv0_if_missing=True, generate_uv1=True),
+            uv=UVPolicy(
+                generate_uv0_if_missing=True,
+                generate_uv1=selected_generate_uv1,
+            ),
             textures=TexturePolicy(packing="raw_channels"),
             consolidation=consolidation,
             budgets=budgets,
@@ -134,9 +149,13 @@ def create_builtin_profile(
             primary_format="obj",
             up_axis="+Y",
             forward_axis="-Z",
+            pivot_policy=pivot_policy,
             lod=lod,
             collision=collision,
-            uv=UVPolicy(generate_uv0_if_missing=True, generate_uv1=False),
+            uv=UVPolicy(
+                generate_uv0_if_missing=True,
+                generate_uv1=selected_generate_uv1,
+            ),
             textures=TexturePolicy(packing="raw_channels"),
             consolidation=consolidation,
             budgets=budgets,

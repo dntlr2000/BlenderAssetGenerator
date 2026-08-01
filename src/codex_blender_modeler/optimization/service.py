@@ -15,6 +15,7 @@ from .profiles import (
     CollisionStrategy,
     ConsolidationMode,
     LODMode,
+    PivotPolicy,
     create_builtin_profile,
 )
 
@@ -28,6 +29,8 @@ def initialize_asset_profile(
     spatial_cell_size_m: float = 25.0,
     maximum_objects_per_batch: int = 64,
     lod_mode: LODMode = "profile_default",
+    generate_uv1: bool | None = None,
+    pivot_policy: PivotPolicy = "keep",
     collision_strategy: CollisionStrategy = "profile_default",
     max_collider_hulls_per_object: int = 8,
     max_collider_triangles_per_object: int = 256,
@@ -56,6 +59,8 @@ def initialize_asset_profile(
         spatial_cell_size_m=spatial_cell_size_m,
         maximum_objects_per_batch=maximum_objects_per_batch,
         lod_mode=lod_mode,
+        generate_uv1=generate_uv1,
+        pivot_policy=pivot_policy,
         collision_strategy=collision_strategy,
         max_collider_hulls_per_object=max_collider_hulls_per_object,
         max_collider_triangles_per_object=max_collider_triangles_per_object,

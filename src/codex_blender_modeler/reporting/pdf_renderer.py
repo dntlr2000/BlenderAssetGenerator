@@ -1223,6 +1223,18 @@ def _append_export_section(
                     ["Run ID", review.get("run_id")],
                     ["Plan SHA-256", review.get("plan_sha256")],
                     ["Decision required", review.get("decision_required")],
+                    [
+                        "Available decisions",
+                        review.get("available_decisions") or "Not recorded",
+                    ],
+                    [
+                        "Recommended decision",
+                        review.get("recommended_decision") or "No automatic recommendation",
+                    ],
+                    [
+                        "Decision reason",
+                        review.get("decision_reason") or "Not recorded",
+                    ],
                     ["LOD enabled", lod_review.get("enabled")],
                     ["LOD levels", level_summary or "None"],
                     ["LOD source objects", lod_review.get("source_object_count")],

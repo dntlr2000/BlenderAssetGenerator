@@ -13,11 +13,24 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from portable_asset_common import (  # noqa: E402
+    inspect_mesh_topology_data,
     object_inventory,
     read_json_object,
     scene_source_provenance,
     write_json,
 )
+
+
+def evaluated_topology(obj: bpy.types.Object) -> dict[str, Any]:
+    """Inspect the evaluated mesh that deterministic optimization will copy as LOD0."""
+
+    dependencies = bpy.context.evaluated_depsgraph_get()
+    evaluated = obj.evaluated_get(dependencies)
+    mesh = evaluated.to_mesh()
+    try:
+        return inspect_mesh_topology_data(mesh, evaluated.matrix_world)
+    finally:
+        evaluated.to_mesh_clear()
 
 
 def parse_args() -> argparse.Namespace:
@@ -144,6 +157,10 @@ def main() -> None:
         candidates.append(obj)
     for obj in candidates:
         record = object_inventory(obj)
+        source_topology = record.get("topology")
+        if source_topology is not None:
+            record["source_topology"] = source_topology
+        record["topology"] = evaluated_topology(obj)
         record["hide_render"] = bool(obj.hide_render)
         if policy["require_applied_scale"] and not _scale_is_applied(obj):
             errors.append(f"{obj.name}: unapplied scale={record['scale']}")

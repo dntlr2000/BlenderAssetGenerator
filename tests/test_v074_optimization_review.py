@@ -15,6 +15,7 @@ from codex_blender_modeler.optimization.models import (
     MeshSummary,
     OptimizationApproval,
     OptimizationPlan,
+    OptimizationReview,
     SourceProvenance,
 )
 from codex_blender_modeler.optimization.optimizer import (
@@ -169,6 +170,14 @@ def test_review_exposes_lod_and_collider_before_any_derived_execution(
     assert review.collision.strategy == "compound"
     assert review.collision.estimated_collider_count == 3
     assert review.collision.estimated_triangle_count == 36
+    assert review.available_decisions == [
+        "approve",
+        "revise_asset",
+        "revise_profile",
+        "cancel",
+    ]
+    assert review.recommended_decision is None
+    assert review.decision_reason is None
     assert review.plan_sha256 == sha256_file(
         root / "optimization" / "runs" / run_id / "review_plan.json"
     )
@@ -251,6 +260,9 @@ def test_review_preserves_nonpassing_fast_quality_at_exact_approval_boundary(
         "direct.environment.rocks"
     ]
     assert any("needs_revision" in warning for warning in review.warnings)
+    assert review.recommended_decision == "revise_asset"
+    assert review.decision_reason is not None
+    assert "revise_profile" in review.decision_reason
     plan = load_model(
         root / "optimization" / "runs" / run_id / "review_plan.json",
         OptimizationPlan,
@@ -265,6 +277,29 @@ def test_review_preserves_nonpassing_fast_quality_at_exact_approval_boundary(
             plan_sha256=review.plan_sha256,
             approval_note="Do not accept stale source quality.",
         )
+
+
+def test_legacy_optimization_review_menu_remains_readable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Load immutable three-choice reviews while new reviews expose revise_asset."""
+
+    _root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    review = plan_asset_optimization(
+        "review_case",
+        profile_id="portable_gltf",
+        run_id=run_id,
+    )
+    legacy_payload = review.model_dump(mode="json")
+    legacy_payload["available_decisions"] = ["approve", "revise_profile", "cancel"]
+    legacy_payload.pop("recommended_decision")
+    legacy_payload.pop("decision_reason")
+
+    legacy = OptimizationReview.model_validate(legacy_payload)
+
+    assert legacy.available_decisions == ["approve", "revise_profile", "cancel"]
+    assert legacy.recommended_decision is None
 
 
 def test_reviewed_directive_guard_rejects_tagged_boolean_helper_inclusion(
@@ -431,11 +466,15 @@ def test_profile_can_disable_lod_and_collision_before_review() -> None:
         "fbx_interchange",
         "static_environment",
         lod_mode="disabled",
+        generate_uv1=False,
+        pivot_policy="bounds_center",
         collision_strategy="none",
     )
 
     assert profile.lod.enabled is False
     assert profile.lod.targets == []
+    assert profile.uv.generate_uv1 is False
+    assert profile.pivot_policy == "bounds_center"
     assert profile.collision.strategy == "none"
 
 

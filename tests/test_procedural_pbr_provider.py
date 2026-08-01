@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator
+from PIL import Image
 from pydantic import ValidationError
 
 from codex_blender_modeler.texturing import (
@@ -128,6 +129,54 @@ def test_provider_rejects_invalid_channels_and_returns_isolated_presets(
         "lava",
         "cloud",
         "emissive",
+        "standardgun_red_paint",
+        "standardgun_dark_polymer",
+        "standardgun_gunmetal",
+        "standardgun_gold_accent",
+        "standardgun_bore_dark",
     }
     presets["rock"]["normal_strength"] = -1
     assert list_material_family_presets()["rock"]["normal_strength"] > 0
+
+
+def test_surface_detail_pattern_writes_png_pixels_and_exact_ids(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Declared surface-detail coverage must correspond to rendered PNG pattern pixels."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    result = generate_procedural_pbr(
+        "texture_detail",
+        "mat.detail",
+        preset="standardgun_red_paint",
+        channels=("base_color", "roughness", "normal", "emission"),
+        resolution=(64, 64),
+        seed=12,
+        uv_set="UVMap",
+        surface_detail_ids=("detail.panel", "detail.seam"),
+        detail_pattern="panel_atlas",
+        output_dir=tmp_path / "texture_detail" / "workflows" / "wf" / "textures",
+    )
+
+    assert result.manifest.surface_detail_ids == ["detail.panel", "detail.seam"]
+    assert result.manifest.procedural["detail_pattern"] == "panel_atlas"
+    assert result.manifest_path.suffix == ".json"
+    base_color = Image.open(result.channel_paths["base_color"])
+    assert base_color.format == "PNG"
+    assert len(set(base_color.getdata())) > 2
+
+
+def test_surface_detail_ids_require_a_rendered_pattern(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The provider rejects coverage-only metadata without corresponding mark generation."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    with pytest.raises(ValidationError, match="rendered detail_pattern"):
+        generate_procedural_pbr(
+            "texture_detail",
+            "mat.detail",
+            channels=("base_color",),
+            resolution=(16, 16),
+            surface_detail_ids=("detail.panel",),
+        )

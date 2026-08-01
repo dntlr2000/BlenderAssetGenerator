@@ -142,6 +142,9 @@ def generate_job_procedural_textures(
     intended_scale_m: float = 1.0,
     prompt: str = "",
     uv_set: str = "Object",
+    surface_detail_ids: Sequence[str] = (),
+    detail_pattern: str = "none",
+    output_relative_dir: str | None = None,
     overwrite: bool = False,
     attach: bool = True,
 ) -> dict[str, Any]:
@@ -149,6 +152,12 @@ def generate_job_procedural_textures(
 
     if attach:
         _attachment_context(job_id, material_id)
+    root = job_dir(job_id).resolve()
+    output_dir = (
+        resolve_job_path(root, output_relative_dir, "procedural texture output directory")
+        if output_relative_dir is not None
+        else None
+    )
     result = generate_procedural_pbr(
         job_id,
         material_id,
@@ -159,9 +168,11 @@ def generate_job_procedural_textures(
         intended_scale_m=intended_scale_m,
         prompt=prompt,
         uv_set=uv_set,
+        surface_detail_ids=surface_detail_ids,
+        detail_pattern=detail_pattern,
+        output_dir=output_dir,
         overwrite=overwrite,
     )
-    root = job_dir(job_id).resolve()
     relative_manifest = result.manifest_path.relative_to(root).as_posix()
     if attach:
         attach_texture_manifest_to_plan(
@@ -176,6 +187,7 @@ def generate_job_procedural_textures(
         "provider": "cbm_pillow_procedural",
         "preset": preset,
         "seed": seed,
+        "detail_pattern": detail_pattern,
         "attached": attach,
         "manifest_path": str(result.manifest_path),
         "manifest_relative_path": relative_manifest,

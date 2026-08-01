@@ -391,6 +391,16 @@
       "title": "Forward Axis",
       "type": "string"
     },
+    "pivot_policy": {
+      "default": "keep",
+      "enum": [
+        "keep",
+        "bounds_center",
+        "base_center"
+      ],
+      "title": "Pivot Policy",
+      "type": "string"
+    },
     "lod": {
       "$ref": "#/$defs/LODPolicy"
     },

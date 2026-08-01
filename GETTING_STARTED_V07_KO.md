@@ -138,6 +138,17 @@ optimization/runs/portable-review-01/
 
 `asset-optimize` 호출은 이 derived run 생성만 승인합니다. 원본 SceneSpec, geometry payload, material contract, source texture, canonical `.blend`는 읽기 전용입니다.
 
+승인 전에는 `optimization_review.json`의 네 선택지를 구분합니다.
+
+- `approve`: 현재 exact plan SHA-256을 승인합니다.
+- `revise_asset`: 외형·실루엣·비율·semantic 구조를 새 `standard` workflow에서 수정합니다. 현재 V0.7 run은 승인하지 않고, build·QA 뒤 새 run으로 preflight/review를 다시 수행합니다.
+- `revise_profile`: LOD·Collider·consolidation·UV·텍스처·budget 정책만 수정하고 새 V0.7 run을 만듭니다.
+- `cancel`: 최적화와 패키징을 진행하지 않습니다.
+
+직접 QA가 `needs_revision`이면 review의 `recommended_decision`은
+`revise_asset`이 될 수 있습니다. 이는 자동 수정이나 자동 승인이 아니라 사용자 검토
+권고이며, 기존 3개 선택지만 가진 immutable review도 과거 증거로 계속 읽을 수 있습니다.
+
 `asset_cost_report.json`에는 최적화 전후 LOD0 object 수, material slot 수, estimated draw-call proxy, vertex/triangle 수, LOD·collider 비용, consolidation batch, cleanup record, 반복 mesh group, AABB overlap 후보와 budget 판정이 기록됩니다. `estimated_draw_calls`는 목적 엔진에서 측정한 값이 아니라 material-slot 기반 비교 지표입니다.
 
 자동 cleanup은 다음 범위로 제한됩니다.

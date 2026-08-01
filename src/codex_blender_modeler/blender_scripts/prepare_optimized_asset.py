@@ -1161,7 +1161,7 @@ def main() -> None:
     )
     provenance = verify_source(plan, bpy.context.scene)
     transform_policy = "rotation_scale"
-    pivot_policy = "keep"
+    pivot_policy = str(profile.get("pivot_policy", "keep"))
     mesh_policy = {
         "recalculate_normals": True,
         "triangulate_ngons": True,

@@ -965,6 +965,9 @@ def generate_procedural_textures(
     intended_scale_m: float = 1.0,
     prompt: str = "",
     uv_set: str = "Object",
+    surface_detail_ids: list[str] | None = None,
+    detail_pattern: str = "none",
+    output_relative_dir: str | None = None,
     overwrite: bool = False,
     attach: bool = True,
 ) -> dict:
@@ -995,6 +998,9 @@ def generate_procedural_textures(
         intended_scale_m=intended_scale_m,
         prompt=prompt,
         uv_set=uv_set,
+        surface_detail_ids=surface_detail_ids or [],
+        detail_pattern=detail_pattern,
+        output_relative_dir=output_relative_dir,
         overwrite=overwrite,
         attach=attach,
     )
@@ -1370,6 +1376,8 @@ def initialize_asset_profile(
     spatial_cell_size_m: float = 25.0,
     maximum_objects_per_batch: int = 64,
     lod_mode: str = "profile_default",
+    generate_uv1: bool | None = None,
+    pivot_policy: str = "keep",
     collision_strategy: str = "profile_default",
     max_collider_hulls_per_object: int = 8,
     max_collider_triangles_per_object: int = 256,
@@ -1394,6 +1402,8 @@ def initialize_asset_profile(
         )
     if lod_mode not in {"profile_default", "enabled", "disabled"}:
         raise ValueError("lod_mode must be profile_default, enabled, or disabled")
+    if pivot_policy not in {"keep", "bounds_center", "base_center"}:
+        raise ValueError("pivot_policy must be keep, bounds_center, or base_center")
     if collision_strategy not in {
         "profile_default",
         "none",
@@ -1413,6 +1423,8 @@ def initialize_asset_profile(
         spatial_cell_size_m=spatial_cell_size_m,
         maximum_objects_per_batch=maximum_objects_per_batch,
         lod_mode=lod_mode,  # type: ignore[arg-type]
+        generate_uv1=generate_uv1,
+        pivot_policy=pivot_policy,  # type: ignore[arg-type]
         collision_strategy=collision_strategy,  # type: ignore[arg-type]
         max_collider_hulls_per_object=max_collider_hulls_per_object,
         max_collider_triangles_per_object=max_collider_triangles_per_object,

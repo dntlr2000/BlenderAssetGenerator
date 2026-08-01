@@ -15,7 +15,7 @@ from codex_blender_modeler.orchestration.locks import (
     release_workflow_lock,
     write_expired_lock_for_test,
 )
-from codex_blender_modeler.orchestration.models import WorkflowAttempt
+from codex_blender_modeler.orchestration.models import WorkflowAttempt, WorkflowStep
 from codex_blender_modeler.orchestration.service import (
     approve_workflow_gate,
     cancel_workflow,
@@ -38,7 +38,12 @@ def _image(path: Path, color: tuple[int, int, int] = (60, 110, 170)) -> Path:
     return path
 
 
-def _new_proxy_workflow(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+def _new_proxy_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    *,
+    scope: str = "auto",
+):
     """Plan and analyze one isolated proxy workflow for marker/approval tests."""
 
     workspace = tmp_path / "workspaces"
@@ -48,6 +53,7 @@ def _new_proxy_workflow(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
         "이 이미지로 정적 3D 프록시 모델을 만들어줘",
         job_id="workflow_asset",
         reference_path=reference,
+        scope=scope,
     )
     state = resume_workflow("workflow_asset", state.workflow_id, max_host_steps=1)
     return workspace / "workflow_asset", state
@@ -356,6 +362,19 @@ def test_background_portable_plan_keeps_exact_optimization_approval(
     assert [item["approval_gate"] for item in specialized] == [
         "optimization_plan"
     ]
+    decision_instructions = " ".join(
+        steps["portable.plan_approval"]["instructions"]
+    )
+    assert "approve, revise_asset, revise_profile, or cancel" in decision_instructions
+    assert "intent=revise_asset" in decision_instructions
+    assert "execution_policy=standard" in decision_instructions
+    decision_next_action = orchestration_service._next_action(
+        WorkflowStep.model_validate(steps["portable.plan_approval"]),
+        "a" * 64,
+        "waiting_for_approval",
+    )
+    assert "approve, revise_asset, revise_profile, or cancel" in decision_next_action
+    assert "no choice is automatic" in decision_next_action
     assert steps["portable.optimize"]["depends_on"] == [
         "portable.plan_approval"
     ]
@@ -1006,6 +1025,112 @@ def test_stale_agent_output_invalidates_completion_marker(
     assert stale.status == "blocked"
 
 
+def test_detail_author_preserves_exact_archived_proxy_completion(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep approved proxy evidence valid during an archived detailed replacement."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path, scope="full")
+    state = _complete_modeling_plan(root, state)
+    state = _complete_proxy_scene(root, state)
+    (root / "blender").mkdir(exist_ok=True)
+    (root / "blender" / "scene.blend").write_bytes(b"workflow-blend")
+    (root / "renders").mkdir(exist_ok=True)
+    (root / "renders" / "preview.png").write_bytes(b"workflow-preview")
+    (root / "reports").mkdir(exist_ok=True)
+    (root / "reports" / "scene_inventory.json").write_text(
+        '{"job_id":"workflow_asset","objects":[]}\n',
+        encoding="utf-8",
+    )
+    (root / "reports" / "validation.json").write_text(
+        '{"ok":true,"errors":[],"warnings":[]}\n',
+        encoding="utf-8",
+    )
+    original_execute = orchestration_service._execute_host_tool
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        lambda *_args, **_kwargs: None,
+    )
+    state = resume_workflow("workflow_asset", state.workflow_id, max_host_steps=4)
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        original_execute,
+    )
+    state = resume_workflow("workflow_asset", state.workflow_id, max_host_steps=1)
+    approval = next(
+        item for item in state.steps if item.step_id == "geometry.proxy_approval"
+    )
+    state = approve_workflow_gate(
+        "workflow_asset",
+        state.workflow_id,
+        "geometry.proxy_approval",
+        artifact_fingerprint=str(approval.input_fingerprint),
+        approval_note="Proxy evidence reviewed before detailed authoring.",
+    )
+    detail = next(
+        item for item in state.steps if item.step_id == "geometry.detail_author"
+    )
+    scene = root / "analysis" / "scene_spec.json"
+    history = root / "history"
+    history.mkdir(exist_ok=True)
+    (history / "20260731T000000Z_scene_spec.json").write_bytes(scene.read_bytes())
+    payload = json.loads(scene.read_text(encoding="utf-8"))
+    payload["revision_notes"].append("Expected detailed geometry replacement.")
+    scene.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    completed = complete_workflow_step(
+        "workflow_asset",
+        state.workflow_id,
+        "geometry.detail_author",
+        input_fingerprint=str(detail.input_fingerprint),
+        note="Authored one archived detailed SceneSpec replacement.",
+    )
+
+    proxy = next(
+        item for item in completed.steps if item.step_id == "geometry.proxy_author"
+    )
+    authored = next(
+        item for item in completed.steps if item.step_id == "geometry.detail_author"
+    )
+    assert proxy.status == "complete"
+    assert proxy.artifacts[0].currency == "superseded"
+    assert authored.status == "complete"
+    assert completed.current_step_id == "detail.build"
+
+    def execute_detail(
+        host_root: Path,
+        _workflow_root: Path,
+        _request,
+        host_step,
+        *,
+        input_fingerprint: str,
+    ) -> None:
+        """Publish a changed detail preview while leaving other fixture outputs intact."""
+
+        assert input_fingerprint
+        if host_step.step_id == "detail.render":
+            (host_root / "renders" / "preview.png").write_bytes(b"detail-preview")
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        execute_detail,
+    )
+    advanced = resume_workflow(
+        "workflow_asset",
+        state.workflow_id,
+        max_host_steps=3,
+    )
+    inspected = next(
+        item for item in advanced.steps if item.step_id == "detail.inspect"
+    )
+    assert inspected.status == "complete"
+    assert advanced.current_step_id == "detail.validate"
+
+
 def test_cancel_preserves_artifacts_and_prevents_resume(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1082,6 +1207,67 @@ def test_failed_host_step_requires_explicit_retry(
         (
             workspace
             / "retry_asset"
+            / "workflows"
+            / state.workflow_id
+            / "attempts"
+            / "reference.analyze"
+        ).glob("*.json")
+    )
+    assert len(attempts) == 2
+    assert sorted(json.loads(path.read_text())["status"] for path in attempts) == [
+        "failed",
+        "succeeded",
+    ]
+
+
+def test_blocked_artifact_conflict_retries_only_with_exact_failed_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Permit an explicit retry after a host artifact conflict has been corrected."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    primary = _image(tmp_path / "artifact-conflict.png")
+    state = plan_workflow(
+        "Create a 3D proxy model from this image.",
+        job_id="artifact_conflict_retry_asset",
+        reference_path=primary,
+    )
+    original = orchestration_service._execute_host_tool
+
+    def fail_with_conflict(*_args, **_kwargs) -> None:
+        """Emit one host-side ownership conflict with an immutable failed receipt."""
+
+        raise orchestration_service.OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: fixture source owner mismatch"
+        )
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        fail_with_conflict,
+    )
+    blocked = resume_workflow(
+        "artifact_conflict_retry_asset",
+        state.workflow_id,
+        max_host_steps=1,
+    )
+    assert blocked.status == "blocked"
+    assert blocked.reason_code == "orchestration_artifact_conflict"
+
+    monkeypatch.setattr(orchestration_service, "_execute_host_tool", original)
+    retried = resume_workflow(
+        "artifact_conflict_retry_asset",
+        state.workflow_id,
+        max_host_steps=1,
+        retry_failed=True,
+    )
+    assert retried.status == "waiting_for_agent"
+    attempts = sorted(
+        (
+            workspace
+            / "artifact_conflict_retry_asset"
             / "workflows"
             / state.workflow_id
             / "attempts"

@@ -208,10 +208,13 @@ def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
     }
 
 
-def inspect_mesh_topology(obj: Any, area_epsilon: float = 1e-12) -> dict[str, Any]:
-    """Inspect deterministic topology, finite coordinates, normals, and UV coverage."""
+def inspect_mesh_topology_data(
+    mesh: Any,
+    matrix_world: Any,
+    area_epsilon: float = 1e-12,
+) -> dict[str, Any]:
+    """Inspect one mesh datablock with the supplied world transform."""
 
-    mesh = obj.data
     incidence = _polygon_edge_counts(mesh)
     face_edge_keys = set(incidence)
     mesh_edge_keys = {
@@ -257,7 +260,7 @@ def inspect_mesh_topology(obj: Any, area_epsilon: float = 1e-12) -> dict[str, An
         )
 
     triangle_count = sum(max(0, len(polygon.vertices) - 2) for polygon in mesh.polygons)
-    determinant = float(obj.matrix_world.to_3x3().determinant())
+    determinant = float(matrix_world.to_3x3().determinant())
     return {
         "vertices": len(mesh.vertices),
         "edges": len(mesh.edges),
@@ -278,6 +281,12 @@ def inspect_mesh_topology(obj: Any, area_epsilon: float = 1e-12) -> dict[str, An
         "matrix_determinant": round(determinant, 9),
         "uv_layers": uv_layers,
     }
+
+
+def inspect_mesh_topology(obj: Any, area_epsilon: float = 1e-12) -> dict[str, Any]:
+    """Inspect deterministic topology, finite coordinates, normals, and UV coverage."""
+
+    return inspect_mesh_topology_data(obj.data, obj.matrix_world, area_epsilon)
 
 
 def object_inventory(obj: Any, include_topology: bool = True) -> dict[str, Any]:

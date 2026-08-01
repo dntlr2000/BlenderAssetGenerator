@@ -8,7 +8,7 @@ V0.7.4부터 LOD·Collider·배칭 최적화는 사용자가 설정을 보기 �
 AssetProfile 작성
 → read-only preflight
 → optimization review 생성
-→ 사용자 선택: approve / revise_profile / cancel
+→ 사용자 선택: approve / revise_asset / revise_profile / cancel
 → 정확한 plan SHA-256 승인
 → 승인된 run 1회 실행
 → package
@@ -100,10 +100,17 @@ uv run cbm asset-optimize <job-id> `
 
 ## Codex의 사용자 확인 규칙
 
-Codex는 `asset-plan` 결과를 요약해서 다음 세 선택을 한 번 물어야 합니다.
+Codex는 `asset-plan` 결과를 요약해서 다음 네 선택을 한 번 물어야 합니다.
 
 1. `approve`: 표시된 설정과 plan SHA-256을 승인
-2. `revise_profile`: LOD·Collider·배칭·비용 설정을 바꾸고 새 review 생성
-3. `cancel`: V0.7 최적화를 실행하지 않음
+2. `revise_asset`: 외형·실루엣·비율·semantic 구조를 standard workflow에서 수정한 뒤 build·QA와 새 V0.7 review를 수행
+3. `revise_profile`: LOD·Collider·배칭·UV·텍스처·비용 설정만 바꾸고 새 review 생성
+4. `cancel`: V0.7 최적화를 실행하지 않음
+
+`optimization_review.json`의 `recommended_decision=revise_asset`은 직접 QA가
+`needs_revision`인 경우의 검토 권고일 뿐 자동 전환이나 승인이 아닙니다. 기존
+portable workflow를 standard로 변조하지 않으며, 사용자가 별도의 `revise_asset`
+workflow를 요청해야 합니다. canonical 자산이 바뀌면 이전 V0.7 plan은 사용하지 않고
+새 run ID로 preflight와 review부터 다시 수행합니다.
 
 일반적인 “V0.7을 진행해줘” 요청이나 `asset-optimize` 호출 자체를 승인으로 간주하지 않습니다. 승인 후에도 canonical SceneSpec, geometry payload, material contract, source texture, authoring `.blend`는 변경되지 않습니다.

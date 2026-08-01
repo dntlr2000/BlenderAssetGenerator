@@ -636,6 +636,13 @@ def generate_procedural_textures(
     intended_scale_m: Annotated[float, typer.Option("--scale-m", min=0.000001)] = 1.0,
     prompt: Annotated[str, typer.Option("--prompt")] = "",
     uv_set: Annotated[str, typer.Option("--uv-set")] = "Object",
+    surface_detail_id: Annotated[
+        list[str] | None, typer.Option("--surface-detail-id")
+    ] = None,
+    detail_pattern: Annotated[str, typer.Option("--detail-pattern")] = "none",
+    output_relative_dir: Annotated[
+        str | None, typer.Option("--output-relative-dir")
+    ] = None,
     overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
     attach: Annotated[bool, typer.Option("--attach/--no-attach")] = True,
 ) -> None:
@@ -661,6 +668,9 @@ def generate_procedural_textures(
         intended_scale_m=intended_scale_m,
         prompt=prompt,
         uv_set=uv_set,
+        surface_detail_ids=surface_detail_id or (),
+        detail_pattern=detail_pattern,
+        output_relative_dir=output_relative_dir,
         overwrite=overwrite,
         attach=attach,
     )
@@ -1053,6 +1063,10 @@ def asset_profile_init(
         int, typer.Option("--maximum-objects-per-batch")
     ] = 64,
     lod_mode: Annotated[str, typer.Option("--lod-mode")] = "profile_default",
+    generate_uv1: Annotated[
+        bool | None, typer.Option("--generate-uv1/--no-generate-uv1")
+    ] = None,
+    pivot_policy: Annotated[str, typer.Option("--pivot-policy")] = "keep",
     collision_strategy: Annotated[
         str, typer.Option("--collision-strategy")
     ] = "profile_default",
@@ -1101,6 +1115,10 @@ def asset_profile_init(
         raise typer.BadParameter("budget-enforcement must be warning or fail")
     if lod_mode not in {"profile_default", "enabled", "disabled"}:
         raise typer.BadParameter("lod-mode must be profile_default, enabled, or disabled")
+    if pivot_policy not in {"keep", "bounds_center", "base_center"}:
+        raise typer.BadParameter(
+            "pivot-policy must be keep, bounds_center, or base_center"
+        )
     if collision_strategy not in {
         "profile_default",
         "none",
@@ -1123,6 +1141,8 @@ def asset_profile_init(
         spatial_cell_size_m=spatial_cell_size_m,
         maximum_objects_per_batch=maximum_objects_per_batch,
         lod_mode=lod_mode,  # type: ignore[arg-type]
+        generate_uv1=generate_uv1,
+        pivot_policy=pivot_policy,  # type: ignore[arg-type]
         collision_strategy=collision_strategy,  # type: ignore[arg-type]
         max_collider_hulls_per_object=max_collider_hulls_per_object,
         max_collider_triangles_per_object=max_collider_triangles_per_object,

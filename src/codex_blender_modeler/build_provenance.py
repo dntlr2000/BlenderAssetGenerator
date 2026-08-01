@@ -182,7 +182,7 @@ def _optional_interior_contract_hashes(root: Path) -> dict[str, Any] | None:
 
 
 def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | None:
-    """Bind non-empty surface-detail decisions into the build fingerprint."""
+    """Bind validated detail IDs without importing host-only packages in Blender."""
 
     plan_path = root / "analysis" / "modeling_plan.json"
     if not plan_path.is_file():
@@ -200,15 +200,25 @@ def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | Non
         raise BuildProvenanceError(
             f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
         )
-    from .analysis.models import ModelingPlan
-
-    try:
-        plan = ModelingPlan.model_validate(raw)
-    except ValueError as exc:
+    # Host entry points perform the full Pydantic validation before Blender starts.
+    # This lightweight pass keeps fingerprint collection usable in Blender's Python,
+    # which intentionally does not inherit the host virtual environment.
+    detail_ids: list[str] = []
+    for detail in details:
+        if not isinstance(detail, dict):
+            raise BuildProvenanceError(
+                f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
+            )
+        detail_id = detail.get("id")
+        if not isinstance(detail_id, str) or not detail_id.strip():
+            raise BuildProvenanceError(
+                f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
+            )
+        detail_ids.append(detail_id)
+    if len(detail_ids) != len(set(detail_ids)):
         raise BuildProvenanceError(
             f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
-        ) from exc
-    detail_ids = [item.id for item in plan.surface_details]
+        )
     return {
         "modeling_plan_path": _relative_path(root, plan_path, "modeling plan"),
         "modeling_plan_sha256": sha256_file(plan_path),

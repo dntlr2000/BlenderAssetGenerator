@@ -104,6 +104,164 @@
       "title": "CollisionOptimizationReview",
       "type": "object"
     },
+    "ConsolidationPolicy": {
+      "additionalProperties": false,
+      "description": "Control safe derived-object cleanup and semantic-preserving batching.",
+      "properties": {
+        "mode": {
+          "default": "none",
+          "enum": [
+            "none",
+            "by_semantic_group",
+            "by_spatial_cell"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "maximum_objects_per_batch": {
+          "default": 64,
+          "maximum": 1024,
+          "minimum": 2,
+          "title": "Maximum Objects Per Batch",
+          "type": "integer"
+        },
+        "spatial_cell_size_m": {
+          "default": 25.0,
+          "exclusiveMinimum": 0,
+          "title": "Spatial Cell Size M",
+          "type": "number"
+        },
+        "remove_loose_geometry": {
+          "default": true,
+          "title": "Remove Loose Geometry",
+          "type": "boolean"
+        },
+        "deduplicate_material_slots": {
+          "default": true,
+          "title": "Deduplicate Material Slots",
+          "type": "boolean"
+        },
+        "deduplicate_exact_colliders": {
+          "default": true,
+          "title": "Deduplicate Exact Colliders",
+          "type": "boolean"
+        },
+        "detect_exact_instances": {
+          "default": true,
+          "title": "Detect Exact Instances",
+          "type": "boolean"
+        },
+        "detect_overlap_candidates": {
+          "default": true,
+          "title": "Detect Overlap Candidates",
+          "type": "boolean"
+        },
+        "overlap_pair_limit": {
+          "default": 5000,
+          "maximum": 100000,
+          "minimum": 1,
+          "title": "Overlap Pair Limit",
+          "type": "integer"
+        }
+      },
+      "title": "ConsolidationPolicy",
+      "type": "object"
+    },
+    "CostBudgetPolicy": {
+      "additionalProperties": false,
+      "description": "Declare optional engine-neutral static-asset cost ceilings.",
+      "properties": {
+        "enforcement": {
+          "default": "warning",
+          "enum": [
+            "warning",
+            "fail"
+          ],
+          "title": "Enforcement",
+          "type": "string"
+        },
+        "max_lod0_render_objects": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Render Objects"
+        },
+        "max_lod0_material_slots": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Material Slots"
+        },
+        "max_lod0_estimated_draw_calls": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Estimated Draw Calls"
+        },
+        "max_lod0_triangles": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Lod0 Triangles"
+        },
+        "max_collider_triangles": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Collider Triangles"
+        },
+        "max_overlap_candidates": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Overlap Candidates"
+        }
+      },
+      "title": "CostBudgetPolicy",
+      "type": "object"
+    },
     "HashedArtifact": {
       "additionalProperties": false,
       "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
@@ -443,6 +601,87 @@
       ],
       "title": "SourceQualitySummary",
       "type": "object"
+    },
+    "TexturePolicy": {
+      "additionalProperties": false,
+      "description": "Preserve raw PBR channels while defining an optional portable packing layout.",
+      "properties": {
+        "preserve_raw_channels": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Raw Channels",
+          "type": "boolean"
+        },
+        "packing": {
+          "default": "raw_channels",
+          "enum": [
+            "raw_channels",
+            "gltf_orm",
+            "none"
+          ],
+          "title": "Packing",
+          "type": "string"
+        },
+        "maximum_resolution": {
+          "default": 4096,
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Maximum Resolution",
+          "type": "integer"
+        }
+      },
+      "title": "TexturePolicy",
+      "type": "object"
+    },
+    "UVPolicy": {
+      "additionalProperties": false,
+      "description": "Control preservation, generation, and validation of material and lightmap UVs.",
+      "properties": {
+        "preserve_uv0": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Uv0",
+          "type": "boolean"
+        },
+        "generate_uv0_if_missing": {
+          "default": true,
+          "title": "Generate Uv0 If Missing",
+          "type": "boolean"
+        },
+        "generate_uv1": {
+          "default": true,
+          "title": "Generate Uv1",
+          "type": "boolean"
+        },
+        "maximum_overlap_fraction": {
+          "default": 0.01,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Overlap Fraction",
+          "type": "number"
+        },
+        "target_texel_density_px_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Texel Density Px M"
+        },
+        "minimum_padding_px": {
+          "default": 4,
+          "minimum": 0,
+          "title": "Minimum Padding Px",
+          "type": "integer"
+        }
+      },
+      "title": "UVPolicy",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -512,6 +751,34 @@
       "title": "Plan Sha256",
       "type": "string"
     },
+    "units": {
+      "const": "meters",
+      "default": "meters",
+      "title": "Units",
+      "type": "string"
+    },
+    "up_axis": {
+      "const": "+Y",
+      "default": "+Y",
+      "title": "Up Axis",
+      "type": "string"
+    },
+    "forward_axis": {
+      "const": "-Z",
+      "default": "-Z",
+      "title": "Forward Axis",
+      "type": "string"
+    },
+    "pivot_policy": {
+      "default": "keep",
+      "enum": [
+        "keep",
+        "bounds_center",
+        "base_center"
+      ],
+      "title": "Pivot Policy",
+      "type": "string"
+    },
     "lod": {
       "$ref": "#/$defs/LODOptimizationReview"
     },
@@ -526,6 +793,18 @@
       ],
       "title": "Consolidation Mode",
       "type": "string"
+    },
+    "consolidation": {
+      "$ref": "#/$defs/ConsolidationPolicy"
+    },
+    "uv": {
+      "$ref": "#/$defs/UVPolicy"
+    },
+    "textures": {
+      "$ref": "#/$defs/TexturePolicy"
+    },
+    "budgets": {
+      "$ref": "#/$defs/CostBudgetPolicy"
     },
     "status": {
       "const": "awaiting_user_approval",
@@ -543,6 +822,7 @@
       "items": {
         "enum": [
           "approve",
+          "revise_asset",
           "revise_profile",
           "cancel"
         ],
@@ -550,6 +830,38 @@
       },
       "title": "Available Decisions",
       "type": "array"
+    },
+    "recommended_decision": {
+      "anyOf": [
+        {
+          "enum": [
+            "approve",
+            "revise_asset",
+            "revise_profile",
+            "cancel"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recommended Decision"
+    },
+    "decision_reason": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Decision Reason"
     },
     "warnings": {
       "items": {

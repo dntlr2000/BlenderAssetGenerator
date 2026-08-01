@@ -168,6 +168,13 @@ include_destination_handoff=false로 V0.8 workflow를 계획해.
 승인 전에는 optimize, package, round trip을 실행하지 마.
 ```
 
+V0.7 대기 시 Codex는 `approve / revise_asset / revise_profile / cancel`을
+제시합니다. `needs_revision` QA가 있으면 `revise_asset`을 권고하되 자동으로
+standard workflow로 바꾸거나 승인하지 않습니다. `revise_asset`은 외형과
+semantic 구조 수정용 새 immutable standard workflow이고, `revise_profile`은
+LOD·Collider·consolidation·UV·텍스처·budget 전달 정책 수정 전용입니다. 어느
+수정이든 완료 뒤 새 V0.7 run과 exact-hash review가 필요합니다.
+
 이미 `background_exterior + preview_only`가 완료된 동일 job을 나중에 package로 확장할 때는 기존 workflow를 변경하지 않고 새 immutable workflow를 만든다.
 새 package workflow는 완료된 preview의 workflow/plan/terminal/QA run과
 canonical source/build fingerprint에 결속되며 V0.7 시작 전에 다시 검증한다.

@@ -966,23 +966,30 @@ def _transitive_dependencies(
 
 def _verify_dependency_sources(
     root: Path,
+    workflow_root: Path,
     plan: WorkflowPlan,
     step: WorkflowStep,
 ) -> None:
-    """Reject current sources that differ from their latest planned ancestor snapshot."""
+    """Reject sources that differ from their latest successfully published snapshot."""
 
     dependencies = _transitive_dependencies(plan, step)
     latest: dict[str, ArtifactRequirement] = {}
     for candidate_step in plan.steps:
         if candidate_step.step_id == step.step_id:
             break
-        if candidate_step.step_id not in dependencies:
-            continue
         for requirement in candidate_step.outputs:
-            if (
-                requirement.lifecycle == "workflow_snapshot"
-                and requirement.source_path is not None
-            ):
+            if requirement.lifecycle != "workflow_snapshot":
+                continue
+            if requirement.source_path is None:
+                continue
+            is_dependency_source = candidate_step.step_id in dependencies
+            supersedes_known_source = requirement.source_path in latest
+            snapshot = _resolve_job_path(root, requirement.path)
+            attempt_root = workflow_root / "attempts" / candidate_step.step_id
+            was_published = snapshot.exists() and attempt_root.is_dir()
+            # A successful earlier sibling may intentionally replace a shared mutable
+            # source before the current step, such as detail.render before detail.inspect.
+            if is_dependency_source or (supersedes_known_source and was_published):
                 latest[requirement.source_path] = requirement
     for source_relative, requirement in latest.items():
         source = _resolve_job_path(root, source_relative)
@@ -1308,6 +1315,104 @@ def _artifact_fingerprint(artifacts: list[ArtifactFreshness]) -> str:
     )
 
 
+def _archived_scene_spec_matches(
+    root: Path,
+    requirement: ArtifactRequirement,
+    expected_sha256: str | None,
+) -> bool:
+    """Verify that an expected canonical SceneSpec predecessor remains archived."""
+
+    if requirement.path != "analysis/scene_spec.json" or expected_sha256 is None:
+        return False
+    history = root / "history"
+    if not history.is_dir():
+        return False
+    # A later authoring stage may supersede only a predecessor whose exact bytes remain.
+    return any(
+        path.is_file() and sha256_file(path) == expected_sha256
+        for path in history.glob("*_scene_spec.json")
+    )
+
+
+def _later_canonical_agent_owner_was_reached(
+    workflow_root: Path,
+    plan: WorkflowPlan,
+    step: WorkflowStep,
+    requirement: ArtifactRequirement,
+    previous: WorkflowState | None,
+) -> bool:
+    """Return whether workflow progress reached a later agent owner of one canonical path."""
+
+    if previous is None:
+        return False
+    step_indexes = {item.step_id: index for index, item in enumerate(plan.steps)}
+    current_index = step_indexes[step.step_id]
+    previous_index = (
+        step_indexes.get(previous.current_step_id, -1)
+        if previous.current_step_id is not None
+        else -1
+    )
+    for candidate in plan.steps[current_index + 1 :]:
+        owns_path = any(
+            output.lifecycle == "canonical" and output.path == requirement.path
+            for output in candidate.outputs
+        )
+        if candidate.execution_mode != "agent" or not owns_path:
+            continue
+        if previous_index >= step_indexes[candidate.step_id]:
+            return True
+        if _completion_path(workflow_root, candidate.step_id).is_file():
+            return True
+    return False
+
+
+def _expected_superseded_agent_artifacts(
+    root: Path,
+    workflow_root: Path,
+    plan: WorkflowPlan,
+    step: WorkflowStep,
+    completion: WorkflowStepCompletion,
+    live_artifacts: list[ArtifactFreshness],
+    previous: WorkflowState | None,
+) -> list[ArtifactFreshness] | None:
+    """Recover exact prior agent evidence after an authorized canonical replacement."""
+
+    recorded = {item.artifact_id: item for item in completion.output_artifacts}
+    recovered: list[ArtifactFreshness] = []
+    for requirement, live in zip(step.outputs, live_artifacts, strict=True):
+        prior = recorded.get(requirement.artifact_id)
+        if prior is None or prior.path != requirement.path or prior.integrity != "valid":
+            return None
+        if live.sha256 == prior.sha256:
+            recovered.append(live)
+            continue
+        expected_replacement = (
+            requirement.lifecycle == "canonical"
+            and _later_canonical_agent_owner_was_reached(
+                workflow_root,
+                plan,
+                step,
+                requirement,
+                previous,
+            )
+            and _archived_scene_spec_matches(root, requirement, prior.sha256)
+        )
+        if not expected_replacement:
+            return None
+        recovered.append(
+            prior.model_copy(
+                update={
+                    "currency": "superseded",
+                    "reason": (
+                        "Exact predecessor is preserved in history after the workflow "
+                        "reached a later canonical SceneSpec authoring step."
+                    ),
+                }
+            )
+        )
+    return recovered
+
+
 def _step_input_fingerprint(
     plan: WorkflowPlan,
     request: WorkflowRequest,
@@ -1608,6 +1713,17 @@ def _next_action(
             f"Review gate {step.approval_gate} and approve only artifact fingerprint "
             f"{input_fingerprint}."
         )
+    if (
+        step.execution_mode == "specialized_approval"
+        and step.approval_gate == "optimization_plan"
+    ):
+        return (
+            "Inspect optimization_review.json and choose approve, revise_asset, "
+            "revise_profile, or cancel. Use revise_asset for geometry or visual-quality "
+            "corrections through a new standard workflow planned with intent=revise_asset "
+            "and execution_policy=standard; no choice is automatic and only approve may "
+            "create the exact hash-bound optimization approval."
+        )
     if step.execution_mode == "specialized_approval":
         return (
             f"Complete the specialized {step.approval_gate} approval flow for step "
@@ -1675,6 +1791,25 @@ def _reconcile_locked(
         elif step.execution_mode == "agent":
             completion = _load_completion(workflow_root, step)
             if completion is not None:
+                if (
+                    completion.plan_sha256 == actual_plan_hash
+                    and completion.input_fingerprint == input_fingerprint
+                ):
+                    recovered = _expected_superseded_agent_artifacts(
+                        root,
+                        workflow_root,
+                        plan,
+                        step,
+                        completion,
+                        artifacts,
+                        previous,
+                    )
+                    if recovered is not None:
+                        artifacts = recovered
+                        artifact_fingerprint = _artifact_fingerprint(artifacts)
+                        artifacts_valid = all(
+                            item.integrity == "valid" for item in artifacts
+                        )
                 valid_completion = (
                     completion.plan_sha256 == actual_plan_hash
                     and completion.input_fingerprint == input_fingerprint
@@ -2008,7 +2143,7 @@ def complete_workflow_step(
             raise ValueError(f"Unknown workflow step: {step_id}")
         if step.execution_mode not in {"agent", "manual"}:
             raise ValueError("Only agent/manual steps accept completion markers")
-        _verify_dependency_sources(root, plan, step)
+        _verify_dependency_sources(root, workflow_root, plan, step)
         step_state = next(item for item in state.steps if item.step_id == step_id)
         if step_state.input_fingerprint != input_fingerprint:
             raise ValueError("Completion input fingerprint does not match current workflow state")
@@ -2773,20 +2908,50 @@ def _recover_interrupted_attempts(
 
 
 def _prepare_failed_step_retry(
+    workflow_root: Path,
     previous: WorkflowState | None,
     *,
     retry_failed: bool,
 ) -> WorkflowState | None:
-    """Reset only the current failed host step when retry is explicitly requested."""
+    """Reset only an explicitly authorized host step with an exact failed receipt."""
 
     if not retry_failed:
         return previous
-    if previous is None or previous.status != "failed" or previous.current_step_id is None:
+    if previous is None or previous.current_step_id is None:
+        raise RuntimeError("No current failed workflow step is available for retry")
+    current = next(
+        (item for item in previous.steps if item.step_id == previous.current_step_id),
+        None,
+    )
+    retryable_blocked_conflict = False
+    if (
+        previous.status == "blocked"
+        and current is not None
+        and current.status == "blocked"
+        and current.reason_code == "orchestration_artifact_conflict"
+        and current.input_fingerprint is not None
+    ):
+        attempt_root = workflow_root / "attempts" / current.step_id
+        retryable_blocked_conflict = any(
+            attempt.status == "failed"
+            and attempt.input_fingerprint == current.input_fingerprint
+            and attempt.reason_code == "orchestration_artifact_conflict"
+            for attempt in (
+                _load_model(path, WorkflowAttempt)
+                for path in sorted(attempt_root.glob("*.json"), reverse=True)
+            )
+        ) if attempt_root.is_dir() else False
+    retryable_failed = bool(
+        previous.status == "failed"
+        and current is not None
+        and current.status == "failed"
+    )
+    if not retryable_failed and not retryable_blocked_conflict:
         raise RuntimeError("No current failed workflow step is available for retry")
     found = False
     steps: list[WorkflowStepState] = []
     for item in previous.steps:
-        if item.step_id == previous.current_step_id and item.status == "failed":
+        if item.step_id == previous.current_step_id and item.status in {"failed", "blocked"}:
             found = True
             steps.append(
                 item.model_copy(
@@ -2842,7 +3007,7 @@ def _execute_ready_host_step(
     )
     _write_immutable(attempt_path, running.model_dump(mode="json"))
     try:
-        _verify_dependency_sources(root, plan, step)
+        _verify_dependency_sources(root, workflow_root, plan, step)
         _execute_host_tool(
             root,
             workflow_root,
@@ -2954,7 +3119,11 @@ def resume_workflow(
                     )
                     _write_state(root, workflow_root, blocked)
                     return blocked
-        previous = _prepare_failed_step_retry(previous, retry_failed=retry_failed)
+        previous = _prepare_failed_step_retry(
+            workflow_root,
+            previous,
+            retry_failed=retry_failed,
+        )
         limit = max_host_steps or request.budgets.max_host_steps_per_resume
         if limit < 1 or limit > 64:
             raise ValueError("max_host_steps must be within [1, 64]")

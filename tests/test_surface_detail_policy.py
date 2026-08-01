@@ -254,6 +254,39 @@ def test_surface_detail_modeling_plan_hash_participates_in_build_provenance(
     assert before["fingerprint"] != after["fingerprint"]
 
 
+def test_surface_detail_provenance_avoids_host_only_analysis_imports(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep Blender-side fingerprint collection independent of host-only imports."""
+
+    import builtins
+
+    root = _seed_surface_detail_job(tmp_path, monkeypatch)
+    _write_authored_materials(root, claim_detail=True)
+    original_import = builtins.__import__
+
+    def guarded_import(name: str, *args: object, **kwargs: object) -> object:
+        """Fail if Blender-safe provenance tries to load the host analysis package."""
+
+        if name.startswith("codex_blender_modeler.analysis") or name.startswith(
+            ".analysis"
+        ):
+            raise AssertionError("host-only analysis import reached Blender-safe path")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", guarded_import)
+    provenance = collect_build_provenance(
+        root,
+        "surface_detail_asset",
+        validate_contracts=False,
+    )
+
+    assert provenance["surface_detail_contracts"]["surface_detail_ids"] == [
+        "detail.window.front"
+    ]
+
+
 def test_surface_detail_schemas_and_public_surface_are_available() -> None:
     """Keep schemas, CLI commands, MCP allowlist, and capabilities discoverable."""
 

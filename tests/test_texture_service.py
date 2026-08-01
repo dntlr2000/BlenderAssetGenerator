@@ -96,3 +96,38 @@ def test_attachment_normalizes_absolute_job_path_to_portable_relative_path(
     item = next(value for value in updated.materials if value.material_id == material_id)
     assert item.texture_manifest == generated["manifest_relative_path"]
     assert not Path(item.texture_manifest).is_absolute()
+
+
+def test_generation_service_accepts_workflow_owned_output_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Detached generation can write exact PNG contracts inside a workflow candidate."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    _seed_scene_spec(tmp_path, "texture_service")
+    relative_dir = "workflows/wf-test/artifacts/m/authored/textures/red"
+    generated = generate_job_procedural_textures(
+        "texture_service",
+        "mat.red",
+        preset="standardgun_red_paint",
+        channels=("base_color", "roughness", "metallic", "normal", "emission"),
+        resolution=(32, 32),
+        uv_set="UVMap",
+        surface_detail_ids=("detail.panel",),
+        detail_pattern="panel_atlas",
+        output_relative_dir=relative_dir,
+        attach=False,
+    )
+
+    assert generated["manifest_relative_path"] == f"{relative_dir}/texture_manifest.json"
+    assert generated["manifest"]["surface_detail_ids"] == ["detail.panel"]
+    assert Path(generated["manifest_path"]).is_file()
+
+    with pytest.raises(ValueError, match="stay inside job root"):
+        generate_job_procedural_textures(
+            "texture_service",
+            "mat.red",
+            channels=("base_color",),
+            output_relative_dir="../escaped",
+            attach=False,
+        )

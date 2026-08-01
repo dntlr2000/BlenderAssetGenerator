@@ -262,6 +262,7 @@ class AssetProfile(V07StrictModel):
     units: Literal["meters"] = "meters"
     up_axis: Literal["+Y"] = "+Y"
     forward_axis: Literal["-Z"] = "-Z"
+    pivot_policy: Literal["keep", "bounds_center", "base_center"] = "keep"
     lod: LODPolicy = Field(default_factory=LODPolicy)
     collision: CollisionPolicy = Field(default_factory=CollisionPolicy)
     uv: UVPolicy = Field(default_factory=UVPolicy)
@@ -494,14 +495,33 @@ class OptimizationReview(V07StrictModel):
     source: SourceProvenance
     source_quality: SourceQualitySummary | None = None
     plan_sha256: Sha256
+    units: Literal["meters"] = "meters"
+    up_axis: Literal["+Y"] = "+Y"
+    forward_axis: Literal["-Z"] = "-Z"
+    pivot_policy: Literal["keep", "bounds_center", "base_center"] = "keep"
     lod: LODOptimizationReview
     collision: CollisionOptimizationReview
     consolidation_mode: Literal["none", "by_semantic_group", "by_spatial_cell"]
+    consolidation: ConsolidationPolicy = Field(default_factory=ConsolidationPolicy)
+    uv: UVPolicy = Field(default_factory=UVPolicy)
+    textures: TexturePolicy = Field(default_factory=TexturePolicy)
+    budgets: CostBudgetPolicy = Field(default_factory=CostBudgetPolicy)
     status: Literal["awaiting_user_approval"] = "awaiting_user_approval"
     decision_required: Literal[True] = True
-    available_decisions: list[Literal["approve", "revise_profile", "cancel"]] = Field(
-        default_factory=lambda: ["approve", "revise_profile", "cancel"]
+    available_decisions: list[
+        Literal["approve", "revise_asset", "revise_profile", "cancel"]
+    ] = Field(
+        default_factory=lambda: [
+            "approve",
+            "revise_asset",
+            "revise_profile",
+            "cancel",
+        ]
     )
+    recommended_decision: Literal[
+        "approve", "revise_asset", "revise_profile", "cancel"
+    ] | None = None
+    decision_reason: str | None = Field(default=None, min_length=1, max_length=1000)
     warnings: list[str] = Field(default_factory=list)
     created_at: datetime
     canonical_unchanged: Literal[True] = True
@@ -514,8 +534,24 @@ class OptimizationReview(V07StrictModel):
             raise ValueError("optimization review profile must use kind=asset_profile")
         if self.preflight_report.kind != "preflight_report":
             raise ValueError("optimization review preflight must use kind=preflight_report")
-        if self.available_decisions != ["approve", "revise_profile", "cancel"]:
-            raise ValueError("optimization review must expose the complete ordered decision menu")
+        legacy_menu = ["approve", "revise_profile", "cancel"]
+        current_menu = ["approve", "revise_asset", "revise_profile", "cancel"]
+        if tuple(self.available_decisions) not in {
+            tuple(legacy_menu),
+            tuple(current_menu),
+        }:
+            raise ValueError(
+                "optimization review must expose a supported complete ordered decision menu"
+            )
+        if (
+            self.recommended_decision is not None
+            and self.recommended_decision not in self.available_decisions
+        ):
+            raise ValueError("recommended decision must be available in this review")
+        if (self.recommended_decision is None) != (self.decision_reason is None):
+            raise ValueError(
+                "recommended decision and decision reason must be supplied together"
+            )
         return self
 
 

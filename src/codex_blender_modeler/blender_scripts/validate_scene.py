@@ -10,7 +10,28 @@ from pathlib import Path
 import bpy
 
 
+DEFERRED_MODIFIER_KINDS = {"boolean", "normal_transfer"}
+
+
+def scheduled_modifier_kinds(modifiers: list[dict]) -> list[str]:
+    """Mirror the builder's immediate-then-deferred modifier scheduling order."""
+
+    immediate = [
+        modifier["kind"]
+        for modifier in modifiers
+        if modifier["kind"] not in DEFERRED_MODIFIER_KINDS
+    ]
+    deferred = [
+        modifier["kind"]
+        for modifier in modifiers
+        if modifier["kind"] in DEFERRED_MODIFIER_KINDS
+    ]
+    return [*immediate, *deferred]
+
+
 def parse_args() -> argparse.Namespace:
+    """Parse the SceneSpec and validation-report paths passed by the Blender runner."""
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", required=True)
     parser.add_argument("--output", required=True)
@@ -42,14 +63,19 @@ def main() -> None:
     expected_counts: dict[str, int] = {}
     geometry_kinds: dict[str, str] = {}
     expected_modifier_kinds: dict[str, list[str]] = {}
+    expected_applied_modifier_kinds: dict[str, list[str]] = {}
     for item in spec["objects"]:
         expected_counts[item["id"]] = (
             int(item.get("generator", {}).get("count", 1)) if item.get("generator") else 1
         )
         geometry_kinds[item["id"]] = item["geometry"]["kind"]
+        modifier_specs = item.get("modifiers", [])
         expected_modifier_kinds[item["id"]] = [
-            modifier["kind"] for modifier in item.get("modifiers", [])
+            modifier["kind"] for modifier in modifier_specs
         ]
+        expected_applied_modifier_kinds[item["id"]] = scheduled_modifier_kinds(
+            modifier_specs
+        )
 
     for object_id, expected in expected_counts.items():
         actual = counts.get(object_id, 0)
@@ -90,6 +116,9 @@ def main() -> None:
                 f"{obj.name}: geometry kind metadata mismatch {actual_kind!r} != {expected_kind!r}"
             )
         expected_modifiers = expected_modifier_kinds.get(str(obj.get("cbm_id")), [])
+        expected_applied_modifiers = expected_applied_modifier_kinds.get(
+            str(obj.get("cbm_id")), []
+        )
         declared_modifiers = modifier_kinds(obj, "cbm_declared_modifier_kinds")
         applied_modifiers = modifier_kinds(obj, "cbm_applied_modifier_kinds")
         if declared_modifiers != expected_modifiers:
@@ -97,10 +126,10 @@ def main() -> None:
                 f"{obj.name}: declared modifier metadata mismatch "
                 f"{declared_modifiers!r} != {expected_modifiers!r}"
             )
-        if applied_modifiers != expected_modifiers:
+        if applied_modifiers != expected_applied_modifiers:
             errors.append(
                 f"{obj.name}: applied modifier metadata mismatch "
-                f"{applied_modifiers!r} != {expected_modifiers!r}"
+                f"{applied_modifiers!r} != {expected_applied_modifiers!r}"
             )
 
     if bpy.context.scene.camera is None:

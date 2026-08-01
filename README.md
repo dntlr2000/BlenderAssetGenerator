@@ -137,7 +137,7 @@ quality_status=passed|needs_revision|unscorable를 따로 보고해.
 벗어날 때만 requires_standard_workflow로 멈춰.
 ```
 
-`portable_package`를 선택하면 같은 빠른 제작 단계 뒤 V0.7로 이어지지만, LOD·Collider·cleanup 설정이 들어 있는 정확한 optimization plan SHA-256 승인은 생략하지 않습니다.
+`portable_package`를 선택하면 같은 빠른 제작 단계 뒤 V0.7로 이어지지만, LOD·Collider·cleanup 설정이 들어 있는 정확한 optimization plan SHA-256 승인은 생략하지 않습니다. V0.7 review는 `approve / revise_asset / revise_profile / cancel`을 제시합니다. `needs_revision`이면 외형·실루엣 수정을 위한 `revise_asset`을 권고하고, LOD·Collider·consolidation·UV·texture·budget 변경은 `revise_profile`로 분리합니다. 두 수정 선택 모두 자동 전환이나 승인이 아니며 새 run과 review가 필요합니다.
 
 ```text
 새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 배경 외관 자산을 만들어

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
-from PIL import Image, ImageOps
+from PIL import Image, ImageChops, ImageDraw, ImageOps
 
 from ..workspace import job_dir, sha256_file
 from .models import TextureChannel, TextureManifest, TextureProvenance
@@ -115,6 +115,56 @@ MATERIAL_FAMILY_PRESETS: dict[str, dict[str, Any]] = {
         "emission_low": (1, 8, 24),
         "emission_high": (78, 190, 255),
         "emission_threshold": 0.35,
+    },
+    "standardgun_red_paint": {
+        "base_low": (82, 6, 9),
+        "base_high": (184, 34, 38),
+        "roughness": (0.3, 0.48),
+        "metallic": (0.03, 0.08),
+        "normal_strength": 0.55,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+    },
+    "standardgun_dark_polymer": {
+        "base_low": (11, 13, 16),
+        "base_high": (43, 47, 51),
+        "roughness": (0.55, 0.78),
+        "metallic": (0.0, 0.01),
+        "normal_strength": 0.8,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+    },
+    "standardgun_gunmetal": {
+        "base_low": (42, 45, 49),
+        "base_high": (124, 130, 136),
+        "roughness": (0.24, 0.46),
+        "metallic": (0.75, 0.92),
+        "normal_strength": 0.7,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+    },
+    "standardgun_gold_accent": {
+        "base_low": (92, 51, 7),
+        "base_high": (216, 158, 47),
+        "roughness": (0.2, 0.36),
+        "metallic": (0.78, 0.95),
+        "normal_strength": 0.4,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+    },
+    "standardgun_bore_dark": {
+        "base_low": (2, 3, 4),
+        "base_high": (17, 19, 22),
+        "roughness": (0.48, 0.72),
+        "metallic": (0.1, 0.25),
+        "normal_strength": 0.35,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
     },
 }
 
@@ -234,6 +284,68 @@ def _emission_map(noise: Image.Image, preset: dict[str, Any]) -> Image.Image:
     return image
 
 
+def _detail_relief(
+    resolution: tuple[int, int], detail_pattern: str
+) -> tuple[Image.Image, Image.Image]:
+    """Render a bounded portable mark mask and neutral-centered relief field."""
+
+    marks = Image.new("L", resolution, 0)
+    relief = Image.new("L", resolution, 128)
+    if detail_pattern == "none":
+        return marks, relief
+
+    width, height = resolution
+    mark_draw = ImageDraw.Draw(marks)
+    relief_draw = ImageDraw.Draw(relief)
+    line_width = max(1, min(width, height) // 128)
+    if detail_pattern == "panel_atlas":
+        inset_x = max(2, width // 18)
+        inset_y = max(2, height // 18)
+        outer = (inset_x, inset_y, width - inset_x - 1, height - inset_y - 1)
+        side_panel = (
+            width // 5,
+            height // 3,
+            width * 4 // 5,
+            height * 2 // 3,
+        )
+        for rectangle in (outer, side_panel):
+            mark_draw.rectangle(rectangle, outline=255, width=line_width)
+            relief_draw.rectangle(rectangle, outline=72, width=line_width)
+        seam_y = height * 3 // 4
+        mark_draw.line(
+            (inset_x, seam_y, width - inset_x, seam_y),
+            fill=220,
+            width=line_width,
+        )
+        relief_draw.line(
+            (inset_x, seam_y, width - inset_x, seam_y),
+            fill=82,
+            width=line_width,
+        )
+    elif detail_pattern == "horizontal_bands":
+        for center in (height * 2 // 5, height // 2, height * 3 // 5):
+            half = max(line_width, height // 64)
+            box = (width // 8, center - half, width * 7 // 8, center + half)
+            mark_draw.rectangle(box, fill=235)
+            relief_draw.rectangle(box, fill=78)
+    elif detail_pattern == "vertical_grooves":
+        for center in (width * 2 // 5, width // 2, width * 3 // 5):
+            half = max(line_width, width // 80)
+            box = (center - half, height // 8, center + half, height * 7 // 8)
+            mark_draw.rectangle(box, fill=235)
+            relief_draw.rectangle(box, fill=74)
+    else:
+        raise ValueError(f"Unsupported detail_pattern: {detail_pattern!r}")
+    return marks, relief
+
+
+def _apply_mark_tone(image: Image.Image, marks: Image.Image, factor: float) -> Image.Image:
+    """Darken marked texels while preserving the unmarked base field."""
+
+    marked = image.point(lambda value: round(value * factor))
+    return Image.composite(marked, image, marks)
+
+
 def _render_channels(request: TextureGenerationRequest) -> dict[str, Image.Image]:
     """Render only requested PBR images from one shared deterministic noise field."""
 
@@ -247,20 +359,27 @@ def _render_channels(request: TextureGenerationRequest) -> dict[str, Image.Image
         raise ValueError(f"Unsupported procedural PBR channels: {unsupported}")
     preset = MATERIAL_FAMILY_PRESETS[request.preset]
     noise = _periodic_noise(request.resolution, request.seed)
+    marks, relief = _detail_relief(request.resolution, request.detail_pattern)
+    normal_height = ImageChops.blend(noise, relief, 0.6)
     rendered: dict[str, Image.Image] = {}
     for channel in request.channels:
         if channel == "base_color":
-            rendered[channel] = ImageOps.colorize(
+            base_color = ImageOps.colorize(
                 noise, black=preset["base_low"], white=preset["base_high"]
             )
+            rendered[channel] = _apply_mark_tone(base_color, marks, 0.5)
         elif channel == "roughness":
-            rendered[channel] = _scalar_map(noise, preset["roughness"])
+            roughness = _scalar_map(noise, preset["roughness"])
+            marked_roughness = Image.new("L", request.resolution, 220)
+            rendered[channel] = Image.composite(marked_roughness, roughness, marks)
         elif channel == "metallic":
             rendered[channel] = _scalar_map(noise, preset["metallic"])
         elif channel == "normal":
-            rendered[channel] = _normal_map(noise, float(preset["normal_strength"]))
+            rendered[channel] = _normal_map(
+                normal_height, float(preset["normal_strength"])
+            )
         elif channel == "height":
-            rendered[channel] = noise.copy()
+            rendered[channel] = normal_height.copy()
         elif channel == "emission":
             rendered[channel] = _emission_map(noise, preset)
     return rendered
@@ -321,12 +440,14 @@ class PillowProceduralTextureProvider:
             resolution=request.resolution,
             source_type="image",
             channels=channels,
+            surface_detail_ids=request.surface_detail_ids,
             procedural={
                 "algorithm": "periodic_multioctave_value_noise",
                 "algorithm_version": 1,
                 "preset": request.preset,
                 "seed": request.seed,
                 "normal_strength": preset["normal_strength"],
+                "detail_pattern": request.detail_pattern,
             },
             provenance=TextureProvenance(
                 provider=self.provider_id,
@@ -341,7 +462,10 @@ class PillowProceduralTextureProvider:
                 "color": ["base_color", "emission"],
                 "data": ["roughness", "metallic", "normal", "height"],
             },
-            generation_notes="Offline deterministic provider; no network or external model used.",
+            generation_notes=(
+                "Offline deterministic PNG provider; declared surface details are rendered "
+                f"with the bounded {request.detail_pattern} pattern; no external model used."
+            ),
         )
         _write_manifest(manifest_path, manifest)
         return manifest
@@ -365,6 +489,9 @@ def generate_procedural_pbr(
     intended_scale_m: float = 1.0,
     prompt: str = "",
     uv_set: str = "Object",
+    surface_detail_ids: Sequence[str] = (),
+    detail_pattern: str = "none",
+    output_dir: Path | None = None,
     overwrite: bool = False,
 ) -> ProceduralTextureResult:
     """Generate a job-owned deterministic PBR set and return auditable paths/hashes."""
@@ -378,20 +505,31 @@ def generate_procedural_pbr(
         seed=seed,
         intended_scale_m=intended_scale_m,
         uv_set=uv_set,
+        surface_detail_ids=list(surface_detail_ids),
+        detail_pattern=detail_pattern,
         overwrite=overwrite,
     )
-    output_dir = job_dir(job_id) / "textures" / _material_directory_name(material_id)
+    root = job_dir(job_id).resolve()
+    resolved_output_dir = (
+        (root / "textures" / _material_directory_name(material_id)).resolve()
+        if output_dir is None
+        else output_dir.expanduser().resolve()
+    )
+    try:
+        resolved_output_dir.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("Procedural texture output_dir must stay inside job root") from exc
     provider = PillowProceduralTextureProvider()
-    manifest = provider.generate(request, output_dir)
+    manifest = provider.generate(request, resolved_output_dir)
     channel_paths = {
-        name: (output_dir / channel.path).resolve()
+        name: (resolved_output_dir / channel.path).resolve()
         for name, channel in manifest.channels.items()
         if channel.path is not None
     }
     hashes = dict(manifest.provenance.generated_sha256) if manifest.provenance else {}
     return ProceduralTextureResult(
         manifest=manifest,
-        manifest_path=(output_dir / "texture_manifest.json").resolve(),
+        manifest_path=(resolved_output_dir / "texture_manifest.json").resolve(),
         channel_paths=channel_paths,
         channel_sha256=hashes,
     )

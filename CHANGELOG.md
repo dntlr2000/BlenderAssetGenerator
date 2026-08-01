@@ -30,6 +30,7 @@
 - Added at most two low-resolution pre-QA fit refinements with immutable SceneSpec candidates, exact attempt metrics, strict improvement-only promotion, history, and hash-bound promotion receipts. Canonical V0.6 QA remains exactly one seven-pass run.
 - Reserved `requires_standard_workflow` for actual scope and safety boundaries, retained `orchestration_artifact_conflict` for unexpected ownership/fingerprint changes, and kept ordinary Blender/timeout/dependency failures separate.
 - Added hash-bound background quality JSON, first-page PDF quality warnings, standard revision targets, and V0.7 review propagation for non-passing source quality without bypassing exact optimization-plan approval.
+- Added backward-compatible V0.7 `revise_asset` review guidance alongside `approve`, `revise_profile`, and `cancel`. New `needs_revision` reviews recommend a separate immutable standard asset-revision workflow, while legacy three-choice reviews remain readable and no optimization or revision approval is synthesized.
 - Fixed new V0.8 workflow artifact lifecycles so expected downstream material promotion and derived rebuilds no longer retroactively stale valid upstream completions.
 - Added separate workflow-owned material scaffold/authored candidates, strict canonical MaterialPlan promotion with history and immutable receipts, and exact candidate-bound agent completion.
 - Added execution-time snapshots for shared derived `.blend`, preview, inventory, validation, and report outputs; exact QA-run binding now treats `qa/latest.json` as a convenience pointer only.

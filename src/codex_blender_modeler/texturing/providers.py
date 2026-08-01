@@ -20,6 +20,10 @@ class TextureGenerationRequest(BaseModel):
     seed: int = Field(ge=0)
     intended_scale_m: float = Field(gt=0)
     uv_set: Literal["UVMap", "Generated", "Object"] = "Object"
+    surface_detail_ids: list[str] = Field(default_factory=list)
+    detail_pattern: Literal[
+        "none", "panel_atlas", "horizontal_bands", "vertical_grooves"
+    ] = "none"
     overwrite: bool = False
 
     @model_validator(mode="after")
@@ -36,6 +40,14 @@ class TextureGenerationRequest(BaseModel):
             raise ValueError("material_id must not be empty")
         if not self.preset.strip():
             raise ValueError("preset must not be empty")
+        if len(self.surface_detail_ids) != len(set(self.surface_detail_ids)):
+            raise ValueError("surface_detail_ids must be unique")
+        if any(not value.strip() for value in self.surface_detail_ids):
+            raise ValueError("surface_detail_ids must not contain empty values")
+        if self.surface_detail_ids and self.detail_pattern == "none":
+            raise ValueError(
+                "surface-detail coverage requires a rendered detail_pattern"
+            )
         return self
 
 

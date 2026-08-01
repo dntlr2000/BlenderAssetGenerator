@@ -907,7 +907,11 @@ exact plan SHA-256 <PLAN_SHA256>, 예상 비용, 알려진 손실을 보고해.
 
 아직 asset-plan-approve, asset-optimize, material conversion,
 package 또는 export를 실행하지 마.
-사용자에게 approve, revise_profile, cancel 세 선택을 요청하고 멈춰.
+사용자에게 approve, revise_asset, revise_profile, cancel 네 선택을 요청하고 멈춰.
+직접 QA가 needs_revision이면 recommended_decision=revise_asset과 이유를 표시해.
+revise_asset은 외형·실루엣·비율·semantic 구조 수정용이고,
+revise_profile은 LOD·Collider·consolidation·UV·텍스처·budget 변경 전용이야.
+어느 선택도 자동 실행하지 말고 현재 portable workflow를 standard로 변조하지 마.
 ```
 
 ### 단계 9 — V0.7 승인된 최적화·패키징
@@ -1095,6 +1099,17 @@ max_revision_iterations=1은 유지하고 auto mode로 넓히지 마.
 설정 전후와 복구 결과를 보고해.
 ```
 
+V0.7 review에서 asset 수정으로 돌아가는 선택:
+
+```text
+<JOB_ID>의 현재 V0.7 run <RUN_ID>은 승인하지 말고 revise_asset을 선택한다.
+현재 portable workflow를 standard로 변조하거나 optimization approval을 만들지 마.
+QA의 primary finding과 권장 semantic ID를 근거로 새 immutable standard
+revise_asset workflow 계획만 작성하고, guarded revision의 exact 승인 지점에서 멈춰.
+수정·rebuild·동일 카메라 QA가 완료된 뒤에는 기존 V0.7 run을 재사용하지 말고
+새 run ID로 preflight와 review를 다시 수행해.
+```
+
 V0.7 exact plan 승인:
 
 ```text
@@ -1277,7 +1292,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback | 전후 점수·constraint·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선은 rollback, 큰 문제는 2 |
 | 7B 선택적 bounded convergence | standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF | plan envelope/hash, iteration별 전후 점수·IoU·constraint | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
-| 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실 | `approve/revise_profile/cancel` | 9 | profile/source/preflight 변경 |
+| 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실, revise_asset 권고 | `approve/revise_asset/revise_profile/cancel` | 9 또는 standard revision | profile/source/preflight 변경, QA needs_revision |
 | 9 V0.7 package | approved exact plan | optimized scene, cost report, FBX/GLB package, manifest, roundtrip | export PDF, roundtrip JSON | exact plan 승인 및 final review | 10 또는 11 | roundtrip 실패, package stale |
 | 10 V0.9 audit | current workspace/package | probe, audit JSON, stability PDF | warning/failure 목록 | 수리에는 별도 승인 | 선택적 11 또는 종료 | 환경·workspace 변경 |
 | 11 Handoff | passed FBX/GLB package | handoff contracts, validation, 목적지 prompt | handoff report, hashes, prompt 위치 | exact handoff plan 승인 | 목적지 Codex 검토 | package/handoff binding 변경 |
