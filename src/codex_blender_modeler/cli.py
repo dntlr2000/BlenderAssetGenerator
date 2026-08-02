@@ -57,6 +57,7 @@ from .materials import (
     create_material_scaffold,
     load_material_plan,
     validate_job_material_contracts,
+    validate_job_material_fidelity,
 )
 from .migration import migrate_v1_file
 from .optimization import (
@@ -592,6 +593,16 @@ def validate_materials(job_id: str) -> None:
         raise typer.Exit(code=2)
 
 
+@app.command("validate-material-fidelity")
+def validate_material_fidelity(job_id: str) -> None:
+    """Measure deterministic V0.5 texture fidelity and spatial-detail leakage risks."""
+
+    report = validate_job_material_fidelity(job_id)
+    console.print_json(json.dumps(report, ensure_ascii=False))
+    if not report["ok"]:
+        raise typer.Exit(code=2)
+
+
 @app.command("validate-surface-details")
 def validate_surface_details(job_id: str) -> None:
     """Validate non-mesh detail routing and current V0.5 texture coverage."""
@@ -639,6 +650,9 @@ def generate_procedural_textures(
     surface_detail_id: Annotated[
         list[str] | None, typer.Option("--surface-detail-id")
     ] = None,
+    surface_detail_binding_json: Annotated[
+        list[str] | None, typer.Option("--surface-detail-binding-json")
+    ] = None,
     detail_pattern: Annotated[str, typer.Option("--detail-pattern")] = "none",
     output_relative_dir: Annotated[
         str | None, typer.Option("--output-relative-dir")
@@ -651,6 +665,19 @@ def generate_procedural_textures(
     config = load_feature_config()
     if config.features.texture_provider != "procedural":
         raise typer.BadParameter("features.texture_provider must be procedural")
+    bindings: list[dict] = []
+    for value in surface_detail_binding_json or []:
+        try:
+            payload = json.loads(value)
+        except json.JSONDecodeError as exc:
+            raise typer.BadParameter(
+                "surface-detail-binding-json must contain one JSON object"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise typer.BadParameter(
+                "surface-detail-binding-json must contain one JSON object"
+            )
+        bindings.append(payload)
     result = generate_job_procedural_textures(
         job_id,
         material_id,
@@ -669,6 +696,7 @@ def generate_procedural_textures(
         prompt=prompt,
         uv_set=uv_set,
         surface_detail_ids=surface_detail_id or (),
+        surface_detail_bindings=bindings,
         detail_pattern=detail_pattern,
         output_relative_dir=output_relative_dir,
         overwrite=overwrite,

@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 VALIDATE_SCENE = (
     ROOT / "src" / "codex_blender_modeler" / "blender_scripts" / "validate_scene.py"
@@ -29,7 +28,8 @@ def _scheduled_modifier_kinds() -> object:
         or (isinstance(node, ast.FunctionDef) and node.name == "scheduled_modifier_kinds")
     ]
     namespace: dict[str, object] = {}
-    exec(compile(ast.Module(body=selected, type_ignores=[]), str(VALIDATE_SCENE), "exec"), namespace)
+    module = ast.Module(body=selected, type_ignores=[])
+    exec(compile(module, str(VALIDATE_SCENE), "exec"), namespace)
     return namespace["scheduled_modifier_kinds"]
 
 

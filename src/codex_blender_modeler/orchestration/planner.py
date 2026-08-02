@@ -256,6 +256,12 @@ def _append_proxy_flow(
                     "non-structural windows, seams, labels, rivets, and repeated shallow detail "
                     "to surface_details; keep silhouette, structural, transparent, or "
                     "gameplay-relevant parts in objects.",
+                    "Route a mark to a textured surface_detail only when its parent object, "
+                    "target material, observed reference region, and stable UV placement can "
+                    "be represented. Otherwise mark it omitted with an explicit reason instead "
+                    "of authoring a whole-material pattern.",
+                    "A generic semantic label never authorizes invented panel lines, seams, "
+                    "grooves, scratches, or other repeated marks outside observed evidence.",
                     *content_instructions,
                 ],
                 parameters={"require_surface_detail_policy": True},
@@ -362,6 +368,12 @@ def _append_background_geometry_flow(
                     "Record hidden geometry as inferred and never create an interior.",
                     "Route non-structural surface-attached micro-detail to surface_details "
                     "instead of one mesh per mark; keep geometry-worthy parts in objects.",
+                    "Use a textured surface_detail only when the parent object, target "
+                    "material, observed reference region, and stable UV placement can be "
+                    "represented; otherwise omit it explicitly rather than inventing a "
+                    "whole-material pattern.",
+                    "A generic semantic label never authorizes unobserved repeated panels, "
+                    "seams, grooves, scratches, or lines.",
                     *content_instructions,
                     "If measured, rigged, interactive, or high-ambiguity work is required, "
                     "stop and report requires_standard_workflow without recording completion.",
@@ -510,12 +522,27 @@ def _append_material_flow(
     steps.extend(
         [
             _step(
+                "material.uv_inventory",
+                "Inspect stable UV layout evidence",
+                "material",
+                "host",
+                tool="inspect_scene",
+                depends_on=[dependency],
+                outputs=[
+                    _artifact(
+                        "material.uv_inventory",
+                        "reports/scene_inventory.json",
+                        acceptance="valid_json",
+                    )
+                ],
+            ),
+            _step(
                 "material.scaffold",
                 "Initialize stable material contracts",
                 "material",
                 "host",
                 tool="material_scaffold_candidate",
-                depends_on=[dependency],
+                depends_on=["material.uv_inventory"],
                 outputs=[
                     _artifact(
                         "material.plan.scaffold",
@@ -544,14 +571,26 @@ def _append_material_flow(
                         lifecycle="immutable_run",
                     )
                 ],
-                parameters={"candidate_plan_path": authored_plan},
+                parameters={
+                    "candidate_plan_path": authored_plan,
+                    "require_spatial_surface_details": True,
+                },
                 instructions=[
                     "Edit only the workflow-owned authored candidate directory.",
                     "Use only whitelisted Blender 5-compatible shader recipes.",
                     "Keep portable surface semantics separate from Blender master graphs.",
                     "For every textured surface_detail, author a UVMap image/hybrid manifest "
-                    "whose surface_detail_ids and PBR channels exactly cover that decision; "
-                    "flatten decals into portable maps instead of creating runtime-engine graphs.",
+                    "whose spatial binding identifies the exact parent object, UV layout, "
+                    "placement, PBR channels, and reference evidence for that decision.",
+                    "Do not paint generic panel, seam, groove, scratch, or line patterns over "
+                    "a shared material. If exact placement is unavailable, use a clean, "
+                    "low-variance base PBR surface and stop for a V0.4 ModelingPlan decision "
+                    "that explicitly omits or re-routes that localized detail.",
+                    "Keep tileable base PBR variation separate from localized detail overlays; "
+                    "localized overlays must not use repeat wrapping.",
+                    "Read the current reports/scene_inventory.json and bind uv_layout_sha256 "
+                    "to the parent object's exact UVMap vertex_uv_binding_fingerprint; never "
+                    "invent, copy from another object, or leave that hash unverified.",
                     "Do not call external texture or image providers unless the immutable "
                     "workflow budget permits them.",
                 ],
@@ -599,12 +638,33 @@ def _append_material_flow(
                 ],
             ),
             _step(
+                "material.fidelity",
+                "Measure deterministic material fidelity",
+                "material",
+                "host",
+                tool="validate_material_fidelity",
+                depends_on=["material.contract_validate"],
+                outputs=[
+                    _artifact(
+                        "material.fidelity_report",
+                        "reports/material_fidelity_validation.json",
+                        acceptance="json_ok",
+                    )
+                ],
+                instructions=[
+                    "Treat warning and unscorable outcomes as visible review evidence, not "
+                    "automatic approval or geometry failure.",
+                    "Return dark-line, full-field variation, normal, emission, and spatial "
+                    "leakage findings to V0.5 authoring before any manual material approval.",
+                ],
+            ),
+            _step(
                 "material.build",
                 "Rebuild scene with approved material contracts",
                 "material",
                 "host",
                 tool="build_scene",
-                depends_on=["material.contract_validate"],
+                depends_on=["material.fidelity"],
                 outputs=[_artifact("material.blend", "blender/scene.blend")],
             ),
             _step(

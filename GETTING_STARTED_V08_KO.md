@@ -343,3 +343,15 @@ V0.8 orchestration만 빠르게 검사하고 이미 검증된 V0.7 Blender gate�
 completion은 authored candidate가 exact UVMap PBR manifest coverage를 가질 때만
 통과합니다. 기존 workflow와 ModelingPlan은 그대로 읽을 수 있으며 이 요구는 새로
 계획된 workflow부터 적용됩니다.
+
+새 workflow의 material flow에는 UV inventory와 fidelity 검사가 포함됩니다.
+`material.uv_inventory`가 parent object의 현재 ordered polygon-corner UV fingerprint를
+고정한 뒤 agent candidate가 `surface_detail_binding_policy=spatial_v1`과 bounded
+placement를 작성합니다. host promotion 뒤 `material.fidelity`가 채널 hash, spatial
+ownership, 검은 선·과도한 noise·normal 이상을 검사합니다. authored candidate가 이
+정책을 legacy unbound로 낮추면 promotion 전에 fail-closed로 중단됩니다.
+
+이후 material build가 `.blend`를 갱신하더라도 workflow-owned snapshot과 exact receipt가
+이전 geometry completion을 소급 stale로 만들지 않습니다. 반대로 SceneSpec,
+MaterialPlan, UV layout 또는 texture channel의 계획되지 않은 변경은 계속
+`orchestration_artifact_conflict` 또는 host failure로 차단됩니다.

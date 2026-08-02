@@ -62,6 +62,7 @@ from codex_blender_modeler.interior_qa.models import (
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
 )
+from codex_blender_modeler.materials.fidelity_models import MaterialFidelityReport
 from codex_blender_modeler.materials.models import (
     MaterialPlan,
     MaterialPromotionReceipt,
@@ -123,6 +124,7 @@ SCHEMAS = {
     "constraint_solution.schema.json": ConstraintSolution,
     "material_plan.schema.json": MaterialPlan,
     "material_promotion_receipt.schema.json": MaterialPromotionReceipt,
+    "material_fidelity_report.schema.json": MaterialFidelityReport,
     "shader_recipe.schema.json": ShaderRecipe,
     "texture_manifest.schema.json": TextureManifest,
     "bake_manifest.schema.json": BakeManifest,

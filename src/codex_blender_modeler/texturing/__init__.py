@@ -10,7 +10,13 @@ from .manifest import (
     load_material_manifest,
     load_texture_manifest,
 )
-from .models import TextureChannel, TextureManifest, TextureProvenance
+from .models import (
+    SurfaceDetailBinding,
+    SurfaceDetailPlacement,
+    TextureChannel,
+    TextureManifest,
+    TextureProvenance,
+)
 from .procedural_provider import (
     MATERIAL_FAMILY_PRESETS,
     PROCEDURAL_PBR_CHANNELS,
@@ -37,6 +43,8 @@ __all__ = [
     "PROCEDURAL_PBR_CHANNELS",
     "PillowProceduralTextureProvider",
     "ProceduralTextureResult",
+    "SurfaceDetailBinding",
+    "SurfaceDetailPlacement",
     "TextureChannel",
     "TextureGenerationRequest",
     "TextureManifest",

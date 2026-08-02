@@ -9,6 +9,12 @@ from pathlib import Path
 import bpy
 from mathutils import Vector
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from portable_asset_common import uv_layer_metrics  # noqa: E402
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -93,6 +99,19 @@ def main() -> None:
         if obj.type == "MESH":
             record["vertices"] = len(obj.data.vertices)
             record["polygons"] = len(obj.data.polygons)
+            record["active_uv"] = (
+                str(obj.data.uv_layers.active.name)
+                if obj.data.uv_layers.active is not None
+                else None
+            )
+            record["uv_layers"] = [
+                {
+                    "name": str(layer.name),
+                    "active_render": bool(layer.active_render),
+                    **uv_layer_metrics(obj.data, layer),
+                }
+                for layer in obj.data.uv_layers
+            ]
         elif obj.type == "CURVE":
             record["splines"] = len(obj.data.splines)
         objects.append(record)

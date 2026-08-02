@@ -59,6 +59,9 @@ class MaterialPlan(StrictModel):
     job_id: str
     scene_spec_path: str = "analysis/scene_spec.json"
     stage: Literal["scaffold", "authored"] = "scaffold"
+    surface_detail_binding_policy: Literal["legacy_unbound", "spatial_v1"] = (
+        "legacy_unbound"
+    )
     materials: list[MaterialPlanItem] = Field(default_factory=list)
     global_notes: list[str] = Field(default_factory=list)
 

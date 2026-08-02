@@ -65,6 +65,14 @@ uv run cbm generate-procedural-textures first_reference_test mat.rock.dark `
 
 `--uv-set UVMap`은 다음 빌드에서 해당 재질 사용 메시의 기존 `UVMap`을 보존하거나 없으면 Smart UV를 생성합니다. 투영형 재질에는 `Object` 또는 `Generated`를 사용할 수 있지만 export bake에는 `UVMap`이 필요합니다.
 
+얕은 창문, 라벨, 홈처럼 국소적인 surface detail은 generic preset을 전체 UV에 반복해
+만들면 안 됩니다. 먼저 UV mapping으로 한 번 build/inspect한 뒤, 현재 parent object의
+ordered polygon-corner UV fingerprint를 사용해 detail ID, 전용 material ID,
+`uv_rect` 또는 hash-bound mask, image-backed channel과 `wrap=clamp`를 결속합니다.
+현재 로컬 provider는 서로 다른 배치를 가진 detail을 한 요청에 합치지 않으므로 detail별
+별도 bounded output을 사용합니다. 의미상 올바른 face/island 배치를 확정할 증거가 없으면
+검은 패널선이나 groove를 전역 생성하지 말고 clean fallback과 V0.5 검토 대기를 선택합니다.
+
 별도로 만든 job-local manifest는 다음처럼 연결할 수 있습니다.
 
 ```powershell
@@ -79,10 +87,20 @@ uv run cbm validate-material-contracts first_reference_test
 uv run cbm build first_reference_test
 uv run cbm render first_reference_test
 uv run cbm inspect-materials first_reference_test
+uv run cbm validate-material-fidelity first_reference_test
 uv run cbm render-material-swatches first_reference_test --size 512
 ```
 
-검사는 stable material ID, 노드 연결, 이미지 경로·hash·색 공간, UV 범위와 퇴화 면, texel-density 추정을 보고합니다.
+검사는 stable material ID, 노드 연결, 이미지 경로·hash·색 공간, UV 범위와 퇴화 면,
+texel-density 추정을 보고합니다. spatial detail이 있으면 실제 Blender 그래프의
+`UVMap -> identity Mapping -> Image Texture`, 비반복 sampling, 부모 material assignment,
+material exclusivity와 현재 UV hash도 확인합니다.
+
+`reports/material_fidelity_validation.json`은 검은 선 과다, 전역 texture variation,
+비정상 normal, stale channel hash와 spatial leakage 위험을 기록하는 판단 원본입니다.
+material PDF는 이 JSON을 사람이 읽기 쉽게 투영한 보고서입니다. `warning`은 swatch와
+preview 검토가 필요하다는 뜻이며, 이 보고서의 통과가 레퍼런스와의 재질 일치를 보장하지는
+않습니다.
 
 ## 5. Portable PBR 베이크
 

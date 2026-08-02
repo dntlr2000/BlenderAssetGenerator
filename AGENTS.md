@@ -168,6 +168,10 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 115. Every non-omitted surface detail requires an authored UVMap image/hybrid TextureManifest that lists its exact stable ID in `surface_detail_ids` and contains every planned PBR channel. A coverage claim is not pixel-level proof and must not be fabricated.
 116. V0.6 reports surface-detail contract coverage separately from geometry similarity. Missing or incorrect pixels return to V0.5 material/texture authoring; a newly discovered silhouette or structural requirement returns to V0.4 geometry authoring.
 117. `baked_decal` means portable PBR maps, not an engine-specific runtime decal graph. V0.7 may preserve or derive those maps but still cannot claim destination shader parity.
+118. Newly authored V0.5 plans use `surface_detail_binding_policy=spatial_v1`. A non-omitted surface detail must bind one exact detail ID to one parent object, one exclusive material, the current ordered polygon-corner UV fingerprint, a bounded `uv_rect` or hash-bound mask, explicit image-backed PBR channels, strength, and non-repeating clamp/clip sampling. Legacy unbound plans remain readable but never become spatially verified by inference.
+119. Spatial image channels must use the exact `UVMap` through identity Mapping and non-repeating image sampling. Procedural variation, when present in a hybrid material, uses a separate scaled coordinate path and must not move or repeat localized detail pixels.
+120. Clean or stylized surfaces must default to neutral maps. Do not invent full-field black seams, panel grids, bands, grooves, scratches, or strong normal relief from a generic preset. If the intended face or UV placement is not supported by current evidence, keep the clean fallback and return the detail to V0.5 authoring review instead of painting it globally.
+121. `reports/material_fidelity_validation.json` is the authoritative deterministic V0.5 fidelity report. It checks channel hashes, suspicious dark-line/noise/normal signatures, spatial ownership, current UV bindings, and other machine evidence; it is not a material-reference similarity score and cannot prove that an authored UV rectangle selects the semantically correct face. Swatch, preview, and direct-reference review remain required.
 
 ## v0.4 reference-analysis workflow
 
@@ -249,6 +253,9 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 10. Do not bake or replace approved material identities before swatch approval.
 11. Rebuild after changing SceneSpec, external geometry/heightmap, MaterialPlan, ShaderRecipe, TextureManifest, or an image channel; stale scenes must be rejected before baking.
 12. For each non-omitted ModelingPlan surface detail, require an authored UVMap image/hybrid TextureManifest with the exact detail ID and planned channels before material build.
+13. For a new localized detail, build and inspect the UV-mapped parent first, bind the detail to the current ordered polygon-corner UV fingerprint and one bounded placement, then regenerate and rebuild. One local procedural generation request handles one exact spatial detail; author separate bounded outputs when multiple details need different placements.
+14. Run `validate_material_fidelity` after contract validation and before swatch approval. Treat `failed` as a host-integrity failure, `warning` as review evidence, and `passed` only as passing the implemented deterministic checks.
+15. `inspect_materials` must verify the applied Blender image-node extension, `UVMap -> identity Mapping -> Image Texture` topology, parent material assignment, material exclusivity, and current UV hash for spatial bindings.
 
 ## v0.6 visual QA and revision workflow
 

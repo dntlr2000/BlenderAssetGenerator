@@ -9,7 +9,6 @@ from pathlib import Path
 
 import bpy
 
-
 DEFERRED_MODIFIER_KINDS = {"boolean", "normal_transfer"}
 
 

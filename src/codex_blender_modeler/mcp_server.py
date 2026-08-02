@@ -54,7 +54,11 @@ from .interior_qa import (
     plan_job_interior_qa,
     run_job_interior_qa,
 )
-from .materials import create_material_scaffold, validate_job_material_contracts
+from .materials import (
+    create_material_scaffold,
+    validate_job_material_contracts,
+    validate_job_material_fidelity,
+)
 from .optimization import (
     approve_asset_optimization as approve_asset_optimization_internal,
 )
@@ -926,6 +930,13 @@ def validate_material_contracts(job_id: str) -> dict:
 
 
 @mcp.tool()
+def validate_material_fidelity(job_id: str) -> dict:
+    """Measure V0.5 raster fidelity and shared-detail leakage without editing materials."""
+
+    return validate_job_material_fidelity(job_id)
+
+
+@mcp.tool()
 def validate_surface_details(job_id: str) -> dict:
     """Validate non-mesh detail routing and exact V0.5 texture-manifest coverage."""
 
@@ -966,6 +977,7 @@ def generate_procedural_textures(
     prompt: str = "",
     uv_set: str = "Object",
     surface_detail_ids: list[str] | None = None,
+    surface_detail_bindings: list[dict] | None = None,
     detail_pattern: str = "none",
     output_relative_dir: str | None = None,
     overwrite: bool = False,
@@ -999,6 +1011,7 @@ def generate_procedural_textures(
         prompt=prompt,
         uv_set=uv_set,
         surface_detail_ids=surface_detail_ids or [],
+        surface_detail_bindings=surface_detail_bindings or [],
         detail_pattern=detail_pattern,
         output_relative_dir=output_relative_dir,
         overwrite=overwrite,

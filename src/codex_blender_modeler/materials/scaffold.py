@@ -187,12 +187,19 @@ def _material_scaffold_payload(
         job_id=job_id,
         scene_spec_path="analysis/scene_spec.json",
         stage="scaffold",
+        surface_detail_binding_policy="spatial_v1",
         materials=plan_items,
         global_notes=[
             "Review and approve material evidence before texture generation or baking.",
             (
-                "Surface-attached detail decisions require exact TextureManifest coverage "
-                "IDs and portable UVMap channels before the material build."
+                "Surface-attached detail decisions require exact TextureManifest spatial "
+                "bindings, reference and UV-layout hashes, and portable UVMap channels "
+                "before the material build."
+            ),
+            (
+                "When exact placement evidence is unavailable, keep the base PBR surface "
+                "clean and return the decision to the V0.4 ModelingPlan as an explicit "
+                "omission instead of drawing a whole-material pattern."
             ),
         ],
     )

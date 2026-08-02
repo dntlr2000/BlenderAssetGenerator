@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
-from pathlib import Path
+import re
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 IMAGE_CHANNELS = {"base_color", "roughness", "metallic", "normal", "height", "opacity", "emission"}
@@ -11,6 +13,7 @@ SOURCE_TYPES = {"image", "procedural", "hybrid"}
 UV_SETS = {"UVMap", "Generated", "Object"}
 PROCEDURAL_COORDINATE_SETS = UV_SETS | {"World"}
 RUNTIME_PROCEDURAL_CHANNELS = {"base_color", "roughness", "height"}
+_SHA256_PATTERN = re.compile(r"^[0-9a-f]{64}$")
 
 
 class MaterialManifestError(ValueError):
@@ -160,6 +163,199 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
     return result
 
 
+def _validate_surface_detail_bindings(
+    raw: dict[str, Any],
+    *,
+    material_id: str,
+    uv_set: str,
+    channels: dict[str, dict[str, Any]],
+    manifest_dir: Path,
+) -> tuple[list[str], list[dict[str, Any]]]:
+    """Normalize strict spatial-detail bindings for the Blender-safe runtime loader."""
+
+    detail_ids = raw.get("surface_detail_ids", [])
+    if (
+        not isinstance(detail_ids, list)
+        or any(not isinstance(value, str) or not value.strip() for value in detail_ids)
+        or len(detail_ids) != len(set(detail_ids))
+    ):
+        raise MaterialManifestError(
+            "surface_detail_ids must be a unique list of non-empty strings"
+        )
+    bindings = raw.get("surface_detail_bindings", [])
+    if not isinstance(bindings, list):
+        raise MaterialManifestError("surface_detail_bindings must be a list")
+    if not bindings:
+        return list(detail_ids), []
+
+    normalized: list[dict[str, Any]] = []
+    binding_ids: list[str] = []
+    wraps: set[str] = set()
+    allowed_binding_keys = {
+        "detail_id",
+        "parent_object_id",
+        "material_id",
+        "uv_set",
+        "uv_layout_sha256",
+        "placement",
+        "channels",
+        "strength",
+        "wrap",
+    }
+    for index, value in enumerate(bindings):
+        if not isinstance(value, dict) or set(value) - allowed_binding_keys:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}] contains invalid fields"
+            )
+        binding = dict(value)
+        for name in ("detail_id", "parent_object_id", "material_id"):
+            field = binding.get(name)
+            if not isinstance(field, str) or not field.strip():
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].{name} must be non-empty"
+                )
+        if binding["material_id"] != material_id:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].material_id must match the manifest"
+            )
+        binding_uv_set = binding.get("uv_set", "UVMap")
+        if binding_uv_set != "UVMap" or binding_uv_set != uv_set:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].uv_set must match manifest UVMap"
+            )
+        uv_hash = binding.get("uv_layout_sha256")
+        if not isinstance(uv_hash, str) or _SHA256_PATTERN.fullmatch(uv_hash) is None:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].uv_layout_sha256 must be lowercase SHA-256"
+            )
+        binding_channels = binding.get("channels")
+        if (
+            not isinstance(binding_channels, list)
+            or not binding_channels
+            or any(name not in channels for name in binding_channels)
+            or len(binding_channels) != len(set(binding_channels))
+        ):
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].channels must be unique manifest channels"
+            )
+        non_image_channels = sorted(
+            name for name in binding_channels if channels[name]["source"] != "image"
+        )
+        if non_image_channels:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].channels must be image-backed: "
+                f"{non_image_channels}"
+            )
+        strength = binding.get("strength", 1.0)
+        if (
+            not isinstance(strength, (int, float))
+            or isinstance(strength, bool)
+            or not 0.0 < float(strength) <= 1.0
+        ):
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].strength must be within (0, 1]"
+            )
+        wrap = binding.get("wrap", "clamp")
+        if wrap not in {"clip", "clamp"}:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].wrap must be clip or clamp"
+            )
+        wraps.add(str(wrap))
+
+        placement = binding.get("placement")
+        if not isinstance(placement, dict):
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].placement must be an object"
+            )
+        mode = placement.get("mode")
+        normalized_placement = dict(placement)
+        if mode == "uv_rect":
+            if set(placement) != {"mode", "uv_rect"}:
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}] uv_rect placement has invalid fields"
+                )
+            uv_rect = placement.get("uv_rect")
+            if (
+                not isinstance(uv_rect, list)
+                or len(uv_rect) != 4
+                or any(
+                    not isinstance(item, (int, float))
+                    or isinstance(item, bool)
+                    or not 0.0 <= float(item) <= 1.0
+                    for item in uv_rect
+                )
+            ):
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].placement.uv_rect is invalid"
+                )
+            u0, v0, u1, v1 = (float(item) for item in uv_rect)
+            if u1 <= u0 or v1 <= v0:
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].placement.uv_rect has no area"
+                )
+            normalized_placement["uv_rect"] = [u0, v0, u1, v1]
+        elif mode == "mask_image":
+            if set(placement) != {"mode", "mask_path", "mask_sha256"}:
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}] mask placement has invalid fields"
+                )
+            mask_value = placement.get("mask_path")
+            mask_hash = placement.get("mask_sha256")
+            if not isinstance(mask_value, str) or not mask_value.strip():
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].placement.mask_path is required"
+                )
+            candidate = PurePosixPath(mask_value)
+            if (
+                candidate.is_absolute()
+                or "\\" in mask_value
+                or ":" in mask_value
+                or any(part in {"", ".", ".."} for part in candidate.parts)
+            ):
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].placement.mask_path must be contained"
+                )
+            mask_path = _resolve_inside(
+                manifest_dir,
+                manifest_dir / mask_value,
+                f"surface_detail_bindings[{index}] mask_path",
+            )
+            if not mask_path.is_file():
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}] mask file does not exist"
+                )
+            if not isinstance(mask_hash, str) or _SHA256_PATTERN.fullmatch(mask_hash) is None:
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}].placement.mask_sha256 is invalid"
+                )
+            actual_hash = hashlib.sha256(mask_path.read_bytes()).hexdigest()
+            if actual_hash != mask_hash:
+                raise MaterialManifestError(
+                    f"surface_detail_bindings[{index}] mask SHA-256 differs"
+                )
+            normalized_placement["resolved_mask_path"] = str(mask_path)
+        else:
+            raise MaterialManifestError(
+                f"surface_detail_bindings[{index}].placement.mode is unsupported"
+            )
+        binding["uv_set"] = binding_uv_set
+        binding["strength"] = float(strength)
+        binding["wrap"] = wrap
+        binding["placement"] = normalized_placement
+        binding_ids.append(str(binding["detail_id"]))
+        normalized.append(binding)
+
+    if len(binding_ids) != len(set(binding_ids)) or set(binding_ids) != set(detail_ids):
+        raise MaterialManifestError(
+            "surface_detail_bindings must uniquely and exactly cover surface_detail_ids"
+        )
+    if len(wraps) != 1:
+        raise MaterialManifestError(
+            "surface_detail_bindings must use one shared non-repeating wrap mode"
+        )
+    return list(detail_ids), normalized
+
+
 def load_material_manifest(
     material_spec: dict[str, Any], job_root: Path
 ) -> tuple[dict[str, Any] | None, Path | None]:
@@ -257,5 +453,14 @@ def load_material_manifest(
     result["procedural"] = _validate_runtime_procedural(
         result["channels"], raw.get("procedural", {})
     )
+    detail_ids, bindings = _validate_surface_detail_bindings(
+        raw,
+        material_id=str(material_spec.get("id")),
+        uv_set=uv_set,
+        channels=result["channels"],
+        manifest_dir=manifest_path.parent,
+    )
+    result["surface_detail_ids"] = detail_ids
+    result["surface_detail_bindings"] = bindings
     result["resolved_manifest_path"] = str(manifest_path)
     return result, manifest_path

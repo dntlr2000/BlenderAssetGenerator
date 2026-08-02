@@ -182,6 +182,15 @@
       "title": "Stage",
       "type": "string"
     },
+    "surface_detail_binding_policy": {
+      "default": "legacy_unbound",
+      "enum": [
+        "legacy_unbound",
+        "spatial_v1"
+      ],
+      "title": "Surface Detail Binding Policy",
+      "type": "string"
+    },
     "materials": {
       "items": {
         "$ref": "#/$defs/MaterialPlanItem"

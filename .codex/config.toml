@@ -43,6 +43,7 @@ enabled_tools = [
   "evaluate_constraints",
   "initialize_materials",
   "validate_material_contracts",
+  "validate_material_fidelity",
   "validate_surface_details",
   "get_surface_detail_status",
   "get_material_presets",

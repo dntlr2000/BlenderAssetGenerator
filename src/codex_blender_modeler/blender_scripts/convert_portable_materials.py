@@ -1258,6 +1258,7 @@ def _portable_material(
         node.label = f"CBM Portable {channel}"
         node.image = images[channel]
         node.interpolation = "Linear"
+        node.extension = "EXTEND"
         links.new(uv_output, node.inputs["Vector"])
         image_nodes[channel] = node
     links.new(image_nodes["base_color"].outputs["Color"], shader.inputs["Base Color"])

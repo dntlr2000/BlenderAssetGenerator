@@ -605,6 +605,14 @@ uv run cbm interior-scope-validate <JOB_ID>를 먼저 통과시켜.
    emission, opacity 중 필요한 raw PBR 채널을 분리해 보존해.
    ModelingPlan의 non-omitted surface_details마다 실제 디테일이 포함된 UVMap
    image/hybrid TextureManifest를 만들고 exact surface_detail_ids와 요구 채널을 기록해.
+   새 plan은 surface_detail_binding_policy=spatial_v1을 유지해.
+   먼저 current scene inventory에서 parent object의 ordered polygon-corner UV fingerprint를
+   확인하고, 각 detail을 parent semantic ID, 전용 material ID, exact UV hash,
+   bounded uv_rect 또는 hash-bound mask, image-backed channel, strength,
+   wrap=clamp에 결속해. 국소 디테일용 image texture에는 identity UV mapping을 사용하고,
+   procedural noise가 필요하면 별도의 scaled coordinate path를 사용해.
+   깨끗한 stylized 표면에 레퍼런스 근거 없는 검은 seam, panel grid, band, groove,
+   scratch 또는 강한 normal relief를 전체 재질 패턴으로 추가하지 마.
    맵에 실제 디테일을 만들지 못했다면 coverage를 주장하지 말고 대기 또는 명시적
    omission으로 보고해.
 5. Base Color는 sRGB, data channel은 Non-Color로 설정해.
@@ -612,8 +620,11 @@ uv run cbm interior-scope-validate <JOB_ID>를 먼저 통과시켜.
 7. Blender 5에서 runtime feature probe가 가능한 whitelisted recipe만 사용해.
 8. uv run cbm validate-material-contracts <JOB_ID>를 실행해.
 9. 최신 build 뒤 uv run cbm inspect-materials <JOB_ID>와
-   uv run cbm render-material-swatches <JOB_ID>를 실행해.
-10. uv run cbm report-pdf <JOB_ID> --scope material로
+   uv run cbm validate-material-fidelity <JOB_ID>를 실행해.
+   fidelity warning은 숨기지 말고 swatch 검토 항목으로 보고해. 이 검사가 UV placement의
+   의미상 정확성이나 레퍼런스 material match를 증명한다고 주장하지 마.
+10. uv run cbm render-material-swatches <JOB_ID>를 실행해.
+11. uv run cbm report-pdf <JOB_ID> --scope material로
     canonical JSON과 swatch를 투영한 material PDF를 생성해.
 
 Unity, Unreal 또는 임의 엔진의 material graph로 자동 변환하지 마.

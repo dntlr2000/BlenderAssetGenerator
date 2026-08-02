@@ -709,6 +709,7 @@ def _append_material_section(
 
     story.append(_paragraph("재질·텍스처·셰이더 상태", styles["h1"]))
     contract = documents.get("material_contract_validation") or {}
+    fidelity = documents.get("material_fidelity_validation") or {}
     inspection = documents.get("material_validation") or {}
     swatches = documents.get("material_swatches") or {}
     if not contract and not inspection:
@@ -741,6 +742,38 @@ def _append_material_section(
                 styles,
             )
         )
+    if fidelity:
+        story.append(_paragraph("V0.5 Material Fidelity QA", styles["h2"]))
+        story.append(
+            _metric_table(
+                [
+                    ("Status", fidelity.get("status", "-")),
+                    ("Image materials", fidelity.get("image_material_count", 0)),
+                    ("Warnings", fidelity.get("warnings", 0)),
+                    ("Failures", fidelity.get("failed", 0)),
+                ],
+                styles,
+            )
+        )
+        finding_rows = [
+            [
+                item.get("severity", "-"),
+                item.get("material_id", "-") or "-",
+                item.get("code", "-"),
+                item.get("message", "-"),
+            ]
+            for item in fidelity.get("findings", [])
+            if item.get("severity") in {"warning", "failed"}
+        ]
+        if finding_rows:
+            story.append(
+                _data_table(
+                    ["Severity", "Material ID", "Finding", "Evidence summary"],
+                    finding_rows,
+                    [18 * mm, 44 * mm, 42 * mm, 70 * mm],
+                    styles,
+                )
+            )
     _append_material_scene_preview(story, images, styles)
     if contract:
         story.append(_paragraph("호스트 계약 검증", styles["h2"]))

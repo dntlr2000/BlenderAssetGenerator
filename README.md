@@ -334,6 +334,19 @@ immutable input
 전달합니다. TextureManifest는 실제로 포함한 exact surface-detail ID를 기록하며,
 V0.6은 이 coverage를 geometry 유사도와 별도로 보고합니다.
 
+새 V0.5 authoring은 `spatial_v1` 계약을 사용합니다. 국소 디테일은 단순히 ID만
+나열하지 않고, 부모 semantic ID·전용 material ID·현재 ordered polygon-corner UV
+fingerprint·`uv_rect` 또는 hash-bound mask·적용할 image-backed PBR channel에
+결속됩니다. 이미지 노드는 `UVMap`과 identity Mapping을 사용하고 clamp/clip으로
+반복을 막습니다. hybrid procedural noise는 별도의 좌표 경로를 사용하므로 국소
+창문·이음선 픽셀이 전체 표면에 반복되지 않습니다.
+
+`validate-material-fidelity`는 채널 해시와 검은 선, 과도한 전역 변이, 비정상 normal,
+공유 재질 누출 위험을 결정론적으로 보고합니다. 이 검사는 UV rectangle이 의미상
+정확한 면을 선택했다는 시각적 진실까지 증명하지 않으므로 material swatch와 preview
+검토를 대체하지 않습니다. 기존 unbound TextureManifest는 계속 읽을 수 있지만 새
+workflow의 spatial 검증을 통과한 것으로 승격되지 않습니다.
+
 자세한 계약과 예시는 [표면 디테일 분류 가이드](SURFACE_DETAIL_ROUTING_KO.md)를
 참조하세요.
 

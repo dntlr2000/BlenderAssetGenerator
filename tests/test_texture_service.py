@@ -131,3 +131,82 @@ def test_generation_service_accepts_workflow_owned_output_directory(
             output_relative_dir="../escaped",
             attach=False,
         )
+
+
+def test_visual_preset_attachment_uses_portable_standard_shader_family(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Attach a stylized map preset without inventing an unsupported shader family."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    _seed_scene_spec(tmp_path, "stylized_service")
+    scaffold = create_material_scaffold("stylized_service")
+    material_id = scaffold.materials[0].material_id
+
+    generate_job_procedural_textures(
+        "stylized_service",
+        material_id,
+        preset="stylized_clean_red_paint",
+        channels=("base_color", "roughness", "metallic", "normal"),
+        resolution=(16, 16),
+    )
+
+    plan = load_material_plan(
+        tmp_path / "stylized_service" / "analysis" / "material_plan.json"
+    )
+    item = next(value for value in plan.materials if value.material_id == material_id)
+    assert item.shader_family == "standard_pbr"
+    assert item.shader_recipe is not None
+    recipe = load_shader_recipe(tmp_path / "stylized_service" / item.shader_recipe)
+    assert recipe.family == "standard_pbr"
+
+
+def test_spatial_generation_serializes_only_the_selected_uv_placement(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Persist an attached UV rectangle without ambiguous null mask fields."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    _seed_scene_spec(tmp_path, "spatial_service")
+    scaffold = create_material_scaffold("spatial_service")
+    material_id = scaffold.materials[0].material_id
+    binding = {
+        "detail_id": "detail.panel",
+        "parent_object_id": "measured.body",
+        "material_id": material_id,
+        "uv_set": "UVMap",
+        "uv_layout_sha256": "a" * 64,
+        "placement": {
+            "mode": "uv_rect",
+            "uv_rect": [0.2, 0.25, 0.8, 0.75],
+        },
+        "channels": ["base_color", "roughness", "normal"],
+        "strength": 0.35,
+        "wrap": "clamp",
+    }
+
+    result = generate_job_procedural_textures(
+        "spatial_service",
+        material_id,
+        preset="stylized_clean_red_paint",
+        channels=("base_color", "roughness", "metallic", "normal"),
+        resolution=(16, 16),
+        uv_set="UVMap",
+        surface_detail_ids=("detail.panel",),
+        surface_detail_bindings=(binding,),
+        detail_pattern="panel_atlas",
+    )
+
+    raw = json.loads(Path(result["manifest_path"]).read_text(encoding="utf-8"))
+    placement = raw["surface_detail_bindings"][0]["placement"]
+    assert placement == {
+        "mode": "uv_rect",
+        "uv_rect": [0.2, 0.25, 0.8, 0.75],
+    }
+    plan = load_material_plan(
+        tmp_path / "spatial_service" / "analysis" / "material_plan.json"
+    )
+    item = next(value for value in plan.materials if value.material_id == material_id)
+    assert item.shader_family == "standard_pbr"
+    assert item.mapping.mode == "uv"
+    assert item.mapping.uv_set == "UVMap"

@@ -675,6 +675,7 @@ def collect_job_report_payload(
         for key, relative in (
             ("material_plan", "analysis/material_plan.json"),
             ("material_contract_validation", "reports/material_contract_validation.json"),
+            ("material_fidelity_validation", "reports/material_fidelity_validation.json"),
             ("material_validation", "reports/material_validation.json"),
             ("material_swatches", "reports/material_swatches.json"),
             ("material_bakes", "reports/material_bakes.json"),

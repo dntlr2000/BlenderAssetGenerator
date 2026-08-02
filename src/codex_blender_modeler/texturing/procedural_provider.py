@@ -15,7 +15,12 @@ from uuid import uuid4
 from PIL import Image, ImageChops, ImageDraw, ImageOps
 
 from ..workspace import job_dir, sha256_file
-from .models import TextureChannel, TextureManifest, TextureProvenance
+from .models import (
+    SurfaceDetailBinding,
+    TextureChannel,
+    TextureManifest,
+    TextureProvenance,
+)
 from .providers import TextureGenerationRequest
 
 PROCEDURAL_PBR_CHANNELS = frozenset(
@@ -23,7 +28,10 @@ PROCEDURAL_PBR_CHANNELS = frozenset(
 )
 _SAFE_COMPONENT = re.compile(r"^[A-Za-z0-9._-]+$")
 _PROVIDER_ID = "cbm_pillow_procedural"
-_PROVIDER_VERSION = "1.0"
+_PROVIDER_VERSION = "1.1"
+_DEFAULT_DETAIL_TONE_FACTOR = 0.85
+_DEFAULT_DETAIL_ROUGHNESS_VALUE = 180
+_DEFAULT_DETAIL_RELIEF_MIX = 0.25
 
 MATERIAL_FAMILY_PRESETS: dict[str, dict[str, Any]] = {
     "standard_pbr": {
@@ -166,6 +174,148 @@ MATERIAL_FAMILY_PRESETS: dict[str, dict[str, Any]] = {
         "emission_high": (0, 0, 0),
         "emission_threshold": 1.0,
     },
+    "standardgun_simple_red_paint": {
+        "base_low": (116, 18, 24),
+        "base_high": (144, 29, 34),
+        "roughness": (0.42, 0.48),
+        "metallic": (0.02, 0.03),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.88,
+        "detail_roughness_value": 128,
+        "detail_relief_mix": 0.2,
+    },
+    "standardgun_simple_dark_polymer": {
+        "base_low": (20, 22, 24),
+        "base_high": (31, 33, 35),
+        "roughness": (0.65, 0.72),
+        "metallic": (0.0, 0.0),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.9,
+        "detail_roughness_value": 188,
+        "detail_relief_mix": 0.2,
+    },
+    "standardgun_simple_gunmetal": {
+        "base_low": (56, 60, 64),
+        "base_high": (74, 78, 82),
+        "roughness": (0.34, 0.4),
+        "metallic": (0.82, 0.88),
+        "normal_strength": 0.1,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.88,
+        "detail_roughness_value": 108,
+        "detail_relief_mix": 0.2,
+    },
+    "standardgun_simple_gold_accent": {
+        "base_low": (158, 104, 28),
+        "base_high": (184, 128, 39),
+        "roughness": (0.3, 0.36),
+        "metallic": (0.82, 0.9),
+        "normal_strength": 0.06,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.92,
+        "detail_roughness_value": 96,
+        "detail_relief_mix": 0.15,
+    },
+    "standardgun_simple_bore_dark": {
+        "base_low": (3, 4, 5),
+        "base_high": (8, 9, 10),
+        "roughness": (0.72, 0.78),
+        "metallic": (0.05, 0.1),
+        "normal_strength": 0.04,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.95,
+        "detail_roughness_value": 196,
+        "detail_relief_mix": 0.1,
+    },
+    "stylized_clean_red_paint": {
+        "base_low": (116, 18, 24),
+        "base_high": (144, 29, 34),
+        "roughness": (0.42, 0.48),
+        "metallic": (0.02, 0.03),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.9,
+        "detail_roughness_value": 128,
+        "detail_relief_mix": 0.2,
+    },
+    "stylized_clean_dark_polymer": {
+        "base_low": (20, 22, 24),
+        "base_high": (31, 33, 35),
+        "roughness": (0.65, 0.72),
+        "metallic": (0.0, 0.0),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.92,
+        "detail_roughness_value": 188,
+        "detail_relief_mix": 0.2,
+    },
+    "stylized_clean_gunmetal": {
+        "base_low": (56, 60, 64),
+        "base_high": (74, 78, 82),
+        "roughness": (0.34, 0.4),
+        "metallic": (0.82, 0.88),
+        "normal_strength": 0.1,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.9,
+        "detail_roughness_value": 108,
+        "detail_relief_mix": 0.2,
+    },
+    "stylized_clean_gold_metal": {
+        "base_low": (158, 104, 28),
+        "base_high": (184, 128, 39),
+        "roughness": (0.3, 0.36),
+        "metallic": (0.82, 0.9),
+        "normal_strength": 0.06,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.94,
+        "detail_roughness_value": 96,
+        "detail_relief_mix": 0.15,
+    },
+    "stylized_clean_dark_recess": {
+        "base_low": (3, 4, 5),
+        "base_high": (8, 9, 10),
+        "roughness": (0.72, 0.78),
+        "metallic": (0.05, 0.1),
+        "normal_strength": 0.04,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.95,
+        "detail_roughness_value": 196,
+        "detail_relief_mix": 0.1,
+    },
+}
+
+_DIRECT_SHADER_FAMILIES = {
+    "standard_pbr",
+    "rock",
+    "terrain",
+    "water",
+    "glass",
+    "foliage",
+    "lava",
+    "cloud",
+    "emissive",
 }
 
 
@@ -183,6 +333,12 @@ def list_material_family_presets() -> dict[str, dict[str, Any]]:
     """Return isolated copies of deterministic material-family preset values."""
 
     return copy.deepcopy(MATERIAL_FAMILY_PRESETS)
+
+
+def shader_family_for_preset(preset: str) -> str:
+    """Map visual texture presets onto the supported portable shader-family contract."""
+
+    return preset if preset in _DIRECT_SHADER_FAMILIES else "standard_pbr"
 
 
 def _material_directory_name(material_id: str) -> str:
@@ -346,7 +502,94 @@ def _apply_mark_tone(image: Image.Image, marks: Image.Image, factor: float) -> I
     return Image.composite(marked, image, marks)
 
 
-def _render_channels(request: TextureGenerationRequest) -> dict[str, Image.Image]:
+def _validate_detail_generation_request(request: TextureGenerationRequest) -> None:
+    """Reject unbound or ambiguous semantic-detail patterns before writing texture files."""
+
+    has_pattern = request.detail_pattern != "none"
+    if has_pattern and not request.surface_detail_ids:
+        raise ValueError(
+            "A rendered detail_pattern requires one exact surface_detail_id"
+        )
+    if not request.surface_detail_ids:
+        return
+    if request.uv_set != "UVMap":
+        raise ValueError(
+            "Surface-detail texture generation requires UVMap coordinates"
+        )
+    if len(request.surface_detail_ids) != 1:
+        raise ValueError(
+            "Generic procedural detail patterns may cover only one exact surface_detail_id; "
+            "author separate placement-bound overlays for multiple details"
+        )
+
+
+def _uv_rect_pixels(
+    uv_rect: tuple[float, float, float, float],
+    resolution: tuple[int, int],
+) -> tuple[int, int, int, int]:
+    """Convert a normalized bottom-left UV rectangle into a bounded Pillow paste box."""
+
+    width, height = resolution
+    u0, v0, u1, v1 = uv_rect
+    x0 = max(0, min(width - 1, int(math.floor(u0 * width))))
+    x1 = max(x0 + 1, min(width, int(math.ceil(u1 * width))))
+    y0 = max(0, min(height - 1, int(math.floor((1.0 - v1) * height))))
+    y1 = max(y0 + 1, min(height, int(math.ceil((1.0 - v0) * height))))
+    return x0, y0, x1, y1
+
+
+def _spatial_detail_relief(
+    request: TextureGenerationRequest,
+    output_dir: Path,
+) -> tuple[Image.Image, Image.Image]:
+    """Render one detail only inside its hash-bound UV rectangle or mask placement."""
+
+    if not request.surface_detail_bindings:
+        return _detail_relief(request.resolution, request.detail_pattern)
+    binding = request.surface_detail_bindings[0]
+    neutral = Image.new("L", request.resolution, 128)
+    if binding.placement.mode == "uv_rect":
+        box = _uv_rect_pixels(binding.placement.uv_rect, request.resolution)
+        local_size = (box[2] - box[0], box[3] - box[1])
+        local_marks, local_relief = _detail_relief(local_size, request.detail_pattern)
+        local_marks = local_marks.point(
+            lambda value: round(float(value) * binding.strength)
+        )
+        local_neutral = Image.new("L", local_size, 128)
+        local_relief = Image.blend(local_neutral, local_relief, binding.strength)
+        marks = Image.new("L", request.resolution, 0)
+        marks.paste(local_marks, box[:2])
+        relief = neutral.copy()
+        relief.paste(local_relief, box[:2])
+        return marks, relief
+
+    mask_path = (output_dir / str(binding.placement.mask_path)).resolve()
+    try:
+        mask_path.relative_to(output_dir.resolve())
+    except ValueError as exc:
+        raise ValueError(
+            "Surface-detail mask must stay inside the texture output directory"
+        ) from exc
+    if not mask_path.is_file():
+        raise FileNotFoundError(f"Surface-detail mask does not exist: {mask_path}")
+    if sha256_file(mask_path) != binding.placement.mask_sha256:
+        raise ValueError("Surface-detail mask SHA-256 differs from the binding")
+    mask = Image.open(mask_path).convert("L")
+    if mask.size != request.resolution:
+        raise ValueError(
+            "Surface-detail mask dimensions must match the generated texture resolution"
+        )
+    mask = mask.point(lambda value: round(float(value) * binding.strength))
+    marks, relief = _detail_relief(request.resolution, request.detail_pattern)
+    marks = ImageChops.multiply(marks, mask)
+    relief = Image.composite(relief, neutral, mask)
+    return marks, relief
+
+
+def _render_channels(
+    request: TextureGenerationRequest,
+    output_dir: Path,
+) -> dict[str, Image.Image]:
     """Render only requested PBR images from one shared deterministic noise field."""
 
     if request.preset not in MATERIAL_FAMILY_PRESETS:
@@ -359,29 +602,75 @@ def _render_channels(request: TextureGenerationRequest) -> dict[str, Image.Image
         raise ValueError(f"Unsupported procedural PBR channels: {unsupported}")
     preset = MATERIAL_FAMILY_PRESETS[request.preset]
     noise = _periodic_noise(request.resolution, request.seed)
-    marks, relief = _detail_relief(request.resolution, request.detail_pattern)
-    normal_height = ImageChops.blend(noise, relief, 0.6)
+    marks, relief = _spatial_detail_relief(request, output_dir)
+    detail_channels = (
+        set()
+        if request.detail_pattern == "none"
+        else set(request.surface_detail_bindings[0].channels)
+        if request.surface_detail_bindings
+        else set(request.channels)
+    )
+    empty_marks = Image.new("L", request.resolution, 0)
+    detail_relief_mix = float(
+        preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX)
+    )
+    detail_tone_factor = float(
+        preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR)
+    )
+    detail_roughness_value = int(
+        preset.get("detail_roughness_value", _DEFAULT_DETAIL_ROUGHNESS_VALUE)
+    )
     rendered: dict[str, Image.Image] = {}
     for channel in request.channels:
         if channel == "base_color":
             base_color = ImageOps.colorize(
                 noise, black=preset["base_low"], white=preset["base_high"]
             )
-            rendered[channel] = _apply_mark_tone(base_color, marks, 0.5)
+            rendered[channel] = _apply_mark_tone(
+                base_color,
+                marks if channel in detail_channels else empty_marks,
+                detail_tone_factor,
+            )
         elif channel == "roughness":
             roughness = _scalar_map(noise, preset["roughness"])
-            marked_roughness = Image.new("L", request.resolution, 220)
-            rendered[channel] = Image.composite(marked_roughness, roughness, marks)
+            marked_roughness = Image.new(
+                "L",
+                request.resolution,
+                detail_roughness_value,
+            )
+            rendered[channel] = Image.composite(
+                marked_roughness,
+                roughness,
+                marks if channel in detail_channels else empty_marks,
+            )
         elif channel == "metallic":
             rendered[channel] = _scalar_map(noise, preset["metallic"])
         elif channel == "normal":
+            normal_height = (
+                ImageChops.blend(noise, relief, detail_relief_mix)
+                if channel in detail_channels
+                else noise
+            )
             rendered[channel] = _normal_map(
                 normal_height, float(preset["normal_strength"])
             )
         elif channel == "height":
-            rendered[channel] = normal_height.copy()
+            rendered[channel] = (
+                ImageChops.blend(noise, relief, detail_relief_mix)
+                if channel in detail_channels
+                else noise.copy()
+            )
         elif channel == "emission":
-            rendered[channel] = _emission_map(noise, preset)
+            emission = _emission_map(noise, preset)
+            rendered[channel] = (
+                Image.composite(
+                    emission,
+                    Image.new("RGB", request.resolution, (0, 0, 0)),
+                    marks,
+                )
+                if request.surface_detail_bindings and channel in detail_channels
+                else emission
+            )
     return rendered
 
 
@@ -397,7 +686,10 @@ def _write_manifest(path: Path, manifest: TextureManifest) -> None:
     """Write the manifest last so partial channel generation is never advertised."""
 
     temporary = path.parent / f".{path.name}.{uuid4().hex}.tmp"
-    temporary.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    temporary.write_text(
+        manifest.model_dump_json(indent=2, exclude_none=True) + "\n",
+        encoding="utf-8",
+    )
     os.replace(temporary, path)
 
 
@@ -410,6 +702,7 @@ class PillowProceduralTextureProvider:
     def generate(self, request: TextureGenerationRequest, output_dir: Path) -> TextureManifest:
         """Generate requested maps and persist a hash-bearing TextureManifest."""
 
+        _validate_detail_generation_request(request)
         output_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = output_dir / "texture_manifest.json"
         output_paths = {name: output_dir / f"{name}.png" for name in request.channels}
@@ -420,7 +713,7 @@ class PillowProceduralTextureProvider:
                 + ", ".join(str(path) for path in conflicts)
             )
 
-        rendered = _render_channels(request)
+        rendered = _render_channels(request, output_dir)
         for channel, image in rendered.items():
             _write_png(output_paths[channel], image)
         hashes = {name: sha256_file(path) for name, path in output_paths.items()}
@@ -433,6 +726,15 @@ class PillowProceduralTextureProvider:
             for name in request.channels
         }
         preset = MATERIAL_FAMILY_PRESETS[request.preset]
+        detail_tone_factor = float(
+            preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR)
+        )
+        detail_roughness_value = int(
+            preset.get("detail_roughness_value", _DEFAULT_DETAIL_ROUGHNESS_VALUE)
+        )
+        detail_relief_mix = float(
+            preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX)
+        )
         manifest = TextureManifest(
             material_id=request.material_id,
             uv_set=request.uv_set,
@@ -441,6 +743,7 @@ class PillowProceduralTextureProvider:
             source_type="image",
             channels=channels,
             surface_detail_ids=request.surface_detail_ids,
+            surface_detail_bindings=request.surface_detail_bindings,
             procedural={
                 "algorithm": "periodic_multioctave_value_noise",
                 "algorithm_version": 1,
@@ -448,6 +751,16 @@ class PillowProceduralTextureProvider:
                 "seed": request.seed,
                 "normal_strength": preset["normal_strength"],
                 "detail_pattern": request.detail_pattern,
+                "detail_tone_factor": detail_tone_factor,
+                "detail_roughness_value": detail_roughness_value,
+                "detail_relief_mix": detail_relief_mix,
+                "detail_placement_scope": (
+                    "spatial_v1"
+                    if request.surface_detail_bindings
+                    else "legacy_unbound"
+                    if request.surface_detail_ids
+                    else "none"
+                ),
             },
             provenance=TextureProvenance(
                 provider=self.provider_id,
@@ -464,7 +777,9 @@ class PillowProceduralTextureProvider:
             },
             generation_notes=(
                 "Offline deterministic PNG provider; declared surface details are rendered "
-                f"with the bounded {request.detail_pattern} pattern; no external model used."
+                f"with the bounded {request.detail_pattern} pattern. Spatial-v1 requests "
+                "apply the declared UV rectangle or exact mask during raster generation; "
+                "legacy unbound requests remain audit-only. No external model used."
             ),
         )
         _write_manifest(manifest_path, manifest)
@@ -490,6 +805,7 @@ def generate_procedural_pbr(
     prompt: str = "",
     uv_set: str = "Object",
     surface_detail_ids: Sequence[str] = (),
+    surface_detail_bindings: Sequence[SurfaceDetailBinding | dict[str, Any]] = (),
     detail_pattern: str = "none",
     output_dir: Path | None = None,
     overwrite: bool = False,
@@ -506,6 +822,7 @@ def generate_procedural_pbr(
         intended_scale_m=intended_scale_m,
         uv_set=uv_set,
         surface_detail_ids=list(surface_detail_ids),
+        surface_detail_bindings=list(surface_detail_bindings),
         detail_pattern=detail_pattern,
         overwrite=overwrite,
     )

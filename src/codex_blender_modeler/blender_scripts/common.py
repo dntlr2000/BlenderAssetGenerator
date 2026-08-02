@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import sys
 from collections.abc import Iterable
@@ -24,6 +25,23 @@ from codex_blender_modeler.shader_recipe_runtime import (  # noqa: E402
 )
 from codex_blender_modeler.shader_recipe_runtime import (  # noqa: E402
     load_runtime_shader_recipes as load_runtime_shader_recipes,  # noqa: F401
+)
+
+_MATERIAL_PROVENANCE_KEYS = (
+    "cbm_shader_recipe",
+    "cbm_shader_family",
+    "cbm_texture_strategy",
+    "cbm_texture_manifest",
+    "cbm_material_source_type",
+    "cbm_uv_set",
+    "cbm_intended_scale_m",
+    "cbm_spatial_binding_count",
+    "cbm_image_wrap",
+    "cbm_sampling_mode",
+    "cbm_spatial_bindings",
+    "cbm_material_source_fingerprint",
+    "cbm_shader_recipe_sha256",
+    "cbm_texture_manifest_sha256",
 )
 
 
@@ -77,19 +95,36 @@ def _set_first_input(node: bpy.types.Node, names: tuple[str, ...], value) -> boo
     return False
 
 
+def _clear_material_provenance(material: bpy.types.Material) -> None:
+    """Remove prior-build CBM metadata before repopulating current material evidence."""
+
+    for key in _MATERIAL_PROVENANCE_KEYS:
+        if key in material:
+            del material[key]
+
+
 def _coordinate_socket(
     nodes: bpy.types.Nodes,
     links: bpy.types.NodeLinks,
     manifest: dict,
+    *,
+    identity_uv: bool = False,
 ) -> bpy.types.NodeSocket:
     """Create deterministic world, object, generated, or UV coordinates at the declared scale."""
 
     mapping = nodes.new("ShaderNodeMapping")
-    mapping.label = "CBM Real-World Scale"
-    scale = 1.0 / float(manifest["intended_scale_m"])
+    mapping.label = "CBM Spatial UV Identity" if identity_uv else "CBM Real-World Scale"
+    scale = 1.0 if identity_uv else 1.0 / float(manifest["intended_scale_m"])
     mapping.inputs["Scale"].default_value = (scale, scale, scale)
     coordinate_kind = manifest.get("uv_set", "Object")
-    if coordinate_kind == "World":
+    if identity_uv:
+        if coordinate_kind != "UVMap":
+            raise RuntimeError("Spatial surface-detail manifests require UVMap coordinates")
+        coordinates = nodes.new("ShaderNodeUVMap")
+        coordinates.label = "CBM Spatial UVMap"
+        coordinates.uv_map = str(coordinate_kind)
+        links.new(coordinates.outputs["UV"], mapping.inputs["Vector"])
+    elif coordinate_kind == "World":
         geometry = nodes.new("ShaderNodeNewGeometry")
         geometry.label = "CBM Shared World Coordinates"
         links.new(geometry.outputs["Position"], mapping.inputs["Vector"])
@@ -111,6 +146,8 @@ def _image_node(
     vector_socket: bpy.types.NodeSocket,
     channel_name: str,
     channel: dict,
+    *,
+    extension: str = "REPEAT",
 ) -> bpy.types.Node:
     """Load one validated image channel with its declared Cycles color space."""
 
@@ -119,7 +156,7 @@ def _image_node(
     node.label = f"CBM {channel_name}"
     node.image = bpy.data.images.load(channel["resolved_path"], check_existing=True)
     node.image.colorspace_settings.name = channel["color_space"]
-    node.extension = "REPEAT"
+    node.extension = extension
     links.new(vector_socket, node.inputs["Vector"])
     return node
 
@@ -186,15 +223,26 @@ def _apply_manifest_graph(
 
     channels = manifest.get("channels", {})
     procedural = manifest.get("procedural", {})
-    image_vector_socket = _coordinate_socket(nodes, links, manifest)
+    spatial_bindings = manifest.get("surface_detail_bindings", [])
+    spatial_mode = bool(spatial_bindings)
+    image_extension = "REPEAT"
+    if spatial_mode:
+        wrap = str(spatial_bindings[0]["wrap"])
+        image_extension = {"clip": "CLIP", "clamp": "EXTEND"}[wrap]
+    image_vector_socket = _coordinate_socket(
+        nodes,
+        links,
+        manifest,
+        identity_uv=spatial_mode,
+    )
     procedural_vector_socket = image_vector_socket
     procedural_uv_set = procedural.get("coordinate_uv_set")
-    if procedural_uv_set is not None:
+    if spatial_mode or procedural_uv_set is not None:
         procedural_vector_socket = _coordinate_socket(
             nodes,
             links,
             {
-                "uv_set": procedural_uv_set,
+                "uv_set": procedural_uv_set or manifest["uv_set"],
                 "intended_scale_m": procedural.get(
                     "coordinate_scale_m",
                     manifest["intended_scale_m"],
@@ -204,10 +252,34 @@ def _apply_manifest_graph(
     noise = _noise_node(nodes, links, procedural_vector_socket, procedural)
 
     image_nodes = {
-        name: _image_node(nodes, links, image_vector_socket, name, channel)
+        name: _image_node(
+            nodes,
+            links,
+            image_vector_socket,
+            name,
+            channel,
+            extension=image_extension,
+        )
         for name, channel in channels.items()
         if channel.get("source") == "image"
     }
+    material["cbm_spatial_binding_count"] = len(spatial_bindings)
+    material["cbm_image_wrap"] = image_extension
+    material["cbm_sampling_mode"] = "spatial_uv_identity" if spatial_mode else "legacy_scaled"
+    material["cbm_spatial_bindings"] = json.dumps(
+        [
+            {
+                "detail_id": binding["detail_id"],
+                "parent_object_id": binding["parent_object_id"],
+                "uv_set": binding["uv_set"],
+                "uv_layout_sha256": binding["uv_layout_sha256"],
+                "wrap": binding["wrap"],
+            }
+            for binding in spatial_bindings
+        ],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
     base_output = image_nodes.get("base_color")
     base_socket = base_output.outputs["Color"] if base_output else None
@@ -390,6 +462,7 @@ def make_material(
 
     material = bpy.data.materials.get(spec["id"]) or bpy.data.materials.new(spec["id"])
     material.use_nodes = True
+    _clear_material_provenance(material)
     material["cbm_id"] = spec["id"]
     nodes = material.node_tree.nodes
     links = material.node_tree.links

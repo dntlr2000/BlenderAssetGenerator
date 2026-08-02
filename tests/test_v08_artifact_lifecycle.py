@@ -248,6 +248,12 @@ def _install_fake_blender_host(
                 encoding="utf-8",
             )
             return
+        if tool == "validate_material_fidelity":
+            (root / "reports" / "material_fidelity_validation.json").write_text(
+                '{"ok":true,"status":"passed","findings":[]}\n',
+                encoding="utf-8",
+            )
+            return
         if tool == "render_material_swatches":
             (root / "reports" / "material_swatches.json").write_text(
                 '{"materials":[]}\n',
@@ -420,6 +426,31 @@ def test_fast_preview_lifecycle_completes_with_one_direct_qa(
     reconstructed = reconcile_workflow(state.job_id, state.workflow_id)
     assert reconstructed.status == "completed"
     assert reconstructed.milestone == "delivered_for_review"
+
+
+def test_new_material_authoring_rejects_policy_downgrade(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Do not let a new authored candidate silently fall back to legacy unbound placement."""
+
+    root, state = _fast_workflow_to_material_author(monkeypatch, tmp_path)
+    step = _plan_step(root, state.workflow_id, "material.author")
+    candidate = root / str(step["parameters"]["candidate_plan_path"])
+    payload = json.loads(candidate.read_text(encoding="utf-8"))
+    payload["stage"] = "authored"
+    payload.pop("surface_detail_binding_policy", None)
+    candidate.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    current = next(item for item in state.steps if item.step_id == "material.author")
+
+    with pytest.raises(RuntimeError, match="requires surface_detail_binding_policy=spatial_v1"):
+        complete_workflow_step(
+            state.job_id,
+            state.workflow_id,
+            "material.author",
+            input_fingerprint=str(current.input_fingerprint),
+            note="Attempted policy downgrade fixture.",
+        )
 
 
 @pytest.mark.parametrize("quality_status", ["needs_revision", "unscorable"])

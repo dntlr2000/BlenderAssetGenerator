@@ -5,7 +5,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .models import TextureChannelName, TextureManifest
+from .models import SurfaceDetailBinding, TextureChannelName, TextureManifest
 
 
 class TextureGenerationRequest(BaseModel):
@@ -21,6 +21,7 @@ class TextureGenerationRequest(BaseModel):
     intended_scale_m: float = Field(gt=0)
     uv_set: Literal["UVMap", "Generated", "Object"] = "Object"
     surface_detail_ids: list[str] = Field(default_factory=list)
+    surface_detail_bindings: list[SurfaceDetailBinding] = Field(default_factory=list)
     detail_pattern: Literal[
         "none", "panel_atlas", "horizontal_bands", "vertical_grooves"
     ] = "none"
@@ -48,6 +49,35 @@ class TextureGenerationRequest(BaseModel):
             raise ValueError(
                 "surface-detail coverage requires a rendered detail_pattern"
             )
+        binding_ids = [item.detail_id for item in self.surface_detail_bindings]
+        if len(binding_ids) != len(set(binding_ids)):
+            raise ValueError("surface_detail_bindings must use unique detail IDs")
+        if self.surface_detail_bindings and set(binding_ids) != set(
+            self.surface_detail_ids
+        ):
+            raise ValueError(
+                "surface_detail_bindings must exactly cover surface_detail_ids"
+            )
+        binding_wraps = {item.wrap for item in self.surface_detail_bindings}
+        if len(binding_wraps) > 1:
+            raise ValueError(
+                "surface_detail_bindings must use one shared non-repeating wrap mode"
+            )
+        for binding in self.surface_detail_bindings:
+            if binding.material_id != self.material_id:
+                raise ValueError(
+                    "surface-detail binding material_id must match the generation request"
+                )
+            if binding.uv_set != self.uv_set:
+                raise ValueError(
+                    "surface-detail binding uv_set must match the generation request"
+                )
+            missing_channels = sorted(set(binding.channels) - set(self.channels))
+            if missing_channels:
+                raise ValueError(
+                    "surface-detail binding channels are absent from the generation request: "
+                    f"{missing_channels}"
+                )
         return self
 
 

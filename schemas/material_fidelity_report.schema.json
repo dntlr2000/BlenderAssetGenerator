@@ -1,0 +1,653 @@
+{
+  "$defs": {
+    "EmissionFidelityMetrics": {
+      "additionalProperties": false,
+      "description": "Measure emission coverage and hue against available reference evidence.",
+      "properties": {
+        "active_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Active Fraction",
+          "type": "number"
+        },
+        "saturated_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Saturated Fraction",
+          "type": "number"
+        },
+        "dominant_hue_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dominant Hue Deg"
+        },
+        "reference_hue_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Hue Deg"
+        },
+        "hue_error_deg": {
+          "anyOf": [
+            {
+              "maximum": 180,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hue Error Deg"
+        }
+      },
+      "required": [
+        "active_fraction",
+        "saturated_fraction"
+      ],
+      "title": "EmissionFidelityMetrics",
+      "type": "object"
+    },
+    "ImageFidelityMetrics": {
+      "additionalProperties": false,
+      "description": "Store deterministic, normalized measurements for one raster channel.",
+      "properties": {
+        "width": {
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "sampled_pixels": {
+          "minimum": 1,
+          "title": "Sampled Pixels",
+          "type": "integer"
+        },
+        "luminance_mean": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Luminance Mean",
+          "type": "number"
+        },
+        "luminance_stddev": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Luminance Stddev",
+          "type": "number"
+        },
+        "luminance_median": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Luminance Median",
+          "type": "number"
+        },
+        "relative_variation": {
+          "minimum": 0,
+          "title": "Relative Variation",
+          "type": "number"
+        },
+        "neighbor_delta_mean": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Neighbor Delta Mean",
+          "type": "number"
+        },
+        "residual_noise_mean": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Residual Noise Mean",
+          "type": "number"
+        },
+        "dark_contrast_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Dark Contrast Fraction",
+          "type": "number"
+        },
+        "dark_band_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Dark Band Fraction",
+          "type": "number"
+        },
+        "saturated_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Saturated Fraction",
+          "type": "number"
+        },
+        "dominant_hue_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 360,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dominant Hue Deg"
+        }
+      },
+      "required": [
+        "width",
+        "height",
+        "sampled_pixels",
+        "luminance_mean",
+        "luminance_stddev",
+        "luminance_median",
+        "relative_variation",
+        "neighbor_delta_mean",
+        "residual_noise_mean",
+        "dark_contrast_fraction",
+        "dark_band_fraction",
+        "saturated_fraction"
+      ],
+      "title": "ImageFidelityMetrics",
+      "type": "object"
+    },
+    "MaterialChannelEvidence": {
+      "additionalProperties": false,
+      "description": "Bind one inspected image channel to its exact file hash and measurements.",
+      "properties": {
+        "channel": {
+          "title": "Channel",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "image": {
+          "$ref": "#/$defs/ImageFidelityMetrics"
+        },
+        "normal": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NormalFidelityMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "emission": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmissionFidelityMetrics"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "channel",
+        "relative_path",
+        "sha256",
+        "image"
+      ],
+      "title": "MaterialChannelEvidence",
+      "type": "object"
+    },
+    "MaterialFidelityEvidence": {
+      "additionalProperties": false,
+      "description": "Summarize measured channels and spatial-detail leakage risk for one material.",
+      "properties": {
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "shader_family": {
+          "title": "Shader Family",
+          "type": "string"
+        },
+        "texture_strategy": {
+          "title": "Texture Strategy",
+          "type": "string"
+        },
+        "texture_manifest_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest Path"
+        },
+        "texture_manifest_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest Sha256"
+        },
+        "assigned_object_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assigned Object Ids",
+          "type": "array"
+        },
+        "declared_surface_detail_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Declared Surface Detail Ids",
+          "type": "array"
+        },
+        "declared_detail_parent_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Declared Detail Parent Ids",
+          "type": "array"
+        },
+        "spatial_binding_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Spatial Binding Count",
+          "type": "integer"
+        },
+        "legacy_unbound_detail_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Legacy Unbound Detail Ids",
+          "type": "array"
+        },
+        "unbound_consumer_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unbound Consumer Ids",
+          "type": "array"
+        },
+        "clean_surface_expected": {
+          "title": "Clean Surface Expected",
+          "type": "boolean"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/MaterialChannelEvidence"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "finding_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Codes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id",
+        "shader_family",
+        "texture_strategy",
+        "clean_surface_expected"
+      ],
+      "title": "MaterialFidelityEvidence",
+      "type": "object"
+    },
+    "MaterialFidelityFinding": {
+      "additionalProperties": false,
+      "description": "Record one deterministic material-fidelity result without authorizing changes.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "failed"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "material_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Id"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel"
+        },
+        "measured": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "evidence_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "MaterialFidelityFinding",
+      "type": "object"
+    },
+    "MaterialFidelityThresholds": {
+      "additionalProperties": false,
+      "description": "Persist the exact deterministic thresholds used to classify image evidence.",
+      "properties": {
+        "dark_contrast_fraction_max": {
+          "default": 0.025,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Dark Contrast Fraction Max",
+          "type": "number"
+        },
+        "dark_band_fraction_max": {
+          "default": 0.04,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Dark Band Fraction Max",
+          "type": "number"
+        },
+        "relative_variation_max": {
+          "default": 0.28,
+          "minimum": 0,
+          "title": "Relative Variation Max",
+          "type": "number"
+        },
+        "residual_noise_mean_max": {
+          "default": 0.035,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Residual Noise Mean Max",
+          "type": "number"
+        },
+        "normal_mean_deviation_deg_max": {
+          "default": 18.0,
+          "maximum": 180,
+          "minimum": 0,
+          "title": "Normal Mean Deviation Deg Max",
+          "type": "number"
+        },
+        "normal_p95_deviation_deg_max": {
+          "default": 45.0,
+          "maximum": 180,
+          "minimum": 0,
+          "title": "Normal P95 Deviation Deg Max",
+          "type": "number"
+        },
+        "emission_active_fraction_min": {
+          "default": 0.65,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Emission Active Fraction Min",
+          "type": "number"
+        },
+        "emission_hue_error_deg_max": {
+          "default": 45.0,
+          "maximum": 180,
+          "minimum": 0,
+          "title": "Emission Hue Error Deg Max",
+          "type": "number"
+        }
+      },
+      "title": "MaterialFidelityThresholds",
+      "type": "object"
+    },
+    "NormalFidelityMetrics": {
+      "additionalProperties": false,
+      "description": "Measure tangent-space normal-map deviation from a flat +Z normal.",
+      "properties": {
+        "mean_deviation_deg": {
+          "maximum": 180,
+          "minimum": 0,
+          "title": "Mean Deviation Deg",
+          "type": "number"
+        },
+        "p95_deviation_deg": {
+          "maximum": 180,
+          "minimum": 0,
+          "title": "P95 Deviation Deg",
+          "type": "number"
+        },
+        "inverted_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Inverted Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mean_deviation_deg",
+        "p95_deviation_deg",
+        "inverted_fraction"
+      ],
+      "title": "NormalFidelityMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Provide authoritative V0.5 raster measurements and advisory fidelity findings.",
+  "properties": {
+    "schema_version": {
+      "const": "0.5.0",
+      "default": "0.5.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "input_hashes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Input Hashes",
+      "type": "object"
+    },
+    "reference_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Path"
+    },
+    "reference_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Sha256"
+    },
+    "reference_metrics": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ImageFidelityMetrics"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "thresholds": {
+      "$ref": "#/$defs/MaterialFidelityThresholds"
+    },
+    "material_count": {
+      "minimum": 0,
+      "title": "Material Count",
+      "type": "integer"
+    },
+    "image_material_count": {
+      "minimum": 0,
+      "title": "Image Material Count",
+      "type": "integer"
+    },
+    "passed": {
+      "minimum": 0,
+      "title": "Passed",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "failed": {
+      "minimum": 0,
+      "title": "Failed",
+      "type": "integer"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/MaterialFidelityEvidence"
+      },
+      "title": "Materials",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/MaterialFidelityFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "ok",
+    "source_fingerprint",
+    "material_count",
+    "image_material_count",
+    "passed",
+    "warnings",
+    "failed"
+  ],
+  "title": "MaterialFidelityReport",
+  "type": "object"
+}

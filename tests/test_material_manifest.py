@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -256,5 +257,151 @@ def test_manifest_rejects_unimplemented_procedural_channel(tmp_path: Path) -> No
                 "id": "mat.test",
                 "texture_manifest": "textures/mat.test/texture_manifest.json",
             },
+            tmp_path,
+        )
+
+
+def test_runtime_manifest_normalizes_spatial_uv_binding(tmp_path: Path) -> None:
+    """Blender-safe loading preserves one exact non-repeating UV placement contract."""
+
+    payload = _valid_payload()
+    payload["uv_set"] = "UVMap"
+    payload["surface_detail_ids"] = ["detail.window"]
+    payload["surface_detail_bindings"] = [
+        {
+            "detail_id": "detail.window",
+            "parent_object_id": "asset.body",
+            "material_id": "mat.test",
+            "uv_set": "UVMap",
+            "uv_layout_sha256": "a" * 64,
+            "placement": {"mode": "uv_rect", "uv_rect": [0.2, 0.3, 0.5, 0.7]},
+            "channels": ["base_color", "roughness"],
+            "strength": 0.4,
+            "wrap": "clip",
+        }
+    ]
+    _write_manifest(tmp_path, payload)
+    manifest, _ = load_material_manifest(
+        {"id": "mat.test", "texture_manifest": "textures/mat.test/texture_manifest.json"},
+        tmp_path,
+    )
+
+    assert manifest is not None
+    assert manifest["surface_detail_ids"] == ["detail.window"]
+    assert manifest["surface_detail_bindings"][0]["wrap"] == "clip"
+    assert manifest["surface_detail_bindings"][0]["placement"]["uv_rect"] == [
+        0.2,
+        0.3,
+        0.5,
+        0.7,
+    ]
+
+
+def test_runtime_manifest_defaults_spatial_wrap_to_clamp(tmp_path: Path) -> None:
+    """Use edge-safe clamp sampling when an authored binding omits wrap."""
+
+    payload = _valid_payload()
+    payload["uv_set"] = "UVMap"
+    payload["surface_detail_ids"] = ["detail.window"]
+    payload["surface_detail_bindings"] = [
+        {
+            "detail_id": "detail.window",
+            "parent_object_id": "asset.body",
+            "material_id": "mat.test",
+            "uv_set": "UVMap",
+            "uv_layout_sha256": "a" * 64,
+            "placement": {"mode": "uv_rect", "uv_rect": [0.2, 0.3, 0.5, 0.7]},
+            "channels": ["base_color"],
+        }
+    ]
+    _write_manifest(tmp_path, payload)
+
+    manifest, _ = load_material_manifest(
+        {"id": "mat.test", "texture_manifest": "textures/mat.test/texture_manifest.json"},
+        tmp_path,
+    )
+
+    assert manifest is not None
+    assert manifest["surface_detail_bindings"][0]["wrap"] == "clamp"
+
+
+def test_runtime_manifest_rejects_procedural_spatial_channel(tmp_path: Path) -> None:
+    """A bounded spatial binding may reference only image-backed channel pixels."""
+
+    payload = _valid_payload()
+    payload["uv_set"] = "UVMap"
+    payload["surface_detail_ids"] = ["detail.groove"]
+    payload["surface_detail_bindings"] = [
+        {
+            "detail_id": "detail.groove",
+            "parent_object_id": "asset.body",
+            "material_id": "mat.test",
+            "uv_set": "UVMap",
+            "uv_layout_sha256": "a" * 64,
+            "placement": {"mode": "uv_rect", "uv_rect": [0.2, 0.3, 0.5, 0.7]},
+            "channels": ["height"],
+            "wrap": "clamp",
+        }
+    ]
+    _write_manifest(tmp_path, payload)
+
+    with pytest.raises(MaterialManifestError, match="image-backed"):
+        load_material_manifest(
+            {
+                "id": "mat.test",
+                "texture_manifest": "textures/mat.test/texture_manifest.json",
+            },
+            tmp_path,
+        )
+
+
+def test_runtime_manifest_rejects_mixed_wrap_and_changed_mask(tmp_path: Path) -> None:
+    """Runtime loading rejects ambiguous sampling and hash-stale placement masks."""
+
+    payload = _valid_payload()
+    payload["uv_set"] = "UVMap"
+    payload["surface_detail_ids"] = ["detail.first", "detail.second"]
+    first = {
+        "detail_id": "detail.first",
+        "parent_object_id": "asset.body",
+        "material_id": "mat.test",
+        "uv_set": "UVMap",
+        "uv_layout_sha256": "a" * 64,
+        "placement": {"mode": "uv_rect", "uv_rect": [0.1, 0.1, 0.3, 0.3]},
+        "channels": ["base_color"],
+        "wrap": "clip",
+    }
+    second = {
+        **first,
+        "detail_id": "detail.second",
+        "placement": {"mode": "uv_rect", "uv_rect": [0.6, 0.6, 0.9, 0.9]},
+        "wrap": "clamp",
+    }
+    payload["surface_detail_bindings"] = [first, second]
+    path = _write_manifest(tmp_path, payload)
+    with pytest.raises(MaterialManifestError, match="shared non-repeating wrap"):
+        load_material_manifest(
+            {"id": "mat.test", "texture_manifest": "textures/mat.test/texture_manifest.json"},
+            tmp_path,
+        )
+
+    mask_path = path.parent / "detail_mask.png"
+    mask_path.write_bytes(b"mask-v1")
+    payload["surface_detail_ids"] = ["detail.first"]
+    payload["surface_detail_bindings"] = [
+        {
+            **first,
+            "placement": {
+                "mode": "mask_image",
+                "mask_path": "detail_mask.png",
+                "mask_sha256": hashlib.sha256(b"mask-v1").hexdigest(),
+            },
+        }
+    ]
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    mask_path.write_bytes(b"mask-v2")
+    with pytest.raises(MaterialManifestError, match="mask SHA-256 differs"):
+        load_material_manifest(
+            {"id": "mat.test", "texture_manifest": "textures/mat.test/texture_manifest.json"},
             tmp_path,
         )

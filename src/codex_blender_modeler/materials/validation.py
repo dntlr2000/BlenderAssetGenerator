@@ -187,6 +187,22 @@ def validate_material_contracts(
                         material_id=material_id,
                         path=manifest_path,
                     )
+                elif manifest.get("surface_detail_bindings") and (
+                    item.mapping.mode != "uv"
+                    or item.mapping.uv_set != "UVMap"
+                    or manifest.get("uv_set") != "UVMap"
+                ):
+                    _check(
+                        checks,
+                        f"texture_manifest:{material_id}",
+                        "failed",
+                        (
+                            "Spatial surface details require MaterialPlan UV mapping and "
+                            "the exact UVMap manifest coordinates"
+                        ),
+                        material_id=material_id,
+                        path=manifest_path,
+                    )
                 else:
                     _check(
                         checks,

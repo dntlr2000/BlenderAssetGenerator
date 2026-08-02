@@ -14,9 +14,11 @@ from ..materials.io import (
 )
 from ..materials.models import MappingSpec, MaterialPlan, ShaderRecipe
 from ..workspace import job_dir
+from .models import SurfaceDetailBinding
 from .procedural_provider import (
     generate_procedural_pbr,
     list_material_family_presets,
+    shader_family_for_preset,
 )
 
 
@@ -143,6 +145,7 @@ def generate_job_procedural_textures(
     prompt: str = "",
     uv_set: str = "Object",
     surface_detail_ids: Sequence[str] = (),
+    surface_detail_bindings: Sequence[SurfaceDetailBinding | dict[str, Any]] = (),
     detail_pattern: str = "none",
     output_relative_dir: str | None = None,
     overwrite: bool = False,
@@ -169,6 +172,7 @@ def generate_job_procedural_textures(
         prompt=prompt,
         uv_set=uv_set,
         surface_detail_ids=surface_detail_ids,
+        surface_detail_bindings=surface_detail_bindings,
         detail_pattern=detail_pattern,
         output_dir=output_dir,
         overwrite=overwrite,
@@ -179,7 +183,7 @@ def generate_job_procedural_textures(
             job_id,
             material_id,
             relative_manifest,
-            shader_family=preset,
+            shader_family=shader_family_for_preset(preset),
         )
     return {
         "job_id": job_id,

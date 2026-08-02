@@ -2,6 +2,20 @@
 
 ## 0.9.0
 
+- Hardened new V0.5 surface-detail authoring with backward-compatible `spatial_v1`
+  object/material/current-UV bindings, bounded UV-rectangle or hash-bound mask placement,
+  image-backed channel declarations, edge-safe non-repeating sampling, and separate hybrid
+  procedural coordinates. Existing unbound workspaces remain immutable and readable but are not
+  silently upgraded.
+- Added deterministic Material Fidelity QA and PDF projection for channel hashes, suspicious
+  black-line/full-field variation, normal-map deviation, and spatial leakage risks. Blender
+  material inspection now verifies the applied UVMap/identity-Mapping/Image-Texture topology,
+  image identity and extension, parent assignment, exclusive material use, and current ordered
+  polygon-corner UV fingerprint. The report remains advisory for semantic face placement and
+  never replaces swatch or direct-reference review.
+- Changed clean stylized procedural defaults to neutral, conservative PBR maps and restricted
+  semantic marks to their declared image-backed channels and bounded placement. Generic panel,
+  band, groove, and scratch patterns no longer receive implicit whole-material authority.
 - Added backward-compatible ModelingPlan surface-detail routing so shallow windows, seams,
   labels, rivets, painted panels, and repeated marks remain outside SceneSpec geometry unless
   silhouette, structure, gameplay, or physical transparency requires a mesh. Added exact V0.5

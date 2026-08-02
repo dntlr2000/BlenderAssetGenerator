@@ -267,3 +267,80 @@ def test_host_validation_rejects_partial_plan_and_image_triplanar(tmp_path: Path
     assert not report.ok
     assert any(check.id == "material_plan_coverage:mat.omitted" for check in report.checks)
     assert any("triplanar" in check.message for check in report.checks)
+
+
+def test_host_validation_requires_uv_mapping_for_spatial_details(tmp_path: Path) -> None:
+    """Reject an object-mapped MaterialPlan paired with a spatial UV manifest."""
+
+    texture_dir = tmp_path / "textures" / "mat.spatial"
+    texture_dir.mkdir(parents=True)
+    (texture_dir / "base.png").write_bytes(b"spatial-base")
+    manifest_relative = "textures/mat.spatial/texture_manifest.json"
+    (texture_dir / "texture_manifest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "0.5.0",
+                "material_id": "mat.spatial",
+                "uv_set": "UVMap",
+                "intended_scale_m": 1.0,
+                "resolution": [64, 64],
+                "source_type": "image",
+                "channels": {
+                    "base_color": {
+                        "source": "image",
+                        "path": "base.png",
+                        "color_space": "sRGB",
+                    }
+                },
+                "surface_detail_ids": ["detail.window"],
+                "surface_detail_bindings": [
+                    {
+                        "detail_id": "detail.window",
+                        "parent_object_id": "asset.body",
+                        "material_id": "mat.spatial",
+                        "uv_set": "UVMap",
+                        "uv_layout_sha256": "a" * 64,
+                        "placement": {
+                            "mode": "uv_rect",
+                            "uv_rect": [0.1, 0.1, 0.4, 0.4],
+                        },
+                        "channels": ["base_color"],
+                        "wrap": "clamp",
+                    }
+                ],
+                "procedural": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    plan = MaterialPlan(
+        job_id="material_test",
+        stage="authored",
+        materials=[
+            MaterialPlanItem(
+                material_id="mat.spatial",
+                label="Spatial",
+                texture_strategy="image",
+                mapping={
+                    "mode": "object",
+                    "uv_set": "Object",
+                    "real_world_scale_m": 1.0,
+                },
+                texture_manifest=manifest_relative,
+            )
+        ],
+    )
+    scene_spec = {
+        "job_id": "material_test",
+        "materials": [
+            {"id": "mat.spatial", "texture_manifest": manifest_relative}
+        ],
+    }
+
+    report = validate_material_contracts(plan, scene_spec, tmp_path)
+
+    assert not report.ok
+    assert any(
+        "Spatial surface details require MaterialPlan UV mapping" in check.message
+        for check in report.checks
+    )

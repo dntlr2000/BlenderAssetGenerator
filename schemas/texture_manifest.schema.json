@@ -1,5 +1,151 @@
 {
   "$defs": {
+    "SurfaceDetailBinding": {
+      "additionalProperties": false,
+      "description": "Bind one planned detail to an object, material, UV layout, and bounded placement.",
+      "properties": {
+        "detail_id": {
+          "title": "Detail Id",
+          "type": "string"
+        },
+        "parent_object_id": {
+          "title": "Parent Object Id",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "uv_set": {
+          "const": "UVMap",
+          "default": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "uv_layout_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Uv Layout Sha256",
+          "type": "string"
+        },
+        "placement": {
+          "$ref": "#/$defs/SurfaceDetailPlacement"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "strength": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "wrap": {
+          "default": "clamp",
+          "enum": [
+            "clip",
+            "clamp"
+          ],
+          "title": "Wrap",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detail_id",
+        "parent_object_id",
+        "material_id",
+        "uv_layout_sha256",
+        "placement",
+        "channels"
+      ],
+      "title": "SurfaceDetailBinding",
+      "type": "object"
+    },
+    "SurfaceDetailPlacement": {
+      "additionalProperties": false,
+      "description": "Locate one non-tiling surface detail inside a stable authored UV layout.",
+      "properties": {
+        "mode": {
+          "enum": [
+            "uv_rect",
+            "mask_image"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "uv_rect": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Rect"
+        },
+        "mask_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Path"
+        },
+        "mask_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Sha256"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "SurfaceDetailPlacement",
+      "type": "object"
+    },
     "TextureChannel": {
       "additionalProperties": false,
       "description": "Describe one image or procedural PBR channel.",
@@ -222,6 +368,13 @@
         "type": "string"
       },
       "title": "Surface Detail Ids",
+      "type": "array"
+    },
+    "surface_detail_bindings": {
+      "items": {
+        "$ref": "#/$defs/SurfaceDetailBinding"
+      },
+      "title": "Surface Detail Bindings",
       "type": "array"
     },
     "procedural": {

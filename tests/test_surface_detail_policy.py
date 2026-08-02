@@ -24,6 +24,7 @@ from codex_blender_modeler.cli import app
 from codex_blender_modeler.materials.models import MaterialPlan, MaterialPlanItem
 from codex_blender_modeler.materials.service import validate_job_material_contracts
 from codex_blender_modeler.mcp_server import get_modeling_capabilities
+from codex_blender_modeler.texturing.models import TextureManifest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -93,11 +94,17 @@ def _seed_surface_detail_job(
     return root
 
 
-def _write_authored_materials(root: Path, *, claim_detail: bool) -> None:
-    """Write one portable UVMap manifest with optional exact surface-detail coverage."""
+def _write_authored_materials(
+    root: Path,
+    *,
+    claim_detail: bool,
+    binding_policy: str = "legacy_unbound",
+    spatial_binding: bool = False,
+) -> None:
+    """Write one portable UVMap manifest with optional legacy or spatial detail evidence."""
 
     texture_root = root / "textures" / "mat.box"
-    texture_root.mkdir(parents=True)
+    texture_root.mkdir(parents=True, exist_ok=True)
     (texture_root / "base_color.png").write_bytes(b"base-color")
     (texture_root / "normal.png").write_bytes(b"normal")
     manifest = {
@@ -121,6 +128,49 @@ def _write_authored_materials(root: Path, *, claim_detail: bool) -> None:
         },
         "surface_detail_ids": ["detail.window.front"] if claim_detail else [],
     }
+    if spatial_binding:
+        manifest["surface_detail_bindings"] = [
+            {
+                "detail_id": "detail.window.front",
+                "parent_object_id": "asset.box",
+                "material_id": "mat.box",
+                "uv_set": "UVMap",
+                "uv_layout_sha256": "a" * 64,
+                "placement": {
+                    "mode": "uv_rect",
+                    "uv_rect": [0.25, 0.25, 0.75, 0.75],
+                },
+                "channels": ["base_color", "normal"],
+                "strength": 0.6,
+                "wrap": "clip",
+            }
+        ]
+        reports = root / "reports"
+        reports.mkdir(parents=True, exist_ok=True)
+        (reports / "scene_inventory.json").write_text(
+            json.dumps(
+                {
+                    "objects": [
+                        {
+                            "cbm_id": "asset.box",
+                            "uv_layers": [
+                                {
+                                    "name": "UVMap",
+                                    "coordinate_bounds": {
+                                        "min": [0.0, 0.0],
+                                        "max": [1.0, 1.0],
+                                    },
+                                    "vertex_uv_binding_fingerprint": "a" * 64,
+                                }
+                            ],
+                        }
+                    ]
+                },
+                indent=2,
+            )
+            + "\n",
+            encoding="utf-8",
+        )
     (texture_root / "texture_manifest.json").write_text(
         json.dumps(manifest, indent=2) + "\n",
         encoding="utf-8",
@@ -128,6 +178,7 @@ def _write_authored_materials(root: Path, *, claim_detail: bool) -> None:
     plan = MaterialPlan(
         job_id="surface_detail_asset",
         stage="authored",
+        surface_detail_binding_policy=binding_policy,
         materials=[
             MaterialPlanItem(
                 material_id="mat.box",
@@ -200,6 +251,10 @@ def test_surface_detail_validation_stays_pending_until_v05_then_requires_coverag
     )
     assert covered.ok
     assert covered.material_status == "validated"
+    assert any(
+        item.id.endswith(":spatial_binding") and item.status == "warning"
+        for item in covered.checks
+    )
     assert (root / "reports" / "surface_detail_validation.json").is_file()
     material_report = validate_job_material_contracts("surface_detail_asset")
     assert material_report["ok"] is True
@@ -207,6 +262,119 @@ def test_surface_detail_validation_stays_pending_until_v05_then_requires_coverag
         str(item["id"]).startswith("surface_detail:")
         for item in material_report["checks"]
     )
+
+
+def test_spatial_v1_surface_details_fail_closed_until_exactly_bound(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Require object/UV placement evidence only for newly opted-in spatial-v1 plans."""
+
+    root = _seed_surface_detail_job(tmp_path, monkeypatch)
+    _write_authored_materials(
+        root,
+        claim_detail=True,
+        binding_policy="spatial_v1",
+    )
+    unbound = validate_job_surface_details(
+        "surface_detail_asset",
+        require_materials=True,
+        write_report=False,
+    )
+    assert not unbound.ok
+    assert any(
+        item.id.endswith(":spatial_binding") and item.status == "failed"
+        for item in unbound.checks
+    )
+
+    _write_authored_materials(
+        root,
+        claim_detail=True,
+        binding_policy="spatial_v1",
+        spatial_binding=True,
+    )
+    bound = validate_job_surface_details(
+        "surface_detail_asset",
+        require_materials=True,
+        write_report=False,
+    )
+    assert bound.ok
+    assert any(
+        item.id.endswith(":spatial_binding") and item.status == "passed"
+        for item in bound.checks
+    )
+
+
+def test_spatial_v1_rejects_shared_material_for_localized_detail(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Prevent one localized atlas mark from leaking onto unrelated material users."""
+
+    root = _seed_surface_detail_job(tmp_path, monkeypatch)
+    scene_path = root / "analysis" / "scene_spec.json"
+    scene = json.loads(scene_path.read_text(encoding="utf-8"))
+    shared_user = deepcopy(scene["objects"][0])
+    shared_user["id"] = "asset.box.trim"
+    shared_user["name"] = "shared material trim"
+    scene["objects"].append(shared_user)
+    scene_path.write_text(json.dumps(scene, indent=2) + "\n", encoding="utf-8")
+    _write_authored_materials(
+        root,
+        claim_detail=True,
+        binding_policy="spatial_v1",
+        spatial_binding=True,
+    )
+
+    report = validate_job_surface_details(
+        "surface_detail_asset",
+        require_materials=True,
+        write_report=False,
+    )
+    assert not report.ok
+    assert any(
+        "shared by objects outside its parent" in item.message
+        for item in report.checks
+    )
+
+
+def test_texture_manifest_spatial_binding_rejects_unsafe_placement() -> None:
+    """Reject traversal masks, repeating wraps, and mismatched binding channels."""
+
+    payload = {
+        "schema_version": "0.5.0",
+        "material_id": "mat.box",
+        "uv_set": "UVMap",
+        "intended_scale_m": 1.0,
+        "resolution": [64, 64],
+        "source_type": "image",
+        "channels": {
+            "base_color": {
+                "source": "image",
+                "path": "base_color.png",
+                "color_space": "sRGB",
+            }
+        },
+        "surface_detail_ids": ["detail.window.front"],
+        "surface_detail_bindings": [
+            {
+                "detail_id": "detail.window.front",
+                "parent_object_id": "asset.box",
+                "material_id": "mat.box",
+                "uv_set": "UVMap",
+                "uv_layout_sha256": "a" * 64,
+                "placement": {
+                    "mode": "mask_image",
+                    "mask_path": "../mask.png",
+                    "mask_sha256": "b" * 64,
+                },
+                "channels": ["base_color"],
+                "wrap": "repeat",
+            }
+        ],
+    }
+    with pytest.raises(ValidationError):
+        TextureManifest.model_validate(payload)
 
 
 def test_surface_detail_validation_rejects_duplicate_detail_mesh(

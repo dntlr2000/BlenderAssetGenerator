@@ -79,7 +79,9 @@ geometry object로 계획해야 합니다.
 최종 authored MaterialPlan은 `image` 또는 `hybrid` 전략을 사용해야 하며, localized
 detail은 안정적인 `UVMap`을 사용해야 합니다.
 
-TextureManifest에는 실제로 포함한 ID만 기록합니다.
+TextureManifest에는 실제로 포함한 ID와 그 공간 결속을 기록합니다. 새 authoring plan의
+`surface_detail_binding_policy`는 `spatial_v1`이며, 단순 ID 목록만 있는
+`legacy_unbound` manifest는 호환 로딩만 가능하고 spatial verification을 통과하지 않습니다.
 
 ```json
 {
@@ -106,13 +108,36 @@ TextureManifest에는 실제로 포함한 ID만 기록합니다.
       "color_space": "Non-Color"
     }
   },
-  "surface_detail_ids": ["detail.window.side_rows"]
+  "surface_detail_ids": ["detail.window.side_rows"],
+  "surface_detail_bindings": [
+    {
+      "detail_id": "detail.window.side_rows",
+      "parent_object_id": "vehicle.body",
+      "material_id": "mat.vehicle.body",
+      "uv_set": "UVMap",
+      "uv_layout_sha256": "<CURRENT_ORDERED_POLYGON_CORNER_UV_SHA256>",
+      "placement": {
+        "mode": "uv_rect",
+        "uv_rect": [0.12, 0.28, 0.42, 0.54]
+      },
+      "channels": ["base_color", "roughness", "normal"],
+      "strength": 0.65,
+      "wrap": "clamp"
+    }
+  ]
 }
 ```
 
+ordered polygon-corner UV hash는 polygon/loop 순서, vertex 위치와 UV의 exact binding을
+나타냅니다. 뒤 단계에서 UV가 바뀌면 stale로 거부됩니다. `uv_rect` 대신 같은 texture
+directory 안의 exact SHA-256 mask를 사용할 수 있습니다. spatial channel은 실제 image
+channel이어야 하며, localized material은 parent 외 다른 object와 공유할 수 없습니다.
+
 ID만 적고 실제 맵에 디테일을 만들지 않는 것은 허용되지 않습니다. Host 검증은 ID,
-경로, hash, UV와 채널 계약을 확인하지만 픽셀 내용의 진실성까지 증명하지 않으므로
-swatch와 preview 검토는 계속 필요합니다.
+경로, hash, UV, node topology, sampling과 채널 계약을 확인하지만 `uv_rect`가 의미상
+올바른 면을 골랐는지까지 자동 증명하지는 않습니다. swatch와 preview 검토는 계속
+필요합니다. placement 근거가 불충분하면 전체 UV에 generic panel line이나 groove를
+반복하지 말고 clean fallback을 유지합니다.
 
 ## V0.6 QA
 
@@ -134,12 +159,14 @@ QA PDF와 material/build PDF는 `reports/surface_detail_validation.json`의 파�
 
 - `validate_surface_details`
 - `get_surface_detail_status`
+- `validate_material_fidelity`
 
 CLI 대응 명령은 다음과 같습니다.
 
 ```powershell
 uv run cbm validate-surface-details <JOB_ID>
 uv run cbm surface-detail-status <JOB_ID>
+uv run cbm validate-material-fidelity <JOB_ID>
 ```
 
 ## 호환성과 제한
@@ -153,5 +180,10 @@ uv run cbm surface-detail-status <JOB_ID>
 - 현재 local procedural provider는 레퍼런스의 창문 배치를 자동으로 복원하는 전용
   decal painter가 아닙니다. 실제 UV 배치와 이미지 맵 저작이 필요하며, 이를 수행하지
   못하면 coverage를 거짓으로 승인하지 말고 V0.5 대기 또는 명시적 omission으로 남깁니다.
+- local provider는 서로 다른 placement를 가진 여러 detail을 한 output에 합치지 않습니다.
+  각 detail을 별도 bounded output으로 만들거나 외부 authored atlas/mask를 사용해야 합니다.
+- `reports/material_fidelity_validation.json`은 검은 선, 과도한 full-field variation,
+  normal 이상, hash와 spatial ownership을 검사하는 결정론적 보조 증거입니다. 레퍼런스
+  재질 유사도 점수나 pixel-level decal placement 증명으로 해석하지 않습니다.
 - V0.7 package는 raw PBR 이미지를 보존하지만 특정 Unity/Unreal 셰이더 parity를
   주장하지 않습니다.

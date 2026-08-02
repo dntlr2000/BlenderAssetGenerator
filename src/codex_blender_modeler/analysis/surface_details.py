@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -67,6 +68,24 @@ def _manifest_path_for_item(
     return resolve_job_path(job_root, str(manifest_value), "texture_manifest")
 
 
+def _load_inventory_uv_evidence(job_root: Path) -> dict[str, list[dict]]:
+    """Index current scene-inventory UV evidence by stable semantic object ID."""
+
+    path = job_root / "reports" / "scene_inventory.json"
+    if not path.is_file():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    indexed: dict[str, list[dict]] = {}
+    for record in payload.get("objects", []):
+        if not isinstance(record, dict) or not record.get("cbm_id"):
+            continue
+        indexed.setdefault(str(record["cbm_id"]), []).append(record)
+    return indexed
+
+
 def validate_surface_detail_contract(
     plan: ModelingPlan,
     scene_spec: SceneSpec,
@@ -79,6 +98,7 @@ def validate_surface_detail_contract(
 
     from ..material_manifest import load_material_manifest
     from ..texturing.manifest import load_texture_manifest
+    from ..workspace import sha256_file
 
     checks: list[SurfaceDetailValidationCheck] = []
     if plan.job_id != scene_spec.job_id:
@@ -103,6 +123,21 @@ def validate_surface_detail_contract(
         {item.material_id: item for item in material_plan.materials}
         if material_plan is not None
         else {}
+    )
+    binding_policy = (
+        str(
+            getattr(
+                material_plan,
+                "surface_detail_binding_policy",
+                "legacy_unbound",
+            )
+        )
+        if material_plan is not None
+        else "legacy_unbound"
+    )
+    require_spatial_bindings = binding_policy == "spatial_v1"
+    inventory_by_id = (
+        _load_inventory_uv_evidence(job_root) if require_spatial_bindings else {}
     )
     textured = sum(
         detail.representation != "omit" for detail in plan.surface_details
@@ -300,6 +335,128 @@ def validate_surface_detail_contract(
                 parent_object_id=detail.parent_object_id,
                 material_id=material_id,
             )
+        binding = next(
+            (
+                item
+                for item in manifest.surface_detail_bindings
+                if item.detail_id == detail.id
+            ),
+            None,
+        )
+        if binding is None:
+            _check(
+                checks,
+                f"{detail_prefix}:spatial_binding",
+                "failed" if require_spatial_bindings else "warning",
+                "material",
+                (
+                    "Spatial-v1 material authoring requires an object- and UV-bound "
+                    "surface-detail placement"
+                    if require_spatial_bindings
+                    else "Legacy surface-detail coverage has no spatial placement evidence; "
+                    "the manifest remains readable and executable but audit-only"
+                ),
+                detail_id=detail.id,
+                parent_object_id=detail.parent_object_id,
+                material_id=material_id,
+            )
+        else:
+            binding_errors: list[str] = []
+            if binding.parent_object_id != detail.parent_object_id:
+                binding_errors.append("parent_object_id differs from ModelingPlan")
+            if binding.material_id != material_id:
+                binding_errors.append("material_id differs from ModelingPlan")
+            if set(binding.channels) != set(detail.channels):
+                binding_errors.append("channels differ from ModelingPlan")
+            material_users = sorted(
+                item.id
+                for item in scene_spec.objects
+                if item.material_id == material_id
+            )
+            if require_spatial_bindings and material_users != [detail.parent_object_id]:
+                binding_errors.append(
+                    "localized detail material is shared by objects outside its parent; "
+                    f"users={material_users}"
+                )
+            if require_spatial_bindings:
+                inventory_records = inventory_by_id.get(detail.parent_object_id, [])
+                inventory_hashes: set[str] = set()
+                unit_bounds = True
+                for record in inventory_records:
+                    layer = next(
+                        (
+                            item
+                            for item in record.get("uv_layers", [])
+                            if item.get("name") == binding.uv_set
+                        ),
+                        None,
+                    )
+                    if layer is None:
+                        unit_bounds = False
+                        continue
+                    fingerprint = layer.get("vertex_uv_binding_fingerprint")
+                    if fingerprint:
+                        inventory_hashes.add(str(fingerprint))
+                    bounds = layer.get("coordinate_bounds")
+                    if not bounds:
+                        unit_bounds = False
+                    else:
+                        values = [
+                            *bounds.get("min", []),
+                            *bounds.get("max", []),
+                        ]
+                        unit_bounds = unit_bounds and bool(
+                            len(values) == 4
+                            and all(0.0 <= float(value) <= 1.0 for value in values)
+                        )
+                if not inventory_records:
+                    binding_errors.append(
+                        "current scene inventory has no parent-object UV evidence"
+                    )
+                elif inventory_hashes != {binding.uv_layout_sha256}:
+                    binding_errors.append(
+                        "uv_layout_sha256 differs from the current parent UVMap fingerprint"
+                    )
+                elif not unit_bounds:
+                    binding_errors.append(
+                        "parent UVMap is missing or extends outside the non-repeating 0..1 tile"
+                    )
+            if binding.placement.mode == "mask_image":
+                mask_value = str(binding.placement.mask_path)
+                mask_path = (manifest_path.parent / mask_value).resolve()
+                try:
+                    mask_path.relative_to(manifest_path.parent.resolve())
+                except ValueError:
+                    binding_errors.append("mask_path escapes the texture-manifest directory")
+                else:
+                    if not mask_path.is_file():
+                        binding_errors.append("mask_path does not exist")
+                    elif sha256_file(mask_path) != binding.placement.mask_sha256:
+                        binding_errors.append("mask_path SHA-256 differs from binding")
+            if binding_errors:
+                _check(
+                    checks,
+                    f"{detail_prefix}:spatial_binding",
+                    "failed",
+                    "material",
+                    "Surface-detail spatial binding is invalid: "
+                    + "; ".join(binding_errors),
+                    detail_id=detail.id,
+                    parent_object_id=detail.parent_object_id,
+                    material_id=material_id,
+                )
+            else:
+                _check(
+                    checks,
+                    f"{detail_prefix}:spatial_binding",
+                    "passed",
+                    "material",
+                    "Surface detail is bound to its parent, material, UV layout, "
+                    "channels, bounded placement, strength, and non-repeating wrap mode",
+                    detail_id=detail.id,
+                    parent_object_id=detail.parent_object_id,
+                    material_id=material_id,
+                )
         missing_channels = sorted(set(detail.channels) - set(manifest.channels))
         if missing_channels:
             _check(
@@ -362,7 +519,14 @@ def validate_surface_detail_contract(
         failed=counts["failed"],
         checks=checks,
         notes=[
-            "Surface-detail coverage is a contract assertion, not pixel-level visual proof.",
+            (
+                "Spatial-v1 bindings authorize bounded placement contracts but do not replace "
+                "pixel-level visual QA."
+            ),
+            (
+                "Legacy unbound TextureManifests remain readable and executable with an "
+                "audit warning; new spatial-v1 authoring fails closed without exact bindings."
+            ),
             "Silhouette, structural, transparent, or gameplay-relevant parts remain geometry.",
         ],
     )

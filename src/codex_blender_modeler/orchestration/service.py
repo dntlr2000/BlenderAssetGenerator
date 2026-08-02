@@ -34,6 +34,7 @@ from ..materials import (
     create_workflow_material_candidates,
     promote_workflow_material_candidate,
     validate_job_material_contracts,
+    validate_job_material_fidelity,
 )
 from ..optimization import (
     initialize_asset_profile,
@@ -1060,6 +1061,8 @@ def _validate_authored_material_plan(
     root: Path,
     path: Path,
     request: WorkflowRequest,
+    *,
+    require_spatial_surface_details: bool = False,
 ) -> None:
     """Require authored material semantics and bounded fast-lane texture providers."""
 
@@ -1068,6 +1071,13 @@ def _validate_authored_material_plan(
     plan = MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
     if plan.stage != "authored":
         raise RuntimeError("agent completion requires material_plan stage=authored")
+    if (
+        require_spatial_surface_details
+        and plan.surface_detail_binding_policy != "spatial_v1"
+    ):
+        raise RuntimeError(
+            "new material authoring requires surface_detail_binding_policy=spatial_v1"
+        )
     modeling_plan_path = root / "analysis" / "modeling_plan.json"
     if modeling_plan_path.is_file():
         from ..analysis.models import ModelingPlan
@@ -1138,7 +1148,14 @@ def _validate_agent_completion_semantics(
             root,
             str(step.parameters["candidate_plan_path"]),
         )
-        _validate_authored_material_plan(root, candidate, request)
+        _validate_authored_material_plan(
+            root,
+            candidate,
+            request,
+            require_spatial_surface_details=bool(
+                step.parameters.get("require_spatial_surface_details", False)
+            ),
+        )
     for requirement in step.outputs:
         path = _resolve_job_path(root, requirement.path)
         if (
@@ -2735,6 +2752,11 @@ def _execute_host_tool(
         result = validate_job_material_contracts(request.job_id)
         if result.get("ok") is not True:
             raise RuntimeError("Material contract validation did not report ok=true")
+        return
+    if tool == "validate_material_fidelity":
+        result = validate_job_material_fidelity(request.job_id)
+        if result.get("ok") is not True:
+            raise RuntimeError("Material fidelity validation did not report ok=true")
         return
     if tool == "inspect_materials":
         result = inspect_job_materials(request.job_id)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import struct
 from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path, PurePosixPath, PureWindowsPath
@@ -149,7 +150,7 @@ def _uv_face_area(mesh: Any, polygon: Any, layer: Any) -> float:
 
 
 def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
-    """Summarize UV coordinates and bind each loop value to its mesh vertex position."""
+    """Summarize UVs and hash their exact ordered polygon-corner topology binding."""
 
     coordinates = [(float(loop.uv.x), float(loop.uv.y)) for loop in layer.data]
     finite = [item for item in coordinates if all(math.isfinite(value) for value in item)]
@@ -172,25 +173,50 @@ def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
         fingerprint = hashlib.sha256(
             json.dumps(stable_coordinates, separators=(",", ":")).encode("utf-8")
         ).hexdigest()
-    vertex_uv_bindings: list[tuple[float, float, float, float, float]] = []
-    for loop_index, loop in enumerate(mesh.loops):
-        vertex = mesh.vertices[int(loop.vertex_index)].co
-        uv = layer.data[loop_index].uv
-        values = (
-            float(vertex.x),
-            float(vertex.y),
-            float(vertex.z),
-            float(uv.x),
-            float(uv.y),
+    binding_digest = hashlib.sha256()
+    binding_digest.update(struct.pack(">Q", len(mesh.polygons)))
+    bound_loop_count = 0
+    for polygon_index, polygon in enumerate(mesh.polygons):
+        corner_count = 0
+        binding_digest.update(
+            struct.pack(
+                ">QQQ",
+                polygon_index,
+                int(polygon.loop_start),
+                int(polygon.loop_total),
+            )
         )
-        if all(math.isfinite(value) for value in values):
-            vertex_uv_bindings.append(tuple(round(value, 6) for value in values))
-    if len(vertex_uv_bindings) == len(mesh.loops):
-        vertex_uv_binding_fingerprint = hashlib.sha256(
-            json.dumps(
-                sorted(vertex_uv_bindings), separators=(",", ":")
-            ).encode("utf-8")
-        ).hexdigest()
+        for loop_index in polygon.loop_indices:
+            loop = mesh.loops[int(loop_index)]
+            vertex_index = int(loop.vertex_index)
+            vertex = mesh.vertices[vertex_index].co
+            uv = layer.data[int(loop_index)].uv
+            values = (
+                float(vertex.x),
+                float(vertex.y),
+                float(vertex.z),
+                float(uv.x),
+                float(uv.y),
+            )
+            if not all(math.isfinite(value) for value in values):
+                corner_count = 0
+                break
+            binding_digest.update(
+                struct.pack(
+                    ">Qddddd",
+                    vertex_index,
+                    *values,
+                )
+            )
+            corner_count += 1
+        if not corner_count:
+            break
+        bound_loop_count += corner_count
+    if (
+        bound_loop_count > 0
+        and bound_loop_count == len(mesh.loops)
+    ):
+        vertex_uv_binding_fingerprint = binding_digest.hexdigest()
     face_areas = [_uv_face_area(mesh, polygon, layer) for polygon in mesh.polygons]
     finite_face_areas = [value for value in face_areas if math.isfinite(value)]
     total_face_area = (
@@ -206,6 +232,12 @@ def _uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
         "vertex_uv_binding_fingerprint": vertex_uv_binding_fingerprint,
         "total_face_area": total_face_area,
     }
+
+
+def uv_layer_metrics(mesh: Any, layer: Any) -> dict[str, Any]:
+    """Expose the deterministic polygon-corner UV fingerprint to other inspectors."""
+
+    return _uv_layer_metrics(mesh, layer)
 
 
 def inspect_mesh_topology_data(

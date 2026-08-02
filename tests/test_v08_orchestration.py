@@ -1555,6 +1555,7 @@ def test_human_review_gates_require_a_pdf_projection(
         assert "material.promote" in step_ids
         assert scaffold["outputs"][0]["path"] != authored["outputs"][0]["path"]
         assert authored["depends_on"] == ["material.scaffold"]
+        assert authored["parameters"]["require_spatial_surface_details"] is True
     else:
         qa_run = next(item for item in plan["steps"] if item["step_id"] == "qa.run")
         assert qa_run["outputs"][0]["path"].startswith("qa/runs/")
