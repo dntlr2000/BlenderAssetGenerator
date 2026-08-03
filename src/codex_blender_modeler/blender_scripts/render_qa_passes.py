@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -22,6 +23,7 @@ from artifact_render_common import configure_artifact_render  # noqa: E402
 from codex_blender_modeler.blender_artifacts import (  # noqa: E402
     artifact_path,
     linear_to_srgb,
+    native_io_path,
     rgb_hex,
     sha256_file,
     stable_json_digest,
@@ -383,11 +385,11 @@ def _render_pass(
     output: Path,
     override: bpy.types.Material | None,
 ) -> None:
-    """Render one pass through the fixed camera with an optional material override."""
+    """Render one pass through the fixed camera using Windows-long-path-safe I/O."""
 
-    output.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output.parent), exist_ok=True)
     view_layer.material_override = override
-    scene.render.filepath = str(output)
+    scene.render.filepath = native_io_path(output)
     bpy.ops.render.render(write_still=True)
 
 

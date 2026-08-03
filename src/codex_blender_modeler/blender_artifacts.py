@@ -10,6 +10,23 @@ from typing import Any
 _SAFE_NAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
 
 
+def native_io_path(path: Path) -> str:
+    """Return an absolute filename that supports extended Windows path lengths."""
+
+    resolved = os.path.abspath(os.fspath(path.expanduser()))
+    if os.name != "nt" or resolved.startswith("\\\\?\\"):
+        return resolved
+    if resolved.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + resolved[2:]
+    return "\\\\?\\" + resolved
+
+
+def file_exists(path: Path) -> bool:
+    """Check one regular artifact through its platform-native filename."""
+
+    return os.path.isfile(native_io_path(path))
+
+
 def safe_artifact_name(value: str) -> str:
     """Convert a stable semantic ID into a portable artifact directory name."""
 
@@ -68,7 +85,7 @@ def sha256_file(path: Path) -> str:
     """Return the SHA-256 digest of one generated artifact."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -95,10 +112,8 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     """Write a JSON artifact atomically so interrupted Blender runs do not look complete."""
 
     destination = path.expanduser().resolve()
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(destination.parent), exist_ok=True)
     temporary = destination.with_name(f".{destination.name}.{os.getpid()}.tmp")
-    temporary.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-    os.replace(temporary, destination)
+    with open(native_io_path(temporary), "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
+    os.replace(native_io_path(temporary), native_io_path(destination))

@@ -20,6 +20,8 @@
 | `<WORKFLOW_ID>` | Codex가 보고한 V0.8 workflow ID | 실제 보고값 |
 | `<STEP_ID>` | V0.8 workflow가 보고한 현재 agent/review step ID | 실제 보고값 |
 | `<QA_RUN_ID>` | Codex가 보고한 V0.6 QA run ID | 실제 보고값 |
+| `<REGISTRATION_ID>` | semantic reference mask candidate의 고유 registration ID | `maskset-01` |
+| `<MANIFEST_SHA256>` | 등록할 mask candidate manifest의 정확한 SHA-256 | 실제 보고값 |
 | `<CANDIDATE_ID>` | 적용을 검토할 V0.6 후보 ID | 실제 보고값 |
 | `<CONVERGENCE_SESSION_ID>` | Codex가 보고한 optional standard V0.6 convergence session ID | 실제 보고값 |
 | `<TARGET_DIRECT_SCORE>` | 계획할 direct score 목표. 현재 점수보다 낮을 수 없음 | `0.78` |
@@ -744,6 +746,142 @@ beauty/object-ID/wireframe contact sheet가 포함된 PDF를 생성해.
 수정 후보를 자동 적용하지 말고 검토 대기 상태로 멈춰.
 ```
 
+#### 단계 6B — 선택적 semantic reference mask 등록
+
+객체별 contour·orientation 진단이 필요할 때만 사용합니다. 등록은 QA evidence를
+publish하는 절차이며 geometry 수정이나 사용자 승인을 대신하지 않습니다.
+
+먼저 candidate만 준비하고 exact hash에서 멈춥니다.
+
+```text
+<JOB_ID>의 current primary reference와 SceneSpec을 기준으로
+객체별 semantic reference mask candidate를 준비해.
+
+- registration_id: <REGISTRATION_ID>
+- observed primary/supporting semantic ID만 포함
+- candidate 경로는 analysis/masks/registrations/<REGISTRATION_ID>/manifest.json
+- 각 mask는 같은 reference 크기의 nonempty binary PNG
+- mask path는 해당 registration의 masks/ 아래만 사용
+- current primary reference와 SceneSpec SHA-256을 exact하게 결속
+
+analysis/masks/semantic_manifest.json은 직접 수정하지 마.
+candidate와 모든 mask를 strict validation한 뒤 candidate manifest의 exact SHA-256,
+포함 semantic ID, source ID, confidence, path/hash, limitation을 보고하고 등록 전 멈춰.
+```
+
+보고된 hash를 검토한 뒤 등록할 때:
+
+```text
+<JOB_ID> semantic mask registration <REGISTRATION_ID>의
+exact candidate manifest SHA-256 <MANIFEST_SHA256>을 등록해.
+
+register_semantic_reference_masks로 exact hash를 다시 확인한 뒤에만 promotion하고,
+promotion receipt와 이전 canonical history 여부를 보고해.
+이후 get_semantic_reference_mask_status를 호출해
+current|legacy_current|absent|stale|invalid 중 정확한 상태를 보고해.
+
+등록을 revision, convergence, workflow, InteriorScope, V0.7 optimization 또는
+Destination Handoff 승인으로 해석하지 마. 어떤 geometry나 material도 변경하지 마.
+```
+
+diagnostic은 등록된 canonical manifest를 그대로 참조하지 않고 exact manifest와 mask
+bytes를 attempt-owned snapshot으로 보존합니다. 나중에 새 등록을 정상 승격해도 완료된
+diagnostic은 유지되지만, attempt snapshot 자체가 바뀌면 fail-closed입니다.
+
+#### 단계 6C — 선택적 외관 camera/geometry/assembly companion
+
+canonical 직접 QA 결과에서 카메라 오차와 3D 형상·조립 오차를 구분하기 어려울 때만
+사용합니다. 이 단계는 기존 점수나 7개 pass를 바꾸는 두 번째 QA가 아닙니다.
+
+```text
+<JOB_ID>의 완료된 canonical V0.6 QA run <QA_RUN_ID>에 대해
+camera/geometry/assembly companion diagnostics를 실행해.
+
+먼저 request, VisualQAReport, 정확히 7개인 pass manifest, SceneSpec과 build
+fingerprint가 모두 current인지 hash로 확인해. current가 아니면 실행하지 마.
+
+allowlisted run_visual_diagnostics를 다음 경계로 호출해:
+- qa_run_id: <QA_RUN_ID>
+- diagnostic_id: camera-geometry-v1
+- max_camera_probes: 12
+- include_multiview_sanity: true
+- render_engine: eevee
+- render_device: auto
+
+여기서 12는 neutral baseline을 제외한 delta 수이며 baseline까지 총 13개 probe
+record다. 12개 delta는 yaw ±7.5°, pitch ±5°, projection scale 0.9/1.1,
+distance scale 0.9/1.1, target X/Y offset ±0.05다.
+
+bounded camera probe, explicit semantic-mask shape metric, current signed 3D assembly
+evidence와 가능한 경우 five-view structural sanity만 생성해.
+canonical overall_direct_score, 원래 7개 pass, camera, SceneSpec, authoring blend,
+material 계약과 approval 상태는 변경하지 마.
+
+per-part contour와 PCA orientation은 current explicit semantic reference mask가
+있는 ID에만 계산해. mask가 없으면 bbox 정밀도로 꾸며내지 말고 degraded 또는
+unscorable로 보고해. PCA는 180도 facing을 판별하지 못한다고 명시하고,
+방향성은 axis_alignment와 axis_clearance 근거를 따로 보고해.
+required_assembly_checks는 관계 ID가 아니라 position|axis|orientation|clearance 검사
+카테고리로 해석하고, 실제 관계 stable ID는 assembly_relationships에서 보존됐는지 확인해.
+
+attribution은 camera, geometry, assembly, mixed, ambiguous, unscorable 중 무엇인지와
+confidence·근거·한계를 보고해. five-view는 front/right/top/rear/oblique 구조
+증거일 뿐, 보정된 동일 각도 reference가 없으므로 similarity는 unscorable로 유지해.
+어떤 revision 후보도 승인하거나 적용하지 말고 검토 상태에서 멈춰.
+
+마지막에 terminal bundle 경로, 성공 attempt-NNN, 모든 source hash,
+기존 canonical direct score가 unchanged인지, legacy/unavailable 항목을 보고해.
+```
+
+동등한 공개 CLI는 다음과 같습니다. 일반 사용자는 위 프롬프트로 Codex/MCP 실행을
+요청할 수 있습니다.
+
+```powershell
+uv run cbm qa-diagnose <JOB_ID> `
+  --qa-run-id <QA_RUN_ID> `
+  --diagnostic-id camera-geometry-v1 `
+  --max-camera-probes 12 `
+  --assembly-multiview `
+  --render-engine eevee `
+  --render-device auto
+```
+
+terminal bundle 전에 Blender 실패가 발생한 경우에만 사용하는 재시도 프롬프트:
+
+```text
+<JOB_ID>의 QA run <QA_RUN_ID>, diagnostic camera-geometry-v1 실패를 조사해.
+root bundle_manifest.json이 아직 없고 canonical QA/SceneSpec/build source가 current이며,
+기존 attempts/attempt-NNN이 변경되지 않았는지 먼저 확인해.
+
+실패가 재시도 가능한 host/Blender 오류라면 같은 diagnostic ID를 정확히 한 번 다시
+실행해 다음 attempt-NNN을 만들고, 이전 failure evidence는 보존해.
+source drift, stale pass, mask tampering이면 재시도하지 말고 fail-closed 원인을 보고해.
+성공한 exact attempt만 terminal bundle에 결속하고 revision은 수행하지 마.
+```
+
+companion과 별개로 five-view 구조 sanity만 실행하려면 먼저 plan만 만들고 exact hash를
+검토합니다.
+
+```text
+<JOB_ID>의 current spatial_v1 ModelingPlan과 fresh authoring blend를 읽어
+qa-assembly-sanity-plan으로 <RUN_ID>의 five-view 구조 계획만 만들어.
+front, right, top, rear, oblique view와 대상 ID, source fingerprint,
+exact plan SHA-256 <PLAN_SHA256>을 보고하고 아직 렌더하지 마.
+```
+
+보고된 exact plan을 실행할 때:
+
+```text
+<JOB_ID>의 assembly sanity run <RUN_ID>을 exact plan SHA-256 <PLAN_SHA256>에
+결속해 1회 실행해. qa-assembly-sanity-run에는 반드시 --plan-sha256
+<PLAN_SHA256>을 전달하고, plan 또는 source가 달라지면 Blender를 실행하지 마.
+
+authoring blend를 저장하지 말고 view별 beauty, silhouette, object_id, wireframe과
+visibility, projection, depth-order, signed assembly evidence만 보고해.
+동일 각도의 보정 reference가 없으므로 reference_comparison_status=unscorable를
+유지하고 geometry revision이나 다른 specialized approval로 해석하지 마.
+```
+
 ### 단계 7 — V0.6 후보 승인과 1회 적용
 
 #### 7-1. 후보와 계획 SHA-256 검토
@@ -1311,6 +1449,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 5 V0.5 재질 | 승인된 geometry/camera | MaterialPlan, ShaderRecipe, TextureManifest, swatches | material JSON, swatch, material PDF | material/swatch 승인 | 6 | geometry/material hash 변경, validation 실패 |
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
+| 6B 선택적 외관 companion | completed canonical QA run, current source hashes | immutable attempts, terminal bundle, camera/shape/assembly attribution, optional five-view evidence | diagnostic JSON, attribution·limitation, structural views | revision 승인 없음; standalone five-view run은 exact plan hash 필요 | 7 또는 8 | terminal 전 retryable host 실패는 다음 attempt, source drift는 새 current QA |
 | 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback | 전후 점수·constraint·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선은 rollback, 큰 문제는 2 |
 | 7B 선택적 bounded convergence | standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF | plan envelope/hash, iteration별 전후 점수·IoU·constraint | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
 | 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실, revise_asset 권고 | `approve/revise_asset/revise_profile/cancel` | 9 또는 standard revision | profile/source/preflight 변경, QA needs_revision |
@@ -1323,6 +1462,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 - V0.4는 single-view의 보이지 않는 면과 실제 깊이를 복원된 진실로 만들지 못합니다.
 - V0.4 constraints는 residual을 평가하지만 임의의 CAD B-Rep 또는 비선형 제약을 자동 완전 해결하지 않습니다.
 - V0.6 direct score와 generated target은 사람의 미적 승인이나 metric accuracy를 대체하지 않습니다.
+- V0.6 companion attribution은 카메라·형상·조립 원인 후보를 분류하는 보조 근거입니다. explicit semantic mask가 없으면 객체별 contour/orientation은 채점하지 않으며, 보정된 측면 reference가 없는 five-view는 구조적 evidence일 뿐 similarity는 `unscorable`입니다.
 - V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다.
 - 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.

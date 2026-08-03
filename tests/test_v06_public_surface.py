@@ -232,3 +232,23 @@ def test_v06_mcp_tools_are_whitelisted() -> None:
         config = tomllib.load(handle)
     enabled = set(config["mcp_servers"]["blender_modeler"]["enabled_tools"])
     assert EXPECTED_MCP_TOOLS <= enabled
+
+
+def test_mcp_preloads_optional_vision_before_stdio_workers(monkeypatch) -> None:
+    """Prevent native OpenCV imports from first occurring after MCP workers start."""
+
+    events: list[str] = []
+    monkeypatch.setattr(
+        mcp_module,
+        "_preload_optional_vision_runtime",
+        lambda: events.append("vision"),
+    )
+    monkeypatch.setattr(
+        mcp_module.mcp,
+        "run",
+        lambda *, transport: events.append(f"mcp:{transport}"),
+    )
+
+    mcp_module.main()
+
+    assert events == ["vision", "mcp:stdio"]

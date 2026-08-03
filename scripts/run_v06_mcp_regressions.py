@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import site
+import sys
 from datetime import timedelta
 from pathlib import Path
 from time import perf_counter
@@ -35,6 +37,7 @@ async def _call(
 ) -> tuple[dict[str, Any], float]:
     """Call one stdio MCP tool and normalize its structured JSON response."""
 
+    print(f"MCP_CALL_START {name}", file=sys.stderr, flush=True)
     started = perf_counter()
     result = await session.call_tool(
         name,
@@ -64,17 +67,29 @@ async def _call(
         value = json.loads(value)
     if not isinstance(value, dict):
         raise RuntimeError(f"MCP tool {name} did not return a JSON object")
+    print(f"MCP_CALL_DONE {name} {elapsed:.3f}s", file=sys.stderr, flush=True)
     return value, round(elapsed, 3)
 
 
 async def run() -> dict[str, Any]:
-    """Exercise V0.5/V0.6 public tools through the real stdio MCP transport."""
+    """Exercise V0.5/V0.6 tools without a nested uv/venv launcher pipe leak."""
 
     repo_root = Path(__file__).resolve().parents[1]
+    server_env = dict(os.environ)
+    site_packages = next(
+        Path(value)
+        for value in site.getsitepackages()
+        if Path(value).name.casefold() == "site-packages"
+    )
+    bootstrap = (
+        "import site; "
+        f"site.addsitedir({str(site_packages)!r}); "
+        "from codex_blender_modeler.mcp_server import main; main()"
+    )
     server = StdioServerParameters(
-        command="uv",
-        args=["run", "cbm-mcp"],
-        env=dict(os.environ),
+        command=getattr(sys, "_base_executable", sys.executable),
+        args=["-c", bootstrap],
+        env=server_env,
         cwd=str(repo_root),
     )
     report: dict[str, Any] = {"schema_version": "0.6.0", "transport": "stdio"}

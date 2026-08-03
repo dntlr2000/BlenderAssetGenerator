@@ -48,6 +48,10 @@ from ..optimization.provenance import collect_source_provenance
 from ..packaging import package_asset, validate_asset_package
 from ..packaging.material_conversion import convert_portable_materials
 from ..qa import run_job_visual_qa
+from ..qa.diagnostic_service import (
+    run_job_visual_diagnostics,
+    validate_qa_diagnostic_bundle,
+)
 from ..reference_scope import (
     normalize_reference_content_scope,
     reference_content_scope_from_metadata,
@@ -1008,6 +1012,7 @@ def _verify_dependency_sources(
 
 
 def _validate_known_json_contract(
+    root: Path,
     requirement: ArtifactRequirement,
     payload: dict[str, Any],
 ) -> None:
@@ -1038,6 +1043,13 @@ def _validate_known_json_contract(
         from ..materials.models import MaterialPromotionReceipt
 
         MaterialPromotionReceipt.model_validate(payload)
+    elif requirement.artifact_id == "qa.diagnostics.bundle":
+        from ..qa.diagnostic_service import validate_qa_diagnostic_bundle
+
+        validate_qa_diagnostic_bundle(
+            root,
+            _resolve_job_path(root, requirement.path),
+        )
     elif (
         requirement.artifact_id == "background.delivery_eligibility"
         and relative_path.endswith("_quality.json")
@@ -1296,7 +1308,7 @@ def _inspect_artifact(
                 payload = json.loads(path.read_text(encoding="utf-8"))
                 valid = isinstance(payload, dict)
                 if valid:
-                    _validate_known_json_contract(requirement, payload)
+                    _validate_known_json_contract(root, requirement, payload)
             except (OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError):
                 valid = False
         if valid and requirement.acceptance == "json_ok":
@@ -1541,6 +1553,38 @@ def _matching_succeeded_attempt(
             and attempt.plan_sha256 == plan_sha256
             and attempt.input_fingerprint == input_fingerprint
             and attempt.output_fingerprint == output_fingerprint
+        ):
+            return attempt
+    return None
+
+
+def _matching_interrupted_attempt(
+    workflow_root: Path,
+    step: WorkflowStep,
+    *,
+    workflow_id: str,
+    job_id: str,
+    plan_sha256: str,
+    input_fingerprint: str,
+) -> WorkflowAttempt | None:
+    """Find an exact recovered interruption that may authorize terminal adoption."""
+
+    attempt_root = workflow_root / "attempts" / step.step_id
+    if not attempt_root.is_dir():
+        return None
+    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+        try:
+            attempt = _load_model(path, WorkflowAttempt)
+        except (OSError, ValueError):
+            continue
+        if (
+            attempt.status == "failed"
+            and attempt.error_type == "InterruptedAttempt"
+            and attempt.workflow_id == workflow_id
+            and attempt.job_id == job_id
+            and attempt.step_id == step.step_id
+            and attempt.plan_sha256 == plan_sha256
+            and attempt.input_fingerprint == input_fingerprint
         ):
             return attempt
     return None
@@ -2803,6 +2847,62 @@ def _execute_host_tool(
                 str(step.parameters["run_id"])
                 if "run_id" in step.parameters
                 else None
+            ),
+        )
+        return
+    if tool == "run_visual_diagnostics":
+        qa_run_id = str(step.parameters["qa_run_id"])
+        diagnostic_id = str(step.parameters["diagnostic_id"])
+        terminal_bundle = (
+            root
+            / "qa"
+            / "runs"
+            / qa_run_id
+            / "diagnostics"
+            / diagnostic_id
+            / "bundle_manifest.json"
+        )
+        if terminal_bundle.is_file():
+            # A published terminal bundle is reusable only when this exact step and
+            # input have a recovered interruption proving the prior host call died
+            # after publication but before its success receipt was finalized.
+            plan_path = workflow_root / "plan.json"
+            interrupted_attempt = _matching_interrupted_attempt(
+                workflow_root,
+                step,
+                workflow_id=request.workflow_id,
+                job_id=request.job_id,
+                plan_sha256=sha256_file(plan_path),
+                input_fingerprint=input_fingerprint,
+            )
+            if interrupted_attempt is None:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: existing QA diagnostic bundle "
+                    "has no exact recovered InterruptedAttempt receipt for this "
+                    "workflow step, plan, and input fingerprint"
+                )
+            try:
+                bundle, _diagnostic_request, _diagnostic_report = (
+                    validate_qa_diagnostic_bundle(root, terminal_bundle)
+                )
+            except (OSError, ValueError) as exc:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: existing QA diagnostic bundle "
+                    "cannot be adopted because its exact evidence is stale or invalid"
+                ) from exc
+            if bundle.qa_run_id != qa_run_id or bundle.diagnostic_id != diagnostic_id:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: existing QA diagnostic bundle "
+                    "does not match the planned identity"
+                )
+            return
+        run_job_visual_diagnostics(
+            request.job_id,
+            qa_run_id,
+            diagnostic_id=diagnostic_id,
+            max_camera_probes=int(step.parameters.get("max_camera_probes", 12)),
+            include_multiview_sanity=bool(
+                step.parameters.get("include_multiview_sanity", True)
             ),
         )
         return

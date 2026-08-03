@@ -1,5 +1,28 @@
 {
   "$defs": {
+    "AssemblyDistance": {
+      "additionalProperties": false,
+      "description": "Define one nonnegative meter or reference-relative assembly gap.",
+      "properties": {
+        "mode": {
+          "default": "relative",
+          "enum": [
+            "relative",
+            "meters"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "AssemblyDistance",
+      "type": "object"
+    },
     "AssemblyFrame": {
       "additionalProperties": false,
       "description": "Describe the intrinsic 3D axes used to judge one assembled asset.",
@@ -108,6 +131,265 @@
         }
       },
       "title": "AssemblyTolerance",
+      "type": "object"
+    },
+    "AxisAlignmentRelationship": {
+      "additionalProperties": false,
+      "description": "Require one evaluated local subject axis to follow a declared 3D direction.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "axis_alignment",
+          "default": "axis_alignment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "subject_axis": {
+          "enum": [
+            "+X",
+            "-X",
+            "+Y",
+            "-Y",
+            "+Z",
+            "-Z"
+          ],
+          "title": "Subject Axis",
+          "type": "string"
+        },
+        "target_direction": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target Direction",
+          "type": "array"
+        },
+        "target_space": {
+          "default": "reference_local",
+          "enum": [
+            "reference_local",
+            "assembly_frame"
+          ],
+          "title": "Target Space",
+          "type": "string"
+        },
+        "directionality": {
+          "default": "directed",
+          "enum": [
+            "directed",
+            "undirected"
+          ],
+          "title": "Directionality",
+          "type": "string"
+        },
+        "angular_tolerance_deg": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 90,
+          "title": "Angular Tolerance Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "subject_axis",
+        "target_direction"
+      ],
+      "title": "AxisAlignmentRelationship",
+      "type": "object"
+    },
+    "AxisClearanceRelationship": {
+      "additionalProperties": false,
+      "description": "Require an axis-directed broad-phase gap between two evaluated bounds.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "axis_clearance",
+          "default": "axis_clearance",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "direction": {
+          "description": "POSITIVE measures reference.min-subject.max; NEGATIVE measures subject.min-reference.max on the declared assembly-frame axis.",
+          "enum": [
+            "POSITIVE",
+            "NEGATIVE"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "minimum_gap": {
+          "$ref": "#/$defs/AssemblyDistance"
+        },
+        "maximum_gap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssemblyDistance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_transverse_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Transverse Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "direction"
+      ],
+      "title": "AxisClearanceRelationship",
       "type": "object"
     },
     "BBoxContainmentRelationship": {
@@ -599,6 +881,19 @@
           ],
           "title": "Assembly Role",
           "type": "string"
+        },
+        "required_assembly_checks": {
+          "items": {
+            "enum": [
+              "position",
+              "axis",
+              "orientation",
+              "clearance"
+            ],
+            "type": "string"
+          },
+          "title": "Required Assembly Checks",
+          "type": "array"
         },
         "notes": {
           "items": {
@@ -1172,6 +1467,8 @@
       "items": {
         "discriminator": {
           "mapping": {
+            "axis_alignment": "#/$defs/AxisAlignmentRelationship",
+            "axis_clearance": "#/$defs/AxisClearanceRelationship",
             "bbox_containment": "#/$defs/BBoxContainmentRelationship",
             "bilateral_pair": "#/$defs/BilateralPairRelationship",
             "center_plane": "#/$defs/CenterPlaneRelationship",
@@ -1199,6 +1496,12 @@
           },
           {
             "$ref": "#/$defs/BilateralPairRelationship"
+          },
+          {
+            "$ref": "#/$defs/AxisAlignmentRelationship"
+          },
+          {
+            "$ref": "#/$defs/AxisClearanceRelationship"
           }
         ]
       },

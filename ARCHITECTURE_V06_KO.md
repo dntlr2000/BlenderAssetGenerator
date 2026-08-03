@@ -128,6 +128,138 @@ ortho scale, 해상도도 SceneSpec과 비교하므로 SceneSpec이나 payload�
 
 생성 target 비교는 edge IoU, 8×8 색상 블록, RGB histogram으로 별도 finding만 만듭니다. 이 finding은 `generated_target`만 근거로 가지며 suggestion이 없고, 직접 점수와 revision candidate 수를 바꾸지 않습니다.
 
+## 비정규 companion diagnostics
+
+canonical `VisualQAReport 0.6.0`과 정확히 7개 패스는 그대로 유지하고, 새 V0.8
+workflow는 `qa.run` 뒤에 별도의 `qa.diagnostics` host step을 계획합니다. 기본
+diagnostic ID는 `camera-geometry-v1`이며 request, report, bundle은 selected QA run
+아래의 immutable 디렉터리에 놓입니다. legacy workflow에는 이 단계가 없어도 계속
+읽을 수 있고, 새 계획이 과거 workflow를 소급 수정하지 않습니다.
+
+### Semantic reference-mask registry
+
+새 explicit semantic mask는 `analysis/masks/registrations/<registration-id>/manifest.json`과
+그 registration의 `masks/` 아래에서만 후보로 작성됩니다. Host registration은 caller가
+제공한 candidate SHA-256, current SceneSpec과 primary-reference hash, observed semantic
+evidence, 이미지 크기, nonempty binary PNG를 검증합니다. 성공하면 candidate bytes를
+`analysis/masks/semantic_manifest.json`으로 원자 승격하고, 이전 manifest를
+`history/qa_semantic_masks/<sha256>.json`에 보존하며 registration-owned
+`promotion_receipt.json`을 발행합니다.
+
+공개 표면은 CLI `qa-semantic-masks-register`, `qa-semantic-masks-status`와 MCP
+`register_semantic_reference_masks`, `get_semantic_reference_mask_status`입니다. read-only
+상태는 `current|legacy_current|absent|stale|invalid`를 구분합니다. receipt 없는 과거 valid
+manifest는 `legacy_current`, 존재하지만 source가 stale/invalid이면 fail-closed입니다.
+등록은 evidence publication이고 어떤 approval도 만들거나 소비하지 않습니다.
+
+```text
+qa/runs/<qa-run-id>/diagnostics/<diagnostic-id>/
+├─ bundle_manifest.json                 # terminal success binding
+└─ attempts/
+   ├─ attempt-001/
+   │  ├─ request.json
+   │  ├─ report.json
+   │  ├─ role_map.json
+   │  ├─ camera_probes/{plan.json,render_manifest.json,renders/}
+   │  └─ semantic_masks/{source_manifest.json,source/,rendered/}
+   └─ attempt-NNN/
+```
+
+attempt는 실행 전에 번호가 부여되는 immutable evidence입니다. 실패한 attempt를
+수정하지 않고, 명시적 재호출만 다음 번호를 만듭니다. terminal bundle은 성공한
+attempt와 canonical QA source를 모두 다시 hash 검증한 뒤 한 번만 발행됩니다. 이미
+bundle이 있는 diagnostic ID는 재실행할 수 없습니다. 따라서 예상된 renderer 재시도와
+source tampering을 구분하면서 실패 기록도 보존합니다.
+등록된 manifest와 source masks는 attempt-owned byte snapshots로 복사되어 request/bundle에
+결속됩니다. 이후 canonical registry의 정상 승격은 완료 attempt를 stale로 만들지 않지만,
+attempt snapshot 변조는 terminal replay에서 거부됩니다.
+
+```text
+canonical VisualQARequest / VisualQAReport / seven-pass manifest
+  → exact source hash verification
+  → bounded camera probe plan
+  → optional exact primary-subject silhouette score
+  → explicit semantic-mask shape metrics
+  → current deterministic assembly evidence
+  → optional five-view structural sanity
+  → advisory attribution + hash-bound bundle
+```
+
+### Bounded camera attribution
+
+probe는 neutral baseline과 제한된 yaw, pitch, target, distance, projection-scale 변화만
+렌더합니다. probe pass는 primary/supporting object만 격리한 silhouette과 object ID이며
+authoring `.blend`를 저장하지 않습니다. 기존 observed bbox aggregate는
+`overall_score`로 남고, exact subject mask가 있을 때만
+`primary_silhouette_score`를 추가합니다.
+
+기본 한도 12는 nonbaseline delta 수입니다. neutral baseline을 포함하면 13개 record이며,
+12개 delta는 yaw ±7.5°, pitch ±5°, projection scale 0.9/1.1, distance scale 0.9/1.1,
+target X/Y offset ±0.05입니다.
+
+subject mask 출처는 두 가지뿐입니다.
+
+- `primary_object_only`: selected canonical VisualQARequest의 exact reference mask
+- 다른 scope: current explicit semantic-reference manifest에서 primary/supporting mask만
+  결합한 run-owned union
+
+mask path, SHA-256과 source kind는 probe plan과 diagnostic request에 결속합니다.
+렌더 전후와 bundle publish 전에 다시 hash를 확인합니다. exact mask가 없고 semantic
+registry 상태가 `absent`인 full-reference 작업만 기존 bbox-only scoring으로 돌아가며,
+bbox polygon이나 content bbox로 mask를 합성하지
+않습니다. broad primary silhouette gain은 bbox가 안정적이어도 camera signal의
+consensus 근거가 될 수 있지만 attribution은 advisory일 뿐 카메라 변경 권한이
+아닙니다. 잔여 semantic 오차와 assembly failure가 함께 있으면 `mixed`로 보존합니다.
+
+attribution은 bounded probe gain, scorable semantic consensus, explicit mask residual,
+required assembly failure를 종합해 `camera`, `geometry`, `assembly`, `mixed`,
+`ambiguous`, `unscorable` 중 하나를 기록합니다. 이것은 원인 분류를 돕는 companion
+evidence이며 canonical V0.6 acceptance나 수정 권한이 아닙니다.
+
+### Semantic shape metrics
+
+객체별 지표는 reference/rendered binary mask의 exact hash pair에만 계산합니다.
+
+| 지표 | 의미 |
+|---|---|
+| `mask_iou` | 겹침/합집합 비율 |
+| `centroid_error_norm` | 영상 대각선으로 정규화한 중심 오차 |
+| `area_ratio` | rendered/reference 전경 면적 비율 |
+| `boundary_f_score` | 허용 pixel 거리 안의 양방향 경계 정합 |
+| `symmetric_contour_distance_norm` | 대칭 평균 contour 거리의 정규화 값 |
+| `undirected_axis_error_deg` | PCA 주축의 0~90도 무방향 오차 |
+
+빈 mask, 거의 원형인 silhouette 또는 explicit semantic mask 부재는 limitation과 함께
+degraded/unscorable입니다. PCA 축은 부호가 없으므로 180도 반전을 판별하지 못합니다.
+방향성은 asset-local signed longitudinal/lateral/vertical frame과 3D
+`axis_alignment` 관계로 검증합니다. 이 관계는 subject의 `+X/-X`, `+Y/-Y`,
+`+Z/-Z` 축을 `reference_local` 또는 `assembly_frame`의 target direction과 비교하고,
+directed/undirected 정책과 각도 허용치를 기록합니다. 떨어진 부품의 축 방향 gap은
+`axis_clearance`의 `POSITIVE`/`NEGATIVE` 방향, 최소·선택적 최대 간격과 횡방향 overlap로
+검사하며 facing 판정에는 사용하지 않습니다. 객체가 선언한 `required_assembly_checks`는 관계 ID 목록이 아니라
+`position`, `axis`, `orientation`, `clearance` 검사 카테고리 목록입니다. 실제 관계의
+stable ID는 `assembly_relationships`에 보존하며, 필수 카테고리에 대응하는 required relationship이
+없으면 authored ModelingPlan 또는 구조 validation을 fail-closed 처리합니다.
+`orientation`은 같은 축을 반복한 하나의 조건이 아니라 비교 가능한 두 개의 독립된
+directed axis 관계를 요구합니다.
+
+### Five-view structural sanity
+
+`qa/assembly_sanity/runs/<run-id>/`은 `front`, `right`, `top`, `rear`, `oblique`
+temporary orthographic view를 생성합니다. 각 view는 beauty, silhouette, object ID,
+wireframe과 signed assembly-axis projection/depth-order evidence를 담고 source
+`.blend`를 저장하지 않습니다. 결과의 `reference_comparison_status`는 항상
+`unscorable`입니다.
+이는 동일 각도의 reference가 없는 구조 sanity이지 Visual QA 유사도 점수가 아닙니다.
+
+공개 CLI는 `qa-assembly-sanity-plan`, `qa-assembly-sanity-run`이며 allowlisted MCP는
+`plan_assembly_multiview_sanity`, `run_assembly_multiview_sanity`입니다. bounded camera
+companion도 `qa-diagnose <job-id> --qa-run-id <qa-run-id>` CLI와
+`run_visual_diagnostics` MCP로 공개됩니다. `qa-assembly-sanity-run`은 plan 단계가
+보고한 exact `--plan-sha256`을 필수로 받아 실행 전후에 다시 확인합니다. 어떤
+companion도 revision, convergence, InteriorScope, interior camera plan, V0.7
+optimization 또는 Destination Handoff 승인을 대체하지 않습니다.
+
 ## 선택적 실내 다각도 QA
 
 외관 QA와 별도로 `interior_qa/` host service와 두 개의 whitelisted Blender script가 승인된 InteriorScope 안의 정적 실내만 검사합니다.

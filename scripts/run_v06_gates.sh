@@ -45,6 +45,9 @@ uv run cbm bake-materials geometry_showcase --profile gltf_pbr \
   --resolution 128 --material-id mat.blue
 uv run cbm analyze-reference geometry_showcase
 uv run cbm visual-qa geometry_showcase
+QA_RUN_ID="$(uv run python -c "import json, os, pathlib; print(json.loads((pathlib.Path(os.environ['CBM_WORKSPACE_ROOT']) / 'geometry_showcase/qa/latest.json').read_text(encoding='utf-8'))['run_id'])")"
+uv run cbm qa-diagnose geometry_showcase --qa-run-id "$QA_RUN_ID"
+uv run cbm qa-semantic-masks-status geometry_showcase
 uv run cbm report-pdf geometry_showcase --scope material
 uv run cbm report-pdf geometry_showcase --scope qa --qa-run-id latest
 uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
@@ -55,6 +58,8 @@ uv run python scripts/run_advisory_target_smoke.py
 
 if [[ "$SKIP_V06_MCP" -eq 0 ]]; then
   uv run python scripts/run_v06_mcp_regressions.py
+  QA_RUN_ID="$(uv run python -c "import json, os, pathlib; print(json.loads((pathlib.Path(os.environ['CBM_WORKSPACE_ROOT']) / 'geometry_showcase/qa/latest.json').read_text(encoding='utf-8'))['run_id'])")"
+  uv run cbm qa-diagnose geometry_showcase --qa-run-id "$QA_RUN_ID"
   # Rebind the combined PDF to the exact latest QA run created by the MCP smoke.
   uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
   uv run python scripts/verify_v06_artifacts.py

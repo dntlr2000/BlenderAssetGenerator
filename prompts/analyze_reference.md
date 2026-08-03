@@ -29,6 +29,14 @@ Requirements:
   `bbox_containment`, and `surface_contact` relationships as supported by evidence. Examples such
   as triggers, levers, handles, or wheels illustrate functional parts; never infer assembly policy
   from an object name alone.
+- For elongated or directional attached parts, declare signed 3D `axis_alignment` relations and
+  `axis_clearance` where an axial gap matters. When full facing must be constrained, use two
+  feasible directed-axis relations with distinct subject axes, a common target space, the same
+  reference object for `reference_local`, and approximately orthogonal target directions within
+  their summed angular tolerances. A 2D silhouette/PCA axis cannot prove a 180-degree direction.
+- Every attached object must list its mandatory check categories (`position`, `axis`,
+  `orientation`, or `clearance`) in `required_assembly_checks` so missing supporting relations fail
+  closed.
 - Use `side_specific` only when an orthogonal/multiview/blueprint source or an explicit
   user-authored requirement establishes a side. Seeing a part in one side or oblique image is not
   hidden-depth side evidence. Bind observed/measured relationships to exact source IDs; otherwise
@@ -58,7 +66,8 @@ Requirements:
 - Use camera-solution fields as a scaffold, not an unquestionable solution.
 - Keep hidden-side reconstruction assumptions explicit.
 - Preserve the ModelingPlan assembly frame, relationship IDs, subject/reference IDs, evidence,
-  and confidence in SceneSpec authoring. Satisfy those relations in the declared parent-local
-  frame rather than optimizing only the reference-camera projection.
+  confidence, and each object's `required_assembly_checks` in SceneSpec authoring. Satisfy
+  `axis_alignment`, `axis_clearance`, and the other relations in the declared parent-local frame
+  rather than optimizing only the reference-camera projection.
 
 The caller appends job-specific paths and metadata.

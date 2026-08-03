@@ -1881,6 +1881,185 @@ def _append_interior_qa_section(
         )
 
 
+def _append_qa_companion_section(
+    story: list[Any],
+    documents: dict[str, dict[str, Any]],
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Append advisory camera, geometry, and assembly evidence after canonical QA scores."""
+
+    story.append(
+        _paragraph(
+            "The canonical V0.6 direct score shown above is unchanged. "
+            "Companion diagnostics are advisory evidence and do not recalculate or "
+            "replace that score.",
+            styles["body"],
+        )
+    )
+    report = documents.get("qa_diagnostic_report")
+    bundle = documents.get("qa_diagnostic_bundle")
+    if report is None or bundle is None:
+        story.append(_paragraph("Camera / Geometry / Assembly Companion", styles["h2"]))
+        story.append(
+            _paragraph(
+                "Companion diagnostics are unavailable for this legacy or incomplete QA run.",
+                styles["body"],
+            )
+        )
+        return
+
+    attribution = report.get("attribution") or {}
+    assembly = report.get("assembly_evidence") or {}
+    multiview_binding = bundle.get("assembly_multiview") or {}
+    multiview_report = documents.get("assembly_sanity_report") or {}
+    story.append(_paragraph("Camera / Geometry / Assembly Companion", styles["h2"]))
+    story.append(
+        _metric_table(
+            [
+                ("Diagnostic status", report.get("status", "unavailable")),
+                ("Attribution", attribution.get("classification", "unavailable")),
+                ("Confidence", attribution.get("confidence", "-")),
+                ("Camera gain", attribution.get("camera_gain", "-")),
+                (
+                    "Primary silhouette gain",
+                    attribution.get("primary_silhouette_gain", "unavailable"),
+                ),
+                (
+                    "Shape residual IDs",
+                    _bounded_table_value(
+                        attribution.get("semantic_shape_residual_ids", [])
+                    ),
+                ),
+                (
+                    "Orientation residual IDs",
+                    _bounded_table_value(
+                        attribution.get("semantic_orientation_residual_ids", [])
+                    ),
+                ),
+                (
+                    "Assembly failure IDs",
+                    _bounded_table_value(attribution.get("assembly_failure_ids", [])),
+                ),
+            ],
+            styles,
+        )
+    )
+    story.append(
+        _paragraph(
+            "Attribution distinguishes bounded camera evidence from residual semantic "
+            "shape and deterministic assembly evidence. It does not authorize a revision.",
+            styles["small"],
+        )
+    )
+
+    semantic_rows = []
+    for metric in report.get("semantic_metrics", []):
+        if not isinstance(metric, dict):
+            continue
+        semantic_rows.append(
+            [
+                metric.get("semantic_id", "-"),
+                metric.get("role", "unscoped"),
+                metric.get("status", "-"),
+                metric.get("mask_iou", "-"),
+                metric.get("centroid_error_norm", "-"),
+                metric.get("area_ratio", "-"),
+                metric.get("boundary_f_score", "-"),
+                metric.get("symmetric_contour_distance_norm", "-"),
+                (
+                    metric.get("undirected_axis_error_deg", "-")
+                    if metric.get("oriented_axis_scorable")
+                    else "unscorable"
+                ),
+            ]
+        )
+    story.append(_paragraph("Semantic mask shape metrics", styles["h2"]))
+    if semantic_rows:
+        story.append(
+            _data_table(
+                [
+                    "Semantic ID",
+                    "Role",
+                    "Status",
+                    "IoU",
+                    "Centroid",
+                    "Area ratio",
+                    "Boundary F",
+                    "Contour dist.",
+                    "Axis error",
+                ],
+                semantic_rows,
+                [30 * mm, 19 * mm, 17 * mm, 15 * mm, 18 * mm, 19 * mm, 19 * mm, 20 * mm, 17 * mm],
+                styles,
+            )
+        )
+    else:
+        story.append(
+            _paragraph(
+                "No explicit evidence-backed per-semantic masks were available; semantic "
+                "shape evidence is unscorable rather than inferred from a bounding box.",
+                styles["body"],
+            )
+        )
+
+    story.append(_paragraph("Assembly and multi-view structural evidence", styles["h2"]))
+    story.append(
+        _data_table(
+            ["Evidence", "Status", "Reference comparison", "Details"],
+            [
+                [
+                    "Assembly contract",
+                    assembly.get("status", "not_available"),
+                    "not applicable",
+                    _bounded_table_value(assembly.get("required_failure_ids", [])),
+                ],
+                [
+                    "Assembly multi-view",
+                    multiview_report.get(
+                        "structural_status",
+                        multiview_binding.get("status", "not_requested"),
+                    ),
+                    multiview_report.get(
+                        "reference_comparison_status",
+                        multiview_binding.get("reference_comparison_status", "unavailable"),
+                    ),
+                    (
+                        "Semantic visibility: "
+                        + _bounded_table_value(
+                            multiview_report.get("semantic_visibility_fraction")
+                        )
+                    ),
+                ],
+            ],
+            [41 * mm, 29 * mm, 43 * mm, 61 * mm],
+            styles,
+        )
+    )
+    limitations = [
+        *report.get("limitations", []),
+        *assembly.get("limitations", []),
+        *multiview_report.get("limitations", []),
+    ]
+    limitations = list(dict.fromkeys(str(item) for item in limitations if item))
+    if limitations:
+        story.append(_paragraph("Companion limitations", styles["h2"]))
+        story.append(
+            _data_table(
+                ["Limitation"],
+                [[_bounded_table_value(item)] for item in limitations],
+                [174 * mm],
+                styles,
+            )
+        )
+    story.append(
+        _paragraph(
+            "This PDF section is derived from exact JSON evidence. Every bundle-bound machine "
+            "JSON artifact, including probe and assembly plans/manifests, remains authoritative.",
+            styles["small"],
+        )
+    )
+
+
 def _append_qa_section(
     story: list[Any],
     documents: dict[str, dict[str, Any]],
@@ -1907,6 +2086,7 @@ def _append_qa_section(
             styles,
         )
     )
+    _append_qa_companion_section(story, documents, styles)
     surface_detail = report.get("surface_detail_summary")
     if isinstance(surface_detail, dict):
         story.append(_paragraph("표면 디테일 전달 상태", styles["h2"]))

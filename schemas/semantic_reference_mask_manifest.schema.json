@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "SemanticReferenceMaskRecord": {
+      "additionalProperties": false,
+      "description": "Bind one evidence-backed semantic reference mask to its exact source identity.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 192,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "source_id",
+        "path",
+        "sha256",
+        "confidence"
+      ],
+      "title": "SemanticReferenceMaskRecord",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind reusable semantic masks to one exact reference and canonical SceneSpec.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_version": {
+      "const": "semantic_reference_masks_v1",
+      "default": "semantic_reference_masks_v1",
+      "title": "Manifest Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "reference_path": {
+      "title": "Reference Path",
+      "type": "string"
+    },
+    "reference_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Sha256",
+      "type": "string"
+    },
+    "scene_spec_path": {
+      "default": "analysis/scene_spec.json",
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "masks": {
+      "items": {
+        "$ref": "#/$defs/SemanticReferenceMaskRecord"
+      },
+      "minItems": 1,
+      "title": "Masks",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "reference_path",
+    "reference_sha256",
+    "scene_spec_sha256",
+    "masks",
+    "generated_at"
+  ],
+  "title": "SemanticReferenceMaskManifest",
+  "type": "object"
+}

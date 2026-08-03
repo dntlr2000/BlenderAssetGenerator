@@ -98,11 +98,26 @@ from codex_blender_modeler.packaging.models import (
     RoundTripValidation,
     TexturePackManifest,
 )
+from codex_blender_modeler.qa.diagnostic_models import (
+    QADiagnosticBundleManifest,
+    QADiagnosticReport,
+    QADiagnosticRequest,
+    SemanticReferenceMaskManifest,
+)
 from codex_blender_modeler.qa.models import (
     QATargetManifest,
     RenderPassManifest,
     VisualQAReport,
     VisualQARequest,
+)
+from codex_blender_modeler.qa.multiview_sanity import (
+    AssemblySanityPlan,
+    AssemblySanityRenderManifest,
+    AssemblySanityReport,
+)
+from codex_blender_modeler.qa.semantic_mask_registry_models import (
+    SemanticReferenceMaskPromotionReceipt,
+    SemanticReferenceMaskRegistryStatus,
 )
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
@@ -139,6 +154,19 @@ SCHEMAS = {
     "render_pass_manifest.schema.json": RenderPassManifest,
     "visual_qa_request.schema.json": VisualQARequest,
     "visual_qa_report.schema.json": VisualQAReport,
+    "semantic_reference_mask_manifest.schema.json": SemanticReferenceMaskManifest,
+    "semantic_reference_mask_promotion_receipt.schema.json": (
+        SemanticReferenceMaskPromotionReceipt
+    ),
+    "semantic_reference_mask_registry_status.schema.json": (
+        SemanticReferenceMaskRegistryStatus
+    ),
+    "qa_diagnostic_request.schema.json": QADiagnosticRequest,
+    "qa_diagnostic_report.schema.json": QADiagnosticReport,
+    "qa_diagnostic_bundle.schema.json": QADiagnosticBundleManifest,
+    "assembly_sanity_plan.schema.json": AssemblySanityPlan,
+    "assembly_sanity_render_manifest.schema.json": AssemblySanityRenderManifest,
+    "assembly_sanity_report.schema.json": AssemblySanityReport,
     "qa_target_manifest.schema.json": QATargetManifest,
     "revision_candidates.schema.json": RevisionCandidates,
     "revision_approval.schema.json": RevisionApproval,

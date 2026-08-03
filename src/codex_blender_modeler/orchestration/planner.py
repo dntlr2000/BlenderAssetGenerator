@@ -108,6 +108,18 @@ def _assembly_consistency_instructions() -> list[str]:
             "from an object name alone."
         ),
         (
+            "For elongated or directional attached parts, add signed 3D axis_alignment "
+            "relations and axis_clearance where separation along an assembly axis matters. "
+            "Use two feasible non-collinear directed axis relations when a full facing "
+            "orientation must be constrained; a 2D silhouette axis cannot prove 180-degree "
+            "facing."
+        ),
+        (
+            "Every attached object must list its mandatory check categories in "
+            "required_assembly_checks (`position`, `axis`, `orientation`, or `clearance`) "
+            "so a missing supporting relation fails closed instead of silently disappearing."
+        ),
+        (
             "Use side_specific placement only when an orthogonal/multiview/blueprint source or "
             "an explicit user-authored requirement establishes that side. Visibility in one "
             "side or oblique image is not hidden-depth side evidence; otherwise a bilateral "
@@ -138,7 +150,8 @@ def _scene_assembly_instructions() -> list[str]:
         (
             "Satisfy each spatial_v1 relationship in the declared parent-local frame, "
             "including center_plane, coaxial, bbox_containment, surface_contact, and evidenced "
-            "side_specific placement."
+            "side_specific placement, plus signed axis_alignment and axis_clearance when "
+            "declared. Preserve every object's required_assembly_checks membership."
         ),
         (
             "Never copy a reference-image screen-space offset into an unobserved SceneSpec "
@@ -791,7 +804,7 @@ def _append_qa_flow(
     run_id: str | None = None,
     append_report: bool = True,
 ) -> str:
-    """Append direct QA, optionally deferring its PDF until quality classification."""
+    """Append canonical QA plus additive diagnostics before report/review delivery."""
 
     run_parameters: dict[str, str | int | float | bool] = {
         "include_generated_target": False,
@@ -799,18 +812,70 @@ def _append_qa_flow(
     }
     if run_id is not None:
         run_parameters["run_id"] = run_id
-        qa_output = _artifact(
-            "qa.run.evidence",
-            f"qa/runs/{run_id}",
-            acceptance="nonempty_directory",
-            lifecycle="immutable_run",
-        )
+        run_parameters["diagnostic_policy"] = "camera_geometry_v1"
+        qa_outputs = [
+            _artifact(
+                "qa.run.request",
+                f"qa/runs/{run_id}/request.json",
+                acceptance="valid_json",
+                lifecycle="immutable_run",
+            ),
+            _artifact(
+                "qa.run.reference_mask",
+                f"qa/runs/{run_id}/reference_mask.png",
+                acceptance="exists",
+                lifecycle="immutable_run",
+            ),
+            _artifact(
+                "qa.run.reference_mask_manifest",
+                f"qa/runs/{run_id}/reference_mask_manifest.json",
+                acceptance="valid_json",
+                lifecycle="immutable_run",
+            ),
+            _artifact(
+                "qa.run.render_pass_manifest",
+                f"qa/runs/{run_id}/render_pass_manifest.json",
+                acceptance="valid_json",
+                lifecycle="immutable_run",
+            ),
+            _artifact(
+                "qa.run.visual_report",
+                f"qa/runs/{run_id}/visual_qa_report.json",
+                acceptance="valid_json",
+                lifecycle="immutable_run",
+            ),
+            _artifact(
+                "qa.run.revision_candidates",
+                f"qa/runs/{run_id}/revision_candidates.json",
+                acceptance="valid_json",
+                lifecycle="immutable_run",
+            ),
+            *[
+                _artifact(
+                    f"qa.run.pass.{kind}",
+                    f"qa/runs/{run_id}/passes/{kind}.png",
+                    acceptance="exists",
+                    lifecycle="immutable_run",
+                )
+                for kind in (
+                    "beauty",
+                    "silhouette",
+                    "object_id",
+                    "material_id",
+                    "normal",
+                    "depth",
+                    "wireframe",
+                )
+            ],
+        ]
     else:
-        qa_output = _artifact(
-            "qa.latest",
-            "qa/latest.json",
-            acceptance="valid_json",
-        )
+        qa_outputs = [
+            _artifact(
+                "qa.latest",
+                "qa/latest.json",
+                acceptance="valid_json",
+            )
+        ]
     steps.extend(
         [
             _step(
@@ -820,16 +885,51 @@ def _append_qa_flow(
                 "host",
                 tool="run_visual_qa",
                 depends_on=[dependency],
-                outputs=[qa_output],
+                outputs=qa_outputs,
                 parameters=run_parameters,
             ),
         ]
     )
+    qa_dependency = "qa.run"
+    if run_id is not None:
+        diagnostic_id = "camera-geometry-v1"
+        diagnostic_root = f"qa/runs/{run_id}/diagnostics/{diagnostic_id}"
+        steps.append(
+            _step(
+                "qa.diagnostics",
+                "Run bounded camera, semantic-shape, and assembly diagnostics",
+                "qa",
+                "host",
+                tool="run_visual_diagnostics",
+                depends_on=["qa.run"],
+                outputs=[
+                    _artifact(
+                        "qa.diagnostics.bundle",
+                        f"{diagnostic_root}/bundle_manifest.json",
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    )
+                ],
+                parameters={
+                    "qa_run_id": run_id,
+                    "diagnostic_id": diagnostic_id,
+                    "max_camera_probes": 12,
+                    "include_multiview_sanity": True,
+                    "require_new_output": True,
+                },
+                instructions=[
+                    "This companion evidence never changes the canonical V0.6 score.",
+                    "Camera attribution and multi-view sanity are advisory and cannot "
+                    "authorize geometry changes.",
+                ],
+            )
+        )
+        qa_dependency = "qa.diagnostics"
     if not append_report:
-        return "qa.run"
+        return qa_dependency
     report = _append_pdf_report(
         steps,
-        "qa.run",
+        qa_dependency,
         "qa",
         "qa",
         parameters={"qa_run_id": run_id or "latest"},

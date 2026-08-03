@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "RegisteredSemanticMaskArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one registered semantic mask to its exact immutable file bytes.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 192,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "source_id",
+        "path",
+        "sha256"
+      ],
+      "title": "RegisteredSemanticMaskArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Journal one exact candidate manifest promoted as current QA evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "registration_version": {
+      "const": "semantic_reference_mask_registration_v1",
+      "default": "semantic_reference_mask_registration_v1",
+      "title": "Registration Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "promoted",
+      "default": "promoted",
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "const": true,
+      "default": true,
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "registration_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Registration Id",
+      "type": "string"
+    },
+    "candidate_manifest_path": {
+      "title": "Candidate Manifest Path",
+      "type": "string"
+    },
+    "candidate_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Manifest Sha256",
+      "type": "string"
+    },
+    "canonical_manifest_path": {
+      "const": "analysis/masks/semantic_manifest.json",
+      "default": "analysis/masks/semantic_manifest.json",
+      "title": "Canonical Manifest Path",
+      "type": "string"
+    },
+    "canonical_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Manifest Sha256",
+      "type": "string"
+    },
+    "previous_canonical_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Canonical Sha256"
+    },
+    "history_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "History Path"
+    },
+    "scene_spec_path": {
+      "const": "analysis/scene_spec.json",
+      "default": "analysis/scene_spec.json",
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "reference_path": {
+      "title": "Reference Path",
+      "type": "string"
+    },
+    "reference_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Sha256",
+      "type": "string"
+    },
+    "masks": {
+      "items": {
+        "$ref": "#/$defs/RegisteredSemanticMaskArtifact"
+      },
+      "minItems": 1,
+      "title": "Masks",
+      "type": "array"
+    },
+    "promoted_at": {
+      "format": "date-time",
+      "title": "Promoted At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "registration_id",
+    "candidate_manifest_path",
+    "candidate_manifest_sha256",
+    "canonical_manifest_sha256",
+    "scene_spec_sha256",
+    "reference_path",
+    "reference_sha256",
+    "masks",
+    "promoted_at"
+  ],
+  "title": "SemanticReferenceMaskPromotionReceipt",
+  "type": "object"
+}

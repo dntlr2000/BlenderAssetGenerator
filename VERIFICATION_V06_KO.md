@@ -204,3 +204,65 @@ service fixture에서 검증했습니다.
 - 이번 실제 Blender terminal smoke는 eligible 후보가 없는 안전 종료를 검증했습니다.
   Blender가 실제 형상을 수정하는 accepted iteration은 deterministic host service와
   rollback fixture로 검증했으며 별도 사용자 자산에는 실행하지 않았습니다.
+
+## 2026-08-03 Camera/Shape/Assembly companion host 검증
+
+canonical V0.6 직접 비교를 변경하지 않는 별도 camera/shape/assembly companion과
+5-view 구조 sanity 경로를 host 수준에서 검증했습니다. 이 검증은 새 companion의
+Python 계약과 공개 표면을 확인한 것이며, 기존 `first_reference_test`나 다른 사용자
+workspace를 변경하지 않았습니다.
+
+| 검증 | 결과 |
+|---|---|
+| companion·Schema·PDF 집중 회귀 | 197개 통과, 3개 skip |
+| 전체 Python 회귀 | 791개 통과, 3개 skip |
+| Ruff | 전체 저장소 통과 |
+| Schema parity | 전체 회귀 안에서 통과 |
+| canonical QA 불변 | `overall_direct_score`와 정확히 7개 pass가 companion 전후 동일 |
+| semantic mask registry | 19개 집중 회귀에서 exact candidate promotion, receipt/history, status, snapshot tampering 거부 통과 |
+| mask 결속 | exact path/hash/source 검증과 stale 거부, later-promotion snapshot 안정성 통과 |
+| fallback | explicit primary mask 부재 시 bbox-only, fabricated mask 없음 |
+| CLI | `qa-semantic-masks-register/status`, `qa-diagnose`, `qa-assembly-sanity-plan`, exact `qa-assembly-sanity-run --plan-sha256` 구현 확인 |
+| MCP | semantic mask 2개와 diagnostic/assembly 3개 도구의 구현·allowlist·공개 표면 회귀 통과 |
+| attempt lifecycle | 실패 attempt 보존, 다음 `attempt-NNN` 재시도, terminal bundle 1회 발행 검증 |
+| Blender camera probe | Blender 5.0.1에서 12개 delta와 neutral baseline, 총 13개 record/26개 pass image 생성 |
+| Blender assembly sanity | Blender 5.0.1에서 5개 view와 4개 pass, 총 20개 image 생성; reference comparison은 `unscorable` 유지 |
+
+bounded camera probe는 exact primary-subject mask가 있을 때 별도의 silhouette IoU를
+기록하며, bbox가 안정적인 각도 fixture에서도 그 개선량을 advisory camera attribution
+근거로 사용할 수 있음을 확인했습니다. exact mask가 없으면 기존 observed bbox 집계만
+사용합니다. 객체별 mask IoU, normalized centroid error, area ratio, boundary F-score,
+symmetric contour distance와 PCA undirected axis는 explicit semantic mask 쌍에만
+계산됩니다.
+
+PCA는 180도 반전을 판별하지 않습니다. 방향성 fixture는 signed 3D assembly frame의
+`axis_alignment`로 검사했고, 축 방향 간격은 `axis_clearance`로 검증했습니다.
+`required_assembly_checks`는 관계 ID가 아니라 `position|axis|orientation|clearance`
+검사 카테고리이며, 실제 관계 stable ID는 `assembly_relationships`에 보존합니다. five-view 계획은 `front`, `right`,
+`top`, `rear`, `oblique`와 각 view의 beauty, silhouette, object ID, wireframe 계약을
+고정하며, reference similarity는 의도적으로 `unscorable`입니다.
+
+companion 실행 결과는 `camera`, `geometry`, `assembly`, `mixed`, `ambiguous`,
+`unscorable` attribution으로 원인 후보를 구분합니다. request/report/probe/mask는
+`diagnostics/<diagnostic-id>/attempts/attempt-NNN/`에 보존되고, canonical source와
+선택된 성공 attempt를 재검증한 뒤에만 root `bundle_manifest.json`이 발행됩니다.
+합성 실패 뒤 같은 diagnostic ID를 명시적으로 재호출하는 fixture는 이전 실패 hash를
+유지한 채 다음 attempt로 성공했으며, terminal bundle 이후 재실행은 거부됐습니다.
+
+five-view standalone run은 계획의 exact SHA-256이 일치하지 않거나 실행 중 계획이
+변하면 Blender 전후에 fail-closed 처리했습니다. 보정된 측면 reference가 없는 이
+경로는 구조적 visibility/projection/depth-order 증거만 제공하고 reference 유사도는
+계속 `unscorable`입니다.
+
+새 V0.8 workflow만 companion 단계를 계획합니다. legacy workflow의 companion 부재는
+경고 또는 unavailable 상태이며 실패나 소급 완료로 바뀌지 않습니다. companion은
+guarded revision, bounded convergence, InteriorScope, interior-QA camera plan, V0.7
+optimization 또는 Destination Handoff 승인을 생성하거나 소비하지 않습니다.
+
+새 camera probe는 격리된 `geometry_showcase` QA run에서 실제 Blender 5.0.1로
+12개 비기준 delta와 neutral baseline을 렌더했습니다. explicit semantic mask가 없는
+fixture이므로 최종 attribution은 정직하게 `unscorable`이었고 canonical direct score는
+변하지 않았습니다. 별도 격리된 spatial-v1 fixture에서는 5개 구조 시점의 20개 pass를
+실제 렌더했고, authoring `.blend` hash와 SceneSpec을 변경하지 않은 채
+`reference_comparison_status=unscorable`로 종료했습니다. 이 결과는 companion 실기동
+검증이며, 보정된 멀티뷰 reference가 없는 대상의 3D 정답이나 유사도 합격을 의미하지 않습니다.

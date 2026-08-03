@@ -85,7 +85,15 @@ from .orchestration import (
 from .orchestration.models import WorkflowBudgets
 from .packaging import package_asset, validate_asset_package
 from .packaging.material_conversion import convert_portable_materials
-from .qa import ExistingFileQATargetProvider, run_job_visual_qa
+from .qa import (
+    ExistingFileQATargetProvider,
+    get_job_semantic_reference_mask_status,
+    plan_job_assembly_multiview_sanity,
+    register_job_semantic_reference_masks,
+    run_job_assembly_multiview_sanity,
+    run_job_visual_diagnostics,
+    run_job_visual_qa,
+)
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan, sha256_file
 from .stabilization import (
@@ -1271,6 +1279,115 @@ def interior_scope_validate(job_id: str) -> None:
     report = validate_job_interior_scope(job_id, write_report=True)
     console.print_json(report.model_dump_json())
     if not report.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("qa-assembly-sanity-plan")
+def qa_assembly_sanity_plan(
+    job_id: str,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    resolution: Annotated[int, typer.Option("--resolution", min=128, max=1024)] = 384,
+) -> None:
+    """Plan a noncanonical five-view assembly diagnostic without bypassing approvals."""
+
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = plan_job_assembly_multiview_sanity(
+        job_id,
+        run_id=run_id,
+        resolution=resolution,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-semantic-masks-register")
+def qa_semantic_masks_register(
+    job_id: str,
+    registration_id: Annotated[str, typer.Option("--registration-id")],
+    manifest_sha256: Annotated[str, typer.Option("--manifest-sha256")],
+) -> None:
+    """Promote one exact job-owned semantic-mask candidate after strict validation."""
+
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    receipt = register_job_semantic_reference_masks(
+        job_id,
+        registration_id,
+        manifest_sha256=manifest_sha256,
+    )
+    console.print_json(receipt.model_dump_json())
+
+
+@app.command("qa-semantic-masks-status")
+def qa_semantic_masks_status(job_id: str) -> None:
+    """Inspect current semantic-mask evidence without repairing or rewriting it."""
+
+    status = get_job_semantic_reference_mask_status(job_id)
+    console.print_json(status.model_dump_json())
+
+
+@app.command("qa-diagnose")
+def qa_diagnose(
+    job_id: str,
+    qa_run_id: Annotated[str, typer.Option("--qa-run-id")],
+    diagnostic_id: Annotated[
+        str, typer.Option("--diagnostic-id")
+    ] = "camera-geometry-v1",
+    max_camera_probes: Annotated[
+        int,
+        typer.Option(
+            "--max-camera-probes",
+            min=1,
+            max=12,
+            help="Maximum non-baseline deltas; a neutral baseline is rendered separately.",
+        ),
+    ] = 12,
+    include_multiview_sanity: Annotated[
+        bool,
+        typer.Option("--assembly-multiview/--no-assembly-multiview"),
+    ] = True,
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+) -> None:
+    """Run advisory camera, part-shape, and optional assembly diagnostics."""
+
+    _validate_render_options(render_engine, render_device)
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = run_job_visual_diagnostics(
+        job_id,
+        qa_run_id,
+        diagnostic_id=diagnostic_id,
+        max_camera_probes=max_camera_probes,
+        include_multiview_sanity=include_multiview_sanity,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("qa-assembly-sanity-run")
+def qa_assembly_sanity_run(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
+    render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+) -> None:
+    """Run structural views without replacing V0.6, interior, or revision approvals."""
+
+    _validate_render_options(render_engine, render_device)
+    if not load_feature_config().features.visual_qa:
+        raise typer.BadParameter("visual_qa is disabled in cbm.toml")
+    result = run_job_assembly_multiview_sanity(
+        job_id,
+        run_id,
+        plan_sha256=plan_sha256,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+    if result.get("status") == "failed":
         raise typer.Exit(code=2)
 
 

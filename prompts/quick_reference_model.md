@@ -9,7 +9,12 @@ The user supplied an image and a short modeling request. Follow repository defau
    Use `assembly_consistency_policy=spatial_v1`, one asset-local assembly frame, explicit assembly
    roles, and parent-local relationships for attached structural or functional parts. For
    manufactured or bilateral assets, declare center-plane, coaxial, containment, and contact
-   intent where applicable. A side-specific relationship needs an orthogonal/multiview/blueprint
+   intent where applicable. Add signed `axis_alignment`, `axis_clearance`, and each attached
+   object's check-category `required_assembly_checks` when part direction or axial spacing matters.
+   When full facing must be constrained, use two feasible directed-axis relations with distinct
+   subject axes, one target space, the same reference for `reference_local`, and approximately
+   orthogonal target directions within their summed angular tolerances; a 2D PCA axis does not
+   distinguish a 180-degree reversal. A side-specific relationship needs an orthogonal/multiview/blueprint
    source or explicit user-authored requirement; visibility in one side/oblique image is not
    hidden-depth side evidence. Otherwise use an inferred center-plane/coaxial intent and never copy
    a 2D screen offset into an unseen lateral/depth coordinate.
@@ -17,7 +22,8 @@ The user supplied an image and a short modeling request. Follow repository defau
    Before authoring, classify small surface-attached marks in the ModelingPlan. Keep shallow,
    non-structural details out of SceneSpec geometry and route them to V0.5 texture channels or a
    baked decal; keep silhouette, structural, transparent, and gameplay parts as geometry.
-   Preserve every assembly relationship ID and satisfy it in the declared parent-local frame.
+   Preserve every assembly relationship ID and required-check membership, and satisfy them in the
+   declared parent-local frame.
 6. Build, render, inspect, and validate through MCP.
 7. Do not texture or export unless requested.
 8. Return the preview path, object families, assumptions, and uncertainties.

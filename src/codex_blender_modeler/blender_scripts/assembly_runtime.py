@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -197,6 +198,31 @@ def evaluated_bounds_in_frame(
     return bounds_from_points(points)
 
 
+def evaluated_basis_in_frame(
+    obj: bpy.types.Object,
+    world_to_frame: Matrix,
+    depsgraph: bpy.types.Depsgraph,
+) -> list[list[float]]:
+    """Return normalized evaluated local X/Y/Z axes in the assembly frame."""
+
+    evaluated = obj.evaluated_get(depsgraph)
+    _translation, rotation, _scale = evaluated.matrix_world.decompose()
+    world_rotation = rotation.to_matrix()
+    frame_rotation = world_to_frame.to_3x3()
+    result: list[list[float]] = []
+    for local_axis in (
+        Vector((1.0, 0.0, 0.0)),
+        Vector((0.0, 1.0, 0.0)),
+        Vector((0.0, 0.0, 1.0)),
+    ):
+        direction = frame_rotation @ (world_rotation @ local_axis)
+        if direction.length <= 1.0e-12:
+            raise ValueError("Evaluated object orientation contains a zero axis")
+        direction.normalize()
+        result.append([float(value) for value in direction])
+    return result
+
+
 def _center(bounds: dict[str, list[float]]) -> list[float]:
     """Return the center of one min/max bounds record."""
 
@@ -262,6 +288,11 @@ def _relationship_operands(
                 "family_bounds requires exactly one concrete reference instance for "
                 "assembly-frame evaluation"
             )
+        if str(relation.get("kind")) == "axis_alignment" and len(subjects) != 1:
+            return [], (
+                "axis_alignment family_bounds requires exactly one concrete subject "
+                "instance"
+            )
         return [(subjects, references, peers)], None
     if policy == "broadcast_reference":
         if len(references) != 1:
@@ -317,6 +348,76 @@ def _axis_residual(
     return abs(difference_m) / max(reference_extent_m, 1.0e-12), value, mode
 
 
+def _normalize_direction(values: list[float] | tuple[float, ...]) -> list[float]:
+    """Normalize one finite nonzero raw direction without Blender vector dependency."""
+
+    if len(values) != 3 or not all(math.isfinite(float(value)) for value in values):
+        raise ValueError("Assembly direction must contain three finite values")
+    magnitude = math.sqrt(sum(float(value) ** 2 for value in values))
+    if magnitude <= 1.0e-12:
+        raise ValueError("Assembly direction must be nonzero")
+    return [float(value) / magnitude for value in values]
+
+
+def _basis_direction(
+    basis: list[list[float]],
+    values: list[float] | tuple[float, ...],
+) -> list[float]:
+    """Resolve local vector components through one evaluated object basis."""
+
+    if len(basis) != 3 or any(len(axis) != 3 for axis in basis):
+        raise ValueError("Evaluated assembly basis must contain three 3D axes")
+    local = _normalize_direction(values)
+    return _normalize_direction(
+        [
+            sum(local[axis] * float(basis[axis][component]) for axis in range(3))
+            for component in range(3)
+        ]
+    )
+
+
+def _signed_basis_axis(basis: list[list[float]], signed_axis: str) -> list[float]:
+    """Select one signed local axis from an evaluated assembly-frame basis."""
+
+    if len(signed_axis) != 2 or signed_axis[0] not in {"+", "-"}:
+        raise ValueError(f"Unsupported signed assembly axis: {signed_axis!r}")
+    axis_name = signed_axis[1]
+    if axis_name not in _AXIS:
+        raise ValueError(f"Unsupported signed assembly axis: {signed_axis!r}")
+    if len(basis) != 3 or any(len(axis) != 3 for axis in basis):
+        raise ValueError("Evaluated assembly basis must contain three 3D axes")
+    sign = 1.0 if signed_axis[0] == "+" else -1.0
+    return _normalize_direction(
+        [sign * float(value) for value in basis[_AXIS[axis_name]]]
+    )
+
+
+def _angular_error_deg(
+    subject_direction: list[float],
+    target_direction: list[float],
+    *,
+    undirected: bool,
+) -> float:
+    """Return one robust directed or axis-equivalent angular error in degrees."""
+
+    subject = _normalize_direction(subject_direction)
+    target = _normalize_direction(target_direction)
+    dot = sum(subject[index] * target[index] for index in range(3))
+    if undirected:
+        dot = abs(dot)
+    return math.degrees(math.acos(max(-1.0, min(1.0, dot))))
+
+
+def _clearance_value(value_m: float, reference_extent_m: float, mode: str) -> float:
+    """Express one signed axis gap in meters or normalized reference extent."""
+
+    if mode == "meters":
+        return value_m
+    if mode != "relative":
+        raise ValueError(f"Unsupported assembly clearance mode: {mode!r}")
+    return value_m / max(reference_extent_m, 1.0e-12)
+
+
 def _transverse_overlap_metrics(
     subject: dict[str, list[float]],
     reference: dict[str, list[float]],
@@ -357,8 +458,11 @@ def _evaluate_bounds_relation(
     subject: dict[str, list[float]],
     reference: dict[str, list[float]],
     peer: dict[str, list[float]] | None,
+    *,
+    subject_basis: list[list[float]] | None = None,
+    reference_basis: list[list[float]] | None = None,
 ) -> tuple[float, float, str, dict[str, Any]]:
-    """Evaluate one raw relationship from common assembly-frame meter bounds."""
+    """Evaluate one raw relationship from assembly-frame bounds and object bases."""
 
     kind = str(relation.get("kind"))
     tolerance = relation.get("tolerance", {})
@@ -483,6 +587,115 @@ def _evaluate_bounds_relation(
                 )
             )
         return max(value[0] for value in values), values[0][1], values[0][2], metrics
+    if kind == "axis_alignment":
+        if subject_basis is None:
+            raise ValueError("Subject evaluated orientation basis is unavailable")
+        subject_direction = _signed_basis_axis(
+            subject_basis,
+            str(relation["subject_axis"]),
+        )
+        target_values = relation.get("target_direction")
+        if not isinstance(target_values, (list, tuple)):
+            raise ValueError("Axis-alignment target_direction must be a 3D array")
+        target_space = str(relation.get("target_space", "reference_local"))
+        if target_space == "reference_local":
+            if reference_basis is None:
+                raise ValueError("Reference evaluated orientation basis is unavailable")
+            target_direction = _basis_direction(reference_basis, target_values)
+        elif target_space == "assembly_frame":
+            target_direction = _normalize_direction(target_values)
+        else:
+            raise ValueError(f"Unsupported axis-alignment target_space: {target_space!r}")
+        directionality = str(relation.get("directionality", "directed"))
+        if directionality not in {"directed", "undirected"}:
+            raise ValueError(
+                f"Unsupported axis-alignment directionality: {directionality!r}"
+            )
+        residual = _angular_error_deg(
+            subject_direction,
+            target_direction,
+            undirected=directionality == "undirected",
+        )
+        allowed = float(relation.get("angular_tolerance_deg", 5.0))
+        if not math.isfinite(allowed) or not 0.0 < allowed <= 90.0:
+            raise ValueError("Axis-alignment angular_tolerance_deg must be in (0, 90]")
+        metrics.update(
+            {
+                "evaluation_basis": "evaluated_object_axes_in_assembly_frame",
+                "subject_axis": str(relation["subject_axis"]),
+                "subject_direction_assembly_frame": [
+                    round(value, 9) for value in subject_direction
+                ],
+                "target_direction_assembly_frame": [
+                    round(value, 9) for value in target_direction
+                ],
+                "target_space": target_space,
+                "directionality": directionality,
+                "angular_error_deg": round(residual, 9),
+            }
+        )
+        return residual, allowed, "degrees", metrics
+    if kind == "axis_clearance":
+        axis_name = str(relation["axis"])
+        axis = _AXIS[axis_name]
+        direction = str(relation["direction"])
+        if direction == "POSITIVE":
+            gap_m = float(reference["min"][axis]) - float(subject["max"][axis])
+        elif direction == "NEGATIVE":
+            gap_m = float(subject["min"][axis]) - float(reference["max"][axis])
+        else:
+            raise ValueError(f"Unsupported axis-clearance direction: {direction!r}")
+        minimum_gap = relation.get("minimum_gap", {})
+        maximum_gap = relation.get("maximum_gap")
+        if not isinstance(minimum_gap, dict):
+            raise ValueError("Axis-clearance minimum_gap must be an object")
+        if maximum_gap is not None and not isinstance(maximum_gap, dict):
+            raise ValueError("Axis-clearance maximum_gap must be an object or null")
+        mode = str(minimum_gap.get("mode", "relative"))
+        if str(tolerance.get("mode", "relative")) != mode:
+            raise ValueError("Axis-clearance tolerance and gap modes must match")
+        if maximum_gap is not None and str(
+            maximum_gap.get("mode", "relative")
+        ) != mode:
+            raise ValueError("Axis-clearance minimum and maximum gap modes must match")
+        gap = _clearance_value(gap_m, reference_dimensions[axis], mode)
+        minimum = float(minimum_gap.get("value", 0.0))
+        maximum = float(maximum_gap["value"]) if maximum_gap is not None else None
+        allowed = float(tolerance.get("value", 0.05))
+        if not all(
+            math.isfinite(value)
+            for value in (gap, minimum, allowed, *(() if maximum is None else (maximum,)))
+        ):
+            raise ValueError("Axis-clearance values must be finite")
+        if minimum < 0.0:
+            raise ValueError("Axis-clearance minimum gap must be nonnegative")
+        if allowed <= 0.0:
+            raise ValueError("Axis-clearance tolerance must be positive")
+        if maximum is not None and maximum < minimum:
+            raise ValueError("Axis-clearance maximum gap cannot be smaller than minimum")
+        residual = max(
+            minimum - gap,
+            (gap - maximum) if maximum is not None else 0.0,
+            0.0,
+        )
+        overlap_ok, overlap_metrics = _transverse_overlap_metrics(
+            subject,
+            reference,
+            axis,
+            float(relation.get("min_transverse_overlap_ratio", 0.05)),
+        )
+        metrics.update(overlap_metrics)
+        metrics.update(
+            {
+                "signed_axis_gap_m": round(gap_m, 9),
+                "evaluated_gap": round(gap, 9),
+                "minimum_gap": minimum,
+                "maximum_gap": maximum,
+                "clearance_direction": direction,
+                "transverse_overlap_ok": overlap_ok,
+            }
+        )
+        return residual, allowed, mode, metrics
     raise ValueError(f"Unsupported assembly relationship kind: {kind!r}")
 
 
@@ -618,11 +831,31 @@ def evaluate_assembly_relationships(
                     if peers
                     else None
                 )
+                subject_basis = None
+                reference_basis = None
+                if str(relation.get("kind")) == "axis_alignment":
+                    if len(subjects) != 1 or len(reference_objects) != 1:
+                        raise ValueError(
+                            "Axis alignment requires one concrete subject and reference "
+                            "per evaluated check"
+                        )
+                    subject_basis = evaluated_basis_in_frame(
+                        subjects[0],
+                        world_to_frame,
+                        depsgraph,
+                    )
+                    reference_basis = evaluated_basis_in_frame(
+                        reference_objects[0],
+                        world_to_frame,
+                        depsgraph,
+                    )
                 residual, tolerance, mode, metrics = _evaluate_bounds_relation(
                     relation,
                     subject_bounds,
                     reference_bounds,
                     peer_bounds,
+                    subject_basis=subject_basis,
+                    reference_basis=reference_basis,
                 )
                 passed = residual <= tolerance + 1.0e-12 and bool(
                     metrics.get("transverse_overlap_ok", True)
@@ -641,7 +874,7 @@ def evaluate_assembly_relationships(
                         "message": (
                             f"{relation.get('kind')} residual={residual:.6g} "
                             f"tolerance={tolerance:.6g} ({mode}); measured from "
-                            "evaluated bbox corners in the assembly root meter frame."
+                            f"{metrics.get('evaluation_basis', metrics['bbox_basis'])}."
                         ),
                         "metrics": metrics,
                     }
@@ -686,7 +919,14 @@ def evaluate_assembly_relationships(
                 "translation-and-rotation-only orthonormal meter frame, not "
                 "transform.location."
             ),
-            "BBox contact/containment is deterministic broad evidence, not triangle/BVH proof.",
+            (
+                "BBox contact/containment/clearance is deterministic broad evidence, "
+                "not triangle/BVH or swept-motion proof."
+            ),
+            (
+                "Axis alignment uses evaluated object rotation bases after removal of "
+                "translation and scale."
+            ),
             (
                 "Hidden-side inferred relationships remain authored consistency "
                 "assumptions, not recovered truth."

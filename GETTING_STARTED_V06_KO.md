@@ -155,6 +155,152 @@ qa/latest.json
 
 직접 비교는 reference content mask, silhouette, object ID, SceneSpec의 observed evidence bbox를 사용합니다. beauty render나 생성 이미지에 형상 판정을 맡기지 않습니다.
 
+### 6A. 선택적 카메라·형상·조립 companion evidence
+
+`visual-qa` 명령은 계속 canonical V0.6 직접 비교와 정확히 7개 패스만 만듭니다.
+새로 생성되는 V0.8 workflow에서는 그 다음 host 단계인 `qa.diagnostics`가
+`camera-geometry-v1` companion을 생성할 수 있습니다. companion은 direct score를
+바꾸지 않으며 카메라나 SceneSpec 변경을 승인하지 않습니다.
+
+객체별 mask 지표가 필요하면 먼저 새 evidence를 registration-owned candidate로 작성하고
+exact SHA-256으로 등록합니다. 새 manifest를 canonical 경로에 직접 쓰지 않습니다.
+
+```text
+analysis/masks/registrations/<registration-id>/
+├─ manifest.json
+├─ masks/<semantic-id>.png
+└─ promotion_receipt.json
+
+analysis/masks/semantic_manifest.json
+history/qa_semantic_masks/<previous-manifest-sha256>.json
+```
+
+```powershell
+uv run cbm qa-semantic-masks-register <job-id> `
+  --registration-id <registration-id> `
+  --manifest-sha256 <exact-candidate-manifest-sha256>
+uv run cbm qa-semantic-masks-status <job-id>
+```
+
+Codex/MCP에서는 `register_semantic_reference_masks`와
+`get_semantic_reference_mask_status`가 같은 역할을 합니다. 등록기는 current SceneSpec과
+primary reference hash, observed semantic evidence, 같은 크기의 nonempty binary PNG를
+strict validation하고 candidate bytes를 그대로 승격합니다. 상태는 `current`,
+`legacy_current`, `absent`, `stale`, `invalid`입니다. 등록은 QA evidence publication이며
+revision, convergence, workflow, InteriorScope, V0.7 또는 handoff 승인이 아닙니다.
+
+```text
+qa/runs/<qa-run-id>/diagnostics/camera-geometry-v1/
+├─ bundle_manifest.json                 # 성공 뒤 한 번만 발행되는 terminal binding
+└─ attempts/
+   ├─ attempt-001/
+   │  ├─ request.json
+   │  ├─ report.json
+   │  ├─ role_map.json
+   │  ├─ camera_probes/
+   │  │  ├─ plan.json
+   │  │  ├─ render_manifest.json
+   │  │  └─ renders/
+   │  └─ semantic_masks/
+   │     ├─ source_manifest.json
+   │     ├─ source/
+   │     └─ rendered/
+   └─ attempt-002/                      # 실패 뒤 명시적 재시도 예
+```
+
+성공 전에 Blender 또는 source freshness 검사에서 실패한 attempt는 삭제하거나
+덮어쓰지 않습니다. 같은 diagnostic ID를 명시적으로 다시 실행하면 다음 번호의
+`attempt-NNN`을 만들고, 성공할 때만 root `bundle_manifest.json`이 정확한 request,
+report, probe plan/manifest와 optional five-view evidence hash를 가리킵니다. terminal
+bundle이 이미 있으면 같은 diagnostic ID를 재사용하지 않습니다.
+attempt의 semantic manifest와 mask는 exact run-owned snapshot입니다. 이후 정상적인 새
+canonical mask 승격은 과거 diagnostic을 stale로 만들지 않지만 snapshot 자체가 바뀌면
+bundle 검증은 fail-closed 처리됩니다.
+
+카메라 probe의 subject silhouette은 다음 근거만 허용합니다.
+
+1. `primary_object_only` job의 canonical VisualQARequest reference mask
+2. 명시적으로 작성되고 current hash가 확인된 primary/supporting semantic mask union
+
+둘 다 없고 semantic registry 상태가 `absent`인 full-reference 작업이면 observed semantic
+bbox 점수만 사용합니다. receipt 없는 과거 valid manifest는 `legacy_current`로 읽지만,
+present `stale`/`invalid` evidence 또는 missing/stale `primary_object_only` canonical request
+mask는 fail-closed입니다. bbox를 채워 silhouette로 간주하지 않습니다. exact mask가
+있으면 probe별 primary silhouette IoU도 기록하므로
+화면 bbox가 비슷하지만 각도가 다른 경우를 보조적으로 구분할 수 있습니다.
+
+명시적 객체 mask 쌍이 있을 때 report는 다음을 기록합니다.
+
+- mask IoU
+- normalized centroid error
+- area ratio
+- boundary F-score
+- normalized symmetric contour distance
+- PCA 기반 undirected axis와 0~90도 axis error
+
+객체 mask가 없으면 이 항목은 degraded 또는 unscorable입니다. PCA 축은 180도
+방향을 판별하지 못하므로 총기 부품이나 기계 부속의 실제 facing은 signed 3D
+assembly frame과 directed `axis_alignment`에서 확인합니다. `axis_clearance`는
+`POSITIVE`/`NEGATIVE` 축 간격과 횡방향 overlap을 확인하며 facing 판정이 아닙니다.
+객체별 `required_assembly_checks`는 관계 ID가 아니라
+`position|axis|orientation|clearance` 검사 카테고리 목록이고, 실제 관계 stable ID는
+`assembly_relationships`에 보존합니다. orientation이
+필수라면 독립된 두 directed axis 관계가 필요합니다.
+
+완료된 canonical QA run의 companion을 직접 실행할 때는 다음 공개 명령을 사용합니다.
+
+```powershell
+uv run cbm qa-diagnose <job-id> `
+  --qa-run-id <qa-run-id> `
+  --diagnostic-id camera-geometry-v1 `
+  --max-camera-probes 12 `
+  --assembly-multiview `
+  --render-engine eevee `
+  --render-device auto
+```
+
+`--max-camera-probes 12`는 중립 baseline과 별개인 12개 delta를 뜻하므로 기본 실행은
+총 13개 probe record입니다. delta는 yaw ±7.5°, pitch ±5°, projection scale 0.9/1.1,
+distance scale 0.9/1.1, target X/Y offset ±0.05입니다.
+
+Codex/MCP에서는 allowlisted `run_visual_diagnostics`가 같은 역할을 합니다. 결과는
+`camera`, `geometry`, `assembly`, `mixed`, `ambiguous`, `unscorable` attribution과
+근거·한계를 보고하지만, canonical direct score 또는 정확히 7개인 pass set을
+재계산하지 않고 revision 승인을 만들거나 소비하지 않습니다. five-view를 빼려면
+`--no-assembly-multiview`를 명시할 수 있습니다.
+
+구조를 독립적으로 다섯 방향에서 확인하려면 현재 구현된 CLI를 사용합니다.
+
+```powershell
+uv run cbm qa-assembly-sanity-plan <job-id> `
+  --run-id <run-id> `
+  --resolution 384
+
+uv run cbm qa-assembly-sanity-run <job-id> `
+  --run-id <run-id> `
+  --plan-sha256 <exact-plan-sha256> `
+  --render-engine eevee `
+  --render-device auto
+```
+
+Codex/MCP에서는 allowlisted `plan_assembly_multiview_sanity`와
+`run_assembly_multiview_sanity`가 같은 역할을 합니다. `front`, `right`, `top`,
+`rear`, `oblique` 결과는 assembly projection, depth-order와 signed-axis 관계를
+검사하지만 레퍼런스 유사도는 `unscorable`입니다. 이 진단은 guarded revision,
+bounded convergence, InteriorScope, 실내 QA, V0.7 optimization 또는 handoff 승인을
+생략하지 않습니다.
+
+`qa-assembly-sanity-plan` 결과의 exact SHA-256과 실행 시
+`--plan-sha256`이 다르면 Blender를 호출하지 않습니다. 이 hash binding은 immutable
+구조 계획의 변경을 막는 것이며 reference similarity 승인이나 geometry 수정 승인이
+아닙니다. 보정된 동일 각도 reference가 제공되지 않은 five-view 결과는 계속
+`unscorable`입니다.
+
+과거 job과 workflow에는 이 폴더가 없어도 됩니다. 새 workflow만 companion 단계를
+계획하며 기존 결과를 덮어쓰거나 소급 완료하지 않습니다. QA/full PDF는 companion이
+있으면 canonical direct score가 unchanged임을 먼저 밝히고 보조 결과를 표시하며,
+없으면 legacy/unavailable 경고만 추가합니다.
+
 ## 7. 선택적 실내 다각도 QA
 
 승인된 InteriorScope와 실제 interior semantic object가 있는 작업만 별도 실내 QA를 실행할 수 있습니다. 외관 작업은 이 단계를 건너뜁니다.

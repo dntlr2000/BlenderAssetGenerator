@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -9,6 +10,8 @@ Vec3 = tuple[float, float, float]
 BBox4 = tuple[float, float, float, float]
 RGB = tuple[int, int, int]
 Axis = Literal["X", "Y", "Z"]
+SignedAxis = Literal["+X", "-X", "+Y", "-Y", "+Z", "-Z"]
+RequiredAssemblyCheck = Literal["position", "axis", "orientation", "clearance"]
 
 
 class StrictModel(BaseModel):
@@ -44,6 +47,8 @@ class ImageAnalysis(StrictModel):
 
     @model_validator(mode="after")
     def validate_bbox(self) -> ImageAnalysis:
+        """Require one normalized, positive-area reference content box."""
+
         x0, y0, x1, y1 = self.content_bbox_norm
         if not all(0 <= value <= 1 for value in self.content_bbox_norm):
             raise ValueError("content_bbox_norm values must be in [0, 1]")
@@ -113,7 +118,18 @@ class ModelingPlanObject(StrictModel):
         "attached",
         "free_standing",
     ] = "unclassified"
+    required_assembly_checks: list[RequiredAssemblyCheck] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_required_assembly_checks(self) -> ModelingPlanObject:
+        """Keep per-object assembly-check requirements unique and deterministic."""
+
+        if len(self.required_assembly_checks) != len(
+            set(self.required_assembly_checks)
+        ):
+            raise ValueError("required_assembly_checks values must be unique")
+        return self
 
 
 class AssemblyTolerance(StrictModel):
@@ -126,8 +142,25 @@ class AssemblyTolerance(StrictModel):
     def validate_relative_value(self) -> AssemblyTolerance:
         """Keep normalized tolerances inside one reference-object extent."""
 
+        if not math.isfinite(self.value):
+            raise ValueError("Assembly tolerance must be finite")
         if self.mode == "relative" and self.value > 1:
             raise ValueError("Relative assembly tolerance must be within (0, 1]")
+        return self
+
+
+class AssemblyDistance(StrictModel):
+    """Define one nonnegative meter or reference-relative assembly gap."""
+
+    mode: Literal["relative", "meters"] = "relative"
+    value: float = Field(default=0.0, ge=0)
+
+    @model_validator(mode="after")
+    def validate_finite_value(self) -> AssemblyDistance:
+        """Reject an infinite gap that could never be verified geometrically."""
+
+        if not math.isfinite(self.value):
+            raise ValueError("Assembly distance must be finite")
         return self
 
 
@@ -286,13 +319,114 @@ class BilateralPairRelationship(AssemblyRelationshipBase):
         return self
 
 
+class AxisAlignmentRelationship(AssemblyRelationshipBase):
+    """Require one evaluated local subject axis to follow a declared 3D direction."""
+
+    kind: Literal["axis_alignment"] = "axis_alignment"
+    subject_axis: SignedAxis
+    target_direction: Vec3
+    target_space: Literal["reference_local", "assembly_frame"] = "reference_local"
+    directionality: Literal["directed", "undirected"] = "directed"
+    angular_tolerance_deg: float = Field(default=5.0, gt=0, le=90)
+
+    @model_validator(mode="after")
+    def validate_target_direction(self) -> AxisAlignmentRelationship:
+        """Reject zero, non-finite, or otherwise unscorable target directions."""
+
+        if not all(math.isfinite(value) for value in self.target_direction):
+            raise ValueError("Axis-alignment target_direction values must be finite")
+        magnitude_squared = sum(value * value for value in self.target_direction)
+        if magnitude_squared <= 1.0e-18:
+            raise ValueError("Axis-alignment target_direction must be nonzero")
+        return self
+
+
+class AxisClearanceRelationship(AssemblyRelationshipBase):
+    """Require an axis-directed broad-phase gap between two evaluated bounds."""
+
+    kind: Literal["axis_clearance"] = "axis_clearance"
+    axis: Axis
+    direction: Literal["POSITIVE", "NEGATIVE"] = Field(
+        description=(
+            "POSITIVE measures reference.min-subject.max; NEGATIVE measures "
+            "subject.min-reference.max on the declared assembly-frame axis."
+        )
+    )
+    minimum_gap: AssemblyDistance = Field(default_factory=AssemblyDistance)
+    maximum_gap: AssemblyDistance | None = None
+    min_transverse_overlap_ratio: float = Field(default=0.05, gt=0, le=1)
+
+    @model_validator(mode="after")
+    def validate_gap_contract(self) -> AxisClearanceRelationship:
+        """Keep clearance limits and their tolerance in one comparable unit system."""
+
+        if self.tolerance.mode != self.minimum_gap.mode:
+            raise ValueError("Axis-clearance tolerance and minimum_gap modes must match")
+        if self.maximum_gap is not None:
+            if self.maximum_gap.mode != self.minimum_gap.mode:
+                raise ValueError(
+                    "Axis-clearance minimum_gap and maximum_gap modes must match"
+                )
+            if self.maximum_gap.value < self.minimum_gap.value:
+                raise ValueError(
+                    "Axis-clearance maximum_gap cannot be smaller than minimum_gap"
+                )
+        return self
+
+
+def _has_independent_orientation_axes(
+    relationships: list[AxisAlignmentRelationship],
+) -> bool:
+    """Return whether two comparable directed constraints determine 3D facing."""
+
+    directed = [
+        relationship
+        for relationship in relationships
+        if relationship.directionality == "directed"
+    ]
+    for index, first in enumerate(directed):
+        for second in directed[index + 1 :]:
+            if first.subject_axis[-1] == second.subject_axis[-1]:
+                continue
+            if first.target_space != second.target_space:
+                continue
+            if (
+                first.target_space == "reference_local"
+                and first.reference_id != second.reference_id
+            ):
+                continue
+            first_length = math.sqrt(sum(value * value for value in first.target_direction))
+            second_length = math.sqrt(
+                sum(value * value for value in second.target_direction)
+            )
+            normalized_dot = sum(
+                left * right
+                for left, right in zip(
+                    first.target_direction,
+                    second.target_direction,
+                    strict=True,
+                )
+            ) / (first_length * second_length)
+            target_angle_deg = math.degrees(
+                math.acos(max(-1.0, min(1.0, normalized_dot)))
+            )
+            allowed_error_deg = (
+                first.angular_tolerance_deg + second.angular_tolerance_deg
+            )
+            if abs(target_angle_deg - 90.0) <= allowed_error_deg + 1.0e-9:
+                return True
+    return False
+
+
 AssemblyRelationship = Annotated[
     CenterPlaneRelationship
     | CoaxialRelationship
     | BBoxContainmentRelationship
     | SurfaceContactRelationship
     | SideSpecificRelationship
-    | BilateralPairRelationship,
+    | BilateralPairRelationship
+    | AxisAlignmentRelationship
+    | AxisClearanceRelationship,
     Field(discriminator="kind"),
 ]
 
@@ -482,7 +616,7 @@ class AssemblyValidationCheck(StrictModel):
     instance_index: int | None = Field(default=None, ge=0)
     residual: float | None = Field(default=None, ge=0)
     tolerance: float | None = Field(default=None, ge=0)
-    tolerance_mode: Literal["relative", "meters"] | None = None
+    tolerance_mode: Literal["relative", "meters", "degrees"] | None = None
     message: str
     metrics: dict[str, object] = Field(default_factory=dict)
 
@@ -575,6 +709,14 @@ class ModelingPlan(StrictModel):
                 raise ValueError(
                     "legacy_unbound plans cannot claim an assembly frame or relationships"
                 )
+            required_checks = sorted(
+                item.id for item in self.objects if item.required_assembly_checks
+            )
+            if required_checks:
+                raise ValueError(
+                    "legacy_unbound plans cannot claim required assembly checks: "
+                    f"{required_checks}"
+                )
         elif self.stage == "authored":
             if self.assembly_frame is None:
                 raise ValueError("spatial_v1 authored plans require an assembly frame")
@@ -607,13 +749,27 @@ class ModelingPlan(StrictModel):
                 )
             linked_ids: set[str] = set()
             relationship_subjects: set[str] = set()
+            required_relations_by_subject: dict[str, list[AssemblyRelationship]] = {}
             for relationship in self.assembly_relationships:
                 linked_ids.update(
                     [relationship.subject_id, relationship.reference_id]
                 )
                 relationship_subjects.add(relationship.subject_id)
+                if relationship.required:
+                    required_relations_by_subject.setdefault(
+                        relationship.subject_id, []
+                    ).append(relationship)
                 if isinstance(relationship, BilateralPairRelationship):
                     linked_ids.add(relationship.peer_id)
+                if (
+                    isinstance(relationship, AxisAlignmentRelationship)
+                    and relationship.target_space == "assembly_frame"
+                    and relationship.reference_id != self.assembly_frame.root_object_id
+                ):
+                    raise ValueError(
+                        "Assembly-frame axis_alignment relationships must reference "
+                        "the declared assembly-frame root object"
+                    )
                 missing_sources = sorted(
                     set(relationship.source_ids) - source_ids
                 )
@@ -638,6 +794,39 @@ class ModelingPlan(StrictModel):
                 raise ValueError(
                     "Attached assembly objects require at least one subject relationship: "
                     f"{unattached}"
+                )
+            missing_required_checks: list[str] = []
+            for item in self.objects:
+                relations = required_relations_by_subject.get(item.id, [])
+                axis_relations = [
+                    relation
+                    for relation in relations
+                    if isinstance(relation, AxisAlignmentRelationship)
+                ]
+                position_relations = [
+                    relation
+                    for relation in relations
+                    if not isinstance(relation, AxisAlignmentRelationship)
+                ]
+                for check in item.required_assembly_checks:
+                    satisfied = True
+                    if check == "position":
+                        satisfied = bool(position_relations)
+                    elif check == "axis":
+                        satisfied = bool(axis_relations)
+                    elif check == "orientation":
+                        satisfied = _has_independent_orientation_axes(axis_relations)
+                    elif check == "clearance":
+                        satisfied = any(
+                            isinstance(relation, AxisClearanceRelationship)
+                            for relation in relations
+                        )
+                    if not satisfied:
+                        missing_required_checks.append(f"{item.id}:{check}")
+            if missing_required_checks:
+                raise ValueError(
+                    "Modeling objects lack required assembly-check relationships: "
+                    f"{sorted(missing_required_checks)}"
                 )
         if self.surface_details and self.surface_detail_policy is None:
             raise ValueError("Surface details require an explicit surface_detail_policy")

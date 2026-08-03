@@ -1354,6 +1354,52 @@ def test_failed_host_step_requires_explicit_retry(
     ]
 
 
+def test_visual_diagnostics_host_step_forwards_exact_plan_parameters(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Forward only the immutable workflow diagnostic parameters to the QA service."""
+
+    captured: dict[str, object] = {}
+
+    def run_diagnostics(job_id: str, qa_run_id: str, **kwargs: object) -> None:
+        """Capture one diagnostic dispatch without creating Blender artifacts."""
+
+        captured.update(job_id=job_id, qa_run_id=qa_run_id, **kwargs)
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_visual_diagnostics",
+        run_diagnostics,
+    )
+    request = SimpleNamespace(job_id="diagnostic_asset")
+    step = SimpleNamespace(
+        tool_name="run_visual_diagnostics",
+        parameters={
+            "qa_run_id": "qa-run-001",
+            "diagnostic_id": "camera-geometry-v1",
+            "max_camera_probes": 3,
+            "include_multiview_sanity": False,
+        },
+    )
+
+    orchestration_service._execute_host_tool(
+        tmp_path,
+        tmp_path / "workflow",
+        request,
+        step,
+        input_fingerprint="a" * 64,
+    )
+
+    assert captured == {
+        "job_id": "diagnostic_asset",
+        "qa_run_id": "qa-run-001",
+        "diagnostic_id": "camera-geometry-v1",
+        "max_camera_probes": 3,
+        "include_multiview_sanity": False,
+    }
+
+
 def test_blocked_artifact_conflict_retries_only_with_exact_failed_receipt(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -1692,8 +1738,28 @@ def test_human_review_gates_require_a_pdf_projection(
         assert authored["parameters"]["require_spatial_surface_details"] is True
     else:
         qa_run = next(item for item in plan["steps"] if item["step_id"] == "qa.run")
-        assert qa_run["outputs"][0]["path"].startswith("qa/runs/")
-        assert qa_run["outputs"][0]["path"] != "qa/latest.json"
+        qa_run_id = qa_run["parameters"]["run_id"]
+        assert {item["path"] for item in qa_run["outputs"]} == {
+            f"qa/runs/{qa_run_id}/request.json",
+            f"qa/runs/{qa_run_id}/reference_mask.png",
+            f"qa/runs/{qa_run_id}/reference_mask_manifest.json",
+            f"qa/runs/{qa_run_id}/render_pass_manifest.json",
+            f"qa/runs/{qa_run_id}/visual_qa_report.json",
+            f"qa/runs/{qa_run_id}/revision_candidates.json",
+            *{
+                f"qa/runs/{qa_run_id}/passes/{kind}.png"
+                for kind in (
+                    "beauty",
+                    "silhouette",
+                    "object_id",
+                    "material_id",
+                    "normal",
+                    "depth",
+                    "wireframe",
+                )
+            },
+        }
+        assert all(item["lifecycle"] == "immutable_run" for item in qa_run["outputs"])
 
 
 def test_ambiguous_existing_request_requires_explicit_intent(

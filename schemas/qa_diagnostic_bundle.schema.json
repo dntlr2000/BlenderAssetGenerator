@@ -1,0 +1,254 @@
+{
+  "$defs": {
+    "AssemblyMultiviewBundleEvidence": {
+      "additionalProperties": false,
+      "description": "Bind optional structural multi-view evidence without claiming reference similarity.",
+      "properties": {
+        "status": {
+          "enum": [
+            "not_requested",
+            "not_applicable",
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "plan_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plan Path"
+        },
+        "plan_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plan Sha256"
+        },
+        "report_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Path"
+        },
+        "report_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Sha256"
+        },
+        "render_manifest_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Render Manifest Path"
+        },
+        "render_manifest_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Render Manifest Sha256"
+        },
+        "reference_comparison_status": {
+          "anyOf": [
+            {
+              "const": "unscorable",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Comparison Status"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "AssemblyMultiviewBundleEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind canonical V0.6 evidence to exact advisory companion artifacts.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_kind": {
+      "const": "visual_qa_companion_bundle_v1",
+      "default": "visual_qa_companion_bundle_v1",
+      "title": "Diagnostic Kind",
+      "type": "string"
+    },
+    "canonical_v06_qa_run": {
+      "const": false,
+      "default": false,
+      "title": "Canonical V06 Qa Run",
+      "type": "boolean"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "qa_run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Qa Run Id",
+      "type": "string"
+    },
+    "diagnostic_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Diagnostic Id",
+      "type": "string"
+    },
+    "visual_qa_report_path": {
+      "title": "Visual Qa Report Path",
+      "type": "string"
+    },
+    "visual_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Visual Qa Report Sha256",
+      "type": "string"
+    },
+    "diagnostic_request_path": {
+      "title": "Diagnostic Request Path",
+      "type": "string"
+    },
+    "diagnostic_request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Diagnostic Request Sha256",
+      "type": "string"
+    },
+    "diagnostic_report_path": {
+      "title": "Diagnostic Report Path",
+      "type": "string"
+    },
+    "diagnostic_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Diagnostic Report Sha256",
+      "type": "string"
+    },
+    "camera_probe_plan_path": {
+      "title": "Camera Probe Plan Path",
+      "type": "string"
+    },
+    "camera_probe_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Probe Plan Sha256",
+      "type": "string"
+    },
+    "camera_probe_manifest_path": {
+      "title": "Camera Probe Manifest Path",
+      "type": "string"
+    },
+    "camera_probe_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Probe Manifest Sha256",
+      "type": "string"
+    },
+    "assembly_multiview": {
+      "$ref": "#/$defs/AssemblyMultiviewBundleEvidence"
+    },
+    "canonical_v06_score_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical V06 Score Unchanged",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "qa_run_id",
+    "diagnostic_id",
+    "visual_qa_report_path",
+    "visual_qa_report_sha256",
+    "diagnostic_request_path",
+    "diagnostic_request_sha256",
+    "diagnostic_report_path",
+    "diagnostic_report_sha256",
+    "camera_probe_plan_path",
+    "camera_probe_plan_sha256",
+    "camera_probe_manifest_path",
+    "camera_probe_manifest_sha256",
+    "assembly_multiview",
+    "created_at"
+  ],
+  "title": "QADiagnosticBundleManifest",
+  "type": "object"
+}

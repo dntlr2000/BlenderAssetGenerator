@@ -10,8 +10,10 @@ from PIL import Image
 
 import codex_blender_modeler.orchestration.service as orchestration_service
 from codex_blender_modeler.background_quality.models import BackgroundQualityReport
+from codex_blender_modeler.build_provenance import collect_build_provenance
 from codex_blender_modeler.interior_qa.models import InteriorQAPlanApproval
 from codex_blender_modeler.materials import promote_workflow_material_candidate
+from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.optimization.models import OptimizationApproval
 from codex_blender_modeler.orchestration.models import ArtifactFreshness, WorkflowStep
 from codex_blender_modeler.orchestration.service import (
@@ -19,6 +21,26 @@ from codex_blender_modeler.orchestration.service import (
     plan_workflow,
     reconcile_workflow,
     resume_workflow,
+)
+from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
+from codex_blender_modeler.qa.diagnostic_models import (
+    AssemblyDiagnosticEvidence,
+    AssemblyMultiviewBundleEvidence,
+    BoundedCameraDelta,
+    CameraProbeResult,
+    DiagnosticAttribution,
+    QADiagnosticBundleManifest,
+    QADiagnosticReport,
+    QADiagnosticRequest,
+)
+from codex_blender_modeler.qa.hashing import canonical_model_sha256
+from codex_blender_modeler.qa.models import (
+    BoundingBoxMetric,
+    DirectVisualMetrics,
+    RenderPassManifest,
+    RenderPassRecord,
+    VisualQAReport,
+    VisualQARequest,
 )
 from codex_blender_modeler.workspace import sha256_file
 
@@ -153,40 +175,99 @@ def _write_direct_qa(root: Path, request, step) -> None:
     run_id = str(step.parameters["run_id"])
     run_root = root / "qa" / "runs" / run_id
     run_root.mkdir(parents=True, exist_ok=False)
-    (run_root / "request.json").write_text("{}\n", encoding="utf-8")
-    passes: list[dict[str, str]] = []
-    for kind in PASS_KINDS:
-        path = run_root / f"{kind}.png"
-        path.write_bytes(kind.encode("utf-8"))
-        passes.append({"kind": kind, "path": path.name})
-    (run_root / "render_pass_manifest.json").write_text(
-        json.dumps({"passes": passes}, indent=2) + "\n",
+    scene_path = root / "analysis" / "scene_spec.json"
+    spec = SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))
+    reference_path = root / "input" / "reference.png"
+    reference_mask_path = run_root / "reference_mask.png"
+    Image.new("L", (48, 32), 255).save(reference_mask_path)
+    pass_root = run_root / "passes"
+    pass_root.mkdir(parents=True, exist_ok=False)
+    passes: list[RenderPassRecord] = []
+    for index, kind in enumerate(PASS_KINDS):
+        path = pass_root / f"{kind}.png"
+        Image.new("RGB", (48, 32), (20 + index * 10, 80, 120)).save(path)
+        passes.append(
+            RenderPassRecord(
+                kind=kind,  # type: ignore[arg-type]
+                path=f"passes/{path.name}",
+                sha256=sha256_file(path),
+                width=48,
+                height=32,
+                encoding="png-rgb8",
+            )
+        )
+    fingerprint = camera_fingerprint(spec)
+    build_fingerprint = str(
+        collect_build_provenance(root, request.job_id, scene_spec_path=scene_path)[
+            "fingerprint"
+        ]
+    )
+    manifest = RenderPassManifest(
+        job_id=request.job_id,
+        run_id=run_id,
+        scene_spec_sha256=sha256_file(scene_path),
+        camera_fingerprint=fingerprint,
+        build_fingerprint=build_fingerprint,
+        blender_version="5.0.1",
+        render_engine="BLENDER_EEVEE",
+        render_device="CPU",
+        resolution=(48, 32),
+        passes=passes,
+    )
+    manifest_path = run_root / "render_pass_manifest.json"
+    manifest_path.write_text(
+        manifest.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )
-    report = {
-        "schema_version": "0.6.0",
-        "job_id": request.job_id,
-        "run_id": run_id,
-        "request_sha256": "0" * 64,
-        "camera_fingerprint": "1" * 64,
-        "direct_metrics": {
-            "silhouette_iou": 0.9,
-            "silhouette_union_fraction": 0.9,
-            "global_bbox": {
-                "reference_bbox_norm": [0.1, 0.1, 0.9, 0.9],
-                "rendered_bbox_norm": [0.1, 0.1, 0.9, 0.9],
-                "center_error_norm": 0.0,
-                "size_error_norm": 0.0,
+    visual_request = VisualQARequest(
+        job_id=request.job_id,
+        run_id=run_id,
+        mode="concept",
+        reference_path=str(reference_path.resolve()),
+        reference_sha256=sha256_file(reference_path),
+        reference_mask_path=str(reference_mask_path.resolve()),
+        reference_mask_sha256=sha256_file(reference_mask_path),
+        preview_path=str((pass_root / "beauty.png").resolve()),
+        preview_sha256=sha256_file(pass_root / "beauty.png"),
+        render_pass_manifest_path=str(manifest_path.resolve()),
+        render_pass_manifest_sha256=sha256_file(manifest_path),
+        scene_spec_sha256=sha256_file(scene_path),
+        camera_fingerprint=fingerprint,
+    )
+    request_path = run_root / "request.json"
+    request_path.write_text(visual_request.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    (run_root / "reference_mask_manifest.json").write_text(
+        json.dumps(
+            {
+                "reference_sha256": visual_request.reference_sha256,
+                "output_path": "reference_mask.png",
+                "output_sha256": visual_request.reference_mask_sha256,
             },
-            "semantic_deviations": [],
-            "overall_direct_score": 0.9,
-        },
-        "findings": [],
-        "generated_target_status": "not_requested",
-        "warnings": [],
-    }
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    report = VisualQAReport(
+        job_id=request.job_id,
+        run_id=run_id,
+        request_sha256=canonical_model_sha256(visual_request),
+        camera_fingerprint=fingerprint,
+        direct_metrics=DirectVisualMetrics(
+            silhouette_iou=0.9,
+            silhouette_union_fraction=0.9,
+            global_bbox=BoundingBoxMetric(
+                reference_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                rendered_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                center_error_norm=0.0,
+                size_error_norm=0.0,
+            ),
+            overall_direct_score=0.9,
+        ),
+        generated_target_status="not_requested",
+    )
     (run_root / "visual_qa_report.json").write_text(
-        json.dumps(report, indent=2) + "\n",
+        report.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )
     (run_root / "revision_candidates.json").write_text(
@@ -201,6 +282,151 @@ def _write_direct_qa(root: Path, request, step) -> None:
     }
     (root / "qa" / "latest.json").write_text(
         json.dumps(latest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _write_qa_diagnostics(root: Path, request, step) -> None:
+    """Write one recursively hash-bound companion bundle for lifecycle tests."""
+
+    qa_run_id = str(step.parameters["qa_run_id"])
+    diagnostic_id = str(step.parameters["diagnostic_id"])
+    qa_root = root / "qa" / "runs" / qa_run_id
+    diagnostic_root = qa_root / "diagnostics" / diagnostic_id
+    attempt_root = diagnostic_root / "attempts" / "attempt-001"
+    probe_root = attempt_root / "camera_probes"
+    render_root = probe_root / "renders" / "baseline"
+    render_root.mkdir(parents=True, exist_ok=False)
+    role_map_path = attempt_root / "role_map.json"
+    role_map_path.write_text('{"fixture":"diagnostic-role-map"}\n', encoding="utf-8")
+    role_map_sha256 = sha256_file(role_map_path)
+    passes: list[dict[str, str]] = []
+    for kind in ("silhouette", "object_id"):
+        path = render_root / f"{kind}.png"
+        path.write_bytes(kind.encode("utf-8"))
+        passes.append(
+            {
+                "kind": kind,
+                "path": path.relative_to(root).as_posix(),
+                "sha256": sha256_file(path),
+            }
+        )
+    probe_plan = {
+        "schema_version": "0.6.0",
+        "diagnostic_kind": "bounded_camera_probe",
+        "job_id": request.job_id,
+        "qa_run_id": qa_run_id,
+        "diagnostic_id": diagnostic_id,
+        "role_map_sha256": role_map_sha256,
+        "probes": [
+            {
+                "probe_id": "baseline",
+                "camera_delta": BoundedCameraDelta().model_dump(mode="json"),
+            }
+        ],
+    }
+    probe_plan_path = probe_root / "plan.json"
+    probe_plan_path.write_text(
+        json.dumps(probe_plan, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    probe_manifest = {
+        "schema_version": "0.6.0",
+        "diagnostic_kind": "bounded_camera_probe",
+        "job_id": request.job_id,
+        "qa_run_id": qa_run_id,
+        "diagnostic_id": diagnostic_id,
+        "probe_plan_sha256": sha256_file(probe_plan_path),
+        "role_map_sha256": role_map_sha256,
+        "probes": [{"probe_id": "baseline", "passes": passes}],
+    }
+    probe_manifest_path = probe_root / "render_manifest.json"
+    probe_manifest_path.write_text(
+        json.dumps(probe_manifest, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    diagnostic_request = QADiagnosticRequest(
+        job_id=request.job_id,
+        qa_run_id=qa_run_id,
+        diagnostic_id=diagnostic_id,
+        artifact_root=diagnostic_root.relative_to(root).as_posix(),
+        visual_qa_request_path=(qa_root / "request.json").relative_to(root).as_posix(),
+        visual_qa_request_sha256=sha256_file(qa_root / "request.json"),
+        visual_qa_report_path=(
+            qa_root / "visual_qa_report.json"
+        ).relative_to(root).as_posix(),
+        visual_qa_report_sha256=sha256_file(qa_root / "visual_qa_report.json"),
+        render_pass_manifest_path=(
+            qa_root / "render_pass_manifest.json"
+        ).relative_to(root).as_posix(),
+        render_pass_manifest_sha256=sha256_file(
+            qa_root / "render_pass_manifest.json"
+        ),
+        scene_spec_sha256=sha256_file(root / "analysis" / "scene_spec.json"),
+        camera_role_map_path=role_map_path.relative_to(root).as_posix(),
+        camera_role_map_sha256=role_map_sha256,
+        max_camera_probes=1,
+    )
+    diagnostic_request_path = attempt_root / "request.json"
+    diagnostic_request_path.write_text(
+        diagnostic_request.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    probe_result = CameraProbeResult(
+        probe_id="baseline",
+        is_baseline=True,
+        status="unscorable",
+        camera_delta=BoundedCameraDelta(),
+        evidence_path=probe_manifest_path.relative_to(root).as_posix(),
+        evidence_sha256=sha256_file(probe_manifest_path),
+        limitations=["Lifecycle fixture has no semantic masks."],
+    )
+    diagnostic_report = QADiagnosticReport(
+        job_id=request.job_id,
+        qa_run_id=qa_run_id,
+        diagnostic_id=diagnostic_id,
+        request_path=diagnostic_request_path.relative_to(root).as_posix(),
+        request_sha256=sha256_file(diagnostic_request_path),
+        status="unscorable",
+        camera_probes=[probe_result],
+        assembly_evidence=AssemblyDiagnosticEvidence(
+            limitations=["Assembly evidence is not included in this lifecycle fixture."]
+        ),
+        attribution=DiagnosticAttribution(
+            classification="unscorable",
+            confidence=0.0,
+            baseline_probe_id="baseline",
+            reasons=["Lifecycle fixture has no semantic evidence."],
+        ),
+        limitations=["Lifecycle fixture has no semantic evidence."],
+        generated_at=datetime.now(UTC),
+    )
+    diagnostic_report_path = attempt_root / "report.json"
+    diagnostic_report_path.write_text(
+        diagnostic_report.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    bundle = QADiagnosticBundleManifest(
+        job_id=request.job_id,
+        qa_run_id=qa_run_id,
+        diagnostic_id=diagnostic_id,
+        visual_qa_report_path=(
+            qa_root / "visual_qa_report.json"
+        ).relative_to(root).as_posix(),
+        visual_qa_report_sha256=sha256_file(qa_root / "visual_qa_report.json"),
+        diagnostic_request_path=diagnostic_request_path.relative_to(root).as_posix(),
+        diagnostic_request_sha256=sha256_file(diagnostic_request_path),
+        diagnostic_report_path=diagnostic_report_path.relative_to(root).as_posix(),
+        diagnostic_report_sha256=sha256_file(diagnostic_report_path),
+        camera_probe_plan_path=probe_plan_path.relative_to(root).as_posix(),
+        camera_probe_plan_sha256=sha256_file(probe_plan_path),
+        camera_probe_manifest_path=probe_manifest_path.relative_to(root).as_posix(),
+        camera_probe_manifest_sha256=sha256_file(probe_manifest_path),
+        assembly_multiview=AssemblyMultiviewBundleEvidence(status="not_requested"),
+        created_at=datetime.now(UTC),
+    )
+    (diagnostic_root / "bundle_manifest.json").write_text(
+        bundle.model_dump_json(indent=2) + "\n",
         encoding="utf-8",
     )
 
@@ -282,6 +508,9 @@ def _install_fake_blender_host(
             return
         if tool == "run_visual_qa":
             _write_direct_qa(root, request, step)
+            return
+        if tool == "run_visual_diagnostics":
+            _write_qa_diagnostics(root, request, step)
             return
         if tool == "evaluate_background_delivery":
             qa_run_id = str(step.parameters["qa_run_id"])
@@ -426,6 +655,8 @@ def test_fast_preview_lifecycle_completes_with_one_direct_qa(
     assert states["material.scaffold"].status == "complete"
     assert states["background_geometry.build"].status == "complete"
     assert states["background_geometry.render"].status == "complete"
+    assert states["qa.run"].status == "complete"
+    assert states["qa.diagnostics"].status == "complete"
     qa_runs = list((root / "qa" / "runs").iterdir())
     assert len(qa_runs) == 1
     manifest = json.loads(
@@ -446,6 +677,167 @@ def test_fast_preview_lifecycle_completes_with_one_direct_qa(
     reconstructed = reconcile_workflow(state.job_id, state.workflow_id)
     assert reconstructed.status == "completed"
     assert reconstructed.milestone == "delivered_for_review"
+    reconstructed_steps = {item.step_id: item for item in reconstructed.steps}
+    assert reconstructed_steps["qa.run"].status == "complete"
+    assert reconstructed_steps["qa.diagnostics"].status == "complete"
+
+
+def test_visual_diagnostic_host_adopts_terminal_bundle_after_exact_interruption(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Resume an exact interrupted diagnostic attempt without rendering it again."""
+
+    real_execute = orchestration_service._execute_host_tool
+    root, state = _fast_workflow_to_material_author(monkeypatch, tmp_path)
+    state = _author_material_candidate(root, state)
+    fake_execute = orchestration_service._execute_host_tool
+    while state.current_step_id != "qa.diagnostics":
+        state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=1)
+
+    def publish_then_interrupt(
+        root_arg: Path,
+        workflow_root_arg: Path,
+        request: object,
+        step: WorkflowStep,
+        *,
+        input_fingerprint: str,
+    ) -> None:
+        """Simulate process loss after terminal publication and before receipt finalization."""
+
+        fake_execute(
+            root_arg,
+            workflow_root_arg,
+            request,
+            step,
+            input_fingerprint=input_fingerprint,
+        )
+        if step.tool_name == "run_visual_diagnostics":
+            raise KeyboardInterrupt("simulated process loss after terminal publication")
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        publish_then_interrupt,
+    )
+    with pytest.raises(KeyboardInterrupt, match="simulated process loss"):
+        resume_workflow(state.job_id, state.workflow_id, max_host_steps=1)
+
+    def unexpected_rerun(*_args: object, **_kwargs: object) -> None:
+        """Fail if adoption tries to create a second immutable diagnostic run."""
+
+        raise AssertionError("a current terminal diagnostic bundle must be adopted")
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_visual_diagnostics",
+        unexpected_rerun,
+    )
+    monkeypatch.setattr(orchestration_service, "_execute_host_tool", real_execute)
+    resumed = resume_workflow(state.job_id, state.workflow_id, max_host_steps=1)
+
+    diagnostic_state = next(
+        item for item in resumed.steps if item.step_id == "qa.diagnostics"
+    )
+    assert diagnostic_state.status == "complete"
+    attempt_root = (
+        root / "workflows" / state.workflow_id / "attempts" / "qa.diagnostics"
+    )
+    attempts = [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(attempt_root.glob("*.json"))
+    ]
+    assert sorted(item["status"] for item in attempts) == ["failed", "succeeded"]
+    interrupted = next(item for item in attempts if item["status"] == "failed")
+    succeeded = next(item for item in attempts if item["status"] == "succeeded")
+    assert interrupted["error_type"] == "InterruptedAttempt"
+    assert interrupted["plan_sha256"] == succeeded["plan_sha256"]
+    assert interrupted["input_fingerprint"] == succeeded["input_fingerprint"]
+
+
+def test_visual_diagnostic_host_rejects_terminal_bundle_without_interruption(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject a pre-existing terminal bundle without an exact interrupted receipt."""
+
+    real_execute = orchestration_service._execute_host_tool
+    root, state = _fast_workflow_to_material_author(monkeypatch, tmp_path)
+    state = _author_material_candidate(root, state)
+    state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=64)
+    assert state.status == "completed"
+    step_payload = _plan_step(root, state.workflow_id, "qa.diagnostics")
+    step = WorkflowStep.model_validate(step_payload)
+    request = SimpleNamespace(job_id=state.job_id, workflow_id=state.workflow_id)
+
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="no exact recovered InterruptedAttempt receipt",
+    ):
+        real_execute(
+            root,
+            root / "workflows" / state.workflow_id,
+            request,
+            step,
+            input_fingerprint="a" * 64,
+        )
+
+
+def test_exact_qa_output_tampering_remains_an_artifact_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep exact authoritative QA files fail-closed after descendant separation."""
+
+    root, state = _fast_workflow_to_material_author(monkeypatch, tmp_path)
+    state = _author_material_candidate(root, state)
+    state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=64)
+    assert state.status == "completed"
+    qa_step = _plan_step(root, state.workflow_id, "qa.run")
+    report = root / str(
+        next(
+            item["path"]
+            for item in qa_step["outputs"]
+            if item["artifact_id"] == "qa.run.visual_report"
+        )
+    )
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    payload["warnings"].append("unexpected external mutation")
+    report.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+    blocked = reconcile_workflow(state.job_id, state.workflow_id)
+    assert blocked.status == "blocked"
+    assert blocked.reason_code == "orchestration_artifact_conflict"
+    qa_state = next(item for item in blocked.steps if item.step_id == "qa.run")
+    assert qa_state.reason_code == "orchestration_artifact_conflict"
+
+
+def test_nested_diagnostic_pass_tampering_remains_an_artifact_conflict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Recurse through a terminal bundle so changed probe pixels stale completion."""
+
+    root, state = _fast_workflow_to_material_author(monkeypatch, tmp_path)
+    state = _author_material_candidate(root, state)
+    state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=64)
+    assert state.status == "completed"
+    diagnostic_step = _plan_step(root, state.workflow_id, "qa.diagnostics")
+    bundle_path = root / str(diagnostic_step["outputs"][0]["path"])
+    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    manifest_path = root / str(bundle["camera_probe_manifest_path"])
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    pass_path = root / str(manifest["probes"][0]["passes"][0]["path"])
+    pass_path.write_bytes(b"unexpected external mutation")
+
+    blocked = reconcile_workflow(state.job_id, state.workflow_id)
+
+    assert blocked.status == "blocked"
+    assert blocked.reason_code == "orchestration_artifact_conflict"
+    diagnostic_state = next(
+        item for item in blocked.steps if item.step_id == "qa.diagnostics"
+    )
+    assert diagnostic_state.reason_code == "orchestration_artifact_conflict"
 
 
 def test_new_material_authoring_rejects_policy_downgrade(

@@ -13,6 +13,8 @@ from .models import (
     AssemblyRelationship,
     AssemblyValidationCheck,
     AssemblyValidationReport,
+    AxisAlignmentRelationship,
+    AxisClearanceRelationship,
     BBoxContainmentRelationship,
     BilateralPairRelationship,
     CenterPlaneRelationship,
@@ -32,6 +34,11 @@ class AssemblyBounds:
     instance_index: int
     minimum: tuple[float, float, float]
     maximum: tuple[float, float, float]
+    basis: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ] | None = None
 
     def __post_init__(self) -> None:
         """Reject non-finite, inverted, or degenerate evaluated bounds."""
@@ -41,6 +48,27 @@ class AssemblyBounds:
             raise ValueError("Assembly bounds values must be finite")
         if any(self.maximum[index] <= self.minimum[index] for index in range(3)):
             raise ValueError("Assembly bounds must have positive extent on every axis")
+        if self.basis is not None:
+            if len(self.basis) != 3 or any(len(axis) != 3 for axis in self.basis):
+                raise ValueError("Assembly basis must contain three 3D axis vectors")
+            if not all(
+                math.isfinite(value) for axis in self.basis for value in axis
+            ):
+                raise ValueError("Assembly basis values must be finite")
+            lengths = [math.sqrt(sum(value * value for value in axis)) for axis in self.basis]
+            if any(length <= 1.0e-12 for length in lengths):
+                raise ValueError("Assembly basis axes must be nonzero")
+            normalized = tuple(
+                tuple(value / lengths[index] for value in axis)
+                for index, axis in enumerate(self.basis)
+            )
+            if any(
+                abs(sum(normalized[left][i] * normalized[right][i] for i in range(3)))
+                > 1.0e-5
+                for left, right in ((0, 1), (0, 2), (1, 2))
+            ):
+                raise ValueError("Assembly basis axes must be orthogonal")
+            object.__setattr__(self, "basis", normalized)
 
     @property
     def center(self) -> tuple[float, float, float]:
@@ -233,6 +261,7 @@ def _union_bounds(bounds: Sequence[AssemblyBounds]) -> AssemblyBounds:
         instance_index=0,
         minimum=tuple(min(item.minimum[index] for item in bounds) for index in range(3)),
         maximum=tuple(max(item.maximum[index] for item in bounds) for index in range(3)),
+        basis=bounds[0].basis if len(bounds) == 1 else None,
     )
 
 
@@ -274,6 +303,13 @@ def _relation_instances(
     if missing:
         return [], f"Evaluated bounds are missing for: {sorted(missing)}"
     if relation.instance_policy == "family_bounds":
+        if isinstance(relation, AxisAlignmentRelationship) and (
+            len(subjects) != 1 or len(references) != 1
+        ):
+            return [], (
+                "axis_alignment family_bounds requires exactly one concrete subject "
+                "and reference instance"
+            )
         return [
             (
                 _union_bounds(subjects),
@@ -282,6 +318,11 @@ def _relation_instances(
             )
         ], None
     if relation.instance_policy == "broadcast_reference":
+        if isinstance(relation, AxisAlignmentRelationship) and len(references) != 1:
+            return [], (
+                "axis_alignment broadcast_reference requires exactly one concrete "
+                "reference instance"
+            )
         reference = _union_bounds(references)
         if isinstance(relation, BilateralPairRelationship):
             if len(subjects) != len(peers):
@@ -317,6 +358,85 @@ def _axis_residual(
         return abs(difference_m), relation.tolerance.value
     extent = max(reference_extent_m, 1e-12)
     return abs(difference_m) / extent, relation.tolerance.value
+
+
+def _normalize_vector(values: Sequence[float]) -> tuple[float, float, float]:
+    """Normalize one finite nonzero 3D direction for angular comparison."""
+
+    if len(values) != 3 or not all(math.isfinite(value) for value in values):
+        raise ValueError("Assembly direction must contain three finite values")
+    magnitude = math.sqrt(sum(value * value for value in values))
+    if magnitude <= 1.0e-12:
+        raise ValueError("Assembly direction must be nonzero")
+    return tuple(value / magnitude for value in values)
+
+
+def _basis_direction(
+    basis: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ],
+    values: Sequence[float],
+) -> tuple[float, float, float]:
+    """Resolve local vector components through an evaluated assembly-frame basis."""
+
+    local = _normalize_vector(values)
+    return _normalize_vector(
+        tuple(
+            sum(local[axis] * basis[axis][component] for axis in range(3))
+            for component in range(3)
+        )
+    )
+
+
+def _signed_basis_axis(
+    basis: tuple[
+        tuple[float, float, float],
+        tuple[float, float, float],
+        tuple[float, float, float],
+    ],
+    signed_axis: str,
+) -> tuple[float, float, float]:
+    """Select one signed local basis direction from a compact +X/-X token."""
+
+    if len(signed_axis) != 2 or signed_axis[0] not in {"+", "-"}:
+        raise ValueError(f"Unsupported signed assembly axis: {signed_axis!r}")
+    axis_name = signed_axis[1]
+    if axis_name not in _AXIS:
+        raise ValueError(f"Unsupported signed assembly axis: {signed_axis!r}")
+    sign = 1.0 if signed_axis[0] == "+" else -1.0
+    return tuple(sign * value for value in basis[_AXIS[axis_name]])
+
+
+def _angular_error_deg(
+    subject_direction: Sequence[float],
+    target_direction: Sequence[float],
+    *,
+    undirected: bool,
+) -> float:
+    """Return a stable directed or axis-equivalent angle in degrees."""
+
+    subject = _normalize_vector(subject_direction)
+    target = _normalize_vector(target_direction)
+    dot = sum(subject[index] * target[index] for index in range(3))
+    if undirected:
+        dot = abs(dot)
+    return math.degrees(math.acos(max(-1.0, min(1.0, dot))))
+
+
+def _clearance_value(
+    value_m: float,
+    reference_extent_m: float,
+    mode: str,
+) -> float:
+    """Express one signed clearance in meters or normalized reference extent."""
+
+    if mode == "meters":
+        return value_m
+    if mode != "relative":
+        raise ValueError(f"Unsupported assembly clearance mode: {mode!r}")
+    return value_m / max(reference_extent_m, 1.0e-12)
 
 
 def _transverse_overlap_metrics(
@@ -357,7 +477,7 @@ def _evaluate_pair(
     subject: AssemblyBounds,
     reference: AssemblyBounds,
     peer: AssemblyBounds | None,
-) -> tuple[float, float, str, dict[str, Any]]:
+) -> tuple[float, float, str, str, dict[str, Any]]:
     """Evaluate one resolved subject/reference pair using its relation semantics."""
 
     metrics: dict[str, Any] = {
@@ -385,7 +505,13 @@ def _evaluate_pair(
             reference.dimensions[axis],
             relation,
         )
-        return residual, tolerance, f"center_plane axis={relation.axis}", metrics
+        return (
+            residual,
+            tolerance,
+            relation.tolerance.mode,
+            f"center_plane axis={relation.axis}",
+            metrics,
+        )
     if isinstance(relation, CoaxialRelationship):
         residuals = [
             _axis_residual(
@@ -398,6 +524,7 @@ def _evaluate_pair(
         return (
             max(residuals),
             relation.tolerance.value,
+            relation.tolerance.mode,
             f"coaxial axes={relation.axes}",
             metrics,
         )
@@ -420,6 +547,7 @@ def _evaluate_pair(
         return (
             max(overflows),
             relation.tolerance.value,
+            relation.tolerance.mode,
             f"bbox_containment axes={relation.axes}",
             metrics,
         )
@@ -452,6 +580,7 @@ def _evaluate_pair(
         return (
             residual,
             tolerance,
+            relation.tolerance.mode,
             (
                 f"surface_contact axis={relation.axis} "
                 f"subject={relation.subject_side} reference={relation.reference_side}"
@@ -469,6 +598,7 @@ def _evaluate_pair(
         return (
             residual,
             0.0,
+            relation.tolerance.mode,
             f"side_specific axis={relation.axis} side={relation.side}",
             metrics,
         )
@@ -488,7 +618,94 @@ def _evaluate_pair(
         return (
             max(residuals),
             relation.tolerance.value,
+            relation.tolerance.mode,
             f"bilateral_pair axis={relation.axis} peer={relation.peer_id}",
+            metrics,
+        )
+    if isinstance(relation, AxisAlignmentRelationship):
+        if subject.basis is None:
+            raise ValueError("Subject evaluated orientation basis is unavailable")
+        subject_direction = _signed_basis_axis(subject.basis, relation.subject_axis)
+        if relation.target_space == "reference_local":
+            if reference.basis is None:
+                raise ValueError("Reference evaluated orientation basis is unavailable")
+            target_direction = _basis_direction(
+                reference.basis,
+                relation.target_direction,
+            )
+        else:
+            target_direction = _normalize_vector(relation.target_direction)
+        residual = _angular_error_deg(
+            subject_direction,
+            target_direction,
+            undirected=relation.directionality == "undirected",
+        )
+        metrics.update(
+            {
+                "evaluation_basis": "evaluated_object_axes_in_assembly_frame",
+                "subject_axis": relation.subject_axis,
+                "subject_direction_assembly_frame": [
+                    round(value, 9) for value in subject_direction
+                ],
+                "target_direction_assembly_frame": [
+                    round(value, 9) for value in target_direction
+                ],
+                "target_space": relation.target_space,
+                "directionality": relation.directionality,
+                "angular_error_deg": round(residual, 9),
+            }
+        )
+        return (
+            residual,
+            relation.angular_tolerance_deg,
+            "degrees",
+            (
+                f"axis_alignment subject_axis={relation.subject_axis} "
+                f"target_space={relation.target_space}"
+            ),
+            metrics,
+        )
+    if isinstance(relation, AxisClearanceRelationship):
+        axis = _AXIS[relation.axis]
+        if relation.direction == "POSITIVE":
+            gap_m = reference.minimum[axis] - subject.maximum[axis]
+        else:
+            gap_m = subject.minimum[axis] - reference.maximum[axis]
+        mode = relation.minimum_gap.mode
+        gap = _clearance_value(gap_m, reference.dimensions[axis], mode)
+        minimum = relation.minimum_gap.value
+        maximum = (
+            relation.maximum_gap.value
+            if relation.maximum_gap is not None
+            else None
+        )
+        residual = max(
+            minimum - gap,
+            (gap - maximum) if maximum is not None else 0.0,
+            0.0,
+        )
+        overlap_ok, overlap_metrics = _transverse_overlap_metrics(
+            subject,
+            reference,
+            axis,
+            relation.min_transverse_overlap_ratio,
+        )
+        metrics.update(overlap_metrics)
+        metrics.update(
+            {
+                "signed_axis_gap_m": round(gap_m, 9),
+                "evaluated_gap": round(gap, 9),
+                "minimum_gap": minimum,
+                "maximum_gap": maximum,
+                "clearance_direction": relation.direction,
+                "transverse_overlap_ok": overlap_ok,
+            }
+        )
+        return (
+            residual,
+            relation.tolerance.value,
+            mode,
+            f"axis_clearance axis={relation.axis} direction={relation.direction}",
             metrics,
         )
     raise TypeError(f"Unsupported assembly relationship: {type(relation)!r}")
@@ -534,12 +751,41 @@ def evaluate_assembly_bounds(
             )
             continue
         for subject, reference, peer in operands:
-            residual, tolerance, description, metrics = _evaluate_pair(
-                relation,
-                subject,
-                reference,
-                peer,
-            )
+            try:
+                residual, tolerance, mode, description, metrics = _evaluate_pair(
+                    relation,
+                    subject,
+                    reference,
+                    peer,
+                )
+            except (TypeError, ValueError, ZeroDivisionError) as exc:
+                checks.append(
+                    AssemblyValidationCheck(
+                        id=f"assembly.bounds.{relation.id}.{subject.instance_index}",
+                        relation_id=relation.id,
+                        kind=relation.kind,
+                        status="failed" if relation.required else "warning",
+                        required=relation.required,
+                        evidence_status=relation.evidence_status,
+                        source_ids=list(relation.source_ids),
+                        subject_id=relation.subject_id,
+                        reference_id=relation.reference_id,
+                        peer_id=(
+                            relation.peer_id
+                            if isinstance(relation, BilateralPairRelationship)
+                            else None
+                        ),
+                        instance_index=subject.instance_index,
+                        message=f"Assembly relation is unscorable: {exc}",
+                        metrics={
+                            "scorable": False,
+                            "bbox_basis": (
+                                "evaluated_bbox_corners_in_assembly_frame_meters"
+                            ),
+                        },
+                    )
+                )
+                continue
             passed = residual <= tolerance + 1e-12 and bool(
                 metrics.get("transverse_overlap_ok", True)
             )
@@ -566,10 +812,10 @@ def evaluate_assembly_bounds(
                     instance_index=subject.instance_index,
                     residual=round(residual, 9),
                     tolerance=round(tolerance, 9),
-                    tolerance_mode=relation.tolerance.mode,
+                    tolerance_mode=mode,
                     message=(
                         f"{description}: residual={residual:.6g} "
-                        f"tolerance={tolerance:.6g} ({relation.tolerance.mode})"
+                        f"tolerance={tolerance:.6g} ({mode})"
                     ),
                     metrics=metrics,
                 )
@@ -601,11 +847,20 @@ def _inventory_bounds(inventory: Mapping[str, Any]) -> dict[str, list[AssemblyBo
         maximum = bbox.get("max")
         if not isinstance(minimum, list) or not isinstance(maximum, list):
             continue
+        raw_basis = record.get("basis_assembly_frame")
+        basis = None
+        if isinstance(raw_basis, list) and len(raw_basis) == 3 and all(
+            isinstance(axis, list) and len(axis) == 3 for axis in raw_basis
+        ):
+            basis = tuple(
+                tuple(float(value) for value in axis) for axis in raw_basis
+            )
         result.setdefault(str(object_id), []).append(
             AssemblyBounds(
                 instance_index=int(index),
                 minimum=tuple(float(value) for value in minimum),
                 maximum=tuple(float(value) for value in maximum),
+                basis=basis,
             )
         )
     return result

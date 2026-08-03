@@ -9,6 +9,33 @@
 - Added center-plane, coaxial, containment, contact with transverse overlap, evidenced
   side-specific, and bilateral-pair checks plus isolated host and Blender 5 regression fixtures,
   including detection of a visually plausible but laterally side-mounted centerline part.
+- Added hash-bound V0.6 camera/geometry/assembly companion diagnostics without changing the
+  canonical direct score or exact seven-pass run. Bounded camera probes use an exact
+  primary-object request mask or explicit primary/supporting semantic-mask union when available,
+  otherwise preserve bbox-only fallback; no silhouette mask is fabricated from bounding boxes.
+  Companion evidence is written to immutable `attempts/attempt-NNN` directories, an explicit
+  retry preserves earlier failure evidence, and only one fully revalidated terminal bundle is
+  published at the diagnostic root.
+- Added a strict semantic reference-mask registry with `qa-semantic-masks-register` / status CLI
+  and matching allowlisted MCP tools. Exact candidate bytes are promoted only after current
+  SceneSpec/reference, observed semantic, binary-image, path, and SHA-256 validation; prior
+  manifests enter dedicated history and recoverable immutable receipts record promotion. Status
+  distinguishes `current`, `legacy_current`, `absent`, `stale`, and `invalid`, while diagnostics
+  bind run-owned manifest/mask snapshots so later valid promotion does not stale historical runs.
+- Added explicit semantic-mask IoU, centroid, area, boundary, contour-distance, and undirected PCA
+  metrics plus signed 3D `axis_alignment`, `axis_clearance`, and required-check evidence. PCA does
+  not claim 180-degree facing, and the five-view assembly sanity path remains structurally
+  `unscorable` for reference similarity.
+- Added public `qa-diagnose` plus `qa-assembly-sanity-plan` / `qa-assembly-sanity-run`
+  CLI surfaces and allowlisted `run_visual_diagnostics`, `plan_assembly_multiview_sanity`, and
+  `run_assembly_multiview_sanity` MCP tools. Standalone assembly rendering requires the exact
+  caller-reviewed plan SHA-256. Camera-versus-geometry attribution remains advisory, new V0.8
+  workflows may add the companion, and legacy workflows remain readable; no diagnostic bypasses
+  guarded revision, convergence, InteriorScope, V0.7 optimization, or handoff approvals.
+- Preloaded optional OpenCV/NumPy vision modules before MCP stdio worker startup to avoid a
+  Windows native-import stall on the first QA mask refinement, while preserving the Pillow
+  fallback when vision extras are absent. V0.6 gates now regenerate both QA and combined PDFs
+  after companion diagnostics so their exact source manifests cannot remain stale.
 - Hardened new V0.5 surface-detail authoring with backward-compatible `spatial_v1`
   object/material/current-UV bindings, bounded UV-rectangle or hash-bound mask placement,
   image-backed channel declarations, edge-safe non-repeating sampling, and separate hybrid

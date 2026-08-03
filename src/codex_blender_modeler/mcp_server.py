@@ -97,7 +97,15 @@ from .packaging import (
 from .packaging.material_conversion import (
     convert_portable_materials as convert_portable_materials_internal,
 )
-from .qa import ExistingFileQATargetProvider, run_job_visual_qa
+from .qa import (
+    ExistingFileQATargetProvider,
+    get_job_semantic_reference_mask_status,
+    plan_job_assembly_multiview_sanity,
+    register_job_semantic_reference_masks,
+    run_job_assembly_multiview_sanity,
+    run_job_visual_diagnostics,
+    run_job_visual_qa,
+)
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan as apply_guarded_revision
 from .stabilization import (
@@ -435,6 +443,26 @@ def get_modeling_capabilities() -> dict:
             "remesh",
             "boolean",
         ],
+        "assembly_consistency": {
+            "policy": "spatial_v1",
+            "relationship_kinds": [
+                "center_plane",
+                "coaxial",
+                "bbox_containment",
+                "surface_contact",
+                "side_specific",
+                "bilateral_pair",
+                "axis_alignment",
+                "axis_clearance",
+            ],
+            "required_check_kinds": [
+                "position",
+                "axis",
+                "orientation",
+                "clearance",
+            ],
+            "legacy_behavior": "readable but spatially unverified",
+        },
         "material_capabilities": {
             "presets": sorted(get_material_family_presets()),
             "source_channels": [
@@ -473,6 +501,47 @@ def get_modeling_capabilities() -> dict:
             "depth",
             "wireframe",
         ],
+        "visual_qa_companion_diagnostics": {
+            "canonical_score_unchanged": True,
+            "bounded_camera_attribution": True,
+            "camera_probe_budget": {
+                "nonbaseline_deltas": 12,
+                "neutral_baseline_additional": True,
+                "total_probe_records_at_default": 13,
+            },
+            "semantic_shape_masks": "explicit evidence only",
+            "semantic_mask_registry": {
+                "register_tool": "register_semantic_reference_masks",
+                "status_tool": "get_semantic_reference_mask_status",
+                "promotion": "exact candidate SHA-256 bound",
+                "status_values": [
+                    "absent",
+                    "current",
+                    "legacy_current",
+                    "stale",
+                    "invalid",
+                ],
+                "diagnostic_evidence": "run-owned manifest and mask snapshots",
+            },
+            "semantic_shape_metrics": [
+                "mask_iou",
+                "centroid_error_norm",
+                "area_ratio",
+                "boundary_f_score",
+                "symmetric_contour_distance_norm",
+                "undirected_pca_axis_error_deg",
+            ],
+            "assembly_multiview_views": [
+                "front",
+                "right",
+                "top",
+                "rear",
+                "oblique",
+            ],
+            "assembly_multiview_reference_similarity": False,
+            "advisory_only": True,
+            "machine_json_authoritative": True,
+        },
         "revision_mode": "ID-addressed guarded operations",
         "notes": [
             "Keep large mesh payloads in workspace geometry files instead of inline JSON.",
@@ -826,6 +895,109 @@ def validate_interior_scope(job_id: str) -> dict:
     """Validate canonical interior objects and write a machine-readable safety report."""
 
     return validate_job_interior_scope(job_id, write_report=True).model_dump(mode="json")
+
+
+@mcp.tool()
+def plan_assembly_multiview_sanity(
+    job_id: str,
+    run_id: str | None = None,
+    resolution: int = 384,
+) -> dict:
+    """Plan structural assembly views without replacing any specialized approval."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    if resolution < 128 or resolution > 1024:
+        raise ValueError("resolution must be within [128, 1024]")
+    return plan_job_assembly_multiview_sanity(
+        job_id,
+        run_id=run_id,
+        resolution=resolution,
+    )
+
+
+@mcp.tool()
+def register_semantic_reference_masks(
+    job_id: str,
+    registration_id: str,
+    manifest_sha256: str,
+) -> dict:
+    """Promote one exact job-owned semantic-mask manifest without editing geometry."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    return register_job_semantic_reference_masks(
+        job_id,
+        registration_id,
+        manifest_sha256=manifest_sha256,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_semantic_reference_mask_status(job_id: str) -> dict:
+    """Return read-only semantic-mask registration freshness and hash evidence."""
+
+    return get_job_semantic_reference_mask_status(job_id).model_dump(mode="json")
+
+
+@mcp.tool()
+def run_visual_diagnostics(
+    job_id: str,
+    qa_run_id: str,
+    diagnostic_id: str = "camera-geometry-v1",
+    max_camera_probes: int = 12,
+    include_multiview_sanity: bool = True,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> dict:
+    """Run bounded companion evidence without altering canonical V0.6 scores."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    if max_camera_probes < 1 or max_camera_probes > 12:
+        raise ValueError("max_camera_probes must be within [1, 12]")
+    if render_engine not in {"eevee", "cycles"}:
+        raise ValueError("render_engine must be eevee or cycles")
+    if render_device not in {"auto", "cpu", "gpu"}:
+        raise ValueError("render_device must be auto, cpu, or gpu")
+    if render_engine == "eevee" and render_device != "auto":
+        raise ValueError("render_device must be auto for EEVEE")
+    return run_job_visual_diagnostics(
+        job_id,
+        qa_run_id,
+        diagnostic_id=diagnostic_id,
+        max_camera_probes=max_camera_probes,
+        include_multiview_sanity=include_multiview_sanity,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+
+
+@mcp.tool()
+def run_assembly_multiview_sanity(
+    job_id: str,
+    run_id: str,
+    plan_sha256: str,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> dict:
+    """Run a noncanonical diagnostic without bypassing V0.6 or interior approvals."""
+
+    if not load_feature_config().features.visual_qa:
+        raise ValueError("visual_qa is disabled in cbm.toml")
+    if render_engine not in {"eevee", "cycles"}:
+        raise ValueError("render_engine must be eevee or cycles")
+    if render_device not in {"auto", "cpu", "gpu"}:
+        raise ValueError("render_device must be auto, cpu, or gpu")
+    if render_engine == "eevee" and render_device != "auto":
+        raise ValueError("render_device must be auto for EEVEE")
+    return run_job_assembly_multiview_sanity(
+        job_id,
+        run_id,
+        plan_sha256=plan_sha256,
+        render_engine=render_engine,
+        render_device=render_device,
+    )
 
 
 @mcp.tool()
@@ -1772,7 +1944,21 @@ def export_scene(job_id: str, format: str = "glb") -> dict:
     return {"ok": True, "path": str(output)}
 
 
+def _preload_optional_vision_runtime() -> None:
+    """Load optional native vision modules before MCP worker threads can race imports."""
+
+    try:
+        import cv2  # noqa: F401
+        import numpy  # noqa: F401
+    except (ImportError, OSError):
+        # Pillow reference-mask fallback remains valid without the optional vision extra.
+        return
+
+
 def main() -> None:
+    """Start stdio MCP after optional native runtimes are initialized on the main thread."""
+
+    _preload_optional_vision_runtime()
     mcp.run(transport="stdio")
 
 

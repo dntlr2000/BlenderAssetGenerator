@@ -8,6 +8,9 @@ from typing import Any
 from codex_blender_modeler.auto_revision.models import RevisionCandidates
 from codex_blender_modeler.baking import load_bake_manifest
 from codex_blender_modeler.materials import load_material_plan
+from codex_blender_modeler.qa.diagnostic_service import (
+    validate_qa_diagnostic_bundle,
+)
 from codex_blender_modeler.qa.models import RenderPassManifest, VisualQAReport
 from codex_blender_modeler.reporting import (
     HumanReportManifest,
@@ -109,7 +112,7 @@ def verify_material_gate(job_id: str) -> dict[str, Any]:
 
 
 def verify_visual_qa_gate(job_id: str) -> dict[str, Any]:
-    """Verify the latest fixed-camera pass, report, and non-executable candidates."""
+    """Verify canonical QA plus its advisory camera/geometry companion bundle."""
 
     root = job_dir(job_id)
     latest = _load_json(root / "qa" / "latest.json")
@@ -135,6 +138,24 @@ def verify_visual_qa_gate(job_id: str) -> dict[str, Any]:
         raise RuntimeError("Unexpected generated target status")
     if any(item.applicability == "auto_safe" for item in candidates.candidates):
         raise RuntimeError("Visual QA produced an implicitly auto-safe revision candidate")
+    diagnostic_path = (
+        run_dir
+        / "diagnostics"
+        / "camera-geometry-v1"
+        / "bundle_manifest.json"
+    )
+    bundle, diagnostic_request, diagnostic_report = validate_qa_diagnostic_bundle(
+        root,
+        diagnostic_path,
+    )
+    if (
+        bundle.qa_run_id != str(manifest.run_id)
+        or diagnostic_request.qa_run_id != str(manifest.run_id)
+        or diagnostic_request.visual_qa_report_path
+        != bundle.visual_qa_report_path
+        or diagnostic_report.advisory_only is not True
+    ):
+        raise RuntimeError("QA companion diagnostics are not bound to the exact run")
     return {
         "job_id": job_id,
         "run_id": manifest.run_id,
@@ -143,6 +164,9 @@ def verify_visual_qa_gate(job_id: str) -> dict[str, Any]:
         "finding_count": len(report.findings),
         "candidate_count": len(candidates.candidates),
         "generated_target_status": report.generated_target_status,
+        "diagnostic_status": diagnostic_report.status,
+        "diagnostic_attribution": diagnostic_report.attribution.classification,
+        "canonical_v06_score_unchanged": True,
         "ok": True,
     }
 

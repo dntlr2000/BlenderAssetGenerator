@@ -109,6 +109,70 @@ def test_runtime_contact_and_bilateral_checks_match_host_semantics(
     assert bilateral_residual > bilateral_tolerance
 
 
+def test_runtime_axis_alignment_and_clearance_match_host_semantics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Score evaluated object bases and directional broad-phase gaps deterministically."""
+
+    runtime = _load_runtime(monkeypatch)
+    subject = {"min": [-2.0, -0.1, -0.8], "max": [-1.5, 0.1, -0.2]}
+    reference = {"min": [-1.0, -0.2, -0.9], "max": [1.0, 0.2, 0.1]}
+    identity = [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]
+    rotated = [[0.0, 1.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 1.0]]
+    alignment = {
+        "kind": "axis_alignment",
+        "subject_axis": "+X",
+        "target_direction": [1.0, 0.0, 0.0],
+        "target_space": "assembly_frame",
+        "directionality": "directed",
+        "angular_tolerance_deg": 5.0,
+        "tolerance": {"mode": "relative", "value": 0.05},
+    }
+    passed, allowed, mode, metrics = runtime._evaluate_bounds_relation(
+        alignment,
+        subject,
+        reference,
+        None,
+        subject_basis=identity,
+        reference_basis=identity,
+    )
+    failed, _, _, failed_metrics = runtime._evaluate_bounds_relation(
+        alignment,
+        subject,
+        reference,
+        None,
+        subject_basis=rotated,
+        reference_basis=identity,
+    )
+    assert passed == pytest.approx(0.0)
+    assert passed <= allowed
+    assert mode == "degrees"
+    assert metrics["evaluation_basis"] == "evaluated_object_axes_in_assembly_frame"
+    assert failed == pytest.approx(90.0)
+    assert failed_metrics["angular_error_deg"] == pytest.approx(90.0)
+
+    clearance = {
+        "kind": "axis_clearance",
+        "axis": "X",
+        "direction": "POSITIVE",
+        "minimum_gap": {"mode": "meters", "value": 0.25},
+        "maximum_gap": {"mode": "meters", "value": 0.75},
+        "min_transverse_overlap_ratio": 0.05,
+        "tolerance": {"mode": "meters", "value": 0.01},
+    }
+    residual, tolerance, mode, metrics = runtime._evaluate_bounds_relation(
+        clearance,
+        subject,
+        reference,
+        None,
+    )
+    assert residual == pytest.approx(0.0)
+    assert residual <= tolerance
+    assert mode == "meters"
+    assert metrics["evaluated_gap"] == pytest.approx(0.5)
+    assert metrics["transverse_overlap_ok"] is True
+
+
 def test_blender_scripts_embed_and_report_assembly_provenance() -> None:
     """Build, inspect, and validation scripts must expose one coherent assembly contract."""
 
@@ -124,6 +188,7 @@ def test_blender_scripts_embed_and_report_assembly_provenance() -> None:
     assert '"matrix_local"' in inspect
     assert '"matrix_world"' in inspect
     assert '"bbox_world"' in inspect
+    assert '"basis_assembly_frame"' in inspect
     assert '"assembly": assembly' in validate
     assert "world_to_frame @ point" in runtime
     assert "transform.location" in runtime
@@ -441,6 +506,11 @@ def _meter_frame_smoke_plan(job_id: str) -> dict:
             "label": object_id,
             "assembly_role": "root" if object_id == "asset.root" else "attached",
             "source_ids": ["reference"],
+            "required_assembly_checks": (
+                ["axis"]
+                if object_id in {"asset.meter_subject", "asset.rotated_subject"}
+                else []
+            ),
         }
         for object_id in (
             "asset.root",
@@ -475,6 +545,42 @@ def _meter_frame_smoke_plan(job_id: str) -> dict:
             "confidence": 0.5,
             "required": True,
             "tolerance": {"mode": "meters", "value": 0.05},
+            "instance_policy": "family_bounds",
+            "notes": [],
+        },
+        {
+            "id": "axis.meter_subject",
+            "kind": "axis_alignment",
+            "subject_id": "asset.meter_subject",
+            "reference_id": "asset.root",
+            "subject_axis": "+X",
+            "target_direction": [0.7071067811865476, 0.7071067811865476, 0.0],
+            "target_space": "assembly_frame",
+            "directionality": "directed",
+            "angular_tolerance_deg": 0.01,
+            "evidence_status": "inferred",
+            "source_ids": [],
+            "confidence": 0.5,
+            "required": True,
+            "tolerance": {"mode": "relative", "value": 0.05},
+            "instance_policy": "family_bounds",
+            "notes": [],
+        },
+        {
+            "id": "axis.rotated_pair",
+            "kind": "axis_alignment",
+            "subject_id": "asset.rotated_subject",
+            "reference_id": "asset.rotated_reference",
+            "subject_axis": "+X",
+            "target_direction": [0.25881904510252074, 0.9659258262890683, 0.0],
+            "target_space": "reference_local",
+            "directionality": "directed",
+            "angular_tolerance_deg": 0.01,
+            "evidence_status": "inferred",
+            "source_ids": [],
+            "confidence": 0.5,
+            "required": True,
+            "tolerance": {"mode": "relative", "value": 0.05},
             "instance_policy": "family_bounds",
             "notes": [],
         },
@@ -686,7 +792,16 @@ def test_blender_runtime_uses_orthonormal_root_meter_frame(tmp_path: Path) -> No
         0.0,
         abs=1.0e-6,
     )
+    assert relation_checks["axis.meter_subject"]["residual"] == pytest.approx(
+        0.0,
+        abs=5.0e-5,
+    )
+    assert relation_checks["axis.rotated_pair"]["residual"] == pytest.approx(
+        0.0,
+        abs=5.0e-5,
+    )
     assert meter_subject["bbox_assembly_frame"] is not None
+    assert meter_subject["basis_assembly_frame"] is not None
     center_y = sum(
         meter_subject["bbox_assembly_frame"][boundary][1]
         for boundary in ("min", "max")

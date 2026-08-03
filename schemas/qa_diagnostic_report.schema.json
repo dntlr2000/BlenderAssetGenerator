@@ -1,0 +1,800 @@
+{
+  "$defs": {
+    "AssemblyDiagnosticEvidence": {
+      "additionalProperties": false,
+      "description": "Summarize deterministic cross-section or assembly checks used for attribution.",
+      "properties": {
+        "status": {
+          "default": "not_available",
+          "enum": [
+            "not_available",
+            "passed",
+            "warning",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "report_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Path"
+        },
+        "report_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Report Sha256"
+        },
+        "required_failure_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Failure Ids",
+          "type": "array"
+        },
+        "warning_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warning Ids",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "title": "AssemblyDiagnosticEvidence",
+      "type": "object"
+    },
+    "BoundedCameraDelta": {
+      "additionalProperties": false,
+      "description": "Describe one tightly bounded comparison-camera diagnostic perturbation.",
+      "properties": {
+        "target_offset_norm": {
+          "default": [
+            0.0,
+            0.0
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target Offset Norm",
+          "type": "array"
+        },
+        "distance_scale": {
+          "default": 1.0,
+          "maximum": 2.0,
+          "minimum": 0.5,
+          "title": "Distance Scale",
+          "type": "number"
+        },
+        "projection_scale": {
+          "default": 1.0,
+          "maximum": 2.0,
+          "minimum": 0.5,
+          "title": "Projection Scale",
+          "type": "number"
+        },
+        "rotation_delta_deg": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Delta Deg",
+          "type": "array"
+        }
+      },
+      "title": "BoundedCameraDelta",
+      "type": "object"
+    },
+    "CameraProbeResult": {
+      "additionalProperties": false,
+      "description": "Bind one bounded camera probe to exact immutable evidence and semantic scores.",
+      "properties": {
+        "probe_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+          "title": "Probe Id",
+          "type": "string"
+        },
+        "is_baseline": {
+          "default": false,
+          "title": "Is Baseline",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "camera_delta": {
+          "$ref": "#/$defs/BoundedCameraDelta"
+        },
+        "overall_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overall Score"
+        },
+        "primary_silhouette_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Silhouette Score"
+        },
+        "semantic_scores": {
+          "items": {
+            "$ref": "#/$defs/CameraProbeSemanticScore"
+          },
+          "title": "Semantic Scores",
+          "type": "array"
+        },
+        "evidence_path": {
+          "title": "Evidence Path",
+          "type": "string"
+        },
+        "evidence_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Evidence Sha256",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "probe_id",
+        "status",
+        "evidence_path",
+        "evidence_sha256"
+      ],
+      "title": "CameraProbeResult",
+      "type": "object"
+    },
+    "CameraProbeSemanticScore": {
+      "additionalProperties": false,
+      "description": "Record one semantic similarity score produced by a bounded camera probe.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "scorable": {
+          "title": "Scorable",
+          "type": "boolean"
+        },
+        "score_basis": {
+          "default": "bbox",
+          "enum": [
+            "bbox",
+            "semantic_shape"
+          ],
+          "title": "Score Basis",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "scorable"
+      ],
+      "title": "CameraProbeSemanticScore",
+      "type": "object"
+    },
+    "DiagnosticAttribution": {
+      "additionalProperties": false,
+      "description": "Classify visual mismatch causes without authorizing an asset revision.",
+      "properties": {
+        "classification": {
+          "enum": [
+            "camera",
+            "geometry",
+            "assembly",
+            "mixed",
+            "ambiguous",
+            "unscorable"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "baseline_probe_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+          "title": "Baseline Probe Id",
+          "type": "string"
+        },
+        "best_probe_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Best Probe Id"
+        },
+        "baseline_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Score"
+        },
+        "best_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Best Score"
+        },
+        "camera_gain": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Gain"
+        },
+        "baseline_primary_silhouette_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Baseline Primary Silhouette Score"
+        },
+        "best_primary_silhouette_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Best Primary Silhouette Score"
+        },
+        "primary_silhouette_gain": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": -1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Primary Silhouette Gain"
+        },
+        "semantic_consensus_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Consensus Fraction"
+        },
+        "geometry_residual_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Geometry Residual Fraction"
+        },
+        "semantic_shape_residual_fraction": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Shape Residual Fraction"
+        },
+        "semantic_shape_residual_ids": {
+          "items": {
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+            "type": "string"
+          },
+          "title": "Semantic Shape Residual Ids",
+          "type": "array"
+        },
+        "semantic_orientation_residual_ids": {
+          "items": {
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+            "type": "string"
+          },
+          "title": "Semantic Orientation Residual Ids",
+          "type": "array"
+        },
+        "assembly_failure_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assembly Failure Ids",
+          "type": "array"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "advisory_only": {
+          "const": true,
+          "default": true,
+          "title": "Advisory Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "classification",
+        "confidence",
+        "baseline_probe_id",
+        "reasons"
+      ],
+      "title": "DiagnosticAttribution",
+      "type": "object"
+    },
+    "SemanticShapeMetrics": {
+      "additionalProperties": false,
+      "description": "Store deterministic mask-shape metrics for one stable semantic object.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "role": {
+          "default": "unscoped",
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background",
+            "unscoped"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "reference_foreground_pixels": {
+          "minimum": 0,
+          "title": "Reference Foreground Pixels",
+          "type": "integer"
+        },
+        "rendered_foreground_pixels": {
+          "minimum": 0,
+          "title": "Rendered Foreground Pixels",
+          "type": "integer"
+        },
+        "mask_iou": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Iou"
+        },
+        "centroid_error_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Centroid Error Norm"
+        },
+        "area_ratio": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Area Ratio"
+        },
+        "boundary_f_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary F Score"
+        },
+        "boundary_tolerance_px": {
+          "default": 2,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Boundary Tolerance Px",
+          "type": "integer"
+        },
+        "symmetric_contour_distance_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Symmetric Contour Distance Norm"
+        },
+        "oriented_axis_scorable": {
+          "default": false,
+          "title": "Oriented Axis Scorable",
+          "type": "boolean"
+        },
+        "reference_axis_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 180,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Axis Deg"
+        },
+        "rendered_axis_deg": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 180,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rendered Axis Deg"
+        },
+        "undirected_axis_error_deg": {
+          "anyOf": [
+            {
+              "maximum": 90,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Undirected Axis Error Deg"
+        },
+        "reference_axis_eccentricity": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Axis Eccentricity"
+        },
+        "rendered_axis_eccentricity": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rendered Axis Eccentricity"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "status",
+        "width",
+        "height",
+        "reference_foreground_pixels",
+        "rendered_foreground_pixels"
+      ],
+      "title": "SemanticShapeMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Publish hash-bound companion diagnostics without changing V0.6 acceptance scores.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_version": {
+      "const": "camera_geometry_attribution_v1",
+      "default": "camera_geometry_attribution_v1",
+      "title": "Diagnostic Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "qa_run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Qa Run Id",
+      "type": "string"
+    },
+    "diagnostic_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Diagnostic Id",
+      "type": "string"
+    },
+    "request_path": {
+      "title": "Request Path",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "degraded",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "semantic_metrics": {
+      "items": {
+        "$ref": "#/$defs/SemanticShapeMetrics"
+      },
+      "title": "Semantic Metrics",
+      "type": "array"
+    },
+    "camera_probes": {
+      "items": {
+        "$ref": "#/$defs/CameraProbeResult"
+      },
+      "minItems": 1,
+      "title": "Camera Probes",
+      "type": "array"
+    },
+    "assembly_evidence": {
+      "$ref": "#/$defs/AssemblyDiagnosticEvidence"
+    },
+    "attribution": {
+      "$ref": "#/$defs/DiagnosticAttribution"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "advisory_only": {
+      "const": true,
+      "default": true,
+      "title": "Advisory Only",
+      "type": "boolean"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "qa_run_id",
+    "diagnostic_id",
+    "request_path",
+    "request_sha256",
+    "status",
+    "camera_probes",
+    "assembly_evidence",
+    "attribution",
+    "generated_at"
+  ],
+  "title": "QADiagnosticReport",
+  "type": "object"
+}

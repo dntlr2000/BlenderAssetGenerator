@@ -11,6 +11,11 @@ from uuid import uuid4
 from ..blender_artifacts import write_json_atomic
 from ..config import get_settings
 from ..handoff import validate_destination_handoff
+from ..qa.diagnostic_models import (
+    QADiagnosticBundleManifest,
+    QADiagnosticRequest,
+)
+from ..qa.diagnostic_service import validate_qa_diagnostic_bundle
 from ..workspace import job_dir, load_job, resolve_metadata_path, sha256_file
 from .models import HumanReportManifest, ReportScope, ReportSource
 from .pdf_renderer import render_job_pdf
@@ -603,6 +608,281 @@ def _collect_qa_images(
     return images
 
 
+def _companion_file_is_current(
+    root: Path,
+    relative_path: Any,
+    expected_sha256: Any,
+    *,
+    label: str,
+    warnings: list[str],
+) -> Path | None:
+    """Resolve one bundle-declared companion file only when its exact hash is current."""
+
+    if not isinstance(relative_path, str) or not isinstance(expected_sha256, str):
+        warnings.append(f"QA companion diagnostics omit an exact {label} path/hash binding.")
+        return None
+    candidate = _safe_job_file(root, root / relative_path, warnings)
+    if candidate is None:
+        return None
+    if not _recorded_hash_is_current(candidate, expected_sha256, label, warnings):
+        return None
+    return candidate
+
+
+def _diagnostic_request_sources_are_current(
+    root: Path,
+    request: QADiagnosticRequest,
+    warnings: list[str],
+) -> bool:
+    """Re-hash every canonical source frozen by a companion diagnostic request."""
+
+    pairs: list[tuple[str, str, str]] = [
+        (
+            request.visual_qa_request_path,
+            request.visual_qa_request_sha256,
+            "diagnostic VisualQARequest",
+        ),
+        (
+            request.visual_qa_report_path,
+            request.visual_qa_report_sha256,
+            "diagnostic VisualQAReport",
+        ),
+        (
+            request.render_pass_manifest_path,
+            request.render_pass_manifest_sha256,
+            "diagnostic render-pass manifest",
+        ),
+        (request.scene_spec_path, request.scene_spec_sha256, "diagnostic SceneSpec"),
+    ]
+    for path, digest, label in (
+        (
+            request.modeling_plan_path,
+            request.modeling_plan_sha256,
+            "diagnostic ModelingPlan",
+        ),
+        (
+            request.camera_role_map_path,
+            request.camera_role_map_sha256,
+            "diagnostic camera role map",
+        ),
+        (
+            request.semantic_reference_manifest_path,
+            request.semantic_reference_manifest_sha256,
+            "diagnostic semantic-mask manifest",
+        ),
+        (
+            request.assembly_report_path,
+            request.assembly_report_sha256,
+            "diagnostic assembly report",
+        ),
+        (
+            request.primary_reference_mask_path,
+            request.primary_reference_mask_sha256,
+            "diagnostic primary-reference mask",
+        ),
+    ):
+        if path is not None and digest is not None:
+            pairs.append((path, digest, label))
+    pairs.extend(
+        (
+            binding.reference_mask_path,
+            binding.reference_mask_sha256,
+            f"semantic reference mask {binding.semantic_id}",
+        )
+        for binding in request.semantic_masks
+    )
+    pairs.extend(
+        (
+            binding.rendered_mask_path,
+            binding.rendered_mask_sha256,
+            f"semantic rendered mask {binding.semantic_id}",
+        )
+        for binding in request.semantic_masks
+    )
+    for relative_path, expected_sha256, label in pairs:
+        if (
+            _companion_file_is_current(
+                root,
+                relative_path,
+                expected_sha256,
+                label=label,
+                warnings=warnings,
+            )
+            is None
+        ):
+            return False
+    return True
+
+
+def _collect_companion_assembly_report(
+    root: Path,
+    bundle: QADiagnosticBundleManifest,
+    documents: dict[str, dict[str, Any]],
+    sources: list[ReportSource],
+    warnings: list[str],
+) -> None:
+    """Collect an optional multi-view assembly report only through its bundle hash."""
+
+    binding = bundle.assembly_multiview
+    report_path = binding.report_path
+    report_sha256 = binding.report_sha256
+    if report_path is None and report_sha256 is None:
+        return
+    path = _companion_file_is_current(
+        root,
+        report_path,
+        report_sha256,
+        label="assembly multi-view report",
+        warnings=warnings,
+    )
+    if path is None:
+        return
+    try:
+        payload = _load_json(path)
+    except (OSError, ValueError) as exc:
+        warnings.append(f"Assembly multi-view report is unavailable: {exc}")
+        return
+    if payload is None:
+        return
+    expected_identity = (
+        payload.get("schema_version") == "0.6.0"
+        and payload.get("diagnostic_kind") == "assembly_multiview_sanity"
+        and payload.get("job_id") == bundle.job_id
+        and payload.get("run_id") == binding.run_id
+        and payload.get("structural_status") in {"passed", "warning", "failed"}
+        and payload.get("reference_comparison_status") == "unscorable"
+        and isinstance(payload.get("limitations", []), list)
+    )
+    if not expected_identity:
+        warnings.append("Skipped an assembly multi-view report with mismatched identity.")
+        return
+    documents["assembly_sanity_report"] = payload
+    sources.append(_source_record(root, "assembly_sanity_report", path))
+
+
+def _collect_qa_companion_sources(
+    root: Path,
+    run_id: str,
+    run_dir: Path,
+    documents: dict[str, dict[str, Any]],
+    sources: list[ReportSource],
+    warnings: list[str],
+) -> None:
+    """Collect a terminal companion bundle and its exact immutable attempt artifacts."""
+
+    diagnostic_id = "camera-geometry-v1"
+    diagnostic_root = run_dir / "diagnostics" / diagnostic_id
+    if not diagnostic_root.is_dir():
+        warnings.append(
+            "QA companion diagnostics are unavailable for this legacy or standalone QA run."
+        )
+        return
+    bundle_path = diagnostic_root / "bundle_manifest.json"
+    if not bundle_path.is_file():
+        warnings.append("QA companion diagnostics are incomplete and were not included.")
+        return
+    try:
+        bundle, request, report = validate_qa_diagnostic_bundle(root, bundle_path)
+        bundle_payload = bundle.model_dump(mode="json")
+        request_payload = request.model_dump(mode="json")
+        report_payload = report.model_dump(mode="json")
+    except (OSError, ValueError) as exc:
+        warnings.append(f"QA companion diagnostics are malformed and unavailable: {exc}")
+        return
+    if (
+        bundle.job_id != root.name
+        or bundle.qa_run_id != run_id
+        or bundle.diagnostic_id != diagnostic_id
+    ):
+        warnings.append("QA companion diagnostics have mismatched terminal identity.")
+        return
+    request_path = root / bundle.diagnostic_request_path
+    report_path = root / bundle.diagnostic_report_path
+    expected_request_path = bundle.diagnostic_request_path
+    visual_request_path = run_dir / "request.json"
+    visual_report_path = run_dir / "visual_qa_report.json"
+    pass_manifest_path = run_dir / "render_pass_manifest.json"
+    scene_spec_path = root / "analysis" / "scene_spec.json"
+    identity_is_current = (
+        bundle.job_id == request.job_id == report.job_id == root.name
+        and bundle.qa_run_id == request.qa_run_id == report.qa_run_id == run_id
+        and bundle.diagnostic_id
+        == request.diagnostic_id
+        == report.diagnostic_id
+        == diagnostic_id
+        and report.request_path == expected_request_path
+        and report.request_sha256 == bundle.diagnostic_request_sha256
+        and bundle.visual_qa_report_path == _job_relative(root, visual_report_path)
+        and request.visual_qa_request_path == _job_relative(root, visual_request_path)
+        and visual_request_path.is_file()
+        and request.visual_qa_request_sha256 == sha256_file(visual_request_path)
+        and request.visual_qa_report_path == _job_relative(root, visual_report_path)
+        and request.visual_qa_report_sha256 == bundle.visual_qa_report_sha256
+        and visual_report_path.is_file()
+        and bundle.visual_qa_report_sha256 == sha256_file(visual_report_path)
+        and request.render_pass_manifest_path == _job_relative(root, pass_manifest_path)
+        and pass_manifest_path.is_file()
+        and request.render_pass_manifest_sha256 == sha256_file(pass_manifest_path)
+        and request.scene_spec_path == _job_relative(root, scene_spec_path)
+        and scene_spec_path.is_file()
+        and request.scene_spec_sha256 == sha256_file(scene_spec_path)
+    )
+    if not identity_is_current:
+        warnings.append("QA companion diagnostics are stale or identity-mismatched.")
+        return
+    for relative_path, expected_sha256, label in (
+        (
+            bundle.camera_probe_plan_path,
+            bundle.camera_probe_plan_sha256,
+            "camera-probe plan",
+        ),
+        (
+            bundle.camera_probe_manifest_path,
+            bundle.camera_probe_manifest_sha256,
+            "camera-probe manifest",
+        ),
+    ):
+        if (
+            _companion_file_is_current(
+                root,
+                relative_path,
+                expected_sha256,
+                label=label,
+                warnings=warnings,
+            )
+            is None
+        ):
+            warnings.append("QA companion diagnostics have stale probe evidence.")
+            return
+    for probe in report.camera_probes:
+        if (
+            _companion_file_is_current(
+                root,
+                probe.evidence_path,
+                probe.evidence_sha256,
+                label=f"camera-probe result {probe.probe_id}",
+                warnings=warnings,
+            )
+            is None
+        ):
+            warnings.append("QA companion diagnostics have stale probe result evidence.")
+            return
+    if not _diagnostic_request_sources_are_current(root, request, warnings):
+        warnings.append("QA companion diagnostics reference stale source evidence.")
+        return
+    documents["qa_diagnostic_request"] = request_payload
+    documents["qa_diagnostic_report"] = report_payload
+    documents["qa_diagnostic_bundle"] = bundle_payload
+    sources.extend(
+        [
+            _source_record(root, "qa_diagnostic_request", request_path),
+            _source_record(root, "qa_diagnostic_report", report_path),
+            _source_record(root, "qa_diagnostic_bundle", bundle_path),
+        ]
+    )
+    _collect_companion_assembly_report(root, bundle, documents, sources, warnings)
+
+
 def _collect_interior_qa_images(
     root: Path,
     run_dir: Path | None,
@@ -701,6 +981,15 @@ def collect_job_report_payload(
                 ("rollback", "rollback_report.json"),
             ):
                 _collect_json_source(root, key, run_dir / filename, documents, sources)
+            assert run_id is not None
+            _collect_qa_companion_sources(
+                root,
+                run_id,
+                run_dir,
+                documents,
+                sources,
+                warnings,
+            )
         resolved_interior_qa_run_id, interior_qa_run_dir = _resolve_interior_qa_run(
             root,
             interior_qa_run_id,

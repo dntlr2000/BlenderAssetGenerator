@@ -560,6 +560,19 @@ class WorkflowPlan(V08StrictModel):
                         "background_exterior requires one direct QA run without a "
                         "generated target"
                     )
+                if qa_steps[0].parameters.get("diagnostic_policy") is not None:
+                    diagnostic_steps = [
+                        step for step in self.steps if step.step_id == "qa.diagnostics"
+                    ]
+                    if (
+                        len(diagnostic_steps) != 1
+                        or diagnostic_steps[0].tool_name != "run_visual_diagnostics"
+                        or diagnostic_steps[0].depends_on != ["qa.run"]
+                    ):
+                        raise ValueError(
+                            "new diagnostic-enabled background plans require one "
+                            "qa.diagnostics step after canonical QA"
+                        )
                 if self.fast_quality_policy == "review_delivery_v2":
                     fit_step = step_map["background.fit"]
                     if (

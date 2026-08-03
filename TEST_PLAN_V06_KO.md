@@ -84,6 +84,63 @@ uv run cbm visual-qa geometry_showcase
 - target의 실제 prompt와 provider/model/version/seed/output provenance 기록
 - generated-target-only finding은 suggestion 없음, confidence 0.35 이하
 
+## Gate 5A — Camera/Shape/Assembly companion diagnostics
+
+이 gate는 canonical V0.6 score나 seven-pass run을 다시 만들지 않고, 격리된 새
+workflow/run-owned companion evidence만 검사합니다.
+
+1. canonical `VisualQAReport.overall_direct_score`, request/report/pass hashes와 정확히
+   7개 pass가 companion 전후 동일
+2. neutral baseline 1개와 별도 12개 bounded yaw/pitch/framing/distance/target delta,
+   즉 총 13개 probe record의 count·delta·path 검증
+3. `primary_object_only`에서만 canonical VisualQARequest mask 사용
+4. `full_reference`에서는 explicit primary/supporting semantic-mask union만 허용
+5. explicit mask가 없는 `full_reference` fixture는 bbox-only fallback이며 fabricated
+   mask가 없음
+6. mask path/hash/source가 probe plan과 diagnostic request에 결속되고 렌더 중 또는
+   발행 전 stale mask 변경을 거부
+7. bbox가 동일한 angle fixture에서 exact primary silhouette IoU gain이 camera
+   attribution evidence가 됨
+8. mask IoU, centroid, area ratio, boundary F-score, symmetric contour distance가
+   결정론적으로 재현됨
+9. elongated mask는 PCA undirected axis를 기록하고 near-circular/empty mask는
+   limitation과 함께 orientation 또는 전체 metric을 unscorable 처리
+10. 180도 반전은 undirected PCA axis error가 0°가 될 수 있으므로 이를 signed-facing
+   근거로 취급하지 않고, 별도 authored directed 3D `axis_alignment`에서 검사
+11. `required_assembly_checks`를 관계 ID가 아닌 `position|axis|orientation|clearance`
+   검사 카테고리로 해석하고, `assembly_relationships`의 stable 관계 ID를 별도로 보존하며,
+   `axis_clearance` 또는 필수 카테고리 누락/위반은 required failure
+12. five-view plan이 `front`, `right`, `top`, `rear`, `oblique`를 고정하고
+   `qa-assembly-sanity-run --plan-sha256 <exact-hash>`가 일치할 때만 각 view의
+   beauty/silhouette/object-ID/wireframe hash를 검증
+13. five-view `reference_comparison_status=unscorable`이며 유사도 점수를 만들지 않음
+14. camera probe와 five-view renderer가 authoring `.blend`와 canonical JSON을 변경하지
+   않음
+15. legacy job/workflow는 companion 부재 상태로 계속 로딩되고 QA/full PDF는
+   unavailable warning만 표시
+16. `qa-semantic-masks-register`, `qa-semantic-masks-status`, `qa-diagnose`,
+   `qa-assembly-sanity-plan`, `qa-assembly-sanity-run` CLI help와
+   `register_semantic_reference_masks`, `get_semantic_reference_mask_status`,
+   `run_visual_diagnostics`, `plan_assembly_multiview_sanity`,
+   `run_assembly_multiview_sanity` MCP allowlist 일치
+17. companion output이 guarded revision, convergence, InteriorScope, V0.7 또는 handoff
+   승인을 만들거나 소비하지 않음
+18. diagnostic root에는 성공 뒤 `bundle_manifest.json` 하나만 terminal로 발행되고
+    request/report/probe/semantic evidence는 `attempts/attempt-NNN/` 아래에만 존재
+19. 실패한 `attempt-001`의 hash를 보존한 명시적 재시도가 `attempt-002`를 만들고,
+    성공한 exact attempt만 terminal bundle에 결속
+20. terminal bundle 발행 직전 canonical seven-pass, SceneSpec, role map, probe evidence를
+    다시 hash 검증하며 concurrent drift나 nested artifact 변조를 fail-closed 처리
+21. attribution이 `camera|geometry|assembly|mixed|ambiguous|unscorable` 중 하나여도
+    canonical direct score, 정확히 7개인 pass manifest와 revision approval 상태가 불변
+22. exact candidate hash로 semantic mask를 byte-preserving promotion하고 이전 manifest
+    history와 immutable receipt를 남기며 interrupted promotion을 안전하게 복구
+23. read-only registry status가 `current|legacy_current|absent|stale|invalid`를 정확히
+    구분하고 status 조회 자체는 어떤 파일도 수정하지 않음
+24. diagnostic attempt가 exact semantic manifest/mask snapshots를 소유하여 이후 정상
+    canonical promotion에는 current로 남고 snapshot tampering에는 fail-closed
+25. promotion receipt/status JSON Schema와 생성된 schema parity 통과
+
 ## Gate 6 — 승인형 수정과 복구
 
 단위·통합 fixture에서 다음을 검사합니다.
@@ -146,7 +203,7 @@ Destination Handoff 권한을 만들지 않습니다.
 uv run python scripts/run_v06_mcp_regressions.py
 ```
 
-완료 조건: preset 조회, PBR 생성/연결, material validate, Blender build, Cycles bake, material inspect/swatch, direct QA가 실제 stdio MCP 경로에서 종료됩니다. `plan_visual_convergence`, `approve_visual_convergence`, `run_visual_convergence`, `get_visual_convergence_status`, `cancel_visual_convergence`가 allowlist에 존재하고 exact-plan 경계를 보존해야 합니다. Blender 자식 프로세스는 MCP stdin을 상속하지 않습니다.
+완료 조건: preset 조회, PBR 생성/연결, material validate, Blender build, Cycles bake, material inspect/swatch, direct QA가 실제 stdio MCP 경로에서 종료됩니다. `plan_visual_convergence`, `approve_visual_convergence`, `run_visual_convergence`, `get_visual_convergence_status`, `cancel_visual_convergence`, `run_visual_diagnostics`, `plan_assembly_multiview_sanity`, `run_assembly_multiview_sanity`가 구현과 allowlist에서 일치하고 기존 exact-plan 경계를 보존해야 합니다. Blender 자식 프로세스는 MCP stdin을 상속하지 않습니다.
 
 ## Gate 8 — 사람용 PDF 보고서
 
@@ -161,6 +218,11 @@ uv run python scripts/run_v06_mcp_regressions.py
 9. 한국어 텍스트, 표, swatch, QA 이미지의 페이지 잘림 여부를 렌더링으로 검사
 10. bounded convergence PDF가 terminal JSON, exact plan/approval, 모든 iteration support artifact와 final QA hash에 결속
 11. convergence PDF 누락 재생성은 source integrity가 모두 current일 때만 허용
+12. companion이 있으면 canonical direct score unchanged 문구, attribution, primary
+    silhouette gain, semantic-mask metric, assembly/five-view 상태와 limitation 표시
+13. companion이 없는 legacy QA는 PDF 생성을 실패시키지 않고 unavailable로 표시
+14. stale companion mask/request/report/bundle 또는 five-view report는 authoritative
+    source에서 제외하고 warning 표시
 
 ## Gate 9 — 선택적 실내 다각도 QA
 

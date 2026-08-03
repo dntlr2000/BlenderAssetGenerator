@@ -18,18 +18,19 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 3. `analysis/modeling_plan.json` — semantic decomposition plan.
 4. `architecture/interior_scope.json` and its hash-bound approval — optional user-authorized interior boundary; absence means interiors are disabled.
 5. `analysis/scene_spec.json` — canonical geometry, assignment, and camera design contract.
-6. `analysis/material_plan.json`, `materials/`, and `textures/` — approved material, shader, and texture contracts.
-7. `constraints/constraints.json` — measured requirements.
-8. `geometry/` — referenced deterministic geometry payloads.
-9. `qa/runs/<run-id>/` — immutable exterior fixed-camera QA evidence and revision candidates. Optional `qa/convergence/<session-id>/` evidence contains exact-plan-approved standard-only bounded convergence sessions and never grants fast-lane or V0.7 authority.
-10. `qa/interior/runs/<run-id>/` — immutable, approval-bound multi-view interior QA evidence; never a replacement for exterior reference QA.
-11. `asset_profiles/<profile-id>.json` — engine-neutral static-asset delivery policy.
-12. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
-13. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
-14. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
-15. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
-16. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
-17. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
+6. `analysis/masks/semantic_manifest.json` plus its exact registration receipt/history — optional explicit per-semantic reference-mask evidence for V0.6 diagnostics; never geometry or revision authority.
+7. `analysis/material_plan.json`, `materials/`, and `textures/` — approved material, shader, and texture contracts.
+8. `constraints/constraints.json` — measured requirements.
+9. `geometry/` — referenced deterministic geometry payloads.
+10. `qa/runs/<run-id>/` — immutable exterior fixed-camera QA evidence and revision candidates. Optional `qa/convergence/<session-id>/` evidence contains exact-plan-approved standard-only bounded convergence sessions and never grants fast-lane or V0.7 authority.
+11. `qa/interior/runs/<run-id>/` — immutable, approval-bound multi-view interior QA evidence; never a replacement for exterior reference QA.
+12. `asset_profiles/<profile-id>.json` — engine-neutral static-asset delivery policy.
+13. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
+14. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
+15. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
+16. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
+17. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
+18. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
 
 The project version is `0.9.0`. The geometry SceneSpec contract remains `0.2.0` so existing v0.2 workspaces can be reused without rewriting approved geometry. Optional InteriorScope contracts use `0.1.0`, material contracts remain `0.5.0`, QA contracts remain `0.6.0`, portable static-asset contracts use `0.7.0`, orchestration contracts use `0.8.0`, and stabilization evidence uses `0.9.0`.
 
@@ -178,6 +179,16 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 125. Build, inspect, and validate bind the exact spatial ModelingPlan hash and evaluate live geometry bounds in the root object's translation-and-rotation-only orthonormal meter frame. A required assembly failure blocks structural validation before material authoring.
 126. Fixed-camera V0.6 similarity, pre-QA fit, and convergence may not override a current assembly relationship. A proposed lateral/depth change that conflicts with spatial assembly evidence returns to V0.4 authoring instead of becoming an automatic visual revision.
 127. Assembly bbox checks are broad static-placement evidence only. They do not prove triangle-level contact, moving-part clearance, kinematics, manufacturability, weapon function, or the hidden-side truth of a single image.
+128. V0.6 camera/geometry/assembly companion diagnostics never recalculate, replace, or improve the canonical `VisualQAReport.overall_direct_score`. Canonical exterior QA still validates the actual Blender camera and contains exactly the seven required pass kinds.
+129. Bounded camera probes are advisory, noncanonical evidence. They must leave the authoring `.blend`, SceneSpec, material contracts, canonical camera, and approval state unchanged and can never authorize a camera or geometry revision.
+130. Primary-subject silhouette probe scoring requires an exact hash-bound mask: use the canonical VisualQARequest mask only for `primary_object_only`, or a run-owned union of explicit primary/supporting semantic masks. Without either source, preserve the legacy observed-bbox fallback and never fabricate a mask from bboxes.
+131. Per-part mask IoU, normalized centroid error, area ratio, boundary F-score, symmetric contour distance, and PCA axis evidence require explicit semantic reference masks. Missing or stale masks produce degraded, unscorable, or fail-closed evidence instead of inferred precision.
+132. PCA orientation is an undirected 2D axis and cannot distinguish a 180-degree reversal. Directed `axis_alignment` relationships verify facing; `axis_clearance` verifies signed axial separation plus transverse overlap. Hidden-axis placement also requires the signed 3D assembly frame and each object's declared `required_assembly_checks`.
+133. Five-view assembly sanity (`front`, `right`, `top`, `rear`, `oblique`) is structural evidence only. Its reference-similarity status remains `unscorable`; visibility, projection, depth-order, or assembly findings are not a reference match score and do not authorize revisions.
+134. Legacy jobs and workflows without companion diagnostics remain readable and report the companion as unavailable. New diagnostic planning applies only to newly created workflows and never rewrites or retroactively completes historical evidence.
+135. Companion diagnostics do not bypass generic workflow review, guarded V0.6 revision approval, bounded-convergence approval, InteriorScope, interior-QA camera approval, V0.7 optimization approval, or Destination Handoff approval.
+136. New explicit semantic reference masks are published only from `analysis/masks/registrations/<registration-id>/manifest.json` after exact candidate-hash, current SceneSpec/reference-hash, observed semantic-evidence, and binary PNG validation. Promotion preserves the candidate bytes at `analysis/masks/semantic_manifest.json`, archives a prior canonical manifest under `history/qa_semantic_masks/`, and writes an immutable promotion receipt.
+137. Semantic-mask registration and read-only status publish QA evidence only. They create or consume no workflow, guarded-revision, convergence, InteriorScope, interior-QA, V0.7 optimization, or Destination Handoff approval. A diagnostic snapshots the exact manifest and mask bytes into its own attempt so a later valid promotion does not stale historical evidence, while any attempt-snapshot mutation invalidates its terminal bundle.
 
 ## v0.4 reference-analysis workflow
 
@@ -396,7 +407,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 ## File ownership
 
 - `input/`: immutable user evidence
-- `analysis/`: diagnostics, camera assumptions, modeling plan, canonical SceneSpec, material plan
+- `analysis/`: diagnostics, camera assumptions, modeling plan, canonical SceneSpec, material plan, and hash-promoted semantic reference-mask evidence
 - `constraints/`: measured requirements
 - `history/`: prior SceneSpecs and explicitly replaced input views
 - `geometry/`: deterministic mesh/curve/height payloads

@@ -1,0 +1,285 @@
+{
+  "$defs": {
+    "AssemblySanityFinding": {
+      "additionalProperties": false,
+      "description": "Describe one structural relation, visibility, or reference limitation.",
+      "properties": {
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "assembly_relation",
+            "visibility",
+            "reference",
+            "render"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "view_ids": {
+          "items": {
+            "enum": [
+              "front",
+              "right",
+              "top",
+              "rear",
+              "oblique"
+            ],
+            "type": "string"
+          },
+          "title": "View Ids",
+          "type": "array"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "description"
+      ],
+      "title": "AssemblySanityFinding",
+      "type": "object"
+    },
+    "AssemblySanityViewCoverage": {
+      "additionalProperties": false,
+      "description": "Report exact object-ID visibility for one temporary diagnostic camera.",
+      "properties": {
+        "view_id": {
+          "enum": [
+            "front",
+            "right",
+            "top",
+            "rear",
+            "oblique"
+          ],
+          "title": "View Id",
+          "type": "string"
+        },
+        "visible_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Visible Target Ids",
+          "type": "array"
+        },
+        "unseen_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unseen Target Ids",
+          "type": "array"
+        },
+        "semantic_visibility_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Semantic Visibility Fraction",
+          "type": "number"
+        }
+      },
+      "required": [
+        "view_id",
+        "visible_target_ids",
+        "unseen_target_ids",
+        "semantic_visibility_fraction"
+      ],
+      "title": "AssemblySanityViewCoverage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize structural multi-view evidence without claiming image similarity.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_kind": {
+      "const": "assembly_multiview_sanity",
+      "default": "assembly_multiview_sanity",
+      "title": "Diagnostic Kind",
+      "type": "string"
+    },
+    "canonical_v06_qa_run": {
+      "const": false,
+      "default": false,
+      "title": "Canonical V06 Qa Run",
+      "type": "boolean"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "render_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Manifest Sha256",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "modeling_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Modeling Plan Sha256",
+      "type": "string"
+    },
+    "source_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Blend Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "structural_status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed"
+      ],
+      "title": "Structural Status",
+      "type": "string"
+    },
+    "reference_comparison_status": {
+      "const": "unscorable",
+      "default": "unscorable",
+      "title": "Reference Comparison Status",
+      "type": "string"
+    },
+    "reference_comparison_note": {
+      "title": "Reference Comparison Note",
+      "type": "string"
+    },
+    "quality_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Quality Claimed",
+      "type": "boolean"
+    },
+    "target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "visible_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Visible Target Ids",
+      "type": "array"
+    },
+    "unseen_target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Unseen Target Ids",
+      "type": "array"
+    },
+    "semantic_visibility_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Semantic Visibility Fraction",
+      "type": "number"
+    },
+    "view_coverage": {
+      "items": {
+        "$ref": "#/$defs/AssemblySanityViewCoverage"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "View Coverage",
+      "type": "array"
+    },
+    "assembly_evaluation": {
+      "additionalProperties": true,
+      "title": "Assembly Evaluation",
+      "type": "object"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/AssemblySanityFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "generated_at": {
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "render_manifest_sha256",
+    "scene_spec_sha256",
+    "modeling_plan_sha256",
+    "source_blend_sha256",
+    "build_fingerprint",
+    "structural_status",
+    "reference_comparison_note",
+    "target_ids",
+    "visible_target_ids",
+    "unseen_target_ids",
+    "semantic_visibility_fraction",
+    "view_coverage",
+    "assembly_evaluation",
+    "generated_at"
+  ],
+  "title": "AssemblySanityReport",
+  "type": "object"
+}

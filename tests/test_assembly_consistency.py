@@ -196,6 +196,55 @@ def _bounds(*, side_trigger: bool = False) -> dict[str, list[AssemblyBounds]]:
     }
 
 
+def _orientation_and_clearance_plan() -> ModelingPlan:
+    """Add explicit trigger position, full orientation, and broad clearance duties."""
+
+    payload = _spatial_plan().model_dump(mode="json")
+    trigger = next(item for item in payload["objects"] if item["id"] == "asset.trigger")
+    trigger["required_assembly_checks"] = [
+        "position",
+        "axis",
+        "orientation",
+        "clearance",
+    ]
+    payload["assembly_relationships"].extend(
+        [
+            {
+                "id": "orientation.trigger.x",
+                "kind": "axis_alignment",
+                "subject_id": "asset.trigger",
+                "reference_id": "asset.root",
+                "subject_axis": "+X",
+                "target_direction": [1.0, 0.0, 0.0],
+                "target_space": "assembly_frame",
+                "angular_tolerance_deg": 5.0,
+            },
+            {
+                "id": "orientation.trigger.z",
+                "kind": "axis_alignment",
+                "subject_id": "asset.trigger",
+                "reference_id": "asset.root",
+                "subject_axis": "+Z",
+                "target_direction": [0.0, 0.0, 1.0],
+                "target_space": "assembly_frame",
+                "angular_tolerance_deg": 5.0,
+            },
+            {
+                "id": "clearance.trigger.guard",
+                "kind": "axis_clearance",
+                "subject_id": "asset.trigger",
+                "reference_id": "asset.guard",
+                "axis": "X",
+                "direction": "POSITIVE",
+                "minimum_gap": {"mode": "meters", "value": 0.25},
+                "maximum_gap": {"mode": "meters", "value": 0.75},
+                "tolerance": {"mode": "meters", "value": 0.01},
+            },
+        ]
+    )
+    return ModelingPlan.model_validate(payload)
+
+
 def test_legacy_modeling_plan_remains_unbound_and_loadable() -> None:
     """Legacy authored plans preserve their old defaults without spatial assertions."""
 
@@ -210,8 +259,14 @@ def test_legacy_modeling_plan_remains_unbound_and_loadable() -> None:
     )
     assert plan.assembly_consistency_policy == "legacy_unbound"
     assert plan.objects[0].assembly_role == "unclassified"
+    assert plan.objects[0].required_assembly_checks == []
     assert plan.assembly_frame is None
     assert plan.assembly_relationships == []
+
+    payload = plan.model_dump(mode="json")
+    payload["objects"][0]["required_assembly_checks"] = ["orientation"]
+    with pytest.raises(ValidationError, match="legacy_unbound"):
+        ModelingPlan.model_validate(payload)
 
 
 def test_assembly_schemas_match_strict_host_contracts() -> None:
@@ -256,6 +311,191 @@ def test_side_specific_requires_non_inferred_evidence() -> None:
     side["evidence_status"] = "inferred"
     with pytest.raises(ValidationError, match="side_specific"):
         ModelingPlan.model_validate(payload)
+
+
+def test_required_orientation_and_clearance_checks_are_explicit_and_complete() -> None:
+    """Critical attached parts need two orientation axes and one clearance relation."""
+
+    plan = _orientation_and_clearance_plan()
+    trigger = next(item for item in plan.objects if item.id == "asset.trigger")
+    assert trigger.required_assembly_checks == [
+        "position",
+        "axis",
+        "orientation",
+        "clearance",
+    ]
+
+    payload = plan.model_dump(mode="json")
+    payload["assembly_relationships"] = [
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] != "orientation.trigger.z"
+    ]
+    with pytest.raises(ValidationError, match="asset.trigger:orientation"):
+        ModelingPlan.model_validate(payload)
+
+    payload = plan.model_dump(mode="json")
+    alignment = next(
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] == "orientation.trigger.x"
+    )
+    alignment["target_direction"] = [0.0, 0.0, 0.0]
+    with pytest.raises(ValidationError, match="target_direction must be nonzero"):
+        ModelingPlan.model_validate(payload)
+
+    payload = plan.model_dump(mode="json")
+    clearance = next(
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] == "clearance.trigger.guard"
+    )
+    clearance["maximum_gap"]["value"] = 0.1
+    with pytest.raises(ValidationError, match="maximum_gap"):
+        ModelingPlan.model_validate(payload)
+
+
+def test_required_orientation_rejects_collinear_or_incomparable_axes() -> None:
+    """Two labels do not prove orientation unless directed targets share one frame."""
+
+    payload = _orientation_and_clearance_plan().model_dump(mode="json")
+    second = next(
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] == "orientation.trigger.z"
+    )
+    second["target_direction"] = [2.0, 0.0, 0.0]
+    with pytest.raises(ValidationError, match="asset.trigger:orientation"):
+        ModelingPlan.model_validate(payload)
+
+    payload = _orientation_and_clearance_plan().model_dump(mode="json")
+    second = next(
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] == "orientation.trigger.z"
+    )
+    second["target_direction"] = [0.9961947, 0.0871557, 0.0]
+    with pytest.raises(ValidationError, match="asset.trigger:orientation"):
+        ModelingPlan.model_validate(payload)
+
+    payload = _orientation_and_clearance_plan().model_dump(mode="json")
+    second = next(
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] == "orientation.trigger.z"
+    )
+    second["target_direction"] = [0.3420201, 0.0, 0.9396926]
+    for item in payload["assembly_relationships"]:
+        if item["id"] in {"orientation.trigger.x", "orientation.trigger.z"}:
+            item["angular_tolerance_deg"] = 10.0
+    assert ModelingPlan.model_validate(payload)
+
+    payload = _orientation_and_clearance_plan().model_dump(mode="json")
+    alignments = [
+        item
+        for item in payload["assembly_relationships"]
+        if item["id"] in {"orientation.trigger.x", "orientation.trigger.z"}
+    ]
+    alignments[0]["target_space"] = "reference_local"
+    alignments[0]["reference_id"] = "asset.root"
+    alignments[1]["target_space"] = "reference_local"
+    alignments[1]["reference_id"] = "asset.guard"
+    with pytest.raises(ValidationError, match="asset.trigger:orientation"):
+        ModelingPlan.model_validate(payload)
+
+    payload = _orientation_and_clearance_plan().model_dump(mode="json")
+    for item in payload["assembly_relationships"]:
+        if item["id"] in {"orientation.trigger.x", "orientation.trigger.z"}:
+            item["directionality"] = "undirected"
+    with pytest.raises(ValidationError, match="asset.trigger:orientation"):
+        ModelingPlan.model_validate(payload)
+
+
+def test_axis_alignment_and_clearance_use_evaluated_3d_evidence() -> None:
+    """Detect a rotated or intersecting trigger even when its lateral center is valid."""
+
+    plan = _orientation_and_clearance_plan()
+    bounds = _bounds()
+    identity = (
+        (1.0, 0.0, 0.0),
+        (0.0, 1.0, 0.0),
+        (0.0, 0.0, 1.0),
+    )
+    bounds["asset.root"][0] = AssemblyBounds(
+        0,
+        (-5.0, -1.0, -1.0),
+        (5.0, 1.0, 1.0),
+        identity,
+    )
+    bounds["asset.trigger"][0] = AssemblyBounds(
+        0,
+        (-2.0, -0.1, -0.8),
+        (-1.5, 0.1, -0.2),
+        identity,
+    )
+    passed = evaluate_assembly_bounds(plan, _scene(), bounds)
+    assert passed.ok is True
+    alignment = next(
+        item
+        for item in passed.checks
+        if item.relation_id == "orientation.trigger.x"
+        and item.id.startswith("assembly.bounds")
+    )
+    clearance = next(
+        item
+        for item in passed.checks
+        if item.relation_id == "clearance.trigger.guard"
+        and item.id.startswith("assembly.bounds")
+    )
+    assert alignment.tolerance_mode == "degrees"
+    assert alignment.residual == pytest.approx(0.0)
+    assert clearance.residual == pytest.approx(0.0)
+    assert clearance.metrics["evaluated_gap"] == pytest.approx(0.5)
+
+    bounds["asset.trigger"][0] = AssemblyBounds(
+        0,
+        (-1.4, -0.1, -0.8),
+        (-0.9, 0.1, -0.2),
+        (
+            (0.0, 1.0, 0.0),
+            (-1.0, 0.0, 0.0),
+            (0.0, 0.0, 1.0),
+        ),
+    )
+    failed = evaluate_assembly_bounds(plan, _scene(), bounds)
+    alignment = next(
+        item
+        for item in failed.checks
+        if item.relation_id == "orientation.trigger.x"
+        and item.id.startswith("assembly.bounds")
+    )
+    clearance = next(
+        item
+        for item in failed.checks
+        if item.relation_id == "clearance.trigger.guard"
+        and item.id.startswith("assembly.bounds")
+    )
+    assert failed.ok is False
+    assert alignment.status == "failed"
+    assert alignment.residual == pytest.approx(90.0)
+    assert clearance.status == "failed"
+    assert clearance.metrics["signed_axis_gap_m"] < 0
+
+    bounds["asset.trigger"][0] = AssemblyBounds(
+        0,
+        (-2.0, -0.1, -0.8),
+        (-1.5, 0.1, -0.2),
+    )
+    unscorable = evaluate_assembly_bounds(plan, _scene(), bounds)
+    alignment = next(
+        item
+        for item in unscorable.checks
+        if item.relation_id == "orientation.trigger.x"
+        and item.id.startswith("assembly.bounds")
+    )
+    assert alignment.status == "failed"
+    assert alignment.metrics["scorable"] is False
+    assert "basis is unavailable" in alignment.message
 
 
 def test_prebuild_contract_requires_exact_scene_identity_and_sources() -> None:

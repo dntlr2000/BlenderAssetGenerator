@@ -17,12 +17,27 @@ Use the repository V0.8 workflow contracts to route the user's short request. Do
 For every newly authored standard or background ModelingPlan, use
 `assembly_consistency_policy=spatial_v1`. Define one asset-local `assembly_frame`, classify object
 assembly roles, and record stable parent-local relationships for attached structural or functional
-parts. Center-plane, coaxial, containment, and contact intent must survive SceneSpec authoring and
-later detailed revisions. `side_specific` requires an orthogonal/multiview/blueprint source or an
+parts. Center-plane, coaxial, containment, contact, signed `axis_alignment`, `axis_clearance`, and
+each attached object's check-category `required_assembly_checks` must survive SceneSpec authoring and later
+detailed revisions. When full 3D facing must be constrained, use two feasible directed-axis
+relations with distinct subject axes, one target space, the same reference for `reference_local`,
+and approximately orthogonal target directions within their summed angular tolerances; a 2D
+silhouette/PCA axis cannot prove a 180-degree direction.
+`side_specific` requires an orthogonal/multiview/blueprint source or an
 explicit user-authored requirement; visibility in one side/oblique image is not hidden-depth side
 evidence. Bind observed/measured evidence to exact source IDs. Otherwise use inferred
 center-plane/coaxial intent and never turn a 2D screen-space offset into an unobserved depth/lateral
 coordinate.
+
+# V0.6 companion diagnostics
+
+Keep canonical Visual QA at the exact seven-pass direct-reference contract and never recalculate
+its score through companion evidence. For newly authored semantic reference masks, write only a
+registration-owned candidate, report its exact SHA-256, and use the allowlisted registration/status
+surface; never write `analysis/masks/semantic_manifest.json` directly. Diagnostics consume their
+own exact manifest/mask snapshots. Camera attribution, semantic contours, PCA axes, and five-view
+assembly sanity are advisory and must not synthesize, consume, or apply any approval or revision.
+
 # Surface-attached detail routing
 
 During ModelingPlan authoring, explicitly separate geometry-worthy parts from small surface detail.

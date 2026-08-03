@@ -58,6 +58,10 @@ try {
         --resolution 128 --material-id mat.blue
     Invoke-Uv run cbm analyze-reference geometry_showcase
     Invoke-Uv run cbm visual-qa geometry_showcase
+    $QaLatestPath = Join-Path $SmokeWorkspace "geometry_showcase/qa/latest.json"
+    $QaRunId = (Get-Content -Raw $QaLatestPath | ConvertFrom-Json).run_id
+    Invoke-Uv run cbm qa-diagnose geometry_showcase --qa-run-id $QaRunId
+    Invoke-Uv run cbm qa-semantic-masks-status geometry_showcase
     Invoke-Uv run cbm report-pdf geometry_showcase --scope material
     Invoke-Uv run cbm report-pdf geometry_showcase --scope qa --qa-run-id latest
     Invoke-Uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
@@ -68,7 +72,10 @@ try {
 
     if (-not $SkipV06Mcp) {
         Invoke-Uv run python scripts/run_v06_mcp_regressions.py
-        # Rebind the combined PDF to the exact latest QA run created by the MCP smoke.
+        $QaRunId = (Get-Content -Raw $QaLatestPath | ConvertFrom-Json).run_id
+        Invoke-Uv run cbm qa-diagnose geometry_showcase --qa-run-id $QaRunId
+        # Rebind both QA-derived PDFs after diagnostics extend the exact MCP QA evidence.
+        Invoke-Uv run cbm report-pdf geometry_showcase --scope qa --qa-run-id latest
         Invoke-Uv run cbm report-pdf geometry_showcase --scope full --qa-run-id latest
         Invoke-Uv run python scripts/verify_v06_artifacts.py
     }

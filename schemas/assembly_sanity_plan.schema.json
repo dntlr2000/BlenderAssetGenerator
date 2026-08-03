@@ -1,0 +1,320 @@
+{
+  "$defs": {
+    "AssemblyFrame": {
+      "additionalProperties": false,
+      "description": "Describe the intrinsic 3D axes used to judge one assembled asset.",
+      "properties": {
+        "root_object_id": {
+          "title": "Root Object Id",
+          "type": "string"
+        },
+        "longitudinal_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Longitudinal Axis",
+          "type": "string"
+        },
+        "lateral_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Lateral Axis",
+          "type": "string"
+        },
+        "vertical_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Vertical Axis",
+          "type": "string"
+        },
+        "symmetry": {
+          "default": "unknown",
+          "enum": [
+            "bilateral",
+            "asymmetric",
+            "unknown"
+          ],
+          "title": "Symmetry",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "root_object_id",
+        "longitudinal_axis",
+        "lateral_axis",
+        "vertical_axis"
+      ],
+      "title": "AssemblyFrame",
+      "type": "object"
+    },
+    "AssemblySanityReferenceSource": {
+      "additionalProperties": false,
+      "description": "Bind one immutable user source without claiming it matches a diagnostic view.",
+      "properties": {
+        "kind": {
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "AssemblySanityReferenceSource",
+      "type": "object"
+    },
+    "AssemblySanityViewPlan": {
+      "additionalProperties": false,
+      "description": "Describe one assembly-frame camera direction for a structural diagnostic.",
+      "properties": {
+        "view_id": {
+          "enum": [
+            "front",
+            "right",
+            "top",
+            "rear",
+            "oblique"
+          ],
+          "title": "View Id",
+          "type": "string"
+        },
+        "camera_direction_frame": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Camera Direction Frame",
+          "type": "array"
+        },
+        "screen_up_role": {
+          "enum": [
+            "vertical",
+            "longitudinal"
+          ],
+          "title": "Screen Up Role",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "view_id",
+        "camera_direction_frame",
+        "screen_up_role",
+        "target_ids"
+      ],
+      "title": "AssemblySanityViewPlan",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze exact canonical sources and five assembly-frame diagnostic views.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_kind": {
+      "const": "assembly_multiview_sanity",
+      "default": "assembly_multiview_sanity",
+      "title": "Diagnostic Kind",
+      "type": "string"
+    },
+    "canonical_v06_qa_run": {
+      "const": false,
+      "default": false,
+      "title": "Canonical V06 Qa Run",
+      "type": "boolean"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "scene_spec_path": {
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "modeling_plan_path": {
+      "title": "Modeling Plan Path",
+      "type": "string"
+    },
+    "modeling_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Modeling Plan Sha256",
+      "type": "string"
+    },
+    "source_blend_path": {
+      "title": "Source Blend Path",
+      "type": "string"
+    },
+    "source_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Blend Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "assembly_frame": {
+      "$ref": "#/$defs/AssemblyFrame"
+    },
+    "target_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "views": {
+      "items": {
+        "$ref": "#/$defs/AssemblySanityViewPlan"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Views",
+      "type": "array"
+    },
+    "reference_sources": {
+      "items": {
+        "$ref": "#/$defs/AssemblySanityReferenceSource"
+      },
+      "title": "Reference Sources",
+      "type": "array"
+    },
+    "reference_comparison_mode": {
+      "const": "structural_only",
+      "default": "structural_only",
+      "title": "Reference Comparison Mode",
+      "type": "string"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "scene_spec_path",
+    "scene_spec_sha256",
+    "modeling_plan_path",
+    "modeling_plan_sha256",
+    "source_blend_path",
+    "source_blend_sha256",
+    "build_fingerprint",
+    "source_fingerprint",
+    "assembly_frame",
+    "target_ids",
+    "resolution",
+    "views",
+    "created_at"
+  ],
+  "title": "AssemblySanityPlan",
+  "type": "object"
+}

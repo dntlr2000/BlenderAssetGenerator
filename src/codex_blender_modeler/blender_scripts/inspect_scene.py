@@ -15,6 +15,7 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from assembly_runtime import (  # noqa: E402
+    evaluated_basis_in_frame,
     evaluated_bounds_in_frame,
     evaluated_world_bounds,
     matrix_rows,
@@ -24,6 +25,8 @@ from portable_asset_common import uv_layer_metrics  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse the bounded Blender scene-inspection arguments."""
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", required=True)
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
@@ -128,6 +131,19 @@ def main() -> None:
             if obj.get("cbm_id") and world_to_assembly is not None
             else None
         )
+        raw_assembly_basis = (
+            evaluated_basis_in_frame(obj, world_to_assembly, depsgraph)
+            if obj.get("cbm_id") and world_to_assembly is not None
+            else None
+        )
+        assembly_basis = (
+            [
+                [round(float(value), 9) for value in axis]
+                for axis in raw_assembly_basis
+            ]
+            if raw_assembly_basis is not None
+            else None
+        )
         record = {
             "name": obj.name,
             "type": obj.type,
@@ -152,6 +168,7 @@ def main() -> None:
                 "max": authored_bbox_max,
             },
             "bbox_assembly_frame": assembly_bbox,
+            "basis_assembly_frame": assembly_basis,
             "materials": [slot.material.name for slot in obj.material_slots if slot.material],
             "modifiers": [modifier.type for modifier in obj.modifiers],
             "declared_modifiers": modifier_kinds(obj, "cbm_declared_modifier_kinds"),

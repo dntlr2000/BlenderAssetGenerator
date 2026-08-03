@@ -97,14 +97,35 @@ def _create_subdirs(root: Path) -> None:
 
 
 def ensure_job_dirs(job_id: str) -> Path:
+    """Create the stable directory skeleton for one validated job."""
+
     root = job_dir(job_id)
     _create_subdirs(root)
     return root
 
 
+def native_io_path(path: Path) -> str:
+    """Return an absolute filename that supports extended Windows path lengths."""
+
+    resolved = os.path.abspath(os.fspath(path.expanduser()))
+    if os.name != "nt" or resolved.startswith("\\\\?\\"):
+        return resolved
+    if resolved.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + resolved[2:]
+    return "\\\\?\\" + resolved
+
+
+def file_exists(path: Path) -> bool:
+    """Check a regular file through the platform-native long-path representation."""
+
+    return os.path.isfile(native_io_path(path))
+
+
 def sha256_file(path: Path) -> str:
+    """Hash one file without truncating a valid extended Windows path."""
+
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()

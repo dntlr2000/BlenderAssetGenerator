@@ -31,6 +31,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - optional interior의 exact-hash scope 승인과 fail-closed 검증
 - MaterialPlan, whitelisted Blender shader recipe, texture manifest와 bake contract
 - 정확히 7개 고정 카메라 패스를 사용하는 Visual QA
+- canonical 점수를 바꾸지 않는 bounded camera·semantic shape·5-view assembly companion diagnostics
 - 승인된 InteriorScope를 위한 별도 다각도 실내 QA, semantic visibility와 contact sheet
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
 - exact plan SHA-256을 한 번 승인해 기본 3회·최대 5회의 국소 수정을 제한적으로 반복하는 선택적 standard Visual QA convergence, iteration receipt, terminal JSON/PDF와 V0.9 audit
@@ -134,6 +135,136 @@ geometry bounds를 자산 로컬 meter frame에서 검사하며, 위반 시 V0.5
 내부 기구 또는 단일 이미지에서 보이지 않는 면의 진실성을 증명하지는 않습니다.
 기존 `legacy_unbound` ModelingPlan은 계속 읽을 수 있지만 공간 검증 완료로
 간주하지 않습니다.
+
+## V0.6 카메라·형상·조립 보조 진단
+
+새로 계획되는 V0.8 QA workflow는 canonical `qa.run` 뒤에 run-owned
+`qa.diagnostics` 단계를 추가합니다. 이 단계는 기존 `overall_direct_score`를
+재계산하지 않고, canonical 외관 QA의 beauty, silhouette, object ID, material ID,
+normal, depth, wireframe 정확히 7개 패스 계약도 바꾸지 않습니다. 과거 workflow와
+companion evidence가 없는 legacy job은 계속 읽을 수 있으며 PDF에는 unavailable로
+표시됩니다.
+
+### 명시적 semantic reference mask 등록
+
+객체별 contour·PCA 지표를 사용하려면 새 evidence를 canonical manifest에 직접 쓰지
+않고 registration-owned candidate로 작성한 뒤 exact SHA-256으로 승격합니다.
+
+```text
+analysis/masks/
+├─ registrations/<registration-id>/
+│  ├─ manifest.json
+│  ├─ masks/<semantic-id>.png
+│  └─ promotion_receipt.json
+└─ semantic_manifest.json
+
+history/qa_semantic_masks/<previous-manifest-sha256>.json
+```
+
+candidate는 현재 primary reference와 SceneSpec의 exact hash, observed semantic ID,
+같은 크기의 비어 있지 않은 binary PNG를 검증해야 합니다. 승격은 candidate JSON bytes를
+그대로 보존하고, 기존 canonical manifest가 있으면 전용 history에 보관합니다.
+
+```powershell
+uv run cbm qa-semantic-masks-register <job-id> `
+  --registration-id <registration-id> `
+  --manifest-sha256 <exact-candidate-manifest-sha256>
+uv run cbm qa-semantic-masks-status <job-id>
+```
+
+동등한 allowlisted MCP 도구는 `register_semantic_reference_masks`와
+`get_semantic_reference_mask_status`입니다. 상태는 `current`, `legacy_current`,
+`absent`, `stale`, `invalid` 중 하나입니다. `absent`인 full-reference 작업만 bbox-only
+degraded fallback을 허용합니다. 유효한 receipt가 없는 과거 manifest는 읽기 호환을
+위해 `legacy_current`로 표시되고, 존재하지만 stale/invalid인 manifest는 fail-closed
+처리합니다. `primary_object_only`의 canonical request mask가 없거나 stale이면 fallback
+점수를 만들지 않습니다. 등록은 QA evidence publication일 뿐 어떤 수정·최적화 승인도
+아닙니다.
+
+```text
+qa/runs/<qa-run-id>/diagnostics/camera-geometry-v1/
+├─ bundle_manifest.json                 # 성공한 exact attempt를 가리키는 terminal bundle
+└─ attempts/
+   ├─ attempt-001/                      # 실패해도 덮어쓰지 않는 immutable evidence
+   │  ├─ request.json
+   │  ├─ report.json
+   │  ├─ role_map.json
+   │  ├─ camera_probes/
+   │  │  ├─ plan.json
+   │  │  ├─ render_manifest.json
+   │  │  └─ renders/
+   │  └─ semantic_masks/
+   │     ├─ source_manifest.json
+   │     ├─ source/                    # exact registered mask byte snapshots
+   │     └─ rendered/
+   └─ attempt-002/                      # 명시적 재시도 때만 생성
+```
+
+성공한 bundle이 있으면 같은 diagnostic ID를 다시 실행하지 않습니다. Blender 실패나
+동시 source 변경처럼 terminal bundle 전에 중단되면 기존 attempt를 보존한 채 같은
+명령의 명시적 재시도가 다음 `attempt-NNN`을 만들 수 있습니다. 성공한 한 attempt의
+exact path/hash만 root `bundle_manifest.json`에 결속됩니다.
+diagnostic attempt는 당시 canonical semantic manifest와 mask bytes를 run-owned snapshot으로
+복사합니다. 이후 정상적인 새 mask 승격은 완료된 attempt를 stale로 만들지 않지만,
+attempt-owned snapshot 변경은 terminal bundle 검증을 실패시킵니다.
+
+bounded camera probe는 작은 yaw, pitch, framing, distance, target 변화가 오차를
+설명하는지 확인하는 advisory evidence입니다. `primary_object_only`에서는 exact
+canonical VisualQARequest subject mask만 사용하고, 그 외에는 명시적
+primary/supporting semantic mask가 있을 때만 union을 만듭니다. 두 근거가 없으면
+기존 observed semantic bbox 비교로 되돌아가며 bbox에서 silhouette mask를 만들지
+않습니다. exact primary silhouette IoU 개선은 bbox가 거의 같아도 각도 차이의
+근거가 될 수 있지만 카메라를 변경할 권한은 만들지 않습니다.
+기본 `--max-camera-probes 12`는 중립 baseline과 별개인 12개 delta를 뜻하므로 총 13개
+probe record가 생성됩니다. delta는 yaw ±7.5°, pitch ±5°, projection scale 0.9/1.1,
+distance scale 0.9/1.1, target X/Y offset ±0.05입니다.
+
+완료된 canonical QA run에 이 보조 진단을 실행하는 공개 CLI/MCP는 다음과 같습니다.
+
+```powershell
+uv run cbm qa-diagnose <job-id> `
+  --qa-run-id <qa-run-id> `
+  --diagnostic-id camera-geometry-v1 `
+  --max-camera-probes 12 `
+  --assembly-multiview `
+  --render-engine eevee `
+  --render-device auto
+```
+
+allowlisted MCP 도구는 `run_visual_diagnostics`입니다. 결과의 attribution은
+`camera`, `geometry`, `assembly`, `mixed`, `ambiguous`, `unscorable` 중 하나인 보조
+분류일 뿐 canonical V0.6 점수, 정확히 7개인 pass manifest, 카메라, SceneSpec 또는
+revision 승인 상태를 바꾸지 않습니다.
+
+명시적 semantic mask 쌍이 있을 때만 객체별 mask IoU, normalized centroid error,
+area ratio, boundary F-score, symmetric contour distance와 PCA undirected axis error를
+계산합니다. PCA axis는 180도 방향을 구분하지 못하므로 실제 facing은 ModelingPlan의
+signed longitudinal/lateral/vertical frame과 directed `axis_alignment`로 검증합니다.
+`axis_clearance`는 방향이 명시된 축 간격과 횡방향 overlap을 검사하며 facing 판정이
+아닙니다. `required_assembly_checks`는 관계 ID가 아니라
+`position|axis|orientation|clearance` 검사 카테고리 목록이며, 실제 관계의 stable ID는
+`assembly_relationships`에 별도로 보존됩니다. 마스크가 없으면 이 객체별 지표는
+degraded/unscorable이며 bbox 정밀도로 대체하지 않습니다.
+
+별도 5-view 구조 진단은 다음 공개 표면으로 실행할 수 있습니다.
+
+```powershell
+uv run cbm qa-assembly-sanity-plan <job-id> --run-id <run-id>
+uv run cbm qa-assembly-sanity-run <job-id> `
+  --run-id <run-id> `
+  --plan-sha256 <exact-plan-sha256>
+```
+
+같은 역할의 allowlisted MCP 도구는 `plan_assembly_multiview_sanity`와
+`run_assembly_multiview_sanity`입니다. `front`, `right`, `top`, `rear`, `oblique`
+투영은 signed assembly-axis, projection, depth-order와 required relationship을
+구조적으로 확인하지만 레퍼런스 유사도는 항상 `unscorable`입니다. camera probe와
+5-view 결과 모두 기존 V0.6 revision, convergence, InteriorScope, V0.7 optimization
+또는 Destination Handoff 승인을 대신하지 않습니다.
+
+`qa-assembly-sanity-run`의 plan hash는 실행할 immutable 구조 계획을 exact하게
+결속하는 값입니다. 보정된 정면·측면·평면·후면 reference가 없는 한 five-view를
+reference match로 해석하거나 유사도 점수를 만들지 않습니다.
 
 ```text
 새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.

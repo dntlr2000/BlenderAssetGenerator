@@ -1,0 +1,245 @@
+{
+  "$defs": {
+    "AssemblySanityPassRecord": {
+      "additionalProperties": false,
+      "description": "Bind one diagnostic render image to its exact job-relative path and hash.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "beauty",
+            "silhouette",
+            "object_id",
+            "wireframe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "encoding": {
+          "const": "png-rgb8",
+          "default": "png-rgb8",
+          "title": "Encoding",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "width",
+        "height"
+      ],
+      "title": "AssemblySanityPassRecord",
+      "type": "object"
+    },
+    "AssemblySanityViewRender": {
+      "additionalProperties": false,
+      "description": "Record the actual temporary camera and four structural passes for one view.",
+      "properties": {
+        "view_id": {
+          "enum": [
+            "front",
+            "right",
+            "top",
+            "rear",
+            "oblique"
+          ],
+          "title": "View Id",
+          "type": "string"
+        },
+        "camera": {
+          "additionalProperties": true,
+          "title": "Camera",
+          "type": "object"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "passes": {
+          "items": {
+            "$ref": "#/$defs/AssemblySanityPassRecord"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Passes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "view_id",
+        "camera",
+        "target_ids",
+        "passes"
+      ],
+      "title": "AssemblySanityViewRender",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind temporary-camera renders to exact source, plan, and Blender evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_kind": {
+      "const": "assembly_multiview_sanity",
+      "default": "assembly_multiview_sanity",
+      "title": "Diagnostic Kind",
+      "type": "string"
+    },
+    "canonical_v06_qa_run": {
+      "const": false,
+      "default": false,
+      "title": "Canonical V06 Qa Run",
+      "type": "boolean"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "modeling_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Modeling Plan Sha256",
+      "type": "string"
+    },
+    "source_blend_path": {
+      "title": "Source Blend Path",
+      "type": "string"
+    },
+    "source_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Blend Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "blender_version": {
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "render_engine": {
+      "title": "Render Engine",
+      "type": "string"
+    },
+    "render_device": {
+      "title": "Render Device",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "object_id_colors": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Object Id Colors",
+      "type": "object"
+    },
+    "assembly_frame_bounds": {
+      "additionalProperties": {
+        "items": {
+          "type": "number"
+        },
+        "type": "array"
+      },
+      "title": "Assembly Frame Bounds",
+      "type": "object"
+    },
+    "assembly_evaluation": {
+      "additionalProperties": true,
+      "title": "Assembly Evaluation",
+      "type": "object"
+    },
+    "views": {
+      "items": {
+        "$ref": "#/$defs/AssemblySanityViewRender"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Views",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "scene_spec_sha256",
+    "modeling_plan_sha256",
+    "source_blend_path",
+    "source_blend_sha256",
+    "build_fingerprint",
+    "blender_version",
+    "render_engine",
+    "render_device",
+    "resolution",
+    "object_id_colors",
+    "assembly_frame_bounds",
+    "assembly_evaluation",
+    "views"
+  ],
+  "title": "AssemblySanityRenderManifest",
+  "type": "object"
+}

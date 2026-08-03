@@ -1,0 +1,317 @@
+{
+  "$defs": {
+    "SemanticMaskBinding": {
+      "additionalProperties": false,
+      "description": "Bind one semantic comparison to exact run-owned reference and render masks.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "role": {
+          "default": "unscoped",
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background",
+            "unscoped"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "source_id": {
+          "maxLength": 192,
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "reference_mask_path": {
+          "title": "Reference Mask Path",
+          "type": "string"
+        },
+        "reference_mask_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Mask Sha256",
+          "type": "string"
+        },
+        "rendered_mask_path": {
+          "title": "Rendered Mask Path",
+          "type": "string"
+        },
+        "rendered_mask_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Rendered Mask Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "source_id",
+        "confidence",
+        "reference_mask_path",
+        "reference_mask_sha256",
+        "rendered_mask_path",
+        "rendered_mask_sha256"
+      ],
+      "title": "SemanticMaskBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze source reports, semantic masks, and camera-probe bounds for one companion run.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "diagnostic_version": {
+      "const": "camera_geometry_attribution_v1",
+      "default": "camera_geometry_attribution_v1",
+      "title": "Diagnostic Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "qa_run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Qa Run Id",
+      "type": "string"
+    },
+    "diagnostic_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Diagnostic Id",
+      "type": "string"
+    },
+    "artifact_root": {
+      "title": "Artifact Root",
+      "type": "string"
+    },
+    "visual_qa_request_path": {
+      "title": "Visual Qa Request Path",
+      "type": "string"
+    },
+    "visual_qa_request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Visual Qa Request Sha256",
+      "type": "string"
+    },
+    "visual_qa_report_path": {
+      "title": "Visual Qa Report Path",
+      "type": "string"
+    },
+    "visual_qa_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Visual Qa Report Sha256",
+      "type": "string"
+    },
+    "render_pass_manifest_path": {
+      "title": "Render Pass Manifest Path",
+      "type": "string"
+    },
+    "render_pass_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Pass Manifest Sha256",
+      "type": "string"
+    },
+    "scene_spec_path": {
+      "default": "analysis/scene_spec.json",
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "modeling_plan_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Modeling Plan Path"
+    },
+    "modeling_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Modeling Plan Sha256"
+    },
+    "camera_role_map_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Camera Role Map Path"
+    },
+    "camera_role_map_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Camera Role Map Sha256"
+    },
+    "semantic_reference_manifest_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Reference Manifest Path"
+    },
+    "semantic_reference_manifest_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Semantic Reference Manifest Sha256"
+    },
+    "assembly_report_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assembly Report Path"
+    },
+    "assembly_report_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assembly Report Sha256"
+    },
+    "primary_reference_mask_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Reference Mask Path"
+    },
+    "primary_reference_mask_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Reference Mask Sha256"
+    },
+    "primary_reference_mask_source": {
+      "anyOf": [
+        {
+          "enum": [
+            "canonical_primary_object_reference",
+            "semantic_primary_supporting_union"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Primary Reference Mask Source"
+    },
+    "semantic_masks": {
+      "items": {
+        "$ref": "#/$defs/SemanticMaskBinding"
+      },
+      "title": "Semantic Masks",
+      "type": "array"
+    },
+    "baseline_probe_id": {
+      "default": "baseline",
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Baseline Probe Id",
+      "type": "string"
+    },
+    "max_camera_probes": {
+      "default": 12,
+      "description": "Maximum non-baseline camera deltas; one neutral baseline probe is additional.",
+      "maximum": 12,
+      "minimum": 1,
+      "title": "Max Camera Probes",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "job_id",
+    "qa_run_id",
+    "diagnostic_id",
+    "artifact_root",
+    "visual_qa_request_path",
+    "visual_qa_request_sha256",
+    "visual_qa_report_path",
+    "visual_qa_report_sha256",
+    "render_pass_manifest_path",
+    "render_pass_manifest_sha256",
+    "scene_spec_sha256"
+  ],
+  "title": "QADiagnosticRequest",
+  "type": "object"
+}

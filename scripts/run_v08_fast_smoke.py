@@ -16,6 +16,9 @@ from codex_blender_modeler.orchestration.service import (
     plan_workflow,
     resume_workflow,
 )
+from codex_blender_modeler.qa.diagnostic_service import (
+    validate_qa_diagnostic_bundle,
+)
 from codex_blender_modeler.workspace import job_dir, sha256_file
 
 
@@ -167,6 +170,26 @@ def _assert_preview_complete(root: Path, state) -> tuple[str, str]:
         raise RuntimeError("Fast preview exceeded its bounded pre-QA fit budget")
     if quality.qa_run_id != run_id or quality.quality_status != state.quality_status:
         raise RuntimeError("Fast preview quality is not bound to the exact QA run")
+    diagnostic_step = next(
+        item for item in plan["steps"] if item["step_id"] == "qa.diagnostics"
+    )
+    diagnostic_id = str(diagnostic_step["parameters"]["diagnostic_id"])
+    diagnostic_path = (
+        run_root / "diagnostics" / diagnostic_id / "bundle_manifest.json"
+    )
+    bundle, request, diagnostic = validate_qa_diagnostic_bundle(
+        root,
+        diagnostic_path,
+    )
+    diagnostic_state = _step_state(state, "qa.diagnostics")
+    if (
+        diagnostic_state.status != "complete"
+        or bundle.qa_run_id != run_id
+        or request.qa_run_id != run_id
+        or diagnostic.qa_run_id != run_id
+        or diagnostic.advisory_only is not True
+    ):
+        raise RuntimeError("Fast preview companion diagnostics are incomplete or stale")
     return run_id, quality.quality_status
 
 
