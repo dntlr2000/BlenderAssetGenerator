@@ -72,6 +72,7 @@
 - `standard` 경로에서는 프록시 승인 전 재질, 최적화, package 또는 export를 진행하지 않습니다. `background_exterior`는 1.1의 명시적인 immutable fast plan에서만 일반 프록시 승인을 생략합니다.
 - 실내는 기본 비활성화입니다. 명시적 요청, InteriorScope draft, 정확한 hash의 수동 승인이 모두 있어야 합니다.
 - 보이지 않는 형상은 복원된 사실이 아니라 `inferred`로 기록합니다.
+- 단일 카메라의 화면상 오프셋은 숨은 좌우·깊이 위치의 증거가 아닙니다. 새 ModelingPlan은 `spatial_v1` 자산 로컬 축과 부착 관계를 기록하고 V0.4에서 검사합니다.
 - V0.6 점수는 완성도 백분율이 아닙니다. 고정 카메라에서 산출된 비교 지표일 뿐입니다.
 - 큰 실루엣, 비율, 구조가 잘못됐으면 V0.4 authoring으로 돌아갑니다.
 - 이미 맞는 큰 형상을 유지하면서 국소적인 유사도 오차만 고칠 때 V0.6 guarded revision을 사용합니다.
@@ -433,6 +434,11 @@ uv run cbm workflow-plan --request "V0.4 새 자산 프록시 검증"
 2. analyze-reference 실행
 3. reference_analysis.json과 camera_solution.json 검토
 4. stable semantic ID를 가진 modeling_plan.json 작성
+   - assembly_consistency_policy=spatial_v1, asset-local 길이/좌우/수직축과 root 기록
+   - 모든 object의 assembly_role 분류 및 attached object의 parent-local 관계 기록
+   - 중심 부품은 center_plane/coaxial, 포함·장착 부품은 bbox_containment/surface_contact 사용
+   - side_specific은 정사영·청사진·치수 또는 명시적 사용자 근거가 있을 때만 사용
+   - 한쪽 사선 이미지의 2D 위치를 숨은 좌우·깊이 좌표로 그대로 복사하지 않음
    - 작은 창문 무늬, 이음선, 리벳, 라벨, 얕은 패널과 반복 마크를 먼저 분류
    - 실루엣·구조·gameplay·물리적 투명성에 필요하지 않으면 surface_details로 기록
    - 각 surface detail의 parent, material, PBR channel, UV 전략, bbox와 confidence 기록
@@ -461,6 +467,7 @@ workflow ID, preview/PDF, semantic ID 목록, validation 결과,
 잠금:
 - 승인된 비교 카메라와 렌더 해상도
 - 기존 stable semantic ID
+- 기존 assembly_frame과 assembly relationship ID·근거·허용 오차
 - nominal scene size의 기준
 - 사용자가 변경을 요청하지 않은 객체 위치
 - immutable input
@@ -481,7 +488,10 @@ geometry payload를 최소 범위로 수정해.
 수정 후 build → render → inspect → validate를 실행하고
 build scope PDF 또는 preview를 갱신해.
 변경한 semantic ID, geometry.kind, 전후 dimensions/vertex/polygon 수,
-카메라와 변경하지 않은 ID 보존 여부를 보고해.
+카메라와 변경하지 않은 ID 보존 여부, assembly validation 결과를 보고해.
+고정 카메라 실루엣을 더 닮게 만들더라도 중심면·동축·포함·접촉 관계를
+위반하지 마. 필수 assembly 관계가 실패하면 상세 형상 승인 대기 전에
+V0.4 SceneSpec을 최소 수정해 다시 검증해.
 상세 형상 승인 대기 상태에서 멈추고 V0.5 이후로 넘어가지 마.
 ```
 

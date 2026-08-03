@@ -49,6 +49,13 @@ context 역할이나 독립 지형·식생·배경 semantic이 들어오면 buil
 생성 전에 실패한다. content scope와 target은 request, plan, state와
 `job.json`에 보존되며, 기존 job에서 변경할 수 없다.
 
+새 standard 및 background geometry agent는 content scope와 별개로
+`spatial_v1` 3차원 조립 계약을 작성한다. 자산 로컬 축과 `root|attached|free_standing`
+역할, 중심면·동축·포함·접촉·근거 있는 측면 배치 관계를 ModelingPlan에 보존하고,
+SceneSpec completion과 Blender validation에서 exact ID와 실제 geometry bounds를
+검사한다. 고정 카메라의 2D 위치가 숨은 좌우/깊이 배치의 근거가 될 수 없으며,
+assembly 위반은 품질 점수와 별개인 V0.4 구조 실패다.
+
 V0.6 reference mask는 object-only job에서 관찰된 primary/supporting evidence
 bbox의 합집합으로 제한된다. 따라서 주변 지형이 reference foreground에
 포함돼도 주 피사체 점수를 왜곡하지 않는다. 대상 evidence가 없거나 모호하면

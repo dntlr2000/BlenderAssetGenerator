@@ -5,6 +5,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from .analysis.assembly import validate_scene_assembly_contract
 from .analysis.surface_details import validate_scene_surface_details
 from .architecture import validate_scene_interior_scope
 from .config import get_settings
@@ -47,5 +48,6 @@ def load_scene_spec(path: Path) -> SceneSpec:
         raise ValueError(f"SceneSpec JSON Schema validation failed:\n{formatted}")
     scene_spec = SceneSpec.model_validate(raw)
     validate_scene_spec_interior_contract(scene_spec, path)
+    validate_scene_assembly_contract(scene_spec, path)
     validate_scene_surface_details(scene_spec, path)
     return scene_spec

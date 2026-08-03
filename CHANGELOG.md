@@ -2,6 +2,13 @@
 
 ## 0.9.0
 
+- Added backward-compatible `spatial_v1` ModelingPlan assembly frames, stable attached-part
+  relationships, exact build provenance, Blender root-frame evaluated-bounds inspection, and
+  fail-closed structural validation. New workflows prevent single-view screen offsets from
+  silently becoming hidden-axis placement; legacy unbound plans remain readable but unverified.
+- Added center-plane, coaxial, containment, contact with transverse overlap, evidenced
+  side-specific, and bilateral-pair checks plus isolated host and Blender 5 regression fixtures,
+  including detection of a visually plausible but laterally side-mounted centerline part.
 - Hardened new V0.5 surface-detail authoring with backward-compatible `spatial_v1`
   object/material/current-UV bindings, bounded UV-rectangle or hash-bound mask placement,
   image-backed channel declarations, edge-safe non-repeating sampling, and separate hybrid

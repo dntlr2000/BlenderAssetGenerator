@@ -9,6 +9,16 @@ from pathlib import Path
 
 import bpy
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from assembly_runtime import (  # noqa: E402
+    evaluate_assembly_relationships,
+    load_assembly_contract,
+    relationship_ids_by_object,
+)
+
 DEFERRED_MODIFIER_KINDS = {"boolean", "normal_transfer"}
 
 
@@ -45,17 +55,158 @@ def modifier_kinds(obj: bpy.types.Object, property_name: str) -> list[str]:
     return [item for item in value.split(",") if item]
 
 
+def _assembly_metadata_checks(
+    contract: dict,
+    object_map: dict[str, list[bpy.types.Object]],
+) -> list[dict]:
+    """Verify exact assembly provenance and per-object metadata in the built scene."""
+
+    scene = bpy.context.scene
+    embedded_policy = str(scene.get("cbm_assembly_policy", "legacy_unbound"))
+    if contract["policy"] != "spatial_v1" and embedded_policy != "spatial_v1":
+        return []
+    checks: list[dict] = []
+    embedded_hash = scene.get("cbm_assembly_modeling_plan_sha256")
+    current_hash = contract["sha256"]
+    hash_matches = embedded_hash == current_hash
+    checks.append(
+        {
+            "id": "assembly.provenance.modeling_plan",
+            "relation_id": None,
+            "kind": "contract",
+            "status": "passed" if hash_matches else "failed",
+            "required": True,
+            "subject_id": None,
+            "reference_id": None,
+            "peer_id": None,
+            "instance_index": None,
+            "evidence_status": None,
+            "source_ids": [],
+            "residual": None,
+            "tolerance": None,
+            "tolerance_mode": None,
+            "message": (
+                "Embedded assembly ModelingPlan hash matches the current contract."
+                if hash_matches
+                else (
+                    "Built scene assembly provenance is stale: "
+                    f"embedded={embedded_hash!r} current={current_hash!r}"
+                )
+            ),
+            "metrics": {"scorable": hash_matches},
+        }
+    )
+    policy_matches = embedded_policy == contract["policy"]
+    checks.append(
+        {
+            "id": "assembly.provenance.policy",
+            "relation_id": None,
+            "kind": "contract",
+            "status": "passed" if policy_matches else "failed",
+            "required": True,
+            "subject_id": None,
+            "reference_id": None,
+            "peer_id": None,
+            "instance_index": None,
+            "evidence_status": None,
+            "source_ids": [],
+            "residual": None,
+            "tolerance": None,
+            "tolerance_mode": None,
+            "message": (
+                "Embedded assembly policy matches the current contract."
+                if policy_matches
+                else (
+                    "Built scene assembly policy is stale: "
+                    f"embedded={embedded_policy!r} current={contract['policy']!r}"
+                )
+            ),
+            "metrics": {"scorable": policy_matches},
+        }
+    )
+    expected_relationships = relationship_ids_by_object(contract)
+    for object_id in sorted(contract["roles"]):
+        instances = object_map.get(object_id, [])
+        if not instances:
+            continue
+        expected_role = contract["roles"][object_id]
+        expected_ids = expected_relationships.get(object_id, [])
+        for obj in sorted(instances, key=lambda item: item.name):
+            actual_role = str(obj.get("cbm_assembly_role", "unclassified"))
+            try:
+                actual_ids = json.loads(
+                    str(obj.get("cbm_assembly_relationship_ids", "[]"))
+                )
+            except json.JSONDecodeError:
+                actual_ids = None
+            metadata_matches = (
+                actual_role == expected_role
+                and isinstance(actual_ids, list)
+                and sorted(str(value) for value in actual_ids) == expected_ids
+            )
+            checks.append(
+                {
+                    "id": f"assembly.metadata.{object_id}.{obj.name}",
+                    "relation_id": None,
+                    "kind": "contract",
+                    "status": "passed" if metadata_matches else "failed",
+                    "required": True,
+                    "subject_id": object_id,
+                    "reference_id": None,
+                    "peer_id": None,
+                    "instance_index": int(obj.get("cbm_instance_index", 0)),
+                    "evidence_status": None,
+                    "source_ids": [],
+                    "residual": None,
+                    "tolerance": None,
+                    "tolerance_mode": None,
+                    "message": (
+                        "Built object assembly role and relation IDs match the ModelingPlan."
+                        if metadata_matches
+                        else (
+                            f"Built object assembly metadata differs: role={actual_role!r} "
+                            f"relationship_ids={actual_ids!r}; expected_role={expected_role!r} "
+                            f"expected_relationship_ids={expected_ids!r}"
+                        )
+                    ),
+                    "metrics": {"scorable": metadata_matches},
+                }
+            )
+    return checks
+
+
+def _assembly_messages(report: dict) -> tuple[list[str], list[str]]:
+    """Project required assembly failures and advisory checks into scene messages."""
+
+    errors = [
+        f"Assembly {item['id']}: {item['message']}"
+        for item in report.get("checks", [])
+        if item.get("status") == "failed"
+    ]
+    warnings = [
+        f"Assembly {item['id']}: {item['message']}"
+        for item in report.get("checks", [])
+        if item.get("status") == "warning"
+    ]
+    return errors, warnings
+
+
 def main() -> None:
     """Validate generated object families, geometry, and declared modifier execution."""
 
     args = parse_args()
-    spec = json.loads(Path(args.spec).read_text(encoding="utf-8"))
+    spec_path = Path(args.spec).expanduser().resolve()
+    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    assembly_contract = load_assembly_contract(spec_path.parent.parent)
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
 
     errors: list[str] = []
     warnings: list[str] = []
     generated = [obj for obj in bpy.context.scene.objects if obj.get("cbm_id")]
+    object_map: dict[str, list[bpy.types.Object]] = {}
+    for obj in generated:
+        object_map.setdefault(str(obj.get("cbm_id")), []).append(obj)
     ids = [str(obj.get("cbm_id")) for obj in generated]
     counts = Counter(ids)
 
@@ -63,6 +214,7 @@ def main() -> None:
     geometry_kinds: dict[str, str] = {}
     expected_modifier_kinds: dict[str, list[str]] = {}
     expected_applied_modifier_kinds: dict[str, list[str]] = {}
+    expected_parent_ids: dict[str, str | None] = {}
     for item in spec["objects"]:
         expected_counts[item["id"]] = (
             int(item.get("generator", {}).get("count", 1)) if item.get("generator") else 1
@@ -75,6 +227,7 @@ def main() -> None:
         expected_applied_modifier_kinds[item["id"]] = scheduled_modifier_kinds(
             modifier_specs
         )
+        expected_parent_ids[item["id"]] = item.get("parent_id")
 
     for object_id, expected in expected_counts.items():
         actual = counts.get(object_id, 0)
@@ -130,9 +283,56 @@ def main() -> None:
                 f"{obj.name}: applied modifier metadata mismatch "
                 f"{applied_modifiers!r} != {expected_applied_modifiers!r}"
             )
+        expected_parent = expected_parent_ids.get(str(obj.get("cbm_id")))
+        actual_parent = (
+            str(obj.parent.get("cbm_id", obj.parent.name))
+            if obj.parent is not None
+            else None
+        )
+        if actual_parent != expected_parent:
+            errors.append(
+                f"{obj.name}: Blender parent semantic ID mismatch "
+                f"{actual_parent!r} != {expected_parent!r}"
+            )
 
     if bpy.context.scene.camera is None:
         errors.append("No active comparison camera")
+
+    assembly = evaluate_assembly_relationships(assembly_contract, object_map)
+    metadata_checks = _assembly_metadata_checks(assembly_contract, object_map)
+    assembly["checks"] = [*metadata_checks, *assembly["checks"]]
+    assembly["modeling_plan_sha256"] = assembly_contract["sha256"]
+    assembly["embedded_modeling_plan_sha256"] = bpy.context.scene.get(
+        "cbm_assembly_modeling_plan_sha256"
+    )
+    assembly["frame"] = assembly_contract["frame"]
+    failed_assembly = sum(
+        item["status"] == "failed" for item in assembly["checks"]
+    )
+    warned_assembly = sum(
+        item["status"] == "warning" for item in assembly["checks"]
+    )
+    assembly["ok"] = failed_assembly == 0
+    embedded_policy = str(
+        bpy.context.scene.get("cbm_assembly_policy", "legacy_unbound")
+    )
+    if (
+        assembly_contract["policy"] == "spatial_v1"
+        or embedded_policy == "spatial_v1"
+    ):
+        hashes_match = (
+            assembly["embedded_modeling_plan_sha256"]
+            == assembly["modeling_plan_sha256"]
+        )
+        policies_match = embedded_policy == assembly_contract["policy"]
+        assembly["status"] = (
+            "stale"
+            if not hashes_match or not policies_match
+            else ("failed" if failed_assembly else ("warning" if warned_assembly else "passed"))
+        )
+    assembly_errors, assembly_warnings = _assembly_messages(assembly)
+    errors.extend(assembly_errors)
+    warnings.extend(assembly_warnings)
 
     scene = bpy.context.scene
     report = {
@@ -168,6 +368,7 @@ def main() -> None:
                 }
             ),
         },
+        "assembly": assembly,
     }
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"CBM_VALIDATE_{'OK' if report['ok'] else 'FAILED'} output={output}")

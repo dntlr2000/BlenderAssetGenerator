@@ -116,6 +116,25 @@ uv run cbm workflow-adapters
 검증하고, V0.6도 전체 전경이 아니라 관찰된 주 피사체 영역으로 마스크를
 제한합니다.
 
+## 3차원 조립 일관성
+
+새로 저작되는 ModelingPlan은 비교 카메라의 2D 투영만 맞추지 않고
+`assembly_consistency_policy=spatial_v1` 계약을 사용합니다. 자산 고유의 길이축,
+좌우축, 수직축을 선언하고 각 부품을 `root`, `attached`, `free_standing`으로
+분류한 뒤 필요에 따라 중심면, 동축, 포함, 접촉, 양측 대칭 관계를 기록합니다.
+
+따라서 단일 사선 이미지에서 트리거나 레버처럼 기능상 중심에 있어야 할 부품이
+화면상 한쪽에 보인다는 이유만으로 숨은 좌우축까지 옆면으로 복사되지 않습니다.
+명시적인 정면·측면·평면도, 청사진, 치수 또는 사용자 지시가 있을 때만
+`side_specific` 관계를 사용합니다. Blender `inspect`와 `validate`는 실제 평가된
+geometry bounds를 자산 로컬 meter frame에서 검사하며, 위반 시 V0.5 재질 단계로
+넘어가기 전에 V0.4 형상 저작으로 되돌립니다.
+
+이 검사는 정적 3D 배치의 타당성 근거입니다. 실제 작동 간극, 운동학, 제조 가능성,
+내부 기구 또는 단일 이미지에서 보이지 않는 면의 진실성을 증명하지는 않습니다.
+기존 `legacy_unbound` ModelingPlan은 계속 읽을 수 있지만 공간 검증 완료로
+간주하지 않습니다.
+
 ```text
 새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.
 reference_content_scope=primary_object_only,

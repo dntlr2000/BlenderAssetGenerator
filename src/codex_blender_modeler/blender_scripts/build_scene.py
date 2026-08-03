@@ -11,6 +11,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from assembly_runtime import (  # noqa: E402
+    attach_assembly_metadata,
+    load_assembly_contract,
+)
 from common import (  # noqa: E402
     apply_object_spec,
     apply_scene_relationships,
@@ -69,6 +73,7 @@ def main() -> None:
         # The host CLI/MCP validates SceneSpec and InteriorScope before Blender starts.
         validate_contracts=False,
     )
+    assembly_contract = load_assembly_contract(job_root)
 
     clear_scene()
     configure_render(args.render_engine, args.render_device)
@@ -142,6 +147,7 @@ def main() -> None:
     )
     bpy.context.scene["cbm_material_build_fingerprint"] = build_provenance["fingerprint"]
     bpy.context.scene["cbm_build_provenance"] = canonical_json_text(build_provenance)
+    attach_assembly_metadata(bpy.context.scene, object_map, assembly_contract)
     bpy.ops.wm.save_as_mainfile(filepath=str(output))
     print(f"CBM_BUILD_OK objects={count} output={output}")
 

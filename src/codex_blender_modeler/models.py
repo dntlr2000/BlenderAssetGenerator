@@ -324,6 +324,24 @@ class SceneSpec(StrictModel):
         )
         if missing_parents:
             raise ValueError(f"Objects reference missing parents: {missing_parents}")
+        self_parents = sorted(obj.id for obj in self.objects if obj.parent_id == obj.id)
+        if self_parents:
+            raise ValueError(f"Objects cannot parent themselves: {self_parents}")
+        parent_by_id = {
+            obj.id: obj.parent_id for obj in self.objects if obj.parent_id is not None
+        }
+        for start_id in sorted(parent_by_id):
+            visited: set[str] = set()
+            current_id = start_id
+            while current_id in parent_by_id:
+                parent_id = parent_by_id[current_id]
+                if parent_id is None:
+                    break
+                if parent_id in visited:
+                    cycle_ids = sorted({*visited, parent_id})
+                    raise ValueError(f"Object parent cycle detected: {cycle_ids}")
+                visited.add(parent_id)
+                current_id = parent_id
         modifier_targets = {
             modifier.target_id
             for obj in self.objects

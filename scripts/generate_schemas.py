@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from codex_blender_modeler.analysis.models import (
+    AssemblyValidationReport,
     CameraSolution,
     ModelingPlan,
     ReferenceAnalysis,
@@ -119,6 +120,7 @@ SCHEMAS = {
     "reference_analysis.schema.json": ReferenceAnalysis,
     "camera_solution.schema.json": CameraSolution,
     "modeling_plan.schema.json": ModelingPlan,
+    "assembly_validation.schema.json": AssemblyValidationReport,
     "surface_detail_validation.schema.json": SurfaceDetailValidationReport,
     "constraints.schema.json": ConstraintSet,
     "constraint_solution.schema.json": ConstraintSolution,

@@ -19,3 +19,10 @@ coverage as pixel-level similarity. If a visible mark is absent from the map, re
 material/texture revision; if it changes silhouette or structure, return it to V0.4 geometry.
 
 Map each issue to stable object IDs. Separate camera errors from geometry errors. Return a minimal change plan with measurable acceptance criteria. Do not propose unrelated beautification.
+
+Treat the current spatial-v1 assembly contract as a separate three-dimensional structural
+constraint. A fixed reference-camera comparison cannot prove hidden-axis placement. Do not propose
+moving a functional or attached part laterally or in depth merely to reduce its 2D center error.
+Preserve center-plane, coaxial, containment, contact, and evidenced side-specific relationships;
+if a proposed correction would violate one, return it to V0.4 assembly authoring instead of
+emitting a V0.6 geometry candidate.

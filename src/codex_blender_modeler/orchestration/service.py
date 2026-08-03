@@ -1178,6 +1178,19 @@ def _validate_agent_completion_semantics(
                 raise RuntimeError(
                     "new modeling-plan completion requires surface_detail_policy"
                 )
+            if (
+                bool(
+                    step.parameters.get(
+                        "require_assembly_consistency_policy",
+                        False,
+                    )
+                )
+                and plan.assembly_consistency_policy != "spatial_v1"
+            ):
+                raise RuntimeError(
+                    "new modeling-plan completion requires "
+                    "assembly_consistency_policy=spatial_v1"
+                )
             validate_modeling_plan_content_scope(
                 plan,
                 scope=request.reference_content_scope,
@@ -1187,12 +1200,28 @@ def _validate_agent_completion_semantics(
             scene_spec = load_scene_spec(path)
             modeling_plan_path = root / "analysis" / "modeling_plan.json"
             if modeling_plan_path.is_file():
+                from ..analysis.assembly import validate_assembly_prebuild_contract
                 from ..analysis.models import ModelingPlan
                 from ..analysis.surface_details import validate_surface_detail_contract
 
                 modeling_plan = ModelingPlan.model_validate_json(
                     modeling_plan_path.read_text(encoding="utf-8")
                 )
+                if modeling_plan.assembly_consistency_policy == "spatial_v1":
+                    assembly_report = validate_assembly_prebuild_contract(
+                        modeling_plan,
+                        scene_spec,
+                    )
+                    if not assembly_report.ok:
+                        failures = "; ".join(
+                            item.message
+                            for item in assembly_report.checks
+                            if item.status == "failed"
+                        )
+                        raise RuntimeError(
+                            "agent SceneSpec completion violates spatial-v1 assembly "
+                            f"consistency: {failures}"
+                        )
                 detail_report = validate_surface_detail_contract(
                     modeling_plan,
                     scene_spec,

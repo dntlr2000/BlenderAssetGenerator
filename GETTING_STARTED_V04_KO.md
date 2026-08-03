@@ -136,3 +136,23 @@ Blender 5 호환성 probe, Geometry Core 8종 modifier, measured pass/fail, auth
 V0.4에서는 분류와 geometry 중복 방지만 수행합니다. 실제 UVMap PBR 맵 결속은
 V0.5에서 완료하며, 상세 계약은 [표면 디테일 분류 가이드](SURFACE_DETAIL_ROUTING_KO.md)를
 참조합니다.
+
+## 단일 시점 자산의 3차원 조립 검증
+
+새로 작성하는 ModelingPlan은 `assembly_consistency_policy=spatial_v1`을 사용합니다.
+자산 로컬의 길이축·좌우축·수직축과 root를 먼저 선언하고, 각 semantic object를
+`root`, `attached`, `free_standing`으로 분류합니다. 부착 부품에는 적용 가능한
+`center_plane`, `coaxial`, `bbox_containment`, `surface_contact`, `bilateral_pair`
+관계를 기록합니다.
+
+단일 측면 또는 사선 레퍼런스의 화면상 오프셋은 숨은 좌우·깊이 위치의 증거가
+아닙니다. 좌우 대칭 제품의 트리거, 레버, 손잡이, 바퀴, 축 같은 기능 부품은
+다른 근거가 없으면 중심면 또는 공통 축에 있다고 `inferred`로 기록합니다.
+정사영 뷰, 청사진, 치수 또는 명시적인 사용자 요구가 실제 비대칭을 뒷받침할
+때만 `side_specific`을 사용합니다.
+
+`build → inspect → validate`는 ModelingPlan hash를 `.blend`에 결속하고 실제 평가된
+geometry bounds를 root 로컬 meter frame에서 검사합니다. 필수 관계가 실패하면
+재질·텍스처 단계로 넘어가지 말고 V0.4 SceneSpec을 수정합니다. 이 결과는 정적
+배치 검증이며 실제 동작 간극, 운동학, 제조 가능성 또는 보이지 않는 면의 정답을
+증명하지 않습니다.

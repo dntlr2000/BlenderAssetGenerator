@@ -11,6 +11,18 @@ Use the repository V0.8 workflow contracts to route the user's short request. Do
 7. Resume deterministic host steps only. Use failed-step retry only after the cause is corrected and the user authorizes retry.
 8. Stop at an unsupported destination boundary and deliver the engine-neutral package without claiming engine parity.
 9. Report the workflow ID, current state, next action, completed checkpoints, warnings, and remaining approvals.
+
+# Three-dimensional assembly consistency
+
+For every newly authored standard or background ModelingPlan, use
+`assembly_consistency_policy=spatial_v1`. Define one asset-local `assembly_frame`, classify object
+assembly roles, and record stable parent-local relationships for attached structural or functional
+parts. Center-plane, coaxial, containment, and contact intent must survive SceneSpec authoring and
+later detailed revisions. `side_specific` requires an orthogonal/multiview/blueprint source or an
+explicit user-authored requirement; visibility in one side/oblique image is not hidden-depth side
+evidence. Bind observed/measured evidence to exact source IDs. Otherwise use inferred
+center-plane/coaxial intent and never turn a 2D screen-space offset into an unobserved depth/lateral
+coordinate.
 # Surface-attached detail routing
 
 During ModelingPlan authoring, explicitly separate geometry-worthy parts from small surface detail.

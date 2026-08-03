@@ -226,6 +226,64 @@ def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | Non
     }
 
 
+def _optional_assembly_contract_hashes(root: Path) -> dict[str, Any] | None:
+    """Bind every spatial assembly frame while leaving legacy fingerprints unchanged."""
+
+    plan_path = root / "analysis" / "modeling_plan.json"
+    if not plan_path.is_file():
+        return None
+    try:
+        raw = json.loads(plan_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise BuildProvenanceError(
+            f"ModelingPlan is invalid JSON: {plan_path}"
+        ) from exc
+    if not isinstance(raw, dict):
+        raise BuildProvenanceError(
+            f"Assembly ModelingPlan contract is invalid: {plan_path}"
+        )
+    policy = raw.get("assembly_consistency_policy", "legacy_unbound")
+    if policy == "legacy_unbound":
+        return None
+    if policy != "spatial_v1":
+        raise BuildProvenanceError(
+            f"Assembly ModelingPlan policy is invalid: {plan_path}"
+        )
+    relationships = raw.get("assembly_relationships", [])
+    if not isinstance(relationships, list):
+        raise BuildProvenanceError(
+            f"Assembly ModelingPlan contract is invalid: {plan_path}"
+        )
+    relation_ids: list[str] = []
+    for relationship in relationships:
+        if not isinstance(relationship, dict):
+            raise BuildProvenanceError(
+                f"Assembly ModelingPlan contract is invalid: {plan_path}"
+            )
+        relation_id = relationship.get("id")
+        if not isinstance(relation_id, str) or not relation_id.strip():
+            raise BuildProvenanceError(
+                f"Assembly ModelingPlan contract is invalid: {plan_path}"
+            )
+        relation_ids.append(relation_id)
+    if len(relation_ids) != len(set(relation_ids)):
+        raise BuildProvenanceError(
+            f"Assembly ModelingPlan relationship IDs are duplicated: {plan_path}"
+        )
+    frame = raw.get("assembly_frame")
+    if not isinstance(frame, dict) or not isinstance(frame.get("root_object_id"), str):
+        raise BuildProvenanceError(
+            f"Assembly ModelingPlan frame is invalid: {plan_path}"
+        )
+    return {
+        "modeling_plan_path": _relative_path(root, plan_path, "modeling plan"),
+        "modeling_plan_sha256": sha256_file(plan_path),
+        "policy": policy,
+        "root_object_id": frame["root_object_id"],
+        "relationship_ids": sorted(relation_ids),
+    }
+
+
 def collect_build_provenance(
     job_root: Path,
     job_id: str,
@@ -275,6 +333,7 @@ def collect_build_provenance(
                 "target_subject": target_subject,
             }
     if is_job_workspace and validate_contracts:
+        from .analysis.assembly import validate_assembly_prebuild_contract
         from .analysis.models import ModelingPlan
         from .analysis.surface_details import validate_surface_detail_contract
         from .architecture.service import validate_scene_interior_scope
@@ -311,6 +370,24 @@ def collect_build_provenance(
                 modeling_plan = ModelingPlan.model_validate_json(
                     modeling_plan_path.read_text(encoding="utf-8")
                 )
+            except (OSError, ValueError) as exc:
+                raise BuildProvenanceError(
+                    f"ModelingPlan contract validation failed: {exc}"
+                ) from exc
+            assembly_report = validate_assembly_prebuild_contract(
+                modeling_plan,
+                parsed_scene_spec,
+            )
+            if not assembly_report.ok:
+                formatted = "; ".join(
+                    item.message
+                    for item in assembly_report.checks
+                    if item.status == "failed"
+                )
+                raise BuildProvenanceError(
+                    f"Assembly consistency validation failed: {formatted}"
+                )
+            try:
                 material_plan_path = root / "analysis" / "material_plan.json"
                 material_plan = (
                     load_material_plan(material_plan_path)
@@ -397,6 +474,9 @@ def collect_build_provenance(
     surface_detail_contracts = _optional_surface_detail_contract_hashes(root)
     if surface_detail_contracts is not None:
         payload["surface_detail_contracts"] = surface_detail_contracts
+    assembly_contracts = _optional_assembly_contract_hashes(root)
+    if assembly_contracts is not None:
+        payload["assembly_contracts"] = assembly_contracts
     payload["fingerprint"] = canonical_json_sha256(payload)
     return payload
 

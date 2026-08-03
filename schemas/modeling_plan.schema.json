@@ -1,5 +1,504 @@
 {
   "$defs": {
+    "AssemblyFrame": {
+      "additionalProperties": false,
+      "description": "Describe the intrinsic 3D axes used to judge one assembled asset.",
+      "properties": {
+        "root_object_id": {
+          "title": "Root Object Id",
+          "type": "string"
+        },
+        "longitudinal_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Longitudinal Axis",
+          "type": "string"
+        },
+        "lateral_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Lateral Axis",
+          "type": "string"
+        },
+        "vertical_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Vertical Axis",
+          "type": "string"
+        },
+        "symmetry": {
+          "default": "unknown",
+          "enum": [
+            "bilateral",
+            "asymmetric",
+            "unknown"
+          ],
+          "title": "Symmetry",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "root_object_id",
+        "longitudinal_axis",
+        "lateral_axis",
+        "vertical_axis"
+      ],
+      "title": "AssemblyFrame",
+      "type": "object"
+    },
+    "AssemblyTolerance": {
+      "additionalProperties": false,
+      "description": "Define one unambiguous absolute or reference-relative assembly tolerance.",
+      "properties": {
+        "mode": {
+          "default": "relative",
+          "enum": [
+            "relative",
+            "meters"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "AssemblyTolerance",
+      "type": "object"
+    },
+    "BBoxContainmentRelationship": {
+      "additionalProperties": false,
+      "description": "Require subject bounds to stay inside reference bounds on selected axes.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bbox_containment",
+          "default": "bbox_containment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "BBoxContainmentRelationship",
+      "type": "object"
+    },
+    "BilateralPairRelationship": {
+      "additionalProperties": false,
+      "description": "Require two peer subjects to mirror around one reference center plane.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bilateral_pair",
+          "default": "bilateral_pair",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "peer_id": {
+          "title": "Peer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "peer_id"
+      ],
+      "title": "BilateralPairRelationship",
+      "type": "object"
+    },
+    "CenterPlaneRelationship": {
+      "additionalProperties": false,
+      "description": "Require one subject center to remain on a reference center plane.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "center_plane",
+          "default": "center_plane",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis"
+      ],
+      "title": "CenterPlaneRelationship",
+      "type": "object"
+    },
+    "CoaxialRelationship": {
+      "additionalProperties": false,
+      "description": "Require subject and reference centers to align on two transverse axes.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "coaxial",
+          "default": "coaxial",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "enum": [
+                "X",
+                "Y",
+                "Z"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "X",
+                "Y",
+                "Z"
+              ],
+              "type": "string"
+            }
+          ],
+          "title": "Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "CoaxialRelationship",
+      "type": "object"
+    },
     "ModelingPlanObject": {
       "additionalProperties": false,
       "description": "Describe one semantic modeling target and its optional content-scope role.",
@@ -90,6 +589,17 @@
           "default": null,
           "title": "Scope Role"
         },
+        "assembly_role": {
+          "default": "unclassified",
+          "enum": [
+            "unclassified",
+            "root",
+            "attached",
+            "free_standing"
+          ],
+          "title": "Assembly Role",
+          "type": "string"
+        },
         "notes": {
           "items": {
             "type": "string"
@@ -103,6 +613,222 @@
         "label"
       ],
       "title": "ModelingPlanObject",
+      "type": "object"
+    },
+    "SideSpecificRelationship": {
+      "additionalProperties": false,
+      "description": "Require an explicitly justified subject to remain on one side of a reference.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "side_specific",
+          "default": "side_specific",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Side",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "side"
+      ],
+      "title": "SideSpecificRelationship",
+      "type": "object"
+    },
+    "SurfaceContactRelationship": {
+      "additionalProperties": false,
+      "description": "Require one subject bound face to meet one reference bound face.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "surface_contact",
+          "default": "surface_contact",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "subject_side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Subject Side",
+          "type": "string"
+        },
+        "reference_side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Reference Side",
+          "type": "string"
+        },
+        "min_transverse_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Transverse Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "subject_side",
+        "reference_side"
+      ],
+      "title": "SurfaceContactRelationship",
       "type": "object"
     },
     "SurfaceDetailDecision": {
@@ -420,6 +1146,63 @@
         "$ref": "#/$defs/ModelingPlanObject"
       },
       "title": "Objects",
+      "type": "array"
+    },
+    "assembly_consistency_policy": {
+      "default": "legacy_unbound",
+      "enum": [
+        "legacy_unbound",
+        "spatial_v1"
+      ],
+      "title": "Assembly Consistency Policy",
+      "type": "string"
+    },
+    "assembly_frame": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AssemblyFrame"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "assembly_relationships": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "bbox_containment": "#/$defs/BBoxContainmentRelationship",
+            "bilateral_pair": "#/$defs/BilateralPairRelationship",
+            "center_plane": "#/$defs/CenterPlaneRelationship",
+            "coaxial": "#/$defs/CoaxialRelationship",
+            "side_specific": "#/$defs/SideSpecificRelationship",
+            "surface_contact": "#/$defs/SurfaceContactRelationship"
+          },
+          "propertyName": "kind"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/CenterPlaneRelationship"
+          },
+          {
+            "$ref": "#/$defs/CoaxialRelationship"
+          },
+          {
+            "$ref": "#/$defs/BBoxContainmentRelationship"
+          },
+          {
+            "$ref": "#/$defs/SurfaceContactRelationship"
+          },
+          {
+            "$ref": "#/$defs/SideSpecificRelationship"
+          },
+          {
+            "$ref": "#/$defs/BilateralPairRelationship"
+          }
+        ]
+      },
+      "title": "Assembly Relationships",
       "type": "array"
     },
     "surface_detail_policy": {

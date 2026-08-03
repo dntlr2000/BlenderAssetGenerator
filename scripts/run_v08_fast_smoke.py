@@ -35,25 +35,41 @@ def _load_plan(root: Path, workflow_id: str) -> dict:
     )
 
 
-def _author_modeling_plan(root: Path, state) -> object:
-    """Promote analyzer output to one deterministic authored modeling plan."""
+def _author_modeling_plan(root: Path, state, scene_spec_path: Path) -> object:
+    """Author a spatial-v1 smoke plan that matches the exact source SceneSpec IDs."""
 
+    scene_spec = json.loads(scene_spec_path.read_text(encoding="utf-8"))
+    source_ids = [str(item["id"]) for item in scene_spec["sources"]]
     path = root / "analysis" / "modeling_plan.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["stage"] = "authored"
-    if not payload.get("objects"):
-        payload["objects"] = [
-            {
-                "id": "demo.asset",
-                "label": "geometry showcase",
-                "recommended_geometry": "primitive",
-                "source_ids": ["reference"],
-                "bbox_norm": [0.0, 0.0, 1.0, 1.0],
-                "observed": True,
-                "confidence": 1.0,
-                "notes": ["Isolated V0.8 lifecycle smoke fixture."],
-            }
-        ]
+    payload["objects"] = [
+        {
+            "id": item["id"],
+            "label": item["name"],
+            "recommended_geometry": item["geometry"]["kind"],
+            "source_ids": source_ids,
+            "bbox_norm": [0.0, 0.0, 1.0, 1.0],
+            "observed": True,
+            "confidence": 1.0,
+            "assembly_role": "root" if index == 0 else "free_standing",
+            "notes": ["Isolated V0.8 lifecycle smoke fixture."],
+        }
+        for index, item in enumerate(scene_spec["objects"])
+    ]
+    payload["assembly_consistency_policy"] = "spatial_v1"
+    payload["assembly_frame"] = {
+        "root_object_id": scene_spec["objects"][0]["id"],
+        "longitudinal_axis": "X",
+        "lateral_axis": "Y",
+        "vertical_axis": "Z",
+        "symmetry": "unknown",
+        "evidence_status": "inferred",
+        "source_ids": [],
+        "confidence": 0.5,
+        "notes": ["Test-only inferred assembly frame."],
+    }
+    payload["assembly_relationships"] = []
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     current = _step_state(state, "geometry.modeling_plan")
     return complete_workflow_step(
@@ -214,7 +230,7 @@ def run_fast_smoke(
     )
     state = resume_workflow(job_id, state.workflow_id, max_host_steps=1)
     root = job_dir(job_id)
-    state = _author_modeling_plan(root, state)
+    state = _author_modeling_plan(root, state, scene_spec_path)
     state = _author_scene_spec(root, state, scene_spec_path)
     state = resume_workflow(job_id, state.workflow_id, max_host_steps=64)
     if state.current_step_id != "material.author":

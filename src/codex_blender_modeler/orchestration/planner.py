@@ -92,6 +92,62 @@ def _reference_content_instructions(request: WorkflowRequest) -> list[str]:
     ]
 
 
+def _assembly_consistency_instructions() -> list[str]:
+    """Return shared single-view rules for parent-local three-dimensional assembly intent."""
+
+    return [
+        (
+            "Author assembly_consistency_policy=spatial_v1 with one explicit assembly_frame "
+            "and parent-local relationships for structural or functional components."
+        ),
+        (
+            "For manufactured or bilaterally symmetric assets, classify functional parts "
+            "with center_plane, coaxial, bbox_containment, or surface_contact intent as "
+            "applicable; "
+            "examples include triggers, levers, handles, and wheels, but never infer policy "
+            "from an object name alone."
+        ),
+        (
+            "Use side_specific placement only when an orthogonal/multiview/blueprint source or "
+            "an explicit user-authored requirement establishes that side. Visibility in one "
+            "side or oblique image is not hidden-depth side evidence; otherwise a bilateral "
+            "manufactured functional part defaults to inferred center_plane or coaxial intent."
+        ),
+        (
+            "Record evidence_status and confidence on the assembly frame and every relationship; "
+            "observed or measured evidence must name the exact SceneSpec source IDs, while an "
+            "inferred hidden-axis assumption must remain explicitly inferred."
+        ),
+        (
+            "Do not copy a component's 2D screen offset into a hidden depth or lateral axis. "
+            "Plan attachment, center plane, axial alignment, containment, and contact in the "
+            "declared parent-local assembly frame."
+        ),
+    ]
+
+
+def _scene_assembly_instructions() -> list[str]:
+    """Return SceneSpec authoring rules that preserve the ModelingPlan assembly contract."""
+
+    return [
+        (
+            "Preserve the ModelingPlan assembly_frame, every relationship ID, subject/reference "
+            "ID, "
+            "evidence status, and confidence; do not silently drop or reinterpret them."
+        ),
+        (
+            "Satisfy each spatial_v1 relationship in the declared parent-local frame, "
+            "including center_plane, coaxial, bbox_containment, surface_contact, and evidenced "
+            "side_specific placement."
+        ),
+        (
+            "Never copy a reference-image screen-space offset into an unobserved SceneSpec "
+            "depth/lateral coordinate. Keep hidden-axis placement inferred and structurally "
+            "coherent with its parent."
+        ),
+    ]
+
+
 def _append_build_cycle(
     steps: list[WorkflowStep],
     dependency: str,
@@ -262,9 +318,13 @@ def _append_proxy_flow(
                     "of authoring a whole-material pattern.",
                     "A generic semantic label never authorizes invented panel lines, seams, "
                     "grooves, scratches, or other repeated marks outside observed evidence.",
+                    *_assembly_consistency_instructions(),
                     *content_instructions,
                 ],
-                parameters={"require_surface_detail_policy": True},
+                parameters={
+                    "require_surface_detail_policy": True,
+                    "require_assembly_consistency_policy": True,
+                },
             ),
             _step(
                 "geometry.proxy_author",
@@ -285,6 +345,7 @@ def _append_proxy_flow(
                     "Do not create interiors without an exact approved InteriorScope.",
                     "Stop at major silhouette, proportions, and semantic decomposition.",
                     "Do not create SceneSpec objects for IDs routed through surface_details.",
+                    *_scene_assembly_instructions(),
                     *content_instructions,
                 ],
             ),
@@ -374,11 +435,15 @@ def _append_background_geometry_flow(
                     "whole-material pattern.",
                     "A generic semantic label never authorizes unobserved repeated panels, "
                     "seams, grooves, scratches, or lines.",
+                    *_assembly_consistency_instructions(),
                     *content_instructions,
                     "If measured, rigged, interactive, or high-ambiguity work is required, "
                     "stop and report requires_standard_workflow without recording completion.",
                 ],
-                parameters={"require_surface_detail_policy": True},
+                parameters={
+                    "require_surface_detail_policy": True,
+                    "require_assembly_consistency_policy": True,
+                },
             ),
             _step(
                 "geometry.background_author",
@@ -403,6 +468,7 @@ def _append_background_geometry_flow(
                     "Assign one appropriate qa_role:primary, qa_role:supporting, "
                     "qa_role:decorative, or qa_role:ground_background tag to each object; "
                     "primary_object_only requires an explicit role on every object.",
+                    *_scene_assembly_instructions(),
                     *content_instructions,
                     "Do not create interiors, rigs, animation, gameplay logic, or "
                     "engine-specific geometry.",
@@ -483,7 +549,9 @@ def _append_detail_flow(
             ],
             instructions=[
                 "Archive the previous SceneSpec before canonical replacement.",
-                "Preserve camera, stable IDs, and every unrequested property.",
+                "Preserve camera, stable IDs, assembly relationships, and every unrequested "
+                "property.",
+                *_scene_assembly_instructions(),
                 *_reference_content_instructions(request),
             ],
         )
@@ -1559,6 +1627,18 @@ def build_workflow_plan(
                             acceptance="valid_json",
                             canonical=True,
                         )
+                    ],
+                    instructions=[
+                        (
+                            "Preserve every current spatial_v1 assembly relationship and "
+                            "parent-local placement unless the user's exact request explicitly "
+                            "targets that relationship."
+                        ),
+                        (
+                            "Do not convert a 2D reference-screen offset into an unobserved "
+                            "depth/lateral revision; keep inferred hidden-axis assumptions and "
+                            "stable subject/reference IDs intact."
+                        ),
                     ],
                 ),
                 _step(

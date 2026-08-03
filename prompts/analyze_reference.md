@@ -22,6 +22,18 @@ Requirements:
 - Use deterministic diagnostics as evidence, not as metric truth.
 - Use stable semantic object and material IDs.
 - Populate or respect the semantic modeling plan before final SceneSpec authoring.
+- New authored plans must use `assembly_consistency_policy=spatial_v1`, define one asset-local
+  `assembly_frame`, classify every object with an assembly role, and record stable-ID
+  `assembly_relationships` for attached structural or functional components.
+- For manufactured or bilaterally symmetric assets, use parent-local `center_plane`, `coaxial`,
+  `bbox_containment`, and `surface_contact` relationships as supported by evidence. Examples such
+  as triggers, levers, handles, or wheels illustrate functional parts; never infer assembly policy
+  from an object name alone.
+- Use `side_specific` only when an orthogonal/multiview/blueprint source or an explicit
+  user-authored requirement establishes a side. Seeing a part in one side or oblique image is not
+  hidden-depth side evidence. Bind observed/measured relationships to exact source IDs; otherwise
+  a bilateral manufactured functional part defaults to an `inferred` center-plane/coaxial intent
+  with confidence rather than copying a 2D screen offset into the hidden lateral/depth axis.
 - Populate `surface_detail_policy` and classify visible small surface-attached details before
   SceneSpec authoring. Route shallow windows, seams, labels, rivets, painted panels, and repeated
   marks to `surface_details` when they do not affect silhouette, structure, gameplay, or physical
@@ -45,5 +57,8 @@ Requirements:
 - In measured mode, obey scale anchors and `constraints/constraints.json`; report unresolved degrees of freedom.
 - Use camera-solution fields as a scaffold, not an unquestionable solution.
 - Keep hidden-side reconstruction assumptions explicit.
+- Preserve the ModelingPlan assembly frame, relationship IDs, subject/reference IDs, evidence,
+  and confidence in SceneSpec authoring. Satisfy those relations in the declared parent-local
+  frame rather than optimizing only the reference-camera projection.
 
 The caller appends job-specific paths and metadata.

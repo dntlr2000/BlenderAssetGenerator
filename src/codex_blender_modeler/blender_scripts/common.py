@@ -600,6 +600,7 @@ def apply_object_spec(
     obj["cbm_id"] = spec["id"]
     obj["cbm_instance_index"] = index
     obj["cbm_geometry_kind"] = spec["geometry"]["kind"]
+    obj["cbm_parent_id"] = str(spec.get("parent_id") or "")
     obj["cbm_tags"] = ",".join(spec.get("tags", []))
     obj["cbm_declared_modifier_kinds"] = ",".join(
         modifier["kind"] for modifier in spec.get("modifiers", [])

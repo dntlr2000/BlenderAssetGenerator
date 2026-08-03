@@ -62,21 +62,41 @@ def _new_proxy_workflow(
 def _author_modeling_plan(root: Path, state) -> None:
     """Promote the deterministic scaffold to one schema-valid authored modeling plan."""
 
+    scene_seed = json.loads(
+        (ROOT / "examples" / "geometry_showcase" / "scene_spec.seed.json").read_text(
+            encoding="utf-8"
+        )
+    )
     path = root / "analysis" / "modeling_plan.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["stage"] = "authored"
     payload["objects"] = [
         {
-            "id": "asset.body",
-            "label": "body",
-            "recommended_geometry": "primitive",
-            "source_ids": ["reference"],
+            "id": item["id"],
+            "label": item["name"],
+            "recommended_geometry": item["geometry"]["kind"],
+            "source_ids": ["ref.main"],
             "bbox_norm": [0.1, 0.1, 0.9, 0.9],
             "observed": True,
             "confidence": 0.8,
+            "assembly_role": "root" if index == 0 else "free_standing",
             "notes": [],
         }
+        for index, item in enumerate(scene_seed["objects"])
     ]
+    payload["assembly_consistency_policy"] = "spatial_v1"
+    payload["assembly_frame"] = {
+        "root_object_id": scene_seed["objects"][0]["id"],
+        "longitudinal_axis": "X",
+        "lateral_axis": "Y",
+        "vertical_axis": "Z",
+        "symmetry": "unknown",
+        "evidence_status": "inferred",
+        "source_ids": [],
+        "confidence": 0.5,
+        "notes": ["Test-only inferred assembly frame."],
+    }
+    payload["assembly_relationships"] = []
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     current = next(
         item for item in state.steps if item.step_id == "geometry.modeling_plan"
@@ -149,7 +169,18 @@ def test_new_short_request_creates_isolated_proxy_workflow(
         item for item in plan["steps"] if item["step_id"] == "geometry.modeling_plan"
     )
     assert modeling_step["parameters"]["require_surface_detail_policy"] is True
+    assert (
+        modeling_step["parameters"]["require_assembly_consistency_policy"] is True
+    )
     assert any("surface" in text.lower() for text in modeling_step["instructions"])
+    assert any(
+        "assembly_consistency_policy=spatial_v1" in text
+        for text in modeling_step["instructions"]
+    )
+    proxy_step = next(
+        item for item in plan["steps"] if item["step_id"] == "geometry.proxy_author"
+    )
+    assert any("parent-local" in text for text in proxy_step["instructions"])
     report = next(item for item in plan["steps"] if item["step_id"] == "proxy.report")
     assert report["tool_name"] == "generate_pdf_report"
     assert report["outputs"][0]["path"].startswith(
@@ -196,6 +227,76 @@ def test_new_workflow_rejects_removed_surface_detail_policy(
             "geometry.modeling_plan",
             input_fingerprint=str(current.input_fingerprint),
             note="Attempted to omit the required surface-detail policy.",
+        )
+
+
+def test_new_workflow_rejects_legacy_assembly_policy(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Require the spatial-v1 assembly contract on newly planned modeling steps."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path)
+    path = root / "analysis" / "modeling_plan.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload["stage"] = "authored"
+    payload["objects"] = [
+        {
+            "id": "asset.body",
+            "label": "body",
+            "recommended_geometry": "primitive",
+            "source_ids": ["reference"],
+            "bbox_norm": [0.1, 0.1, 0.9, 0.9],
+            "observed": True,
+            "confidence": 0.8,
+            "notes": [],
+        }
+    ]
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    current = next(
+        item for item in state.steps if item.step_id == "geometry.modeling_plan"
+    )
+
+    with pytest.raises(RuntimeError, match="assembly_consistency_policy=spatial_v1"):
+        complete_workflow_step(
+            "workflow_asset",
+            state.workflow_id,
+            "geometry.modeling_plan",
+            input_fingerprint=str(current.input_fingerprint),
+            note="Attempted to retain an unbound legacy assembly plan.",
+        )
+
+
+def test_scene_completion_rejects_spatial_plan_object_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Fail closed when SceneSpec drops an ID from the authored assembly contract."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path)
+    state = _complete_modeling_plan(root, state)
+    seed = json.loads(
+        (ROOT / "examples" / "geometry_showcase" / "scene_spec.seed.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    seed["job_id"] = "workflow_asset"
+    seed["objects"] = seed["objects"][:-1]
+    (root / "analysis" / "scene_spec.json").write_text(
+        json.dumps(seed, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    current = next(
+        item for item in state.steps if item.step_id == "geometry.proxy_author"
+    )
+
+    with pytest.raises((RuntimeError, ValueError), match="[Aa]ssembly consistency"):
+        complete_workflow_step(
+            "workflow_asset",
+            state.workflow_id,
+            "geometry.proxy_author",
+            input_fingerprint=str(current.input_fingerprint),
+            note="Attempted to omit one assembly-contract object.",
         )
 
 
@@ -302,6 +403,21 @@ def test_background_preview_plan_skips_only_generic_review_gates(
     )
     assert "geometry.proxy_author" not in step_ids
     assert "geometry.detail_author" not in step_ids
+    background_modeling = next(
+        item for item in steps if item["step_id"] == "geometry.modeling_plan"
+    )
+    assert (
+        background_modeling["parameters"]["require_assembly_consistency_policy"]
+        is True
+    )
+    assert any(
+        "one side or oblique image" in instruction
+        for instruction in background_modeling["instructions"]
+    )
+    background_author = next(
+        item for item in steps if item["step_id"] == "geometry.background_author"
+    )
+    assert any("parent-local" in item for item in background_author["instructions"])
     assert "qa.run" in step_ids
     assert "background.eligibility" in step_ids
     assert step_ids.index("qa.run") < step_ids.index("background.eligibility")
@@ -1032,6 +1148,24 @@ def test_detail_author_preserves_exact_archived_proxy_completion(
     """Keep approved proxy evidence valid during an archived detailed replacement."""
 
     root, state = _new_proxy_workflow(monkeypatch, tmp_path, scope="full")
+    workflow_plan = json.loads(
+        (
+            root / "workflows" / state.workflow_id / "plan.json"
+        ).read_text(encoding="utf-8")
+    )
+    detail_plan_step = next(
+        item
+        for item in workflow_plan["steps"]
+        if item["step_id"] == "geometry.detail_author"
+    )
+    assert any(
+        "assembly relationships" in instruction
+        for instruction in detail_plan_step["instructions"]
+    )
+    assert any(
+        "parent-local" in instruction
+        for instruction in detail_plan_step["instructions"]
+    )
     state = _complete_modeling_plan(root, state)
     state = _complete_proxy_scene(root, state)
     (root / "blender").mkdir(exist_ok=True)

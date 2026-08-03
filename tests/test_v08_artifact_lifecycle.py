@@ -56,21 +56,41 @@ def _plan_step(root: Path, workflow_id: str, step_id: str) -> dict:
 def _author_modeling_plan(root: Path, state) -> object:
     """Write and complete one minimal authored semantic modeling plan."""
 
+    scene_seed = json.loads(
+        (ROOT / "examples" / "geometry_showcase" / "scene_spec.seed.json").read_text(
+            encoding="utf-8"
+        )
+    )
     path = root / "analysis" / "modeling_plan.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
     payload["stage"] = "authored"
     payload["objects"] = [
         {
-            "id": "asset.body",
-            "label": "body",
-            "recommended_geometry": "primitive",
-            "source_ids": ["reference"],
+            "id": item["id"],
+            "label": item["name"],
+            "recommended_geometry": item["geometry"]["kind"],
+            "source_ids": ["ref.main"],
             "bbox_norm": [0.1, 0.1, 0.9, 0.9],
             "observed": True,
             "confidence": 0.9,
+            "assembly_role": "root" if index == 0 else "free_standing",
             "notes": [],
         }
+        for index, item in enumerate(scene_seed["objects"])
     ]
+    payload["assembly_consistency_policy"] = "spatial_v1"
+    payload["assembly_frame"] = {
+        "root_object_id": scene_seed["objects"][0]["id"],
+        "longitudinal_axis": "X",
+        "lateral_axis": "Y",
+        "vertical_axis": "Z",
+        "symmetry": "unknown",
+        "evidence_status": "inferred",
+        "source_ids": [],
+        "confidence": 0.5,
+        "notes": ["Test-only inferred assembly frame."],
+    }
+    payload["assembly_relationships"] = []
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
     current = next(
         item for item in state.steps if item.step_id == "geometry.modeling_plan"

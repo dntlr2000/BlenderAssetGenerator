@@ -145,3 +145,20 @@ v0.4는 Blender 결과를 측정해 residual을 계산합니다. 임의의 비�
 - 새 MCP 동작: `mcp_server.py`의 명시적 whitelist
 - 텍스처 자동화: 향후 `texturing/` provider 계층으로 추가
 - 픽셀 기반 자동 QA: 향후 `qa/` render-pass/metric 계층으로 추가
+
+## 3차원 조립 일관성 계약
+
+새 authored ModelingPlan은 Geometry SceneSpec `0.2.0`을 변경하지 않고 별도의
+`spatial_v1` 조립 의도를 선언합니다. `assembly_frame`은 자산 root와 고유한
+길이축·좌우축·수직축을 정의하고, object별 `assembly_role`과 stable-ID 관계가
+SceneSpec 저작 및 이후 revision에서 유지됩니다.
+
+지원 관계는 중심면, 동축, bbox 포함, 접촉, 근거 있는 측면 배치, 양측 대칭입니다.
+Blender build는 exact ModelingPlan hash와 관계 metadata를 저장하고, inspect와
+validate는 evaluated bbox corner를 root의 translation/rotation 기반 직교 meter
+frame으로 변환해 residual을 평가합니다. 일반 world AABB나 `transform.location`만으로
+통과시키지 않습니다.
+
+기존 ModelingPlan은 `legacy_unbound` 기본값으로 계속 읽히지만 공간 검증을 주장하지
+않습니다. bbox 검증은 넓은 정적 배치 근거일 뿐 triangle 접촉, 실제 clearance,
+kinematics 또는 단일 이미지의 hidden-side truth를 증명하지 않습니다.

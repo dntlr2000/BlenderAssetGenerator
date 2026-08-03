@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -13,6 +14,12 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from assembly_runtime import (  # noqa: E402
+    evaluated_bounds_in_frame,
+    evaluated_world_bounds,
+    matrix_rows,
+    resolve_assembly_world_to_frame,
+)
 from portable_asset_common import uv_layer_metrics  # noqa: E402
 
 
@@ -70,6 +77,15 @@ def modifier_kinds(obj: bpy.types.Object, property_name: str) -> list[str]:
     return [item for item in value.split(",") if item]
 
 
+def custom_json(owner: bpy.types.ID, property_name: str, default):
+    """Decode one JSON custom property without making inventory output fragile."""
+
+    try:
+        return json.loads(str(owner.get(property_name, json.dumps(default))))
+    except (TypeError, json.JSONDecodeError):
+        return default
+
+
 def main() -> None:
     """Write a deterministic inventory for geometry, runtime, and modifier provenance."""
 
@@ -78,19 +94,64 @@ def main() -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
     objects = []
     families: dict[str, list[dict]] = defaultdict(list)
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    scene = bpy.context.scene
+    generated_objects = [obj for obj in scene.objects if obj.get("cbm_id")]
+    object_map: dict[str, list[bpy.types.Object]] = defaultdict(list)
+    for obj in generated_objects:
+        object_map[str(obj.get("cbm_id"))].append(obj)
+    assembly_policy = str(scene.get("cbm_assembly_policy", "legacy_unbound"))
+    assembly_frame = custom_json(scene, "cbm_assembly_frame_json", None)
+    world_to_assembly = None
+    assembly_frame_error = None
+    if assembly_policy == "spatial_v1":
+        world_to_assembly, assembly_frame_error = resolve_assembly_world_to_frame(
+            assembly_frame,
+            object_map,
+            depsgraph,
+        )
     for obj in sorted(bpy.context.scene.objects, key=lambda item: item.name):
         if obj.type not in {"MESH", "CURVE", "CAMERA", "LIGHT"}:
             continue
-        bbox_min, bbox_max = world_bbox(obj)
+        authored_bbox_min, authored_bbox_max = world_bbox(obj)
+        evaluated_bbox = evaluated_world_bounds(obj, depsgraph)
+        parent_id = (
+            str(obj.parent.get("cbm_id", obj.parent.name))
+            if obj.parent is not None
+            else None
+        )
+        relationship_ids = custom_json(obj, "cbm_assembly_relationship_ids", [])
+        if not isinstance(relationship_ids, list):
+            relationship_ids = []
+        assembly_bbox = (
+            evaluated_bounds_in_frame([obj], world_to_assembly, depsgraph)
+            if obj.get("cbm_id") and world_to_assembly is not None
+            else None
+        )
         record = {
             "name": obj.name,
             "type": obj.type,
             "cbm_id": obj.get("cbm_id"),
             "instance_index": obj.get("cbm_instance_index"),
             "geometry_kind": obj.get("cbm_geometry_kind"),
+            "parent_id": parent_id,
+            "declared_parent_id": str(obj.get("cbm_parent_id") or "") or None,
+            "assembly_role": str(obj.get("cbm_assembly_role", "unclassified")),
+            "assembly_relationship_ids": sorted(str(value) for value in relationship_ids),
             "location": [round(float(value), 6) for value in obj.location],
+            "rotation_deg": [
+                round(math.degrees(float(value)), 6) for value in obj.rotation_euler
+            ],
+            "scale": [round(float(value), 9) for value in obj.scale],
+            "matrix_local": matrix_rows(obj.matrix_local),
+            "matrix_world": matrix_rows(obj.matrix_world),
             "dimensions": [round(float(value), 6) for value in obj.dimensions],
-            "bbox_world": {"min": bbox_min, "max": bbox_max},
+            "bbox_world": evaluated_bbox,
+            "bbox_world_authored": {
+                "min": authored_bbox_min,
+                "max": authored_bbox_max,
+            },
+            "bbox_assembly_frame": assembly_bbox,
             "materials": [slot.material.name for slot in obj.material_slots if slot.material],
             "modifiers": [modifier.type for modifier in obj.modifiers],
             "declared_modifiers": modifier_kinds(obj, "cbm_declared_modifier_kinds"),
@@ -138,7 +199,6 @@ def main() -> None:
             }
         )
 
-    scene = bpy.context.scene
     report = {
         "job_id": scene.get("cbm_job_id"),
         "schema_version": scene.get("cbm_schema_version"),
@@ -159,6 +219,22 @@ def main() -> None:
             inspect_material(material)
             for material in sorted(bpy.data.materials, key=lambda item: item.name)
         ],
+        "assembly": {
+            "policy": assembly_policy,
+            "modeling_plan_sha256": scene.get(
+                "cbm_assembly_modeling_plan_sha256"
+            ),
+            "frame": assembly_frame,
+            "frame_error": assembly_frame_error,
+            "relationship_count": len(
+                custom_json(scene, "cbm_assembly_relationships_json", [])
+            ),
+            "bbox_basis": (
+                "evaluated_bbox_corners_in_assembly_frame_meters"
+                if world_to_assembly is not None
+                else "not_available"
+            ),
+        },
     }
     output.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(f"CBM_INSPECT_OK output={output}")
