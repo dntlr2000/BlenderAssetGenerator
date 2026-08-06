@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +20,11 @@ from codex_blender_modeler.qa.models import (
     QAFinding,
     SuggestedEdit,
     VisualQAReport,
+)
+from codex_blender_modeler.qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
+    StructuralRegressionFinding,
+    StructuralRegressionReport,
 )
 from codex_blender_modeler.workspace import sha256_file
 
@@ -258,6 +264,77 @@ def _pipeline_recorder(scene_spec: Path, failures: list[int] | None = None):
     return run, heights
 
 
+def _structural_terminal(
+    run_id: str,
+    report_sha256: str,
+) -> AssemblySanityTerminalEvidence:
+    """Build one exact fake assembly terminal binding for guarded-service tests."""
+
+    run_root = f"qa/assembly_sanity/runs/{run_id}"
+    return AssemblySanityTerminalEvidence(
+        run_id=run_id,
+        plan_path=f"{run_root}/plan.json",
+        plan_sha256=report_sha256,
+        render_manifest_path=f"{run_root}/render_manifest.json",
+        render_manifest_sha256=report_sha256,
+        report_path=f"{run_root}/report.json",
+        report_sha256=report_sha256,
+    )
+
+
+def test_structural_multiview_eligibility_preserves_legacy_behavior(
+    tmp_path: Path,
+) -> None:
+    """Legacy plans stay not-applicable while authored spatial plans enter the guard."""
+
+    from codex_blender_modeler.auto_revision import service
+
+    root = tmp_path / "asset"
+    plan_path = root / "analysis" / "modeling_plan.json"
+    plan_path.parent.mkdir(parents=True)
+    common = {
+        "job_id": "asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+    }
+    plan_path.write_text(
+        json.dumps({**common, "legacy_extension": {"preserved": True}}),
+        encoding="utf-8",
+    )
+
+    assert service._structural_multiview_eligibility("asset", root) == (
+        False,
+        "legacy_or_non_spatial_assembly_policy",
+    )
+
+    authored = {
+        **common,
+        "stage": "authored",
+        "objects": [
+            {
+                "id": "asset.root",
+                "label": "root",
+                "scope_role": "primary",
+                "assembly_role": "root",
+            }
+        ],
+        "assembly_consistency_policy": "spatial_v1",
+        "assembly_frame": {
+            "root_object_id": "asset.root",
+            "longitudinal_axis": "X",
+            "lateral_axis": "Y",
+            "vertical_axis": "Z",
+            "evidence_status": "authored",
+        },
+    }
+    plan_path.write_text(json.dumps(authored), encoding="utf-8")
+
+    assert service._structural_multiview_eligibility("asset", root) == (
+        True,
+        "eligible_authored_spatial_v1",
+    )
+
+
 def test_compile_does_not_fabricate_approval(tmp_path: Path, monkeypatch) -> None:
     """Plan compilation persists an unapproved plan and never creates approval implicitly."""
 
@@ -307,6 +384,14 @@ def test_explicit_approval_and_improved_apply_are_accepted(
     assert list((root / "history").glob("*_scene_spec.json"))
     convergence = json.loads(Path(result["convergence_report"]).read_text(encoding="utf-8"))
     assert convergence["accepted"] is True
+    assert convergence["multiview_status"] == "not_applicable"
+    application = json.loads(Path(result["application_report"]).read_text(encoding="utf-8"))
+    assert application["structural_multiview"] == {
+        "status": "not_applicable",
+        "eligibility_reason": "modeling_plan_missing",
+        "veto_only": True,
+        "automatic_revision_authorized": False,
+    }
 
 
 def test_non_improving_apply_restores_canonical_and_rebuilds(
@@ -362,6 +447,125 @@ def test_constraint_regression_rolls_back_even_when_visual_score_improves(
     assert convergence["constraint_regressions"][0]["constraint_id"] == (
         "constraint.primary"
     )
+
+
+def test_multiview_regression_vetoes_improved_manual_revision(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A worse exact five-view terminal forces the existing guarded rollback path."""
+
+    import codex_blender_modeler.auto_revision.convergence as convergence_module
+    from codex_blender_modeler.auto_revision import service
+
+    root, scene_spec, run_id = _job_fixture(tmp_path, monkeypatch)
+    before_hash = sha256_file(scene_spec)
+    _compile_and_approve(run_id)
+    pipeline, heights = _pipeline_recorder(scene_spec, failures=[0, 0])
+    monkeypatch.setattr(service, "_run_job_pipeline", pipeline)
+    monkeypatch.setattr(service, "_run_post_visual_qa", _post_qa(root, scene_spec, 0.8))
+
+    def fake_eligibility(job_id: str, job_root: Path) -> tuple[bool, str]:
+        """Mark the legacy fixture eligible so the guarded branch can be isolated."""
+
+        assert job_id == "asset_revision"
+        assert job_root == root
+        return True, "eligible_authored_spatial_v1"
+
+    monkeypatch.setattr(service, "_structural_multiview_eligibility", fake_eligibility)
+
+    def fake_build(
+        job_root: Path,
+        render_engine: str,
+        render_device: str,
+    ) -> dict[str, Any]:
+        """Stand in for the required fresh baseline build without launching Blender."""
+
+        assert job_root == root
+        assert render_engine == "eevee"
+        assert render_device == "auto"
+        return {"blend": str(root / "blender" / "scene.blend")}
+
+    terminals = [
+        _structural_terminal("revision-baseline-test", "a" * 64),
+        _structural_terminal("revision-result-test", "b" * 64),
+    ]
+    phases: list[str] = []
+
+    def fake_multiview(
+        job_id: str,
+        job_root: Path,
+        *,
+        phase: str,
+        render_engine: str,
+        render_device: str,
+    ) -> AssemblySanityTerminalEvidence:
+        """Return baseline then result terminals while recording both required phases."""
+
+        assert job_id == "asset_revision"
+        assert job_root == root
+        assert render_engine == "eevee"
+        assert render_device == "auto"
+        phases.append(phase)
+        return terminals[len(phases) - 1]
+
+    def fake_compare(
+        job_root: Path,
+        *,
+        baseline: AssemblySanityTerminalEvidence,
+        result: AssemblySanityTerminalEvidence,
+        expected_job_id: str | None = None,
+        generated_at: datetime | None = None,
+    ) -> StructuralRegressionReport:
+        """Return one veto-only all-view visibility regression after exact replay."""
+
+        assert job_root == root
+        assert baseline == terminals[0]
+        assert result == terminals[1]
+        assert expected_job_id == "asset_revision"
+        return StructuralRegressionReport(
+            job_id="asset_revision",
+            status="regressed",
+            baseline=baseline,
+            result=result,
+            baseline_scene_spec_sha256=before_hash,
+            result_scene_spec_sha256="c" * 64,
+            modeling_plan_sha256="d" * 64,
+            regressions=[
+                StructuralRegressionFinding(
+                    id="structural.all_view_visibility_lost",
+                    category="all_view_visibility",
+                    target_ids=["asset.wing"],
+                    message="The attached target disappeared from all five result views.",
+                )
+            ],
+            generated_at=generated_at or datetime.now(UTC),
+        )
+
+    monkeypatch.setattr(service, "_build_job", fake_build)
+    monkeypatch.setattr(service, "_run_revision_structural_multiview", fake_multiview)
+    monkeypatch.setattr(service, "compare_assembly_sanity_terminals", fake_compare)
+    monkeypatch.setattr(
+        convergence_module,
+        "compare_assembly_sanity_terminals",
+        fake_compare,
+    )
+
+    result = apply_job_approved_revision("asset_revision", run_id)
+
+    assert result["status"] == "rolled_back"
+    assert sha256_file(scene_spec) == before_hash
+    assert phases == ["baseline", "result"]
+    assert len(heights) == 2
+    comparison_path = Path(result["structural_regression_report"])
+    assert comparison_path.is_file()
+    convergence = json.loads(Path(result["convergence_report"]).read_text(encoding="utf-8"))
+    assert convergence["status"] == "regressed"
+    assert convergence["accepted"] is False
+    assert convergence["multiview_status"] == "regressed"
+    assert convergence["multiview_regression_ids"] == ["structural.all_view_visibility_lost"]
+    rollback = json.loads(Path(result["rollback_report"]).read_text(encoding="utf-8"))
+    assert rollback["reason"] == "exact five-view assembly evidence regressed"
 
 
 def test_pipeline_error_restores_and_rebuilds_before_raising(

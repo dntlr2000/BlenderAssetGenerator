@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 from jsonschema import Draft202012Validator
 from PIL import Image
 from pypdf import PdfReader
@@ -14,6 +15,7 @@ from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
 from codex_blender_modeler.qa.diagnostic_models import (
     AssemblyDiagnosticEvidence,
     AssemblyMultiviewBundleEvidence,
+    AuthoringRecommendation,
     BoundedCameraDelta,
     CameraProbeResult,
     CameraProbeSemanticScore,
@@ -37,6 +39,8 @@ from codex_blender_modeler.reporting import (
     collect_job_report_payload,
     generate_job_pdf_report,
 )
+from codex_blender_modeler.reporting.models import ReportSource
+from codex_blender_modeler.reporting.pdf_renderer import render_job_pdf
 from codex_blender_modeler.workspace import sha256_file
 
 
@@ -55,6 +59,33 @@ def _write_png(path: Path, color: tuple[int, int, int]) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (96, 64), color).save(path)
+
+
+def test_report_source_schema_rejects_absolute_and_traversal_paths() -> None:
+    """Keep generated ReportSource schemas aligned with runtime path containment."""
+
+    schema = ReportSource.model_json_schema()
+    validator = Draft202012Validator(schema)
+    base = {
+        "kind": "visual_qa_report",
+        "sha256": "a" * 64,
+        "size_bytes": 1,
+    }
+    assert not list(validator.iter_errors({**base, "path": "qa/runs/report.json"}))
+    unsafe_paths = (
+        "/etc/passwd",
+        "C:/Windows/system.ini",
+        r"C:\Windows\system.ini",
+        "../secret.json",
+        "reports/../../secret.json",
+        "reports//report.json",
+        "reports/./report.json",
+        "reports/",
+    )
+    for unsafe_path in unsafe_paths:
+        assert list(validator.iter_errors({**base, "path": unsafe_path}))
+        with pytest.raises(ValueError, match="normalized and job-relative"):
+            ReportSource.model_validate({**base, "path": unsafe_path})
 
 
 def _seed_material_report_job(tmp_path: Path, monkeypatch) -> Path:
@@ -503,8 +534,6 @@ def _seed_qa_companion_report(root: Path) -> str:
         generated_at=datetime(2026, 8, 3, tzinfo=UTC),
     )
     diagnostic_report_path = attempt_root / "report.json"
-    _write_json(diagnostic_report_path, report.model_dump(mode="json"))
-
     assembly_run_id = "assembly-companion"
     assembly_root = root / "qa" / "assembly_sanity" / "runs" / assembly_run_id
     assembly_plan = assembly_root / "plan.json"
@@ -658,6 +687,32 @@ def _seed_qa_companion_report(root: Path) -> str:
             "generated_at": "2026-08-03T00:00:00Z",
         },
     )
+    report = report.model_copy(
+        update={
+            "assembly_evidence": AssemblyDiagnosticEvidence(
+                status="warning",
+                report_path=(
+                    f"qa/assembly_sanity/runs/{assembly_run_id}/report.json"
+                ),
+                report_sha256=sha256_file(assembly_report),
+                warning_ids=["visibility.trigger"],
+                limitations=[
+                    "Five-view evaluated bounds, visibility, and declared or inferred "
+                    "signed axes are structural-consistency evidence, not proof of "
+                    "real-world facing, triangle-level clearance, or kinematics."
+                ],
+            ),
+            "authoring_recommendation": AuthoringRecommendation(
+                action="camera_recalibration",
+                reason_ids=["attribution.camera"],
+                rationale=[
+                    *report.attribution.reasons,
+                    "Review the comparison-camera calibration before authoring geometry.",
+                ],
+            ),
+        }
+    )
+    _write_json(diagnostic_report_path, report.model_dump(mode="json"))
     bundle = QADiagnosticBundleManifest(
         job_id="pdf_report_test",
         qa_run_id=run_id,
@@ -998,14 +1053,29 @@ def test_qa_pdf_collects_exact_companion_and_multiview_evidence(
     assert "qa_diagnostic_request" in payload["documents"]
     assert "qa_diagnostic_report" in payload["documents"]
     assert "qa_diagnostic_bundle" in payload["documents"]
+    assert "assembly_sanity_plan" in payload["documents"]
+    assert "assembly_sanity_render_manifest" in payload["documents"]
     assert "assembly_sanity_report" in payload["documents"]
+    assembly_views = payload["images"]["assembly_sanity_views"]
+    assert [item["view_id"] for item in assembly_views] == [
+        "front",
+        "right",
+        "top",
+        "rear",
+        "oblique",
+    ]
+    assert all(item["beauty"]["path"] for item in assembly_views)
+    assert all(item["wireframe"]["path"] for item in assembly_views)
     source_kinds = {source.kind for source in payload["sources"]}
     assert {
         "qa_diagnostic_request",
         "qa_diagnostic_report",
         "qa_diagnostic_bundle",
+        "assembly_sanity_plan",
+        "assembly_sanity_render_manifest",
         "assembly_sanity_report",
     } <= source_kinds
+    assert sum(kind.startswith("assembly_sanity_view:") for kind in source_kinds) == 20
     full_payload = collect_job_report_payload(
         "pdf_report_test",
         "full",
@@ -1027,7 +1097,121 @@ def test_qa_pdf_collects_exact_companion_and_multiview_evidence(
     assert "Camera / Geometry / Assembly Companion" in extracted
     assert "weapon.trigger" in extracted
     assert "Assembly multi-view" in extracted
+    assert "Exterior five-view geometry review" in extracted
+    assert all(view_id in extracted for view_id in ("front", "right", "top", "rear", "oblique"))
+    assert "Reference similarity is unscorable" in extracted
     assert "No calibrated side-view reference was supplied" in extracted
+
+
+def test_build_pdf_collects_an_explicit_standalone_assembly_run(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Include one exact pre-material five-view run without requiring a canonical QA run."""
+
+    root = _seed_material_report_job(tmp_path, monkeypatch)
+    _seed_qa_companion_report(root)
+
+    payload = collect_job_report_payload(
+        "pdf_report_test",
+        "build",
+        assembly_sanity_run_id="assembly-companion",
+    )
+
+    assert payload["qa_run_id"] is None
+    assert payload["assembly_sanity_run_id"] == "assembly-companion"
+    assert "qa_diagnostic_report" not in payload["documents"]
+    assert "assembly_sanity_plan" in payload["documents"]
+    assert "assembly_sanity_render_manifest" in payload["documents"]
+    assert "assembly_sanity_report" in payload["documents"]
+    assert len(payload["images"]["assembly_sanity_views"]) == 5
+
+    result = generate_job_pdf_report(
+        "pdf_report_test",
+        scope="build",
+        assembly_sanity_run_id="assembly-companion",
+        output_path=tmp_path / "standalone-assembly-build.pdf",
+    )
+    extracted = "\n".join(
+        page.extract_text() or "" for page in PdfReader(result["pdf"]).pages
+    )
+    assert result["assembly_sanity_run_id"] == "assembly-companion"
+    assert "Exterior five-view geometry review" in extracted
+    assert "advisory-only" in extracted
+    assert "wireframe images remain" in extracted
+
+
+def test_pdf_renders_v04_reentry_and_redesign_assessment_from_review_json(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Project v2 geometry-review decisions without treating the PDF as authority."""
+
+    root = _seed_material_report_job(tmp_path, monkeypatch)
+    _seed_qa_companion_report(root)
+    payload = collect_job_report_payload(
+        "pdf_report_test",
+        "build",
+        assembly_sanity_run_id="assembly-companion",
+    )
+    report = payload["documents"]["assembly_sanity_report"]
+    report["review_policy"] = "exterior_geometry_review_v2"
+    report["geometry_review"] = {
+        "outcome": "v04_reentry_required",
+        "reference_similarity_status": "unscorable",
+        "reference_unscorable_reason": "no_calibrated_per_view_references",
+        "v04_reentry": "required",
+        "redesign_assessment": "manual_review_required",
+        "redesign_scopes": [
+            "geometry_recipe",
+            "semantic_recomposition",
+            "assembly",
+        ],
+        "reason_finding_ids": ["visibility.all_views"],
+        "automatic_revision_authorized": False,
+    }
+    output = tmp_path / "geometry-review-v2.pdf"
+
+    render_job_pdf(payload, output)
+
+    extracted = "\n".join(page.extract_text() or "" for page in PdfReader(output).pages)
+    assert "v04_reentry_required" in extracted
+    assert "V0.4 re-entry" in extracted
+    assert "manual_review_required" in extracted
+    assert "geometry_recipe, semantic_recomposition, assembly" in extracted
+    assert "No calibrated per-view reference exists" in extracted
+    assert "machine JSON remain authoritative" in extracted
+
+
+def test_stale_standalone_assembly_image_is_excluded_from_build_pdf_payload(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Reject a five-view run when one manifest-bound image changes after publication."""
+
+    root = _seed_material_report_job(tmp_path, monkeypatch)
+    _seed_qa_companion_report(root)
+    beauty = (
+        root
+        / "qa"
+        / "assembly_sanity"
+        / "runs"
+        / "assembly-companion"
+        / "views"
+        / "front"
+        / "beauty.png"
+    )
+    Image.new("RGB", (128, 128), (240, 10, 10)).save(beauty)
+
+    with pytest.raises(
+        ValueError,
+        match="Explicit assembly-sanity run is incomplete, stale, or unavailable",
+    ):
+        collect_job_report_payload(
+            "pdf_report_test",
+            "build",
+            assembly_sanity_run_id="assembly-companion",
+        )
 
 
 def test_legacy_qa_pdf_warns_when_companion_is_unavailable(

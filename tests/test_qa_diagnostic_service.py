@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image, ImageDraw
@@ -39,6 +40,7 @@ from codex_blender_modeler.qa.multiview_sanity import (
     AssemblySanityFinding,
     AssemblySanityReport,
     AssemblySanityViewCoverage,
+    GeometryReviewAssessment,
 )
 from codex_blender_modeler.workspace import create_job, sha256_file
 
@@ -348,6 +350,31 @@ def _fake_camera_probes(
     return scores, plan_path, manifest_path
 
 
+def test_root_only_authored_spatial_plan_is_multiview_eligible(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep companion diagnostics aligned with standalone root-only five-view support."""
+
+    root = tmp_path / "root-only"
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    modeling_plan_path.parent.mkdir(parents=True)
+    modeling_plan_path.write_text("{}\n", encoding="utf-8")
+    plan = SimpleNamespace(
+        assembly_consistency_policy="spatial_v1",
+        stage="authored",
+        assembly_frame=SimpleNamespace(root_object_id="asset.root"),
+        objects=[SimpleNamespace(id="asset.root", assembly_role="root")],
+    )
+    monkeypatch.setattr(
+        service.ModelingPlan,
+        "model_validate_json",
+        lambda _payload: plan,
+    )
+
+    assert service._assembly_multiview_eligible(root) is True
+
+
 def test_visual_diagnostics_preserve_canonical_score_and_publish_exact_bundle(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -373,6 +400,10 @@ def test_visual_diagnostics_preserve_canonical_score_and_publish_exact_bundle(
     )
     assert report.status == "degraded"
     assert report.semantic_metrics == []
+    assert result["authoring_recommendation"] == (
+        report.authoring_recommendation.model_dump(mode="json")
+    )
+    assert report.authoring_recommendation.automatic_revision_authorized is False
     bundle = QADiagnosticBundleManifest.model_validate_json(
         Path(result["bundle_manifest"]).read_text(encoding="utf-8")
     )
@@ -438,6 +469,7 @@ def test_exact_multiview_visibility_failure_reaches_assembly_attribution(
         modeling_plan_sha256="4" * 64,
         source_blend_sha256="5" * 64,
         build_fingerprint="6" * 64,
+        review_policy="exterior_geometry_review_v2",
         structural_status="failed",
         reference_comparison_note="Structural-only test evidence.",
         target_ids=["asset.body", "asset.trigger"],
@@ -456,6 +488,17 @@ def test_exact_multiview_visibility_failure_reaches_assembly_attribution(
                 description="The trigger is absent from every structural view.",
             )
         ],
+        geometry_review=GeometryReviewAssessment(
+            outcome="v04_reentry_required",
+            v04_reentry="required",
+            redesign_assessment="manual_review_required",
+            redesign_scopes=[
+                "geometry_recipe",
+                "semantic_recomposition",
+                "assembly",
+            ],
+            reason_finding_ids=["visibility.all_views"],
+        ),
         generated_at="2026-08-03T00:00:00Z",
     )
     write_json_atomic(report_path, report.model_dump(mode="json"))
@@ -495,6 +538,13 @@ def test_exact_multiview_visibility_failure_reaches_assembly_attribution(
 
     assert evidence.status == "failed"
     assert evidence.required_failure_ids == ["visibility.all_views"]
+    assert evidence.geometry_review is not None
+    assert evidence.geometry_review.v04_reentry == "required"
+    assert evidence.geometry_review.redesign_scopes == [
+        "geometry_recipe",
+        "semantic_recomposition",
+        "assembly",
+    ]
     assert attribution.classification == "assembly"
     assert attribution.assembly_failure_ids == ["visibility.all_views"]
 

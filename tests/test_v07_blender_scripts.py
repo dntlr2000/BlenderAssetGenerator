@@ -218,6 +218,27 @@ def test_prepare_script_requires_separate_versioned_profile() -> None:
     assert "output_blend == source_blend" in source
 
 
+def test_prepare_script_supports_profile_base_center_pivot() -> None:
+    """Keep the public base-center profile policy executable in derived Blender scenes."""
+
+    source = (SCRIPT_ROOT / "prepare_optimized_asset.py").read_text(encoding="utf-8")
+    assert 'if normalized in {"base_center", "bottom_center"}' in source
+    assert "min(corner.z for corner in local_corners)" in source
+    assert "obj.data.transform(Matrix.Translation(-base_center))" in source
+    assert "obj.matrix_world = obj.matrix_world @ Matrix.Translation(base_center)" in source
+
+
+def test_prepare_script_omits_overlap_volumes_that_round_to_zero() -> None:
+    """Keep report-only overlap findings strictly positive after evidence rounding."""
+
+    source = (SCRIPT_ROOT / "prepare_optimized_asset.py").read_text(encoding="utf-8")
+    rounded = source.index("rounded_volume = round(volume, 9)")
+    positive_check = source.index("if rounded_volume <= 0.0:", rounded)
+    count = source.index("total += 1", positive_check)
+    assert rounded < positive_check < count
+    assert '"overlap_volume_m3": rounded_volume' in source
+
+
 def test_prepare_script_reacquires_uv0_after_uv1_collection_mutation() -> None:
     """Keep the stable material UV name after Blender invalidates UV layer wrappers."""
 

@@ -8,7 +8,9 @@ from ..workspace import file_exists, sha256_file
 from .camera_attribution import AttributionThresholds, attribute_camera_geometry
 from .diagnostic_models import (
     AssemblyDiagnosticEvidence,
+    AuthoringRecommendation,
     CameraProbeResult,
+    DiagnosticAttribution,
     QADiagnosticReport,
     QADiagnosticRequest,
     SemanticShapeMetrics,
@@ -199,6 +201,126 @@ def _verify_assembly_evidence(
     _verify_exact_hash(job_root, assembly.report_path, assembly.report_sha256)
 
 
+def _authoring_recommendation(
+    attribution: DiagnosticAttribution,
+    assembly: AssemblyDiagnosticEvidence,
+) -> AuthoringRecommendation:
+    """Map diagnostic attribution to a conservative manual authoring recommendation."""
+
+    target_ids = list(
+        dict.fromkeys(
+            [
+                *attribution.semantic_shape_residual_ids,
+                *attribution.semantic_orientation_residual_ids,
+            ]
+        )
+    )
+    geometry_review = assembly.geometry_review
+    structural_review_requested = bool(
+        geometry_review is not None
+        and geometry_review.outcome
+        in {"v04_reentry_recommended", "v04_reentry_required"}
+    )
+    structural_failure = bool(
+        attribution.classification == "assembly"
+        or (
+            attribution.classification == "mixed"
+            and attribution.assembly_failure_ids
+        )
+        or structural_review_requested
+    )
+    if structural_failure:
+        scopes = (
+            list(geometry_review.redesign_scopes)
+            if geometry_review is not None and geometry_review.redesign_scopes
+            else ["assembly"]
+        )
+        reentry = (
+            geometry_review.v04_reentry
+            if geometry_review is not None
+            and geometry_review.v04_reentry in {"recommended", "required"}
+            else "required"
+        )
+        reason_ids = list(
+            dict.fromkeys(
+                [
+                    *(
+                        geometry_review.reason_finding_ids
+                        if geometry_review is not None
+                        else []
+                    ),
+                    *attribution.assembly_failure_ids,
+                ]
+            )
+        )
+        return AuthoringRecommendation(
+            action="v04_redesign_review",
+            v04_reentry=reentry,
+            redesign_scopes=scopes,
+            target_ids=target_ids,
+            reason_ids=reason_ids,
+            rationale=[
+                *attribution.reasons,
+                "Structural evidence requires manual V0.4 redesign review; it does "
+                "not select a concrete geometry recipe, semantic decomposition, or "
+                "assembly edit.",
+            ],
+        )
+    if attribution.classification == "camera":
+        return AuthoringRecommendation(
+            action="camera_recalibration",
+            target_ids=target_ids,
+            reason_ids=["attribution.camera"],
+            rationale=[
+                *attribution.reasons,
+                "Review the comparison-camera calibration before authoring geometry.",
+            ],
+        )
+    if attribution.classification in {"geometry", "mixed"}:
+        return AuthoringRecommendation(
+            action="v04_parametric_revision",
+            v04_reentry="recommended",
+            target_ids=target_ids,
+            reason_ids=[f"attribution.{attribution.classification}"],
+            rationale=[
+                *attribution.reasons,
+                "Return to V0.4 for a bounded parametric review; this recommendation "
+                "does not authorize or apply any revision.",
+            ],
+        )
+    if attribution.classification == "unscorable":
+        return AuthoringRecommendation(
+            action="additional_evidence_required",
+            target_ids=target_ids,
+            reason_ids=["attribution.unscorable"],
+            rationale=[*attribution.reasons],
+        )
+    no_residual = bool(
+        not attribution.assembly_failure_ids
+        and not target_ids
+        and attribution.geometry_residual_fraction == 0.0
+    )
+    if no_residual:
+        return AuthoringRecommendation(
+            action="none",
+            reason_ids=["attribution.no_residual"],
+            rationale=[
+                *attribution.reasons,
+                "No camera, geometry, or structural residual crossed the diagnostic "
+                "thresholds.",
+            ],
+        )
+    return AuthoringRecommendation(
+        action="additional_evidence_required",
+        target_ids=target_ids,
+        reason_ids=["attribution.ambiguous"],
+        rationale=[
+            *attribution.reasons,
+            "The current evidence does not support a safe authoring decision.",
+        ],
+    )
+
+
 def build_qa_diagnostic_report(
     job_root: Path,
     request_path: Path,
@@ -268,6 +390,7 @@ def build_qa_diagnostic_report(
         camera_probes=probes,
         assembly_evidence=assembly,
         attribution=attribution,
+        authoring_recommendation=_authoring_recommendation(attribution, assembly),
         limitations=report_limitations,
         generated_at=generated_at or datetime.now(UTC),
     )

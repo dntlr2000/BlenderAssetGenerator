@@ -1,7 +1,9 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from codex_blender_modeler.auto_revision import (
     apply_approved_revision,
@@ -10,7 +12,10 @@ from codex_blender_modeler.auto_revision import (
     create_revision_approval,
     evaluate_convergence,
 )
-from codex_blender_modeler.auto_revision.models import RevisionCandidates
+from codex_blender_modeler.auto_revision.models import (
+    ConvergenceReport,
+    RevisionCandidates,
+)
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
 from codex_blender_modeler.qa.models import (
     BoundingBoxMetric,
@@ -19,9 +24,60 @@ from codex_blender_modeler.qa.models import (
     SuggestedEdit,
     VisualQAReport,
 )
+from codex_blender_modeler.qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
+    StructuralRegressionFinding,
+    StructuralRegressionReport,
+)
 from codex_blender_modeler.workspace import sha256_file
 
 SHA = "0" * 64
+
+
+def _structural_terminal(run_id: str, sha256: str) -> AssemblySanityTerminalEvidence:
+    """Build one exact assembly-terminal binding for convergence contract tests."""
+
+    run_root = f"qa/assembly_sanity/runs/{run_id}"
+    return AssemblySanityTerminalEvidence(
+        run_id=run_id,
+        plan_path=f"{run_root}/plan.json",
+        plan_sha256=sha256,
+        render_manifest_path=f"{run_root}/render_manifest.json",
+        render_manifest_sha256=sha256,
+        report_path=f"{run_root}/report.json",
+        report_sha256=sha256,
+    )
+
+
+def _structural_comparison(*, status: str = "passed") -> StructuralRegressionReport:
+    """Build one claimed comparison whose terminal replay can be isolated in tests."""
+
+    baseline = _structural_terminal("baseline", "a" * 64)
+    result = _structural_terminal("result", "b" * 64)
+    regressions = (
+        [
+            StructuralRegressionFinding(
+                id="structural.status_worsened",
+                category="structural_status",
+                before="passed",
+                after="failed",
+                message="The aggregate structural status worsened after revision.",
+            )
+        ]
+        if status == "regressed"
+        else []
+    )
+    return StructuralRegressionReport(
+        job_id="geometry_showcase",
+        status=status,
+        baseline=baseline,
+        result=result,
+        baseline_scene_spec_sha256="c" * 64,
+        result_scene_spec_sha256="d" * 64,
+        modeling_plan_sha256="e" * 64,
+        regressions=regressions,
+        generated_at=datetime.now(UTC),
+    )
 
 
 def _scene_fixture(tmp_path: Path) -> Path:
@@ -253,6 +309,255 @@ def test_convergence_rejects_mixed_direct_scoring_contracts(tmp_path: Path) -> N
     assert result.accepted is False
     assert result.rollback_required is True
     assert "legacy_bbox_v1 -> semantic_bbox_v2" in result.reasons[0]
+
+
+def test_convergence_replays_exact_multiview_comparison(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A supplied comparison is accepted only after exact terminal recomputation."""
+
+    import codex_blender_modeler.auto_revision.convergence as convergence_module
+
+    workspace = tmp_path / "workspaces"
+    root = workspace / "geometry_showcase"
+    run_root = root / "qa" / "runs" / "run-001"
+    run_root.mkdir(parents=True)
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    scene_path = _scene_fixture(tmp_path)
+    before = _report(scene_path, [], score=0.7)
+    after = _report(scene_path, [], score=0.8)
+    before_path = run_root / "before.json"
+    after_path = run_root / "after.json"
+    before_path.write_text(before.model_dump_json(indent=2), encoding="utf-8")
+    after_path.write_text(after.model_dump_json(indent=2), encoding="utf-8")
+    comparison = _structural_comparison()
+    comparison_path = run_root / "structural_regression.json"
+    comparison_path.write_text(
+        comparison.model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    calls: list[Path] = []
+
+    def fake_compare(
+        job_root: Path,
+        **kwargs: object,
+    ) -> StructuralRegressionReport:
+        """Capture exact replay arguments and return the deterministic comparison."""
+
+        calls.append(job_root)
+        assert kwargs["baseline"] == comparison.baseline
+        assert kwargs["result"] == comparison.result
+        assert kwargs["expected_job_id"] == "geometry_showcase"
+        assert kwargs["generated_at"] == comparison.generated_at
+        return comparison
+
+    monkeypatch.setattr(
+        convergence_module,
+        "compare_assembly_sanity_terminals",
+        fake_compare,
+    )
+
+    result = evaluate_convergence(
+        before_report_path=before_path,
+        after_report_path=after_path,
+        changed_ids=["demo.profile_house"],
+        preserved_ids=[],
+        multiview_comparison_path=comparison_path,
+    )
+
+    assert calls == [root.resolve()]
+    assert result.accepted is True
+    assert result.multiview_status == "passed"
+    assert result.multiview_comparison_sha256 == sha256_file(comparison_path)
+
+
+def test_convergence_rejects_multiview_summary_that_differs_from_replay(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A valid-looking summary cannot replace its recomputed terminal outcome."""
+
+    import codex_blender_modeler.auto_revision.convergence as convergence_module
+
+    workspace = tmp_path / "workspaces"
+    root = workspace / "geometry_showcase"
+    run_root = root / "qa" / "runs" / "run-001"
+    run_root.mkdir(parents=True)
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    scene_path = _scene_fixture(tmp_path)
+    before_path = run_root / "before.json"
+    after_path = run_root / "after.json"
+    before_path.write_text(
+        _report(scene_path, [], score=0.7).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    after_path.write_text(
+        _report(scene_path, [], score=0.8).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    claimed = _structural_comparison()
+    recomputed = _structural_comparison(status="regressed").model_copy(
+        update={"generated_at": claimed.generated_at}
+    )
+    comparison_path = run_root / "structural_regression.json"
+    comparison_path.write_text(claimed.model_dump_json(indent=2), encoding="utf-8")
+
+    def fake_compare(job_root: Path, **kwargs: object) -> StructuralRegressionReport:
+        """Return terminal-derived evidence that contradicts the claimed summary."""
+
+        assert job_root == root.resolve()
+        assert kwargs["generated_at"] == claimed.generated_at
+        return recomputed
+
+    monkeypatch.setattr(
+        convergence_module,
+        "compare_assembly_sanity_terminals",
+        fake_compare,
+    )
+
+    with pytest.raises(ValueError, match="does not match recomputed exact terminals"):
+        evaluate_convergence(
+            before_report_path=before_path,
+            after_report_path=after_path,
+            changed_ids=["demo.profile_house"],
+            preserved_ids=[],
+            multiview_comparison_path=comparison_path,
+        )
+
+
+def test_authored_spatial_convergence_requires_per_iteration_multiview(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Authored spatial jobs fail closed when bounded convergence omits multi-view evidence."""
+
+    workspace = tmp_path / "workspaces"
+    root = workspace / "geometry_showcase"
+    run_root = root / "qa" / "runs" / "run-001"
+    analysis = root / "analysis"
+    run_root.mkdir(parents=True)
+    analysis.mkdir(parents=True)
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    (analysis / "modeling_plan.json").write_text(
+        json.dumps(
+            {
+                "job_id": "geometry_showcase",
+                "reference_analysis_path": "analysis/reference_analysis.json",
+                "camera_solution_path": "analysis/camera_solution.json",
+                "stage": "authored",
+                "objects": [
+                    {
+                        "id": "asset.root",
+                        "label": "root",
+                        "scope_role": "primary",
+                        "assembly_role": "root",
+                    }
+                ],
+                "assembly_consistency_policy": "spatial_v1",
+                "assembly_frame": {
+                    "root_object_id": "asset.root",
+                    "longitudinal_axis": "X",
+                    "lateral_axis": "Y",
+                    "vertical_axis": "Z",
+                    "evidence_status": "authored",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    scene_path = _scene_fixture(tmp_path)
+    before_path = run_root / "before.json"
+    after_path = run_root / "after.json"
+    before_path.write_text(
+        _report(scene_path, [], score=0.7).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    after_path.write_text(
+        _report(scene_path, [], score=0.8).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="requires an exact per-iteration"):
+        evaluate_convergence(
+            before_report_path=before_path,
+            after_report_path=after_path,
+            changed_ids=["demo.profile_house"],
+            preserved_ids=[],
+        )
+
+
+def test_legacy_non_spatial_convergence_preserves_direct_score_behavior(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """A legacy non-spatial plan still converges without new multi-view evidence."""
+
+    workspace = tmp_path / "workspaces"
+    root = workspace / "geometry_showcase"
+    run_root = root / "qa" / "runs" / "run-001"
+    analysis = root / "analysis"
+    run_root.mkdir(parents=True)
+    analysis.mkdir(parents=True)
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    (analysis / "modeling_plan.json").write_text(
+        json.dumps(
+            {
+                "job_id": "geometry_showcase",
+                "reference_analysis_path": "analysis/reference_analysis.json",
+                "camera_solution_path": "analysis/camera_solution.json",
+                "assembly_consistency_policy": "legacy_unbound",
+            }
+        ),
+        encoding="utf-8",
+    )
+    scene_path = _scene_fixture(tmp_path)
+    before_path = run_root / "before.json"
+    after_path = run_root / "after.json"
+    before_path.write_text(
+        _report(scene_path, [], score=0.7).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+    after_path.write_text(
+        _report(scene_path, [], score=0.8).model_dump_json(indent=2),
+        encoding="utf-8",
+    )
+
+    result = evaluate_convergence(
+        before_report_path=before_path,
+        after_report_path=after_path,
+        changed_ids=["demo.profile_house"],
+        preserved_ids=[],
+    )
+
+    assert result.accepted is True
+    assert result.multiview_status == "not_applicable"
+
+
+def test_convergence_report_rejects_accepted_multiview_regression() -> None:
+    """Persisted convergence evidence cannot accept a known structural regression."""
+
+    with pytest.raises(ValidationError, match="rejected rollback result"):
+        ConvergenceReport(
+            job_id="geometry_showcase",
+            before_report_sha256="a" * 64,
+            after_report_sha256="b" * 64,
+            before_direct_score=0.7,
+            after_direct_score=0.8,
+            score_delta=0.1,
+            before_failed_constraints=0,
+            after_failed_constraints=0,
+            multiview_status="regressed",
+            multiview_baseline_run_id="baseline",
+            multiview_baseline_report_sha256="c" * 64,
+            multiview_result_run_id="result",
+            multiview_result_report_sha256="d" * 64,
+            multiview_comparison_sha256="e" * 64,
+            multiview_regression_ids=["structural.status_worsened"],
+            status="improved",
+            accepted=True,
+            rollback_required=False,
+        )
 
 
 def test_convergence_detects_per_id_status_swap_with_same_failure_count(

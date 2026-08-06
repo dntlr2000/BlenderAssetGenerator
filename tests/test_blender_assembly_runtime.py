@@ -9,9 +9,18 @@ import types
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from codex_blender_modeler.blender_runner import run_blender
 from codex_blender_modeler.config import get_settings
+from codex_blender_modeler.qa.multiview_sanity import (
+    ASSEMBLY_SANITY_PASS_KINDS,
+    ASSEMBLY_SANITY_VIEW_IDS,
+    plan_job_assembly_multiview_sanity,
+    run_job_assembly_multiview_sanity,
+    validate_assembly_sanity_terminal,
+)
+from codex_blender_modeler.workspace import create_job, sha256_file
 
 
 def _load_runtime(monkeypatch: pytest.MonkeyPatch):
@@ -715,6 +724,94 @@ def test_blender_runtime_assembly_smoke(
         stale = json.loads(stale_report_path.read_text(encoding="utf-8"))
         assert stale["ok"] is False
         assert stale["assembly"]["status"] == "stale"
+
+
+@pytest.mark.skipif(
+    os.getenv("CBM_RUN_BLENDER_ASSEMBLY_SMOKE") != "1",
+    reason="Set CBM_RUN_BLENDER_ASSEMBLY_SMOKE=1 for Blender 5 runtime evidence.",
+)
+def test_blender_runtime_host_multiview_render_smoke(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Build and validate all five host multi-view passes in an isolated workspace."""
+
+    job_id = "assembly_multiview_smoke"
+    run_id = "host-multiview-smoke"
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = tmp_path / "reference.png"
+    Image.new("RGB", (32, 32), (120, 130, 140)).save(reference)
+    create_job(job_id, reference, "concept", [])
+    job_root = workspace / job_id
+    spec_path = job_root / "analysis" / "scene_spec.json"
+    modeling_plan_path = job_root / "analysis" / "modeling_plan.json"
+    blend_path = job_root / "blender" / "scene.blend"
+    spec_path.write_text(
+        json.dumps(_smoke_scene(job_id, 0.0), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    modeling_plan_path.write_text(
+        json.dumps(_smoke_plan(job_id), indent=2) + "\n",
+        encoding="utf-8",
+    )
+    run_blender(
+        "build_scene.py",
+        [
+            "--spec",
+            str(spec_path),
+            "--job-root",
+            str(job_root),
+            "--output",
+            str(blend_path),
+        ],
+        factory_startup=True,
+    )
+    authoring_blend_sha256 = sha256_file(blend_path)
+
+    planned = plan_job_assembly_multiview_sanity(
+        job_id,
+        run_id=run_id,
+        resolution=128,
+    )
+    result = run_job_assembly_multiview_sanity(
+        job_id,
+        run_id,
+        plan_sha256=str(planned["plan_sha256"]),
+    )
+    plan, manifest, report = validate_assembly_sanity_terminal(
+        job_root,
+        plan_path=Path(str(result["plan"])),
+        plan_sha256=str(result["plan_sha256"]),
+        manifest_path=Path(str(result["render_manifest"])),
+        manifest_sha256=str(result["render_manifest_sha256"]),
+        report_path=Path(str(result["report"])),
+        report_sha256=str(result["report_sha256"]),
+        expected_job_id=job_id,
+        expected_run_id=run_id,
+    )
+
+    assert tuple(view.view_id for view in manifest.views) == ASSEMBLY_SANITY_VIEW_IDS
+    expected_pass_paths = [
+        f"qa/assembly_sanity/runs/{run_id}/views/{view_id}/{kind}.png"
+        for view_id in ASSEMBLY_SANITY_VIEW_IDS
+        for kind in ASSEMBLY_SANITY_PASS_KINDS
+    ]
+    pass_records = [record for view in manifest.views for record in view.passes]
+    assert [record.path for record in pass_records] == expected_pass_paths
+    assert len(pass_records) == 20
+    assert all((job_root / record.path).is_file() for record in pass_records)
+    assert all(
+        sha256_file(job_root / record.path) == record.sha256
+        for record in pass_records
+    )
+    assert result["view_count"] == 5
+    assert result["pass_count"] == 20
+    assert plan.canonical_v06_qa_run is False
+    assert manifest.canonical_v06_qa_run is False
+    assert report.canonical_v06_qa_run is False
+    assert manifest.blender_version.startswith("5.")
+    assert sha256_file(blend_path) == authoring_blend_sha256
 
 
 @pytest.mark.skipif(

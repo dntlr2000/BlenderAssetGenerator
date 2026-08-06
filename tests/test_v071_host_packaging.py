@@ -26,6 +26,14 @@ MATERIAL_IDS = ["mat.rock", "mat.water"]
 CHANNELS = ["base_color", "roughness", "metallic", "normal", "emission"]
 
 
+def test_fbx_package_uses_model_filename_without_changing_other_formats() -> None:
+    """Honor the FBX delivery contract while preserving existing format filenames."""
+
+    assert packaging_service._primary_asset_filename("fbx") == "model.fbx"
+    assert packaging_service._primary_asset_filename("glb") == "asset.glb"
+    assert packaging_service._primary_asset_filename("obj") == "asset.obj"
+
+
 def test_material_conversion_staging_name_stays_short_for_windows() -> None:
     """Keep atomic staging names bounded when the job path is already deeply nested."""
 

@@ -32,6 +32,20 @@
   caller-reviewed plan SHA-256. Camera-versus-geometry attribution remains advisory, new V0.8
   workflows may add the companion, and legacy workflows remain readable; no diagnostic bypasses
   guarded revision, convergence, InteriorScope, V0.7 optimization, or handoff approvals.
+- Added a V0.4 geometry-review stage to newly planned proxy, detail, background, and eligible
+  `spatial_v1` revision workflows. A host renders temporary asset-local front/right/top/rear/
+  oblique cameras with beauty, silhouette, object-ID, and wireframe passes, targeting the union
+  of every primary/supporting and root/attached semantic. A following agent must actually inspect
+  all five beauty/wireframe pairs and write `visual_review.json` bound to the exact plan, render
+  manifest, and structural-report hashes. Per-view occlusion is advisory; cross-view coherence,
+  assembly, topology, all-view disappearance, and manual V0.4 parametric/redesign recommendations
+  never fabricate side/rear likeness or authorize a revision. PDFs include the run images while
+  machine JSON remains authoritative; legacy plans are not migrated.
+- Added five-view baseline/result veto and rollback to manual one-shot guarded revision for
+  authored `spatial_v1` assets. Because bounded-convergence iteration receipts and audits do not
+  yet bind equivalent evidence, authored spatial plans now fail closed before planning and again
+  before execution; legacy/non-spatial fixed-camera sessions remain compatible. Canonical V0.6
+  remains one fixed-reference, exact seven-pass QA run.
 - Preloaded optional OpenCV/NumPy vision modules before MCP stdio worker startup to avoid a
   Windows native-import stall on the first QA mask refinement, while preserving the Pillow
   fallback when vision extras are absent. V0.6 gates now regenerate both QA and combined PDFs

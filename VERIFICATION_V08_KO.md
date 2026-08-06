@@ -1,5 +1,67 @@
 # V0.8 로컬 검증 기록
 
+## 2026-08-05 V0.4 다각도 geometry review 최종 검증
+
+새로 계획되는 V0.8 geometry workflow가 단일 preview 시점에서 끝나지 않도록
+asset-local five-view host evidence와 실제 agent visual-review 단계를 추가했다.
+canonical V0.6 fixed-reference QA의 비교 카메라, direct score와 정확히 7개 pass는
+변경하지 않았다.
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| 통합 targeted 회귀 | 281/281 통과 |
+| 전체 Python 회귀 | 871 통과, 4 skip |
+| Ruff | 통과 |
+| Schema 생성·parity | 통과 |
+| Blender 5.0.1 실제 multiview smoke | 1/1 통과, 5 views × 4 passes = 20 PNG |
+| geometry workflow 순서 | `validate → five-view host → agent visual review → PDF/gate` |
+| 시점·패스 | asset-local 5 views × 4 passes = 20 PNG |
+| agent 판정 | 다섯 beauty/wireframe을 모두 소비하고 exact plan/manifest/report hash에 결속 |
+| target 선택 | 모든 primary/supporting 및 root/attached의 합집합 |
+| occlusion 경계 | per-view unseen은 advisory, all-view disappearance만 structural actionable |
+| reference likeness | 보정된 per-view reference가 없어 `unscorable` |
+| revision 권한 | recommendation only, 자동 승인·적용 없음 |
+| one-shot guarded revision | authored `spatial_v1`에서 baseline/result five-view regression veto·rollback |
+| bounded convergence | authored `spatial_v1` plan/run fail-closed; legacy/non-spatial fixed-camera 경로 유지 |
+| legacy | 기존 job/plan 자동 migration 없음, evidence 부재 시 omit/not-applicable |
+| PDF | 다각도 이미지 포함, machine-readable JSON/hash가 authoritative |
+| 실제 사용자 job 변경 | 없음 |
+
+최종 격리 증거:
+
+- V0.8: `reports/v08_smoke/001845103-15940/`
+- V0.7: `reports/v07_smoke/20260805T001117719Z-40540/`
+- background preview: `completed / delivered_for_review`, `quality_status=unscorable`
+- portable continuation: `completed`, FBX clean-import round trip `passed`
+- V0.7 package round trip: FBX/GLB/OBJ 모두 `passed`
+
+실행한 targeted 명령:
+
+```powershell
+uv run pytest -q tests/test_qa_multiview_sanity.py `
+  tests/test_qa_structural_regression.py `
+  tests/test_auto_revision.py `
+  tests/test_auto_revision_service.py `
+  tests/test_visual_convergence_service.py `
+  tests/test_v08_orchestration.py `
+  tests/test_v08_artifact_lifecycle.py `
+  tests/test_pdf_reporting.py `
+  tests/test_v06_schemas.py `
+  tests/test_qa_diagnostic_models.py `
+  tests/test_qa_diagnostic_service.py `
+  tests/test_qa_camera_geometry_attribution.py
+uv run pytest -q
+uv run ruff check .
+$env:CBM_RUN_BLENDER_ASSEMBLY_SMOKE='1'
+uv run pytest -q tests/test_blender_assembly_runtime.py -k host_multiview_render_smoke
+```
+
+이 기록은 plan/manifest/report/agent-review의 hash binding, workflow 순서, PDF 수집,
+one-shot rollback과 legacy 경계를 검증한 회귀 결과다. 새로운 실제 reference 자산을
+Blender로 끝까지 제작해 측면·후면 유사도나 미적 품질을 검증했다는 뜻은 아니다.
+
 ## 2026-07-28 레퍼런스 오브젝트 전용 범위 검증
 
 새 job에 실행 정책과 독립적인 `reference_content_scope`를 추가했다.

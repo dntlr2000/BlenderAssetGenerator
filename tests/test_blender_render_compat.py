@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -166,3 +167,24 @@ def test_engine_failure_is_explicit() -> None:
 def test_color_look_falls_back_without_failing() -> None:
     scene = _scene({"BLENDER_EEVEE"}, set())
     assert select_color_management_look(scene) == "Default"
+
+
+def test_common_render_configuration_resets_saved_crop_state() -> None:
+    """Keep canonical renders independent of a user's saved Blender render border."""
+
+    common_source = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "codex_blender_modeler"
+        / "blender_scripts"
+        / "common.py"
+    ).read_text(encoding="utf-8")
+
+    assert "scene.render.pixel_aspect_x = 1.0" in common_source
+    assert "scene.render.pixel_aspect_y = 1.0" in common_source
+    assert "scene.render.use_border = False" in common_source
+    assert "scene.render.use_crop_to_border = False" in common_source
+    assert "scene.render.border_min_x = 0.0" in common_source
+    assert "scene.render.border_min_y = 0.0" in common_source
+    assert "scene.render.border_max_x = 1.0" in common_source
+    assert "scene.render.border_max_y = 1.0" in common_source

@@ -239,6 +239,15 @@
       "title": "Source Fingerprint",
       "type": "string"
     },
+    "review_policy": {
+      "default": "assembly_structural_v1",
+      "enum": [
+        "assembly_structural_v1",
+        "exterior_geometry_review_v2"
+      ],
+      "title": "Review Policy",
+      "type": "string"
+    },
     "assembly_frame": {
       "$ref": "#/$defs/AssemblyFrame"
     },
@@ -246,7 +255,7 @@
       "items": {
         "type": "string"
       },
-      "minItems": 2,
+      "minItems": 1,
       "title": "Target Ids",
       "type": "array"
     },
@@ -265,11 +274,101 @@
       "type": "array"
     },
     "views": {
-      "items": {
-        "$ref": "#/$defs/AssemblySanityViewPlan"
-      },
+      "items": false,
       "maxItems": 5,
       "minItems": 5,
+      "prefixItems": [
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AssemblySanityViewPlan"
+            },
+            {
+              "properties": {
+                "view_id": {
+                  "const": "front"
+                }
+              },
+              "required": [
+                "view_id"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AssemblySanityViewPlan"
+            },
+            {
+              "properties": {
+                "view_id": {
+                  "const": "right"
+                }
+              },
+              "required": [
+                "view_id"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AssemblySanityViewPlan"
+            },
+            {
+              "properties": {
+                "view_id": {
+                  "const": "top"
+                }
+              },
+              "required": [
+                "view_id"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AssemblySanityViewPlan"
+            },
+            {
+              "properties": {
+                "view_id": {
+                  "const": "rear"
+                }
+              },
+              "required": [
+                "view_id"
+              ],
+              "type": "object"
+            }
+          ]
+        },
+        {
+          "allOf": [
+            {
+              "$ref": "#/$defs/AssemblySanityViewPlan"
+            },
+            {
+              "properties": {
+                "view_id": {
+                  "const": "oblique"
+                }
+              },
+              "required": [
+                "view_id"
+              ],
+              "type": "object"
+            }
+          ]
+        }
+      ],
       "title": "Views",
       "type": "array"
     },

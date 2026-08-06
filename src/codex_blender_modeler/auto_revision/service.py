@@ -7,11 +7,22 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
+from ..analysis.models import ModelingPlan
 from ..blender_artifacts import write_json_atomic
 from ..blender_runner import run_blender
 from ..constraints import evaluate_job_constraints
 from ..orchestration.locks import workflow_write_lock
+from ..qa.multiview_sanity import (
+    plan_job_assembly_multiview_sanity,
+    run_job_assembly_multiview_sanity,
+)
+from ..qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
+    compare_assembly_sanity_terminals,
+    terminal_evidence_from_run_result,
+)
 from ..validation import load_scene_spec
 from ..workspace import (
     archive_scene_spec,
@@ -198,6 +209,58 @@ def _baseline_constraint_state(
     _build_job(root, render_engine, render_device)
     _inspect_job(root)
     return _constraint_state(evaluate_job_constraints(job_id))
+
+
+def _structural_multiview_eligibility(
+    job_id: str,
+    root: Path,
+) -> tuple[bool, str]:
+    """Classify whether guarded apply must run authored spatial five-view evidence."""
+
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    if not modeling_plan_path.is_file():
+        return False, "modeling_plan_missing"
+    raw = json.loads(modeling_plan_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("ModelingPlan root must be an object")
+    if raw.get("assembly_consistency_policy", "legacy_unbound") != "spatial_v1":
+        return False, "legacy_or_non_spatial_assembly_policy"
+    if raw.get("stage", "scaffold") != "authored":
+        return False, "modeling_plan_not_authored"
+    plan = ModelingPlan.model_validate(raw)
+    if plan.job_id != job_id:
+        raise ValueError("ModelingPlan belongs to another job")
+    if plan.assembly_frame is None:
+        return False, "assembly_frame_missing"
+    target_ids = {item.id for item in plan.objects if item.assembly_role in {"root", "attached"}}
+    if plan.assembly_frame.root_object_id not in target_ids:
+        raise ValueError("authored spatial ModelingPlan has no declared root target")
+    return True, "eligible_authored_spatial_v1"
+
+
+def _run_revision_structural_multiview(
+    job_id: str,
+    root: Path,
+    *,
+    phase: str,
+    render_engine: str,
+    render_device: str,
+) -> AssemblySanityTerminalEvidence:
+    """Plan, render, validate, and bind one fresh revision-owned five-view terminal."""
+
+    selected_run_id = f"revision-{phase}-{uuid4().hex}"
+    planned = plan_job_assembly_multiview_sanity(
+        job_id,
+        run_id=selected_run_id,
+    )
+    rendered = run_job_assembly_multiview_sanity(
+        job_id,
+        selected_run_id,
+        plan_sha256=str(planned["plan_sha256"]),
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    return terminal_evidence_from_run_result(root, rendered)
 
 
 def _run_job_pipeline(
@@ -569,6 +632,11 @@ def _apply_job_approved_revision_under_job_lock(
         if run_pipeline
         else _constraint_state(None)
     )
+    structural_eligible, structural_eligibility_reason = (
+        _structural_multiview_eligibility(job_id, root)
+        if run_pipeline
+        else (False, "pipeline_not_requested")
+    )
     _require_input_hashes(root, expected_input_hashes)
 
     application_path = run_dir / "application_report.json"
@@ -585,6 +653,12 @@ def _apply_job_approved_revision_under_job_lock(
         "input_hashes_before": expected_input_hashes,
         "changed_ids": changed_ids,
         "preserved_ids": preserved_ids,
+        "structural_multiview": {
+            "status": "pending" if structural_eligible else "not_applicable",
+            "eligibility_reason": structural_eligibility_reason,
+            "veto_only": True,
+            "automatic_revision_authorized": False,
+        },
         "started_at": _utc_now(),
     }
     write_json_atomic(application_path, application)
@@ -592,8 +666,27 @@ def _apply_job_approved_revision_under_job_lock(
     archived: Path | None = None
     canonical_replaced_once = False
     result_spec_sha256: str | None = None
+    baseline_structural: AssemblySanityTerminalEvidence | None = None
+    structural_comparison_path: Path | None = None
     next_spec_path = run_dir / "scene_spec.approved.next.json"
     try:
+        if structural_eligible:
+            _build_job(root, render_engine, render_device)
+            baseline_structural = _run_revision_structural_multiview(
+                job_id,
+                root,
+                phase="baseline",
+                render_engine=render_engine,
+                render_device=render_device,
+            )
+            application["structural_multiview"].update(
+                {
+                    "status": "baseline_captured",
+                    "baseline": baseline_structural.model_dump(mode="json"),
+                }
+            )
+            write_json_atomic(application_path, application)
+            _require_input_hashes(root, expected_input_hashes)
         (root / "history").mkdir(parents=True, exist_ok=True)
         archived = archive_scene_spec(job_id)
         if archived is None:
@@ -648,10 +741,45 @@ def _apply_job_approved_revision_under_job_lock(
                 "application_report": str(application_path),
                 "convergence_report": None,
                 "rollback_report": None,
+                "structural_regression_report": None,
             }
 
         pipeline = _run_job_pipeline(job_id, root, render_engine, render_device)
         _require_input_hashes(root, expected_input_hashes)
+        if baseline_structural is not None:
+            result_structural = _run_revision_structural_multiview(
+                job_id,
+                root,
+                phase="result",
+                render_engine=render_engine,
+                render_device=render_device,
+            )
+            structural_comparison = compare_assembly_sanity_terminals(
+                root,
+                baseline=baseline_structural,
+                result=result_structural,
+                expected_job_id=job_id,
+            )
+            structural_comparison_path = run_dir / "structural_regression.json"
+            if structural_comparison_path.exists():
+                raise FileExistsError(
+                    "guarded revision structural comparison already exists: "
+                    f"{structural_comparison_path}"
+                )
+            write_json_atomic(
+                structural_comparison_path,
+                structural_comparison.model_dump(mode="json"),
+            )
+            application["structural_multiview"].update(
+                {
+                    "status": structural_comparison.status,
+                    "result": result_structural.model_dump(mode="json"),
+                    "comparison_report": str(structural_comparison_path),
+                    "regression_ids": [item.id for item in structural_comparison.regressions],
+                }
+            )
+            write_json_atomic(application_path, application)
+            _require_input_hashes(root, expected_input_hashes)
         post_qa = _run_post_visual_qa(job_id, render_engine, render_device)
         after_report_path = Path(post_qa["visual_qa_report"])
         convergence = evaluate_convergence(
@@ -663,6 +791,7 @@ def _apply_job_approved_revision_under_job_lock(
             after_failed_constraints=int(pipeline["constraint_failures"]),
             before_constraint_results=list(before_constraint_state["results"]),
             after_constraint_results=list(pipeline.get("constraint_results", [])),
+            multiview_comparison_path=structural_comparison_path,
             minimum_improvement=minimum_improvement,
         )
         convergence_path = run_dir / "convergence.json"
@@ -686,9 +815,19 @@ def _apply_job_approved_revision_under_job_lock(
                 "application_report": str(application_path),
                 "convergence_report": str(convergence_path),
                 "rollback_report": None,
+                "structural_regression_report": (
+                    str(structural_comparison_path)
+                    if structural_comparison_path is not None
+                    else None
+                ),
                 "post_qa": post_qa,
             }
 
+        rollback_reason = (
+            "exact five-view assembly evidence regressed"
+            if convergence.multiview_status == "regressed"
+            else "convergence did not improve direct reference score without regressions"
+        )
         rollback = _rollback_job(
             job_id=job_id,
             root=root,
@@ -701,7 +840,7 @@ def _apply_job_approved_revision_under_job_lock(
             latest_snapshot=latest_snapshot,
             render_engine=render_engine,
             render_device=render_device,
-            reason="convergence did not improve direct reference score without regressions",
+            reason=rollback_reason,
             lock_owner_id=lock_owner_id,
         )
         application.update(
@@ -722,6 +861,9 @@ def _apply_job_approved_revision_under_job_lock(
             "application_report": str(application_path),
             "convergence_report": str(convergence_path),
             "rollback_report": str(run_dir / "rollback_report.json"),
+            "structural_regression_report": (
+                str(structural_comparison_path) if structural_comparison_path is not None else None
+            ),
             "rollback": rollback,
             "post_qa": post_qa,
         }

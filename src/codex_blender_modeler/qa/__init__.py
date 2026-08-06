@@ -25,8 +25,11 @@ from .multiview_sanity import (
     AssemblySanityViewCoverage,
     AssemblySanityViewPlan,
     AssemblySanityViewRender,
+    GeometryMultiviewVisualReview,
+    GeometryVisualReviewFinding,
     plan_job_assembly_multiview_sanity,
     run_job_assembly_multiview_sanity,
+    validate_geometry_multiview_visual_review,
 )
 from .reporting import merge_advisory_target_result
 from .request import create_visual_qa_request, validate_visual_qa_request
@@ -38,6 +41,14 @@ from .semantic_mask_registry_models import (
     RegisteredSemanticMaskArtifact,
     SemanticReferenceMaskPromotionReceipt,
     SemanticReferenceMaskRegistryStatus,
+)
+from .structural_regression import (
+    AssemblySanityTerminalEvidence,
+    StructuralRegressionFinding,
+    StructuralRegressionReport,
+    compare_assembly_sanity_terminals,
+    terminal_evidence_from_run_result,
+    validate_terminal_evidence,
 )
 from .target_provider import (
     ExistingFileQATargetProvider,
@@ -105,6 +116,7 @@ __all__ = [
     "AssemblySanityReferenceSource",
     "AssemblySanityRenderManifest",
     "AssemblySanityReport",
+    "AssemblySanityTerminalEvidence",
     "AssemblySanityViewCoverage",
     "AssemblySanityViewPlan",
     "AssemblySanityViewRender",
@@ -112,6 +124,8 @@ __all__ = [
     "DirectVisualMetrics",
     "ExistingFileQATargetProvider",
     "GeneratedTarget",
+    "GeometryMultiviewVisualReview",
+    "GeometryVisualReviewFinding",
     "QAFinding",
     "QATargetManifest",
     "QATargetProvider",
@@ -120,11 +134,14 @@ __all__ = [
     "SemanticReferenceMaskPromotionReceipt",
     "SemanticReferenceMaskRegistryStatus",
     "SurfaceDetailQASummary",
+    "StructuralRegressionFinding",
+    "StructuralRegressionReport",
     "VisualQAReport",
     "VisualQARequest",
     "camera_fingerprint",
     "compare_preview_to_generated_target",
     "compare_reference_to_render",
+    "compare_assembly_sanity_terminals",
     "create_visual_qa_request",
     "generate_optional_qa_target",
     "get_job_semantic_reference_mask_status",
@@ -136,5 +153,8 @@ __all__ = [
     "run_job_assembly_multiview_sanity",
     "run_job_visual_diagnostics",
     "run_job_visual_qa",
+    "terminal_evidence_from_run_result",
+    "validate_terminal_evidence",
+    "validate_geometry_multiview_visual_review",
     "validate_visual_qa_request",
 ]

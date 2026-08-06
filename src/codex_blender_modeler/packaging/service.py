@@ -1442,6 +1442,13 @@ def _verify_package_receipts(
     return verified
 
 
+def _primary_asset_filename(primary_format: str) -> str:
+    """Choose the stable package filename expected by each interchange format."""
+
+    normalized = primary_format.strip().lower()
+    return "model.fbx" if normalized == "fbx" else f"asset.{normalized}"
+
+
 def package_asset(
     job_id: str,
     *,
@@ -1491,7 +1498,7 @@ def package_asset(
     staging_root.mkdir(parents=False, exist_ok=False)
     try:
         extension = profile.primary_format
-        primary = staging_root / f"asset.{extension}"
+        primary = staging_root / _primary_asset_filename(extension)
         raw_export = staging_root / "export_evidence.json"
         export_blend = (
             material_conversion.portable_blend

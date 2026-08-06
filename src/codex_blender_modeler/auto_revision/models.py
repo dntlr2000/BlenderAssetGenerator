@@ -128,12 +128,61 @@ class ConvergenceReport(StrictModel):
     before_failed_constraints: int = Field(ge=0)
     after_failed_constraints: int = Field(ge=0)
     constraint_regressions: list[ConstraintRegression] = Field(default_factory=list)
+    multiview_status: Literal["not_applicable", "passed", "regressed"] = "not_applicable"
+    multiview_baseline_run_id: str | None = None
+    multiview_baseline_report_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    multiview_result_run_id: str | None = None
+    multiview_result_report_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    multiview_comparison_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    multiview_regression_ids: list[str] = Field(default_factory=list)
     changed_ids: list[str] = Field(default_factory=list)
     preserved_ids: list[str] = Field(default_factory=list)
     status: Literal["improved", "no_change", "regressed"]
     accepted: bool
     rollback_required: bool
     reasons: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_multiview_evidence(self) -> ConvergenceReport:
+        """Require complete exact bindings whenever multi-view evidence is applicable."""
+
+        bindings = (
+            self.multiview_baseline_run_id,
+            self.multiview_baseline_report_sha256,
+            self.multiview_result_run_id,
+            self.multiview_result_report_sha256,
+            self.multiview_comparison_sha256,
+        )
+        if self.multiview_status == "not_applicable":
+            if any(value is not None for value in bindings) or self.multiview_regression_ids:
+                raise ValueError(
+                    "not-applicable multi-view evidence cannot bind runs or regressions"
+                )
+            return self
+        if any(value is None for value in bindings):
+            raise ValueError("applicable multi-view evidence requires complete exact bindings")
+        if self.multiview_status == "passed" and self.multiview_regression_ids:
+            raise ValueError("passed multi-view evidence cannot contain regressions")
+        if self.multiview_status == "regressed" and not self.multiview_regression_ids:
+            raise ValueError("regressed multi-view evidence requires regression IDs")
+        if self.multiview_status == "regressed" and (
+            self.status != "regressed" or self.accepted or not self.rollback_required
+        ):
+            raise ValueError(
+                "regressed multi-view evidence requires a rejected rollback result"
+            )
+        if len(self.multiview_regression_ids) != len(set(self.multiview_regression_ids)):
+            raise ValueError("multi-view regression IDs must be unique")
+        return self
 
 
 def require_complete_group_candidate_selection(

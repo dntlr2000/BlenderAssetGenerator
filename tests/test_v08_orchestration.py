@@ -9,6 +9,7 @@ import pytest
 from PIL import Image
 
 import codex_blender_modeler.orchestration.service as orchestration_service
+import codex_blender_modeler.qa.multiview_sanity as multiview_sanity
 from codex_blender_modeler.optimization.service import initialize_asset_profile
 from codex_blender_modeler.orchestration.locks import (
     acquire_workflow_lock,
@@ -25,6 +26,14 @@ from codex_blender_modeler.orchestration.service import (
     reconcile_workflow,
     resume_workflow,
 )
+from codex_blender_modeler.qa.multiview_sanity import (
+    ASSEMBLY_SANITY_PASS_KINDS,
+    ASSEMBLY_SANITY_VIEW_IDS,
+    AssemblySanityPlan,
+    AssemblySanityRenderManifest,
+    AssemblySanityReport,
+    GeometryMultiviewVisualReview,
+)
 from codex_blender_modeler.workspace import create_job, job_dir, sha256_file
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +45,108 @@ def _image(path: Path, color: tuple[int, int, int] = (60, 110, 170)) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (48, 32), color).save(path)
     return path
+
+
+def _write_interrupted_multiview_attempt(
+    workflow_root: Path,
+    *,
+    workflow_id: str,
+    job_id: str,
+    step: WorkflowStep,
+    input_fingerprint: str,
+) -> None:
+    """Persist one exact InterruptedAttempt authorizing bounded run recovery."""
+
+    _write_failed_multiview_attempt(
+        workflow_root,
+        workflow_id=workflow_id,
+        job_id=job_id,
+        step=step,
+        input_fingerprint=input_fingerprint,
+        attempt_id="attempt-0001-interrupted",
+        error_type="InterruptedAttempt",
+        reason_code="host_failure",
+    )
+
+
+def _write_failed_multiview_attempt(
+    workflow_root: Path,
+    *,
+    workflow_id: str,
+    job_id: str,
+    step: WorkflowStep,
+    input_fingerprint: str,
+    attempt_id: str = "attempt-0001-host-failure",
+    error_type: str = "RuntimeError",
+    reason_code: str | None = "host_failure",
+) -> None:
+    """Persist one exact prior failed host receipt for multi-view retry tests."""
+
+    attempt = WorkflowAttempt(
+        attempt_id=attempt_id,
+        workflow_id=workflow_id,
+        job_id=job_id,
+        step_id=step.step_id,
+        plan_sha256=sha256_file(workflow_root / "plan.json"),
+        input_fingerprint=input_fingerprint,
+        status="failed",
+        error_type=error_type,
+        error_message="fixture prior host failure",
+        reason_code=reason_code,  # type: ignore[arg-type]
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+    attempt_root = workflow_root / "attempts" / step.step_id
+    attempt_root.mkdir(parents=True, exist_ok=True)
+    (attempt_root / f"{attempt_id}.json").write_text(
+        attempt.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _workflow_assembly_sanity_plan(job_id: str, run_id: str) -> AssemblySanityPlan:
+    """Create one minimal schema-valid workflow-owned five-view plan fixture."""
+
+    directions = {
+        "front": (1.0, 0.0, 0.0),
+        "right": (0.0, 1.0, 0.0),
+        "top": (0.0, 0.0, 1.0),
+        "rear": (-1.0, 0.0, 0.0),
+        "oblique": (1.0, 1.0, 0.5),
+    }
+    return AssemblySanityPlan(
+        job_id=job_id,
+        run_id=run_id,
+        scene_spec_path="analysis/scene_spec.json",
+        scene_spec_sha256="a" * 64,
+        modeling_plan_path="analysis/modeling_plan.json",
+        modeling_plan_sha256="b" * 64,
+        source_blend_path="blender/scene.blend",
+        source_blend_sha256="c" * 64,
+        build_fingerprint="d" * 64,
+        source_fingerprint="e" * 64,
+        review_policy="exterior_geometry_review_v2",
+        assembly_frame={
+            "root_object_id": "asset.root",
+            "longitudinal_axis": "X",
+            "lateral_axis": "Y",
+            "vertical_axis": "Z",
+            "symmetry": "unknown",
+            "evidence_status": "inferred",
+        },
+        target_ids=["asset.root"],
+        resolution=(384, 384),
+        views=[
+            {
+                "view_id": view_id,
+                "camera_direction_frame": direction,
+                "screen_up_role": "longitudinal" if view_id == "top" else "vertical",
+                "target_ids": ["asset.root"],
+            }
+            for view_id, direction in directions.items()
+        ],
+        created_at="2026-08-04T00:00:00+00:00",
+    )
 
 
 def _new_proxy_workflow(
@@ -164,6 +275,15 @@ def test_new_short_request_creates_isolated_proxy_workflow(
     step_ids = [item["step_id"] for item in plan["steps"]]
     assert plan["execution_policy"] == "standard"
     assert plan["delivery_scope"] == "preview_only"
+    assert step_ids.index("proxy.validate") < step_ids.index(
+        "proxy.geometry_multiview"
+    )
+    assert step_ids.index("proxy.geometry_multiview") < step_ids.index(
+        "proxy.geometry_multiview_visual_review"
+    )
+    assert step_ids.index("proxy.geometry_multiview_visual_review") < step_ids.index(
+        "proxy.report"
+    )
     assert step_ids.index("proxy.report") < step_ids.index("geometry.proxy_approval")
     modeling_step = next(
         item for item in plan["steps"] if item["step_id"] == "geometry.modeling_plan"
@@ -181,6 +301,13 @@ def test_new_short_request_creates_isolated_proxy_workflow(
         item for item in plan["steps"] if item["step_id"] == "geometry.proxy_author"
     )
     assert any("parent-local" in text for text in proxy_step["instructions"])
+    visual_review = next(
+        item
+        for item in plan["steps"]
+        if item["step_id"] == "proxy.geometry_multiview_visual_review"
+    )
+    assert visual_review["execution_mode"] == "agent"
+    assert visual_review["tool_name"] == "review_geometry_multiview"
     report = next(item for item in plan["steps"] if item["step_id"] == "proxy.report")
     assert report["tool_name"] == "generate_pdf_report"
     assert report["outputs"][0]["path"].startswith(
@@ -265,6 +392,484 @@ def test_new_workflow_rejects_legacy_assembly_policy(
             input_fingerprint=str(current.input_fingerprint),
             note="Attempted to retain an unbound legacy assembly plan.",
         )
+
+
+def test_legacy_revision_omits_spatial_only_multiview_review(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep legacy jobs revisable without failing after canonical mutation."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "legacy_revision.png")
+    create_job("legacy_revision_asset", reference, "concept", [])
+    legacy_plan = {
+        "schema_version": "0.4.0",
+        "job_id": "legacy_revision_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [
+            {
+                "id": "asset.root",
+                "label": "asset root",
+                "scope_role": "primary",
+            }
+        ],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    modeling_plan_path = (
+        workspace / "legacy_revision_asset" / "analysis" / "modeling_plan.json"
+    )
+    modeling_plan_path.write_text(
+        json.dumps(legacy_plan, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    state = plan_workflow(
+        "Revise the approved exterior proportions.",
+        job_id="legacy_revision_asset",
+        intent="revise_asset",
+    )
+    workflow_root = (
+        workspace
+        / "legacy_revision_asset"
+        / "workflows"
+        / state.workflow_id
+    )
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    step_ids = [item["step_id"] for item in plan["steps"]]
+    report = next(item for item in plan["steps"] if item["step_id"] == "revision.report")
+    apply_step = next(
+        item for item in plan["steps"] if item["step_id"] == "revision.apply"
+    )
+
+    assert "revision.geometry_multiview" not in step_ids
+    assert "revision.geometry_multiview_visual_review" not in step_ids
+    assert "assembly_sanity_run_id" not in report["parameters"]
+    assert apply_step["parameters"]["expected_modeling_plan_sha256"] == sha256_file(
+        modeling_plan_path
+    )
+    assert (
+        apply_step["parameters"]["expected_assembly_consistency_policy"]
+        == "legacy_unbound"
+    )
+    for item in plan["steps"]:
+        if item["step_id"].startswith("revision.") and item["step_id"] not in {
+            "revision.author",
+            "revision.approval",
+        }:
+            assert item["parameters"]["expected_modeling_plan_sha256"] == sha256_file(
+                modeling_plan_path
+            )
+            assert (
+                item["parameters"]["expected_assembly_consistency_policy"]
+                == "legacy_unbound"
+            )
+    assert any("not applicable" in note for note in plan["notes"])
+
+
+def test_spatial_revision_keeps_five_view_geometry_review(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Schedule the new five-view review for an authored spatial-v1 job."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "spatial_revision.png")
+    create_job("spatial_revision_asset", reference, "concept", [])
+    modeling_plan = {
+        "schema_version": "0.4.0",
+        "job_id": "spatial_revision_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [
+            {
+                "id": "asset.root",
+                "label": "asset root",
+                "scope_role": "primary",
+                "assembly_role": "root",
+            }
+        ],
+        "assembly_consistency_policy": "spatial_v1",
+        "assembly_frame": {
+            "root_object_id": "asset.root",
+            "longitudinal_axis": "X",
+            "lateral_axis": "Y",
+            "vertical_axis": "Z",
+            "symmetry": "unknown",
+            "evidence_status": "inferred",
+        },
+        "assembly_relationships": [],
+    }
+    plan_path = workspace / "spatial_revision_asset" / "analysis" / "modeling_plan.json"
+    plan_path.write_text(json.dumps(modeling_plan, indent=2) + "\n", encoding="utf-8")
+
+    state = plan_workflow(
+        "Revise the approved exterior proportions.",
+        job_id="spatial_revision_asset",
+        intent="revise_asset",
+    )
+    workflow_root = (
+        workspace
+        / "spatial_revision_asset"
+        / "workflows"
+        / state.workflow_id
+    )
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    step_ids = [item["step_id"] for item in plan["steps"]]
+    report = next(item for item in plan["steps"] if item["step_id"] == "revision.report")
+    apply_step = next(
+        item for item in plan["steps"] if item["step_id"] == "revision.apply"
+    )
+
+    assert "revision.geometry_multiview" in step_ids
+    assert "revision.geometry_multiview_visual_review" in step_ids
+    assert report["parameters"]["assembly_sanity_run_id"].endswith(
+        "-revision-geometry"
+    )
+    assert apply_step["parameters"]["expected_modeling_plan_sha256"] == sha256_file(
+        plan_path
+    )
+    assert (
+        apply_step["parameters"]["expected_assembly_consistency_policy"] == "spatial_v1"
+    )
+    for item in plan["steps"]:
+        if item["step_id"].startswith("revision.") and item["step_id"] not in {
+            "revision.author",
+            "revision.approval",
+        }:
+            assert item["parameters"]["expected_modeling_plan_sha256"] == sha256_file(
+                plan_path
+            )
+            assert (
+                item["parameters"]["expected_assembly_consistency_policy"]
+                == "spatial_v1"
+            )
+
+
+def test_revision_planning_rejects_missing_modeling_plan_without_workflow(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Fail before persisting a revision workflow when its ModelingPlan is absent."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "missing_plan_revision.png")
+    create_job("missing_plan_revision", reference, "concept", [])
+    root = workspace / "missing_plan_revision"
+
+    with pytest.raises(FileNotFoundError, match="modeling_plan.json"):
+        plan_workflow(
+            "Revise this asset.",
+            job_id="missing_plan_revision",
+            intent="revise_asset",
+        )
+
+    assert not (root / "workflows" / "latest.json").exists()
+    assert not any((root / "workflows").glob("wf-*"))
+
+
+def test_revision_apply_binding_rejects_changed_modeling_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Detect ModelingPlan drift before the guarded revision can change SceneSpec."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "bound_revision.png")
+    create_job("bound_revision_asset", reference, "concept", [])
+    root = workspace / "bound_revision_asset"
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    payload = {
+        "schema_version": "0.4.0",
+        "job_id": "bound_revision_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [{"id": "asset.root", "label": "root"}],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    expected_hash = sha256_file(modeling_plan_path)
+    step = WorkflowStep(
+        step_id="revision.apply",
+        title="Apply guarded revision",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="apply_revision_plan",
+        parameters={
+            "expected_modeling_plan_sha256": expected_hash,
+            "expected_assembly_consistency_policy": "legacy_unbound",
+        },
+    )
+    orchestration_service._verify_revision_modeling_plan_binding(root, step)
+
+    payload["global_notes"] = ["changed after immutable workflow planning"]
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="ModelingPlan hash changed",
+    ):
+        orchestration_service._verify_revision_modeling_plan_binding(root, step)
+
+
+def test_revision_downstream_host_and_agent_steps_reject_modeling_plan_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject post-apply host work and agent completion after ModelingPlan drift."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "downstream_bound_revision.png")
+    create_job("downstream_bound_revision", reference, "concept", [])
+    root = workspace / "downstream_bound_revision"
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    payload = {
+        "schema_version": "0.4.0",
+        "job_id": "downstream_bound_revision",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [{"id": "asset.root", "label": "root"}],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    binding = {
+        "expected_modeling_plan_sha256": sha256_file(modeling_plan_path),
+        "expected_assembly_consistency_policy": "legacy_unbound",
+    }
+    payload["global_notes"] = ["changed after revision.apply"]
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    request = SimpleNamespace(
+        job_id="downstream_bound_revision",
+        workflow_id="wf-downstream-binding",
+    )
+    host_step = WorkflowStep(
+        step_id="revision.build",
+        title="Build revised asset",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="build_scene",
+        parameters=binding,
+    )
+    agent_step = WorkflowStep(
+        step_id="revision.geometry_multiview_visual_review",
+        title="Review revised asset",
+        phase="geometry",
+        execution_mode="agent",
+        tool_name="review_geometry_multiview",
+        parameters=binding,
+    )
+
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="ModelingPlan hash changed",
+    ):
+        orchestration_service._execute_host_tool(
+            root,
+            root / "workflows" / request.workflow_id,
+            request,
+            host_step,
+            input_fingerprint="a" * 64,
+        )
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="ModelingPlan hash changed",
+    ):
+        orchestration_service._validate_agent_completion_semantics(
+            root,
+            agent_step,
+            request,
+        )
+
+
+def test_revision_step_fingerprint_tracks_current_modeling_plan_only_when_bound(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Make new revision receipts stale on plan drift without changing legacy fingerprints."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "fingerprint_revision.png")
+    create_job("fingerprint_revision_asset", reference, "concept", [])
+    root = workspace / "fingerprint_revision_asset"
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    payload = {
+        "schema_version": "0.4.0",
+        "job_id": "fingerprint_revision_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [{"id": "asset.root", "label": "root"}],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    planned = plan_workflow(
+        "Revise the exterior proportions.",
+        job_id="fingerprint_revision_asset",
+        intent="revise_asset",
+    )
+    _root, _workflow_root, request, plan, state = (
+        orchestration_service._load_workflow(
+            "fingerprint_revision_asset",
+            planned.workflow_id,
+        )
+    )
+    bound_step = next(item for item in plan.steps if item.step_id == "revision.build")
+    legacy_step = bound_step.model_copy(update={"parameters": {}})
+    states = {item.step_id: item for item in state.steps}
+    bound_before = orchestration_service._step_input_fingerprint(
+        plan,
+        request,
+        bound_step,
+        states,
+    )
+    legacy_before = orchestration_service._step_input_fingerprint(
+        plan,
+        request,
+        legacy_step,
+        states,
+    )
+
+    payload["global_notes"] = ["changed after one completion receipt"]
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    assert bound_before != orchestration_service._step_input_fingerprint(
+        plan,
+        request,
+        bound_step,
+        states,
+    )
+    assert legacy_before == orchestration_service._step_input_fingerprint(
+        plan,
+        request,
+        legacy_step,
+        states,
+    )
+
+
+def test_revision_host_postcheck_rejects_mid_execution_modeling_plan_drift(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Fail one host attempt before snapshots when its bound plan changes mid-call."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "midcall_revision.png")
+    create_job("midcall_revision_asset", reference, "concept", [])
+    root = workspace / "midcall_revision_asset"
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    payload = {
+        "schema_version": "0.4.0",
+        "job_id": "midcall_revision_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [{"id": "asset.root", "label": "root"}],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    modeling_plan_path.write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    planned = plan_workflow(
+        "Revise the exterior proportions.",
+        job_id="midcall_revision_asset",
+        intent="revise_asset",
+    )
+    _root, workflow_root, request, plan, state = orchestration_service._load_workflow(
+        "midcall_revision_asset",
+        planned.workflow_id,
+    )
+    step = next(item for item in plan.steps if item.step_id == "revision.build")
+    states = {item.step_id: item for item in state.steps}
+    input_fingerprint = orchestration_service._step_input_fingerprint(
+        plan,
+        request,
+        step,
+        states,
+    )
+    synthetic_steps = [
+        item.model_copy(
+            update={
+                "status": "ready",
+                "input_fingerprint": input_fingerprint,
+            }
+        )
+        if item.step_id == step.step_id
+        else item
+        for item in state.steps
+    ]
+    synthetic_state = state.model_copy(update={"steps": synthetic_steps})
+
+    def mutate_plan(*_args: object, **_kwargs: object) -> None:
+        """Simulate an external plan change while the host tool is executing."""
+
+        payload["global_notes"] = ["changed during host execution"]
+        modeling_plan_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    def accept_dependency_fixture(*_args: object, **_kwargs: object) -> None:
+        """Bypass unrelated predecessor snapshots in this post-check unit fixture."""
+
+        return None
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_verify_dependency_sources",
+        accept_dependency_fixture,
+    )
+    monkeypatch.setattr(orchestration_service, "_execute_host_tool", mutate_plan)
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="ModelingPlan hash changed",
+    ):
+        orchestration_service._execute_ready_host_step(
+            root,
+            workflow_root,
+            request,
+            plan,
+            synthetic_state,
+            step,
+        )
+
+    attempt_path = next((workflow_root / "attempts" / step.step_id).glob("*.json"))
+    attempt = WorkflowAttempt.model_validate_json(
+        attempt_path.read_text(encoding="utf-8")
+    )
+    assert attempt.status == "failed"
+    assert attempt.reason_code == "orchestration_artifact_conflict"
+    assert attempt.error_type == "OrchestrationArtifactConflict"
+    assert all(not (root / output.path).exists() for output in step.outputs)
 
 
 def test_scene_completion_rejects_spatial_plan_object_mismatch(
@@ -401,6 +1006,15 @@ def test_background_preview_plan_skips_only_generic_review_gates(
     assert step_ids.index("background.fit") < step_ids.index(
         "background_geometry.build"
     )
+    assert step_ids.index("background_geometry.validate") < step_ids.index(
+        "background_geometry.geometry_multiview"
+    )
+    assert step_ids.index("background_geometry.geometry_multiview") < step_ids.index(
+        "background_geometry.geometry_multiview_visual_review"
+    )
+    assert step_ids.index(
+        "background_geometry.geometry_multiview_visual_review"
+    ) < step_ids.index("background_geometry.report")
     assert "geometry.proxy_author" not in step_ids
     assert "geometry.detail_author" not in step_ids
     background_modeling = next(
@@ -418,6 +1032,34 @@ def test_background_preview_plan_skips_only_generic_review_gates(
         item for item in steps if item["step_id"] == "geometry.background_author"
     )
     assert any("parent-local" in item for item in background_author["instructions"])
+    geometry_review = next(
+        item
+        for item in steps
+        if item["step_id"] == "background_geometry.geometry_multiview"
+    )
+    assert geometry_review["tool_name"] == "run_geometry_multiview_review"
+    assert geometry_review["parameters"]["review_policy"] == (
+        "exterior_geometry_review_v2"
+    )
+    assert geometry_review["parameters"]["resolution"] == 384
+    visual_review = next(
+        item
+        for item in steps
+        if item["step_id"] == "background_geometry.geometry_multiview_visual_review"
+    )
+    assert visual_review["tool_name"] == "review_geometry_multiview"
+    assert visual_review["depends_on"] == [
+        "background_geometry.geometry_multiview"
+    ]
+    background_report = next(
+        item for item in steps if item["step_id"] == "background_geometry.report"
+    )
+    assert background_report["depends_on"] == [
+        "background_geometry.geometry_multiview_visual_review"
+    ]
+    assert background_report["parameters"]["assembly_sanity_run_id"] == (
+        geometry_review["parameters"]["run_id"]
+    )
     assert "qa.run" in step_ids
     assert "background.eligibility" in step_ids
     assert step_ids.index("qa.run") < step_ids.index("background.eligibility")
@@ -437,6 +1079,233 @@ def test_background_preview_plan_skips_only_generic_review_gates(
     assert not any(item["phase"] == "portable" for item in steps)
     assert plan["terminal_step_id"].startswith("background_delivery_")
     assert plan["terminal_step_id"].endswith(".report")
+
+
+def _write_fake_geometry_multiview_outputs(root: Path, step: WorkflowStep) -> None:
+    """Write schema-valid run-owned outputs for orchestration-only unit tests."""
+
+    run_id = str(step.parameters["run_id"])
+    resolution = int(step.parameters.get("resolution", 384))
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True, exist_ok=True)
+    modeling_plan = json.loads(
+        (root / "analysis" / "modeling_plan.json").read_text(encoding="utf-8")
+    )
+    root_id = modeling_plan["assembly_frame"]["root_object_id"]
+    directions = {
+        "front": (1.0, 0.0, 0.0),
+        "right": (0.0, 1.0, 0.0),
+        "top": (0.0, 0.0, 1.0),
+        "rear": (-1.0, 0.0, 0.0),
+        "oblique": (1.0, 1.0, 0.5),
+    }
+    plan = AssemblySanityPlan(
+        job_id="workflow_asset",
+        run_id=run_id,
+        scene_spec_path="analysis/scene_spec.json",
+        scene_spec_sha256=sha256_file(root / "analysis" / "scene_spec.json"),
+        modeling_plan_path="analysis/modeling_plan.json",
+        modeling_plan_sha256=sha256_file(root / "analysis" / "modeling_plan.json"),
+        source_blend_path="blender/scene.blend",
+        source_blend_sha256=sha256_file(root / "blender" / "scene.blend"),
+        build_fingerprint="a" * 64,
+        source_fingerprint="b" * 64,
+        review_policy="exterior_geometry_review_v2",
+        assembly_frame=modeling_plan["assembly_frame"],
+        target_ids=[root_id],
+        resolution=(resolution, resolution),
+        views=[
+            {
+                "view_id": view_id,
+                "camera_direction_frame": directions[view_id],
+                "screen_up_role": "longitudinal" if view_id == "top" else "vertical",
+                "target_ids": [root_id],
+            }
+            for view_id in ASSEMBLY_SANITY_VIEW_IDS
+        ],
+        created_at="2026-08-04T00:00:00+00:00",
+    )
+    plan_path = run_root / "plan.json"
+    plan_path.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    rendered_views = []
+    for view_id in ASSEMBLY_SANITY_VIEW_IDS:
+        passes = []
+        for kind in ASSEMBLY_SANITY_PASS_KINDS:
+            path = run_root / "views" / view_id / f"{kind}.png"
+            _image(path, (255, 0, 0) if kind == "object_id" else (60, 110, 170))
+            passes.append(
+                {
+                    "kind": kind,
+                    "path": path.relative_to(root).as_posix(),
+                    "sha256": sha256_file(path),
+                    "width": resolution,
+                    "height": resolution,
+                    "encoding": "png-rgb8",
+                }
+            )
+        rendered_views.append(
+            {
+                "view_id": view_id,
+                "camera": {
+                    "view_id": view_id,
+                    "camera_direction_frame": [
+                        round(float(value), 9) for value in directions[view_id]
+                    ],
+                    "screen_up_role": (
+                        "longitudinal" if view_id == "top" else "vertical"
+                    ),
+                    "type": "PERSP",
+                    "location": [3.0, 3.0, 3.0],
+                    "rotation_deg": [45.0, 0.0, 135.0],
+                    "target": [0.0, 0.0, 0.0],
+                    "lens_mm": 50.0,
+                    "clip_start": 0.01,
+                    "clip_end": 100.0,
+                },
+                "target_ids": [root_id],
+                "passes": passes,
+            }
+        )
+    manifest = AssemblySanityRenderManifest(
+        job_id="workflow_asset",
+        run_id=run_id,
+        plan_sha256=sha256_file(plan_path),
+        scene_spec_sha256=plan.scene_spec_sha256,
+        modeling_plan_sha256=plan.modeling_plan_sha256,
+        source_blend_path=plan.source_blend_path,
+        source_blend_sha256=plan.source_blend_sha256,
+        build_fingerprint=plan.build_fingerprint,
+        blender_version="5.0.1",
+        render_engine="BLENDER_EEVEE",
+        render_device="CPU",
+        resolution=plan.resolution,
+        object_id_colors={root_id: "#ff0000"},
+        assembly_frame_bounds={"min": [0.0, 0.0, 0.0], "max": [1.0, 1.0, 1.0]},
+        assembly_evaluation={"checks": []},
+        views=rendered_views,
+    )
+    manifest_path = run_root / "render_manifest.json"
+    manifest_path.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    coverage, findings = multiview_sanity._coverage_and_findings(root, plan, manifest)
+    report = AssemblySanityReport(
+        job_id="workflow_asset",
+        run_id=run_id,
+        plan_sha256=sha256_file(plan_path),
+        render_manifest_sha256=sha256_file(manifest_path),
+        scene_spec_sha256=plan.scene_spec_sha256,
+        modeling_plan_sha256=plan.modeling_plan_sha256,
+        source_blend_sha256=plan.source_blend_sha256,
+        build_fingerprint=plan.build_fingerprint,
+        review_policy="exterior_geometry_review_v2",
+        structural_status="passed",
+        reference_comparison_note=multiview_sanity.ASSEMBLY_SANITY_REFERENCE_NOTE,
+        target_ids=[root_id],
+        visible_target_ids=[root_id],
+        unseen_target_ids=[],
+        semantic_visibility_fraction=1.0,
+        view_coverage=coverage,
+        assembly_evaluation={"checks": []},
+        findings=findings,
+        geometry_review={
+            "outcome": "structurally_consistent",
+            "v04_reentry": "not_indicated",
+            "redesign_assessment": "not_indicated",
+        },
+        generated_at="2026-08-04T00:00:00+00:00",
+    )
+    (run_root / "report.json").write_text(
+        report.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
+def _complete_fake_geometry_visual_review(
+    root: Path,
+    state,
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    prefix: str,
+):
+    """Write and complete one exact agent visual-review step for orchestration tests."""
+
+    step_id = f"{prefix}.geometry_multiview_visual_review"
+    current = next(item for item in state.steps if item.step_id == step_id)
+    plan = json.loads(
+        (root / "workflows" / state.workflow_id / "plan.json").read_text(encoding="utf-8")
+    )
+    step = next(item for item in plan["steps"] if item["step_id"] == step_id)
+    run_id = str(step["parameters"]["run_id"])
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    review = GeometryMultiviewVisualReview(
+        job_id="workflow_asset",
+        run_id=run_id,
+        plan_sha256=sha256_file(run_root / "plan.json"),
+        render_manifest_sha256=sha256_file(run_root / "render_manifest.json"),
+        structural_report_sha256=sha256_file(run_root / "report.json"),
+        reviewed_view_ids=list(ASSEMBLY_SANITY_VIEW_IDS),
+        reviewed_pass_kinds=["beauty", "wireframe"],
+        outcome="visually_coherent",
+        v04_reentry="not_indicated",
+        reviewed_at=datetime.now(UTC),
+    )
+    (run_root / "visual_review.json").write_text(
+        review.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "validate_geometry_multiview_visual_review",
+        lambda *_args, **_kwargs: review,
+    )
+    return complete_workflow_step(
+        "workflow_asset",
+        state.workflow_id,
+        step_id,
+        input_fingerprint=str(current.input_fingerprint),
+        note="Codex reviewed all five beauty and wireframe views.",
+    )
+
+
+def _advance_proxy_to_report(
+    root: Path,
+    state,
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Complete proxy host checks and the new hash-bound five-view agent review."""
+
+    def execute_proxy_steps(
+        host_root: Path,
+        _workflow_root: Path,
+        _request,
+        host_step: WorkflowStep,
+        *,
+        input_fingerprint: str,
+    ) -> None:
+        """Publish only the fake multiview outputs needed after existing build fixtures."""
+
+        assert input_fingerprint
+        if host_step.step_id == "proxy.geometry_multiview":
+            _write_fake_geometry_multiview_outputs(host_root, host_step)
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "_execute_host_tool",
+        execute_proxy_steps,
+    )
+    advanced = resume_workflow(
+        "workflow_asset",
+        state.workflow_id,
+        max_host_steps=5,
+    )
+    assert advanced.current_step_id == "proxy.geometry_multiview_visual_review"
+    reviewed = _complete_fake_geometry_visual_review(
+        root,
+        advanced,
+        monkeypatch,
+        prefix="proxy",
+    )
+    assert reviewed.current_step_id == "proxy.report"
+    return reviewed
 
 
 def test_background_portable_plan_keeps_exact_optimization_approval(
@@ -1080,17 +1949,7 @@ def test_agent_completion_and_generic_approval_are_exactly_hash_bound(
         encoding="utf-8",
     )
     original_execute = orchestration_service._execute_host_tool
-    monkeypatch.setattr(
-        orchestration_service,
-        "_execute_host_tool",
-        lambda *_args, **_kwargs: None,
-    )
-    state = resume_workflow(
-        "workflow_asset",
-        state.workflow_id,
-        max_host_steps=4,
-    )
-    assert state.current_step_id == "proxy.report"
+    state = _advance_proxy_to_report(root, state, monkeypatch)
     monkeypatch.setattr(
         orchestration_service,
         "_execute_host_tool",
@@ -1166,6 +2025,30 @@ def test_detail_author_preserves_exact_archived_proxy_completion(
         "parent-local" in instruction
         for instruction in detail_plan_step["instructions"]
     )
+    step_ids = [item["step_id"] for item in workflow_plan["steps"]]
+    assert step_ids.index("detail.validate") < step_ids.index(
+        "detail.geometry_multiview"
+    )
+    assert step_ids.index("detail.geometry_multiview") < step_ids.index(
+        "detail.geometry_multiview_visual_review"
+    )
+    assert step_ids.index("detail.geometry_multiview_visual_review") < step_ids.index(
+        "detail.report"
+    )
+    detail_review = next(
+        item
+        for item in workflow_plan["steps"]
+        if item["step_id"] == "detail.geometry_multiview"
+    )
+    detail_report = next(
+        item for item in workflow_plan["steps"] if item["step_id"] == "detail.report"
+    )
+    assert detail_report["parameters"]["assembly_sanity_run_id"] == (
+        detail_review["parameters"]["run_id"]
+    )
+    assert detail_report["depends_on"] == [
+        "detail.geometry_multiview_visual_review"
+    ]
     state = _complete_modeling_plan(root, state)
     state = _complete_proxy_scene(root, state)
     (root / "blender").mkdir(exist_ok=True)
@@ -1182,12 +2065,7 @@ def test_detail_author_preserves_exact_archived_proxy_completion(
         encoding="utf-8",
     )
     original_execute = orchestration_service._execute_host_tool
-    monkeypatch.setattr(
-        orchestration_service,
-        "_execute_host_tool",
-        lambda *_args, **_kwargs: None,
-    )
-    state = resume_workflow("workflow_asset", state.workflow_id, max_host_steps=4)
+    state = _advance_proxy_to_report(root, state, monkeypatch)
     monkeypatch.setattr(
         orchestration_service,
         "_execute_host_tool",
@@ -1398,6 +2276,660 @@ def test_visual_diagnostics_host_step_forwards_exact_plan_parameters(
         "max_camera_probes": 3,
         "include_multiview_sanity": False,
     }
+
+
+def test_geometry_multiview_host_step_forwards_exact_workflow_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Dispatch one fresh workflow-owned five-view review to exact planned paths."""
+
+    root = tmp_path / "geometry_review_asset"
+    workflow_root = root / "workflows" / "wf-geometry-review"
+    workflow_root.mkdir(parents=True)
+    run_id = "v08-geometry-review-detail-geometry"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    captured: dict[str, object] = {}
+
+    def plan_review(job_id: str, **kwargs: object) -> dict[str, object]:
+        """Capture exact plan parameters without invoking Blender."""
+
+        captured.update(plan_job_id=job_id, **kwargs)
+        return {
+            "plan": str(run_root / "plan.json"),
+            "plan_sha256": "a" * 64,
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    def run_review(job_id: str, selected_run_id: str, **kwargs: object) -> dict[str, object]:
+        """Capture exact run parameters and return workflow-owned output paths."""
+
+        captured.update(
+            run_job_id=job_id,
+            selected_run_id=selected_run_id,
+            **kwargs,
+        )
+        return {
+            "render_manifest": str(run_root / "render_manifest.json"),
+            "report": str(run_root / "report.json"),
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "plan_job_assembly_multiview_sanity",
+        plan_review,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run_review,
+    )
+    request = SimpleNamespace(
+        job_id="geometry_review_asset",
+        workflow_id="wf-geometry-review",
+    )
+    step = SimpleNamespace(
+        step_id="detail.geometry_multiview",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+
+    orchestration_service._execute_host_tool(
+        root,
+        workflow_root,
+        request,
+        step,
+        input_fingerprint="b" * 64,
+    )
+
+    assert captured == {
+        "plan_job_id": "geometry_review_asset",
+        "run_id": run_id,
+        "resolution": 384,
+        "run_job_id": "geometry_review_asset",
+        "selected_run_id": run_id,
+        "plan_sha256": "a" * 64,
+    }
+
+
+def test_geometry_multiview_host_rejects_unowned_preexisting_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject a pre-existing plan when no exact prior host attempt can own it."""
+
+    root = tmp_path / "unowned_geometry_review_asset"
+    workflow_id = "wf-unowned-geometry-review"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    (workflow_root / "plan.json").write_text("{}\n", encoding="utf-8")
+    run_id = "v08-unowned-geometry-review"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    (run_root / "plan.json").write_text(
+        _workflow_assembly_sanity_plan(
+            "unowned_geometry_review_asset",
+            run_id,
+        ).model_dump_json(indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    called = False
+
+    def run(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Fail the test if an unowned plan reaches the renderer."""
+
+        nonlocal called
+        called = True
+        return {}
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run,
+    )
+    request = SimpleNamespace(
+        job_id="unowned_geometry_review_asset",
+        workflow_id=workflow_id,
+    )
+
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="pre-existing geometry multi-view plan has no exact prior",
+    ):
+        orchestration_service._execute_host_tool(
+            root,
+            workflow_root,
+            request,
+            step,
+            input_fingerprint="1" * 64,
+        )
+
+    assert called is False
+
+
+@pytest.mark.parametrize("reason_code", ["host_failure", None])
+def test_geometry_multiview_host_retries_plan_after_exact_host_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    reason_code: str | None,
+) -> None:
+    """Reuse a plan after exact current or legacy host-failure ownership evidence."""
+
+    root = tmp_path / "failed_geometry_review_asset"
+    workflow_id = "wf-failed-geometry-review"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    (workflow_root / "plan.json").write_text("{}\n", encoding="utf-8")
+    run_id = "v08-failed-geometry-review"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    plan_path = run_root / "plan.json"
+    plan_path.write_text(
+        _workflow_assembly_sanity_plan(
+            "failed_geometry_review_asset",
+            run_id,
+        ).model_dump_json(indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    input_fingerprint = "2" * 64
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    _write_failed_multiview_attempt(
+        workflow_root,
+        workflow_id=workflow_id,
+        job_id="failed_geometry_review_asset",
+        step=step,
+        input_fingerprint=input_fingerprint,
+        reason_code=reason_code,
+    )
+    calls: list[str] = []
+
+    def run(job_id: str, selected_run_id: str, **kwargs: object) -> dict[str, object]:
+        """Record reuse of the exact prior plan during an explicit host retry."""
+
+        calls.append("run")
+        assert job_id == "failed_geometry_review_asset"
+        assert selected_run_id == run_id
+        assert kwargs == {"plan_sha256": sha256_file(plan_path)}
+        return {
+            "render_manifest": str(run_root / "render_manifest.json"),
+            "report": str(run_root / "report.json"),
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run,
+    )
+    request = SimpleNamespace(
+        job_id="failed_geometry_review_asset",
+        workflow_id=workflow_id,
+    )
+
+    orchestration_service._execute_host_tool(
+        root,
+        workflow_root,
+        request,
+        step,
+        input_fingerprint=input_fingerprint,
+    )
+
+    assert calls == ["run"]
+
+
+@pytest.mark.parametrize(
+    ("case_id", "receipt_input_fingerprint", "error_type", "reason_code"),
+    [
+        ("mismatch", "3" * 64, "RuntimeError", "host_failure"),
+        (
+            "conflict",
+            "4" * 64,
+            "OrchestrationArtifactConflict",
+            "orchestration_artifact_conflict",
+        ),
+        ("legacy-conflict", "4" * 64, "OrchestrationArtifactConflict", None),
+    ],
+)
+def test_geometry_multiview_host_rejects_inexact_or_conflict_receipt(
+    tmp_path: Path,
+    case_id: str,
+    receipt_input_fingerprint: str,
+    error_type: str,
+    reason_code: str | None,
+) -> None:
+    """Reject mismatched or conflict-only receipts as proof of run ownership."""
+
+    root = tmp_path / f"rejected_geometry_review_{case_id}"
+    workflow_id = f"wf-rejected-{case_id}"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    (workflow_root / "plan.json").write_text("{}\n", encoding="utf-8")
+    run_id = f"v08-rejected-{case_id}"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    (run_root / "plan.json").write_text(
+        _workflow_assembly_sanity_plan(root.name, run_id).model_dump_json(indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    current_input_fingerprint = "4" * 64
+    _write_failed_multiview_attempt(
+        workflow_root,
+        workflow_id=workflow_id,
+        job_id=root.name,
+        step=step,
+        input_fingerprint=receipt_input_fingerprint,
+        error_type=error_type,
+        reason_code=reason_code,
+    )
+    request = SimpleNamespace(job_id=root.name, workflow_id=workflow_id)
+
+    with pytest.raises(
+        orchestration_service.OrchestrationArtifactConflict,
+        match="pre-existing geometry multi-view plan has no exact prior",
+    ):
+        orchestration_service._execute_host_tool(
+            root,
+            workflow_root,
+            request,
+            step,
+            input_fingerprint=current_input_fingerprint,
+        )
+
+
+@pytest.mark.parametrize(
+    ("error_type", "reason_code"),
+    [
+        ("InterruptedAttempt", "host_failure"),
+        ("RuntimeError", "host_failure"),
+        ("RuntimeError", None),
+    ],
+)
+def test_geometry_multiview_host_recovers_exact_prior_failed_partial_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    error_type: str,
+    reason_code: str | None,
+) -> None:
+    """Recover a partial run owned by exact interrupted, current, or legacy failure."""
+
+    root = tmp_path / "geometry_review_recovery_asset"
+    workflow_id = "wf-geometry-review-recovery"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    workflow_plan_path = workflow_root / "plan.json"
+    workflow_plan_path.write_text("{}\n", encoding="utf-8")
+    run_id = "v08-geometry-review-recovery"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    plan = AssemblySanityPlan(
+        job_id="geometry_review_recovery_asset",
+        run_id=run_id,
+        scene_spec_path="analysis/scene_spec.json",
+        scene_spec_sha256="a" * 64,
+        modeling_plan_path="analysis/modeling_plan.json",
+        modeling_plan_sha256="b" * 64,
+        source_blend_path="blender/scene.blend",
+        source_blend_sha256="c" * 64,
+        build_fingerprint="d" * 64,
+        source_fingerprint="e" * 64,
+        review_policy="exterior_geometry_review_v2",
+        assembly_frame={
+            "root_object_id": "asset.root",
+            "longitudinal_axis": "X",
+            "lateral_axis": "Y",
+            "vertical_axis": "Z",
+            "symmetry": "unknown",
+            "evidence_status": "inferred",
+        },
+        target_ids=["asset.root"],
+        resolution=(384, 384),
+        views=[
+            {
+                "view_id": view_id,
+                "camera_direction_frame": direction,
+                "screen_up_role": "longitudinal" if view_id == "top" else "vertical",
+                "target_ids": ["asset.root"],
+            }
+            for view_id, direction in {
+                "front": (1.0, 0.0, 0.0),
+                "right": (0.0, 1.0, 0.0),
+                "top": (0.0, 0.0, 1.0),
+                "rear": (-1.0, 0.0, 0.0),
+                "oblique": (1.0, 1.0, 0.5),
+            }.items()
+        ],
+        created_at="2026-08-04T00:00:00+00:00",
+    )
+    plan_path = run_root / "plan.json"
+    plan_path.write_text(plan.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    _image(run_root / "views" / "front" / "beauty.png")
+
+    input_fingerprint = "f" * 64
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    attempt = WorkflowAttempt(
+        attempt_id="attempt-0001-interrupted",
+        workflow_id=workflow_id,
+        job_id="geometry_review_recovery_asset",
+        step_id=step.step_id,
+        plan_sha256=sha256_file(workflow_plan_path),
+        input_fingerprint=input_fingerprint,
+        status="failed",
+        error_type=error_type,
+        error_message="fixture interruption",
+        reason_code=reason_code,  # type: ignore[arg-type]
+        started_at=datetime.now(UTC),
+        completed_at=datetime.now(UTC),
+    )
+    attempt_root = workflow_root / "attempts" / step.step_id
+    attempt_root.mkdir(parents=True)
+    (attempt_root / "attempt-0001-interrupted.json").write_text(
+        attempt.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    calls: list[str] = []
+
+    def recover(job_id: str, selected_run_id: str, **kwargs: object) -> dict[str, object]:
+        """Record exact recovery authorization without touching a real workspace."""
+
+        calls.append("recover")
+        assert job_id == "geometry_review_recovery_asset"
+        assert selected_run_id == run_id
+        assert kwargs == {
+            "plan_sha256": sha256_file(plan_path),
+            "recovery_authorized": True,
+        }
+        return {"status": "recovered"}
+
+    def run(job_id: str, selected_run_id: str, **kwargs: object) -> dict[str, object]:
+        """Return exact terminal paths after the authorized recovery."""
+
+        calls.append("run")
+        assert job_id == "geometry_review_recovery_asset"
+        assert selected_run_id == run_id
+        assert kwargs == {"plan_sha256": sha256_file(plan_path)}
+        return {
+            "render_manifest": str(run_root / "render_manifest.json"),
+            "report": str(run_root / "report.json"),
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "recover_incomplete_job_assembly_multiview_sanity",
+        recover,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run,
+    )
+    request = SimpleNamespace(
+        job_id="geometry_review_recovery_asset",
+        workflow_id=workflow_id,
+    )
+
+    orchestration_service._execute_host_tool(
+        root,
+        workflow_root,
+        request,
+        step,
+        input_fingerprint=input_fingerprint,
+    )
+
+    assert calls == ["recover", "run"]
+
+
+def test_geometry_multiview_host_recovers_invalid_interrupted_terminal(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Replace an invalid interrupted terminal only after bounded recovery."""
+
+    root = tmp_path / "invalid_terminal_asset"
+    workflow_id = "wf-invalid-terminal"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    (workflow_root / "plan.json").write_text("{}\n", encoding="utf-8")
+    run_id = "v08-invalid-terminal"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    plan_path = run_root / "plan.json"
+    plan_path.write_text(
+        _workflow_assembly_sanity_plan(
+            "invalid_terminal_asset",
+            run_id,
+        ).model_dump_json(indent=2)
+        + "\n",
+        encoding="utf-8",
+    )
+    manifest_path = run_root / "render_manifest.json"
+    report_path = run_root / "report.json"
+    manifest_path.write_text("{}\n", encoding="utf-8")
+    report_path.write_text("{}\n", encoding="utf-8")
+    input_fingerprint = "1" * 64
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    _write_interrupted_multiview_attempt(
+        workflow_root,
+        workflow_id=workflow_id,
+        job_id="invalid_terminal_asset",
+        step=step,
+        input_fingerprint=input_fingerprint,
+    )
+    calls: list[str] = []
+
+    def reject_terminal(*_args: object, **_kwargs: object) -> object:
+        """Model one terminal whose exact immutable evidence is invalid."""
+
+        raise ValueError("invalid terminal fixture")
+
+    def recover(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Remove invalid terminal files as the bounded recovery would."""
+
+        calls.append("recover")
+        manifest_path.unlink()
+        report_path.unlink()
+        return {"status": "recovered"}
+
+    def run(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Return exact terminal paths after recovery."""
+
+        calls.append("run")
+        return {
+            "render_manifest": str(manifest_path),
+            "report": str(report_path),
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "validate_assembly_sanity_terminal",
+        reject_terminal,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "recover_incomplete_job_assembly_multiview_sanity",
+        recover,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run,
+    )
+    request = SimpleNamespace(
+        job_id="invalid_terminal_asset",
+        workflow_id=workflow_id,
+    )
+
+    orchestration_service._execute_host_tool(
+        root,
+        workflow_root,
+        request,
+        step,
+        input_fingerprint=input_fingerprint,
+    )
+
+    assert calls == ["recover", "run"]
+
+
+def test_geometry_multiview_host_recovers_interrupted_unpublished_plan(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Recover an exact interrupted plan-temp run before planning it again."""
+
+    root = tmp_path / "unpublished_plan_asset"
+    workflow_id = "wf-unpublished-plan"
+    workflow_root = root / "workflows" / workflow_id
+    workflow_root.mkdir(parents=True)
+    (workflow_root / "plan.json").write_text("{}\n", encoding="utf-8")
+    run_id = "v08-unpublished-plan"
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    run_root.mkdir(parents=True)
+    (run_root / ".plan.json.1234.tmp").write_text("{\n", encoding="utf-8")
+    input_fingerprint = "2" * 64
+    step = WorkflowStep(
+        step_id="detail.geometry_multiview",
+        title="Review geometry",
+        phase="geometry",
+        execution_mode="host",
+        tool_name="run_geometry_multiview_review",
+        parameters={
+            "run_id": run_id,
+            "resolution": 384,
+            "review_policy": "exterior_geometry_review_v2",
+        },
+    )
+    _write_interrupted_multiview_attempt(
+        workflow_root,
+        workflow_id=workflow_id,
+        job_id="unpublished_plan_asset",
+        step=step,
+        input_fingerprint=input_fingerprint,
+    )
+    calls: list[str] = []
+
+    def recover(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Clear only the known unpublished-plan fixture artifacts."""
+
+        calls.append("recover_unpublished")
+        (run_root / ".plan.json.1234.tmp").unlink()
+        run_root.rmdir()
+        return {"status": "recovered"}
+
+    def plan(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Return the exact replanned immutable path and hash."""
+
+        calls.append("plan")
+        return {
+            "plan": str(run_root / "plan.json"),
+            "plan_sha256": "3" * 64,
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    def run(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Return the exact terminal paths after replanning."""
+
+        calls.append("run")
+        return {
+            "render_manifest": str(run_root / "render_manifest.json"),
+            "report": str(run_root / "report.json"),
+            "review_policy": "exterior_geometry_review_v2",
+        }
+
+    monkeypatch.setattr(
+        orchestration_service,
+        "recover_unpublished_job_assembly_multiview_plan",
+        recover,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "plan_job_assembly_multiview_sanity",
+        plan,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "run_job_assembly_multiview_sanity",
+        run,
+    )
+    request = SimpleNamespace(
+        job_id="unpublished_plan_asset",
+        workflow_id=workflow_id,
+    )
+
+    orchestration_service._execute_host_tool(
+        root,
+        workflow_root,
+        request,
+        step,
+        input_fingerprint=input_fingerprint,
+    )
+
+    assert calls == ["recover_unpublished", "plan", "run"]
 
 
 def test_blocked_artifact_conflict_retries_only_with_exact_failed_receipt(

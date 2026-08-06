@@ -58,6 +58,19 @@ AttributionClass = Literal[
     "ambiguous",
     "unscorable",
 ]
+AuthoringAction = Literal[
+    "none",
+    "camera_recalibration",
+    "v04_parametric_revision",
+    "v04_redesign_review",
+    "additional_evidence_required",
+]
+V04Reentry = Literal["not_indicated", "recommended", "required"]
+RedesignScope = Literal[
+    "geometry_recipe",
+    "semantic_recomposition",
+    "assembly",
+]
 
 
 class DiagnosticStrictModel(BaseModel):
@@ -387,6 +400,61 @@ class CameraProbeResult(DiagnosticStrictModel):
         return self
 
 
+class AssemblyGeometryReviewSummary(DiagnosticStrictModel):
+    """Copy one manual-only exterior geometry assessment into diagnostic evidence."""
+
+    outcome: Literal[
+        "structurally_consistent",
+        "v04_reentry_recommended",
+        "v04_reentry_required",
+        "unscorable",
+    ]
+    reference_similarity_status: Literal["unscorable"] = "unscorable"
+    reference_unscorable_reason: Literal["no_calibrated_per_view_references"] = (
+        "no_calibrated_per_view_references"
+    )
+    v04_reentry: V04Reentry
+    redesign_assessment: Literal[
+        "not_indicated",
+        "manual_review_required",
+        "unscorable",
+    ]
+    redesign_scopes: list[RedesignScope] = Field(default_factory=list)
+    reason_finding_ids: list[str] = Field(default_factory=list)
+    automatic_revision_authorized: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_summary(self) -> AssemblyGeometryReviewSummary:
+        """Preserve the exact outcome and manual-only semantics of geometry review."""
+
+        if len(self.redesign_scopes) != len(set(self.redesign_scopes)):
+            raise ValueError("geometry review redesign scopes must be unique")
+        if len(self.reason_finding_ids) != len(set(self.reason_finding_ids)):
+            raise ValueError("geometry review reason finding IDs must be unique")
+        expected = {
+            "structurally_consistent": ("not_indicated", "not_indicated"),
+            "v04_reentry_recommended": ("recommended", "manual_review_required"),
+            "v04_reentry_required": ("required", "manual_review_required"),
+            "unscorable": ("not_indicated", "unscorable"),
+        }[self.outcome]
+        if (self.v04_reentry, self.redesign_assessment) != expected:
+            raise ValueError(
+                "geometry review outcome conflicts with its V0.4 or redesign assessment"
+            )
+        if self.outcome in {"structurally_consistent", "unscorable"} and (
+            self.redesign_scopes or self.reason_finding_ids
+        ):
+            raise ValueError(
+                "non-actionable geometry review outcomes cannot claim redesign evidence"
+            )
+        if self.outcome in {
+            "v04_reentry_recommended",
+            "v04_reentry_required",
+        } and not self.reason_finding_ids:
+            raise ValueError("V0.4 re-entry assessments require finding IDs")
+        return self
+
+
 class AssemblyDiagnosticEvidence(DiagnosticStrictModel):
     """Summarize deterministic cross-section or assembly checks used for attribution."""
 
@@ -395,6 +463,7 @@ class AssemblyDiagnosticEvidence(DiagnosticStrictModel):
     report_sha256: Sha256 | None = None
     required_failure_ids: list[str] = Field(default_factory=list)
     warning_ids: list[str] = Field(default_factory=list)
+    geometry_review: AssemblyGeometryReviewSummary | None = None
     limitations: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -409,6 +478,8 @@ class AssemblyDiagnosticEvidence(DiagnosticStrictModel):
             raise ValueError(f"{self.status} assembly evidence cannot contain failures")
         if self.status == "not_available" and self.report_path is not None:
             raise ValueError("unavailable assembly evidence cannot reference a report")
+        if self.status == "not_available" and self.geometry_review is not None:
+            raise ValueError("unavailable assembly evidence cannot claim a geometry review")
         if len(self.required_failure_ids) != len(set(self.required_failure_ids)):
             raise ValueError("assembly failure IDs must be unique")
         return self
@@ -437,6 +508,47 @@ class DiagnosticAttribution(DiagnosticStrictModel):
     advisory_only: Literal[True] = True
 
 
+class AuthoringRecommendation(DiagnosticStrictModel):
+    """Recommend a manual authoring next step without granting revision authority."""
+
+    action: AuthoringAction = "none"
+    v04_reentry: V04Reentry = "not_indicated"
+    redesign_scopes: list[RedesignScope] = Field(default_factory=list)
+    target_ids: list[SemanticId] = Field(default_factory=list)
+    reason_ids: list[str] = Field(default_factory=list)
+    rationale: list[str] = Field(default_factory=list)
+    advisory_only: Literal[True] = True
+    automatic_revision_authorized: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_recommendation(self) -> AuthoringRecommendation:
+        """Keep action, V0.4 re-entry, and redesign scope internally consistent."""
+
+        for label, values in (
+            ("redesign_scopes", self.redesign_scopes),
+            ("target_ids", self.target_ids),
+            ("reason_ids", self.reason_ids),
+        ):
+            if len(values) != len(set(values)):
+                raise ValueError(f"authoring recommendation {label} must be unique")
+        expected_reentry = {
+            "none": {"not_indicated"},
+            "camera_recalibration": {"not_indicated"},
+            "v04_parametric_revision": {"recommended"},
+            "v04_redesign_review": {"recommended", "required"},
+            "additional_evidence_required": {"not_indicated"},
+        }[self.action]
+        if self.v04_reentry not in expected_reentry:
+            raise ValueError(
+                "authoring recommendation action conflicts with V0.4 re-entry"
+            )
+        if self.action == "v04_redesign_review" and not self.redesign_scopes:
+            raise ValueError("V0.4 redesign review requires at least one scope")
+        if self.action != "v04_redesign_review" and self.redesign_scopes:
+            raise ValueError("only V0.4 redesign review may declare redesign scopes")
+        return self
+
+
 class QADiagnosticReport(DiagnosticStrictModel):
     """Publish hash-bound companion diagnostics without changing V0.6 acceptance scores."""
 
@@ -452,6 +564,9 @@ class QADiagnosticReport(DiagnosticStrictModel):
     camera_probes: list[CameraProbeResult] = Field(min_length=1)
     assembly_evidence: AssemblyDiagnosticEvidence
     attribution: DiagnosticAttribution
+    authoring_recommendation: AuthoringRecommendation = Field(
+        default_factory=AuthoringRecommendation
+    )
     limitations: list[str] = Field(default_factory=list)
     advisory_only: Literal[True] = True
     generated_at: datetime

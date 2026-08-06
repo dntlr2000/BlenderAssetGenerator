@@ -54,6 +54,17 @@
           "title": "Warning Ids",
           "type": "array"
         },
+        "geometry_review": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssemblyGeometryReviewSummary"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "limitations": {
           "items": {
             "type": "string"
@@ -63,6 +74,160 @@
         }
       },
       "title": "AssemblyDiagnosticEvidence",
+      "type": "object"
+    },
+    "AssemblyGeometryReviewSummary": {
+      "additionalProperties": false,
+      "description": "Copy one manual-only exterior geometry assessment into diagnostic evidence.",
+      "properties": {
+        "outcome": {
+          "enum": [
+            "structurally_consistent",
+            "v04_reentry_recommended",
+            "v04_reentry_required",
+            "unscorable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reference_similarity_status": {
+          "const": "unscorable",
+          "default": "unscorable",
+          "title": "Reference Similarity Status",
+          "type": "string"
+        },
+        "reference_unscorable_reason": {
+          "const": "no_calibrated_per_view_references",
+          "default": "no_calibrated_per_view_references",
+          "title": "Reference Unscorable Reason",
+          "type": "string"
+        },
+        "v04_reentry": {
+          "enum": [
+            "not_indicated",
+            "recommended",
+            "required"
+          ],
+          "title": "V04 Reentry",
+          "type": "string"
+        },
+        "redesign_assessment": {
+          "enum": [
+            "not_indicated",
+            "manual_review_required",
+            "unscorable"
+          ],
+          "title": "Redesign Assessment",
+          "type": "string"
+        },
+        "redesign_scopes": {
+          "items": {
+            "enum": [
+              "geometry_recipe",
+              "semantic_recomposition",
+              "assembly"
+            ],
+            "type": "string"
+          },
+          "title": "Redesign Scopes",
+          "type": "array"
+        },
+        "reason_finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Finding Ids",
+          "type": "array"
+        },
+        "automatic_revision_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Automatic Revision Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outcome",
+        "v04_reentry",
+        "redesign_assessment"
+      ],
+      "title": "AssemblyGeometryReviewSummary",
+      "type": "object"
+    },
+    "AuthoringRecommendation": {
+      "additionalProperties": false,
+      "description": "Recommend a manual authoring next step without granting revision authority.",
+      "properties": {
+        "action": {
+          "default": "none",
+          "enum": [
+            "none",
+            "camera_recalibration",
+            "v04_parametric_revision",
+            "v04_redesign_review",
+            "additional_evidence_required"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "v04_reentry": {
+          "default": "not_indicated",
+          "enum": [
+            "not_indicated",
+            "recommended",
+            "required"
+          ],
+          "title": "V04 Reentry",
+          "type": "string"
+        },
+        "redesign_scopes": {
+          "items": {
+            "enum": [
+              "geometry_recipe",
+              "semantic_recomposition",
+              "assembly"
+            ],
+            "type": "string"
+          },
+          "title": "Redesign Scopes",
+          "type": "array"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,191}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "reason_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rationale",
+          "type": "array"
+        },
+        "advisory_only": {
+          "const": true,
+          "default": true,
+          "title": "Advisory Only",
+          "type": "boolean"
+        },
+        "automatic_revision_authorized": {
+          "const": false,
+          "default": false,
+          "title": "Automatic Revision Authorized",
+          "type": "boolean"
+        }
+      },
+      "title": "AuthoringRecommendation",
       "type": "object"
     },
     "BoundedCameraDelta": {
@@ -763,6 +928,9 @@
     },
     "attribution": {
       "$ref": "#/$defs/DiagnosticAttribution"
+    },
+    "authoring_recommendation": {
+      "$ref": "#/$defs/AuthoringRecommendation"
     },
     "limitations": {
       "items": {

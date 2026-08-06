@@ -26,6 +26,7 @@ from .camera_probe_service import (
 )
 from .diagnostic_models import (
     AssemblyDiagnosticEvidence,
+    AssemblyGeometryReviewSummary,
     AssemblyMultiviewBundleEvidence,
     CameraProbeResult,
     QADiagnosticBundleManifest,
@@ -34,7 +35,11 @@ from .diagnostic_models import (
     SemanticMaskBinding,
     SemanticReferenceMaskManifest,
 )
-from .diagnostics import build_qa_diagnostic_report, load_qa_diagnostic_request
+from .diagnostics import (
+    _authoring_recommendation,
+    build_qa_diagnostic_report,
+    load_qa_diagnostic_request,
+)
 from .hashing import canonical_model_sha256
 from .image_io import copy_file_atomic, open_image, save_png_atomic
 from .models import (
@@ -182,9 +187,8 @@ def validate_qa_diagnostic_bundle(
     request = QADiagnosticRequest.model_validate_json(
         request_path.read_text(encoding="utf-8")
     )
-    report = QADiagnosticReport.model_validate_json(
-        report_path.read_text(encoding="utf-8")
-    )
+    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+    report = QADiagnosticReport.model_validate(report_payload)
     if (
         request.job_id != bundle.job_id
         or report.job_id != bundle.job_id
@@ -493,6 +497,21 @@ def validate_qa_diagnostic_bundle(
             expected_job_id=bundle.job_id,
             expected_run_id=str(multiview.run_id),
         )
+    expected_assembly_evidence = _assembly_evidence_from_multiview(
+        resolved_root,
+        multiview.model_dump(mode="json"),
+    )
+    if report.assembly_evidence != expected_assembly_evidence:
+        raise ValueError("QA diagnostic assembly summary differs from exact evidence")
+    if "authoring_recommendation" in report_payload:
+        expected_recommendation = _authoring_recommendation(
+            report.attribution,
+            expected_assembly_evidence,
+        )
+        if report.authoring_recommendation != expected_recommendation:
+            raise ValueError(
+                "QA diagnostic authoring recommendation differs from exact attribution"
+            )
     return bundle, request, report
 
 
@@ -665,6 +684,13 @@ def _assembly_evidence_from_multiview(
         report_sha256=digest,
         required_failure_ids=failures,
         warning_ids=warnings,
+        geometry_review=(
+            AssemblyGeometryReviewSummary.model_validate(
+                report.geometry_review.model_dump(mode="json")
+            )
+            if report.geometry_review is not None
+            else None
+        ),
         limitations=[
             "Five-view evaluated bounds, visibility, and declared or inferred signed "
             "axes are structural-consistency evidence, not proof of real-world facing, "
@@ -989,15 +1015,13 @@ def _assembly_multiview_eligible(root: Path) -> bool:
     if not file_exists(path):
         return False
     plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
-    targets = [
-        item for item in plan.objects if item.assembly_role in {"root", "attached"}
-    ]
+    targets = [item for item in plan.objects if item.assembly_role in {"root", "attached"}]
     return (
         plan.assembly_consistency_policy == "spatial_v1"
         and plan.stage == "authored"
         and plan.assembly_frame is not None
-        and len(targets) >= 2
-        and any(item.assembly_role == "attached" for item in targets)
+        and bool(targets)
+        and plan.assembly_frame.root_object_id in {item.id for item in targets}
     )
 
 
@@ -1443,6 +1467,9 @@ def _run_job_visual_diagnostics_locked(
         "status": report.status,
         "attribution": report.attribution.classification,
         "attribution_confidence": report.attribution.confidence,
+        "authoring_recommendation": report.authoring_recommendation.model_dump(
+            mode="json"
+        ),
         "existing_direct_score": visual_report.direct_metrics.overall_direct_score,
         "canonical_v06_score_unchanged": True,
         "request": str(request_path),

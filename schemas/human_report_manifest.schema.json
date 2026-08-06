@@ -1,116 +1,181 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "HumanReportManifest",
-  "description": "Record one derived human-readable PDF and every canonical source represented in it.",
-  "type": "object",
+  "$defs": {
+    "ReportSource": {
+      "additionalProperties": false,
+      "description": "Record one immutable source file represented in a human-readable report.",
+      "properties": {
+        "kind": {
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?!\\.{1,2}(?:/|$))(?!.*\\/\\.{1,2}(?:\\/|$))(?!.*//)(?!.*\\/$)[^:\\\\]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "ReportSource",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
+  "description": "Describe one generated PDF and the machine-readable evidence used to create it.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "scope": {
+      "enum": [
+        "build",
+        "material",
+        "qa",
+        "export",
+        "full"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "pdf_path": {
+      "minLength": 1,
+      "title": "Pdf Path",
+      "type": "string"
+    },
+    "pdf_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Pdf Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "qa_run_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Qa Run Id"
+    },
+    "interior_qa_run_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Interior Qa Run Id"
+    },
+    "assembly_sanity_run_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Assembly Sanity Run Id"
+    },
+    "optimization_run_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Optimization Run Id"
+    },
+    "package_id": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Package Id"
+    },
+    "font": {
+      "minLength": 1,
+      "title": "Font",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/ReportSource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
   "required": [
-    "schema_version",
     "job_id",
     "scope",
     "generated_at",
     "pdf_path",
     "pdf_sha256",
     "source_fingerprint",
-    "qa_run_id",
-    "interior_qa_run_id",
     "font",
-    "sources",
-    "warnings"
+    "sources"
   ],
-  "properties": {
-    "schema_version": {
-      "const": "0.6.0",
-      "default": "0.6.0",
-      "type": "string"
-    },
-    "job_id": {
-      "type": "string",
-      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$"
-    },
-    "scope": {
-      "enum": ["build", "material", "qa", "export", "full"],
-      "type": "string"
-    },
-    "generated_at": {
-      "type": "string",
-      "format": "date-time"
-    },
-    "pdf_path": {
-      "type": "string",
-      "minLength": 1
-    },
-    "pdf_sha256": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
-    },
-    "source_fingerprint": {
-      "type": "string",
-      "pattern": "^[0-9a-f]{64}$"
-    },
-    "qa_run_id": {
-      "anyOf": [
-        {"type": "string", "minLength": 1},
-        {"type": "null"}
-      ]
-    },
-    "interior_qa_run_id": {
-      "anyOf": [
-        {"type": "string", "minLength": 1},
-        {"type": "null"}
-      ]
-    },
-    "optimization_run_id": {
-      "anyOf": [
-        {"type": "string", "minLength": 1},
-        {"type": "null"}
-      ]
-    },
-    "package_id": {
-      "anyOf": [
-        {"type": "string", "minLength": 1},
-        {"type": "null"}
-      ]
-    },
-    "font": {
-      "type": "string",
-      "minLength": 1
-    },
-    "sources": {
-      "type": "array",
-      "items": {
-        "$ref": "#/$defs/report_source"
-      }
-    },
-    "warnings": {
-      "type": "array",
-      "items": {"type": "string"}
-    }
-  },
-  "$defs": {
-    "report_source": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["kind", "path", "sha256", "size_bytes"],
-      "properties": {
-        "kind": {
-          "type": "string",
-          "minLength": 1
-        },
-        "path": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^(?![A-Za-z]:[\\\\/])(?!/).+"
-        },
-        "sha256": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{64}$"
-        },
-        "size_bytes": {
-          "type": "integer",
-          "minimum": 0
-        }
-      }
-    }
-  }
+  "title": "HumanReportManifest",
+  "type": "object"
 }

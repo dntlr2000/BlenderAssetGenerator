@@ -9,12 +9,13 @@ from __future__ import annotations
 
 import math
 import re
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, field_validator, model_validator
 
 from ..analysis.assembly import validate_assembly_prebuild_contract
 from ..analysis.models import AssemblyFrame, ModelingPlan
@@ -32,6 +33,23 @@ _ABSOLUTE_WINDOWS_PATH = re.compile(r"^[A-Za-z]:")
 
 AssemblySanityViewId = Literal["front", "right", "top", "rear", "oblique"]
 AssemblySanityPassKind = Literal["beauty", "silhouette", "object_id", "wireframe"]
+AssemblySanityReviewPolicy = Literal[
+    "assembly_structural_v1",
+    "exterior_geometry_review_v2",
+]
+GeometryReviewScope = Literal[
+    "geometry_recipe",
+    "semantic_recomposition",
+    "assembly",
+]
+GeometryVisualIssueType = Literal[
+    "shape_coherence",
+    "proportion",
+    "orientation",
+    "assembly",
+    "topology_artifact",
+    "insufficient_evidence",
+]
 ASSEMBLY_SANITY_VIEW_IDS: tuple[AssemblySanityViewId, ...] = (
     "front",
     "right",
@@ -45,6 +63,38 @@ ASSEMBLY_SANITY_PASS_KINDS: tuple[AssemblySanityPassKind, ...] = (
     "object_id",
     "wireframe",
 )
+ASSEMBLY_SANITY_REFERENCE_NOTE = (
+    "No calibrated front/right/top/rear/oblique reference set is scored by this "
+    "diagnostic. Use canonical V0.6 direct-reference QA for similarity evidence."
+)
+
+
+def _ordered_discriminator_schema(
+    discriminator: str,
+    values: tuple[str, ...],
+) -> Callable[[dict[str, Any]], None]:
+    """Return a schema mutator that preserves item validation and fixes array order."""
+
+    def apply_ordered_schema(schema: dict[str, Any]) -> None:
+        """Replace homogeneous items with exact discriminator-bound prefix entries."""
+
+        item_schema = dict(schema["items"])
+        schema["prefixItems"] = [
+            {
+                "allOf": [
+                    dict(item_schema),
+                    {
+                        "type": "object",
+                        "properties": {discriminator: {"const": value}},
+                        "required": [discriminator],
+                    },
+                ]
+            }
+            for value in values
+        ]
+        schema["items"] = False
+
+    return apply_ordered_schema
 
 
 def _utc_now() -> str:
@@ -178,10 +228,18 @@ class AssemblySanityPlan(StrictModel):
     source_blend_sha256: str = Field(pattern=SHA256_PATTERN)
     build_fingerprint: str = Field(pattern=SHA256_PATTERN)
     source_fingerprint: str = Field(pattern=SHA256_PATTERN)
+    review_policy: AssemblySanityReviewPolicy = "assembly_structural_v1"
     assembly_frame: AssemblyFrame
-    target_ids: list[str] = Field(min_length=2)
+    target_ids: list[str] = Field(min_length=1)
     resolution: tuple[int, int]
-    views: list[AssemblySanityViewPlan] = Field(min_length=5, max_length=5)
+    views: list[AssemblySanityViewPlan] = Field(
+        min_length=5,
+        max_length=5,
+        json_schema_extra=_ordered_discriminator_schema(
+            "view_id",
+            ASSEMBLY_SANITY_VIEW_IDS,
+        ),
+    )
     reference_sources: list[AssemblySanityReferenceSource] = Field(default_factory=list)
     reference_comparison_mode: Literal["structural_only"] = "structural_only"
     created_at: str
@@ -236,7 +294,14 @@ class AssemblySanityViewRender(StrictModel):
     view_id: AssemblySanityViewId
     camera: dict[str, Any]
     target_ids: list[str] = Field(min_length=1)
-    passes: list[AssemblySanityPassRecord] = Field(min_length=4, max_length=4)
+    passes: list[AssemblySanityPassRecord] = Field(
+        min_length=4,
+        max_length=4,
+        json_schema_extra=_ordered_discriminator_schema(
+            "kind",
+            ASSEMBLY_SANITY_PASS_KINDS,
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_pass_set(self) -> AssemblySanityViewRender:
@@ -269,7 +334,14 @@ class AssemblySanityRenderManifest(StrictModel):
     object_id_colors: dict[str, str]
     assembly_frame_bounds: dict[str, list[float]]
     assembly_evaluation: dict[str, Any]
-    views: list[AssemblySanityViewRender] = Field(min_length=5, max_length=5)
+    views: list[AssemblySanityViewRender] = Field(
+        min_length=5,
+        max_length=5,
+        json_schema_extra=_ordered_discriminator_schema(
+            "view_id",
+            ASSEMBLY_SANITY_VIEW_IDS,
+        ),
+    )
     warnings: list[str] = Field(default_factory=list)
 
     @field_validator("source_blend_path")
@@ -320,6 +392,224 @@ class AssemblySanityFinding(StrictModel):
         return [_validate_job_relative_path(value) for value in values]
 
 
+class GeometryReviewAssessment(StrictModel):
+    """Record a manual-only V0.4 re-entry assessment from structural multi-view evidence."""
+
+    outcome: Literal[
+        "structurally_consistent",
+        "v04_reentry_recommended",
+        "v04_reentry_required",
+        "unscorable",
+    ]
+    reference_similarity_status: Literal["unscorable"] = "unscorable"
+    reference_unscorable_reason: Literal["no_calibrated_per_view_references"] = (
+        "no_calibrated_per_view_references"
+    )
+    v04_reentry: Literal["not_indicated", "recommended", "required"]
+    redesign_assessment: Literal[
+        "not_indicated",
+        "manual_review_required",
+        "unscorable",
+    ]
+    redesign_scopes: list[GeometryReviewScope] = Field(default_factory=list)
+    reason_finding_ids: list[str] = Field(default_factory=list)
+    automatic_revision_authorized: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_assessment(self) -> GeometryReviewAssessment:
+        """Keep the outcome, V0.4 recommendation, and redesign evidence consistent."""
+
+        if len(self.redesign_scopes) != len(set(self.redesign_scopes)):
+            raise ValueError("geometry review redesign scopes must be unique")
+        if len(self.reason_finding_ids) != len(set(self.reason_finding_ids)):
+            raise ValueError("geometry review reason finding IDs must be unique")
+        expected = {
+            "structurally_consistent": ("not_indicated", "not_indicated"),
+            "v04_reentry_recommended": ("recommended", "manual_review_required"),
+            "v04_reentry_required": ("required", "manual_review_required"),
+            "unscorable": ("not_indicated", "unscorable"),
+        }[self.outcome]
+        if (self.v04_reentry, self.redesign_assessment) != expected:
+            raise ValueError(
+                "geometry review outcome conflicts with its V0.4 or redesign assessment"
+            )
+        if self.outcome in {"structurally_consistent", "unscorable"} and (
+            self.redesign_scopes or self.reason_finding_ids
+        ):
+            raise ValueError(
+                "non-actionable geometry review outcomes cannot claim redesign evidence"
+            )
+        if (
+            self.outcome
+            in {
+                "v04_reentry_recommended",
+                "v04_reentry_required",
+            }
+            and not self.reason_finding_ids
+        ):
+            raise ValueError("V0.4 re-entry assessments require finding IDs")
+        return self
+
+
+class GeometryVisualReviewFinding(StrictModel):
+    """Record one Codex-observed issue from exact five-view beauty/wireframe evidence."""
+
+    finding_id: str = Field(min_length=1)
+    issue_type: GeometryVisualIssueType
+    severity: Literal["info", "warning", "error"]
+    view_ids: list[AssemblySanityViewId] = Field(min_length=1)
+    target_ids: list[str] = Field(default_factory=list)
+    description: str = Field(min_length=1)
+    recommended_v04_action: Literal[
+        "none",
+        "parametric_revision",
+        "redesign_review",
+        "additional_evidence",
+    ]
+
+    @model_validator(mode="after")
+    def validate_membership(self) -> GeometryVisualReviewFinding:
+        """Keep membership unique and align severity with the recommended V0.4 action."""
+
+        if len(self.view_ids) != len(set(self.view_ids)):
+            raise ValueError("geometry visual-review view IDs must be unique")
+        if len(self.target_ids) != len(set(self.target_ids)):
+            raise ValueError("geometry visual-review target IDs must be unique")
+        allowed_actions = {
+            "info": {"none"},
+            "warning": {"parametric_revision", "additional_evidence"},
+            "error": {"redesign_review"},
+        }
+        if self.recommended_v04_action not in allowed_actions[self.severity]:
+            raise ValueError(
+                "geometry visual-review severity conflicts with its recommended action"
+            )
+        insufficient_evidence = self.issue_type == "insufficient_evidence"
+        requests_more_evidence = self.recommended_v04_action == "additional_evidence"
+        if insufficient_evidence != requests_more_evidence:
+            raise ValueError(
+                "geometry visual-review insufficient evidence must request additional evidence"
+            )
+        return self
+
+
+class GeometryMultiviewVisualReview(StrictModel):
+    """Bind a Codex visual reading of all five views without claiming reference likeness."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {"outcome": {"const": "visually_coherent"}},
+                        "required": ["outcome"],
+                    },
+                    "then": {
+                        "properties": {"v04_reentry": {"const": "not_indicated"}}
+                    },
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "outcome": {"const": "v04_revision_recommended"}
+                        },
+                        "required": ["outcome"],
+                    },
+                    "then": {
+                        "properties": {"v04_reentry": {"const": "recommended"}}
+                    },
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "outcome": {"const": "v04_redesign_review_required"}
+                        },
+                        "required": ["outcome"],
+                    },
+                    "then": {"properties": {"v04_reentry": {"const": "required"}}},
+                },
+                {
+                    "if": {
+                        "properties": {"outcome": {"const": "unscorable"}},
+                        "required": ["outcome"],
+                    },
+                    "then": {
+                        "properties": {"v04_reentry": {"const": "not_indicated"}}
+                    },
+                },
+            ]
+        },
+    )
+
+    schema_version: Literal["0.6.0"] = "0.6.0"
+    review_kind: Literal["geometry_multiview_visual_review_v1"] = (
+        "geometry_multiview_visual_review_v1"
+    )
+    job_id: str
+    run_id: str = Field(pattern=RUN_ID_PATTERN)
+    plan_sha256: str = Field(pattern=SHA256_PATTERN)
+    render_manifest_sha256: str = Field(pattern=SHA256_PATTERN)
+    structural_report_sha256: str = Field(pattern=SHA256_PATTERN)
+    reviewed_view_ids: tuple[
+        Literal["front"],
+        Literal["right"],
+        Literal["top"],
+        Literal["rear"],
+        Literal["oblique"],
+    ]
+    reviewed_pass_kinds: tuple[Literal["beauty"], Literal["wireframe"]]
+    outcome: Literal[
+        "visually_coherent",
+        "v04_revision_recommended",
+        "v04_redesign_review_required",
+        "unscorable",
+    ]
+    v04_reentry: Literal["not_indicated", "recommended", "required"]
+    findings: list[GeometryVisualReviewFinding] = Field(default_factory=list)
+    reference_similarity_status: Literal["unscorable"] = "unscorable"
+    reference_similarity_reason: Literal["no_calibrated_per_view_references"] = (
+        "no_calibrated_per_view_references"
+    )
+    advisory_only: Literal[True] = True
+    automatic_revision_authorized: Literal[False] = False
+    reviewed_at: datetime
+
+    @model_validator(mode="after")
+    def validate_review_contract(self) -> GeometryMultiviewVisualReview:
+        """Require all views and derive the review outcome from finding recommendations."""
+
+        if self.reviewed_view_ids != ASSEMBLY_SANITY_VIEW_IDS:
+            raise ValueError("geometry visual review must consume all five ordered views")
+        if self.reviewed_pass_kinds != ("beauty", "wireframe"):
+            raise ValueError("geometry visual review must consume beauty and wireframe")
+        identifiers = [item.finding_id for item in self.findings]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("geometry visual-review finding IDs must be unique")
+        actions = {item.recommended_v04_action for item in self.findings}
+        if "redesign_review" in actions:
+            expected_outcome = "v04_redesign_review_required"
+        elif "parametric_revision" in actions:
+            expected_outcome = "v04_revision_recommended"
+        elif "additional_evidence" in actions:
+            expected_outcome = "unscorable"
+        else:
+            expected_outcome = "visually_coherent"
+        if self.outcome != expected_outcome:
+            raise ValueError(
+                "geometry visual-review outcome conflicts with finding recommendations"
+            )
+        expected_reentry = {
+            "visually_coherent": "not_indicated",
+            "v04_revision_recommended": "recommended",
+            "v04_redesign_review_required": "required",
+            "unscorable": "not_indicated",
+        }[self.outcome]
+        if self.v04_reentry != expected_reentry:
+            raise ValueError("geometry visual-review outcome conflicts with V0.4 re-entry")
+        return self
+
+
 class AssemblySanityReport(StrictModel):
     """Summarize structural multi-view evidence without claiming image similarity."""
 
@@ -334,23 +624,25 @@ class AssemblySanityReport(StrictModel):
     modeling_plan_sha256: str = Field(pattern=SHA256_PATTERN)
     source_blend_sha256: str = Field(pattern=SHA256_PATTERN)
     build_fingerprint: str = Field(pattern=SHA256_PATTERN)
+    review_policy: AssemblySanityReviewPolicy = "assembly_structural_v1"
     structural_status: Literal["passed", "warning", "failed"]
     reference_comparison_status: Literal["unscorable"] = "unscorable"
     reference_comparison_note: str
     quality_claimed: Literal[False] = False
-    target_ids: list[str] = Field(min_length=2)
+    target_ids: list[str] = Field(min_length=1)
     visible_target_ids: list[str]
     unseen_target_ids: list[str]
     semantic_visibility_fraction: float = Field(ge=0, le=1)
     view_coverage: list[AssemblySanityViewCoverage] = Field(min_length=5, max_length=5)
     assembly_evaluation: dict[str, Any]
     findings: list[AssemblySanityFinding] = Field(default_factory=list)
+    geometry_review: GeometryReviewAssessment | None = None
     limitations: list[str] = Field(default_factory=list)
     generated_at: str
 
     @model_validator(mode="after")
     def validate_report(self) -> AssemblySanityReport:
-        """Require visibility partitioning and fail structural errors closed."""
+        """Require visibility partitioning, structural status, and v2 review evidence."""
 
         targets = set(self.target_ids)
         visible = set(self.visible_target_ids)
@@ -360,6 +652,10 @@ class AssemblySanityReport(StrictModel):
         has_error = any(item.severity == "error" for item in self.findings)
         if has_error and self.structural_status != "failed":
             raise ValueError("assembly sanity reports with errors must be failed")
+        if self.review_policy == "exterior_geometry_review_v2" and self.geometry_review is None:
+            raise ValueError("exterior geometry review v2 requires an assessment")
+        if self.review_policy == "assembly_structural_v1" and self.geometry_review is not None:
+            raise ValueError("legacy structural reports cannot claim a v2 geometry review")
         return self
 
 
@@ -418,13 +714,35 @@ def _view_plan(plan: ModelingPlan, target_ids: list[str]) -> list[AssemblySanity
     ]
 
 
+def _authored_spatial_target_ids(plan: ModelingPlan) -> list[str]:
+    """Select the root, attached parts, and every primary/supporting scope target."""
+
+    if (
+        plan.assembly_consistency_policy != "spatial_v1"
+        or plan.stage != "authored"
+        or plan.assembly_frame is None
+    ):
+        raise ValueError(
+            "assembly multi-view sanity requires an authored spatial_v1 assembly frame"
+        )
+    target_ids = sorted(
+        item.id
+        for item in plan.objects
+        if item.assembly_role in {"root", "attached"}
+        or item.scope_role in {"primary", "supporting"}
+    )
+    if plan.assembly_frame.root_object_id not in target_ids:
+        raise ValueError("assembly multi-view sanity requires its declared root target")
+    return target_ids
+
+
 def plan_job_assembly_multiview_sanity(
     job_id: str,
     *,
     run_id: str | None = None,
     resolution: int = 384,
 ) -> dict[str, Any]:
-    """Write one immutable five-view plan bound to a fresh spatial assembly build."""
+    """Write one immutable v2 five-view plan for an authored spatial asset."""
 
     root = job_dir(job_id)
     metadata = load_job(job_id)
@@ -442,25 +760,13 @@ def plan_job_assembly_multiview_sanity(
     modeling_plan = ModelingPlan.model_validate_json(
         modeling_plan_path.read_text(encoding="utf-8")
     )
-    if modeling_plan.assembly_consistency_policy != "spatial_v1":
-        raise ValueError("assembly multi-view sanity requires spatial_v1 ModelingPlan evidence")
-    if modeling_plan.stage != "authored" or modeling_plan.assembly_frame is None:
-        raise ValueError("assembly multi-view sanity requires an authored assembly frame")
+    target_ids = _authored_spatial_target_ids(modeling_plan)
     contract = validate_assembly_prebuild_contract(modeling_plan, scene_spec)
     if not contract.ok:
         failures = "; ".join(
             item.message for item in contract.checks if item.status == "failed"
         )
         raise ValueError(f"assembly contract is invalid: {failures}")
-    target_ids = sorted(
-        item.id
-        for item in modeling_plan.objects
-        if item.assembly_role in {"root", "attached"}
-    )
-    if len(target_ids) < 2 or not any(
-        item.assembly_role == "attached" for item in modeling_plan.objects
-    ):
-        raise ValueError("assembly multi-view sanity requires a root and attached component")
     provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_path)
     selected_run_id = _validate_run_id(run_id or _new_run_id())
     run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
@@ -486,6 +792,7 @@ def plan_job_assembly_multiview_sanity(
         source_blend_sha256=source_payload["source_blend_sha256"],
         build_fingerprint=str(provenance["fingerprint"]),
         source_fingerprint=stable_json_digest(source_payload),
+        review_policy="exterior_geometry_review_v2",
         assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
         target_ids=target_ids,
         resolution=(resolution, resolution),
@@ -509,6 +816,7 @@ def plan_job_assembly_multiview_sanity(
         "plan": str(plan_path),
         "plan_sha256": sha256_file(plan_path),
         "view_ids": list(ASSEMBLY_SANITY_VIEW_IDS),
+        "review_policy": plan.review_policy,
         "canonical_v06_qa_run": False,
     }
 
@@ -552,16 +860,14 @@ def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, 
     contract = validate_assembly_prebuild_contract(modeling_plan, scene_spec)
     if not contract.ok:
         raise RuntimeError("assembly sanity current assembly contract is invalid")
-    expected_targets = sorted(
-        item.id
-        for item in modeling_plan.objects
-        if item.assembly_role in {"root", "attached"}
-    )
+    try:
+        expected_targets = _authored_spatial_target_ids(modeling_plan)
+    except ValueError as exc:
+        raise RuntimeError(
+            "assembly sanity current ModelingPlan is not an authored spatial asset"
+        ) from exc
     if (
-        modeling_plan.assembly_consistency_policy != "spatial_v1"
-        or modeling_plan.stage != "authored"
-        or modeling_plan.assembly_frame is None
-        or modeling_plan.assembly_frame != plan.assembly_frame
+        modeling_plan.assembly_frame != plan.assembly_frame
         or expected_targets != plan.target_ids
         or _view_plan(modeling_plan, expected_targets) != plan.views
     ):
@@ -817,6 +1123,46 @@ def _coverage_and_findings(
     return coverage, findings
 
 
+def _geometry_review_assessment(
+    findings: list[AssemblySanityFinding],
+) -> GeometryReviewAssessment:
+    """Derive a conservative V0.4 recommendation from exact structural findings."""
+
+    actionable = [
+        item
+        for item in findings
+        if item.severity == "error"
+        or (item.category == "assembly_relation" and item.severity == "warning")
+    ]
+    if not actionable:
+        return GeometryReviewAssessment(
+            outcome="structurally_consistent",
+            v04_reentry="not_indicated",
+            redesign_assessment="not_indicated",
+        )
+    has_error = any(item.severity == "error" for item in actionable)
+    scopes: set[GeometryReviewScope] = set()
+    for finding in actionable:
+        if finding.category == "assembly_relation":
+            scopes.add("assembly")
+        elif finding.category == "visibility":
+            scopes.add("assembly")
+            if finding.finding_id == "visibility.all_views":
+                scopes.update({"geometry_recipe", "semantic_recomposition"})
+    ordered_scopes: list[GeometryReviewScope] = [
+        scope
+        for scope in ("geometry_recipe", "semantic_recomposition", "assembly")
+        if scope in scopes
+    ]
+    return GeometryReviewAssessment(
+        outcome=("v04_reentry_required" if has_error else "v04_reentry_recommended"),
+        v04_reentry="required" if has_error else "recommended",
+        redesign_assessment="manual_review_required",
+        redesign_scopes=ordered_scopes,
+        reason_finding_ids=[item.finding_id for item in actionable],
+    )
+
+
 def validate_assembly_sanity_terminal(
     root: Path,
     *,
@@ -871,7 +1217,12 @@ def validate_assembly_sanity_terminal(
         or report.render_manifest_sha256 != manifest_sha256
     ):
         raise ValueError("assembly sanity terminal identity or hash binding is invalid")
-    if not _has_strict_terminal_camera_contract(manifest):
+    if report.review_policy != plan.review_policy:
+        raise ValueError("assembly sanity terminal review policy changed")
+    strict_camera_contract = _has_strict_terminal_camera_contract(manifest)
+    if plan.review_policy == "exterior_geometry_review_v2" and not strict_camera_contract:
+        raise ValueError("exterior geometry review v2 requires strict camera evidence")
+    if not strict_camera_contract:
         _validate_legacy_render_artifacts(
             resolved_root,
             plan,
@@ -909,6 +1260,11 @@ def validate_assembly_sanity_terminal(
         expected_status = "warning"
     else:
         expected_status = "passed"
+    expected_geometry_review = (
+        _geometry_review_assessment(expected_findings)
+        if plan.review_policy == "exterior_geometry_review_v2"
+        else None
+    )
     expected_fraction = len(visible) / len(plan.target_ids)
     provenance_matches = (
         report.scene_spec_sha256 == plan.scene_spec_sha256
@@ -936,9 +1292,428 @@ def validate_assembly_sanity_terminal(
         or report.assembly_evaluation != manifest.assembly_evaluation
         or report.findings != expected_findings
         or report.structural_status != expected_status
+        or report.geometry_review != expected_geometry_review
+        or (
+            plan.review_policy == "exterior_geometry_review_v2"
+            and (
+                report.reference_comparison_note != ASSEMBLY_SANITY_REFERENCE_NOTE
+                or report.limitations != plan.limitations
+            )
+        )
     ):
         raise ValueError("assembly sanity terminal report differs from rendered evidence")
     return plan, manifest, report
+
+
+def validate_geometry_multiview_visual_review(
+    root: Path,
+    review_path: Path,
+    *,
+    expected_job_id: str | None = None,
+    expected_run_id: str | None = None,
+) -> GeometryMultiviewVisualReview:
+    """Validate one agent review against the exact immutable five-view terminal."""
+
+    resolved_root = root.expanduser().resolve()
+    resolved_review = review_path.expanduser().resolve()
+    review = GeometryMultiviewVisualReview.model_validate_json(
+        resolved_review.read_text(encoding="utf-8")
+    )
+    run_root = (
+        resolved_root / "qa" / "assembly_sanity" / "runs" / review.run_id
+    ).resolve()
+    if resolved_review != run_root / "visual_review.json":
+        raise ValueError("geometry visual review is outside its exact assembly run")
+    if expected_job_id is not None and review.job_id != expected_job_id:
+        raise ValueError("geometry visual review belongs to another job")
+    if expected_run_id is not None and review.run_id != expected_run_id:
+        raise ValueError("geometry visual review belongs to another run")
+    plan_path = run_root / "plan.json"
+    manifest_path = run_root / "render_manifest.json"
+    report_path = run_root / "report.json"
+    plan_sha256 = sha256_file(plan_path)
+    manifest_sha256 = sha256_file(manifest_path)
+    report_sha256 = sha256_file(report_path)
+    plan, _manifest, report = validate_assembly_sanity_terminal(
+        resolved_root,
+        plan_path=plan_path,
+        plan_sha256=plan_sha256,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        report_path=report_path,
+        report_sha256=report_sha256,
+        expected_job_id=review.job_id,
+        expected_run_id=review.run_id,
+    )
+    if plan.review_policy != "exterior_geometry_review_v2":
+        raise ValueError("geometry visual review requires exterior geometry review v2")
+    if (
+        review.plan_sha256 != plan_sha256
+        or review.render_manifest_sha256 != manifest_sha256
+        or review.structural_report_sha256 != report_sha256
+    ):
+        raise ValueError("geometry visual review source hashes changed")
+    unknown_target_ids = sorted(
+        {
+            target_id
+            for finding in review.findings
+            for target_id in finding.target_ids
+        }
+        - set(report.target_ids)
+    )
+    if unknown_target_ids:
+        raise ValueError(
+            "geometry visual review references target IDs outside the terminal report: "
+            f"{unknown_target_ids}"
+        )
+    return review
+
+
+def _recoverable_view_tree(
+    root: Path,
+    views_dir: Path,
+) -> tuple[list[Path], list[Path]]:
+    """Inventory only the fixed run-owned view/pass paths that recovery may remove."""
+
+    if views_dir.is_symlink():
+        raise RuntimeError("assembly sanity recovery refuses a linked views directory")
+    if not views_dir.exists():
+        return [], []
+    if not views_dir.is_dir():
+        raise RuntimeError("assembly sanity recovery views path is not a directory")
+    _job_relative(root, views_dir)
+    expected_view_ids = set(ASSEMBLY_SANITY_VIEW_IDS)
+    expected_pass_names = {
+        f"{kind}.png" for kind in ASSEMBLY_SANITY_PASS_KINDS
+    }
+    files: list[Path] = []
+    directories: list[Path] = []
+    for view_dir in sorted(views_dir.iterdir(), key=lambda path: path.name):
+        if view_dir.name not in expected_view_ids:
+            raise RuntimeError(
+                "assembly sanity recovery found an unexpected views entry: "
+                f"{view_dir.name}"
+            )
+        if view_dir.is_symlink() or not view_dir.is_dir():
+            raise RuntimeError(
+                "assembly sanity recovery requires regular run-owned view directories"
+            )
+        directories.append(view_dir)
+        for artifact in sorted(view_dir.iterdir(), key=lambda path: path.name):
+            if artifact.name not in expected_pass_names:
+                raise RuntimeError(
+                    "assembly sanity recovery found an unexpected view artifact: "
+                    f"{view_dir.name}/{artifact.name}"
+                )
+            if artifact.is_symlink() or not artifact.is_file():
+                raise RuntimeError(
+                    "assembly sanity recovery requires regular run-owned pass files"
+                )
+            files.append(artifact)
+    return files, directories
+
+
+def _require_regular_optional_derived_file(path: Path, label: str) -> None:
+    """Reject links or directories at one exact recoverable derived-file path."""
+
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise RuntimeError(
+            f"assembly sanity recovery {label} is not a regular run-owned file"
+        )
+
+
+def recover_unpublished_job_assembly_multiview_plan(
+    job_id: str,
+    run_id: str,
+    *,
+    recovery_authorized: bool,
+) -> dict[str, Any]:
+    """Remove an empty or plan-temp-only run left before immutable plan publication."""
+
+    if recovery_authorized is not True:
+        raise PermissionError(
+            "assembly sanity unpublished-plan recovery requires explicit authorization"
+        )
+    selected_run_id = _validate_run_id(run_id)
+    root = job_dir(job_id)
+    run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
+    plan_path = run_dir / "plan.json"
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        raise RuntimeError(
+            "assembly sanity unpublished-plan recovery requires a regular run directory"
+        )
+    _job_relative(root, run_dir)
+    if plan_path.exists() or plan_path.is_symlink():
+        raise RuntimeError(
+            "assembly sanity unpublished-plan recovery refuses a published plan"
+        )
+    temporary_pattern = re.compile(r"^\.plan\.json\.\d+\.tmp$")
+    temporary_files: list[Path] = []
+    for entry in sorted(run_dir.iterdir(), key=lambda path: path.name):
+        if (
+            entry.is_symlink()
+            or not entry.is_file()
+            or temporary_pattern.fullmatch(entry.name) is None
+        ):
+            raise RuntimeError(
+                "assembly sanity unpublished-plan recovery found an unexpected entry: "
+                f"{entry.name}"
+            )
+        temporary_files.append(entry)
+    current_entries = sorted(run_dir.iterdir(), key=lambda path: path.name)
+    if current_entries != temporary_files:
+        raise RuntimeError(
+            "assembly sanity unpublished-plan recovery inventory changed before cleanup"
+        )
+    removed_paths: list[str] = []
+    for temporary in temporary_files:
+        temporary.unlink()
+        removed_paths.append(_job_relative(root, temporary))
+    run_dir.rmdir()
+    return {
+        "job_id": job_id,
+        "run_id": selected_run_id,
+        "status": "recovered",
+        "removed_paths": removed_paths,
+        "removed_run_directory": True,
+    }
+
+
+def recover_incomplete_job_assembly_multiview_sanity(
+    job_id: str,
+    run_id: str,
+    *,
+    plan_sha256: str,
+    recovery_authorized: bool,
+) -> dict[str, Any]:
+    """Remove only incomplete run-owned derivatives after explicit caller authorization."""
+
+    if recovery_authorized is not True:
+        raise PermissionError(
+            "assembly sanity incomplete-output recovery requires explicit authorization"
+        )
+    selected_run_id = _validate_run_id(run_id)
+    root = job_dir(job_id)
+    run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
+    plan_path = run_dir / "plan.json"
+    if run_dir.is_symlink():
+        raise RuntimeError("assembly sanity recovery refuses a linked run directory")
+    if not run_dir.is_dir() or not plan_path.is_file():
+        raise FileNotFoundError(f"assembly sanity plan is missing: {plan_path}")
+    _job_relative(root, run_dir)
+    with artifact_publication_lease(
+        run_dir,
+        owner_kind="assembly_multiview_recovery",
+        owner_id=selected_run_id,
+    ):
+        return _recover_incomplete_job_assembly_multiview_sanity_locked(
+            job_id,
+            selected_run_id,
+            plan_sha256=plan_sha256,
+        )
+
+
+def _recover_incomplete_job_assembly_multiview_sanity_locked(
+    job_id: str,
+    run_id: str,
+    *,
+    plan_sha256: str,
+    require_current_sources: bool = True,
+) -> dict[str, Any]:
+    """Clear a bounded incomplete derivative set after validating its exact run plan."""
+
+    if re.fullmatch(SHA256_PATTERN, plan_sha256) is None:
+        raise ValueError("assembly sanity recovery requires a lowercase SHA-256")
+    root = job_dir(job_id)
+    run_dir = root / "qa" / "assembly_sanity" / "runs" / run_id
+    plan_path = run_dir / "plan.json"
+    if run_dir.is_symlink() or not run_dir.is_dir():
+        raise RuntimeError("assembly sanity recovery run directory is not regular")
+    _job_relative(root, run_dir)
+    if plan_path.is_symlink() or not plan_path.is_file():
+        raise FileNotFoundError(f"assembly sanity plan is missing: {plan_path}")
+    _require_exact_plan(plan_path, plan_sha256)
+    plan = AssemblySanityPlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+    if plan.job_id != job_id or plan.run_id != run_id:
+        raise ValueError("assembly sanity recovery plan identity does not match the run")
+    if require_current_sources:
+        _require_current_sources(root, plan)
+
+    manifest_path = run_dir / "render_manifest.json"
+    report_path = run_dir / "report.json"
+    views_dir = run_dir / "views"
+    visual_review_path = run_dir / "visual_review.json"
+    _require_regular_optional_derived_file(manifest_path, "render manifest")
+    _require_regular_optional_derived_file(report_path, "report")
+    view_files, view_directories = _recoverable_view_tree(root, views_dir)
+    views_tree_present = views_dir.is_dir()
+
+    if manifest_path.is_file() and report_path.is_file():
+        try:
+            validate_assembly_sanity_terminal(
+                root,
+                plan_path=plan_path,
+                plan_sha256=plan_sha256,
+                manifest_path=manifest_path,
+                manifest_sha256=sha256_file(manifest_path),
+                report_path=report_path,
+                report_sha256=sha256_file(report_path),
+                expected_job_id=job_id,
+                expected_run_id=run_id,
+            )
+        except (OSError, RuntimeError, ValueError):
+            pass
+        else:
+            raise FileExistsError(
+                "completed assembly sanity terminal is immutable and cannot be recovered"
+            )
+    if visual_review_path.exists() or visual_review_path.is_symlink():
+        raise RuntimeError(
+            "assembly sanity recovery refuses a run with downstream visual-review evidence"
+        )
+
+    # Recheck caller-reviewed inputs immediately before the first destructive operation.
+    _require_exact_plan(plan_path, plan_sha256)
+    if require_current_sources:
+        _require_current_sources(root, plan)
+    removed_paths: list[str] = []
+    for artifact in (report_path, manifest_path, *view_files):
+        if artifact.is_file():
+            artifact.unlink()
+            removed_paths.append(_job_relative(root, artifact))
+    for directory in reversed(view_directories):
+        directory.rmdir()
+    if views_dir.is_dir():
+        views_dir.rmdir()
+
+    _require_exact_plan(plan_path, plan_sha256)
+    if require_current_sources:
+        _require_current_sources(root, plan)
+    return {
+        "job_id": job_id,
+        "run_id": run_id,
+        "status": "recovered" if removed_paths or views_tree_present else "ready",
+        "plan": str(plan_path),
+        "plan_sha256": plan_sha256,
+        "removed_paths": removed_paths,
+        "removed_view_tree": views_tree_present,
+    }
+
+
+def _recover_failed_job_assembly_multiview_sanity_locked(
+    job_id: str,
+    run_id: str,
+    *,
+    plan_sha256: str,
+) -> dict[str, Any]:
+    """Remove only known incomplete derivatives while the caller still owns the lease."""
+
+    return _recover_incomplete_job_assembly_multiview_sanity_locked(
+        job_id,
+        run_id,
+        plan_sha256=plan_sha256,
+        require_current_sources=False,
+    )
+
+
+def _finalize_job_assembly_multiview_sanity_locked(
+    job_id: str,
+    run_id: str,
+    *,
+    root: Path,
+    plan: AssemblySanityPlan,
+    plan_path: Path,
+    plan_sha256: str,
+    manifest_path: Path,
+    report_path: Path,
+) -> dict[str, Any]:
+    """Parse and publish one terminal while the caller retains the run lease."""
+
+    _require_exact_plan(plan_path, plan_sha256)
+    if not manifest_path.is_file():
+        raise RuntimeError("assembly sanity Blender render did not create a manifest")
+    manifest = AssemblySanityRenderManifest.model_validate_json(
+        manifest_path.read_text(encoding="utf-8")
+    )
+    _validate_render_artifacts(root, plan, plan_sha256, manifest)
+    coverage, findings = _coverage_and_findings(root, plan, manifest)
+    visible = sorted(
+        {
+            target
+            for item in coverage
+            for target in item.visible_target_ids
+        }
+    )
+    unseen = sorted(set(plan.target_ids) - set(visible))
+    if any(item.severity == "error" for item in findings):
+        structural_status: Literal["passed", "warning", "failed"] = "failed"
+    elif any(item.severity == "warning" for item in findings):
+        structural_status = "warning"
+    else:
+        structural_status = "passed"
+    report = AssemblySanityReport(
+        job_id=job_id,
+        run_id=run_id,
+        plan_sha256=plan_sha256,
+        render_manifest_sha256=sha256_file(manifest_path),
+        scene_spec_sha256=plan.scene_spec_sha256,
+        modeling_plan_sha256=plan.modeling_plan_sha256,
+        source_blend_sha256=plan.source_blend_sha256,
+        build_fingerprint=plan.build_fingerprint,
+        review_policy=plan.review_policy,
+        structural_status=structural_status,
+        reference_comparison_note=ASSEMBLY_SANITY_REFERENCE_NOTE,
+        target_ids=plan.target_ids,
+        visible_target_ids=visible,
+        unseen_target_ids=unseen,
+        semantic_visibility_fraction=len(visible) / len(plan.target_ids),
+        view_coverage=coverage,
+        assembly_evaluation=manifest.assembly_evaluation,
+        findings=findings,
+        geometry_review=(
+            _geometry_review_assessment(findings)
+            if plan.review_policy == "exterior_geometry_review_v2"
+            else None
+        ),
+        limitations=[*plan.limitations],
+        generated_at=_utc_now(),
+    )
+    write_json_exclusive(report_path, report.model_dump(mode="json"))
+    _require_exact_plan(plan_path, plan_sha256)
+    _require_current_sources(root, plan)
+    _require_exact_plan(plan_path, plan_sha256)
+    validate_assembly_sanity_terminal(
+        root,
+        plan_path=plan_path,
+        plan_sha256=plan_sha256,
+        manifest_path=manifest_path,
+        manifest_sha256=sha256_file(manifest_path),
+        report_path=report_path,
+        report_sha256=sha256_file(report_path),
+        expected_job_id=job_id,
+        expected_run_id=run_id,
+    )
+    return {
+        "job_id": job_id,
+        "run_id": run_id,
+        "status": structural_status,
+        "reference_comparison_status": "unscorable",
+        "review_policy": plan.review_policy,
+        "geometry_review": (
+            report.geometry_review.model_dump(mode="json")
+            if report.geometry_review is not None
+            else None
+        ),
+        "canonical_v06_qa_run": False,
+        "plan": str(plan_path),
+        "plan_sha256": plan_sha256,
+        "render_manifest": str(manifest_path),
+        "render_manifest_sha256": sha256_file(manifest_path),
+        "report": str(report_path),
+        "report_sha256": sha256_file(report_path),
+        "view_count": len(manifest.views),
+        "pass_count": sum(len(view.passes) for view in manifest.views),
+    }
 
 
 def run_job_assembly_multiview_sanity(
@@ -1034,80 +1809,48 @@ def _run_job_assembly_multiview_sanity_locked(
             raise RuntimeError(
                 "assembly sanity source changed while Blender failed"
             ) from source_exc
+        try:
+            # A normal Blender failure is still inside the publication lease, so
+            # discard only the known partial derivatives and leave the exact plan
+            # ready for an explicitly authorized workflow retry.
+            _recover_incomplete_job_assembly_multiview_sanity_locked(
+                job_id,
+                selected_run_id,
+                plan_sha256=plan_sha256,
+            )
+        except Exception as recovery_exc:
+            raise RuntimeError(
+                "assembly sanity Blender failure left derived evidence that could not "
+                "be safely recovered"
+            ) from recovery_exc
         raise
-    _require_exact_plan(plan_path, plan_sha256)
-    if not manifest_path.is_file():
-        raise RuntimeError("assembly sanity Blender render did not create a manifest")
-    manifest = AssemblySanityRenderManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
-    )
-    _validate_render_artifacts(root, plan, current_plan_sha256, manifest)
-    coverage, findings = _coverage_and_findings(root, plan, manifest)
-    visible = sorted(
-        {
-            target
-            for item in coverage
-            for target in item.visible_target_ids
-        }
-    )
-    unseen = sorted(set(plan.target_ids) - set(visible))
-    if any(item.severity == "error" for item in findings):
-        structural_status: Literal["passed", "warning", "failed"] = "failed"
-    elif any(item.severity == "warning" for item in findings):
-        structural_status = "warning"
-    else:
-        structural_status = "passed"
-    report = AssemblySanityReport(
-        job_id=job_id,
-        run_id=selected_run_id,
-        plan_sha256=current_plan_sha256,
-        render_manifest_sha256=sha256_file(manifest_path),
-        scene_spec_sha256=plan.scene_spec_sha256,
-        modeling_plan_sha256=plan.modeling_plan_sha256,
-        source_blend_sha256=plan.source_blend_sha256,
-        build_fingerprint=plan.build_fingerprint,
-        structural_status=structural_status,
-        reference_comparison_note=(
-            "No calibrated front/right/top/rear/oblique reference set is scored by this "
-            "diagnostic. Use canonical V0.6 direct-reference QA for similarity evidence."
-        ),
-        target_ids=plan.target_ids,
-        visible_target_ids=visible,
-        unseen_target_ids=unseen,
-        semantic_visibility_fraction=len(visible) / len(plan.target_ids),
-        view_coverage=coverage,
-        assembly_evaluation=manifest.assembly_evaluation,
-        findings=findings,
-        limitations=[*plan.limitations],
-        generated_at=_utc_now(),
-    )
-    write_json_exclusive(report_path, report.model_dump(mode="json"))
-    _require_exact_plan(plan_path, plan_sha256)
-    _require_current_sources(root, plan)
-    _require_exact_plan(plan_path, plan_sha256)
-    validate_assembly_sanity_terminal(
-        root,
-        plan_path=plan_path,
-        plan_sha256=current_plan_sha256,
-        manifest_path=manifest_path,
-        manifest_sha256=sha256_file(manifest_path),
-        report_path=report_path,
-        report_sha256=sha256_file(report_path),
-        expected_job_id=job_id,
-        expected_run_id=selected_run_id,
-    )
-    return {
-        "job_id": job_id,
-        "run_id": selected_run_id,
-        "status": structural_status,
-        "reference_comparison_status": "unscorable",
-        "canonical_v06_qa_run": False,
-        "plan": str(plan_path),
-        "plan_sha256": current_plan_sha256,
-        "render_manifest": str(manifest_path),
-        "render_manifest_sha256": sha256_file(manifest_path),
-        "report": str(report_path),
-        "report_sha256": sha256_file(report_path),
-        "view_count": len(manifest.views),
-        "pass_count": sum(len(view.passes) for view in manifest.views),
-    }
+    try:
+        return _finalize_job_assembly_multiview_sanity_locked(
+            job_id,
+            selected_run_id,
+            root=root,
+            plan=plan,
+            plan_path=plan_path,
+            plan_sha256=current_plan_sha256,
+            manifest_path=manifest_path,
+            report_path=report_path,
+        )
+    except Exception as failure:
+        recovery_error: Exception | None = None
+        try:
+            # Finalization is still inside the publication lease. Remove only the
+            # fixed manifest/report/view derivatives so the exact plan can be retried.
+            _recover_failed_job_assembly_multiview_sanity_locked(
+                job_id,
+                selected_run_id,
+                plan_sha256=plan_sha256,
+            )
+        except Exception as recovery_exc:
+            recovery_error = recovery_exc
+        if recovery_error is not None:
+            failure.add_note(
+                "Automatic post-Blender cleanup was not safe: "
+                f"{type(recovery_error).__name__}: {recovery_error}"
+            )
+            raise failure from recovery_error
+        raise

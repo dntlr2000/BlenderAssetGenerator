@@ -31,7 +31,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - optional interior의 exact-hash scope 승인과 fail-closed 검증
 - MaterialPlan, whitelisted Blender shader recipe, texture manifest와 bake contract
 - 정확히 7개 고정 카메라 패스를 사용하는 Visual QA
-- canonical 점수를 바꾸지 않는 bounded camera·semantic shape·5-view assembly companion diagnostics
+- canonical 점수를 바꾸지 않는 bounded camera·semantic shape companion과 V0.4 5-view geometry review
 - 승인된 InteriorScope를 위한 별도 다각도 실내 QA, semantic visibility와 contact sheet
 - semantic ID 기반 revision candidate와 single-use 승인·rollback
 - exact plan SHA-256을 한 번 승인해 기본 3회·최대 5회의 국소 수정을 제한적으로 반복하는 선택적 standard Visual QA convergence, iteration receipt, terminal JSON/PDF와 V0.9 audit
@@ -135,6 +135,39 @@ geometry bounds를 자산 로컬 meter frame에서 검사하며, 위반 시 V0.5
 내부 기구 또는 단일 이미지에서 보이지 않는 면의 진실성을 증명하지는 않습니다.
 기존 `legacy_unbound` ModelingPlan은 계속 읽을 수 있지만 공간 검증 완료로
 간주하지 않습니다.
+
+## V0.4 다각도 형상 검토
+
+새로 계획되는 V0.8 프록시·상세·배경 형상 workflow와 `spatial_v1` 형상 수정
+workflow는 `build → render → inspect → validate` 뒤에 V0.4 다각도 형상 검토를
+추가합니다. host 단계는 ModelingPlan의 자산 로컬 축에서 임시 `front`, `right`,
+`top`, `rear`, `oblique` 카메라를 만들고, 각 시점마다 `beauty`, `silhouette`,
+`object_id`, `wireframe`의 정확히 4개 패스, 총 20개 이미지를 렌더합니다. 임시
+카메라는 authoring `.blend`에 저장되지 않으며 canonical V0.6 비교 카메라도
+바꾸지 않습니다.
+
+대상은 모든 `primary`/`supporting` 객체와 모든 `root`/`attached` 객체의 합집합입니다.
+따라서 primary 또는 supporting인 `free_standing` 부품도 빠지지 않습니다. 한 시점에서
+가려진 객체는 다른 시점과 함께 보라는 advisory이고, 모든 시점에서 사라졌거나 필수
+assembly 관계가 실패한 경우에만 구조적 V0.4 판단 근거가 됩니다.
+
+host가 `plan.json`, `render_manifest.json`, `report.json`을 만들고 나면 별도 agent
+단계가 다섯 시점의 `beauty`와 `wireframe`을 실제로 모두 읽어야 합니다. 그 결과는
+exact plan·manifest·report SHA-256에 결속된 `visual_review.json`이며, 시점 간 형상
+일관성, 비율, 방향, 조립, 명백한 topology artifact를 기록합니다. 보정된 각도별
+레퍼런스가 없으므로 측면·후면 유사도는 계속 `unscorable`입니다. 결과는 bounded
+parametric V0.4 수정이나 수동 재설계 검토를 권고할 수 있지만 수정 승인이나 적용
+권한은 만들지 않습니다.
+
+새로 저작된 `spatial_v1` 자산의 수동 1회 guarded revision은 적용 전후에 같은
+다섯 시점 구조 evidence를 다시 만들고 regression이면 rollback합니다. bounded
+convergence의 iteration receipt와 V0.9 audit에는 아직 동등한 다각도 증거 계약이
+없으므로, authored `spatial_v1` 자산은 계획 단계와 실행 단계에서 fail-closed되고
+수동 one-shot 경로를 안내합니다. legacy/non-spatial 경로의 기존 fixed-camera 동작은
+유지됩니다. 기존 job과 이미 계획된 workflow는 자동 migration하지 않으며 evidence가
+없으면 보고서에서 omit, `not_applicable` 또는 unavailable로 표시합니다. PDF는
+다각도 이미지를 포함하는 검토 보조물이고 machine-readable JSON과 그 hash가 권위
+있는 기록입니다.
 
 ## V0.6 카메라·형상·조립 보조 진단
 
@@ -246,7 +279,8 @@ signed longitudinal/lateral/vertical frame과 directed `axis_alignment`로 검�
 `assembly_relationships`에 별도로 보존됩니다. 마스크가 없으면 이 객체별 지표는
 degraded/unscorable이며 bbox 정밀도로 대체하지 않습니다.
 
-별도 5-view 구조 진단은 다음 공개 표면으로 실행할 수 있습니다.
+같은 5-view host 진단을 workflow 밖에서 별도로 실행할 때는 다음 공개 표면을
+사용할 수 있습니다.
 
 ```powershell
 uv run cbm qa-assembly-sanity-plan <job-id> --run-id <run-id>
@@ -257,14 +291,27 @@ uv run cbm qa-assembly-sanity-run <job-id> `
 
 같은 역할의 allowlisted MCP 도구는 `plan_assembly_multiview_sanity`와
 `run_assembly_multiview_sanity`입니다. `front`, `right`, `top`, `rear`, `oblique`
-투영은 signed assembly-axis, projection, depth-order와 required relationship을
-구조적으로 확인하지만 레퍼런스 유사도는 항상 `unscorable`입니다. camera probe와
-5-view 결과 모두 기존 V0.6 revision, convergence, InteriorScope, V0.7 optimization
-또는 Destination Handoff 승인을 대신하지 않습니다.
+각각은 정확히 4개 구조 패스를 만들고 signed assembly-axis, projection,
+depth-order와 required relationship을 확인하지만 레퍼런스 유사도는 항상
+`unscorable`입니다. 실제 시각 판정이 필요하면 렌더 생성에서 멈추지 말고 다섯
+시점의 beauty/wireframe을 읽은 agent `visual_review.json`도 작성·검증해야 합니다.
+camera probe와 5-view 결과 모두 기존 V0.6 revision, convergence, InteriorScope,
+V0.7 optimization 또는 Destination Handoff 승인을 대신하지 않습니다.
 
 `qa-assembly-sanity-run`의 plan hash는 실행할 immutable 구조 계획을 exact하게
 결속하는 값입니다. 보정된 정면·측면·평면·후면 reference가 없는 한 five-view를
 reference match로 해석하거나 유사도 점수를 만들지 않습니다.
+
+```text
+<JOB_ID>의 current authored spatial_v1 형상을 V0.4 다각도 검토해.
+asset-local front/right/top/rear/oblique 임시 카메라에서 시점별 4개 구조 패스를
+만들고, 모든 primary/supporting 및 root/attached ID가 대상인지 확인해.
+렌더 생성만으로 검토 완료라고 하지 말고 다섯 beauty/wireframe을 실제로 읽어
+exact plan·manifest·report hash에 결속된 visual_review.json을 작성해.
+시점 간 형상·비율·방향·조립·topology 문제와 V0.4 수정 또는 재설계 검토 권고를
+보고하되, 보정되지 않은 측면·후면 유사도를 채점하거나 수정을 자동 승인·적용하지 마.
+JSON 경로와 hash, 이미지가 포함된 PDF 경로를 함께 보고해.
+```
 
 ```text
 새 레퍼런스 <REFERENCE_PATH>로 <JOB_ID> 작업을 시작해.
@@ -387,13 +434,20 @@ snapshot에도 정확히 결속됩니다. 이 binding이 없는 legacy partial p
 historical status/audit 전용이며 승인·실행하지 않고 current direct QA에서 새
 plan을 작성합니다.
 
+단, 현재 ModelingPlan이 authored `spatial_v1`이면 plan/run 단계가 다각도 iteration
+증거 미결속을 이유로 즉시 중단됩니다. 이 경우에는 위의 manual one-shot guarded
+revision을 사용해야 합니다. legacy/non-spatial 자산에 대해서만 기존 fixed-camera
+bounded convergence 계약을 계속 사용할 수 있습니다.
+
 PowerShell을 직접 실행할 필요는 없습니다. Codex에 다음처럼 요청하면
 `plan_visual_convergence` MCP 도구로 계획만 만들고 exact hash 승인에서
 멈춥니다.
 
 ```text
 <JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
-standard bounded Visual QA convergence 계획만 작성해.
+standard bounded Visual QA convergence 가능 여부를 먼저 확인해.
+ModelingPlan이 authored spatial_v1이면 계획을 만들지 말고 manual one-shot
+guarded revision을 안내해. legacy/non-spatial일 때만 계획을 작성해.
 목표 direct score와 silhouette IoU, 허용 semantic ID, path/delta 규칙,
 minimum gain, confidence와 모든 iteration budget을 보고해.
 strict host-safety-envelope 경로/SHA-256과 non-empty exact input map 상태도 보고해.

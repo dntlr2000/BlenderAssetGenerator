@@ -188,8 +188,9 @@ validation 결과, proxy approval에 필요한 step ID와 artifact fingerprint�
 - include_destination_handoff: false
 
 plan_short_workflow를 위 값으로 호출하고 후속 host/agent 단계를 MCP로 진행해.
-하나의 중간 상세 외관 SceneSpec을 작성한 뒤 build, render, inspect, validate,
-최대 2회의 bounded pre-QA fit, V0.5 로컬 결정론적 재질·셰이더,
+하나의 중간 상세 외관 SceneSpec을 작성한 뒤 최대 2회의 bounded pre-QA fit,
+build, render, inspect, validate, asset-local 5-view host render와 실제 agent visual review,
+V0.5 로컬 결정론적 재질·셰이더,
 V0.6 canonical 직접 reference QA 정확히 1회, machine quality JSON,
 QA PDF와 통합 PDF 생성까지 진행해.
 
@@ -202,7 +203,8 @@ InteriorScope, measured view, guarded revision, optimization plan과 handoff의
 완료하면 status=completed, milestone=delivered_for_review,
 quality_status=passed|needs_revision|unscorable, standard workflow 권장 여부,
 workflow ID, preview, 직접 QA JSON, quality JSON,
-QA PDF·통합 PDF와 각 sidecar 경로를 보고해.
+다각도 plan/manifest/report/visual-review JSON, QA PDF·통합 PDF와 각 sidecar 경로를
+보고해. 다각도 review 권고를 자동 approval이나 revision 적용으로 해석하지 마.
 high-severity visual finding은 숨기지 말고 needs_revision으로 전달해.
 primary evidence가 신뢰 불가능하면 unscorable로 전달하고 품질 합격을 주장하지 마.
 실내·실측·rig·animation·gameplay·engine-specific 요구나 unsafe ambiguity처럼
@@ -248,12 +250,12 @@ V0.7 exact optimization-plan 승인에서 멈추고 기존 preview workflow는 �
 
 ### 1.2 빠른 경로와 표준 단계별 프롬프트의 관계
 
-`background_exterior`를 사용하더라도 V0.4~V0.6 구현이 생략되는 것은 아닙니다. 사용자가 단계 1, 2, 5, 6의 프롬프트와 일반 승인을 각각 반복 입력하지 않아도 하나의 immutable workflow가 같은 계약을 제한된 범위에서 순서대로 실행하는 방식입니다.
+`background_exterior`를 사용하더라도 V0.4~V0.6 구현이 생략되는 것은 아닙니다. 사용자가 단계 1, 2, 2A, 5, 6의 프롬프트와 일반 승인을 각각 반복 입력하지 않아도 하나의 immutable workflow가 같은 계약을 제한된 범위에서 순서대로 실행하는 방식입니다.
 
 | 선택 | 사용자가 먼저 붙여 넣을 프롬프트 | 내부에서 수행되는 범위 | 추가로 필요한 사용자 승인 |
 |---|---|---|---|
 | `standard` | 아래 단계 0~11에서 필요한 프롬프트 | 요청한 각 단계를 승인 경계별로 수행 | 프록시·상세·재질·QA 검토와 모든 전용 승인 |
-| `background_exterior + preview_only` | 1.1의 빠른 preview 프롬프트 하나 | V0.4 중간 상세 외관, bounded pre-QA fit, build/render/inspect/validate, V0.5 로컬 재질, V0.6 직접 QA 1회, quality JSON, 통합 PDF | 일반 프록시·상세·swatch·QA 승인 없음 |
+| `background_exterior + preview_only` | 1.1의 빠른 preview 프롬프트 하나 | V0.4 중간 상세 외관, bounded pre-QA fit, build/render/inspect/validate, 5-view host/agent geometry review, V0.5 로컬 재질, V0.6 직접 QA 1회, quality JSON, 통합 PDF | 일반 프록시·상세·swatch·QA 승인 없음; multiview agent completion은 유지 |
 | `background_exterior + portable_package` | 1.1의 빠른 package 프롬프트 하나 | 위 preview 범위와 V0.7 preflight·최적화·package·round trip | V0.7 optimization-plan의 exact SHA-256 승인 |
 
 빠른 preview 완료 후 V0.9 audit는 필요할 때 별도로 실행합니다. Destination Handoff도 통과한 V0.7 package를 대상으로 별도 계획과 exact-hash 승인을 사용합니다.
@@ -359,8 +361,8 @@ uv run cbm workflow-plan --request "승인 경계형 전체 static-asset 검증"
 
 다음 경계를 절대로 한 번에 통과하지 마:
 
-1. V0.4 proxy geometry 작성·검증 후 proxy approval
-2. V0.4 detail geometry 작성·검증 후 detail approval
+1. V0.4 proxy geometry 작성·검증과 5-view host/agent review 후 proxy approval
+2. V0.4 detail geometry 작성·검증과 5-view host/agent review 후 detail approval
 3. V0.5 MaterialPlan, ShaderRecipe, swatch, material PDF 후 material approval
 4. V0.6 직접 Visual QA와 QA PDF 후 QA review
 5. V0.6 수정 후보가 선택되면 별도의 exact candidate/plan 승인
@@ -515,6 +517,61 @@ build → render → inspect → validate를 다시 실행해.
 기존 V0.5~V0.9 산출물을 삭제하거나 성공으로 재사용하지 말고 stale로 보고해.
 새 상세 형상 승인 대기 상태에서 멈춰.
 ```
+
+### 단계 2A — 새 workflow의 V0.4 다각도 형상 검토
+
+새로 계획되는 프록시·상세·배경 형상 workflow는 `validate` 뒤, PDF나 다음 단계 전에
+이 검토를 포함합니다. 사용자가 직접 `.blend`를 열지 않아도 Codex가 렌더 생성에서
+멈추지 않고 실제 다섯 시점을 읽었는지 확인하려면 다음 프롬프트를 사용합니다.
+
+```text
+<JOB_ID>의 current authored spatial_v1 V0.4 geometry를 workflow-owned 다각도
+형상 검토로 확인해.
+
+먼저 current SceneSpec, ModelingPlan, authoring blend와 embedded build fingerprint를
+검증해. 모든 ModelingPlan scope_role=primary|supporting과
+assembly_role=root|attached의 합집합을 target으로 사용해. primary/supporting인
+free_standing 객체도 누락하지 마.
+
+asset-local assembly frame의 임시 front, right, top, rear, oblique 카메라에서
+각각 beauty, silhouette, object_id, wireframe의 정확히 4개 pass를 렌더해.
+임시 카메라를 authoring .blend에 저장하거나 canonical V0.6 비교 카메라를 바꾸지 마.
+
+plan.json, render_manifest.json, report.json과 20개 PNG의 path/hash를 검증한 뒤
+렌더 생성만으로 완료 처리하지 마. 다섯 시점의 beauty와 wireframe을 실제로 모두
+읽고 cross-view shape coherence, proportion, orientation, assembly와 명백한 topology
+artifact를 판정해. exact plan, render manifest, structural report SHA-256에 결속된
+GeometryMultiviewVisualReview 0.6.0 visual_review.json을 작성해.
+
+한 시점에서만 보이지 않는 ID는 occlusion advisory로 보고 다른 시점과 함께 판단해.
+모든 시점에서 사라진 target 또는 필수 assembly 관계 실패만 구조적 V0.4 재진입
+근거로 사용해. 보정된 각도별 reference가 없으므로 측면·후면 likeness는
+unscorable로 유지해.
+
+결과가 warning이면 bounded parametric V0.4 revision 또는 additional evidence를,
+error이면 manual redesign review를 권고할 수 있지만 어떤 geometry도 자동 승인·적용하지 마.
+outcome, v04_reentry, finding별 view/target/action, automatic_revision_authorized=false,
+권위 있는 JSON 경로/hash와 다각도 이미지가 포함된 PDF 경로를 보고해.
+```
+
+이미 생성된 run을 변경 없이 다시 보고받을 때:
+
+```text
+<JOB_ID>의 geometry multiview run <RUN_ID>을 read-only로 검토해.
+plan.json, render_manifest.json, report.json, visual_review.json의 exact hash binding과
+5 views × 4 passes 완전성을 먼저 검증해. 다섯 beauty/wireframe을 실제로 읽은
+review인지, target이 primary/supporting 및 root/attached 합집합인지 확인해.
+
+per-view occlusion advisory와 all-view structural failure를 구분하고, cross-view
+finding, V0.4 parametric revision 또는 manual redesign-review 권고, limitation을
+요약해. 보정되지 않은 시점의 유사도 점수나 자동 승인·적용을 주장하지 말고,
+machine JSON/hash가 authoritative이며 PDF는 이미지가 포함된 review aid라고 명시해.
+어떤 canonical 파일도 수정하지 마.
+```
+
+기존 job이나 이미 만들어진 workflow plan에는 이 단계가 없을 수 있으며 자동으로
+소급 추가하지 않습니다. 해당 경우에는 omit, `not_applicable` 또는 unavailable로
+보고하고 새 immutable workflow가 필요한지 제안만 합니다.
 
 ### 단계 3 — 선택적 멀티뷰·청사진·치수
 
@@ -926,25 +983,33 @@ qa-apply-approved를 1회만 실행해.
 - 동일 카메라의 새 Visual QA
 - direct score의 minimum improvement 확인
 - semantic ID, 카메라, 승인되지 않은 경로 보존 확인
+- ModelingPlan이 authored spatial_v1이면 적용 전 baseline과 적용 후 result의
+  fresh front/right/top/rear/oblique 구조 evidence 비교
 
 직접 점수가 개선되지 않거나 constraint regression,
-validation 실패가 있으면 자동 rollback과 baseline rebuild를 확인해.
+validation 실패, all-view visibility loss 또는 required assembly regression이 있으면
+자동 rollback과 baseline rebuild를 확인해.
 승인된 후보 밖의 변경을 유지하지 마.
 최종적으로 accepted 또는 rolled_back 상태, 전후 점수,
-변경 경로, constraint 비교와 보고서 경로를 알려줘.
+변경 경로, constraint 비교, multiview_status와 structural regression 보고서 경로를 알려줘.
 ```
 
 `qa-approve-revision` CLI는 plan hash 인자를 받지 않습니다. 따라서 Codex가 먼저 `<PLAN_SHA256>`을 현재 파일 hash와 대조한 뒤, CLI가 current plan/candidate binding으로 승인 파일을 만들게 해야 합니다.
 
 ### 단계 7B — 선택적 bounded V0.6 수렴 세션
 
-이 단계는 `standard` workflow에서 국소적인 direct-reference 후보의 수동 승인이 반복될 때만 선택합니다. 기본 경로는 여전히 단계 7의 후보별 1회 승인입니다. `background_exterior` fast lane, custom-mesh 정점 편집, 재질 수정, 실내, generated-target-only 후보, 측정 제약을 무시하는 수정에는 사용할 수 없습니다.
+이 단계는 `standard` workflow에서 국소적인 direct-reference 후보의 수동 승인이 반복될 때만 선택합니다. 기본 경로는 여전히 단계 7의 후보별 1회 승인입니다. `background_exterior` fast lane, custom-mesh 정점 편집, 재질 수정, 실내, generated-target-only 후보, 측정 제약을 무시하는 수정에는 사용할 수 없습니다. 현재 bounded convergence session은 단계 7의 manual one-shot과 달리 five-view structural veto에 결속되지 않았습니다. 따라서 authored `spatial_v1` 자산에서는 plan/run이 fail-closed되며 단계 7의 manual one-shot을 사용해야 합니다. legacy/non-spatial 자산만 기존 fixed-camera bounded 경로를 사용할 수 있습니다.
 
 #### 7B-1. 계획만 생성하고 exact SHA-256 검토
 
 ```text
 <JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
-선택적 standard bounded visual convergence 계획만 작성해.
+선택적 standard bounded visual convergence 가능 여부를 먼저 확인해.
+
+ModelingPlan이 authored spatial_v1이면 five-view iteration evidence가
+plan/receipt/audit에 결속되지 않았으므로 session을 만들지 말고,
+단계 7의 manual one-shot guarded revision을 안내한 뒤 멈춰.
+legacy/non-spatial일 때만 아래 bounded plan을 작성해.
 
 - session_id: <CONVERGENCE_SESSION_ID>
 - target_direct_score: <TARGET_DIRECT_SCORE>
@@ -988,6 +1053,8 @@ exact plan SHA-256 <PLAN_SHA256>의 bounded 실행을 승인한다.
 
 현재 계획 hash, initial QA run, SceneSpec, camera, source/build fingerprint와
 constraint baseline이 모두 current인지 먼저 확인해.
+ModelingPlan이 authored spatial_v1이면 이 승인을 소비하거나 iteration을 시작하지 말고
+다각도 evidence 미결속 오류와 manual one-shot 경로를 보고해.
 일치할 때만 approve_visual_convergence로 이 exact plan을 승인하고
 run_visual_convergence를 실행해.
 
@@ -996,6 +1063,8 @@ result SceneSpec, revision authorization, 전후 수치와 exact hash receipt를
 새 fixed-camera 7-pass QA의 direct score가 최소 gain 이상 개선되고
 silhouette IoU와 constraint가 regression하지 않을 때만 결과를 유지해.
 비개선, regression 또는 검증 실패면 해당 iteration을 rollback하고 종료해.
+legacy/non-spatial bounded session에는 five-view baseline/result 비교를 적용하지 말고
+multiview veto가 `not_applicable`임을 terminal limitation에 명시해.
 
 목표 달성, plateau, 실행 가능한 후보 없음, manual-only 후보,
 budget 소진, stale/tampering, constraint regression, 취소 또는 host failure에서
@@ -1440,18 +1509,18 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 단계 | 필수 입력 | 주요 산출물 | 사용자 검토 자료 | 승인 필요 여부 | 다음 단계 | 재진입 조건 |
 |---|---|---|---|---|---|---|
 | 0 환경 점검 | 저장소, `<JOB_ID>`, `<REFERENCE_PATH>` | read-only 상태 보고 | doctor, 기존 compatibility evidence | 없음 | 1 | evidence 누락·stale 해결 후 |
-| 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, bounded fit, 로컬 재질, 직접 QA, quality report | preview, 직접 QA/quality JSON, QA·통합 PDF | 일반 단계 승인 없음; agent completion은 유지 | `status=completed`, `milestone=delivered_for_review`, 독립 quality status 또는 별도 package workflow | scope 위험은 `standard`; visual needs는 선택적 standard revision |
+| 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, bounded fit, V0.4 5-view host/agent review, 로컬 재질, 직접 QA, quality report | preview, multiview JSON/이미지, 직접 QA/quality JSON, QA·통합 PDF | 일반 단계 승인 없음; multiview agent completion은 유지 | `status=completed`, `milestone=delivered_for_review`, 독립 quality status 또는 별도 package workflow | scope 위험은 `standard`; geometry review 권고는 선택적 standard revision |
 | 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거와 quality warning, 승인된 V0.7 최적화, package, roundtrip | quality JSON, optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source/quality binding 변경 또는 roundtrip 실패 |
-| 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend` | preview, build PDF, validation JSON | 프록시 승인 | 2 또는 3 | 실루엣·분해가 부정확할 때 |
-| 2 V0.4 상세 형상 | 승인된 프록시 | 상세 SceneSpec/geometry, 새 build | preview, 변경 ID/수치, build PDF | 상세 형상 승인 | 3, 4 또는 5 | 큰 외형·중형 구조 불만족 시 언제든 |
+| 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend`, 5-view host/agent review | preview, multiview JSON/이미지, build PDF, validation JSON | 프록시 승인; geometry review 자체는 승인 아님 | 2 또는 3 | 실루엣·분해 또는 cross-view 구조가 부정확할 때 |
+| 2 V0.4 상세 형상 | 승인된 프록시 | 상세 SceneSpec/geometry, 새 build, 5-view host/agent review | preview, 변경 ID/수치, multiview JSON/이미지, build PDF | 상세 형상 승인; review 권고는 자동 적용 아님 | 3, 4 또는 5 | 큰 외형·중형 구조·cross-view topology 불만족 시 언제든 |
 | 3 멀티뷰·치수 | 추가 뷰 또는 명시 치수 | source hash, 갱신 분석, constraints, residual report | 뷰 목록, constraint JSON/PDF | canonical 수정 전 승인 | 2 또는 5 | 새 도면·치수 추가, residual 실패 |
 | 4 선택적 실내 | 명시적 실내 요청 | InteriorScope draft/approval/validation, 승인 범위 geometry | scope JSON/hash, build preview | 수동 exact-hash 승인 | 5 | 범위 변경 시 새 scope·승인 |
 | 5 V0.5 재질 | 승인된 geometry/camera | MaterialPlan, ShaderRecipe, TextureManifest, swatches | material JSON, swatch, material PDF | material/swatch 승인 | 6 | geometry/material hash 변경, validation 실패 |
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 6B 선택적 외관 companion | completed canonical QA run, current source hashes | immutable attempts, terminal bundle, camera/shape/assembly attribution, optional five-view evidence | diagnostic JSON, attribution·limitation, structural views | revision 승인 없음; standalone five-view run은 exact plan hash 필요 | 7 또는 8 | terminal 전 retryable host 실패는 다음 attempt, source drift는 새 current QA |
-| 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback | 전후 점수·constraint·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선은 rollback, 큰 문제는 2 |
-| 7B 선택적 bounded convergence | standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF | plan envelope/hash, iteration별 전후 점수·IoU·constraint | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
+| 7 V0.6 revision | QA run, 후보, compiled plan | approval, convergence 또는 rollback; spatial_v1이면 전후 5-view veto | 전후 점수·constraint·구조 비교·변경 경로 | 후보+plan exact 승인 | 6 또는 8 | 비개선·구조 regression은 rollback, 큰 문제는 2 |
+| 7B 선택적 bounded convergence | legacy/non-spatial standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF; authored spatial_v1은 plan/run 거부 | plan envelope/hash, iteration별 전후 점수·IoU·constraint와 multiview limitation | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | spatial_v1은 수동 7, plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
 | 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실, revise_asset 권고 | `approve/revise_asset/revise_profile/cancel` | 9 또는 standard revision | profile/source/preflight 변경, QA needs_revision |
 | 9 V0.7 package | approved exact plan | optimized scene, cost report, FBX/GLB package, manifest, roundtrip | export PDF, roundtrip JSON | exact plan 승인 및 final review | 10 또는 11 | roundtrip 실패, package stale |
 | 10 V0.9 audit | current workspace/package | probe, audit JSON, stability PDF | warning/failure 목록 | 수리에는 별도 승인 | 선택적 11 또는 종료 | 환경·workspace 변경 |
@@ -1461,9 +1530,10 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 
 - V0.4는 single-view의 보이지 않는 면과 실제 깊이를 복원된 진실로 만들지 못합니다.
 - V0.4 constraints는 residual을 평가하지만 임의의 CAD B-Rep 또는 비선형 제약을 자동 완전 해결하지 않습니다.
+- V0.4 five-view geometry review는 여러 각도에서 형상·조립·topology 일관성을 보는 구조 근거입니다. 한 시점의 occlusion은 advisory이고, 보정된 각도별 reference가 없으면 측면·후면 likeness는 `unscorable`입니다. 결과는 V0.4 parametric revision 또는 manual redesign review를 권고할 수 있지만 자동 승인·적용하지 않습니다.
 - V0.6 direct score와 generated target은 사람의 미적 승인이나 metric accuracy를 대체하지 않습니다.
 - V0.6 companion attribution은 카메라·형상·조립 원인 후보를 분류하는 보조 근거입니다. explicit semantic mask가 없으면 객체별 contour/orientation은 채점하지 않으며, 보정된 측면 reference가 없는 five-view는 구조적 evidence일 뿐 similarity는 `unscorable`입니다.
-- V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다.
+- V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다. authored `spatial_v1`은 five-view iteration 증거가 결속되기 전까지 plan/run이 fail-closed되며 수동 one-shot을 사용합니다. legacy/non-spatial만 기존 fixed-camera bounded 경로를 유지합니다.
 - 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.
 - V0.9 Destination Handoff는 목적지 Codex를 위한 계약과 안전한 import prompt를 생성할 뿐 목적지 엔진을 실행하거나 프로젝트를 수정하지 않습니다.

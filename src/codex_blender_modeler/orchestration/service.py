@@ -52,6 +52,17 @@ from ..qa.diagnostic_service import (
     run_job_visual_diagnostics,
     validate_qa_diagnostic_bundle,
 )
+from ..qa.multiview_sanity import (
+    AssemblySanityPlan,
+    AssemblySanityRenderManifest,
+    AssemblySanityReport,
+    plan_job_assembly_multiview_sanity,
+    recover_incomplete_job_assembly_multiview_sanity,
+    recover_unpublished_job_assembly_multiview_plan,
+    run_job_assembly_multiview_sanity,
+    validate_assembly_sanity_terminal,
+    validate_geometry_multiview_visual_review,
+)
 from ..reference_scope import (
     normalize_reference_content_scope,
     reference_content_scope_from_metadata,
@@ -622,6 +633,27 @@ def _initial_intent(
     )
 
 
+def _revision_modeling_plan_contract(root: Path) -> tuple[str, str]:
+    """Return the exact authored ModelingPlan hash and assembly policy.
+
+    Missing, malformed, or scaffold plans fail before a revision workflow is
+    persisted.  Old authored plans that omit the policy parse to the explicit
+    backward-compatible ``legacy_unbound`` model default.
+    """
+
+    from ..analysis.models import ModelingPlan
+
+    path = root / "analysis" / "modeling_plan.json"
+    if not path.is_file():
+        raise FileNotFoundError(
+            "revise_asset requires analysis/modeling_plan.json before planning"
+        )
+    plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    if plan.stage != "authored":
+        raise ValueError("revise_asset requires an authored ModelingPlan")
+    return sha256_file(path), plan.assembly_consistency_policy
+
+
 def plan_workflow(
     request_text: str,
     *,
@@ -821,6 +853,13 @@ def plan_workflow(
         workflow_id,
         ttl_seconds=lock_ttl,
     ):
+        existing_modeling_plan_sha256 = None
+        existing_assembly_consistency_policy = None
+        if routing.intent == "revise_asset":
+            (
+                existing_modeling_plan_sha256,
+                existing_assembly_consistency_policy,
+            ) = _revision_modeling_plan_contract(root)
         if execution_policy == "background_exterior" and not new_job:
             background_preview_binding = _validate_background_execution(
                 routing=routing,
@@ -882,6 +921,10 @@ def plan_workflow(
             routing,
             request_sha256=sha256_file(request_path),
             routing_sha256=sha256_file(routing_path),
+            existing_modeling_plan_sha256=existing_modeling_plan_sha256,
+            existing_assembly_consistency_policy=(
+                existing_assembly_consistency_policy
+            ),
         )
         _write_immutable(
             workflow_root / "plan.json",
@@ -1050,6 +1093,19 @@ def _validate_known_json_contract(
             root,
             _resolve_job_path(root, requirement.path),
         )
+    elif requirement.artifact_id.endswith(".geometry_multiview.plan"):
+        AssemblySanityPlan.model_validate(payload)
+    elif requirement.artifact_id.endswith(".geometry_multiview.manifest"):
+        AssemblySanityRenderManifest.model_validate(payload)
+    elif requirement.artifact_id.endswith(".geometry_multiview.report"):
+        AssemblySanityReport.model_validate(payload)
+    elif requirement.artifact_id.endswith(".geometry_multiview.visual_review"):
+        validate_geometry_multiview_visual_review(
+            root,
+            _resolve_job_path(root, requirement.path),
+            expected_job_id=root.name,
+            expected_run_id=str(payload.get("run_id", "")),
+        )
     elif (
         requirement.artifact_id == "background.delivery_eligibility"
         and relative_path.endswith("_quality.json")
@@ -1155,6 +1211,7 @@ def _validate_agent_completion_semantics(
 ) -> None:
     """Require authored semantics and enforce fast-lane material restrictions."""
 
+    _verify_revision_modeling_plan_binding(root, step)
     if step.step_id == "material.author" and "candidate_plan_path" in step.parameters:
         candidate = _resolve_job_path(
             root,
@@ -1479,23 +1536,35 @@ def _step_input_fingerprint(
 ) -> str:
     """Hash the plan, request, and exact dependency completion fingerprints."""
 
-    return stable_json_digest(
-        {
-            "plan_sha256": sha256_file(
-                _workflow_dir(job_dir(plan.job_id), plan.workflow_id) / "plan.json"
-            ),
-            "request_sha256": plan.request_sha256,
-            "step_id": step.step_id,
-            "parameters": step.parameters,
-            "dependencies": {
-                dependency: states[dependency].completion_fingerprint
-                for dependency in step.depends_on
-            },
-            "primary_reference_sha256": (
-                request.primary_reference.sha256 if request.primary_reference else None
-            ),
-        }
-    )
+    payload: dict[str, Any] = {
+        "plan_sha256": sha256_file(
+            _workflow_dir(job_dir(plan.job_id), plan.workflow_id) / "plan.json"
+        ),
+        "request_sha256": plan.request_sha256,
+        "step_id": step.step_id,
+        "parameters": step.parameters,
+        "dependencies": {
+            dependency: states[dependency].completion_fingerprint
+            for dependency in step.depends_on
+        },
+        "primary_reference_sha256": (
+            request.primary_reference.sha256 if request.primary_reference else None
+        ),
+    }
+    expected_hash = step.parameters.get("expected_modeling_plan_sha256")
+    expected_policy = step.parameters.get("expected_assembly_consistency_policy")
+    if expected_hash is not None or expected_policy is not None:
+        modeling_plan_path = job_dir(plan.job_id) / "analysis" / "modeling_plan.json"
+        if not modeling_plan_path.is_file():
+            payload["current_modeling_plan_sha256"] = "missing"
+        else:
+            try:
+                payload["current_modeling_plan_sha256"] = sha256_file(
+                    modeling_plan_path
+                )
+            except OSError:
+                payload["current_modeling_plan_sha256"] = "unreadable"
+    return stable_json_digest(payload)
 
 
 def _completion_path(workflow_root: Path, step_id: str) -> Path:
@@ -1580,6 +1649,52 @@ def _matching_interrupted_attempt(
         if (
             attempt.status == "failed"
             and attempt.error_type == "InterruptedAttempt"
+            and attempt.workflow_id == workflow_id
+            and attempt.job_id == job_id
+            and attempt.step_id == step.step_id
+            and attempt.plan_sha256 == plan_sha256
+            and attempt.input_fingerprint == input_fingerprint
+        ):
+            return attempt
+    return None
+
+
+def _matching_geometry_multiview_recovery_attempt(
+    workflow_root: Path,
+    step: WorkflowStep,
+    *,
+    workflow_id: str,
+    job_id: str,
+    plan_sha256: str,
+    input_fingerprint: str,
+) -> WorkflowAttempt | None:
+    """Find exact prior host-failure evidence that may own a multi-view run.
+
+    Interrupted attempts qualify explicitly.  Current host failures and legacy
+    failed receipts without a reason code also qualify so an explicit failed-step
+    retry can reuse or recover run-owned evidence.  Artifact-conflict and scope
+    boundary receipts never establish ownership of a pre-existing run.
+    """
+
+    attempt_root = workflow_root / "attempts" / step.step_id
+    if not attempt_root.is_dir():
+        return None
+    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+        try:
+            attempt = _load_model(path, WorkflowAttempt)
+        except (OSError, ValueError):
+            continue
+        ownership_blocked = attempt.error_type in {
+            "OrchestrationArtifactConflict",
+            "RequiresStandardWorkflow",
+        }
+        owns_failed_run = not ownership_blocked and (
+            attempt.error_type == "InterruptedAttempt"
+            or attempt.reason_code in {None, "host_failure"}
+        )
+        if (
+            attempt.status == "failed"
+            and owns_failed_run
             and attempt.workflow_id == workflow_id
             and attempt.job_id == job_id
             and attempt.step_id == step.step_id
@@ -2732,6 +2847,39 @@ def _apply_guarded_revision(job_id: str, workflow_id: str) -> None:
     write_json_atomic(root / "reports" / "revision_diff.json", report)
 
 
+def _verify_revision_modeling_plan_binding(root: Path, step: WorkflowStep) -> None:
+    """Reject a changed ModelingPlan before a guarded revision mutates SceneSpec.
+
+    Historical workflow plans have neither parameter and retain their former
+    behavior.  Newly planned revisions must provide both values and match the
+    exact current authored contract.
+    """
+
+    expected_hash = step.parameters.get("expected_modeling_plan_sha256")
+    expected_policy = step.parameters.get("expected_assembly_consistency_policy")
+    if expected_hash is None and expected_policy is None:
+        return
+    if not isinstance(expected_hash, str) or not isinstance(expected_policy, str):
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: revision ModelingPlan binding is incomplete"
+        )
+    from ..analysis.models import ModelingPlan
+
+    path = root / "analysis" / "modeling_plan.json"
+    if not path.is_file() or sha256_file(path) != expected_hash:
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: revision ModelingPlan hash changed"
+        )
+    plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    if (
+        plan.stage != "authored"
+        or plan.assembly_consistency_policy != expected_policy
+    ):
+        raise OrchestrationArtifactConflict(
+            "orchestration_artifact_conflict: revision ModelingPlan policy changed"
+        )
+
+
 def _execute_host_tool(
     root: Path,
     workflow_root: Path,
@@ -2742,6 +2890,7 @@ def _execute_host_tool(
 ) -> None:
     """Execute one whitelisted deterministic host step with explicit parameters."""
 
+    _verify_revision_modeling_plan_binding(root, step)
     tool = step.tool_name
     if tool in {"create_job", "verify_geometry_prerequisite"}:
         return
@@ -2906,6 +3055,166 @@ def _execute_host_tool(
             ),
         )
         return
+    if tool == "run_geometry_multiview_review":
+        run_id = str(step.parameters["run_id"])
+        run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+        plan_path = run_root / "plan.json"
+        manifest_path = run_root / "render_manifest.json"
+        report_path = run_root / "report.json"
+        views_path = run_root / "views"
+        if plan_path.is_file():
+            prior_attempt = _matching_geometry_multiview_recovery_attempt(
+                workflow_root,
+                step,
+                workflow_id=request.workflow_id,
+                job_id=request.job_id,
+                plan_sha256=sha256_file(workflow_root / "plan.json"),
+                input_fingerprint=input_fingerprint,
+            )
+            if prior_attempt is None:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: pre-existing geometry multi-view "
+                    "plan has no exact prior interrupted or failed host-attempt receipt"
+                )
+            partial_plan = AssemblySanityPlan.model_validate_json(
+                plan_path.read_text(encoding="utf-8")
+            )
+            if (
+                partial_plan.job_id != request.job_id
+                or partial_plan.run_id != run_id
+                or partial_plan.review_policy != step.parameters.get("review_policy")
+                or partial_plan.resolution
+                != (
+                    int(step.parameters.get("resolution", 384)),
+                    int(step.parameters.get("resolution", 384)),
+                )
+            ):
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: partial geometry multi-view "
+                    "plan differs from the exact workflow contract"
+                )
+            exact_plan_sha256 = sha256_file(plan_path)
+            terminal_exists = manifest_path.is_file() and report_path.is_file()
+            if terminal_exists:
+                try:
+                    adopted_plan, _adopted_manifest, adopted_report = (
+                        validate_assembly_sanity_terminal(
+                            root,
+                            plan_path=plan_path,
+                            plan_sha256=exact_plan_sha256,
+                            manifest_path=manifest_path,
+                            manifest_sha256=sha256_file(manifest_path),
+                            report_path=report_path,
+                            report_sha256=sha256_file(report_path),
+                            expected_job_id=request.job_id,
+                            expected_run_id=run_id,
+                        )
+                    )
+                except (OSError, RuntimeError, ValueError):
+                    try:
+                        recover_incomplete_job_assembly_multiview_sanity(
+                            request.job_id,
+                            run_id,
+                            plan_sha256=exact_plan_sha256,
+                            recovery_authorized=True,
+                        )
+                    except (OSError, RuntimeError, ValueError) as recovery_exc:
+                        raise OrchestrationArtifactConflict(
+                            "orchestration_artifact_conflict: invalid prior-failed geometry "
+                            "multi-view terminal could not be safely recovered"
+                        ) from recovery_exc
+                else:
+                    if (
+                        adopted_plan.review_policy
+                        != step.parameters.get("review_policy")
+                        or adopted_report.review_policy
+                        != step.parameters.get("review_policy")
+                    ):
+                        raise OrchestrationArtifactConflict(
+                            "orchestration_artifact_conflict: recovered geometry multi-view "
+                            "policy differs from the workflow plan"
+                        )
+                    return
+            if manifest_path.exists() or report_path.exists() or views_path.exists():
+                try:
+                    recover_incomplete_job_assembly_multiview_sanity(
+                        request.job_id,
+                        run_id,
+                        plan_sha256=exact_plan_sha256,
+                        recovery_authorized=True,
+                    )
+                except (OSError, RuntimeError, ValueError) as recovery_exc:
+                    raise OrchestrationArtifactConflict(
+                        "orchestration_artifact_conflict: prior-failed geometry multi-view "
+                        "evidence could not be safely recovered"
+                    ) from recovery_exc
+            result = run_job_assembly_multiview_sanity(
+                request.job_id,
+                run_id,
+                plan_sha256=exact_plan_sha256,
+            )
+            if (
+                Path(str(result["render_manifest"])).resolve()
+                != manifest_path.resolve()
+                or Path(str(result["report"])).resolve() != report_path.resolve()
+                or result.get("review_policy") != step.parameters.get("review_policy")
+            ):
+                raise RuntimeError(
+                    "geometry multi-view recovery output differs from workflow paths"
+                )
+            return
+        if run_root.exists() or run_root.is_symlink():
+            prior_attempt = _matching_geometry_multiview_recovery_attempt(
+                workflow_root,
+                step,
+                workflow_id=request.workflow_id,
+                job_id=request.job_id,
+                plan_sha256=sha256_file(workflow_root / "plan.json"),
+                input_fingerprint=input_fingerprint,
+            )
+            if prior_attempt is None:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: unpublished geometry multi-view run "
+                    "has no exact prior interrupted or failed host-attempt receipt"
+                )
+            try:
+                recover_unpublished_job_assembly_multiview_plan(
+                    request.job_id,
+                    run_id,
+                    recovery_authorized=True,
+                )
+            except (OSError, RuntimeError, ValueError) as recovery_exc:
+                raise OrchestrationArtifactConflict(
+                    "orchestration_artifact_conflict: unpublished geometry multi-view run "
+                    "could not be safely recovered"
+                ) from recovery_exc
+        if manifest_path.exists() or report_path.exists() or views_path.exists():
+            raise OrchestrationArtifactConflict(
+                "orchestration_artifact_conflict: geometry multi-view derived evidence "
+                "exists without its immutable plan"
+            )
+        planned = plan_job_assembly_multiview_sanity(
+            request.job_id,
+            run_id=run_id,
+            resolution=int(step.parameters.get("resolution", 384)),
+        )
+        if (
+            Path(str(planned["plan"])).resolve() != plan_path.resolve()
+            or planned.get("review_policy") != step.parameters.get("review_policy")
+        ):
+            raise RuntimeError("geometry multi-view plan differs from workflow parameters")
+        result = run_job_assembly_multiview_sanity(
+            request.job_id,
+            run_id,
+            plan_sha256=str(planned["plan_sha256"]),
+        )
+        if (
+            Path(str(result["render_manifest"])).resolve() != manifest_path.resolve()
+            or Path(str(result["report"])).resolve() != report_path.resolve()
+            or result.get("review_policy") != step.parameters.get("review_policy")
+        ):
+            raise RuntimeError("geometry multi-view output differs from workflow paths")
+        return
     if tool == "evaluate_background_delivery":
         _evaluate_background_delivery(root, request, step)
         return
@@ -2946,6 +3255,11 @@ def _execute_host_tool(
             background_quality_report_path=(
                 str(step.parameters["background_quality_report_path"])
                 if "background_quality_report_path" in step.parameters
+                else None
+            ),
+            assembly_sanity_run_id=(
+                str(step.parameters["assembly_sanity_run_id"])
+                if "assembly_sanity_run_id" in step.parameters
                 else None
             ),
             output_path=output_path,
@@ -3166,6 +3480,7 @@ def _execute_ready_host_step(
             step,
             input_fingerprint=current.input_fingerprint,
         )
+        _verify_revision_modeling_plan_binding(root, step)
         _materialize_step_snapshots(root, step)
         outputs = [
             _inspect_artifact(root, output, None)

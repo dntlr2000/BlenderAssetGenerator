@@ -101,7 +101,8 @@ uv run ruff check .
 - `requires_standard_workflow`는 interior, measured/constraint, rig, animation,
   gameplay, engine-specific 요구와 unsafe ambiguity 같은 실제 scope·안전 위험만 차단
 - package continuation은 exact preview plan·terminal·QA run·source/build fingerprint를 V0.7 전에 재검증
-- 기존 `standard` proxy smoke의 단계 순서와 승인 gate는 변하지 않음
+- 기존 `standard` proxy 승인 경계는 유지되고, 새 plan에는 validation과 PDF/승인
+  사이에 multiview host 및 agent visual-review 단계가 추가됨
 - preview terminal은 `status=completed`, `milestone=delivered_for_review`로 구분됨
 - 완료된 preview의 package 확장은 새 workflow의 `geometry.prerequisite`에서 시작하며 이전 workflow를 변경하지 않음
 - 기존 job의 auxiliary view, enabled InteriorScope, interior semantic object와 constraints는 package fast lane에서 거부됨
@@ -136,6 +137,38 @@ uv run ruff check .
   변경은 `orchestration_artifact_conflict`
 - 후속 material build, preview, PDF와 latest pointer 교체는 완료된 상위 step을
   retroactive stale로 만들지 않음
+
+## Gate 5.4 — V0.4 다각도 형상 검토
+
+- 새 proxy/detail/background geometry workflow가
+  `validate → geometry_multiview → geometry_multiview_visual_review → report` 순서를 가짐
+- 새 `spatial_v1` geometry revision workflow에도 같은 두 검토 단계가 있고,
+  legacy/non-spatial revision plan에는 없거나 `not_applicable`임
+- 임시 카메라는 asset-local `front`, `right`, `top`, `rear`, `oblique`의 정확한 순서이며
+  authoring `.blend` 또는 canonical V0.6 비교 카메라를 저장·변경하지 않음
+- 각 시점의 pass가 `beauty`, `silhouette`, `object_id`, `wireframe`의 정확한 순서이고
+  총 20개 PNG의 path·SHA-256·해상도가 manifest와 일치함
+- target ID는 모든 `primary`/`supporting`과 모든 `root`/`attached`의 합집합이며
+  primary/supporting `free_standing` target과 assembly root를 누락하지 않음
+- 한 시점의 unseen target은 advisory occlusion finding이고 구조적 V0.4 재진입을
+  단독 유발하지 않음; all-view disappearance 또는 required assembly relation 실패만
+  구조적 actionable finding으로 분류됨
+- `visual_review.json`이 정확한 plan, render manifest, structural report SHA-256에
+  결속되고, 다섯 ordered view와 `beauty`/`wireframe` 소비를 강제함
+- visual finding의 target ID가 terminal report target의 부분집합이고, severity,
+  recommended V0.4 action, outcome, re-entry 상태가 서로 일관됨
+- agent가 cross-view coherence, proportion, orientation, assembly, topology artifact를
+  판정하되 calibrated per-view reference가 없으면 similarity를 `unscorable`로 유지함
+- host report와 agent review가 `automatic_revision_authorized=false`이고 어떤 승인도
+  생성·소비하지 않음
+- build/QA/full PDF가 exact run의 다각도 이미지를 포함하되 machine JSON/hash가
+  authoritative이고, evidence가 없는 legacy 결과는 omit/unavailable임
+- authored `spatial_v1` manual one-shot guarded revision은 baseline/result exact terminal을
+  비교하고 all-view visibility 또는 assembly regression이면 rollback함
+- bounded convergence session은 아직 multi-view comparison을 전달하지 않으며,
+  authored `spatial_v1` plan/run을 fail-closed하고 manual one-shot을 안내함
+- legacy/non-spatial bounded convergence의 기존 fixed-camera 동작은 유지함
+- 기존 job과 immutable workflow plan은 자동 migration·재작성·소급 완료되지 않음
 
 ## Gate 6 — 목적지 경계
 
@@ -176,6 +209,11 @@ revision 권장을 포함해야 한다. 승인 없이는 optimize/package를 실
 - material scaffold → authored candidate → exact completion → canonical promotion
   → validation → material build/inspect/swatch/PDF 통과
 - 정확히 한 번의 direct seven-pass QA, generated target 없음, 자동 revision 없음
+- 새 geometry workflow의 5 views × 4 passes와 hash-bound agent
+  `visual_review.json` 계약 통과
+- single-view occlusion advisory와 all-view structural finding 구분 통과
+- authored `spatial_v1` one-shot revision의 five-view regression rollback 통과,
+  bounded convergence의 spatial_v1 plan/run 조기 거부와 legacy 경로 유지 확인
 - fast portable workflow가 exact V0.7 optimization-plan 승인에서 정지
 - 승인 뒤 package와 clean-import round trip 통과
 - 격리된 background preview/package plan smoke 통과

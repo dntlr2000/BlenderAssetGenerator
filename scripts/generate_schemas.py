@@ -114,11 +114,14 @@ from codex_blender_modeler.qa.multiview_sanity import (
     AssemblySanityPlan,
     AssemblySanityRenderManifest,
     AssemblySanityReport,
+    GeometryMultiviewVisualReview,
 )
 from codex_blender_modeler.qa.semantic_mask_registry_models import (
     SemanticReferenceMaskPromotionReceipt,
     SemanticReferenceMaskRegistryStatus,
 )
+from codex_blender_modeler.qa.structural_regression import StructuralRegressionReport
+from codex_blender_modeler.reporting.models import HumanReportManifest
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
     LocalWorkflowQueue,
@@ -167,10 +170,12 @@ SCHEMAS = {
     "assembly_sanity_plan.schema.json": AssemblySanityPlan,
     "assembly_sanity_render_manifest.schema.json": AssemblySanityRenderManifest,
     "assembly_sanity_report.schema.json": AssemblySanityReport,
+    "geometry_multiview_visual_review.schema.json": GeometryMultiviewVisualReview,
     "qa_target_manifest.schema.json": QATargetManifest,
     "revision_candidates.schema.json": RevisionCandidates,
     "revision_approval.schema.json": RevisionApproval,
     "convergence_report.schema.json": ConvergenceReport,
+    "structural_regression_report.schema.json": StructuralRegressionReport,
     "visual_convergence_plan.schema.json": VisualConvergencePlan,
     "visual_convergence_approval.schema.json": VisualConvergenceApproval,
     "visual_convergence_cancellation.schema.json": VisualConvergenceCancellation,
@@ -233,6 +238,7 @@ SCHEMAS = {
     "destination_import_plan.schema.json": DestinationImportPlan,
     "destination_import_receipt.schema.json": DestinationImportReceipt,
     "destination_import_validation.schema.json": DestinationImportValidation,
+    "human_report_manifest.schema.json": HumanReportManifest,
 }
 
 

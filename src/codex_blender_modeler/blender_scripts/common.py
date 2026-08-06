@@ -692,7 +692,7 @@ def setup_lighting() -> None:
 
 
 def configure_render(render_engine: str = "EEVEE", render_device: str = "AUTO") -> None:
-    """Configure deterministic image output with an explicitly requested renderer/device."""
+    """Configure deterministic image output independent of saved startup render crops."""
 
     scene = bpy.context.scene
     configure_render_compat(scene, render_engine, render_device)
@@ -703,6 +703,14 @@ def configure_render(render_engine: str = "EEVEE", render_device: str = "AUTO") 
     scene.render.image_settings.file_format = "PNG"
     scene.render.film_transparent = False
     scene.render.resolution_percentage = 100
+    scene.render.pixel_aspect_x = 1.0
+    scene.render.pixel_aspect_y = 1.0
+    scene.render.use_border = False
+    scene.render.use_crop_to_border = False
+    scene.render.border_min_x = 0.0
+    scene.render.border_min_y = 0.0
+    scene.render.border_max_x = 1.0
+    scene.render.border_max_y = 1.0
 
 
 def ensure_parent(path: str | Path) -> Path:

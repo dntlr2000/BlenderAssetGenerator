@@ -1275,6 +1275,7 @@ def generate_pdf_report(
     scope: str = "full",
     qa_run_id: str = "latest",
     interior_qa_run_id: str = "latest",
+    assembly_sanity_run_id: str | None = None,
     optimization_run_id: str = "latest",
     package_id: str = "latest",
 ) -> dict:
@@ -1287,6 +1288,7 @@ def generate_pdf_report(
         scope=scope,  # type: ignore[arg-type]
         qa_run_id=qa_run_id,
         interior_qa_run_id=interior_qa_run_id,
+        assembly_sanity_run_id=assembly_sanity_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
     )

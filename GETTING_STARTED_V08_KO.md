@@ -44,7 +44,7 @@ reference_content_scope=full_reference로 계획해.
 | 선택 | 종료 범위 | 생략되는 일반 검토 | 반드시 남는 경계 |
 |---|---|---|---|
 | `standard` | 기존 `scope` 규칙 | 없음 | 기존 일반·전용 승인 전체 |
-| `background_exterior + preview_only` | bounded pre-QA fit·재질·직접 QA·quality JSON·통합 PDF | 프록시, 상세, swatch, QA 일반 승인 | agent completion; 별도 전용 작업은 별도 workflow와 exact-hash 승인 |
+| `background_exterior + preview_only` | bounded pre-QA fit·V0.4 다각도 형상 검토·재질·직접 QA·quality JSON·통합 PDF | 프록시, 상세, swatch, QA 일반 승인 | 다각도 agent completion; 별도 전용 작업은 별도 workflow와 exact-hash 승인 |
 | `background_exterior + portable_package` | V0.7 package와 round trip | 위 일반 승인과 최종 package 일반 승인 | 정확한 V0.7 optimization-plan 승인 |
 
 이미지를 첨부한 Codex 대화에서 다음 내용을 복사해 사용할 수 있다. Codex가 `plan_short_workflow`와 후속 MCP 도구를 호출하므로 사용자가 PowerShell 명령을 직접 실행할 필요가 없다.
@@ -55,7 +55,8 @@ V0.8 workflow를 intent=new_asset, scope=auto,
 execution_policy=background_exterior, delivery_scope=preview_only,
 mode=concept, destination_kind=engine_neutral,
 include_destination_handoff=false로 계획해.
-V0.4 분석과 중간 크기 외형 1회 작성, 최대 2회의 bounded pre-QA fit,
+V0.4 분석과 중간 크기 외형 1회 작성, 최대 2회의 bounded pre-QA fit 뒤
+asset-local front/right/top/rear/oblique 다각도 형상 렌더와 실제 agent visual review,
 V0.5 로컬 결정론적 재질, V0.6 canonical 직접 reference QA 정확히 1회와
 machine quality JSON, QA PDF, 통합 PDF까지만 MCP로 진행해.
 실내, measured input, rig, animation, gameplay, 외부 provider,
@@ -212,7 +213,11 @@ uv run cbm workflow-status temple_asset
 uv run cbm workflow-resume temple_asset <workflow-id>
 ```
 
-기본 scope는 `proxy_only`이므로 V0.4 분석, modeling plan과 SceneSpec 저작, build/render/inspect/validate를 거쳐 프록시 승인에서 멈춘다. Agent 단계는 Codex가 산출물을 작성한 뒤 현재 `input_fingerprint`로 completion marker를 남겨야 한다.
+기본 scope는 `proxy_only`이므로 V0.4 분석, modeling plan과 SceneSpec 저작,
+`build → render → inspect → validate`, 다각도 geometry host render, agent visual review,
+build PDF를 거쳐 프록시 승인에서 멈춘다. Agent 단계는 Codex가 산출물을 작성한 뒤
+현재 `input_fingerprint`로 completion marker를 남겨야 한다. 다각도 렌더 파일의
+존재만으로 visual-review agent 단계를 완료할 수 없다.
 
 ```powershell
 uv run cbm workflow-complete-step temple_asset <workflow-id> `
@@ -223,7 +228,11 @@ uv run cbm workflow-complete-step temple_asset <workflow-id> `
 
 프록시를 실제로 확인한 뒤에만 현재 gate fingerprint를 승인한다.
 
-승인 전에 `workspaces/temple_asset/reports/pdf/proxy_report.pdf`와 대응 manifest가 생성된다. PDF는 사람이 읽기 위한 보고서이며 승인 fingerprint는 canonical JSON과 렌더 hash를 포함한 workflow state에서 가져온다.
+승인 전에 `workspaces/temple_asset/workflows/<workflow-id>/artifacts/pdf/` 아래에
+workflow-owned build PDF와 대응 manifest가 생성된다. PDF에는 다각도 이미지와
+agent 판정이 포함되지만 사람이 읽기 위한 투영본이다. 승인 fingerprint는 canonical
+JSON, 다각도 plan·manifest·report·`visual_review.json`과 렌더 hash를 포함한 workflow
+state에서 가져온다.
 
 ```powershell
 uv run cbm workflow-approve temple_asset <workflow-id> `
@@ -231,6 +240,48 @@ uv run cbm workflow-approve temple_asset <workflow-id> `
   --artifact-fingerprint <state에 표시된 값> `
   --approval-note "프록시 실루엣과 객체 분리를 승인"
 ```
+
+### 2.1 V0.4 다각도 geometry review 경계
+
+새로 계획되는 프록시·상세·배경 geometry workflow와 `spatial_v1` revision workflow는
+검증 직후 다음 순서를 계획한다.
+
+```text
+<prefix>.validate
+→ <prefix>.geometry_multiview              host
+→ <prefix>.geometry_multiview_visual_review agent
+→ <prefix>.report
+→ 다음 일반 검토 또는 재질 단계
+```
+
+host는 자산 로컬 축에서 임시 `front`, `right`, `top`, `rear`, `oblique` 카메라를
+사용하고 각 시점의 `beauty`, `silhouette`, `object_id`, `wireframe`을 렌더합니다.
+대상은 모든 primary/supporting 및 root/attached ID의 합집합입니다. 한 시점의
+occlusion은 advisory로 남고, all-view disappearance와 필수 assembly 관계 실패만
+구조적 재진입 근거가 됩니다.
+
+agent는 다섯 시점의 beauty와 wireframe을 실제로 읽고 시점 간 형상 일관성, 비율,
+방향, 조립, 명백한 topology artifact를 `qa/assembly_sanity/runs/<run-id>/visual_review.json`
+에 기록합니다. 이 JSON은 exact plan·render manifest·structural report SHA-256에
+결속됩니다. 보정된 각도별 reference가 없으므로 side/rear likeness는
+`unscorable`이며, `v04_revision_recommended` 또는
+`v04_redesign_review_required`도 수동 검토 권고일 뿐 approval이나 자동 적용이
+아닙니다.
+
+```text
+<JOB_ID>의 workflow를 계속 진행해 V0.4 다각도 형상 검토까지 완료해.
+다섯 시점의 4-pass manifest만 만들고 끝내지 말고 모든 beauty/wireframe을 실제로
+검토해 hash-bound visual_review.json을 작성해. 대상 ID, per-view occlusion,
+cross-view finding, V0.4 re-entry와 redesign-review 권고, JSON/PDF 경로를 보고하되
+보정되지 않은 시점 유사도를 채점하거나 수정을 자동 승인·적용하지 마.
+```
+
+새로 저작된 `spatial_v1` 자산의 수동 one-shot guarded revision에는 baseline/result
+five-view veto와 regression rollback이 적용됩니다. 별도의 bounded convergence
+session은 아직 이 veto에 결속되지 않았으므로 authored `spatial_v1`에서는 planning과
+run이 fail-closed되고 수동 one-shot을 안내합니다. legacy/non-spatial 경로는 기존
+fixed-camera 동작을 유지합니다. 이미 계획된 legacy workflow는 자동 migration하지
+않으며 단계가 없으면 omit 또는 `not_applicable`로 읽습니다.
 
 ## 3. 기존 작업에 명시적 의도 사용하기
 

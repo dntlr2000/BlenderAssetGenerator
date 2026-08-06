@@ -1881,12 +1881,186 @@ def _append_interior_qa_section(
         )
 
 
+def _append_assembly_sanity_review_section(
+    story: list[Any],
+    documents: dict[str, dict[str, Any]],
+    images: dict[str, Any],
+    styles: dict[str, ParagraphStyle],
+) -> None:
+    """Append one reusable five-view exterior geometry review from validated evidence."""
+
+    report = documents.get("assembly_sanity_report")
+    if not isinstance(report, dict):
+        return
+    geometry_review = report.get("geometry_review")
+    review = geometry_review if isinstance(geometry_review, dict) else {}
+    reference_status = review.get(
+        "reference_similarity_status",
+        report.get("reference_comparison_status", "unscorable"),
+    )
+    story.append(_paragraph("Exterior five-view geometry review", styles["h2"]))
+    story.append(
+        _data_table(
+            ["Review field", "Recorded outcome"],
+            [
+                ["Review policy", report.get("review_policy", "legacy_unrecorded")],
+                ["Structural status", report.get("structural_status", "unavailable")],
+                ["Geometry review outcome", review.get("outcome", "legacy_unrecorded")],
+                ["V0.4 re-entry", review.get("v04_reentry", "legacy_unrecorded")],
+                [
+                    "Redesign assessment",
+                    review.get("redesign_assessment", "legacy_unrecorded"),
+                ],
+                [
+                    "Redesign scopes",
+                    _bounded_table_value(review.get("redesign_scopes", [])),
+                ],
+                [
+                    "Reason finding IDs",
+                    _bounded_table_value(review.get("reason_finding_ids", [])),
+                ],
+                ["Reference similarity", reference_status],
+                [
+                    "Automatic revision authorized",
+                    review.get("automatic_revision_authorized", False),
+                ],
+            ],
+            [58 * mm, 116 * mm],
+            styles,
+        )
+    )
+    story.append(
+        _paragraph(
+            "No calibrated per-view reference exists for front/right/top/rear/oblique. "
+            "Reference similarity is unscorable; these views support structural review "
+            "only and cannot authorize an automatic revision. The five cameras preserve "
+            "asset-local directions but auto-fit the current bounds; they are not five "
+            "calibrated reference cameras.",
+            styles["body"],
+        )
+    )
+    visual_review = documents.get("geometry_multiview_visual_review")
+    if isinstance(visual_review, dict):
+        story.append(_paragraph("Codex five-view visual reading", styles["h2"]))
+        story.append(
+            _data_table(
+                ["Review field", "Recorded outcome"],
+                [
+                    ["Outcome", visual_review.get("outcome", "unavailable")],
+                    ["V0.4 re-entry", visual_review.get("v04_reentry", "unavailable")],
+                    [
+                        "Consumed views",
+                        _bounded_table_value(visual_review.get("reviewed_view_ids", [])),
+                    ],
+                    [
+                        "Consumed passes",
+                        _bounded_table_value(visual_review.get("reviewed_pass_kinds", [])),
+                    ],
+                    [
+                        "Reference similarity",
+                        visual_review.get("reference_similarity_status", "unscorable"),
+                    ],
+                    [
+                        "Automatic revision authorized",
+                        visual_review.get("automatic_revision_authorized", False),
+                    ],
+                ],
+                [58 * mm, 116 * mm],
+                styles,
+            )
+        )
+        visual_findings = [
+            [
+                item.get("issue_type", "-"),
+                item.get("severity", "-"),
+                _bounded_table_value(item.get("view_ids", [])),
+                _bounded_table_value(item.get("description", "-")),
+            ]
+            for item in visual_review.get("findings", [])
+            if isinstance(item, dict)
+        ]
+        if visual_findings:
+            story.append(
+                _data_table(
+                    ["Issue", "Severity", "Views", "Description"],
+                    visual_findings,
+                    [34 * mm, 22 * mm, 36 * mm, 82 * mm],
+                    styles,
+                )
+            )
+
+    cards: list[Any] = []
+    for item in images.get("assembly_sanity_views", []):
+        if not isinstance(item, dict):
+            continue
+        selected = item.get("beauty") or item.get("wireframe")
+        if not isinstance(selected, dict) or not isinstance(selected.get("path"), str):
+            continue
+        kind = "beauty" if item.get("beauty") is selected else "wireframe"
+        card = Table(
+            [
+                [_scaled_image(selected["path"], 50 * mm, 38 * mm)],
+                [
+                    _paragraph(
+                        f"{item.get('view_id', 'unknown')} · {kind}",
+                        styles["small_center"],
+                    )
+                ],
+            ],
+            colWidths=[54 * mm],
+        )
+        card.setStyle(
+            TableStyle(
+                [
+                    ("BOX", (0, 0), (-1, -1), 0.4, LINE),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                    ("TOPPADDING", (0, 0), (-1, -1), 4),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+                ]
+            )
+        )
+        cards.append(card)
+    if cards:
+        rows = [cards[index : index + 3] for index in range(0, len(cards), 3)]
+        if len(rows[-1]) < 3:
+            rows[-1].extend([""] * (3 - len(rows[-1])))
+        grid = Table(rows, colWidths=[58 * mm] * 3, hAlign="LEFT")
+        grid.setStyle(
+            TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("LEFTPADDING", (0, 0), (-1, -1), 1),
+                    ("RIGHTPADDING", (0, 0), (-1, -1), 1),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
+                ]
+            )
+        )
+        story.append(grid)
+        story.append(
+            _paragraph(
+                "Beauty is displayed first. Exact hash-bound wireframe images remain "
+                "included in the report source manifest and are available as fallback views.",
+                styles["small"],
+            )
+        )
+    story.append(
+        _paragraph(
+            "This section is advisory-only. The hash-bound plan, render manifest, report, "
+            "and image records in machine JSON remain authoritative.",
+            styles["small"],
+        )
+    )
+
+
 def _append_qa_companion_section(
     story: list[Any],
     documents: dict[str, dict[str, Any]],
+    images: dict[str, Any],
     styles: dict[str, ParagraphStyle],
 ) -> None:
-    """Append advisory camera, geometry, and assembly evidence after canonical QA scores."""
+    """Append advisory camera, geometry, and reusable five-view evidence after QA scores."""
 
     story.append(
         _paragraph(
@@ -1906,6 +2080,7 @@ def _append_qa_companion_section(
                 styles["body"],
             )
         )
+        _append_assembly_sanity_review_section(story, documents, images, styles)
         return
 
     attribution = report.get("attribution") or {}
@@ -2035,6 +2210,7 @@ def _append_qa_companion_section(
             styles,
         )
     )
+    _append_assembly_sanity_review_section(story, documents, images, styles)
     limitations = [
         *report.get("limitations", []),
         *assembly.get("limitations", []),
@@ -2072,6 +2248,7 @@ def _append_qa_section(
     report = documents.get("visual_qa_report")
     if report is None:
         story.append(_paragraph("시각 QA 보고서가 아직 생성되지 않았습니다.", styles["body"]))
+        _append_assembly_sanity_review_section(story, documents, images, styles)
         return
     metrics = report.get("direct_metrics", {})
     bbox = metrics.get("global_bbox", {})
@@ -2086,7 +2263,7 @@ def _append_qa_section(
             styles,
         )
     )
-    _append_qa_companion_section(story, documents, styles)
+    _append_qa_companion_section(story, documents, images, styles)
     surface_detail = report.get("surface_detail_summary")
     if isinstance(surface_detail, dict):
         story.append(_paragraph("표면 디테일 전달 상태", styles["h2"]))
@@ -2299,6 +2476,16 @@ def render_job_pdf(payload: dict[str, Any], output: Path) -> dict[str, str]:
     images = payload["images"]
     if payload["scope"] in {"build", "full"}:
         _append_build_section(story, documents, styles)
+        if payload["scope"] == "build" or (
+            "visual_qa_report" not in documents
+            and "interior_qa_report" in documents
+        ):
+            _append_assembly_sanity_review_section(
+                story,
+                documents,
+                images,
+                styles,
+            )
     if payload["scope"] in {"material", "full"}:
         _append_material_section(story, documents, images, styles)
     if payload["scope"] in {"qa", "full"}:

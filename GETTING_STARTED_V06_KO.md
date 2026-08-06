@@ -269,7 +269,46 @@ Codex/MCP에서는 allowlisted `run_visual_diagnostics`가 같은 역할을 합�
 재계산하지 않고 revision 승인을 만들거나 소비하지 않습니다. five-view를 빼려면
 `--no-assembly-multiview`를 명시할 수 있습니다.
 
-구조를 독립적으로 다섯 방향에서 확인하려면 현재 구현된 CLI를 사용합니다.
+### 6B. 새 geometry workflow의 V0.4 다각도 형상 검토
+
+새로 계획되는 V0.8 프록시·상세·배경 형상 workflow와 `spatial_v1` 형상 수정
+workflow는 `build → render → inspect → validate` 뒤에 다음 두 단계를 순서대로
+실행합니다.
+
+1. host가 자산 로컬 축에서 임시 `front`, `right`, `top`, `rear`, `oblique`
+   카메라와 시점별 `beauty`, `silhouette`, `object_id`, `wireframe` 4개 패스를 만듭니다.
+2. agent가 다섯 시점의 `beauty`와 `wireframe`을 실제로 모두 읽고
+   `visual_review.json`을 작성합니다.
+
+```text
+qa/assembly_sanity/runs/<run-id>/
+├─ plan.json
+├─ render_manifest.json
+├─ report.json
+├─ visual_review.json
+└─ views/
+   ├─ front/{beauty,silhouette,object_id,wireframe}.png
+   ├─ right/{beauty,silhouette,object_id,wireframe}.png
+   ├─ top/{beauty,silhouette,object_id,wireframe}.png
+   ├─ rear/{beauty,silhouette,object_id,wireframe}.png
+   └─ oblique/{beauty,silhouette,object_id,wireframe}.png
+```
+
+임시 카메라는 authoring `.blend`에 저장되지 않고 canonical V0.6 비교 카메라와
+정확히 7개인 패스 계약을 바꾸지 않습니다. 대상 ID는 모든 `primary`/`supporting`과
+모든 `root`/`attached`의 합집합이므로 primary/supporting인 `free_standing` 객체도
+포함됩니다. 한 시점의 unseen ID는 occlusion 가능성을 알리는 advisory이며, 모든
+시점에서 사라진 ID 또는 실패한 필수 assembly 관계만 구조적 V0.4 재진입 판단에
+사용됩니다.
+
+`visual_review.json`은 exact plan, render manifest, structural report SHA-256에
+결속되고, 모든 다섯 시점과 `beauty`/`wireframe`을 소비했는지 검증합니다. agent는
+시점 간 형상 일관성, 비율, 방향, 조립과 명백한 topology artifact를 판정합니다.
+보정된 각도별 reference가 없으므로 측면·후면 likeness는 `unscorable`이며, 결과는
+bounded parametric V0.4 revision 또는 수동 재설계 검토를 권고할 수 있을 뿐 자동
+승인이나 적용 권한을 만들지 않습니다.
+
+구조 host evidence만 workflow 밖에서 독립적으로 만들려면 다음 CLI를 사용합니다.
 
 ```powershell
 uv run cbm qa-assembly-sanity-plan <job-id> `
@@ -286,9 +325,9 @@ uv run cbm qa-assembly-sanity-run <job-id> `
 Codex/MCP에서는 allowlisted `plan_assembly_multiview_sanity`와
 `run_assembly_multiview_sanity`가 같은 역할을 합니다. `front`, `right`, `top`,
 `rear`, `oblique` 결과는 assembly projection, depth-order와 signed-axis 관계를
-검사하지만 레퍼런스 유사도는 `unscorable`입니다. 이 진단은 guarded revision,
-bounded convergence, InteriorScope, 실내 QA, V0.7 optimization 또는 handoff 승인을
-생략하지 않습니다.
+검사하지만 이 두 host 명령만으로 agent 시각 검토가 수행됐다고 간주하지 않습니다.
+실제 판정이 필요하면 Codex가 다섯 beauty/wireframe을 읽고 hash-bound
+`visual_review.json`을 작성하도록 명시해야 합니다.
 
 `qa-assembly-sanity-plan` 결과의 exact SHA-256과 실행 시
 `--plan-sha256`이 다르면 Blender를 호출하지 않습니다. 이 hash binding은 immutable
@@ -296,10 +335,28 @@ bounded convergence, InteriorScope, 실내 QA, V0.7 optimization 또는 handoff 
 아닙니다. 보정된 동일 각도 reference가 제공되지 않은 five-view 결과는 계속
 `unscorable`입니다.
 
-과거 job과 workflow에는 이 폴더가 없어도 됩니다. 새 workflow만 companion 단계를
-계획하며 기존 결과를 덮어쓰거나 소급 완료하지 않습니다. QA/full PDF는 companion이
-있으면 canonical direct score가 unchanged임을 먼저 밝히고 보조 결과를 표시하며,
-없으면 legacy/unavailable 경고만 추가합니다.
+새로 저작된 `spatial_v1` 자산의 수동 1회 guarded revision은 적용 전 baseline과
+적용 후 result의 다섯 시점 구조 evidence를 비교하고 regression이면 rollback합니다.
+bounded convergence의 iteration receipt와 audit에는 이 multi-view veto가 아직
+결속되지 않았습니다. 따라서 authored `spatial_v1` 자산은 bounded plan/run 전에
+fail-closed되고 9A의 manual one-shot 경로를 사용해야 합니다. legacy/non-spatial
+경로만 기존 fixed-camera bounded 동작을 유지합니다. 이 진단은 InteriorScope,
+실내 QA, V0.6 revision, V0.7 optimization 또는 handoff 승인을 생략하지 않습니다.
+
+과거 job과 이미 계획된 workflow에는 이 폴더나 단계가 없어도 됩니다. 새 workflow만
+다각도 검토 단계를 계획하며 기존 결과를 자동 migration하거나 소급 완료하지
+않습니다. build/QA/full PDF는 exact run이 있으면 다각도 이미지를 포함해 보여주지만,
+판정과 승인의 권위 있는 원본은 canonical JSON과 hash입니다. evidence가 없으면
+omit, `not_applicable` 또는 legacy/unavailable로 표시합니다.
+
+```text
+<JOB_ID>의 current authored spatial_v1 V0.4 형상을 다각도 검토해.
+front/right/top/rear/oblique 임시 asset-local 카메라에서 시점별 4개 패스를 만들고,
+렌더만 생성하지 말고 모든 beauty/wireframe을 실제로 읽어 visual_review.json을 작성해.
+exact plan·manifest·report hash, 대상 ID, 시점별 occlusion, cross-view 형상·비율·방향·
+조립·topology finding과 V0.4 권고를 보고해. 측면·후면 likeness를 꾸며내거나 geometry를
+자동 승인·적용하지 말고, 이미지가 포함된 PDF와 권위 있는 JSON 경로를 함께 알려줘.
+```
 
 ## 7. 선택적 실내 다각도 QA
 
@@ -372,7 +429,7 @@ uv run cbm qa-approve-revision first_reference_test <run-id> `
 uv run cbm qa-apply-approved first_reference_test <run-id>
 ```
 
-승인은 후보·계획·SceneSpec hash에 묶이고 한 번만 사용할 수 있습니다. 적용 후 build/render/inspect/validate/constraints/direct QA를 다시 실행합니다. 점수가 개선되지 않거나 오류·constraint 악화가 있으면 이전 SceneSpec을 복구하고 재빌드합니다.
+승인은 후보·계획·SceneSpec hash에 묶이고 한 번만 사용할 수 있습니다. 적용 후 build/render/inspect/validate/constraints/direct QA를 다시 실행합니다. authored `spatial_v1` ModelingPlan이면 적용 전후 fresh five-view 구조 evidence도 비교합니다. 점수가 개선되지 않거나 오류·constraint 악화 또는 구조 regression이 있으면 이전 SceneSpec을 복구하고 재빌드합니다.
 
 ## 9B. 선택적 bounded convergence — standard 전용
 
@@ -380,6 +437,10 @@ uv run cbm qa-apply-approved first_reference_test <run-id>
 승인됐지만 비슷한 국소 수정 승인이 여러 번 반복될 때만 이 세션을 선택합니다.
 `background_exterior` fast workflow 안에서는 사용할 수 없으며, 그 경로의
 canonical 직접 QA 1회와 post-QA 자동 수정 금지 규칙은 그대로 유지됩니다.
+현재 bounded convergence에는 9A one-shot의 five-view structural veto가 연결되지
+않았습니다. authored `spatial_v1` 자산에서는 안전하게 실행할 수 있다고 해석하지
+않고 planning과 run 모두 fail-closed합니다. 이 자산은 9A를 사용해야 하며,
+legacy/non-spatial 자산만 기존 fixed-camera bounded 경로를 사용할 수 있습니다.
 
 일반 사용자는 PowerShell을 실행할 필요가 없습니다. Codex에 다음처럼 요청하면
 `plan_visual_convergence` MCP 도구로 canonical 파일을 바꾸지 않은 채 계획만
@@ -387,7 +448,10 @@ canonical 직접 QA 1회와 post-QA 자동 수정 금지 규칙은 그대로 유
 
 ```text
 <JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
-standard bounded Visual QA convergence 계획만 작성해.
+standard bounded Visual QA convergence 가능 여부를 먼저 확인해.
+ModelingPlan이 authored spatial_v1이면 다각도 iteration evidence 미결속을 이유로
+계획을 만들지 말고 manual one-shot guarded revision을 안내해.
+legacy/non-spatial일 때만 bounded convergence 계획을 작성해.
 
 - target direct score: <TARGET_DIRECT_SCORE>
 - target silhouette IoU: <TARGET_SILHOUETTE_IOU>
@@ -565,7 +629,7 @@ PDF는 재질 상태, 경고, swatch, QA 패스와 수정 후보를 사람이 �
 - Engine-neutral LOD, collider, raw/glTF packing과 clean-import round trip은 V0.7 범위입니다. Unity/Unreal 전용 import와 runtime material은 대상 엔진 확인 뒤 별도 adapter로 남습니다.
 - 생성 이미지 target은 보조 QA이며 단일 이미지의 숨은 구조를 진실로 복원하지 않습니다.
 - 실내 다각도 QA는 구조·가시성 검사이며 실내 레퍼런스가 없으면 유사도 점수를 만들지 않습니다.
-- bounded convergence는 standard의 선택 기능이며 default one-shot 승인을 바꾸지 않습니다. exact plan의 최대 5회 밖으로 자동 확장하거나 background fast workflow에서 사용하지 않습니다.
+- bounded convergence는 standard의 선택 기능이며 default one-shot 승인을 바꾸지 않습니다. exact plan의 최대 5회 밖으로 자동 확장하거나 background fast workflow에서 사용하지 않습니다. authored `spatial_v1`은 five-view iteration 증거가 plan/receipt/audit에 결속되기 전까지 fail-closed되고, legacy/non-spatial만 기존 fixed-camera 경로를 유지합니다.
 - V0.4에서 `surface_details`로 분류한 작은 창문·라벨·이음선은 V0.5의 exact
   `TextureManifest.surface_detail_ids`와 UVMap PBR 채널로 결속합니다. V0.6은 이 상태를
   geometry 점수와 분리해 보고하며, 빠진 픽셀은 material/texture revision으로 되돌립니다.

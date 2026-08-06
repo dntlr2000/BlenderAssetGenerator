@@ -375,6 +375,41 @@ def _job_fixture(
     return root, scene_spec_path, run_id
 
 
+def _write_authored_spatial_modeling_plan(root: Path) -> Path:
+    """Write the minimum valid authored spatial plan used by convergence rejection tests."""
+
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    modeling_plan_path.write_text(
+        json.dumps(
+            {
+                "job_id": "convergence_asset",
+                "reference_analysis_path": "analysis/reference_analysis.json",
+                "camera_solution_path": "analysis/camera_solution.json",
+                "stage": "authored",
+                "objects": [
+                    {
+                        "id": TARGET_ID,
+                        "label": "fixture root",
+                        "scope_role": "primary",
+                        "assembly_role": "root",
+                    }
+                ],
+                "assembly_consistency_policy": "spatial_v1",
+                "assembly_frame": {
+                    "root_object_id": TARGET_ID,
+                    "longitudinal_axis": "X",
+                    "lateral_axis": "Y",
+                    "vertical_axis": "Z",
+                    "evidence_status": "authored",
+                },
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+    return modeling_plan_path
+
+
 def _fake_pdf(root: Path):
     """Return a PDF writer stub that preserves terminal report service semantics."""
 
@@ -638,6 +673,52 @@ def test_plan_is_canonical_read_only_and_requires_exact_approval(
             plan_sha256="f" * 64,
             approval_note="Wrong plan.",
         )
+
+
+def test_plan_rejects_authored_spatial_asset_before_session_creation(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Planning routes authored spatial assets to the guarded one-shot workflow."""
+
+    root, scene_spec, run_id = _job_fixture(tmp_path, monkeypatch)
+    _write_authored_spatial_modeling_plan(root)
+    scene_sha256 = sha256_file(scene_spec)
+    session_root = root / "qa" / "convergence" / "session-spatial"
+
+    with pytest.raises(ValueError, match="manual one-shot guarded revision"):
+        plan_job_visual_convergence(
+            "convergence_asset",
+            run_id,
+            session_id="session-spatial",
+            target_direct_score=0.8,
+            target_silhouette_iou=0.8,
+            allowed_target_ids=[TARGET_ID],
+        )
+
+    assert not session_root.exists()
+    assert sha256_file(scene_spec) == scene_sha256
+
+
+def test_run_rechecks_authored_spatial_policy_for_existing_approval(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """An older approved plan cannot begin after its job becomes authored spatial_v1."""
+
+    root, scene_spec, run_id = _job_fixture(tmp_path, monkeypatch)
+    scene_sha256 = sha256_file(scene_spec)
+    _plan_and_approve(run_id, target=0.8)
+    _write_authored_spatial_modeling_plan(root)
+    iteration_root = (
+        root / "qa" / "convergence" / "session-fixture" / "iterations"
+    )
+
+    with pytest.raises(ValueError, match="manual one-shot guarded revision"):
+        run_job_visual_convergence("convergence_asset", "session-fixture")
+
+    assert not iteration_root.exists()
+    assert sha256_file(scene_spec) == scene_sha256
 
 
 def test_approved_interior_objects_remain_locked_out_of_convergence(

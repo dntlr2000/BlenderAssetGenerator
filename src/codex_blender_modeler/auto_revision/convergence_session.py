@@ -28,7 +28,11 @@ from ..workspace import (
     sha256_file,
     validate_job_id,
 )
-from .convergence import compare_constraint_results, evaluate_convergence
+from .convergence import (
+    _authored_spatial_multiview_required,
+    compare_constraint_results,
+    evaluate_convergence,
+)
 from .convergence_policy import (
     ConvergenceCandidateSelection,
     select_convergence_candidates,
@@ -94,6 +98,18 @@ def _utc_now() -> str:
     """Return one timezone-aware UTC timestamp for immutable session evidence."""
 
     return datetime.now(UTC).isoformat()
+
+
+def _reject_unbound_spatial_convergence(job_id: str) -> None:
+    """Stop authored spatial sessions until every iteration binds exact multi-view QA."""
+
+    if not _authored_spatial_multiview_required(job_id):
+        return
+    raise ValueError(
+        "bounded visual convergence is unavailable for authored spatial_v1 assets "
+        "until each iteration binds exact multi-view structural evidence; use the "
+        "standard manual one-shot guarded revision flow instead"
+    )
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -2794,6 +2810,7 @@ def plan_job_visual_convergence(
     root, session_root = _session_paths(job_id, selected_session)
     if session_root.exists():
         raise FileExistsError(f"Visual convergence session already exists: {session_root}")
+    _reject_unbound_spatial_convergence(job_id)
     scene_spec_path = root / "analysis" / "scene_spec.json"
     spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
     if spec.job_id != job_id:
@@ -3548,6 +3565,7 @@ def run_job_visual_convergence(
             job_id=job_id,
             session_id=session_id,
         )
+        _reject_unbound_spatial_convergence(job_id)
         if (session_root / _TERMINAL_REPORT).is_file():
             terminal_status = get_job_visual_convergence_status(job_id, session_id)
             if not terminal_status["ok"]:

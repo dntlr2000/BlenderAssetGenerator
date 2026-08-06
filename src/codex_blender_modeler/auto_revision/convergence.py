@@ -1,15 +1,74 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import math
 from pathlib import Path
 from typing import Any
 
+from ..analysis.models import ModelingPlan
 from ..constraints.models import ConstraintResult
 from ..qa.models import VisualQAReport
-from ..workspace import sha256_file
+from ..qa.structural_regression import (
+    StructuralRegressionReport,
+    compare_assembly_sanity_terminals,
+)
+from ..workspace import job_dir, sha256_file
 from .models import ConstraintRegression, ConvergenceReport
 
 _STATUS_SEVERITY = {"passed": 0, "failed": 1, "missing": 2}
+
+
+def _authored_spatial_multiview_required(job_id: str) -> bool:
+    """Require exact multi-view evidence only for authored spatial ModelingPlans."""
+
+    modeling_plan_path = job_dir(job_id) / "analysis" / "modeling_plan.json"
+    if not modeling_plan_path.is_file():
+        return False
+    raw = json.loads(modeling_plan_path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("ModelingPlan root must be an object")
+    if raw.get("assembly_consistency_policy", "legacy_unbound") != "spatial_v1":
+        return False
+    if raw.get("stage", "scaffold") != "authored":
+        return False
+    plan = ModelingPlan.model_validate(raw)
+    if plan.job_id != job_id:
+        raise ValueError("ModelingPlan belongs to another job")
+    return True
+
+
+def _load_revalidated_multiview_comparison(
+    comparison_path: Path,
+    *,
+    expected_job_id: str,
+) -> tuple[StructuralRegressionReport, str]:
+    """Replay exact terminal evidence and bind the bytes used for convergence."""
+
+    root = job_dir(expected_job_id).resolve()
+    resolved_path = comparison_path.expanduser().resolve()
+    try:
+        resolved_path.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("multi-view comparison is outside the owning job") from exc
+    comparison_bytes = resolved_path.read_bytes()
+    comparison = StructuralRegressionReport.model_validate_json(comparison_bytes)
+    if comparison.job_id != expected_job_id:
+        raise ValueError("multi-view structural comparison belongs to another job")
+    if comparison.baseline.run_id == comparison.result.run_id:
+        raise ValueError("multi-view comparison requires distinct baseline and result runs")
+    recomputed = compare_assembly_sanity_terminals(
+        root,
+        baseline=comparison.baseline,
+        result=comparison.result,
+        expected_job_id=expected_job_id,
+        generated_at=comparison.generated_at,
+    )
+    if recomputed != comparison:
+        raise ValueError(
+            "multi-view structural comparison does not match recomputed exact terminals"
+        )
+    return comparison, hashlib.sha256(comparison_bytes).hexdigest()
 
 
 def _load_constraint_results(
@@ -124,9 +183,10 @@ def evaluate_convergence(
     after_failed_constraints: int = 0,
     before_constraint_results: list[ConstraintResult | dict[str, Any]] | None = None,
     after_constraint_results: list[ConstraintResult | dict[str, Any]] | None = None,
+    multiview_comparison_path: Path | None = None,
     minimum_improvement: float = 0.001,
 ) -> ConvergenceReport:
-    """Accept only direct-score improvements that do not worsen measured constraints."""
+    """Accept only direct improvements without measured or structural regressions."""
 
     before = VisualQAReport.model_validate_json(
         before_report_path.read_text(encoding="utf-8")
@@ -136,6 +196,22 @@ def evaluate_convergence(
         raise ValueError("convergence reports belong to different jobs")
     if before.camera_fingerprint != after.camera_fingerprint:
         raise ValueError("convergence requires the same fixed comparison camera")
+    multiview_required = _authored_spatial_multiview_required(before.job_id)
+    if multiview_required and multiview_comparison_path is None:
+        raise ValueError(
+            "authored spatial_v1 convergence requires an exact per-iteration "
+            "multi-view structural comparison"
+        )
+    multiview_comparison: StructuralRegressionReport | None = None
+    multiview_comparison_sha256: str | None = None
+    if multiview_comparison_path is not None:
+        (
+            multiview_comparison,
+            multiview_comparison_sha256,
+        ) = _load_revalidated_multiview_comparison(
+            multiview_comparison_path,
+            expected_job_id=before.job_id,
+        )
     before_score = before.direct_metrics.overall_direct_score
     after_score = after.direct_metrics.overall_direct_score
     delta = round(after_score - before_score, 6)
@@ -156,6 +232,12 @@ def evaluate_convergence(
             "Direct-score contracts differ and cannot establish convergence: "
             f"{before.direct_metrics.scoring_version} -> "
             f"{after.direct_metrics.scoring_version}."
+        )
+    elif multiview_comparison is not None and (multiview_comparison.status == "regressed"):
+        status = "regressed"
+        reasons.append(
+            "Exact five-view assembly evidence regressed; this evidence is a "
+            "veto-only rollback guard."
         )
     elif constraint_regressions:
         status = "regressed"
@@ -186,6 +268,31 @@ def evaluate_convergence(
         before_failed_constraints=before_failed_constraints,
         after_failed_constraints=after_failed_constraints,
         constraint_regressions=constraint_regressions,
+        multiview_status=(
+            multiview_comparison.status if multiview_comparison is not None else "not_applicable"
+        ),
+        multiview_baseline_run_id=(
+            multiview_comparison.baseline.run_id if multiview_comparison is not None else None
+        ),
+        multiview_baseline_report_sha256=(
+            multiview_comparison.baseline.report_sha256
+            if multiview_comparison is not None
+            else None
+        ),
+        multiview_result_run_id=(
+            multiview_comparison.result.run_id if multiview_comparison is not None else None
+        ),
+        multiview_result_report_sha256=(
+            multiview_comparison.result.report_sha256 if multiview_comparison is not None else None
+        ),
+        multiview_comparison_sha256=(
+            multiview_comparison_sha256
+        ),
+        multiview_regression_ids=(
+            [item.id for item in multiview_comparison.regressions]
+            if multiview_comparison is not None
+            else []
+        ),
         changed_ids=changed_ids,
         preserved_ids=preserved_ids,
         status=status,

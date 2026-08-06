@@ -271,6 +271,134 @@ def _append_pdf_report(
     return step_id
 
 
+def _geometry_multiview_run_id(workflow_id: str, prefix: str) -> str:
+    """Return one deterministic run ID for a workflow-owned V0.4 geometry review."""
+
+    digest = hashlib.sha256(f"{workflow_id}\0{prefix}".encode()).hexdigest()[:12]
+    return f"v08-{digest}-{prefix}-geometry"
+
+
+def _append_geometry_multiview_review(
+    steps: list[WorkflowStep],
+    dependency: str,
+    *,
+    workflow_id: str,
+    prefix: str,
+) -> tuple[str, str]:
+    """Append exact five-view renders plus a Codex visual reading of their geometry."""
+
+    run_id = _geometry_multiview_run_id(workflow_id, prefix)
+    run_root = f"qa/assembly_sanity/runs/{run_id}"
+    step_id = f"{prefix}.geometry_multiview"
+    pass_outputs = [
+        _artifact(
+            f"{prefix}.geometry_multiview.{view_id}.{kind}",
+            f"{run_root}/views/{view_id}/{kind}.png",
+            lifecycle="immutable_run",
+        )
+        for view_id in ("front", "right", "top", "rear", "oblique")
+        for kind in ("beauty", "silhouette", "object_id", "wireframe")
+    ]
+    steps.append(
+        _step(
+            step_id,
+            "Review exterior geometry from five temporary cameras",
+            "geometry",
+            "host",
+            tool="run_geometry_multiview_review",
+            depends_on=[dependency],
+            outputs=[
+                _artifact(
+                    f"{prefix}.geometry_multiview.plan",
+                    f"{run_root}/plan.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                ),
+                _artifact(
+                    f"{prefix}.geometry_multiview.manifest",
+                    f"{run_root}/render_manifest.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                ),
+                _artifact(
+                    f"{prefix}.geometry_multiview.report",
+                    f"{run_root}/report.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                ),
+                *pass_outputs,
+            ],
+            parameters={
+                "run_id": run_id,
+                "resolution": 384,
+                "review_policy": "exterior_geometry_review_v2",
+            },
+            instructions=[
+                "Use temporary front, right, top, rear, and oblique cameras only.",
+                "Treat side and rear reference similarity as unscorable unless separately "
+                "calibrated per-view evidence exists.",
+                "Record structural findings and a manual-only V0.4 re-entry recommendation; "
+                "never authorize or apply a geometry revision from this step.",
+            ],
+        )
+    )
+    visual_step_id = f"{prefix}.geometry_multiview_visual_review"
+    steps.append(
+        _step(
+            visual_step_id,
+            "Visually inspect all five geometry-review views",
+            "geometry",
+            "agent",
+            tool="review_geometry_multiview",
+            depends_on=[step_id],
+            outputs=[
+                _artifact(
+                    f"{prefix}.geometry_multiview.visual_review",
+                    f"{run_root}/visual_review.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                )
+            ],
+            parameters={"run_id": run_id},
+            instructions=[
+                "Read front, right, top, rear, and oblique beauty and wireframe images; "
+                "do not infer that merely generating them constitutes visual inspection.",
+                "Check cross-view shape coherence, proportions, orientation, assembly, and "
+                "obvious topology artifacts for the primary/supporting geometry.",
+                "Write GeometryMultiviewVisualReview 0.6.0 bound to the exact plan, render "
+                "manifest, and structural-report SHA-256 values.",
+                "Reference likeness outside the calibrated canonical reference camera remains "
+                "unscorable; do not invent side/rear similarity or authorize a revision.",
+                "Recommend bounded V0.4 revision or manual redesign review when appropriate.",
+            ],
+        )
+    )
+    return visual_step_id, run_id
+
+
+def _bind_revision_modeling_plan_contract(
+    steps: list[WorkflowStep],
+    *,
+    modeling_plan_sha256: str,
+    assembly_consistency_policy: str,
+) -> None:
+    """Bind every post-approval revision step to one exact ModelingPlan contract."""
+
+    binding = {
+        "expected_modeling_plan_sha256": modeling_plan_sha256,
+        "expected_assembly_consistency_policy": assembly_consistency_policy,
+    }
+    for index, step in enumerate(steps):
+        if not step.step_id.startswith("revision.") or step.step_id in {
+            "revision.author",
+            "revision.approval",
+        }:
+            continue
+        steps[index] = step.model_copy(
+            update={"parameters": {**step.parameters, **binding}}
+        )
+
+
 def _append_proxy_flow(
     steps: list[WorkflowStep],
     dependency: str,
@@ -365,7 +493,19 @@ def _append_proxy_flow(
         ]
     )
     validated = _append_build_cycle(steps, "geometry.proxy_author", "proxy")
-    report = _append_pdf_report(steps, validated, "proxy", "build")
+    reviewed, review_run_id = _append_geometry_multiview_review(
+        steps,
+        validated,
+        workflow_id=request.workflow_id,
+        prefix="proxy",
+    )
+    report = _append_pdf_report(
+        steps,
+        reviewed,
+        "proxy",
+        "build",
+        parameters={"assembly_sanity_run_id": review_run_id},
+    )
     steps.append(
         _step(
             "geometry.proxy_approval",
@@ -529,11 +669,18 @@ def _append_background_geometry_flow(
         "background.fit",
         "background_geometry",
     )
-    return _append_pdf_report(
+    reviewed, review_run_id = _append_geometry_multiview_review(
         steps,
         validated,
+        workflow_id=request.workflow_id,
+        prefix="background_geometry",
+    )
+    return _append_pdf_report(
+        steps,
+        reviewed,
         "background_geometry",
         "build",
+        parameters={"assembly_sanity_run_id": review_run_id},
     )
 
 
@@ -570,7 +717,19 @@ def _append_detail_flow(
         )
     )
     validated = _append_build_cycle(steps, "geometry.detail_author", "detail")
-    report = _append_pdf_report(steps, validated, "detail", "build")
+    reviewed, review_run_id = _append_geometry_multiview_review(
+        steps,
+        validated,
+        workflow_id=request.workflow_id,
+        prefix="detail",
+    )
+    report = _append_pdf_report(
+        steps,
+        reviewed,
+        "detail",
+        "build",
+        parameters={"assembly_sanity_run_id": review_run_id},
+    )
     steps.append(
         _step(
             "geometry.detail_approval",
@@ -1549,8 +1708,15 @@ def build_workflow_plan(
     *,
     request_sha256: str,
     routing_sha256: str,
+    existing_modeling_plan_sha256: str | None = None,
+    existing_assembly_consistency_policy: str | None = None,
 ) -> WorkflowPlan:
-    """Build one immutable plan while preserving every specialized safety approval."""
+    """Build one immutable plan while preserving every specialized safety approval.
+
+    Existing-job revision plans bind the exact ModelingPlan policy and hash so
+    a legacy ``legacy_unbound`` job can omit the spatial-only review without a
+    later policy change silently altering that decision.
+    """
 
     if (
         request.execution_policy != routing.execution_policy
@@ -1561,6 +1727,19 @@ def build_workflow_plan(
         )
     steps: list[WorkflowStep] = []
     scope = _scope_for_routing(request, routing)
+    if routing.intent == "revise_asset":
+        if existing_modeling_plan_sha256 is None:
+            raise ValueError("revise_asset requires an exact existing ModelingPlan SHA-256")
+        if len(existing_modeling_plan_sha256) != 64 or any(
+            character not in "0123456789abcdef"
+            for character in existing_modeling_plan_sha256
+        ):
+            raise ValueError("revise_asset ModelingPlan SHA-256 must be lowercase hex")
+        if existing_assembly_consistency_policy not in {
+            "legacy_unbound",
+            "spatial_v1",
+        }:
+            raise ValueError("revise_asset requires a supported existing assembly policy")
     if routing.intent == "new_asset":
         steps.append(
             _step(
@@ -1728,18 +1907,28 @@ def build_workflow_plan(
                             canonical=True,
                         )
                     ],
-                    instructions=[
-                        (
-                            "Preserve every current spatial_v1 assembly relationship and "
-                            "parent-local placement unless the user's exact request explicitly "
-                            "targets that relationship."
-                        ),
-                        (
-                            "Do not convert a 2D reference-screen offset into an unobserved "
-                            "depth/lateral revision; keep inferred hidden-axis assumptions and "
-                            "stable subject/reference IDs intact."
-                        ),
-                    ],
+                    instructions=(
+                        [
+                            (
+                                "Preserve every current spatial_v1 assembly relationship and "
+                                "parent-local placement unless the user's exact request "
+                                "explicitly targets that relationship."
+                            ),
+                            (
+                                "Do not convert a 2D reference-screen offset into an "
+                                "unobserved depth/lateral revision; keep inferred hidden-axis "
+                                "assumptions and stable subject/reference IDs intact."
+                            ),
+                        ]
+                        if existing_assembly_consistency_policy == "spatial_v1"
+                        else [
+                            (
+                                "The exact source ModelingPlan is legacy_unbound. Preserve "
+                                "stable semantic IDs and do not claim spatial-v1 assembly or "
+                                "multi-view evidence; migration requires a separate review."
+                            )
+                        ]
+                    ),
                 ),
                 _step(
                     "revision.approval",
@@ -1769,11 +1958,45 @@ def build_workflow_plan(
                             acceptance="valid_json",
                         ),
                     ],
-                    parameters={"require_new_output": True},
+                    parameters={
+                        "require_new_output": True,
+                        "expected_modeling_plan_sha256": str(
+                            existing_modeling_plan_sha256
+                        ),
+                        "expected_assembly_consistency_policy": str(
+                            existing_assembly_consistency_policy
+                        ),
+                    },
                 ),
             ]
         )
         terminal = _append_build_cycle(steps, "revision.apply", "revision")
+        if existing_assembly_consistency_policy == "spatial_v1":
+            terminal, review_run_id = _append_geometry_multiview_review(
+                steps,
+                terminal,
+                workflow_id=request.workflow_id,
+                prefix="revision",
+            )
+            terminal = _append_pdf_report(
+                steps,
+                terminal,
+                "revision",
+                "build",
+                parameters={"assembly_sanity_run_id": review_run_id},
+            )
+        else:
+            terminal = _append_pdf_report(
+                steps,
+                terminal,
+                "revision",
+                "build",
+            )
+        _bind_revision_modeling_plan_contract(
+            steps,
+            modeling_plan_sha256=str(existing_modeling_plan_sha256),
+            assembly_consistency_policy=str(existing_assembly_consistency_policy),
+        )
     elif routing.intent == "interior_scope":
         steps.extend(
             [
@@ -2027,6 +2250,15 @@ def build_workflow_plan(
                 "specialized approvals."
                 if request.execution_policy == "background_exterior"
                 else "standard preserves every generic and specialized review boundary."
+            ),
+            *(
+                [
+                    "Geometry multi-view review is not applicable: the exact source "
+                    "ModelingPlan is legacy_unbound and has no spatial_v1 assembly frame."
+                ]
+                if routing.intent == "revise_asset"
+                and existing_assembly_consistency_policy == "legacy_unbound"
+                else []
             ),
         ],
     )

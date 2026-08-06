@@ -222,6 +222,32 @@ def apply_pivot_policy(obj: bpy.types.Object, policy: str) -> None:
         obj.data.transform(Matrix.Translation(-center))
         obj.matrix_world = obj.matrix_world @ Matrix.Translation(center)
         return
+    if normalized in {"base_center", "bottom_center"}:
+        local_corners = [Vector(corner) for corner in obj.bound_box]
+        minimum = Vector(
+            (
+                min(corner.x for corner in local_corners),
+                min(corner.y for corner in local_corners),
+                min(corner.z for corner in local_corners),
+            )
+        )
+        maximum = Vector(
+            (
+                max(corner.x for corner in local_corners),
+                max(corner.y for corner in local_corners),
+                max(corner.z for corner in local_corners),
+            )
+        )
+        base_center = Vector(
+            (
+                (minimum.x + maximum.x) * 0.5,
+                (minimum.y + maximum.y) * 0.5,
+                minimum.z,
+            )
+        )
+        obj.data.transform(Matrix.Translation(-base_center))
+        obj.matrix_world = obj.matrix_world @ Matrix.Translation(base_center)
+        return
     raise ValueError(f"Unsupported pivot policy: {policy!r}")
 
 
@@ -508,6 +534,9 @@ def detect_overlap_candidates(
         volume = _overlap_volume(bounds[left.name], bounds[right.name])
         if volume <= 0.0:
             continue
+        rounded_volume = round(volume, 9)
+        if rounded_volume <= 0.0:
+            continue
         total += 1
         if len(findings) >= pair_limit:
             continue
@@ -525,7 +554,7 @@ def detect_overlap_candidates(
                 "classification": (
                     "exact_duplicate" if exact else "aabb_overlap_candidate"
                 ),
-                "overlap_volume_m3": round(volume, 9),
+                "overlap_volume_m3": rounded_volume,
                 "action": "report_only",
             }
         )

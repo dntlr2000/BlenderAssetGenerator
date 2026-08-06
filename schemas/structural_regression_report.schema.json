@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "AssemblySanityTerminalEvidence": {
+      "additionalProperties": false,
+      "description": "Bind one immutable five-view plan, manifest, and report terminal by exact hash.",
+      "properties": {
+        "run_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "plan_path": {
+          "title": "Plan Path",
+          "type": "string"
+        },
+        "plan_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Sha256",
+          "type": "string"
+        },
+        "render_manifest_path": {
+          "title": "Render Manifest Path",
+          "type": "string"
+        },
+        "render_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Render Manifest Sha256",
+          "type": "string"
+        },
+        "report_path": {
+          "title": "Report Path",
+          "type": "string"
+        },
+        "report_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "plan_path",
+        "plan_sha256",
+        "render_manifest_path",
+        "render_manifest_sha256",
+        "report_path",
+        "report_sha256"
+      ],
+      "title": "AssemblySanityTerminalEvidence",
+      "type": "object"
+    },
+    "StructuralRegressionFinding": {
+      "additionalProperties": false,
+      "description": "Describe one machine-verifiable structural worsening between exact terminals.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "target_membership",
+            "assembly_frame",
+            "view_contract",
+            "check_membership",
+            "required_check_contract",
+            "required_check_status",
+            "all_view_visibility",
+            "structural_status",
+            "geometry_review"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "check_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Check Ids",
+          "type": "array"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "message"
+      ],
+      "title": "StructuralRegressionFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record a veto-only comparison without granting any revision authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "comparison_kind": {
+      "const": "assembly_multiview_non_regression_v1",
+      "default": "assembly_multiview_non_regression_v1",
+      "title": "Comparison Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "regressed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "baseline": {
+      "$ref": "#/$defs/AssemblySanityTerminalEvidence"
+    },
+    "result": {
+      "$ref": "#/$defs/AssemblySanityTerminalEvidence"
+    },
+    "baseline_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Scene Spec Sha256",
+      "type": "string"
+    },
+    "result_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Scene Spec Sha256",
+      "type": "string"
+    },
+    "modeling_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Modeling Plan Sha256",
+      "type": "string"
+    },
+    "regressions": {
+      "items": {
+        "$ref": "#/$defs/StructuralRegressionFinding"
+      },
+      "title": "Regressions",
+      "type": "array"
+    },
+    "veto_only": {
+      "const": true,
+      "default": true,
+      "title": "Veto Only",
+      "type": "boolean"
+    },
+    "reference_similarity_scored": {
+      "const": false,
+      "default": false,
+      "title": "Reference Similarity Scored",
+      "type": "boolean"
+    },
+    "automatic_revision_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Automatic Revision Authorized",
+      "type": "boolean"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "status",
+    "baseline",
+    "result",
+    "baseline_scene_spec_sha256",
+    "result_scene_spec_sha256",
+    "modeling_plan_sha256",
+    "generated_at"
+  ],
+  "title": "StructuralRegressionReport",
+  "type": "object"
+}

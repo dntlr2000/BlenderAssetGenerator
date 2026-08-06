@@ -790,6 +790,9 @@ def report_pdf(
     interior_qa_run_id: Annotated[
         str, typer.Option("--interior-qa-run-id")
     ] = "latest",
+    assembly_sanity_run_id: Annotated[
+        str | None, typer.Option("--assembly-sanity-run-id")
+    ] = None,
     optimization_run_id: Annotated[
         str, typer.Option("--optimization-run-id")
     ] = "latest",
@@ -805,6 +808,7 @@ def report_pdf(
         scope=scope,  # type: ignore[arg-type]
         qa_run_id=qa_run_id,
         interior_qa_run_id=interior_qa_run_id,
+        assembly_sanity_run_id=assembly_sanity_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
         output_path=output,

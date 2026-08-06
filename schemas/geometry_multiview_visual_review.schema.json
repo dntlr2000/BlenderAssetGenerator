@@ -1,0 +1,314 @@
+{
+  "$defs": {
+    "GeometryVisualReviewFinding": {
+      "additionalProperties": false,
+      "description": "Record one Codex-observed issue from exact five-view beauty/wireframe evidence.",
+      "properties": {
+        "finding_id": {
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "issue_type": {
+          "enum": [
+            "shape_coherence",
+            "proportion",
+            "orientation",
+            "assembly",
+            "topology_artifact",
+            "insufficient_evidence"
+          ],
+          "title": "Issue Type",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "view_ids": {
+          "items": {
+            "enum": [
+              "front",
+              "right",
+              "top",
+              "rear",
+              "oblique"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "View Ids",
+          "type": "array"
+        },
+        "target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "description": {
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "recommended_v04_action": {
+          "enum": [
+            "none",
+            "parametric_revision",
+            "redesign_review",
+            "additional_evidence"
+          ],
+          "title": "Recommended V04 Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "issue_type",
+        "severity",
+        "view_ids",
+        "description",
+        "recommended_v04_action"
+      ],
+      "title": "GeometryVisualReviewFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "visually_coherent"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "v04_reentry": {
+            "const": "not_indicated"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "v04_revision_recommended"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "v04_reentry": {
+            "const": "recommended"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "v04_redesign_review_required"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "v04_reentry": {
+            "const": "required"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "outcome": {
+            "const": "unscorable"
+          }
+        },
+        "required": [
+          "outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "v04_reentry": {
+            "const": "not_indicated"
+          }
+        }
+      }
+    }
+  ],
+  "description": "Bind a Codex visual reading of all five views without claiming reference likeness.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "review_kind": {
+      "const": "geometry_multiview_visual_review_v1",
+      "default": "geometry_multiview_visual_review_v1",
+      "title": "Review Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "render_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Manifest Sha256",
+      "type": "string"
+    },
+    "structural_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Structural Report Sha256",
+      "type": "string"
+    },
+    "reviewed_view_ids": {
+      "maxItems": 5,
+      "minItems": 5,
+      "prefixItems": [
+        {
+          "const": "front",
+          "type": "string"
+        },
+        {
+          "const": "right",
+          "type": "string"
+        },
+        {
+          "const": "top",
+          "type": "string"
+        },
+        {
+          "const": "rear",
+          "type": "string"
+        },
+        {
+          "const": "oblique",
+          "type": "string"
+        }
+      ],
+      "title": "Reviewed View Ids",
+      "type": "array"
+    },
+    "reviewed_pass_kinds": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "const": "beauty",
+          "type": "string"
+        },
+        {
+          "const": "wireframe",
+          "type": "string"
+        }
+      ],
+      "title": "Reviewed Pass Kinds",
+      "type": "array"
+    },
+    "outcome": {
+      "enum": [
+        "visually_coherent",
+        "v04_revision_recommended",
+        "v04_redesign_review_required",
+        "unscorable"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "v04_reentry": {
+      "enum": [
+        "not_indicated",
+        "recommended",
+        "required"
+      ],
+      "title": "V04 Reentry",
+      "type": "string"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/GeometryVisualReviewFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "reference_similarity_status": {
+      "const": "unscorable",
+      "default": "unscorable",
+      "title": "Reference Similarity Status",
+      "type": "string"
+    },
+    "reference_similarity_reason": {
+      "const": "no_calibrated_per_view_references",
+      "default": "no_calibrated_per_view_references",
+      "title": "Reference Similarity Reason",
+      "type": "string"
+    },
+    "advisory_only": {
+      "const": true,
+      "default": true,
+      "title": "Advisory Only",
+      "type": "boolean"
+    },
+    "automatic_revision_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Automatic Revision Authorized",
+      "type": "boolean"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan_sha256",
+    "render_manifest_sha256",
+    "structural_report_sha256",
+    "reviewed_view_ids",
+    "reviewed_pass_kinds",
+    "outcome",
+    "v04_reentry",
+    "reviewed_at"
+  ],
+  "title": "GeometryMultiviewVisualReview",
+  "type": "object"
+}

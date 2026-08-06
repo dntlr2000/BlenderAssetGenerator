@@ -9,14 +9,19 @@ from PIL import Image, ImageDraw
 from codex_blender_modeler.qa.camera_attribution import attribute_camera_geometry
 from codex_blender_modeler.qa.diagnostic_models import (
     AssemblyDiagnosticEvidence,
+    AssemblyGeometryReviewSummary,
     BoundedCameraDelta,
     CameraProbeResult,
     CameraProbeSemanticScore,
+    DiagnosticAttribution,
     QADiagnosticRequest,
     SemanticMaskBinding,
     SemanticShapeMetrics,
 )
-from codex_blender_modeler.qa.diagnostics import build_qa_diagnostic_report
+from codex_blender_modeler.qa.diagnostics import (
+    _authoring_recommendation,
+    build_qa_diagnostic_report,
+)
 from codex_blender_modeler.workspace import sha256_file
 
 SHA = "b" * 64
@@ -216,6 +221,92 @@ def test_unscorable_baseline_remains_unscorable_without_assembly_evidence() -> N
     assert result.baseline_score is None
 
 
+@pytest.mark.parametrize(
+    ("classification", "residual_fraction", "expected_action", "expected_reentry"),
+    [
+        ("camera", 0.0, "camera_recalibration", "not_indicated"),
+        ("geometry", 1.0, "v04_parametric_revision", "recommended"),
+        ("mixed", 0.5, "v04_parametric_revision", "recommended"),
+        ("ambiguous", 0.0, "none", "not_indicated"),
+        (
+            "ambiguous",
+            0.2,
+            "additional_evidence_required",
+            "not_indicated",
+        ),
+        (
+            "unscorable",
+            None,
+            "additional_evidence_required",
+            "not_indicated",
+        ),
+    ],
+)
+def test_authoring_recommendation_maps_nonstructural_attribution(
+    classification: str,
+    residual_fraction: float | None,
+    expected_action: str,
+    expected_reentry: str,
+) -> None:
+    """Map camera, parametric, no-residual, and insufficient-evidence outcomes safely."""
+
+    attribution = DiagnosticAttribution(
+        classification=classification,
+        confidence=0.8,
+        baseline_probe_id="baseline",
+        geometry_residual_fraction=residual_fraction,
+        semantic_shape_residual_ids=(
+            ["weapon.trigger"] if classification in {"geometry", "mixed"} else []
+        ),
+        reasons=[f"test attribution: {classification}"],
+    )
+
+    recommendation = _authoring_recommendation(
+        attribution,
+        AssemblyDiagnosticEvidence(status="passed"),
+    )
+
+    assert recommendation.action == expected_action
+    assert recommendation.v04_reentry == expected_reentry
+    assert recommendation.automatic_revision_authorized is False
+
+
+def test_authoring_recommendation_escalates_exact_structural_review() -> None:
+    """Copy structural V0.4 scope without selecting or authorizing a concrete redesign."""
+
+    geometry_review = AssemblyGeometryReviewSummary(
+        outcome="v04_reentry_required",
+        v04_reentry="required",
+        redesign_assessment="manual_review_required",
+        redesign_scopes=["geometry_recipe", "semantic_recomposition", "assembly"],
+        reason_finding_ids=["visibility.all_views"],
+    )
+    assembly = AssemblyDiagnosticEvidence(
+        status="failed",
+        required_failure_ids=["visibility.all_views"],
+        geometry_review=geometry_review,
+    )
+    attribution = DiagnosticAttribution(
+        classification="assembly",
+        confidence=0.85,
+        baseline_probe_id="baseline",
+        assembly_failure_ids=["visibility.all_views"],
+        reasons=["the target is absent from every structural view"],
+    )
+
+    recommendation = _authoring_recommendation(attribution, assembly)
+
+    assert recommendation.action == "v04_redesign_review"
+    assert recommendation.v04_reentry == "required"
+    assert recommendation.redesign_scopes == [
+        "geometry_recipe",
+        "semantic_recomposition",
+        "assembly",
+    ]
+    assert recommendation.reason_ids == ["visibility.all_views"]
+    assert recommendation.automatic_revision_authorized is False
+
+
 def _write_text(path: Path, value: str) -> str:
     """Write a small fixture artifact and return its exact SHA-256."""
 
@@ -313,6 +404,7 @@ def test_report_builder_verifies_exact_sources_masks_and_probe_evidence(
     assert report.semantic_metrics[0].semantic_id == "weapon.trigger"
     assert report.request_sha256 == sha256_file(request_path)
     assert report.advisory_only is True
+    assert report.authoring_recommendation.action == "camera_recalibration"
 
 
 def test_report_builder_rejects_a_stale_canonical_source(tmp_path: Path) -> None:
@@ -356,4 +448,5 @@ def test_legacy_job_without_semantic_masks_produces_unscorable_report(
 
     assert report.status == "unscorable"
     assert report.semantic_metrics == []
+    assert report.authoring_recommendation.action == "additional_evidence_required"
     assert any("no explicit evidence-backed" in value for value in report.limitations)

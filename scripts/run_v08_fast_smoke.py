@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from codex_blender_modeler.background_quality import (
@@ -18,6 +19,11 @@ from codex_blender_modeler.orchestration.service import (
 )
 from codex_blender_modeler.qa.diagnostic_service import (
     validate_qa_diagnostic_bundle,
+)
+from codex_blender_modeler.qa.multiview_sanity import (
+    GeometryMultiviewVisualReview,
+    GeometryVisualReviewFinding,
+    validate_assembly_sanity_terminal,
 )
 from codex_blender_modeler.workspace import job_dir, sha256_file
 
@@ -98,6 +104,72 @@ def _author_scene_spec(root: Path, state, source: Path) -> object:
         "geometry.background_author",
         input_fingerprint=str(current.input_fingerprint),
         note="Authored isolated smoke moderate-detail exterior SceneSpec.",
+    )
+
+
+def _author_geometry_multiview_review(root: Path, state) -> object:
+    """Publish honest unscorable smoke evidence after validating the five-view terminal."""
+
+    step_id = "background_geometry.geometry_multiview_visual_review"
+    plan = _load_plan(root, state.workflow_id)
+    step = next(item for item in plan["steps"] if item["step_id"] == step_id)
+    run_id = str(step["parameters"]["run_id"])
+    run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
+    plan_path = run_root / "plan.json"
+    manifest_path = run_root / "render_manifest.json"
+    report_path = run_root / "report.json"
+    plan_sha256 = sha256_file(plan_path)
+    manifest_sha256 = sha256_file(manifest_path)
+    report_sha256 = sha256_file(report_path)
+    validate_assembly_sanity_terminal(
+        root,
+        plan_path=plan_path,
+        plan_sha256=plan_sha256,
+        manifest_path=manifest_path,
+        manifest_sha256=manifest_sha256,
+        report_path=report_path,
+        report_sha256=report_sha256,
+        expected_job_id=state.job_id,
+        expected_run_id=run_id,
+    )
+    review = GeometryMultiviewVisualReview(
+        job_id=state.job_id,
+        run_id=run_id,
+        plan_sha256=plan_sha256,
+        render_manifest_sha256=manifest_sha256,
+        structural_report_sha256=report_sha256,
+        reviewed_view_ids=["front", "right", "top", "rear", "oblique"],
+        reviewed_pass_kinds=["beauty", "wireframe"],
+        outcome="unscorable",
+        v04_reentry="not_indicated",
+        findings=[
+            GeometryVisualReviewFinding(
+                finding_id="smoke.image_capable_review_required",
+                issue_type="insufficient_evidence",
+                severity="warning",
+                view_ids=["front", "right", "top", "rear", "oblique"],
+                target_ids=[],
+                description=(
+                    "The automated lifecycle smoke validates exact image files and hashes "
+                    "but does not contain an image-capable reviewer."
+                ),
+                recommended_v04_action="additional_evidence",
+            )
+        ],
+        reviewed_at=datetime.now(UTC),
+    )
+    output = run_root / "visual_review.json"
+    output.write_text(review.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    current = _step_state(state, step_id)
+    return complete_workflow_step(
+        state.job_id,
+        state.workflow_id,
+        step_id,
+        input_fingerprint=str(current.input_fingerprint),
+        note=(
+            "Validated the exact five-view terminal and recorded an honest unscorable "
+            "lifecycle-smoke review that still requires image-capable inspection."
+        ),
     )
 
 
@@ -256,6 +328,9 @@ def run_fast_smoke(
     state = _author_modeling_plan(root, state, scene_spec_path)
     state = _author_scene_spec(root, state, scene_spec_path)
     state = resume_workflow(job_id, state.workflow_id, max_host_steps=64)
+    if state.current_step_id == "background_geometry.geometry_multiview_visual_review":
+        state = _author_geometry_multiview_review(root, state)
+        state = resume_workflow(job_id, state.workflow_id, max_host_steps=64)
     if state.current_step_id != "material.author":
         raise RuntimeError("Fast preview did not stop at material authoring")
     state = _author_material_candidate(root, state)

@@ -6,7 +6,9 @@ import pytest
 
 from codex_blender_modeler.qa.diagnostic_models import (
     AssemblyDiagnosticEvidence,
+    AssemblyGeometryReviewSummary,
     AssemblyMultiviewBundleEvidence,
+    AuthoringRecommendation,
     BoundedCameraDelta,
     CameraProbeResult,
     CameraProbeSemanticScore,
@@ -229,6 +231,14 @@ def test_companion_report_is_advisory_and_requires_one_baseline() -> None:
     assert report.schema_version == "0.6.0"
     assert report.diagnostic_version == "camera_geometry_attribution_v1"
     assert report.advisory_only is True
+    assert report.authoring_recommendation == AuthoringRecommendation()
+
+    legacy_payload = report.model_dump(mode="json")
+    legacy_payload.pop("authoring_recommendation")
+    legacy_payload["assembly_evidence"].pop("geometry_review")
+    legacy = QADiagnosticReport.model_validate(legacy_payload)
+    assert legacy.authoring_recommendation.action == "none"
+    assert legacy.assembly_evidence.geometry_review is None
 
     with pytest.raises(ValueError, match="exactly one baseline"):
         QADiagnosticReport.model_validate(
@@ -241,6 +251,37 @@ def test_companion_report_is_advisory_and_requires_one_baseline() -> None:
                     }
                 ],
             }
+        )
+
+
+def test_authoring_recommendation_and_geometry_review_remain_manual_only() -> None:
+    """Structured V0.4 advice cannot claim a concrete automatic revision authority."""
+
+    geometry_review = AssemblyGeometryReviewSummary(
+        outcome="v04_reentry_required",
+        v04_reentry="required",
+        redesign_assessment="manual_review_required",
+        redesign_scopes=["geometry_recipe", "semantic_recomposition", "assembly"],
+        reason_finding_ids=["visibility.all_views"],
+    )
+    recommendation = AuthoringRecommendation(
+        action="v04_redesign_review",
+        v04_reentry="required",
+        redesign_scopes=geometry_review.redesign_scopes,
+        target_ids=["weapon.trigger"],
+        reason_ids=geometry_review.reason_finding_ids,
+        rationale=["Manual redesign review is required."],
+    )
+
+    assert geometry_review.automatic_revision_authorized is False
+    assert recommendation.advisory_only is True
+    assert recommendation.automatic_revision_authorized is False
+
+    with pytest.raises(ValueError, match="only V0.4 redesign review"):
+        AuthoringRecommendation(
+            action="v04_parametric_revision",
+            v04_reentry="recommended",
+            redesign_scopes=["geometry_recipe"],
         )
 
 

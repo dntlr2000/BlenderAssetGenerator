@@ -16,6 +16,10 @@ from ..qa.diagnostic_models import (
     QADiagnosticRequest,
 )
 from ..qa.diagnostic_service import validate_qa_diagnostic_bundle
+from ..qa.multiview_sanity import (
+    validate_assembly_sanity_terminal,
+    validate_geometry_multiview_visual_review,
+)
 from ..workspace import job_dir, load_job, resolve_metadata_path, sha256_file
 from .models import HumanReportManifest, ReportScope, ReportSource
 from .pdf_renderer import render_job_pdf
@@ -608,6 +612,160 @@ def _collect_qa_images(
     return images
 
 
+def _assembly_sanity_run_root(root: Path, run_id: str) -> Path:
+    """Resolve one exact assembly-sanity run directory without allowing path escape."""
+
+    runs_root = (root / "qa" / "assembly_sanity" / "runs").resolve()
+    candidate = (runs_root / run_id).resolve()
+    if not run_id or candidate.parent != runs_root:
+        raise ValueError(f"Invalid assembly sanity run ID: {run_id}")
+    return candidate
+
+
+def _collect_exact_assembly_sanity_run(
+    root: Path,
+    run_id: str,
+    documents: dict[str, dict[str, Any]],
+    sources: list[ReportSource],
+    warnings: list[str],
+    *,
+    bundle_binding: Any | None = None,
+) -> list[dict[str, Any]]:
+    """Validate one terminal assembly run and collect its hash-bound review images."""
+
+    try:
+        run_root = _assembly_sanity_run_root(root, run_id)
+    except ValueError as exc:
+        warnings.append(str(exc))
+        return []
+    plan_path = run_root / "plan.json"
+    manifest_path = run_root / "render_manifest.json"
+    report_path = run_root / "report.json"
+    paths = {
+        "plan": plan_path,
+        "render_manifest": manifest_path,
+        "report": report_path,
+    }
+    if not run_root.is_dir() or any(not path.is_file() for path in paths.values()):
+        warnings.append(f"Assembly sanity run is incomplete or missing: {run_id}")
+        return []
+
+    current_hashes = {name: sha256_file(path) for name, path in paths.items()}
+    if bundle_binding is not None:
+        expected = {
+            "plan": (
+                bundle_binding.plan_path,
+                bundle_binding.plan_sha256,
+            ),
+            "render_manifest": (
+                bundle_binding.render_manifest_path,
+                bundle_binding.render_manifest_sha256,
+            ),
+            "report": (
+                bundle_binding.report_path,
+                bundle_binding.report_sha256,
+            ),
+        }
+        for name, (relative_path, digest) in expected.items():
+            if (
+                relative_path != _job_relative(root, paths[name])
+                or digest != current_hashes[name]
+            ):
+                warnings.append(
+                    "Skipped assembly sanity evidence whose bundle path/hash binding "
+                    f"changed: {name}"
+                )
+                return []
+
+    try:
+        plan, manifest, report = validate_assembly_sanity_terminal(
+            root,
+            plan_path=plan_path,
+            plan_sha256=current_hashes["plan"],
+            manifest_path=manifest_path,
+            manifest_sha256=current_hashes["render_manifest"],
+            report_path=report_path,
+            report_sha256=current_hashes["report"],
+            expected_job_id=root.name,
+            expected_run_id=run_id,
+        )
+    except (OSError, RuntimeError, ValueError) as exc:
+        warnings.append(f"Assembly sanity terminal evidence is unavailable: {exc}")
+        return []
+
+    collected_sources = [
+        _source_record(root, "assembly_sanity_plan", plan_path),
+        _source_record(root, "assembly_sanity_render_manifest", manifest_path),
+        _source_record(root, "assembly_sanity_report", report_path),
+    ]
+    collected_views: list[dict[str, Any]] = []
+    for view in manifest.views:
+        pass_images: dict[str, dict[str, Any]] = {}
+        records = {record.kind: record for record in view.passes}
+        for record in view.passes:
+            candidate = _safe_job_file(root, root / record.path, warnings)
+            if candidate is None or not _recorded_hash_is_current(
+                candidate,
+                record.sha256,
+                f"assembly sanity {view.view_id} {record.kind}",
+                warnings,
+            ):
+                return []
+            collected_sources.append(
+                _source_record(
+                    root,
+                    f"assembly_sanity_view:{view.view_id}:{record.kind}",
+                    candidate,
+                )
+            )
+        for kind in ("beauty", "wireframe"):
+            record = records.get(kind)
+            if record is None:
+                warnings.append(
+                    f"Assembly sanity view {view.view_id} omits the required {kind} image."
+                )
+                return []
+            expected_path = (run_root / "views" / view.view_id / f"{kind}.png").resolve()
+            candidate = _safe_job_file(root, root / record.path, warnings)
+            if candidate is None or candidate != expected_path:
+                warnings.append(
+                    "Skipped assembly sanity image outside its exact run/view path: "
+                    f"{view.view_id}/{kind}"
+                )
+                return []
+            pass_images[kind] = {
+                "record": record.model_dump(mode="json"),
+                "path": str(candidate),
+            }
+        collected_views.append(
+            {
+                "view_id": view.view_id,
+                "beauty": pass_images["beauty"],
+                "wireframe": pass_images["wireframe"],
+            }
+        )
+
+    documents["assembly_sanity_plan"] = plan.model_dump(mode="json")
+    documents["assembly_sanity_render_manifest"] = manifest.model_dump(mode="json")
+    documents["assembly_sanity_report"] = report.model_dump(mode="json")
+    visual_review_path = run_root / "visual_review.json"
+    if visual_review_path.is_file():
+        visual_review = validate_geometry_multiview_visual_review(
+            root,
+            visual_review_path,
+            expected_job_id=root.name,
+            expected_run_id=run_id,
+        )
+        documents["geometry_multiview_visual_review"] = visual_review.model_dump(
+            mode="json"
+        )
+        collected_sources.append(
+            _source_record(root, "geometry_multiview_visual_review", visual_review_path)
+        )
+    sources.extend(collected_sources)
+    return collected_views
+
+
 def _companion_file_is_current(
     root: Path,
     relative_path: Any,
@@ -720,44 +878,22 @@ def _collect_companion_assembly_report(
     documents: dict[str, dict[str, Any]],
     sources: list[ReportSource],
     warnings: list[str],
-) -> None:
-    """Collect an optional multi-view assembly report only through its bundle hash."""
+) -> list[dict[str, Any]]:
+    """Collect one bundle-bound terminal assembly run unless an explicit run already won."""
 
     binding = bundle.assembly_multiview
-    report_path = binding.report_path
-    report_sha256 = binding.report_sha256
-    if report_path is None and report_sha256 is None:
-        return
-    path = _companion_file_is_current(
+    if binding.run_id is None:
+        return []
+    if "assembly_sanity_report" in documents:
+        return []
+    return _collect_exact_assembly_sanity_run(
         root,
-        report_path,
-        report_sha256,
-        label="assembly multi-view report",
-        warnings=warnings,
+        binding.run_id,
+        documents,
+        sources,
+        warnings,
+        bundle_binding=binding,
     )
-    if path is None:
-        return
-    try:
-        payload = _load_json(path)
-    except (OSError, ValueError) as exc:
-        warnings.append(f"Assembly multi-view report is unavailable: {exc}")
-        return
-    if payload is None:
-        return
-    expected_identity = (
-        payload.get("schema_version") == "0.6.0"
-        and payload.get("diagnostic_kind") == "assembly_multiview_sanity"
-        and payload.get("job_id") == bundle.job_id
-        and payload.get("run_id") == binding.run_id
-        and payload.get("structural_status") in {"passed", "warning", "failed"}
-        and payload.get("reference_comparison_status") == "unscorable"
-        and isinstance(payload.get("limitations", []), list)
-    )
-    if not expected_identity:
-        warnings.append("Skipped an assembly multi-view report with mismatched identity.")
-        return
-    documents["assembly_sanity_report"] = payload
-    sources.append(_source_record(root, "assembly_sanity_report", path))
 
 
 def _collect_qa_companion_sources(
@@ -767,8 +903,10 @@ def _collect_qa_companion_sources(
     documents: dict[str, dict[str, Any]],
     sources: list[ReportSource],
     warnings: list[str],
-) -> None:
-    """Collect a terminal companion bundle and its exact immutable attempt artifacts."""
+    *,
+    collect_assembly: bool = True,
+) -> list[dict[str, Any]]:
+    """Collect a terminal companion bundle plus exact optional five-view imagery."""
 
     diagnostic_id = "camera-geometry-v1"
     diagnostic_root = run_dir / "diagnostics" / diagnostic_id
@@ -776,11 +914,11 @@ def _collect_qa_companion_sources(
         warnings.append(
             "QA companion diagnostics are unavailable for this legacy or standalone QA run."
         )
-        return
+        return []
     bundle_path = diagnostic_root / "bundle_manifest.json"
     if not bundle_path.is_file():
         warnings.append("QA companion diagnostics are incomplete and were not included.")
-        return
+        return []
     try:
         bundle, request, report = validate_qa_diagnostic_bundle(root, bundle_path)
         bundle_payload = bundle.model_dump(mode="json")
@@ -788,14 +926,14 @@ def _collect_qa_companion_sources(
         report_payload = report.model_dump(mode="json")
     except (OSError, ValueError) as exc:
         warnings.append(f"QA companion diagnostics are malformed and unavailable: {exc}")
-        return
+        return []
     if (
         bundle.job_id != root.name
         or bundle.qa_run_id != run_id
         or bundle.diagnostic_id != diagnostic_id
     ):
         warnings.append("QA companion diagnostics have mismatched terminal identity.")
-        return
+        return []
     request_path = root / bundle.diagnostic_request_path
     report_path = root / bundle.diagnostic_report_path
     expected_request_path = bundle.diagnostic_request_path
@@ -829,7 +967,7 @@ def _collect_qa_companion_sources(
     )
     if not identity_is_current:
         warnings.append("QA companion diagnostics are stale or identity-mismatched.")
-        return
+        return []
     for relative_path, expected_sha256, label in (
         (
             bundle.camera_probe_plan_path,
@@ -853,7 +991,7 @@ def _collect_qa_companion_sources(
             is None
         ):
             warnings.append("QA companion diagnostics have stale probe evidence.")
-            return
+            return []
     for probe in report.camera_probes:
         if (
             _companion_file_is_current(
@@ -866,10 +1004,21 @@ def _collect_qa_companion_sources(
             is None
         ):
             warnings.append("QA companion diagnostics have stale probe result evidence.")
-            return
+            return []
     if not _diagnostic_request_sources_are_current(root, request, warnings):
         warnings.append("QA companion diagnostics reference stale source evidence.")
-        return
+        return []
+    assembly_views = (
+        _collect_companion_assembly_report(
+            root,
+            bundle,
+            documents,
+            sources,
+            warnings,
+        )
+        if collect_assembly
+        else []
+    )
     documents["qa_diagnostic_request"] = request_payload
     documents["qa_diagnostic_report"] = report_payload
     documents["qa_diagnostic_bundle"] = bundle_payload
@@ -880,7 +1029,7 @@ def _collect_qa_companion_sources(
             _source_record(root, "qa_diagnostic_bundle", bundle_path),
         ]
     )
-    _collect_companion_assembly_report(root, bundle, documents, sources, warnings)
+    return assembly_views
 
 
 def _collect_interior_qa_images(
@@ -909,11 +1058,12 @@ def collect_job_report_payload(
     *,
     qa_run_id: str | None = "latest",
     interior_qa_run_id: str | None = "latest",
+    assembly_sanity_run_id: str | None = None,
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
     background_quality_report_path: str | None = None,
 ) -> dict[str, Any]:
-    """Collect safe machine reports and visual evidence for one PDF presentation scope."""
+    """Collect safe report evidence, including an optional exact assembly-sanity run."""
 
     if scope not in REPORT_SCOPES:
         raise ValueError(f"scope must be one of {sorted(REPORT_SCOPES)}")
@@ -962,6 +1112,23 @@ def collect_job_report_payload(
         ):
             _collect_json_source(root, key, root / relative, documents, sources)
 
+    resolved_assembly_sanity_run_id: str | None = None
+    assembly_sanity_views: list[dict[str, Any]] = []
+    if assembly_sanity_run_id is not None and scope in {"build", "qa", "full"}:
+        assembly_sanity_views = _collect_exact_assembly_sanity_run(
+            root,
+            assembly_sanity_run_id,
+            documents,
+            sources,
+            warnings,
+        )
+        if not assembly_sanity_views:
+            raise ValueError(
+                "Explicit assembly-sanity run is incomplete, stale, or unavailable: "
+                f"{assembly_sanity_run_id}"
+            )
+        resolved_assembly_sanity_run_id = assembly_sanity_run_id
+
     run_id: str | None = None
     run_dir: Path | None = None
     resolved_interior_qa_run_id: str | None = None
@@ -982,14 +1149,21 @@ def collect_job_report_payload(
             ):
                 _collect_json_source(root, key, run_dir / filename, documents, sources)
             assert run_id is not None
-            _collect_qa_companion_sources(
+            companion_views = _collect_qa_companion_sources(
                 root,
                 run_id,
                 run_dir,
                 documents,
                 sources,
                 warnings,
+                collect_assembly=assembly_sanity_run_id is None,
             )
+            if not assembly_sanity_views and companion_views:
+                assembly_sanity_views = companion_views
+                assembly_report = documents.get("assembly_sanity_report") or {}
+                resolved_assembly_sanity_run_id = str(
+                    assembly_report.get("run_id") or ""
+                ) or None
         resolved_interior_qa_run_id, interior_qa_run_dir = _resolve_interior_qa_run(
             root,
             interior_qa_run_id,
@@ -1096,10 +1270,12 @@ def collect_job_report_payload(
             "preview": str(preview) if preview else None,
             "material_swatches": swatches,
             "qa_passes": qa_images,
+            "assembly_sanity_views": assembly_sanity_views,
             "interior_qa_contact_sheets": interior_qa_images,
         },
         "qa_run_id": run_id,
         "interior_qa_run_id": resolved_interior_qa_run_id,
+        "assembly_sanity_run_id": resolved_assembly_sanity_run_id,
         "optimization_run_id": resolved_optimization_run_id,
         "package_id": resolved_package_id,
         "handoff_id": resolved_handoff_id,
@@ -1128,18 +1304,20 @@ def generate_job_pdf_report(
     *,
     qa_run_id: str | None = "latest",
     interior_qa_run_id: str | None = "latest",
+    assembly_sanity_run_id: str | None = None,
     optimization_run_id: str | None = "latest",
     package_id: str | None = "latest",
     background_quality_report_path: str | None = None,
     output_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Generate one atomic human-readable PDF without changing machine report sources."""
+    """Generate one atomic PDF from canonical JSON and optional assembly review evidence."""
 
     payload = collect_job_report_payload(
         job_id,
         scope,
         qa_run_id=qa_run_id,
         interior_qa_run_id=interior_qa_run_id,
+        assembly_sanity_run_id=assembly_sanity_run_id,
         optimization_run_id=optimization_run_id,
         package_id=package_id,
         background_quality_report_path=background_quality_report_path,
@@ -1165,6 +1343,7 @@ def generate_job_pdf_report(
         source_fingerprint=payload["source_fingerprint"],
         qa_run_id=payload["qa_run_id"],
         interior_qa_run_id=payload["interior_qa_run_id"],
+        assembly_sanity_run_id=payload["assembly_sanity_run_id"],
         optimization_run_id=payload["optimization_run_id"],
         package_id=payload["package_id"],
         font=str(render_metadata["font"]),
@@ -1182,6 +1361,7 @@ def generate_job_pdf_report(
         "pdf_sha256": manifest.pdf_sha256,
         "source_fingerprint": manifest.source_fingerprint,
         "interior_qa_run_id": manifest.interior_qa_run_id,
+        "assembly_sanity_run_id": payload["assembly_sanity_run_id"],
         "optimization_run_id": manifest.optimization_run_id,
         "package_id": manifest.package_id,
         "source_count": len(manifest.sources),

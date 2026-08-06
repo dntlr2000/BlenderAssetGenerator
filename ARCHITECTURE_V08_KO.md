@@ -76,7 +76,8 @@ V0.8은 모델링 파이프라인을 둘로 복제하지 않는다. 동일한 V0
 
 ```text
 standard
-└─ 기존 proxy/detail/material/QA/package 일반 검토와 전용 승인 유지
+└─ proxy/detail validation 뒤 5-view host·agent geometry review를 추가하고
+   기존 material/QA/package 일반 검토와 전용 승인 유지
 
 background_exterior + preview_only
 └─ reference analysis
@@ -85,6 +86,8 @@ background_exterior + preview_only
    → bounded pre-QA fit diagnostic 최대 2회
    → 선택 candidate strict validation 및 canonical promotion 최대 1회
    → build/render/inspect/validate
+   → asset-local 5-view geometry host render
+   → agent geometry visual review
    → 로컬 결정론적 material/shader
    → canonical 직접 reference QA 정확히 1회
    → execution/quality 분리 report
@@ -158,6 +161,17 @@ workspaces/<job>/workflows/
    ├─ completions/
    ├─ approvals/
    └─ attempts/<step-id>/<attempt-id>.json
+
+workspaces/<job>/qa/assembly_sanity/runs/<run-id>/
+├─ plan.json
+├─ render_manifest.json
+├─ report.json
+├─ visual_review.json              새 workflow의 agent review가 있을 때
+└─ views/<front|right|top|rear|oblique>/
+   ├─ beauty.png
+   ├─ silhouette.png
+   ├─ object_id.png
+   └─ wireframe.png
 ```
 
 `request.json`, `routing.json`, `plan.json`은 불변이다. `state.json`은 권위 있는 설계 원본이 아니라 현재 파일·hash·영수증을 다시 읽어 만든 projection이다.
@@ -175,6 +189,42 @@ workspaces/<job>/workflows/
 일반 workflow 승인은 specialized approval을 대체할 수 없다.
 
 사람이 결과를 확인하는 프록시, 상세 메시, 재질, QA, portable package gate 앞에는 기존 canonical JSON과 렌더를 투영한 PDF와 sidecar manifest를 생성한다. PDF는 읽기용이며 상태 판정과 승인은 계속 JSON/hash를 기준으로 한다.
+
+### V0.4 다각도 형상 검토 단계
+
+새로 계획되는 프록시·상세·배경 geometry flow와 기존 자산의 `spatial_v1` geometry
+revision flow는 validation 뒤에 두 단계를 추가한다.
+
+1. `host`의 `run_geometry_multiview_review`가 ModelingPlan의 asset-local assembly
+   frame으로 임시 `front`, `right`, `top`, `rear`, `oblique` 카메라를 만들고 각
+   시점에 `beauty`, `silhouette`, `object_id`, `wireframe` 4개 패스를 렌더한다.
+2. `agent`의 `review_geometry_multiview`가 다섯 시점의 beauty/wireframe을 실제로
+   읽고 exact plan·manifest·report hash에 결속된
+   `GeometryMultiviewVisualReview 0.6.0`을 작성한다.
+
+임시 카메라는 authoring `.blend`에 저장되지 않는다. target은
+모든 ModelingPlan `scope_role=primary|supporting`과
+`assembly_role=root|attached`의 합집합이며, 따라서 primary/supporting
+`free_standing` 객체도 포함한다. 한 시점에서 보이지 않는 target은 occlusion
+advisory일 뿐이고, 모든 시점에서 사라진 target이나 필수 assembly 관계 실패가
+구조적 finding으로 승격된다.
+
+agent 판정 범위는 cross-view shape coherence, proportion, orientation, assembly와
+명백한 topology artifact다. 보정된 각도별 reference set이 없으므로 side/rear
+reference likeness는 `unscorable`이며 canonical V0.6의 고정 reference camera,
+`overall_direct_score`, 정확히 7개인 pass set은 그대로 유지한다. 형상 검토는
+bounded parametric V0.4 revision 또는 manual redesign review를 권고할 수 있으나
+`advisory_only=true`, `automatic_revision_authorized=false`이며 어떤 approval도
+생성하거나 소비하지 않는다.
+
+새로 저작된 `spatial_v1` 자산의 manual one-shot guarded revision은 변경 전후의
+fresh five-view terminal을 비교하며 structural regression을 veto로 사용해 rollback한다.
+현재 bounded convergence session의 plan/receipt/audit에는 이 veto가 연결되어 있지
+않으므로 authored `spatial_v1`에서는 planning과 run을 fail-closed하고 manual one-shot을
+요구한다. legacy/non-spatial 경로의 fixed-camera 동작은 유지한다. 기존 job과 이미
+계획된 workflow는 자동 migration하지 않고, evidence가 없으면 report/PDF에서 omit,
+`not_applicable` 또는 unavailable로 처리한다. PDF는 다각도 이미지를 포함하는
+projection일 뿐 machine-readable JSON과 exact hash가 authoritative하다.
 
 ## 신선도와 완료 판정
 
@@ -260,15 +310,15 @@ silhouette mask에서 제외되어 넓은 ground plane이 점수를 왜곡하지
 - `qa_review`
 - `final_package`
 
-기본 workflow PDF 위치:
+새로 계획된 workflow의 PDF 위치:
 
 ```text
-workspaces/<job>/reports/pdf/proxy_report.pdf
-workspaces/<job>/reports/pdf/detail_report.pdf
-workspaces/<job>/reports/pdf/material_report.pdf
-workspaces/<job>/reports/pdf/qa_report.pdf
-workspaces/<job>/reports/pdf/portable_report.pdf
+workspaces/<job>/workflows/<workflow-id>/artifacts/pdf/<report-key>.pdf
+workspaces/<job>/workflows/<workflow-id>/artifacts/pdf/<report-key>.manifest.json
 ```
+
+독립 `report-pdf` 명령의 기본 출력은 계속 `workspaces/<job>/reports/pdf/`를 사용할
+수 있지만, workflow gate는 workflow-owned PDF와 sidecar의 exact hash에 결속된다.
 
 전용 승인 gate:
 
@@ -278,6 +328,11 @@ workspaces/<job>/reports/pdf/portable_report.pdf
 - `optimization`: 표시된 LOD/collider/consolidation plan SHA-256 승인
 
 V0.8은 승인을 생성하거나 추론하지 않는다.
+
+다각도 geometry agent의 completion marker나 `v04_revision_recommended` /
+`v04_redesign_review_required` 결과도 승인으로 해석하지 않는다. 이는 exact evidence를
+읽었다는 기록과 수동 후속 조치 권고이며 canonical geometry 변경 권한은 별도 계약을
+따른다.
 
 `background_exterior`는 일반 검토 영수증을 자동 생성하는 방식이 아니다. 빠른 계획에서 proxy/detail/swatch/QA/final-package 일반 gate 자체를 생략할 뿐이다. InteriorScope, interior-QA camera plan, guarded V0.6 revision, measured-view replacement, V0.7 optimization plan, destination handoff 같은 전용 exact-hash 승인은 생략하거나 일반 승인으로 대체할 수 없다.
 

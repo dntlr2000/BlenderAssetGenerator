@@ -26,6 +26,7 @@ from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
 from codex_blender_modeler.qa.diagnostic_models import (
     AssemblyDiagnosticEvidence,
     AssemblyMultiviewBundleEvidence,
+    AuthoringRecommendation,
     BoundedCameraDelta,
     CameraProbeResult,
     DiagnosticAttribution,
@@ -166,6 +167,31 @@ def _author_material_candidate(root: Path, state) -> object:
         "material.author",
         input_fingerprint=str(current.input_fingerprint),
         note="Authored the exact local procedural material candidate.",
+    )
+
+
+def _author_geometry_multiview_review(root: Path, state) -> object:
+    """Complete the lifecycle fixture's workflow-owned visual-review agent step."""
+
+    step = _plan_step(
+        root,
+        state.workflow_id,
+        "background_geometry.geometry_multiview_visual_review",
+    )
+    output = root / str(step["outputs"][0]["path"])
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text('{"fixture":"visual-review"}\n', encoding="utf-8")
+    current = next(
+        item
+        for item in state.steps
+        if item.step_id == "background_geometry.geometry_multiview_visual_review"
+    )
+    return complete_workflow_step(
+        state.job_id,
+        state.workflow_id,
+        current.step_id,
+        input_fingerprint=str(current.input_fingerprint),
+        note="Inspected all five lifecycle fixture views.",
     )
 
 
@@ -390,13 +416,21 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         status="unscorable",
         camera_probes=[probe_result],
         assembly_evidence=AssemblyDiagnosticEvidence(
-            limitations=["Assembly evidence is not included in this lifecycle fixture."]
+            status="not_available",
+            limitations=[
+                "No exact run-owned five-view Blender assembly evaluation is available."
+            ],
         ),
         attribution=DiagnosticAttribution(
             classification="unscorable",
             confidence=0.0,
             baseline_probe_id="baseline",
             reasons=["Lifecycle fixture has no semantic evidence."],
+        ),
+        authoring_recommendation=AuthoringRecommendation(
+            action="additional_evidence_required",
+            reason_ids=["attribution.unscorable"],
+            rationale=["Lifecycle fixture has no semantic evidence."],
         ),
         limitations=["Lifecycle fixture has no semantic evidence."],
         generated_at=datetime.now(UTC),
@@ -439,6 +473,14 @@ def _install_fake_blender_host(
     """Replace Blender-heavy host calls while preserving lifecycle host operations."""
 
     original = orchestration_service._execute_host_tool
+    original_json_semantics = orchestration_service._validate_known_json_contract
+
+    def validate_json_semantics(root, requirement, payload) -> None:
+        """Bypass only synthetic multi-view JSON while retaining all other contracts."""
+
+        if ".geometry_multiview." in requirement.artifact_id:
+            return
+        original_json_semantics(root, requirement, payload)
 
     def execute(root, workflow_root, request, step, *, input_fingerprint) -> None:
         """Produce deterministic fixtures or delegate contract lifecycle operations."""
@@ -487,6 +529,18 @@ def _install_fake_blender_host(
                 '{"ok":true,"errors":[],"warnings":[]}\n',
                 encoding="utf-8",
             )
+            return
+        if tool == "run_geometry_multiview_review":
+            for requirement in step.outputs:
+                output = root / requirement.path
+                output.parent.mkdir(parents=True, exist_ok=True)
+                if output.suffix.lower() == ".png":
+                    Image.new("RGB", (32, 32), (90, 110, 130)).save(output)
+                else:
+                    output.write_text(
+                        '{"fixture":"geometry-multiview"}\n',
+                        encoding="utf-8",
+                    )
             return
         if tool == "inspect_materials":
             (root / "reports" / "material_validation.json").write_text(
@@ -601,6 +655,11 @@ def _install_fake_blender_host(
     monkeypatch.setattr(orchestration_service, "_execute_host_tool", execute)
     monkeypatch.setattr(
         orchestration_service,
+        "_validate_known_json_contract",
+        validate_json_semantics,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
         "collect_source_provenance",
         lambda *_args, **_kwargs: SimpleNamespace(
             source_fingerprint="a" * 64,
@@ -631,6 +690,12 @@ def _fast_workflow_to_material_author(
     root = workspace / state.job_id
     state = _author_modeling_plan(root, state)
     state = _author_background_scene(root, state)
+    state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=64)
+    assert (
+        state.current_step_id
+        == "background_geometry.geometry_multiview_visual_review"
+    )
+    state = _author_geometry_multiview_review(root, state)
     state = resume_workflow(state.job_id, state.workflow_id, max_host_steps=64)
     assert state.current_step_id == "material.author"
     return root, state
