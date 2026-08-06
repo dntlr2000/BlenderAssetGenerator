@@ -13,6 +13,7 @@ from typing import Any
 from uuid import uuid4
 
 from ..config import get_settings, load_feature_config
+from ..external_intake.models import ExternalAssetManifest
 from ..optimization.io import (
     job_relative,
     load_model,
@@ -23,7 +24,7 @@ from ..optimization.io import (
 )
 from ..packaging.models import ExportPackageManifest, RoundTripValidation
 from ..validation import load_scene_spec
-from ..workspace import job_dir, sha256_file
+from ..workspace import file_exists, job_dir, native_io_path, sha256_file
 from .models import (
     AssemblyManifest,
     AssemblyNode,
@@ -102,10 +103,65 @@ def _require_profile(profile_id: str) -> str:
 def _is_link_like(path: Path) -> bool:
     """Detect symbolic links and Windows junctions before copying or hashing content."""
 
-    if path.is_symlink():
+    native = native_io_path(path)
+    if os.path.islink(native):
         return True
-    junction_test = getattr(path, "is_junction", None)
-    return bool(junction_test()) if callable(junction_test) else False
+    junction_test = getattr(os.path, "isjunction", None)
+    return bool(junction_test(native)) if callable(junction_test) else False
+
+
+def _is_directory(path: Path) -> bool:
+    """Check one directory through the Windows extended-length path representation."""
+
+    return os.path.isdir(native_io_path(path))
+
+
+def _file_size(path: Path) -> int:
+    """Read one file size without truncating a valid extended Windows path."""
+
+    return int(os.stat(native_io_path(path)).st_size)
+
+
+def _copy_file(source: Path, target: Path) -> None:
+    """Copy one file while preserving metadata and supporting extended Windows paths."""
+
+    os.makedirs(native_io_path(target.parent), exist_ok=True)
+    shutil.copy2(native_io_path(source), native_io_path(target))
+
+
+def _relative_posix(root: Path, path: Path) -> str:
+    """Return one lexical envelope-relative POSIX path after containment verification."""
+
+    absolute_root = Path(os.path.abspath(os.fspath(root.expanduser())))
+    absolute_path = Path(os.path.abspath(os.fspath(path.expanduser())))
+    try:
+        return absolute_path.relative_to(absolute_root).as_posix()
+    except ValueError as exc:
+        raise ValueError("handoff path escapes its declared root") from exc
+
+
+def _walk_regular_files(root: Path) -> list[Path]:
+    """Enumerate regular files deterministically through extended Windows paths."""
+
+    native_root = native_io_path(root)
+    if not os.path.isdir(native_root):
+        raise FileNotFoundError(root)
+    files: list[Path] = []
+    for current, directory_names, file_names in os.walk(native_root, followlinks=False):
+        directory_names.sort()
+        file_names.sort()
+        for name in directory_names:
+            relative = os.path.relpath(os.path.join(current, name), native_root)
+            candidate = root.joinpath(*Path(relative).parts)
+            if _is_link_like(candidate):
+                raise RuntimeError("handoff tree contains a link-like directory")
+        for name in file_names:
+            relative = os.path.relpath(os.path.join(current, name), native_root)
+            candidate = root.joinpath(*Path(relative).parts)
+            if _is_link_like(candidate) or not file_exists(candidate):
+                raise RuntimeError("handoff tree contains a non-regular file")
+            files.append(candidate)
+    return files
 
 
 def _media_type(path: Path) -> str:
@@ -138,20 +194,15 @@ def _receipt(
 ) -> HandoffFileReceipt:
     """Create one exact envelope-relative receipt for an existing regular file."""
 
-    resolved_root = envelope_root.resolve()
-    resolved = path.resolve()
-    try:
-        relative = resolved.relative_to(resolved_root).as_posix()
-    except ValueError as exc:
-        raise ValueError("handoff receipt path escapes its envelope") from exc
-    if _is_link_like(path) or not path.is_file():
+    relative = _relative_posix(envelope_root, path)
+    if _is_link_like(path) or not file_exists(path):
         raise FileNotFoundError(f"handoff receipt is missing or link-like: {relative}")
     return HandoffFileReceipt(
         file_id=_file_id(kind, relative),
         kind=kind,  # type: ignore[arg-type]
         path=relative,
         sha256=sha256_file(path),
-        byte_size=path.stat().st_size,
+        byte_size=_file_size(path),
         media_type=_media_type(path),
     )
 
@@ -164,13 +215,13 @@ def _source_artifact(root: Path, path: Path, kind: str) -> SourceArtifact:
         resolved.relative_to(root.resolve())
     except ValueError as exc:
         raise ValueError("source handoff artifact escapes the job workspace") from exc
-    if _is_link_like(path) or not path.is_file():
+    if _is_link_like(path) or not file_exists(path):
         raise FileNotFoundError(path)
     return SourceArtifact(
         kind=kind,  # type: ignore[arg-type]
         path=job_relative(root, path),
         sha256=sha256_file(path),
-        byte_size=path.stat().st_size,
+        byte_size=_file_size(path),
     )
 
 
@@ -199,7 +250,7 @@ def _verify_source_package(
     """Verify a complete package, all receipts, containment, and untracked-file absence."""
 
     package_root = _package_directory(root, profile_id, package_id)
-    if _is_link_like(package_root) or not package_root.is_dir():
+    if _is_link_like(package_root) or not _is_directory(package_root):
         raise FileNotFoundError(f"portable package is missing or link-like: {package_id}")
     manifest_path = package_root / "package_manifest.json"
     package = load_model(manifest_path, ExportPackageManifest)
@@ -221,24 +272,21 @@ def _verify_source_package(
             path.relative_to(package_root.resolve())
         except ValueError as exc:
             raise ValueError(f"package file escapes its package root: {item.id}") from exc
-        if _is_link_like(path) or not path.is_file():
+        if _is_link_like(path) or not file_exists(path):
             raise FileNotFoundError(f"package dependency is missing or link-like: {item.id}")
-        if path.stat().st_size != item.byte_size or sha256_file(path) != item.sha256:
+        if _file_size(path) != item.byte_size or sha256_file(path) != item.sha256:
             raise RuntimeError(f"package receipt changed: {item.id}")
         verified[item.id] = path
 
     actual = {
-        path.resolve()
-        for path in package_root.rglob("*")
-        if path.is_file() and not _is_link_like(path)
+        _relative_posix(package_root, path) for path in _walk_regular_files(package_root)
     }
-    if any(_is_link_like(path) for path in package_root.rglob("*")):
-        raise RuntimeError("portable package contains a link-like entry")
-    tracked = {path.resolve() for path in verified.values()}
-    untracked = actual - tracked - {manifest_path.resolve()}
+    tracked = {
+        _relative_posix(package_root, path) for path in verified.values()
+    }
+    untracked = actual - tracked - {_relative_posix(package_root, manifest_path)}
     if untracked:
-        names = sorted(path.relative_to(package_root.resolve()).as_posix() for path in untracked)
-        raise RuntimeError(f"portable package contains untracked files: {names}")
+        raise RuntimeError(f"portable package contains untracked files: {sorted(untracked)}")
     if tracked - actual:
         raise RuntimeError("portable package has receipts without files")
     return package_root, manifest_path, package, verified
@@ -272,7 +320,7 @@ def _verify_roundtrip(
         evidence_path.relative_to(roundtrip_root.resolve())
     except ValueError as exc:
         raise ValueError("round-trip evidence escapes its validation directory") from exc
-    if _is_link_like(evidence_path) or not evidence_path.is_file():
+    if _is_link_like(evidence_path) or not file_exists(evidence_path):
         raise FileNotFoundError("round-trip evidence is missing or link-like")
     if sha256_file(evidence_path) != report.imported_inventory.sha256:
         raise RuntimeError("round-trip evidence hash no longer matches its report")
@@ -299,20 +347,18 @@ def _snapshot_package(package_root: Path) -> dict[str, tuple[str, int]]:
     """Hash every regular source package file to prove generation caused no mutation."""
 
     snapshot: dict[str, tuple[str, int]] = {}
-    for path in sorted(package_root.rglob("*")):
-        if _is_link_like(path):
-            raise RuntimeError("source package contains a link-like entry")
-        if path.is_file():
-            relative = path.relative_to(package_root).as_posix()
-            snapshot[relative] = (sha256_file(path), path.stat().st_size)
+    for path in _walk_regular_files(package_root):
+        relative = _relative_posix(package_root, path)
+        snapshot[relative] = (sha256_file(path), _file_size(path))
     return snapshot
 
 
 def _write_text(path: Path, value: str) -> None:
     """Write one deterministic UTF-8 text artifact with a final newline."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(value.rstrip() + "\n", encoding="utf-8", newline="\n")
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
+    with open(native_io_path(path), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(value.rstrip() + "\n")
 
 
 def plan_destination_handoff(
@@ -412,17 +458,20 @@ def _copy_verified_package(
     for item in package.files:
         relative = _package_relative_path(package, item.path)
         target = destination.joinpath(*PurePosixPath(relative).parts)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(verified[item.id], target)
-        if target.stat().st_size != item.byte_size or sha256_file(target) != item.sha256:
+        _copy_file(verified[item.id], target)
+        if _file_size(target) != item.byte_size or sha256_file(target) != item.sha256:
             raise RuntimeError(f"copied package receipt failed verification: {item.id}")
         copied[item.id] = target
     copied_manifest = destination / "package_manifest.json"
-    shutil.copy2(manifest_path, copied_manifest)
+    _copy_file(manifest_path, copied_manifest)
     if sha256_file(copied_manifest) != sha256_file(manifest_path):
         raise RuntimeError("copied package manifest does not match the source")
-    actual = {path.resolve() for path in destination.rglob("*") if path.is_file()}
-    expected = {path.resolve() for path in copied.values()} | {copied_manifest.resolve()}
+    actual = {
+        _relative_posix(destination, path) for path in _walk_regular_files(destination)
+    }
+    expected = {
+        _relative_posix(destination, path) for path in copied.values()
+    } | {_relative_posix(destination, copied_manifest)}
     if actual != expected:
         raise RuntimeError("copied package contains unexpected or missing files")
     return copied
@@ -432,7 +481,8 @@ def _json_object(path: Path, label: str) -> dict[str, Any]:
     """Load one required JSON object without accepting arrays or scalar payloads."""
 
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        with open(native_io_path(path), encoding="utf-8") as handle:
+            payload = json.load(handle)
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"invalid {label} JSON: {path.name}") from exc
     if not isinstance(payload, dict):
@@ -443,14 +493,31 @@ def _json_object(path: Path, label: str) -> dict[str, Any]:
 def _optional_json(path: Path) -> dict[str, Any]:
     """Load an optional JSON object or return an empty mapping when it is absent."""
 
-    return _json_object(path, path.name) if path.is_file() else {}
+    return _json_object(path, path.name) if file_exists(path) else {}
 
 
 def _canonical_parent_map(root: Path, package: ExportPackageManifest) -> dict[str, str]:
-    """Read advisory SceneSpec parent relationships only when source provenance is current."""
+    """Read advisory parent relationships from the current canonical source contract."""
 
-    scene_path = resolve_inside(root, package.source.scene_spec.path, "source SceneSpec")
-    if not scene_path.is_file() or sha256_file(scene_path) != package.source.scene_spec.sha256:
+    if package.source.source_kind == "external_static_asset":
+        artifact = package.source.external_asset_manifest
+        if artifact is None:
+            return {}
+        manifest_path = resolve_inside(root, artifact.path, "external asset manifest")
+        if not file_exists(manifest_path) or sha256_file(manifest_path) != artifact.sha256:
+            return {}
+        with open(native_io_path(manifest_path), encoding="utf-8") as handle:
+            manifest = ExternalAssetManifest.model_validate_json(handle.read())
+        return {
+            item.semantic_id: item.parent_semantic_id
+            for item in manifest.objects
+            if item.parent_semantic_id is not None
+        }
+    artifact = package.source.scene_spec
+    if artifact is None:
+        return {}
+    scene_path = resolve_inside(root, artifact.path, "source SceneSpec")
+    if not file_exists(scene_path) or sha256_file(scene_path) != artifact.sha256:
         return {}
     spec = load_scene_spec(scene_path)
     return {
@@ -953,14 +1020,14 @@ def _copy_import_schemas(destination: Path) -> list[Path]:
     """Copy strict destination result schemas into the movable handoff envelope."""
 
     source_root = get_settings().repo_root / "schemas"
-    destination.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(destination), exist_ok=True)
     copied: list[Path] = []
     for filename in IMPORT_SCHEMA_FILENAMES:
         source = source_root / filename
-        if not source.is_file():
+        if not file_exists(source):
             raise FileNotFoundError(f"required destination schema is missing: {filename}")
         target = destination / filename
-        shutil.copy2(source, target)
+        _copy_file(source, target)
         copied.append(target)
     return copied
 
@@ -1147,8 +1214,8 @@ def generate_destination_handoff(
         evidence_root.mkdir()
         copied_roundtrip = evidence_root / "roundtrip_validation.json"
         copied_evidence = evidence_root / "roundtrip_evidence.json"
-        shutil.copy2(report_path, copied_roundtrip)
-        shutil.copy2(evidence_path, copied_evidence)
+        _copy_file(report_path, copied_roundtrip)
+        _copy_file(evidence_path, copied_evidence)
         if sha256_file(copied_roundtrip) != plan.roundtrip_validation.sha256:
             raise RuntimeError("copied round-trip validation hash mismatch")
         if sha256_file(copied_evidence) != plan.roundtrip_evidence.sha256:
@@ -1229,11 +1296,12 @@ def generate_destination_handoff(
         write_model(material_path, materials)
         write_model(checklist_path, checklist)
         prompt_source = get_settings().repo_root / "prompts" / "codex_destination_import.md"
-        if not prompt_source.is_file():
+        if not file_exists(prompt_source):
             raise FileNotFoundError("destination Codex prompt template is missing")
         prompt_path = handoff_root / "codex_import_prompt.md"
-        shutil.copy2(prompt_source, prompt_path)
-        prompt_text = prompt_path.read_text(encoding="utf-8")
+        _copy_file(prompt_source, prompt_path)
+        with open(native_io_path(prompt_path), encoding="utf-8") as handle:
+            prompt_text = handle.read()
         required_prompt_tokens = {
             "<PACKAGE_PATH>",
             "<DESTINATION_PROJECT_ROOT>",
@@ -1316,9 +1384,12 @@ def generate_destination_handoff(
         )
         manifest_hash = sha256_file(manifest_output)
         actual_files = sorted(
-            path
-            for path in staging.rglob("*")
-            if path.is_file() and path.name != "destination_handoff_validation.json"
+            (
+                path
+                for path in _walk_regular_files(staging)
+                if path.name != "destination_handoff_validation.json"
+            ),
+            key=lambda path: _relative_posix(staging, path),
         )
         file_receipts = [
             _receipt(
@@ -1357,7 +1428,7 @@ def generate_destination_handoff(
         write_model(staging / "destination_handoff_validation.json", validation)
         if source_snapshot != _snapshot_package(package_root):
             raise RuntimeError("source package changed during handoff generation")
-        if not pdf_path.is_file() or not sidecar_path.is_file():
+        if not file_exists(pdf_path) or not file_exists(sidecar_path):
             raise RuntimeError("handoff PDF or sidecar was not generated")
         os.replace(staging, output)
         return validation
@@ -1388,9 +1459,9 @@ def _verify_receipt(envelope: Path, item: HandoffFileReceipt) -> Path:
     """Verify one final envelope receipt without following paths outside its root."""
 
     path = resolve_inside(envelope, item.path, f"handoff file {item.file_id}")
-    if _is_link_like(path) or not path.is_file():
+    if _is_link_like(path) or not file_exists(path):
         raise FileNotFoundError(f"handoff file is missing or link-like: {item.path}")
-    if path.stat().st_size != item.byte_size or sha256_file(path) != item.sha256:
+    if _file_size(path) != item.byte_size or sha256_file(path) != item.sha256:
         raise RuntimeError(f"handoff file receipt changed: {item.path}")
     return path
 
@@ -1407,7 +1478,7 @@ def validate_destination_handoff(
     _require_handoff_feature()
     root = job_dir(job_id)
     envelope = _envelope_paths(root, profile_id, package_id, handoff_id)
-    if _is_link_like(envelope) or not envelope.is_dir():
+    if _is_link_like(envelope) or not _is_directory(envelope):
         raise FileNotFoundError(f"destination handoff is missing or link-like: {handoff_id}")
     validation_path = envelope / "destination_handoff_validation.json"
     validation = load_model(validation_path, DestinationHandoffValidation)
@@ -1418,15 +1489,12 @@ def validate_destination_handoff(
         or validation.handoff_id != handoff_id
     ):
         raise ValueError("handoff validation identity does not match the request")
-    verified = {_verify_receipt(envelope, item).resolve() for item in validation.files}
-    actual = {
-        path.resolve()
-        for path in envelope.rglob("*")
-        if path.is_file() and not _is_link_like(path)
+    verified = {
+        _relative_posix(envelope, _verify_receipt(envelope, item))
+        for item in validation.files
     }
-    if any(_is_link_like(path) for path in envelope.rglob("*")):
-        raise RuntimeError("handoff envelope contains a link-like entry")
-    if actual != verified | {validation_path.resolve()}:
+    actual = {_relative_posix(envelope, path) for path in _walk_regular_files(envelope)}
+    if actual != verified | {_relative_posix(envelope, validation_path)}:
         raise RuntimeError("handoff envelope contains untracked or missing files")
 
     handoff_root = envelope / "codex_handoff"

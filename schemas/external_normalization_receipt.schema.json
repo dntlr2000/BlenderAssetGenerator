@@ -1,0 +1,100 @@
+{
+  "additionalProperties": false,
+  "description": "Bind one consumed approval to exact normalized outputs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "approval_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Sha256",
+      "type": "string"
+    },
+    "source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Sha256",
+      "type": "string"
+    },
+    "material_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Material Plan Sha256",
+      "type": "string"
+    },
+    "shader_recipe_sha256": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Shader Recipe Sha256",
+      "type": "object"
+    },
+    "normalized_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Normalized Blend Sha256",
+      "type": "string"
+    },
+    "normalization_evidence_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Normalization Evidence Sha256",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "source_contract_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Contract Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "status": {
+      "const": "complete",
+      "default": "complete",
+      "title": "Status",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "job_id",
+    "plan_sha256",
+    "approval_sha256",
+    "source_sha256",
+    "material_plan_sha256",
+    "shader_recipe_sha256",
+    "normalized_blend_sha256",
+    "normalization_evidence_sha256",
+    "manifest_sha256",
+    "source_contract_fingerprint",
+    "build_fingerprint",
+    "completed_at"
+  ],
+  "title": "ExternalNormalizationReceipt",
+  "type": "object"
+}

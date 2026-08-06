@@ -96,6 +96,20 @@ def verify_source(plan: dict[str, Any], scene: bpy.types.Scene) -> dict[str, Any
         provenance.get("scene_spec_sha256") or ""
     ).lower():
         raise RuntimeError("Optimization plan SceneSpec hash does not match the source scene")
+    expected_external = None
+    if isinstance(source, dict):
+        external_manifest = source.get("external_asset_manifest")
+        if isinstance(external_manifest, dict):
+            expected_external = external_manifest.get("sha256")
+    if expected_external:
+        actual_external = provenance.get("external_asset_manifest_sha256")
+        if str(actual_external or "") not in {
+            str(expected_external),
+            "pending-host-manifest",
+        }:
+            raise RuntimeError(
+                "Optimization plan external-manifest binding does not match the source scene"
+            )
     return provenance
 
 
@@ -1412,6 +1426,25 @@ def main() -> None:
     )
     scene["cbm_portable_source_scene_spec_sha256"] = str(
         provenance.get("scene_spec_sha256") or ""
+    )
+    scene["cbm_portable_source_kind"] = str(
+        provenance.get("source_kind") or "scene_spec"
+    )
+    source_contract = plan.get("source")
+    external_manifest_contract = (
+        source_contract.get("external_asset_manifest")
+        if isinstance(source_contract, dict)
+        else None
+    )
+    expected_external_manifest_sha256 = (
+        external_manifest_contract.get("sha256")
+        if isinstance(external_manifest_contract, dict)
+        else None
+    )
+    scene["cbm_portable_source_external_manifest_sha256"] = str(
+        expected_external_manifest_sha256
+        or provenance.get("external_asset_manifest_sha256")
+        or ""
     )
     output_blend.parent.mkdir(parents=True, exist_ok=True)
     temporary = output_blend.with_name(output_blend.stem + ".partial.blend")

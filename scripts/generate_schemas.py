@@ -41,6 +41,13 @@ from codex_blender_modeler.background_quality.models import (
 )
 from codex_blender_modeler.baking.models import BakeManifest
 from codex_blender_modeler.constraints.models import ConstraintSet, ConstraintSolution
+from codex_blender_modeler.external_intake.models import (
+    ExternalAssetIntakeApproval,
+    ExternalAssetIntakePlan,
+    ExternalAssetIntakeValidation,
+    ExternalAssetManifest,
+    ExternalNormalizationReceipt,
+)
 from codex_blender_modeler.handoff.models import (
     AssemblyManifest,
     DestinationContext,
@@ -142,6 +149,11 @@ SCHEMAS = {
     "surface_detail_validation.schema.json": SurfaceDetailValidationReport,
     "constraints.schema.json": ConstraintSet,
     "constraint_solution.schema.json": ConstraintSolution,
+    "external_asset_intake_plan.schema.json": ExternalAssetIntakePlan,
+    "external_asset_intake_approval.schema.json": ExternalAssetIntakeApproval,
+    "external_asset_manifest.schema.json": ExternalAssetManifest,
+    "external_normalization_receipt.schema.json": ExternalNormalizationReceipt,
+    "external_asset_intake_validation.schema.json": ExternalAssetIntakeValidation,
     "material_plan.schema.json": MaterialPlan,
     "material_promotion_receipt.schema.json": MaterialPromotionReceipt,
     "material_fidelity_report.schema.json": MaterialFidelityReport,

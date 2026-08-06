@@ -378,8 +378,15 @@ def scene_source_provenance(scene: Any) -> dict[str, Any]:
     )
     return {
         "job_id": scene.get("cbm_job_id"),
+        "source_kind": scene.get("cbm_source_kind") or "scene_spec",
         "scene_spec_version": scene.get("cbm_schema_version"),
         "scene_spec_sha256": scene.get("cbm_scene_spec_sha256"),
+        "external_asset_manifest_sha256": scene.get(
+            "cbm_external_asset_manifest_sha256"
+        ),
+        "external_intake_plan_sha256": scene.get(
+            "cbm_external_intake_plan_sha256"
+        ),
         "camera_fingerprint": scene.get("cbm_camera_fingerprint"),
         "build_fingerprint": build_fingerprint,
         "material_build_fingerprint": scene.get("cbm_material_build_fingerprint"),

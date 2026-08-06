@@ -12,6 +12,12 @@
         "kind": {
           "enum": [
             "scene_spec",
+            "external_asset_manifest",
+            "external_source",
+            "external_dependency",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_normalization_evidence",
             "blend",
             "geometry_payload",
             "material_plan",
@@ -123,8 +129,43 @@
       "additionalProperties": false,
       "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
       "properties": {
+        "source_kind": {
+          "default": "scene_spec",
+          "enum": [
+            "scene_spec",
+            "external_static_asset"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
         "scene_spec": {
-          "$ref": "#/$defs/HashedArtifact"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "external_asset_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "external_source_artifacts": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "External Source Artifacts",
+          "type": "array"
         },
         "blend": {
           "$ref": "#/$defs/HashedArtifact"
@@ -166,7 +207,6 @@
         }
       },
       "required": [
-        "scene_spec",
         "blend",
         "source_fingerprint",
         "build_fingerprint"

@@ -84,3 +84,50 @@ def test_blender_runner_can_request_factory_startup_for_clean_imports(
         "--python-exit-code",
         "1",
     ]
+
+
+def test_blender_runner_can_disable_autoexec_for_untrusted_blend_inputs(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Place Blender safe-mode before an externally supplied blend is loaded."""
+
+    script_dir = tmp_path / "src" / "codex_blender_modeler" / "blender_scripts"
+    script_dir.mkdir(parents=True)
+    (script_dir / "inspect_external_static_asset.py").write_text(
+        "print('ok')", encoding="utf-8"
+    )
+    blender = tmp_path / "blender.exe"
+    blender.write_bytes(b"")
+    source = tmp_path / "manual.blend"
+    source.write_bytes(b"blend")
+    settings = SimpleNamespace(
+        blender_bin=str(blender),
+        repo_root=tmp_path,
+        blender_timeout=10,
+    )
+    monkeypatch.setattr(blender_runner, "get_settings", lambda: settings)
+    monkeypatch.setattr(blender_runner, "executable_exists", lambda _value: True)
+    captured = {}
+
+    def fake_run(command, **_kwargs):
+        """Capture the safe external-source Blender command without execution."""
+
+        captured["command"] = command
+        return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    blender_runner.run_blender(
+        "inspect_external_static_asset.py",
+        ["--source", str(source)],
+        blend_file=source,
+        disable_autoexec=True,
+    )
+
+    assert captured["command"][:5] == [
+        str(blender),
+        "--disable-autoexec",
+        "--background",
+        "--python-exit-code",
+        "1",
+    ]
+    assert captured["command"][5] == str(source)

@@ -18,7 +18,13 @@ from codex_blender_modeler.handoff import (
     validate_destination_handoff,
 )
 from codex_blender_modeler.handoff.models import HandoffFileReceipt
-from codex_blender_modeler.handoff.service import _build_material_mapping
+from codex_blender_modeler.handoff.service import (
+    _build_material_mapping,
+    _copy_file,
+    _receipt,
+    _verify_receipt,
+    _walk_regular_files,
+)
 from codex_blender_modeler.optimization.models import (
     Bounds3D,
     HashedArtifact,
@@ -44,6 +50,56 @@ def _write_json(path: Path, payload: dict) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def test_handoff_receipts_support_extended_windows_paths(tmp_path: Path) -> None:
+    """Keep immutable receipt verification valid beyond the legacy 260-character limit."""
+
+    envelope = tmp_path / "envelope"
+    target = envelope
+    while len(str(target / "destination_import_validation.schema.json")) < 275:
+        target /= "long-handoff-segment"
+    target /= "destination_import_validation.schema.json"
+    source = tmp_path / "source.schema.json"
+    source.write_text('{"type":"object"}\n', encoding="utf-8")
+    _copy_file(source, target)
+    receipt = _receipt(envelope, target, "import_schema")
+    assert _verify_receipt(envelope, receipt) == target
+    assert target in _walk_regular_files(envelope)
+
+
+def test_workspace_audit_scans_extended_windows_json_paths(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Read deeply nested handoff JSON without misclassifying it as an invalid contract."""
+
+    workspace = tmp_path / "workspaces"
+    root = workspace / "long_path_asset"
+    target = root / "exports" / "destination_handoffs"
+    while len(str(target / "destination_import_validation.schema.json")) < 275:
+        target /= "long-handoff-segment"
+    target /= "destination_import_validation.schema.json"
+    source = tmp_path / "source.schema.json"
+    source.write_text('{"type":"object"}\n', encoding="utf-8")
+    _copy_file(source, target)
+    settings = Settings(
+        repo_root=tmp_path,
+        workspace_root=workspace,
+        blender_bin=str(tmp_path / "blender.exe"),
+        codex_bin="codex",
+        blender_timeout=900,
+    )
+    monkeypatch.setattr(stabilization_service, "get_settings", lambda: settings)
+
+    findings = stabilization_service._scan_job_files(  # noqa: SLF001
+        root,
+        root.name,
+        [0],
+        100,
+    )
+
+    assert not any(item.code == "INVALID_JSON_CONTRACT" for item in findings)
 
 
 def _hashed_artifact(path: str, kind: str, digest: str = "a" * 64) -> HashedArtifact:

@@ -109,6 +109,35 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 
 Export/full PDF는 newest valid handoff를 선택된 package에 결속해 표시하고, stability PDF는 audit의 handoff count/valid count와 convergence session count/valid count를 표시한다. Handoff와 convergence PDF도 machine JSON의 파생 보고서이며 판단 입력으로 다시 읽지 않는다.
 
+## Gate 6A — External Static Asset Intake
+
+Host 계약:
+
+- 새 job과 `.blend`/`.fbx`/`.glb` source만 허용하고 `.gltf`와 기존 job은 거부
+- source/dependency exact copy와 SHA-256, plan candidate, material/shader mapping 검증
+- exact intake-plan hash approval의 single-use 소비
+- source, candidate, normalized blend와 receipt 변조를 fail-closed 탐지
+- SceneSpec을 생성하지 않고 `source_kind=external_static_asset` provenance 사용
+- legacy SceneSpec `SourceProvenance` fixture는 계속 로딩
+- V0.9 audit가 current intake를 통과시키고 stale/tampered intake를 실패 처리
+
+Blender 5.0.1 opt-in smoke:
+
+- auto-execution disabled 상태로 직접 만든 `.blend` fixture 검사
+- source `scale_length=0.01`을 meter authoring derivative로 정규화
+- multi-material mesh를 stable single-material semantic submesh로 분리
+- text/action/armature 제거와 one-scene sanitization evidence
+- material identity, hierarchy와 UV 보존
+- V0.7 `portable_gltf` optimization, portable PBR conversion, package 생성
+- clean-import round trip의 semantic/material coverage `1.0 / 1.0`
+
+Handoff와 audit 회귀:
+
+- 외부 source hierarchy/material mapping을 assembly/material handoff에 투영
+- external manifest, normalization receipt와 validation을 package metadata로 snapshot
+- Windows 260자를 넘는 schema/receipt 경로도 읽되 containment/link/hash 검증 유지
+- 원본 source, normalized authoring blend와 package가 후속 audit/handoff에서 변경되지 않음
+
 ## Gate 7 — V0.8/V0.7 회귀와 Blender
 
 - 전체 `pytest`, Ruff, doctor

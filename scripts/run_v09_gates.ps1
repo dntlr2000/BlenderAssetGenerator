@@ -109,6 +109,25 @@ if (-not $SkipCompatibility) {
     Invoke-Uv run cbm blender-compat
 }
 
+if (-not $SkipCompatibility -and -not $SkipV07) {
+    $PreviousExternalIntakeSmoke = $env:CBM_RUN_EXTERNAL_INTAKE_SMOKE
+    try {
+        $env:CBM_RUN_EXTERNAL_INTAKE_SMOKE = "1"
+        Invoke-Uv run pytest -q `
+            tests/test_external_static_asset_intake.py::test_blender_external_intake_splits_materials_and_strips_scripts
+    }
+    finally {
+        if ($null -eq $PreviousExternalIntakeSmoke) {
+            [Environment]::SetEnvironmentVariable(
+                "CBM_RUN_EXTERNAL_INTAKE_SMOKE", $null, "Process"
+            )
+        }
+        else {
+            $env:CBM_RUN_EXTERNAL_INTAKE_SMOKE = $PreviousExternalIntakeSmoke
+        }
+    }
+}
+
 if (-not $SkipV08) {
     $V08Arguments = @()
     if ($SkipV07) { $V08Arguments += "-SkipV07" }

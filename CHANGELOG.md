@@ -2,6 +2,17 @@
 
 ## 0.9.0
 
+- Added External Static Asset Intake for user-authored `.blend`, `.fbx`, and `.glb` static
+  assets. It inspects untrusted sources with Blender auto-execution disabled, copies exact source
+  and image dependencies, records meter conversion and stable semantic/material mappings, and
+  requires a single-use exact plan-hash approval before publishing a script-free normalized
+  authoring derivative.
+- Added alternate V0.7 source provenance for validated external manifests without fabricating a
+  SceneSpec. Multi-material sources become traceable single-material semantic submeshes, master
+  Blender graphs remain in the normalized blend, and V0.7 bakes portable raw PBR outputs before
+  immutable package and clean-import validation. V0.9 audit and Destination Handoff retain the
+  external source hierarchy and exact hashes without claiming destination shader parity.
+
 - Added backward-compatible `spatial_v1` ModelingPlan assembly frames, stable attached-part
   relationships, exact build provenance, Blender root-frame evaluated-bounds inspection, and
   fail-closed structural validation. New workflows prevent single-view screen offsets from

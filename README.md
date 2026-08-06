@@ -18,8 +18,9 @@
 | Workflow orchestration | `0.8.0` |
 | Stabilization evidence | `0.9.0` |
 | Codex Destination Handoff | `0.9.0` |
+| External Static Asset Intake | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 411 tests passed, Ruff passed |
+| 최신 Python 회귀 | 880 passed, 5 skipped; Ruff passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -42,6 +43,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - 기존 V0.8 workflow만 처리하는 single-worker local queue와 immutable attempt receipt
 - exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
 - passed clean-import package에만 생성되는 hash-bound Codex Destination Handoff
+- 수동 제작 `.blend`/`.fbx`/`.glb`를 exact-hash static source로 등록해 V0.7/V0.9에 연결하는 External Static Asset Intake
 - semantic hierarchy, transform, material/PBR, LOD/Collider와 목적지 import 계약
 - 목적지 프로젝트를 수정하기 전에 `import_plan.json`과 사용자 승인을 요구하는 안전 프롬프트
 - authoritative JSON을 기반으로 한 build, material, QA, export, full PDF 보고서
@@ -75,6 +77,7 @@ BlenderAssetGenerator/
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
+│  ├─ external_intake/               V0.9 external static source contract
 │  ├─ stabilization/                 V0.9 probe, audit, queue, PDF
 │  └─ blender_scripts/               whitelisted Blender background scripts
 ├─ examples/                         geometry_showcase, measured_box 등
@@ -478,6 +481,20 @@ InteriorScope, V0.7 optimization, Destination Handoff 또는 package 승인을
 않습니다. 완료 시 authoritative `convergence_report.json`, iteration hash chain,
 사용자용 PDF와 sidecar가 `qa/convergence/<session-id>/` 아래에 남습니다.
 
+## External Static Asset Intake
+
+이 저장소 밖에서 직접 만든 `.blend`, `.fbx` 또는 `.glb` 정적 모델도 새 lowercase
+job으로 등록할 수 있습니다. 원본은 Blender 5 safe mode에서 읽기 전용 검사하고,
+source/dependency SHA-256, meter 변환, semantic/material mapping과 알려진 손실을 담은
+immutable plan을 먼저 만듭니다. 사용자가 exact plan hash를 승인한 뒤에만 script와
+animation을 제거한 normalized authoring `.blend`를 생성합니다.
+
+이 경로는 가짜 SceneSpec을 만들지 않습니다. Blender master material은 normalized
+`.blend`에 보존하고, V0.7에서 실제 graph를 portable raw PBR로 bake한 뒤 package와
+clean-import round trip을 수행합니다. 목적 엔진 shader parity는 여전히 검증하지
+않습니다. 자세한 절차는 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
+참조하세요.
+
 ## V0.9 안정화 표면
 
 ```powershell
@@ -602,6 +619,7 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
 - [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
 - [V0.9 검증 기록](VERIFICATION_V09_KO.md)
+- [External Static Asset Intake](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)
 - [V0.8 아키텍처](ARCHITECTURE_V08_KO.md)
 - [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)
 - [V0.8 테스트 계획](TEST_PLAN_V08_KO.md)

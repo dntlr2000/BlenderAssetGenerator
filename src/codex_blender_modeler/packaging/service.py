@@ -49,7 +49,7 @@ from ..optimization.models import (
 )
 from ..optimization.preflight import load_asset_profile, profile_path
 from ..optimization.provenance import require_unchanged_source
-from ..workspace import job_dir, sha256_file
+from ..workspace import job_dir, native_io_path, sha256_file
 from .material_conversion import (
     MaterialConversionSelection,
     load_portable_material_conversion,
@@ -98,6 +98,14 @@ ABSOLUTE_PATH_AUDIT_SUFFIXES = {
     ".mtl",
     ".obj",
 }
+
+
+def _copyfile_long_path_safe(source: Path, target: Path) -> None:
+    """Copy one package file through native extended paths on Windows."""
+
+    shutil.copyfile(native_io_path(source), native_io_path(target))
+
+
 WINDOWS_ABSOLUTE_PATH_PATTERN = re.compile(
     r"(?i)(?<![a-z0-9_])(?:"
     r"[a-z]:[\\/]+(?:[a-z0-9._ -]+[\\/]+)*[a-z0-9._ -]+"
@@ -378,12 +386,21 @@ def _snapshot_package_metadata(
                 ),
             }
         )
+    if (root / "intake" / "external_asset_manifest.json").is_file():
+        external_sources = {
+            "external_asset_manifest": root / "intake" / "external_asset_manifest.json",
+            "external_normalization_receipt": root / "intake" / "normalization_receipt.json",
+            "external_intake_validation": root / "intake" / "validation.json",
+        }
+        if not all(path.is_file() for path in external_sources.values()):
+            raise RuntimeError("External intake metadata snapshot set is incomplete")
+        sources.update(external_sources)
     snapshots: dict[str, Path] = {}
     for key, source in sources.items():
         if not source.is_file():
             raise FileNotFoundError(source)
         target = metadata_root / f"{key}.json"
-        shutil.copyfile(source, target)
+        _copyfile_long_path_safe(source, target)
         if sha256_file(target) != sha256_file(source):
             raise RuntimeError(f"Portable metadata snapshot hash mismatch: {key}")
         snapshots[key] = target
@@ -747,7 +764,7 @@ def _copy_canonical_image_channels(
         output_root.mkdir(parents=True, exist_ok=False)
         for channel, source_path in sorted(contract.image_channels.items()):
             target = output_root / f"{channel}{source_path.suffix.lower()}"
-            shutil.copyfile(source_path, target)
+            _copyfile_long_path_safe(source_path, target)
             expected = contract.image_channel_hashes[channel]
             if sha256_file(target) != expected:
                 raise RuntimeError(
@@ -789,7 +806,7 @@ def _copy_raw_bakes(
                 continue
             source_path = resolve_inside(root, output.path, "material bake output")
             target = output_root / f"{output.channel}{source_path.suffix.lower()}"
-            shutil.copyfile(source_path, target)
+            _copyfile_long_path_safe(source_path, target)
             if sha256_file(target) != output.sha256:
                 raise RuntimeError(f"Raw texture copy hash mismatch: {target}")
             textures.append(
@@ -872,7 +889,7 @@ def _gltf_packed_textures(
         if "orm" in channels:
             source_path = resolve_inside(root, channels["orm"], "material bake output")
             target = result.package_dir / "raw" / f"orm{source_path.suffix.lower()}"
-            shutil.copyfile(source_path, target)
+            _copyfile_long_path_safe(source_path, target)
             if sha256_file(target) != sha256_file(source_path):
                 raise RuntimeError(f"Raw texture copy hash mismatch: {target}")
             textures.append(
@@ -1038,7 +1055,7 @@ def _copy_conversion_raw_channels(
             f"portable conversion {output.channel} channel",
         )
         target = output_root / f"{output.channel}.png"
-        shutil.copyfile(source, target)
+        _copyfile_long_path_safe(source, target)
         textures.append(
             _conversion_raw_texture(
                 root,

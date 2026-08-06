@@ -38,6 +38,21 @@ from .blender_artifact_runner import (
 from .blender_runner import run_blender
 from .config import get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
+from .external_intake import (
+    approve_external_static_asset_intake as approve_external_static_asset_intake_internal,
+)
+from .external_intake import (
+    get_external_static_asset_intake_status as get_external_static_asset_intake_status_internal,
+)
+from .external_intake import (
+    normalize_external_static_asset as normalize_external_static_asset_internal,
+)
+from .external_intake import (
+    plan_external_static_asset_intake as plan_external_static_asset_intake_internal,
+)
+from .external_intake import (
+    validate_external_static_asset_intake as validate_external_static_asset_intake_internal,
+)
 from .handoff import (
     generate_destination_handoff as generate_destination_handoff_internal,
 )
@@ -131,6 +146,7 @@ from .validation import load_scene_spec
 from .versioning import (
     CONSTRAINT_SCHEMA_VERSION,
     DESTINATION_HANDOFF_SCHEMA_VERSION,
+    EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
@@ -255,6 +271,10 @@ def get_job_status(job_id: str) -> dict:
         "interior_qa_latest": (root / "qa" / "interior" / "latest.json").exists(),
         "optimization_latest": (root / "optimization" / "latest.json").exists(),
         "workflow_latest": (root / "workflows" / "latest.json").exists(),
+        "external_asset_manifest": (
+            root / "intake" / "external_asset_manifest.json"
+        ).exists(),
+        "external_intake_validation": (root / "intake" / "validation.json").exists(),
         "build_pdf": (pdf_root / "build_report.pdf").exists(),
         "material_pdf": (pdf_root / "material_report.pdf").exists(),
         "qa_pdf": (pdf_root / "qa_report.pdf").exists(),
@@ -285,6 +305,7 @@ def get_modeling_capabilities() -> dict:
         "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
         "stabilization_schema_version": STABILIZATION_SCHEMA_VERSION,
         "destination_handoff_schema_version": DESTINATION_HANDOFF_SCHEMA_VERSION,
+        "external_static_asset_schema_version": EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
         "feature_flags": {
             "material_core": feature_config.features.material_core,
             "shader_core": feature_config.features.shader_core,
@@ -313,6 +334,14 @@ def get_modeling_capabilities() -> dict:
             "fbx_interchange",
             "obj_legacy",
         ],
+        "external_static_asset_intake": {
+            "source_formats": ["blend", "fbx", "glb"],
+            "scope": "static mesh and evaluated curve geometry only",
+            "approval": "exact plan SHA-256, explicit, single-use",
+            "multi_material_policy": "derived single-material semantic submeshes",
+            "portable_shader_policy": "preserve master blend and bake raw PBR in V0.7",
+            "excluded": ["rig", "skinning", "animation", "gameplay"],
+        },
         "surface_detail_routing": {
             "modeling_contract": "optional ModelingPlan 0.4.0 fields",
             "representations": ["texture_channels", "baked_decal", "omit"],
@@ -1552,6 +1581,69 @@ def apply_revision_plan(job_id: str) -> dict:
         "report": str(report_path),
         "changes": report["changes"],
     }
+
+
+@mcp.tool()
+def plan_external_static_asset_intake(
+    job_id: str,
+    source_path: str,
+    plan_id: str | None = None,
+) -> dict:
+    """Inspect one external static asset, copy exact evidence, and await approval."""
+
+    return plan_external_static_asset_intake_internal(
+        job_id,
+        Path(source_path),
+        plan_id=plan_id,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def approve_external_static_asset_intake(
+    job_id: str,
+    plan_id: str,
+    plan_sha256: str,
+    approval_note: str,
+) -> dict:
+    """Record one single-use user approval for an exact external-intake plan hash."""
+
+    return approve_external_static_asset_intake_internal(
+        job_id,
+        plan_id,
+        plan_sha256,
+        approval_note=approval_note,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def normalize_external_static_asset(
+    job_id: str,
+    plan_id: str,
+    plan_sha256: str,
+) -> dict:
+    """Consume one exact approval and publish a normalized static authoring derivative."""
+
+    return normalize_external_static_asset_internal(
+        job_id,
+        plan_id,
+        plan_sha256,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def validate_external_static_asset_intake(job_id: str) -> dict:
+    """Verify intake hashes, dependencies, normalized blend, and V0.7 provenance."""
+
+    return validate_external_static_asset_intake_internal(job_id).model_dump(
+        mode="json"
+    )
+
+
+@mcp.tool()
+def get_external_static_asset_intake_status(job_id: str) -> dict:
+    """Return approval, normalization, validation, and V0.7 readiness state."""
+
+    return get_external_static_asset_intake_status_internal(job_id)
 
 
 @mcp.tool()

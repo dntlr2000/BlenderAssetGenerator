@@ -1,0 +1,380 @@
+{
+  "$defs": {
+    "ExternalIntakeArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-contained intake artifact to its immutable SHA-256.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "external_source",
+            "external_dependency",
+            "external_inspection",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_asset_manifest",
+            "external_normalization_evidence",
+            "external_normalization_receipt",
+            "blend",
+            "material_plan",
+            "shader_recipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "ExternalIntakeArtifact",
+      "type": "object"
+    },
+    "ExternalNormalizedMaterial": {
+      "additionalProperties": false,
+      "description": "Record one preserved Blender material and its portable bake bridge.",
+      "properties": {
+        "source_name": {
+          "title": "Source Name",
+          "type": "string"
+        },
+        "material_name": {
+          "title": "Material Name",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "node_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Node Fingerprint",
+          "type": "string"
+        },
+        "shader_recipe": {
+          "$ref": "#/$defs/ExternalIntakeArtifact"
+        },
+        "portable_strategy": {
+          "const": "bake_to_raw_pbr",
+          "default": "bake_to_raw_pbr",
+          "title": "Portable Strategy",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_name",
+        "material_name",
+        "material_id",
+        "node_fingerprint",
+        "shader_recipe"
+      ],
+      "title": "ExternalNormalizedMaterial",
+      "type": "object"
+    },
+    "ExternalNormalizedObject": {
+      "additionalProperties": false,
+      "description": "Record one normalized authoring object and its preserved assembly mapping.",
+      "properties": {
+        "source_name": {
+          "title": "Source Name",
+          "type": "string"
+        },
+        "object_name": {
+          "title": "Object Name",
+          "type": "string"
+        },
+        "semantic_id": {
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "parent_semantic_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Semantic Id"
+        },
+        "object_type": {
+          "enum": [
+            "MESH",
+            "CURVE"
+          ],
+          "title": "Object Type",
+          "type": "string"
+        },
+        "material_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "qa_role": {
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background"
+          ],
+          "title": "Qa Role",
+          "type": "string"
+        },
+        "location": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "rotation_euler": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Euler",
+          "type": "array"
+        },
+        "scale": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_name",
+        "object_name",
+        "semantic_id",
+        "object_type",
+        "qa_role",
+        "location",
+        "rotation_euler",
+        "scale",
+        "dimensions"
+      ],
+      "title": "ExternalNormalizedObject",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe the immutable intake source and normalized authoring derivative.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source_kind": {
+      "const": "external_static_asset",
+      "default": "external_static_asset",
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "source_format": {
+      "enum": [
+        "blend",
+        "fbx",
+        "glb"
+      ],
+      "title": "Source Format",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/ExternalIntakeArtifact"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "intake_plan": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "intake_approval": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "normalized_blend": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "normalization_evidence": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "material_plan": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "shader_recipes": {
+      "items": {
+        "$ref": "#/$defs/ExternalIntakeArtifact"
+      },
+      "title": "Shader Recipes",
+      "type": "array"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ExternalNormalizedObject"
+      },
+      "minItems": 1,
+      "title": "Objects",
+      "type": "array"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/ExternalNormalizedMaterial"
+      },
+      "minItems": 1,
+      "title": "Materials",
+      "type": "array"
+    },
+    "source_contract_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Contract Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "status": {
+      "const": "complete",
+      "default": "complete",
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "canonical_source_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Source Unchanged",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "job_id",
+    "source_format",
+    "source",
+    "intake_plan",
+    "intake_approval",
+    "normalized_blend",
+    "normalization_evidence",
+    "material_plan",
+    "objects",
+    "materials",
+    "source_contract_fingerprint",
+    "build_fingerprint",
+    "created_at",
+    "completed_at"
+  ],
+  "title": "ExternalAssetManifest",
+  "type": "object"
+}

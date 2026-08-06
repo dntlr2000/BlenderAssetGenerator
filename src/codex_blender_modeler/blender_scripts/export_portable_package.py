@@ -96,6 +96,10 @@ def verify_derived_scene(
         "source_scene_spec_sha256": scene.get(
             "cbm_portable_source_scene_spec_sha256"
         ),
+        "source_kind": scene.get("cbm_portable_source_kind") or "scene_spec",
+        "source_external_manifest_sha256": scene.get(
+            "cbm_portable_source_external_manifest_sha256"
+        ),
     }
 
 

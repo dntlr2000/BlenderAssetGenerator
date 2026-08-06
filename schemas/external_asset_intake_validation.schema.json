@@ -1,0 +1,107 @@
+{
+  "additionalProperties": false,
+  "description": "Report current hash, provenance, dependency, and semantic readiness.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "source_current": {
+      "title": "Source Current",
+      "type": "boolean"
+    },
+    "dependencies_current": {
+      "title": "Dependencies Current",
+      "type": "boolean"
+    },
+    "approval_current_and_used": {
+      "title": "Approval Current And Used",
+      "type": "boolean"
+    },
+    "contracts_current": {
+      "title": "Contracts Current",
+      "type": "boolean"
+    },
+    "normalized_blend_current": {
+      "title": "Normalized Blend Current",
+      "type": "boolean"
+    },
+    "embedded_build_current": {
+      "title": "Embedded Build Current",
+      "type": "boolean"
+    },
+    "normalization_receipt_current": {
+      "title": "Normalization Receipt Current",
+      "type": "boolean"
+    },
+    "semantic_object_count": {
+      "minimum": 0,
+      "title": "Semantic Object Count",
+      "type": "integer"
+    },
+    "material_count": {
+      "minimum": 0,
+      "title": "Material Count",
+      "type": "integer"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "checked_at": {
+      "format": "date-time",
+      "title": "Checked At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "plan_id",
+    "status",
+    "ok",
+    "source_current",
+    "dependencies_current",
+    "approval_current_and_used",
+    "contracts_current",
+    "normalized_blend_current",
+    "embedded_build_current",
+    "normalization_receipt_current",
+    "semantic_object_count",
+    "material_count",
+    "checked_at"
+  ],
+  "title": "ExternalAssetIntakeValidation",
+  "type": "object"
+}

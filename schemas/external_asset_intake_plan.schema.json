@@ -1,0 +1,495 @@
+{
+  "$defs": {
+    "ExternalIntakeArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-contained intake artifact to its immutable SHA-256.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "external_source",
+            "external_dependency",
+            "external_inspection",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_asset_manifest",
+            "external_normalization_evidence",
+            "external_normalization_receipt",
+            "blend",
+            "material_plan",
+            "shader_recipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "source_names": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Names",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "ExternalIntakeArtifact",
+      "type": "object"
+    },
+    "ExternalMaterialPlan": {
+      "additionalProperties": false,
+      "description": "Map one source material to a stable ID and portable bake policy.",
+      "properties": {
+        "source_name": {
+          "minLength": 1,
+          "title": "Source Name",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "node_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Node Fingerprint",
+          "type": "string"
+        },
+        "mapping_mode": {
+          "default": "uv",
+          "enum": [
+            "uv",
+            "object"
+          ],
+          "title": "Mapping Mode",
+          "type": "string"
+        },
+        "surface": {
+          "$ref": "#/$defs/SurfaceSpec"
+        },
+        "image_dependency_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Image Dependency Ids",
+          "type": "array"
+        },
+        "portable_strategy": {
+          "const": "bake_to_raw_pbr",
+          "default": "bake_to_raw_pbr",
+          "title": "Portable Strategy",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_name",
+        "material_id",
+        "node_fingerprint"
+      ],
+      "title": "ExternalMaterialPlan",
+      "type": "object"
+    },
+    "ExternalNormalizationPolicy": {
+      "additionalProperties": false,
+      "description": "Define the bounded static-only normalization applied to a copied source.",
+      "properties": {
+        "apply_object_scale": {
+          "const": true,
+          "default": true,
+          "title": "Apply Object Scale",
+          "type": "boolean"
+        },
+        "preserve_hierarchy": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Hierarchy",
+          "type": "boolean"
+        },
+        "preserve_uv_layers": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Uv Layers",
+          "type": "boolean"
+        },
+        "preserve_material_identity": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Material Identity",
+          "type": "boolean"
+        },
+        "split_multi_material_objects": {
+          "const": true,
+          "default": true,
+          "title": "Split Multi Material Objects",
+          "type": "boolean"
+        },
+        "pack_image_dependencies": {
+          "const": true,
+          "default": true,
+          "title": "Pack Image Dependencies",
+          "type": "boolean"
+        },
+        "remove_non_static_objects": {
+          "const": true,
+          "default": true,
+          "title": "Remove Non Static Objects",
+          "type": "boolean"
+        },
+        "strip_embedded_scripts": {
+          "const": true,
+          "default": true,
+          "title": "Strip Embedded Scripts",
+          "type": "boolean"
+        },
+        "source_unit_scale_to_meters": {
+          "default": 1.0,
+          "maximum": 1000000000.0,
+          "minimum": 1e-09,
+          "title": "Source Unit Scale To Meters",
+          "type": "number"
+        },
+        "material_policy": {
+          "const": "preserve_master_and_bake_portable",
+          "default": "preserve_master_and_bake_portable",
+          "title": "Material Policy",
+          "type": "string"
+        }
+      },
+      "title": "ExternalNormalizationPolicy",
+      "type": "object"
+    },
+    "ExternalObjectPlan": {
+      "additionalProperties": false,
+      "description": "Map one inspected source object to one stable semantic identity.",
+      "properties": {
+        "source_name": {
+          "minLength": 1,
+          "title": "Source Name",
+          "type": "string"
+        },
+        "source_material_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Source Material Indices",
+          "type": "array"
+        },
+        "semantic_id": {
+          "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "parent_semantic_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Semantic Id"
+        },
+        "object_type": {
+          "enum": [
+            "MESH",
+            "CURVE"
+          ],
+          "title": "Object Type",
+          "type": "string"
+        },
+        "material_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Material Ids",
+          "type": "array"
+        },
+        "qa_role": {
+          "default": "supporting",
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background"
+          ],
+          "title": "Qa Role",
+          "type": "string"
+        },
+        "include": {
+          "const": true,
+          "default": true,
+          "title": "Include",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_name",
+        "semantic_id",
+        "object_type"
+      ],
+      "title": "ExternalObjectPlan",
+      "type": "object"
+    },
+    "SurfaceSpec": {
+      "additionalProperties": false,
+      "description": "Store portable Principled-style surface parameters by semantic name.",
+      "properties": {
+        "base_color": {
+          "default": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "metallic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "roughness": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "ior": {
+          "default": 1.45,
+          "maximum": 3.0,
+          "minimum": 1.0,
+          "title": "Ior",
+          "type": "number"
+        },
+        "transmission_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission Weight",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "emission_color": {
+          "default": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "coat_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coat Weight",
+          "type": "number"
+        },
+        "subsurface_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Subsurface Weight",
+          "type": "number"
+        },
+        "anisotropic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Anisotropic",
+          "type": "number"
+        }
+      },
+      "title": "SurfaceSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one reviewed mapping from an immutable external file into CBM semantics.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "source_format": {
+      "enum": [
+        "blend",
+        "fbx",
+        "glb"
+      ],
+      "title": "Source Format",
+      "type": "string"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/ExternalIntakeArtifact"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "inspection": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "candidate_material_plan": {
+      "$ref": "#/$defs/ExternalIntakeArtifact"
+    },
+    "candidate_shader_recipes": {
+      "items": {
+        "$ref": "#/$defs/ExternalIntakeArtifact"
+      },
+      "title": "Candidate Shader Recipes",
+      "type": "array"
+    },
+    "normalization": {
+      "$ref": "#/$defs/ExternalNormalizationPolicy"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ExternalObjectPlan"
+      },
+      "title": "Objects",
+      "type": "array"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/ExternalMaterialPlan"
+      },
+      "title": "Materials",
+      "type": "array"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "status": {
+      "default": "awaiting_user_approval",
+      "enum": [
+        "awaiting_user_approval",
+        "blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "plan_id",
+    "job_id",
+    "source",
+    "source_format",
+    "inspection",
+    "candidate_material_plan",
+    "created_at"
+  ],
+  "title": "ExternalAssetIntakePlan",
+  "type": "object"
+}

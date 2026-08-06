@@ -4,6 +4,10 @@
 
 기계 판정의 원본은 JSON 계약과 보고서입니다. PDF는 사용자가 검토하기 쉬운 파생 보고서이며 JSON을 대체하지 않습니다.
 
+이미 완성된 수동 제작 `.blend`/`.fbx`/`.glb`를 가져오는 작업은 레퍼런스 이미지
+프롬프트가 아니라 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
+사용합니다.
+
 ## 사용 방법과 placeholder
 
 `text` 코드 블록은 Codex 채팅에 붙여 넣는 프롬프트입니다. 문서 안의 `powershell` 블록은 구현된 CLI 표면을 확인하기 위한 운영자 참고이며, 일반 사용자는 Codex가 MCP 또는 저장소 명령을 대신 실행하도록 요청할 수 있습니다. 다만 InteriorScope처럼 계약상 interactive 수동 입력만 허용된 전용 승인은 Codex가 대신 승인할 수 없습니다.

@@ -94,6 +94,11 @@ if [[ "$SKIP_COMPATIBILITY" -eq 0 ]]; then
   uv run cbm blender-compat
 fi
 
+if [[ "$SKIP_COMPATIBILITY" -eq 0 && "$SKIP_V07" -eq 0 ]]; then
+  CBM_RUN_EXTERNAL_INTAKE_SMOKE=1 uv run pytest -q \
+    tests/test_external_static_asset_intake.py::test_blender_external_intake_splits_materials_and_strips_scripts
+fi
+
 if [[ "$SKIP_V08" -eq 0 ]]; then
   V08_ARGS=()
   [[ "$SKIP_V07" -eq 1 ]] && V08_ARGS+=(--skip-v07)

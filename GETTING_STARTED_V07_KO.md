@@ -16,7 +16,9 @@ V0.7 Blender 실기동 기준 환경은 Blender 5.0.1입니다. 기존 EEVEE fea
 
 ## 2. 시작 전 조건
 
-Portable asset 작업을 시작하기 전에 선택한 job에 다음 자료가 있어야 합니다.
+Portable asset 작업은 다음 두 canonical source 중 정확히 하나에서 시작합니다.
+
+CBM authoring 경로:
 
 ```text
 analysis/scene_spec.json
@@ -25,9 +27,27 @@ reports/scene_inventory.json
 reports/validation.json
 ```
 
+External Static Asset Intake 경로:
+
+```text
+input/external_asset/source.<blend|fbx|glb>
+intake/external_asset_manifest.json
+intake/normalization_receipt.json
+intake/validation.json                 status=passed
+analysis/material_plan.json
+blender/scene.blend                    normalized static derivative
+```
+
+External 경로에는 존재하지 않는 `analysis/scene_spec.json`을 만들지 않습니다. intake
+manifest가 SceneSpec 대신 exact source, dependency, hierarchy, semantic/material ID와
+normalized build fingerprint를 제공합니다. 두 canonical source가 한 job에 동시에
+있으면 preflight가 fail-closed합니다. 전체 intake 절차는
+[External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를 따릅니다.
+
 재질을 함께 전달하려면 현재 build fingerprint와 일치하는 V0.5 계약이 필요합니다. UV가 아닌 object/generated/triplanar mapping 또는 Blender 전용 procedural graph는 V0.7.1의 run-owned material conversion으로 portable atlas와 PBR 채널을 만든 뒤 패키징합니다. SceneSpec, geometry payload, MaterialPlan, ShaderRecipe, TextureManifest 또는 이미지 채널을 바꿨다면 먼저 `build`를 다시 실행해야 합니다.
 
-V0.7은 canonical SceneSpec이나 `blender/scene.blend`를 최적화 결과로 덮어쓰지 않습니다.
+V0.7은 canonical SceneSpec 또는 external intake manifest와 normalized
+`blender/scene.blend`를 최적화 결과로 덮어쓰지 않습니다.
 
 ### 2.1 선택적 실내 범위 확인
 

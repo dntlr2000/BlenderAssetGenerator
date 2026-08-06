@@ -32,6 +32,11 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 17. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
 18. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
 
+For `job_kind=external_static_asset`, `intake/external_asset_manifest.json` and its exact
+source/dependency, plan, consumed approval, normalization receipt, validation, normalized blend,
+material, and shader hashes replace the reference-analysis/SceneSpec branch. This route never
+creates a placeholder SceneSpec.
+
 The project version is `0.9.0`. The geometry SceneSpec contract remains `0.2.0` so existing v0.2 workspaces can be reused without rewriting approved geometry. Optional InteriorScope contracts use `0.1.0`, material contracts remain `0.5.0`, QA contracts remain `0.6.0`, portable static-asset contracts use `0.7.0`, orchestration contracts use `0.8.0`, and stabilization evidence uses `0.9.0`.
 
 ## Default behavior for short requests
@@ -197,6 +202,11 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 143. Manual approved one-shot V0.6 geometry revisions on authored `spatial_v1` assets capture exact baseline and result five-view structural terminals. Required-check worsening, all-view visibility loss, structural-status worsening, or geometry-review outcome worsening vetoes acceptance and triggers the existing rollback boundary.
 144. The manual revision multi-view guard is structural non-regression evidence, not an additional similarity score. Legacy/non-spatial plans remain readable and report the guard as `not_applicable`. New authored `spatial_v1` assets must fail closed before bounded-convergence planning or execution until each iteration's immutable plan, receipt, and audit contracts bind equivalent baseline/result multi-view evidence; use the manual one-shot guarded revision path meanwhile.
 145. Existing immutable workflows and QA runs are historical evidence and are not retroactively amended. New five-view workflow planning, agent visual reading, and structural revision guards apply to newly planned work or newly executed eligible manual revisions only.
+146. External Static Asset Intake is a separate static-only source route for new jobs backed by `.blend`, `.fbx`, or `.glb` evidence. It must never fabricate a SceneSpec or silently attach an external source to an existing job.
+147. Inspect external sources with Blender auto-execution disabled, preserve the copied source and declared dependencies by exact SHA-256, and reject animation, rigging, drivers, linked geometry, missing dependencies, unsupported script nodes, or other unsafe/non-static input before approval.
+148. External normalization requires one exact, single-use intake-plan SHA-256 approval. It writes a meter-normalized, script-free authoring derivative while preserving stable semantic IDs, hierarchy, UV layers, material identity, and explicit master-shader limitations; it never changes the immutable copied source.
+149. V0.7 may package an external source only when its manifest, consumed approval, normalization receipt, validation, normalized blend, build fingerprint, material contracts, shader recipes, and dependencies are all current. Portable PBR textures are derived bakes; Blender master shader parity in a destination engine is never implied.
+150. V0.9 audits external-intake provenance read-only and keeps package/handoff evidence bound to the external manifest. Deep Windows package and handoff evidence must use extended-length native I/O while preserving containment, link, dependency, and SHA-256 checks.
 
 ## v0.4 reference-analysis workflow
 
@@ -407,6 +417,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - V0.7 isolated portable-asset integration: `scripts/run_v07_gates.ps1`
 - V0.8 orchestration and V0.7 regression: `scripts/run_v08_gates.ps1`
 - V0.9 stabilization, V0.8 regression, and Blender compatibility: `scripts/run_v09_gates.ps1`
+- External static intake: the V0.9 gate opt-in Blender smoke plus host tamper/audit tests
 - Interior safety: `uv run cbm interior-scope-status <job>` and `uv run cbm interior-scope-validate <job>`
 - Human-readable report: `uv run cbm report-pdf <job> --scope build|material|qa|export|full`
 - PDF verification: validate PDF text/pages and sidecar hashes, then render representative pages for visual inspection
@@ -415,6 +426,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 ## File ownership
 
 - `input/`: immutable user evidence
+- `intake/`: immutable external-static source, plan, exact approval, manifest, normalization receipt, and validation evidence; only for `job_kind=external_static_asset`
 - `analysis/`: diagnostics, camera assumptions, modeling plan, canonical SceneSpec, material plan, and hash-promoted semantic reference-mask evidence
 - `constraints/`: measured requirements
 - `history/`: prior SceneSpecs and explicitly replaced input views

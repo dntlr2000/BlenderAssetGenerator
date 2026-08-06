@@ -36,9 +36,21 @@ from ..auto_revision.convergence_session_models import (
     VisualConvergenceReportManifest,
 )
 from ..auto_revision.models import RevisionCandidates
-from ..blender_artifacts import sha256_file, write_json_atomic
+from ..blender_artifacts import (
+    native_io_path,
+    sha256_file,
+    write_json_atomic,
+)
 from ..config import get_settings, load_feature_config
 from ..constraints.models import ConstraintResult
+from ..external_intake.models import (
+    ExternalAssetIntakeApproval,
+    ExternalAssetIntakePlan,
+    ExternalAssetIntakeValidation,
+    ExternalAssetManifest,
+    ExternalNormalizationReceipt,
+)
+from ..external_intake.service import collect_external_build_provenance
 from ..handoff import get_destination_handoff_status
 from ..handoff.models import (
     AssemblyManifest,
@@ -59,6 +71,7 @@ from ..interior_qa.models import (
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
 )
+from ..optimization.io import resolve_inside
 from ..orchestration import get_workflow_status, resume_workflow
 from ..orchestration.models import (
     WorkflowAttempt,
@@ -72,6 +85,7 @@ from ..revision import RevisionPlan
 from ..versioning import (
     CONSTRAINT_SCHEMA_VERSION,
     DESTINATION_HANDOFF_SCHEMA_VERSION,
+    EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
@@ -160,6 +174,7 @@ def _contract_versions() -> list[ContractVersionRecord]:
         ("workflow", WORKFLOW_SCHEMA_VERSION),
         ("stabilization", STABILIZATION_SCHEMA_VERSION),
         ("destination_handoff", DESTINATION_HANDOFF_SCHEMA_VERSION),
+        ("external_static_asset", EXTERNAL_STATIC_ASSET_SCHEMA_VERSION),
     ]
     return [ContractVersionRecord(contract=name, version=version) for name, version in values]
 
@@ -318,10 +333,18 @@ def _workspace_relative(path: Path) -> str:
 def _is_link_like(path: Path) -> bool:
     """Detect symbolic links and Windows junctions before bounded traversal."""
 
-    if path.is_symlink():
+    native = native_io_path(path)
+    if os.path.islink(native):
         return True
-    junction_test = getattr(path, "is_junction", None)
-    return bool(junction_test()) if callable(junction_test) else False
+    junction_test = getattr(os.path, "isjunction", None)
+    return bool(junction_test(native)) if callable(junction_test) else False
+
+
+def _read_text(path: Path) -> str:
+    """Read UTF-8 audit evidence through a Windows extended-length filename."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
 
 
 def _parse_version(value: str | None) -> tuple[int, int, int] | None:
@@ -357,7 +380,7 @@ def _validate_workflow_contract(path: Path) -> None:
     if model is None and "attempts" in path.parts:
         model = WorkflowAttempt
     if model is not None:
-        model.model_validate_json(path.read_text(encoding="utf-8"))
+        model.model_validate_json(_read_text(path))
 
 
 def _validate_handoff_contract(path: Path) -> None:
@@ -375,7 +398,28 @@ def _validate_handoff_contract(path: Path) -> None:
     }
     model = model_by_name.get(path.name)
     if model is not None:
-        model.model_validate_json(path.read_text(encoding="utf-8"))
+        model.model_validate_json(_read_text(path))
+
+
+def _validate_external_intake_contract(path: Path) -> None:
+    """Validate recognized external-intake contracts without normalizing or repairing them."""
+
+    model: type[Any] | None = None
+    if "plans" in path.parts:
+        model_by_name: dict[str, type[Any]] = {
+            "plan.json": ExternalAssetIntakePlan,
+            "approval.json": ExternalAssetIntakeApproval,
+        }
+        model = model_by_name.get(path.name)
+    else:
+        model_by_name = {
+            "external_asset_manifest.json": ExternalAssetManifest,
+            "normalization_receipt.json": ExternalNormalizationReceipt,
+            "validation.json": ExternalAssetIntakeValidation,
+        }
+        model = model_by_name.get(path.name)
+    if model is not None:
+        model.model_validate_json(_read_text(path))
 
 
 def _validate_interior_qa_contract(path: Path) -> None:
@@ -392,7 +436,7 @@ def _validate_interior_qa_contract(path: Path) -> None:
     }
     model = model_by_name.get(path.name)
     if model is not None:
-        model.model_validate_json(path.read_text(encoding="utf-8"))
+        model.model_validate_json(_read_text(path))
 
 
 def _validate_visual_convergence_contract(path: Path) -> None:
@@ -411,7 +455,7 @@ def _validate_visual_convergence_contract(path: Path) -> None:
     }
     model = model_by_name.get(path.name)
     if model is not None:
-        model.model_validate_json(path.read_text(encoding="utf-8"))
+        model.model_validate_json(_read_text(path))
 
 
 def _scan_job_files(
@@ -482,11 +526,13 @@ def _scan_job_files(
             if path.suffix.casefold() != ".json":
                 continue
             try:
-                json.loads(path.read_text(encoding="utf-8"))
+                json.loads(_read_text(path))
                 if "workflows" in path.parts:
                     _validate_workflow_contract(path)
                 if "handoffs" in path.parts or "destination_handoffs" in path.parts:
                     _validate_handoff_contract(path)
+                if "intake" in path.parts:
+                    _validate_external_intake_contract(path)
                 if "qa" in path.parts and "interior" in path.parts:
                     _validate_interior_qa_contract(path)
                 if "qa" in path.parts and "convergence" in path.parts:
@@ -506,6 +552,119 @@ def _scan_job_files(
                         ),
                     )
                 )
+    return findings
+
+
+def _audit_external_static_asset_intake(
+    root: Path,
+    job_id: str,
+    metadata: dict[str, Any],
+) -> list[AuditFinding]:
+    """Verify exact intake hashes and source provenance without repairing evidence."""
+
+    findings: list[AuditFinding] = []
+    manifest_path = root / "intake" / "external_asset_manifest.json"
+    is_external_job = metadata.get("job_kind") == "external_static_asset"
+    if not manifest_path.is_file():
+        if is_external_job:
+            findings.append(
+                _finding(
+                    "EXTERNAL_INTAKE_INCOMPLETE",
+                    "warning",
+                    "External static-asset intake has not published a normalized manifest.",
+                    job_id=job_id,
+                    path=_workspace_relative(root / "intake"),
+                    remediation=(
+                        "Review the exact intake plan and normalize only after its SHA-256 "
+                        "approval."
+                    ),
+                )
+            )
+        return findings
+    if not is_external_job:
+        findings.append(
+            _finding(
+                "EXTERNAL_INTAKE_KIND_MISMATCH",
+                "error",
+                "An external manifest exists but job.json does not declare external_static_asset.",
+                job_id=job_id,
+                path=_workspace_relative(manifest_path),
+            )
+        )
+        return findings
+    try:
+        manifest = ExternalAssetManifest.model_validate_json(
+            manifest_path.read_text(encoding="utf-8")
+        )
+        if manifest.job_id != job_id:
+            raise ValueError("external manifest job_id differs from its directory")
+        artifacts = [
+            manifest.source,
+            *manifest.dependencies,
+            manifest.intake_plan,
+            manifest.intake_approval,
+            manifest.normalized_blend,
+            manifest.normalization_evidence,
+            manifest.material_plan,
+            *manifest.shader_recipes,
+        ]
+        for artifact in artifacts:
+            artifact_path = resolve_inside(root, artifact.path, artifact.kind)
+            if (
+                _is_link_like(artifact_path)
+                or not artifact_path.is_file()
+                or sha256_file(artifact_path) != artifact.sha256
+            ):
+                raise ValueError(f"stale or missing manifest artifact: {artifact.path}")
+        receipt_path = root / "intake" / "normalization_receipt.json"
+        receipt = ExternalNormalizationReceipt.model_validate_json(
+            receipt_path.read_text(encoding="utf-8")
+        )
+        if (
+            receipt.job_id != job_id
+            or receipt.manifest_sha256 != sha256_file(manifest_path)
+            or receipt.plan_sha256 != manifest.intake_plan.sha256
+            or receipt.approval_sha256 != manifest.intake_approval.sha256
+            or receipt.source_sha256 != manifest.source.sha256
+            or receipt.normalized_blend_sha256 != manifest.normalized_blend.sha256
+            or receipt.build_fingerprint != manifest.build_fingerprint
+            or receipt.source_contract_fingerprint
+            != manifest.source_contract_fingerprint
+        ):
+            raise ValueError("normalization receipt does not match the external manifest")
+        approval_path = resolve_inside(
+            root,
+            manifest.intake_approval.path,
+            "external intake approval",
+        )
+        approval = ExternalAssetIntakeApproval.model_validate_json(
+            approval_path.read_text(encoding="utf-8")
+        )
+        if not approval.used or approval.plan_sha256 != manifest.intake_plan.sha256:
+            raise ValueError("external intake approval was not consumed by this exact plan")
+        provenance = collect_external_build_provenance(root, job_id)
+        if provenance.get("fingerprint") != manifest.build_fingerprint:
+            raise ValueError("external build fingerprint differs from the manifest")
+        validation_path = root / "intake" / "validation.json"
+        validation = ExternalAssetIntakeValidation.model_validate_json(
+            validation_path.read_text(encoding="utf-8")
+        )
+        if not validation.ok or validation.plan_id != approval.plan_id:
+            raise ValueError("external intake validation is absent, failed, or mismatched")
+    except (OSError, ValueError, RuntimeError) as exc:
+        findings.append(
+            _finding(
+                "EXTERNAL_INTAKE_STALE_OR_TAMPERED",
+                "error",
+                f"External static-asset intake evidence is not current: {exc}",
+                job_id=job_id,
+                path=_workspace_relative(manifest_path),
+                remediation=(
+                    "Restore the immutable intake evidence or create a new intake job; do "
+                    "not repair hashes in place."
+                ),
+            )
+        )
     return findings
 
 
@@ -2606,6 +2765,7 @@ def _audit_job(
         verified_sources += 1
 
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
+    findings.extend(_audit_external_static_asset_intake(root, job_id, metadata))
     findings.extend(_audit_latest_workflow(root, job_id))
     findings.extend(_audit_latest_interior_qa(root, job_id))
     (

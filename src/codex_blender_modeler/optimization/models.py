@@ -78,6 +78,12 @@ class HashedArtifact(V07StrictModel):
     id: StableId
     kind: Literal[
         "scene_spec",
+        "external_asset_manifest",
+        "external_source",
+        "external_dependency",
+        "external_intake_plan",
+        "external_intake_approval",
+        "external_normalization_evidence",
         "blend",
         "geometry_payload",
         "material_plan",
@@ -106,7 +112,10 @@ class HashedArtifact(V07StrictModel):
 class SourceProvenance(V07StrictModel):
     """Freeze canonical geometry, build, material, and texture inputs for one V0.7 run."""
 
-    scene_spec: HashedArtifact
+    source_kind: Literal["scene_spec", "external_static_asset"] = "scene_spec"
+    scene_spec: HashedArtifact | None = None
+    external_asset_manifest: HashedArtifact | None = None
+    external_source_artifacts: list[HashedArtifact] = Field(default_factory=list)
     blend: HashedArtifact
     source_fingerprint: Sha256
     build_fingerprint: Sha256
@@ -118,8 +127,33 @@ class SourceProvenance(V07StrictModel):
     def validate_provenance(self) -> SourceProvenance:
         """Require role-correct, uniquely identified provenance artifacts."""
 
-        if self.scene_spec.kind != "scene_spec":
-            raise ValueError("scene_spec provenance artifact must use kind=scene_spec")
+        if self.source_kind == "scene_spec":
+            if self.scene_spec is None or self.scene_spec.kind != "scene_spec":
+                raise ValueError("scene_spec source provenance requires kind=scene_spec")
+            if self.external_asset_manifest is not None or self.external_source_artifacts:
+                raise ValueError("scene_spec provenance cannot contain external source artifacts")
+        else:
+            if self.scene_spec is not None:
+                raise ValueError("external source provenance cannot contain a SceneSpec")
+            if (
+                self.external_asset_manifest is None
+                or self.external_asset_manifest.kind != "external_asset_manifest"
+            ):
+                raise ValueError(
+                    "external source provenance requires kind=external_asset_manifest"
+                )
+            allowed_external_kinds = {
+                "external_source",
+                "external_dependency",
+                "external_intake_plan",
+                "external_intake_approval",
+                "external_normalization_evidence",
+            }
+            if any(
+                item.kind not in allowed_external_kinds
+                for item in self.external_source_artifacts
+            ):
+                raise ValueError("external provenance contains an invalid source artifact kind")
         if self.blend.kind != "blend":
             raise ValueError("blend provenance artifact must use kind=blend")
         if any(item.kind != "geometry_payload" for item in self.geometry_payloads):
@@ -128,14 +162,7 @@ class SourceProvenance(V07StrictModel):
             raise ValueError("material_plan provenance artifact must use kind=material_plan")
         if any(item.kind != "texture_manifest" for item in self.texture_manifests):
             raise ValueError("texture manifest provenance must use kind=texture_manifest")
-        artifacts = [
-            self.scene_spec,
-            self.blend,
-            *self.geometry_payloads,
-            *self.texture_manifests,
-        ]
-        if self.material_plan is not None:
-            artifacts.append(self.material_plan)
+        artifacts = self.artifacts()
         ids = [item.id for item in artifacts]
         paths = [item.path for item in artifacts]
         if len(ids) != len(set(ids)):
@@ -143,6 +170,20 @@ class SourceProvenance(V07StrictModel):
         if len(paths) != len(set(paths)):
             raise ValueError("provenance artifact paths must be unique")
         return self
+
+    def artifacts(self) -> list[HashedArtifact]:
+        """Return every provenance artifact in stable source-role order."""
+
+        artifacts: list[HashedArtifact] = []
+        if self.scene_spec is not None:
+            artifacts.append(self.scene_spec)
+        if self.external_asset_manifest is not None:
+            artifacts.append(self.external_asset_manifest)
+        artifacts.extend(self.external_source_artifacts)
+        artifacts.extend([self.blend, *self.geometry_payloads, *self.texture_manifests])
+        if self.material_plan is not None:
+            artifacts.append(self.material_plan)
+        return artifacts
 
 
 class Bounds3D(V07StrictModel):
@@ -1211,14 +1252,7 @@ class PortableMaterialConversionPlan(V07StrictModel):
         material_ids = [item.material_id for item in self.materials]
         if material_ids != self.required_material_ids:
             raise ValueError("material bindings must exactly cover required_material_ids in order")
-        source_artifacts = [
-            self.source.scene_spec,
-            self.source.blend,
-            *self.source.geometry_payloads,
-            *self.source.texture_manifests,
-        ]
-        if self.source.material_plan is not None:
-            source_artifacts.append(self.source.material_plan)
+        source_artifacts = self.source.artifacts()
         artifacts = [
             *source_artifacts,
             self.profile_artifact,
@@ -1465,14 +1499,7 @@ class PortableMaterialConversionManifest(V07StrictModel):
             for item in self.outputs
         ):
             raise ValueError("every global channel resolution must match the atlas policy")
-        source_artifacts = [
-            self.source.scene_spec,
-            self.source.blend,
-            *self.source.geometry_payloads,
-            *self.source.texture_manifests,
-        ]
-        if self.source.material_plan is not None:
-            source_artifacts.append(self.source.material_plan)
+        source_artifacts = self.source.artifacts()
         binding_artifacts = [
             *source_artifacts,
             self.plan_artifact,

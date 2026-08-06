@@ -1,0 +1,88 @@
+{
+  "additionalProperties": false,
+  "description": "Record exact, single-use user approval for one intake plan.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "approval_id": {
+      "pattern": "^[a-z0-9][a-z0-9_.-]{0,127}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Sha256",
+      "type": "string"
+    },
+    "approved_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Approved By",
+      "type": "string"
+    },
+    "approval_note": {
+      "minLength": 1,
+      "title": "Approval Note",
+      "type": "string"
+    },
+    "approved_at": {
+      "format": "date-time",
+      "title": "Approved At",
+      "type": "string"
+    },
+    "one_time": {
+      "const": true,
+      "default": true,
+      "title": "One Time",
+      "type": "boolean"
+    },
+    "used": {
+      "default": false,
+      "title": "Used",
+      "type": "boolean"
+    },
+    "used_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Used At"
+    }
+  },
+  "required": [
+    "approval_id",
+    "job_id",
+    "plan_id",
+    "plan_sha256",
+    "source_sha256",
+    "approval_note",
+    "approved_at"
+  ],
+  "title": "ExternalAssetIntakeApproval",
+  "type": "object"
+}

@@ -41,6 +41,13 @@ from .blender_runner import run_blender
 from .codex_runner import run_codex_json
 from .config import executable_exists, get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
+from .external_intake import (
+    approve_external_static_asset_intake,
+    get_external_static_asset_intake_status,
+    normalize_external_static_asset,
+    plan_external_static_asset_intake,
+    validate_external_static_asset_intake,
+)
 from .handoff import (
     generate_destination_handoff,
     get_destination_handoff_status,
@@ -1477,6 +1484,71 @@ def interior_qa_status(
 
     result = get_job_interior_qa_status(job_id, run_id=run_id)
     console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("external-intake-plan")
+def external_intake_plan(
+    job_id: str,
+    source_path: Path,
+    plan_id: Annotated[str | None, typer.Option("--plan-id")] = None,
+) -> None:
+    """Inspect one external static source, copy exact evidence, and await approval."""
+
+    result = plan_external_static_asset_intake(
+        job_id,
+        source_path,
+        plan_id=plan_id,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("external-intake-approve")
+def external_intake_approve(
+    job_id: str,
+    plan_id: Annotated[str, typer.Option("--plan-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+) -> None:
+    """Record one single-use user approval for an exact external-intake plan hash."""
+
+    result = approve_external_static_asset_intake(
+        job_id,
+        plan_id,
+        plan_sha256,
+        approval_note=approval_note,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("external-intake-normalize")
+def external_intake_normalize(
+    job_id: str,
+    plan_id: Annotated[str, typer.Option("--plan-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+) -> None:
+    """Consume one exact approval and publish the normalized static authoring derivative."""
+
+    result = normalize_external_static_asset(job_id, plan_id, plan_sha256)
+    console.print_json(result.model_dump_json())
+
+
+@app.command("external-intake-validate")
+def external_intake_validate(job_id: str) -> None:
+    """Verify external source, dependencies, contracts, normalized blend, and provenance."""
+
+    result = validate_external_static_asset_intake(job_id)
+    console.print_json(result.model_dump_json())
+    if not result.ok:
+        raise typer.Exit(code=2)
+
+
+@app.command("external-intake-status")
+def external_intake_status(job_id: str) -> None:
+    """Show read-only external-intake approval, normalization, and V0.7 readiness."""
+
+    console.print_json(
+        json.dumps(get_external_static_asset_intake_status(job_id), ensure_ascii=False)
+    )
 
 
 @app.command("asset-preflight")

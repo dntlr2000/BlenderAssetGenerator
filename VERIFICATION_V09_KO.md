@@ -266,3 +266,57 @@ texture binding, imported UV0 bounds/area와 tangent readiness를 검증하지�
 topology-independent loop-to-vertex UV association의 완전 동일성이나 목적 엔진의
 runtime parity는 증명하지 않습니다. 이 제한은 roundtrip JSON, DestinationContext,
 known limitations와 handoff PDF에 보존됩니다.
+
+## 2026-08-06 External Static Asset Intake 검증
+
+수동 제작 static model을 SceneSpec 없이 V0.7/V0.9에 연결하는 별도 intake route를
+검증했습니다. 사용자 job은 gate 성공용으로 변경하지 않았고, Python `tmp_path`와
+`reports/v07_smoke`, `reports/v09_smoke`의 격리 evidence만 사용했습니다.
+
+| 검증 | 결과 |
+|---|---|
+| 전체 Python 회귀 | `880 passed, 5 skipped` (`121.23s`) |
+| Ruff | 전체 저장소 통과 |
+| Schema 생성·parity | 전체 pytest에 포함되어 통과 |
+| 실제 Blender 5 external `.blend` intake | `1 passed` (`9.70s`) |
+| source unit 정규화 | `scale_length=0.01` → meters, 기대 bounds 통과 |
+| multi-material 분리 | material별 stable single-material semantic submesh 확인 |
+| sanitization | text/action/armature `0`, one scene, autoexec disabled |
+| External → V0.7 GLB | optimize/material conversion/package 완료 |
+| External GLB clean import | `ok=true`, semantic/material coverage `1.0 / 1.0` |
+| V0.7 회귀 증거 | GLB/FBX/OBJ 세 profile 모두 `passed`, `ok=true` |
+| 긴 Windows handoff path | receipt/validation/audit 회귀 통과 |
+| V0.9 handoff audit | `passed`, handoff `1/1 valid` |
+
+최신 V0.7 회귀 evidence:
+
+```text
+reports/v07_smoke/20260806T073746751Z-251968/
+```
+
+최종 V0.9 isolated gate:
+
+```text
+reports/v09_smoke/20260806T084335038Z-148936/
+reports/v09/audits/handoff-audit-20260806t084335038z-148936/workspace_audit.json
+```
+
+Audit 결과는 `scanned_file_count=131`, failed/warning job `0/0`, handoff
+`1/1 valid`, 전체 status `passed`다. 함께 생성한 V0.9 파생 보고서는 다음과 같다.
+
+```text
+output/pdf/v09/stability-20260806t084335038z-148936/stability_report.pdf
+output/pdf/v09/stability-20260806t084335038z-148936/stability_report.manifest.json
+```
+
+Stability PDF SHA-256은
+`4a33438c33177fb8eb570038db0c62671ccb76b84fc31b438b4321e18a4ef2a6`이고
+source fingerprint는
+`d4401c731e033242e646adeb55edc8922b0ac788dade43109ea33c4421cc236b`다.
+
+실기동 증거는 external `.blend` source와 portable GLB 전체 경로를 대상으로 한다.
+External `.fbx`/`.glb` importer는 계약·호환 경로와 기존 Blender export/import
+regression으로 검증했지만, 다양한 실제 제3자 파일 corpus 검증은 남아 있다.
+Blender master graph는 normalized authoring derivative에 보존되며, 목적지 전달은
+V0.7 derived raw PBR bake를 사용한다. Unity/Unreal/custom engine shader 또는 runtime
+parity는 여전히 검증하거나 주장하지 않는다.

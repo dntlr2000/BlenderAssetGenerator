@@ -15,6 +15,7 @@ V0.9는 새로운 모델링 알고리즘을 대량 추가하는 단계가 아니
 | Workflow orchestration | `0.8.0` | 변경 없음 |
 | Stabilization evidence | `0.9.0` | 신규 |
 | Codex Destination Handoff | `0.9.0` | 신규 |
+| External Static Asset Intake | `0.9.0` | 신규 static-only source route |
 
 V0.9는 오래된 정상 job을 자동 변환하지 않는다. 호환 가능한 계약은 그대로 읽고, 인식할 수 없거나 손상된 계약은 audit finding으로 남긴다.
 
@@ -31,6 +32,10 @@ src/codex_blender_modeler/handoff/
 ├─ models.py       strict handoff·destination import 계약
 ├─ service.py      plan, immutable envelope 생성, 검증과 status
 └─ pdf_report.py   authoritative handoff JSON에서 파생되는 PDF
+
+src/codex_blender_modeler/external_intake/
+├─ models.py       strict intake·approval·manifest·receipt·validation 계약
+└─ service.py      safe inspection, exact 승인, 정규화, provenance와 status
 ```
 
 새 스키마는 다음과 같다.
@@ -57,6 +62,41 @@ schemas/
 ├─ destination_import_validation.schema.json
 └─ handoff_report_manifest.schema.json
 ```
+
+## External Static Asset Intake
+
+외부에서 직접 제작한 `.blend`, `.fbx`, `.glb` 정적 자산은 SceneSpec을 꾸며 내지
+않고 별도 source route로 들어온다. 원본은 auto-execution을 끈 Blender 5 검사와
+전후 SHA-256 확인을 거쳐 새 job의 immutable evidence로 복사된다. 이미지
+dependency도 job-relative 경로와 exact hash로 결속한다. `.gltf`는 sidecar 의존성
+경계가 모호하므로 현재 지원하지 않는다.
+
+```text
+untrusted external source
+→ safe read-only inspection
+→ workflow-owned intake plan
+→ exact plan SHA-256 approval
+→ meter-normalized script-free authoring derivative
+→ strict intake validation
+→ existing V0.7 optimization/package/roundtrip
+→ optional V0.9 Destination Handoff
+```
+
+Inspection은 armature, action, NLA, driver, linked geometry, 누락 이미지,
+OSL Script node와 movie/sequence texture를 blocker로 처리한다. 정규화는 render-visible
+evaluated static mesh/curve만 보존하고 multi-material object를 material별 단일-material
+semantic submesh로 나눈다. hierarchy, stable semantic/material ID, UV와 source unit
+conversion은 manifest에 기록한다.
+
+정규화된 `.blend`에는 원래 Blender master material graph를 보존하지만 portable
+계약은 이를 destination shader로 간주하지 않는다. V0.7 material conversion이 raw
+PBR channel로 bake하고 package/roundtrip evidence에 묶는다. 따라서 전달되는 것은
+원본 shader parity가 아니라 보존된 master authoring graph와 검증 가능한 portable
+PBR 결과다.
+
+Windows의 깊은 package/handoff 경로는 native extended-length I/O로 읽고 복사한다.
+이는 legacy 260-character 제한만 우회하며, 상대 경로 containment, symlink/junction,
+dependency와 SHA-256 검사를 완화하지 않는다.
 
 ## Codex Destination Handoff
 

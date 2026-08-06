@@ -16,8 +16,9 @@ def run_blender(
     blend_file: Path | None = None,
     *,
     factory_startup: bool = False,
+    disable_autoexec: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    """Run one repository Blender script with isolated stdin and optional factory state."""
+    """Run one fixed repository script with isolated stdin and bounded load options."""
 
     settings = get_settings()
     if not executable_exists(settings.blender_bin):
@@ -31,6 +32,8 @@ def run_blender(
     command = [settings.blender_bin]
     if factory_startup:
         command.append("--factory-startup")
+    if disable_autoexec:
+        command.append("--disable-autoexec")
     command.extend(
         [
             "--background",

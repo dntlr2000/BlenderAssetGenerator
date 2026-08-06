@@ -93,6 +93,12 @@
         "kind": {
           "enum": [
             "scene_spec",
+            "external_asset_manifest",
+            "external_source",
+            "external_dependency",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_normalization_evidence",
             "blend",
             "geometry_payload",
             "material_plan",

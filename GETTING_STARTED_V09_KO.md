@@ -2,6 +2,10 @@
 
 V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
 
+직접 제작한 정적 `.blend`/`.fbx`/`.glb`는
+[External Static Asset Intake](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)로 exact-hash source를
+등록한 뒤 같은 V0.7 package와 V0.9 audit/handoff 경로를 사용할 수 있다.
+
 ## 1. 설치 및 백업
 
 업데이트 전 저장소와 외부 workspace를 백업하거나 Git 기준점을 만든다. V0.9는 자동 migration을 수행하지 않으므로, 기존 job을 복사해 확인한 뒤 원본을 유지하는 방식이 안전하다.
@@ -29,6 +33,11 @@ reports/v09/environment/probe-local-001/environment_probe.json
 OS나 Blender가 감지됐다는 사실만으로 지원됐다고 판단하지 않는다. 실제 gate가 통과한 조합만 검증 기록에 넣는다.
 
 ## 3. workspace audit
+
+External Static Asset Intake job에서는 audit가 source/dependency, plan, consumed approval,
+normalization receipt, normalized `.blend`, material contract와 build fingerprint를
+읽기 전용으로 재검증한다. stale 또는 tampered intake를 자동 수리하거나 SceneSpec으로
+변환하지 않는다.
 
 특정 job만 감사:
 

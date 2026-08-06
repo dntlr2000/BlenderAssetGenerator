@@ -11,7 +11,6 @@ from typing import Any
 from uuid import uuid4
 
 from ..blender_runner import run_blender
-from ..build_provenance import collect_build_provenance
 from ..config import load_feature_config
 from ..materials.io import load_material_plan, load_shader_recipe, resolve_job_path
 from ..optimization.io import (
@@ -40,7 +39,10 @@ from ..optimization.models import (
     UVManifest,
 )
 from ..optimization.preflight import load_asset_profile, profile_artifact, profile_path
-from ..optimization.provenance import require_unchanged_source
+from ..optimization.provenance import (
+    collect_source_build_provenance,
+    require_unchanged_source,
+)
 from ..workspace import job_dir, sha256_file
 
 
@@ -520,7 +522,7 @@ def convert_portable_materials(
     ):
         raise RuntimeError("Optimization manifests are stale or belong to another run")
     require_unchanged_source(optimization.source, root, job_id)
-    current_build = collect_build_provenance(root, job_id)
+    current_build = collect_source_build_provenance(root, job_id)
     if current_build["fingerprint"] != optimization.source.build_fingerprint:
         raise RuntimeError("Current material build differs from the optimization source")
 

@@ -25,6 +25,7 @@
 | Workflow orchestration | `0.8.0` | 짧은 요청 라우팅, 상태, 재개, 승인 경계 |
 | Stabilization evidence | `0.9.0` | 환경 증거, 읽기 전용 감사, queue, release report |
 | Codex Destination Handoff | `0.9.0` | package-bound 조립·재질 계약과 안전한 목적지 import prompt |
+| External Static Asset Intake | `0.9.0` | 수동 제작 static source의 inspection, exact 승인, normalized authoring derivative와 V0.7 연결 |
 
 현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
 
@@ -379,6 +380,9 @@ V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. �
 - exact probe/audit source hash에 묶인 stability PDF와 sidecar
 - strict `0.9.0` JSON Schema, CLI/MCP allowlist와 격리 PowerShell/POSIX gate
 - 기존 V0.2~V0.8 계약을 재작성하지 않는 compatibility 정책과 수동 migration 원칙
+- 외부 `.blend`/`.fbx`/`.glb`의 safe-mode inspection, immutable dependency copy,
+  meter 정규화, exact-hash approval과 V0.7/V0.9 provenance를 제공하는 선택적
+  External Static Asset Intake
 
 ### 구현된 Codex Destination Handoff 범위
 

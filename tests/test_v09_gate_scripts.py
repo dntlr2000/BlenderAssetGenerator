@@ -28,6 +28,8 @@ def test_v09_windows_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "handoff-validate" in text
     assert "valid_handoff_count" in text
     assert "geometry_showcase" in text
+    assert "CBM_RUN_EXTERNAL_INTAKE_SMOKE" in text
+    assert "test_blender_external_intake_splits_materials_and_strips_scripts" in text
     assert '@("passed", "warning")' in text
     assert '$V08Arguments = @()' in text
     assert "Remove-Item" not in text.replace(
@@ -53,6 +55,8 @@ def test_v09_posix_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "handoff-validate" in text
     assert "valid_handoff_count" in text
     assert "geometry_showcase" in text
+    assert "CBM_RUN_EXTERNAL_INTAKE_SMOKE=1" in text
+    assert "test_blender_external_intake_splits_materials_and_strips_scripts" in text
     assert 'in {"passed","warning"}' in text
     assert "V08_ARGS=()" in text
     assert "${RUN_STAMP,,}" not in text
