@@ -330,6 +330,18 @@ def _workspace_relative(path: Path) -> str:
     return f"workspace/{relative}" if relative else "workspace"
 
 
+def _workspace_relative_lexical(path: Path) -> str:
+    """Report a link entry by lexical location without resolving its external target."""
+
+    workspace = get_settings().workspace_root.absolute()
+    candidate = path.expanduser().absolute()
+    try:
+        relative = candidate.relative_to(workspace).as_posix()
+    except ValueError as exc:
+        raise ValueError("Audited lexical path escapes the configured workspace") from exc
+    return f"workspace/{relative}" if relative else "workspace"
+
+
 def _is_link_like(path: Path) -> bool:
     """Detect symbolic links and Windows junctions before bounded traversal."""
 
@@ -358,17 +370,36 @@ def _parse_version(value: str | None) -> tuple[int, int, int] | None:
     return tuple(int(part) for part in match.groups())  # type: ignore[return-value]
 
 
-def _resolve_source_path(value: str) -> Path:
-    """Resolve legacy absolute or repository-relative source metadata for read-only audit."""
+def _resolve_source_path(value: str, *, job_root: Path | None = None) -> Path:
+    """Resolve legacy source metadata and recover its exact contained job-input suffix."""
 
     candidate = Path(value).expanduser()
     if candidate.is_absolute():
         return candidate.resolve()
-    return (get_settings().repo_root / candidate).resolve()
+    repository_candidate = (get_settings().repo_root / candidate).resolve()
+    if job_root is None:
+        return repository_candidate
+    input_root = (job_root / "input").resolve()
+    try:
+        repository_candidate.relative_to(input_root)
+    except ValueError:
+        parts = candidate.parts
+        workspace_name = get_settings().workspace_root.name
+        for index in range(2, len(parts)):
+            if (
+                parts[index] == "input"
+                and parts[index - 1] == job_root.name
+                and parts[index - 2] == workspace_name
+            ):
+                suffix = parts[index + 1 :]
+                if suffix and all(part not in {"", ".", ".."} for part in suffix):
+                    return (input_root.joinpath(*suffix)).resolve()
+        return repository_candidate
+    return repository_candidate
 
 
 def _validate_workflow_contract(path: Path) -> None:
-    """Validate recognized V0.8 workflow contracts without altering their receipts."""
+    """Validate recognized V0.8 contracts and only exact attempt-receipt paths."""
 
     model_by_name: dict[str, type[Any]] = {
         "request.json": WorkflowRequest,
@@ -377,7 +408,13 @@ def _validate_workflow_contract(path: Path) -> None:
         ".lock.json": WorkflowLock,
     }
     model = model_by_name.get(path.name)
-    if model is None and "attempts" in path.parts:
+    attempts_root = path.parent.parent
+    workflow_root = attempts_root.parent
+    if (
+        model is None
+        and attempts_root.name == "attempts"
+        and workflow_root.parent.name == "workflows"
+    ):
         model = WorkflowAttempt
     if model is not None:
         model.model_validate_json(_read_text(path))
@@ -479,7 +516,7 @@ def _scan_job_files(
                         "error",
                         "Link-like directories are not followed during release audit.",
                         job_id=job_id,
-                        path=_workspace_relative(child),
+                        path=_workspace_relative_lexical(child),
                         remediation="Replace the link with contained files or audit it manually.",
                     )
                 )
@@ -500,7 +537,6 @@ def _scan_job_files(
                     )
                 )
                 return findings
-            relative = _workspace_relative(path)
             if _is_link_like(path):
                 findings.append(
                     _finding(
@@ -508,10 +544,11 @@ def _scan_job_files(
                         "error",
                         "Link-like files are not read during release audit.",
                         job_id=job_id,
-                        path=relative,
+                        path=_workspace_relative_lexical(path),
                     )
                 )
                 continue
+            relative = _workspace_relative(path)
             if name.endswith(".tmp") or ".creating-" in name:
                 findings.append(
                     _finding(
@@ -537,6 +574,10 @@ def _scan_job_files(
                     _validate_interior_qa_contract(path)
                 if "qa" in path.parts and "convergence" in path.parts:
                     _validate_visual_convergence_contract(path)
+                if "production" in path.parts:
+                    from ..production.validation import validate_production_contract_file
+
+                    validate_production_contract_file(path)
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 findings.append(
                     _finding(
@@ -665,6 +706,57 @@ def _audit_external_static_asset_intake(
                 ),
             )
         )
+    return findings
+
+
+def _audit_production_dispatches(root: Path, job_id: str) -> list[AuditFinding]:
+    """Verify V0.9 production bundles and their exact workflow/prompt receipt bindings."""
+
+    dispatches_root = root / "production" / "dispatches"
+    if not dispatches_root.exists():
+        return []
+    if not dispatches_root.is_dir() or _is_link_like(dispatches_root):
+        return [
+            _finding(
+                "PRODUCTION_DISPATCH_ROOT_INVALID",
+                "error",
+                "Production dispatch root is not a contained directory.",
+                job_id=job_id,
+                path=_workspace_relative_lexical(dispatches_root),
+            )
+        ]
+    from ..production.validation import validate_dispatch_bundle
+
+    findings: list[AuditFinding] = []
+    for dispatch_root in sorted(dispatches_root.iterdir(), key=lambda item: item.name):
+        if not dispatch_root.is_dir() or _is_link_like(dispatch_root):
+            findings.append(
+                _finding(
+                    "PRODUCTION_DISPATCH_DIRECTORY_INVALID",
+                    "error",
+                    "Production dispatch entry is missing, non-directory, or link-like.",
+                    job_id=job_id,
+                    path=_workspace_relative_lexical(dispatch_root),
+                )
+            )
+            continue
+        try:
+            validate_dispatch_bundle(root, dispatch_root.name)
+        except (OSError, RuntimeError, ValueError) as exc:
+            findings.append(
+                _finding(
+                    "PRODUCTION_DISPATCH_INTEGRITY_FAILED",
+                    "error",
+                    "Production dispatch hashes or immutable receipt links are invalid: "
+                    f"{type(exc).__name__}.",
+                    job_id=job_id,
+                    path=_workspace_relative(dispatch_root),
+                    remediation=(
+                        "Preserve the evidence and create a new dispatch from current canonical "
+                        "inputs; never rewrite the damaged dispatch in place."
+                    ),
+                )
+            )
     return findings
 
 
@@ -2725,7 +2817,7 @@ def _audit_job(
                 )
             )
             continue
-        path = _resolve_source_path(value)
+        path = _resolve_source_path(value, job_root=root)
         try:
             path.relative_to(input_root)
         except ValueError:
@@ -2766,6 +2858,8 @@ def _audit_job(
 
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
     findings.extend(_audit_external_static_asset_intake(root, job_id, metadata))
+    if scan_counter[0] <= scan_limit:
+        findings.extend(_audit_production_dispatches(root, job_id))
     findings.extend(_audit_latest_workflow(root, job_id))
     findings.extend(_audit_latest_interior_qa(root, job_id))
     (

@@ -1,0 +1,176 @@
+{
+  "$defs": {
+    "ProductionArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained production artifact to a normalized path and exact digest.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ProductionArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe a prepared Codex task without claiming that the repository launched it.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "launch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Launch Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "launch_mode": {
+      "const": "client_mediated",
+      "default": "client_mediated",
+      "title": "Launch Mode",
+      "type": "string"
+    },
+    "launch_status": {
+      "const": "prepared",
+      "default": "prepared",
+      "title": "Launch Status",
+      "type": "string"
+    },
+    "task_created_by_repository": {
+      "const": false,
+      "default": false,
+      "title": "Task Created By Repository",
+      "type": "boolean"
+    },
+    "task_title": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Task Title",
+      "type": "string"
+    },
+    "working_directory": {
+      "const": ".",
+      "default": ".",
+      "title": "Working Directory",
+      "type": "string"
+    },
+    "task_prompt": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "controller_plan": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "controller_tool_policy": {
+      "const": "allowlist_only",
+      "default": "allowlist_only",
+      "title": "Controller Tool Policy",
+      "type": "string"
+    },
+    "controller_mcp_allowlist": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Controller Mcp Allowlist",
+      "type": "array"
+    },
+    "controller_forbidden_mcp_tools": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Controller Forbidden Mcp Tools",
+      "type": "array"
+    },
+    "controller_shell_policy": {
+      "const": "approval_and_retry_commands_denied",
+      "default": "approval_and_retry_commands_denied",
+      "title": "Controller Shell Policy",
+      "type": "string"
+    },
+    "client_tool_policy_enforcement_required": {
+      "const": true,
+      "default": true,
+      "title": "Client Tool Policy Enforcement Required",
+      "type": "boolean"
+    },
+    "required_client_capabilities": {
+      "items": {
+        "enum": [
+          "create_or_start_codex_task",
+          "resume_codex_task",
+          "read_repository_files",
+          "call_project_mcp_tools",
+          "delegate_read_only_subagents",
+          "enforce_controller_tool_profile"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Required Client Capabilities",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    },
+    "prepared_at": {
+      "format": "date-time",
+      "title": "Prepared At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "launch_id",
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "task_title",
+    "task_prompt",
+    "controller_plan",
+    "controller_mcp_allowlist",
+    "controller_forbidden_mcp_tools",
+    "required_client_capabilities",
+    "limitations",
+    "prepared_at"
+  ],
+  "title": "CodexTaskLaunchManifest",
+  "type": "object"
+}

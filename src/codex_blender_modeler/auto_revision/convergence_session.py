@@ -20,6 +20,17 @@ from ..orchestration.locks import workflow_write_lock
 from ..orchestration.models import WorkflowAttempt, WorkflowPlan, WorkflowStepCompletion
 from ..qa.hashing import canonical_model_sha256
 from ..qa.models import RenderPassManifest, VisualQAReport, VisualQARequest
+from ..qa.multiview_sanity import (
+    plan_job_assembly_multiview_sanity,
+    run_job_assembly_multiview_sanity,
+)
+from ..qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
+    StructuralRegressionReport,
+    compare_assembly_sanity_terminals,
+    terminal_evidence_from_run_result,
+    validate_terminal_evidence,
+)
 from ..revision import load_revision_plan
 from ..workspace import (
     current_job_write_lock_owner,
@@ -83,6 +94,7 @@ _ITERATION_STAGING_DIR = "staging"
 _INTERRUPTED_ATTEMPTS_DIR = "interrupted_attempts"
 _ITERATION_ATTEMPT = "attempt.json"
 _ITERATION_PREPARED = "prepared.json"
+_STRUCTURAL_COMPARISON = "structural_regression.json"
 _LATEST_POINTER_SNAPSHOT = "latest_pointer.before.json"
 _RECOVERY_RECEIPT = "recovery_receipt.json"
 _TERMINAL_DERIVED_ARTIFACTS = (
@@ -100,16 +112,101 @@ def _utc_now() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _reject_unbound_spatial_convergence(job_id: str) -> None:
-    """Stop authored spatial sessions until every iteration binds exact multi-view QA."""
+def _structural_multiview_policy(
+    job_id: str,
+) -> Literal["not_applicable", "spatial_v1_required"]:
+    """Select exact five-view non-regression only for authored spatial-v1 assets."""
 
-    if not _authored_spatial_multiview_required(job_id):
-        return
-    raise ValueError(
-        "bounded visual convergence is unavailable for authored spatial_v1 assets "
-        "until each iteration binds exact multi-view structural evidence; use the "
-        "standard manual one-shot guarded revision flow instead"
+    return (
+        "spatial_v1_required"
+        if _authored_spatial_multiview_required(job_id)
+        else "not_applicable"
     )
+
+
+def _capture_convergence_structural_terminal(
+    job_id: str,
+    root: Path,
+    *,
+    session_id: str,
+    phase: str,
+    render_engine: str,
+    render_device: str,
+) -> AssemblySanityTerminalEvidence:
+    """Create and validate one immutable five-view convergence terminal."""
+
+    session_digest = hashlib.sha256(session_id.encode()).hexdigest()[:10]
+    run_id = f"conv-{session_digest}-{phase}-{uuid4().hex[:8]}"
+    planned = plan_job_assembly_multiview_sanity(job_id, run_id=run_id)
+    rendered = run_job_assembly_multiview_sanity(
+        job_id,
+        run_id,
+        plan_sha256=str(planned["plan_sha256"]),
+        render_engine=render_engine,
+        render_device=render_device,
+    )
+    evidence = terminal_evidence_from_run_result(root, rendered)
+    validate_terminal_evidence(root, evidence, expected_job_id=job_id)
+    return evidence
+
+
+def _structural_terminal_artifacts(
+    root: Path,
+    evidence: AssemblySanityTerminalEvidence,
+    *,
+    expected_job_id: str,
+    expected_scene_spec_sha256: str,
+) -> list[HashBoundConvergenceArtifact]:
+    """Validate and flatten one exact five-view terminal into hash-bound artifacts."""
+
+    plan, _manifest, _report = validate_terminal_evidence(
+        root,
+        evidence,
+        expected_job_id=expected_job_id,
+    )
+    if plan.scene_spec_sha256 != expected_scene_spec_sha256:
+        raise ValueError(
+            "five-view structural terminal does not bind the expected SceneSpec"
+        )
+    records = (
+        (evidence.plan_path, evidence.plan_sha256, "five-view plan"),
+        (
+            evidence.render_manifest_path,
+            evidence.render_manifest_sha256,
+            "five-view render manifest",
+        ),
+        (evidence.report_path, evidence.report_sha256, "five-view report"),
+    )
+    return [
+        _bind_existing_artifact(
+            root,
+            root / Path(*relative_path.split("/")),
+            expected_sha256,
+            label=label,
+        )
+        for relative_path, expected_sha256, label in records
+    ]
+
+
+def _current_structural_evidence(
+    plan: VisualConvergencePlan,
+    receipts: list[tuple[VisualConvergenceIteration, str, Path]],
+) -> AssemblySanityTerminalEvidence | None:
+    """Recover the five-view baseline owned by the accepted receipt chain."""
+
+    current = plan.initial_structural_evidence
+    for receipt, _receipt_sha256, _receipt_path in receipts:
+        if receipt.status == "accepted":
+            if (
+                plan.structural_multiview_policy == "spatial_v1_required"
+                and receipt.result_structural_evidence is None
+            ):
+                raise ValueError(
+                    "accepted spatial convergence receipt lacks result five-view evidence"
+                )
+            if receipt.result_structural_evidence is not None:
+                current = receipt.result_structural_evidence
+    return current
 
 
 def _canonical_sha256(value: Any) -> str:
@@ -340,6 +437,19 @@ def _validate_initial_session_snapshots(
         raise ValueError(
             "unexpected initial convergence constraint snapshot exists for an absent contract"
         )
+    if plan.structural_multiview_policy == "spatial_v1_required":
+        if plan.initial_structural_evidence is None:
+            raise ValueError("spatial convergence plan lacks initial five-view evidence")
+        artifacts.extend(
+            _structural_terminal_artifacts(
+                root,
+                plan.initial_structural_evidence,
+                expected_job_id=plan.job_id,
+                expected_scene_spec_sha256=plan.initial_scene_spec_sha256,
+            )
+        )
+    elif plan.initial_structural_evidence is not None:
+        raise ValueError("non-spatial convergence plan carries five-view evidence")
     return artifacts
 
 
@@ -750,6 +860,10 @@ def _host_safety_envelope_payload(
     max_changed_ids_per_iteration: int,
     allowed_target_ids: list[str],
     path_limits: list[ConvergencePathLimit],
+    structural_multiview_policy: Literal[
+        "not_applicable", "spatial_v1_required"
+    ],
+    initial_structural_evidence: AssemblySanityTerminalEvidence | None,
 ) -> dict[str, Any]:
     """Derive the exact immutable automatic-edit boundary from initial evidence."""
 
@@ -789,6 +903,8 @@ def _host_safety_envelope_payload(
         camera_locked=True,
         generated_target_policy="advisory_only",
         constraint_regression_policy="forbid",
+        structural_multiview_policy=structural_multiview_policy,
+        initial_structural_evidence=initial_structural_evidence,
     )
     return envelope.model_dump(mode="json")
 
@@ -857,6 +973,8 @@ def _require_host_safety_envelope(
         max_changed_ids_per_iteration=int(raw["max_changed_ids_per_iteration"]),
         allowed_target_ids=allowed_ids,
         path_limits=limits,
+        structural_multiview_policy=plan.structural_multiview_policy,
+        initial_structural_evidence=plan.initial_structural_evidence,
     )
     if raw != recomputed:
         raise ValueError(
@@ -880,11 +998,18 @@ def _require_host_safety_envelope(
             "camera_locked",
             "generated_target_policy",
             "constraint_regression_policy",
+            "structural_multiview_policy",
+            "initial_structural_evidence",
         )
     }
     plan_safety["path_limits"] = [
         item.model_dump(mode="json") for item in plan.path_limits
     ]
+    plan_safety["initial_structural_evidence"] = (
+        plan.initial_structural_evidence.model_dump(mode="json")
+        if plan.initial_structural_evidence is not None
+        else None
+    )
     expected_safety = {
         key: recomputed[key] for key in plan_safety
     }
@@ -1461,6 +1586,82 @@ def _bind_existing_artifact(
         relative_path=relative_path,
         sha256=actual_sha256,
     )
+
+
+def _audit_structural_comparison_evidence(
+    *,
+    root: Path,
+    iteration_root: Path,
+    plan: VisualConvergencePlan,
+    receipt: VisualConvergenceIteration,
+) -> tuple[list[HashBoundConvergenceArtifact], bool]:
+    """Recompute one exact five-view comparison and return its non-regression result."""
+
+    if plan.structural_multiview_policy == "not_applicable":
+        if receipt.structural_multiview_status != "not_applicable":
+            raise ValueError("non-spatial convergence receipt carries five-view evidence")
+        return [], True
+    if receipt.structural_multiview_status == "not_applicable":
+        if receipt.status in {"accepted", "rolled_back"}:
+            raise ValueError(
+                "executed spatial receipt lacks a five-view structural comparison"
+            )
+        return [], True
+    source = receipt.source_structural_evidence
+    result = receipt.result_structural_evidence
+    comparison_hash = receipt.structural_comparison_sha256
+    comparison_relative = receipt.structural_comparison_path
+    if (
+        source is None
+        or result is None
+        or comparison_hash is None
+        or comparison_relative is None
+        or receipt.result_scene_spec_sha256 is None
+    ):
+        raise ValueError("executed spatial receipt lacks complete five-view evidence")
+    expected_comparison_path = iteration_root / _STRUCTURAL_COMPARISON
+    expected_relative = expected_comparison_path.resolve().relative_to(root.resolve()).as_posix()
+    if comparison_relative != expected_relative:
+        raise ValueError("structural comparison moved outside its iteration-owned path")
+    artifacts = [
+        *_structural_terminal_artifacts(
+            root,
+            source,
+            expected_job_id=plan.job_id,
+            expected_scene_spec_sha256=receipt.base_scene_spec_sha256,
+        ),
+        *_structural_terminal_artifacts(
+            root,
+            result,
+            expected_job_id=plan.job_id,
+            expected_scene_spec_sha256=receipt.result_scene_spec_sha256,
+        ),
+        _bind_existing_artifact(
+            root,
+            expected_comparison_path,
+            comparison_hash,
+            label="iteration five-view structural comparison",
+        ),
+    ]
+    recorded = StructuralRegressionReport.model_validate_json(
+        expected_comparison_path.read_text(encoding="utf-8")
+    )
+    recomputed = compare_assembly_sanity_terminals(
+        root,
+        baseline=source,
+        result=result,
+        expected_job_id=plan.job_id,
+        generated_at=recorded.generated_at,
+    )
+    if recorded != recomputed:
+        raise ValueError("five-view structural comparison differs from exact evidence")
+    regression_ids = [finding.id for finding in recomputed.regressions]
+    if (
+        receipt.structural_multiview_status != recomputed.status
+        or receipt.structural_regression_ids != regression_ids
+    ):
+        raise ValueError("five-view receipt summary differs from recomputed comparison")
+    return _deduplicate_artifacts(artifacts), recomputed.status == "passed"
 
 
 def _deduplicate_artifacts(
@@ -2056,6 +2257,32 @@ def _audit_iteration_receipt_evidence(
         raise ValueError(
             "new executed convergence receipts lack exact constraint evidence"
         )
+    structural_non_regression = True
+    if (
+        plan.structural_multiview_policy == "spatial_v1_required"
+        and receipt.structural_multiview_status != "not_applicable"
+    ):
+        expected_source_structural = (
+            previous_receipt.result_structural_evidence
+            if previous_receipt is not None
+            else plan.initial_structural_evidence
+        )
+        if (
+            expected_source_structural is None
+            or receipt.source_structural_evidence != expected_source_structural
+        ):
+            raise ValueError(
+                "iteration source five-view evidence is outside the accepted receipt chain"
+            )
+    structural_artifacts, structural_non_regression = (
+        _audit_structural_comparison_evidence(
+            root=root,
+            iteration_root=iteration_root,
+            plan=plan,
+            receipt=receipt,
+        )
+    )
+    artifacts.extend(structural_artifacts)
     if receipt.result_qa_run_id is not None:
         if (
             receipt.result_qa_report_sha256 is None
@@ -2113,6 +2340,11 @@ def _audit_iteration_receipt_evidence(
                 after_failed_constraints=int(after_evidence["failures"]),
                 before_constraint_results=list(before_evidence["results"]),
                 after_constraint_results=list(after_evidence["results"]),
+                multiview_comparison_path=(
+                    iteration_root / _STRUCTURAL_COMPARISON
+                    if receipt.structural_multiview_status != "not_applicable"
+                    else None
+                ),
                 minimum_improvement=plan.minimum_iteration_gain,
             )
             constraint_regressions = compare_constraint_results(
@@ -2131,6 +2363,7 @@ def _audit_iteration_receipt_evidence(
                 recomputed.accepted
                 and iou_non_regression
                 and not constraint_regressions
+                and structural_non_regression
             )
             if (receipt.status == "accepted") != should_accept:
                 raise ValueError(
@@ -2453,6 +2686,25 @@ def _validate_terminal_report_bindings(
             terminal.initial_constraints_sha256,
             plan.initial_constraints_sha256,
         ),
+        "structural_multiview_policy": (
+            terminal.structural_multiview_policy,
+            plan.structural_multiview_policy,
+        ),
+        "initial_structural_evidence": (
+            terminal.initial_structural_evidence,
+            plan.initial_structural_evidence,
+        ),
+        "final_structural_evidence": (
+            terminal.final_structural_evidence,
+            _current_structural_evidence(plan, receipts),
+        ),
+        "structural_regression_iteration_count": (
+            terminal.structural_regression_iteration_count,
+            sum(
+                receipt.structural_multiview_status == "regressed"
+                for receipt, _hash, _path in receipts
+            ),
+        ),
         "final_qa_report_sha256": (
             terminal.final_qa_report_sha256,
             sha256_file(final_report_path),
@@ -2516,7 +2768,11 @@ def _validate_terminal_report_bindings(
         last_status = receipts[-1][0].status
         allowed_reasons = {
             "accepted": {"target_reached", "iteration_budget_exhausted", "cancelled"},
-            "rolled_back": {"plateau", "constraint_regression"},
+            "rolled_back": {
+                "plateau",
+                "constraint_regression",
+                "structural_regression",
+            },
             "manual_review_required": {
                 "manual_review_required",
                 "no_eligible_candidates",
@@ -2803,14 +3059,16 @@ def plan_job_visual_convergence(
     max_candidates_per_iteration: int = 12,
     max_changed_ids_per_iteration: int = 6,
     path_limits: list[ConvergencePathLimit] | None = None,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
 ) -> dict[str, Any]:
-    """Create a read-only-source plan that requires one exact user approval."""
+    """Create an exact plan and optional five-view baseline for one user approval."""
 
+    _validate_render_selection(render_engine, render_device)
     selected_session = _validate_session_id(session_id or _new_session_id())
     root, session_root = _session_paths(job_id, selected_session)
     if session_root.exists():
         raise FileExistsError(f"Visual convergence session already exists: {session_root}")
-    _reject_unbound_spatial_convergence(job_id)
     scene_spec_path = root / "analysis" / "scene_spec.json"
     spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
     if spec.job_id != job_id:
@@ -2852,6 +3110,19 @@ def plan_job_visual_convergence(
         expected_candidates_sha256=initial_candidates_sha256,
         expected_build_fingerprint=initial_build_fingerprint,
     )
+    structural_policy = _structural_multiview_policy(job_id)
+    initial_structural_evidence = (
+        _capture_convergence_structural_terminal(
+            job_id,
+            root,
+            session_id=selected_session,
+            phase="initial",
+            render_engine=render_engine,
+            render_device=render_device,
+        )
+        if structural_policy == "spatial_v1_required"
+        else None
+    )
     host_safety_envelope = _host_safety_envelope_payload(
         session_id=selected_session,
         job_id=job_id,
@@ -2871,6 +3142,8 @@ def plan_job_visual_convergence(
         max_changed_ids_per_iteration=max_changed_ids_per_iteration,
         allowed_target_ids=allowed,
         path_limits=resolved_path_limits,
+        structural_multiview_policy=structural_policy,
+        initial_structural_evidence=initial_structural_evidence,
     )
     host_safety_envelope_sha256 = _json_artifact_sha256(host_safety_envelope)
     plan = VisualConvergencePlan(
@@ -2904,6 +3177,8 @@ def plan_job_visual_convergence(
         custom_mesh_target_ids=custom_mesh,
         path_limits=resolved_path_limits,
         allow_material_edits=False,
+        structural_multiview_policy=structural_policy,
+        initial_structural_evidence=initial_structural_evidence,
         created_at=_utc_now(),
     )
     _validate_plan_input_binding(plan)
@@ -2968,6 +3243,12 @@ def plan_job_visual_convergence(
         "host_safety_envelope": str(host_safety_path),
         "host_safety_envelope_sha256": plan.host_safety_envelope_sha256,
         "generated_target_policy": generated_policy_note,
+        "structural_multiview_policy": plan.structural_multiview_policy,
+        "initial_structural_evidence": (
+            plan.initial_structural_evidence.model_dump(mode="json")
+            if plan.initial_structural_evidence is not None
+            else None
+        ),
         "canonical_modified": False,
         "approval_required": True,
     }
@@ -3047,6 +3328,8 @@ def approve_job_visual_convergence(
         initial_constraints_present=plan.initial_constraints_present,
         initial_constraints_sha256=plan.initial_constraints_sha256,
         camera_fingerprint=plan.camera_fingerprint,
+        structural_multiview_policy=plan.structural_multiview_policy,
+        initial_structural_evidence=plan.initial_structural_evidence,
         approval_note=approval_note,
         approved_at=_utc_now(),
     )
@@ -3173,6 +3456,7 @@ def _terminal_report(
         "manual_review_required",
         "iteration_budget_exhausted",
         "constraint_regression",
+        "structural_regression",
         "stale_or_tampered",
         "cancelled",
         "failed",
@@ -3266,6 +3550,7 @@ def _terminal_report(
         )
         for _receipt, receipt_sha256, path in receipts
     ]
+    final_structural_evidence = _current_structural_evidence(plan, receipts)
     report = VisualConvergenceReport(
         session_id=plan.session_id,
         job_id=plan.job_id,
@@ -3287,6 +3572,13 @@ def _terminal_report(
         final_build_provenance_snapshot=final_build_snapshot,
         initial_constraints_present=plan.initial_constraints_present,
         initial_constraints_sha256=plan.initial_constraints_sha256,
+        structural_multiview_policy=plan.structural_multiview_policy,
+        initial_structural_evidence=plan.initial_structural_evidence,
+        final_structural_evidence=final_structural_evidence,
+        structural_regression_iteration_count=sum(
+            receipt.structural_multiview_status == "regressed"
+            for receipt, _hash, _path in receipts
+        ),
         cancellation_receipt=cancellation_artifact,
         initial_direct_score=plan.initial_direct_score,
         final_direct_score=final.direct_metrics.overall_direct_score,
@@ -3565,7 +3857,6 @@ def run_job_visual_convergence(
             job_id=job_id,
             session_id=session_id,
         )
-        _reject_unbound_spatial_convergence(job_id)
         if (session_root / _TERMINAL_REPORT).is_file():
             terminal_status = get_job_visual_convergence_status(job_id, session_id)
             if not terminal_status["ok"]:
@@ -3702,6 +3993,18 @@ def run_job_visual_convergence(
             if source_build_fingerprint is None:
                 raise RuntimeError(
                     "executable convergence iteration lacks source build provenance"
+                )
+            source_structural_evidence = _current_structural_evidence(plan, receipts)
+            if plan.structural_multiview_policy == "spatial_v1_required":
+                if source_structural_evidence is None:
+                    raise ValueError(
+                        "spatial convergence iteration lacks an exact five-view baseline"
+                    )
+                _structural_terminal_artifacts(
+                    root,
+                    source_structural_evidence,
+                    expected_job_id=job_id,
+                    expected_scene_spec_sha256=base_spec_sha256,
                 )
             attempt_payload = _iteration_attempt_payload(
                 plan=plan,
@@ -3854,6 +4157,11 @@ def run_job_visual_convergence(
             result_candidates_path: Path | None = None
             result_build_fingerprint: str | None = None
             result_build_provenance_sha256: str | None = None
+            result_structural_evidence: AssemblySanityTerminalEvidence | None = None
+            structural_comparison: StructuralRegressionReport | None = None
+            structural_comparison_path: Path | None = None
+            structural_comparison_relative_path: str | None = None
+            structural_comparison_sha256: str | None = None
             before_constraints_sha256: str | None = None
             after_constraints_sha256: str | None = None
             pipeline: dict[str, Any] | None = None
@@ -3982,6 +4290,39 @@ def run_job_visual_convergence(
                     iteration_root / "after_constraints.json",
                     after_constraints,
                 )
+                if source_structural_evidence is not None:
+                    result_structural_evidence = (
+                        _capture_convergence_structural_terminal(
+                            job_id,
+                            root,
+                            session_id=session_id,
+                            phase=f"result-i{iteration_index:02d}",
+                            render_engine=render_engine,
+                            render_device=render_device,
+                        )
+                    )
+                    structural_comparison = compare_assembly_sanity_terminals(
+                        root,
+                        baseline=source_structural_evidence,
+                        result=result_structural_evidence,
+                        expected_job_id=job_id,
+                    )
+                    structural_comparison_path = (
+                        iteration_root / _STRUCTURAL_COMPARISON
+                    )
+                    _write_immutable_json(
+                        structural_comparison_path,
+                        structural_comparison.model_dump(mode="json"),
+                    )
+                    structural_comparison_sha256 = sha256_file(
+                        structural_comparison_path
+                    )
+                    structural_comparison_relative_path = (
+                        session_root
+                        / "iterations"
+                        / f"{iteration_index:03d}"
+                        / _STRUCTURAL_COMPARISON
+                    ).resolve().relative_to(root.resolve()).as_posix()
                 session_digest = hashlib.sha256(session_id.encode()).hexdigest()[:10]
                 result_run = f"conv-{session_digest}-i{iteration_index:02d}"
                 post_qa = _run_post_visual_qa(
@@ -4013,12 +4354,18 @@ def run_job_visual_convergence(
                     after_failed_constraints=int(pipeline["constraint_failures"]),
                     before_constraint_results=list(before_constraints["results"]),
                     after_constraint_results=list(pipeline.get("constraint_results", [])),
+                    multiview_comparison_path=structural_comparison_path,
                     minimum_improvement=plan.minimum_iteration_gain,
                 )
                 iou_non_regression = (
                     result_report.direct_metrics.silhouette_iou + 1e-9 >= before_iou
                 )
                 accepted = convergence.accepted and iou_non_regression
+                structural_non_regression = (
+                    structural_comparison is None
+                    or structural_comparison.status == "passed"
+                )
+                accepted = accepted and structural_non_regression
                 constraint_regression_count = len(convergence.constraint_regressions)
                 result_report_sha256 = sha256_file(result_report_path)
                 if accepted:
@@ -4060,9 +4407,33 @@ def run_job_visual_convergence(
                         ),
                         changed_ids=changed_ids,
                         constraint_regression_count=0,
+                        structural_multiview_status=(
+                            structural_comparison.status
+                            if structural_comparison is not None
+                            else "not_applicable"
+                        ),
+                        source_structural_evidence=source_structural_evidence,
+                        result_structural_evidence=result_structural_evidence,
+                        structural_comparison_path=(
+                            structural_comparison_relative_path
+                        ),
+                        structural_comparison_sha256=structural_comparison_sha256,
+                        structural_regression_ids=(
+                            [item.id for item in structural_comparison.regressions]
+                            if structural_comparison is not None
+                            else []
+                        ),
                         canonical_scene_spec_sha256=result_spec_sha256,
                         status="accepted",
-                        reason_codes=["direct_score_improved", "constraints_preserved"],
+                        reason_codes=[
+                            "direct_score_improved",
+                            "constraints_preserved",
+                            *(
+                                ["five_view_structure_preserved"]
+                                if structural_comparison is not None
+                                else []
+                            ),
+                        ],
                         completed_at=_utc_now(),
                     )
                     receipts.append(
@@ -4131,12 +4502,16 @@ def run_job_visual_convergence(
                     }
 
                 rollback_reason = (
-                    "measured constraint regression"
-                    if constraint_regression_count
+                    "five-view structural regression"
+                    if not structural_non_regression
                     else (
-                        "silhouette IoU regressed"
-                        if not iou_non_regression
-                        else "direct-score gain did not reach the approved minimum"
+                        "measured constraint regression"
+                        if constraint_regression_count
+                        else (
+                            "silhouette IoU regressed"
+                            if not iou_non_regression
+                            else "direct-score gain did not reach the approved minimum"
+                        )
                     )
                 )
                 _load_authoritative_activation(
@@ -4206,6 +4581,20 @@ def run_job_visual_convergence(
                     ),
                     changed_ids=changed_ids,
                     constraint_regression_count=constraint_regression_count,
+                    structural_multiview_status=(
+                        structural_comparison.status
+                        if structural_comparison is not None
+                        else "not_applicable"
+                    ),
+                    source_structural_evidence=source_structural_evidence,
+                    result_structural_evidence=result_structural_evidence,
+                    structural_comparison_path=structural_comparison_relative_path,
+                    structural_comparison_sha256=structural_comparison_sha256,
+                    structural_regression_ids=(
+                        [item.id for item in structural_comparison.regressions]
+                        if structural_comparison is not None
+                        else []
+                    ),
                     canonical_scene_spec_sha256=base_spec_sha256,
                     status="rolled_back",
                     reason_codes=[rollback_reason.replace(" ", "_")],
@@ -4224,9 +4613,13 @@ def run_job_visual_convergence(
                         receipts=receipts,
                         final_report_path=current_report_path,
                         termination_reason=(
-                            "constraint_regression"
-                            if constraint_regression_count
-                            else "plateau"
+                            "structural_regression"
+                            if not structural_non_regression
+                            else (
+                                "constraint_regression"
+                                if constraint_regression_count
+                                else "plateau"
+                            )
                         ),
                         reasons=[
                             f"Iteration {iteration_index} was rolled back: "
@@ -4242,6 +4635,13 @@ def run_job_visual_convergence(
                     next_action=None,
                 )
             except Exception as exc:
+                # A committed receipt is immutable evidence; never mask a later
+                # terminalization failure by attempting to publish the same index again.
+                if committed_root.is_dir():
+                    raise RuntimeError(
+                        "convergence iteration was committed but post-commit "
+                        "terminalization failed; invoke the session again to recover"
+                    ) from exc
                 current_canonical_hash = (
                     sha256_file(scene_spec_path) if scene_spec_path.is_file() else None
                 )
@@ -4369,6 +4769,28 @@ def run_job_visual_convergence(
                     after_silhouette_iou=failure_after_silhouette_iou,
                     score_delta=failure_score_delta,
                     changed_ids=changed_ids,
+                    structural_multiview_status=(
+                        structural_comparison.status
+                        if structural_comparison is not None
+                        else "not_applicable"
+                    ),
+                    source_structural_evidence=(
+                        source_structural_evidence
+                        if structural_comparison is not None
+                        else None
+                    ),
+                    result_structural_evidence=(
+                        result_structural_evidence
+                        if structural_comparison is not None
+                        else None
+                    ),
+                    structural_comparison_path=structural_comparison_relative_path,
+                    structural_comparison_sha256=structural_comparison_sha256,
+                    structural_regression_ids=(
+                        [item.id for item in structural_comparison.regressions]
+                        if structural_comparison is not None
+                        else []
+                    ),
                     canonical_scene_spec_sha256=base_spec_sha256,
                     status="failed",
                     reason_codes=[f"host_failure:{type(exc).__name__}"],

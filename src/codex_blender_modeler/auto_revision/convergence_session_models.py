@@ -9,6 +9,7 @@ from pydantic import Field, field_validator, model_validator
 
 from ..models import StrictModel
 from ..qa.models import DirectScoringVersion
+from ..qa.structural_regression import AssemblySanityTerminalEvidence
 
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
 SESSION_ID_PATTERN = r"^[a-z0-9][a-z0-9._-]{0,95}$"
@@ -37,6 +38,7 @@ ConvergenceTerminationReason = Literal[
     "manual_review_required",
     "iteration_budget_exhausted",
     "constraint_regression",
+    "structural_regression",
     "stale_or_tampered",
     "cancelled",
     "failed",
@@ -48,6 +50,7 @@ _MANUAL_REVIEW_TERMINATION_REASONS = frozenset(
         "plateau",
         "iteration_budget_exhausted",
         "constraint_regression",
+        "structural_regression",
         "failed",
     }
 )
@@ -128,6 +131,10 @@ class VisualConvergenceHostSafetyEnvelope(StrictModel):
     camera_locked: Literal[True] = True
     generated_target_policy: Literal["advisory_only"] = "advisory_only"
     constraint_regression_policy: Literal["forbid"] = "forbid"
+    structural_multiview_policy: Literal["not_applicable", "spatial_v1_required"] = (
+        "not_applicable"
+    )
+    initial_structural_evidence: AssemblySanityTerminalEvidence | None = None
 
     @model_validator(mode="after")
     def validate_host_boundary(self) -> VisualConvergenceHostSafetyEnvelope:
@@ -171,6 +178,11 @@ class VisualConvergenceHostSafetyEnvelope(StrictModel):
         if self.target_silhouette_iou < self.initial_silhouette_iou:
             raise ValueError(
                 "host safety target_silhouette_iou cannot be below the initial IoU"
+            )
+        required = self.structural_multiview_policy == "spatial_v1_required"
+        if required != (self.initial_structural_evidence is not None):
+            raise ValueError(
+                "spatial host safety requires one exact initial five-view terminal"
             )
         return self
 
@@ -259,6 +271,10 @@ class VisualConvergencePlan(StrictModel):
     camera_locked: Literal[True] = True
     generated_target_policy: Literal["advisory_only"] = "advisory_only"
     constraint_regression_policy: Literal["forbid"] = "forbid"
+    structural_multiview_policy: Literal["not_applicable", "spatial_v1_required"] = (
+        "not_applicable"
+    )
+    initial_structural_evidence: AssemblySanityTerminalEvidence | None = None
     created_at: str
 
     @model_validator(mode="after")
@@ -318,6 +334,11 @@ class VisualConvergencePlan(StrictModel):
             raise ValueError("target_direct_score cannot be lower than the initial score")
         if self.target_silhouette_iou < self.initial_silhouette_iou:
             raise ValueError("target_silhouette_iou cannot be lower than the initial IoU")
+        required = self.structural_multiview_policy == "spatial_v1_required"
+        if required != (self.initial_structural_evidence is not None):
+            raise ValueError(
+                "spatial convergence plans require exact initial five-view evidence"
+            )
         return self
 
 
@@ -379,6 +400,10 @@ class VisualConvergenceApproval(StrictModel):
         ),
     )
     camera_fingerprint: str = Field(pattern=SHA256_PATTERN)
+    structural_multiview_policy: Literal["not_applicable", "spatial_v1_required"] = (
+        "not_applicable"
+    )
+    initial_structural_evidence: AssemblySanityTerminalEvidence | None = None
     authorization_scope: Literal["bounded_visual_convergence"] = (
         "bounded_visual_convergence"
     )
@@ -396,6 +421,17 @@ class VisualConvergenceApproval(StrictModel):
         if not stripped:
             raise ValueError("visual convergence approval note must not be empty")
         return stripped
+
+    @model_validator(mode="after")
+    def validate_structural_scope(self) -> VisualConvergenceApproval:
+        """Require the approved spatial policy and exact baseline evidence together."""
+
+        required = self.structural_multiview_policy == "spatial_v1_required"
+        if required != (self.initial_structural_evidence is not None):
+            raise ValueError(
+                "spatial convergence approval requires exact initial five-view evidence"
+            )
+        return self
 
 
 class VisualConvergenceIterationAuthorization(StrictModel):
@@ -481,6 +517,19 @@ class VisualConvergenceIteration(StrictModel):
     score_delta: float | None = None
     changed_ids: list[str] = Field(default_factory=list)
     constraint_regression_count: int = Field(default=0, ge=0)
+    structural_multiview_status: Literal[
+        "not_applicable",
+        "passed",
+        "regressed",
+    ] = "not_applicable"
+    source_structural_evidence: AssemblySanityTerminalEvidence | None = None
+    result_structural_evidence: AssemblySanityTerminalEvidence | None = None
+    structural_comparison_path: str | None = None
+    structural_comparison_sha256: str | None = Field(
+        default=None,
+        pattern=SHA256_PATTERN,
+    )
+    structural_regression_ids: list[str] = Field(default_factory=list)
     canonical_scene_spec_sha256: str = Field(pattern=SHA256_PATTERN)
     status: Literal[
         "accepted",
@@ -503,6 +552,40 @@ class VisualConvergenceIteration(StrictModel):
             raise ValueError("selected convergence candidate IDs must be unique")
         if len(self.changed_ids) != len(set(self.changed_ids)):
             raise ValueError("changed convergence semantic IDs must be unique")
+        if len(self.structural_regression_ids) != len(
+            set(self.structural_regression_ids)
+        ):
+            raise ValueError("structural regression IDs must be unique")
+        structural_values = (
+            self.source_structural_evidence,
+            self.result_structural_evidence,
+            self.structural_comparison_path,
+            self.structural_comparison_sha256,
+        )
+        if self.structural_multiview_status == "not_applicable":
+            if any(value is not None for value in structural_values) or (
+                self.structural_regression_ids
+            ):
+                raise ValueError(
+                    "non-spatial iteration cannot carry five-view comparison evidence"
+                )
+        else:
+            if any(value is None for value in structural_values):
+                raise ValueError(
+                    "spatial iteration requires complete source/result/comparison evidence"
+                )
+            assert self.structural_comparison_path is not None
+            _validate_relative_path(self.structural_comparison_path)
+            if (
+                self.structural_multiview_status == "passed"
+                and self.structural_regression_ids
+            ):
+                raise ValueError("passed structural comparison cannot contain regressions")
+            if (
+                self.structural_multiview_status == "regressed"
+                and not self.structural_regression_ids
+            ):
+                raise ValueError("regressed structural comparison requires regression IDs")
         executed = self.status in {"accepted", "rolled_back"}
         execution_fields = (
             self.compiled_plan_sha256,
@@ -605,6 +688,10 @@ class VisualConvergenceIteration(StrictModel):
                 raise ValueError("accepted convergence iterations cannot contain regressions")
             if self.canonical_scene_spec_sha256 != self.result_scene_spec_sha256:
                 raise ValueError("accepted result must be the resulting canonical SceneSpec")
+            if self.structural_multiview_status == "regressed":
+                raise ValueError(
+                    "accepted convergence iteration cannot regress five-view structure"
+                )
         if self.status == "rolled_back":
             if self.canonical_scene_spec_sha256 != self.base_scene_spec_sha256:
                 raise ValueError("rolled-back iteration must restore the base SceneSpec")
@@ -676,6 +763,12 @@ class VisualConvergenceReport(StrictModel):
         default=None,
         pattern=SHA256_PATTERN,
     )
+    structural_multiview_policy: Literal["not_applicable", "spatial_v1_required"] = (
+        "not_applicable"
+    )
+    initial_structural_evidence: AssemblySanityTerminalEvidence | None = None
+    final_structural_evidence: AssemblySanityTerminalEvidence | None = None
+    structural_regression_iteration_count: int = Field(default=0, ge=0)
     cancellation_receipt: HashBoundConvergenceArtifact | None = None
     initial_direct_score: float = Field(ge=0, le=1)
     final_direct_score: float = Field(ge=0, le=1)
@@ -759,6 +852,22 @@ class VisualConvergenceReport(StrictModel):
             raise ValueError("cancelled convergence reports require a cancellation receipt")
         if self.termination_reason != "cancelled" and self.cancellation_receipt is not None:
             raise ValueError("only cancelled convergence reports may bind cancellation evidence")
+        structural_required = self.structural_multiview_policy == "spatial_v1_required"
+        if structural_required and (
+            self.initial_structural_evidence is None
+            or self.final_structural_evidence is None
+        ):
+            raise ValueError(
+                "spatial convergence reports require initial and final five-view evidence"
+            )
+        if not structural_required and (
+            self.initial_structural_evidence is not None
+            or self.final_structural_evidence is not None
+            or self.structural_regression_iteration_count
+        ):
+            raise ValueError(
+                "non-spatial convergence reports cannot carry five-view summary evidence"
+            )
         return self
 
 

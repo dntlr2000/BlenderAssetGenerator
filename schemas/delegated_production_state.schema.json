@@ -1,0 +1,277 @@
+{
+  "$defs": {
+    "ProductionApprovalBoundary": {
+      "additionalProperties": false,
+      "description": "Expose one exact existing approval boundary without creating an approval.",
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "gate": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Gate",
+          "type": "string"
+        },
+        "exact_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Exact Fingerprint",
+          "type": "string"
+        },
+        "specialized": {
+          "title": "Specialized",
+          "type": "boolean"
+        },
+        "instruction": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "gate",
+        "exact_fingerprint",
+        "specialized",
+        "instruction"
+      ],
+      "title": "ProductionApprovalBoundary",
+      "type": "object"
+    },
+    "ProductionArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained production artifact to a normalized path and exact digest.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ProductionArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Project exact workflow evidence into the next safe controller action.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dispatch Plan Sha256",
+      "type": "string"
+    },
+    "workflow_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow Plan Sha256",
+      "type": "string"
+    },
+    "workflow_state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow State Sha256",
+      "type": "string"
+    },
+    "integrity_status": {
+      "const": "valid",
+      "default": "valid",
+      "title": "Integrity Status",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "prepared",
+        "running",
+        "waiting_for_controller",
+        "waiting_for_approval",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "workflow_status": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Workflow Status",
+      "type": "string"
+    },
+    "milestone": {
+      "maxLength": 96,
+      "minLength": 1,
+      "title": "Milestone",
+      "type": "string"
+    },
+    "current_step_id": {
+      "anyOf": [
+        {
+          "maxLength": 128,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current Step Id"
+    },
+    "next_action": {
+      "enum": [
+        "bind_client_task",
+        "resume_host",
+        "delegate_read_only",
+        "controller_author",
+        "plan_destination_handoff",
+        "plan_visual_convergence",
+        "run_visual_convergence",
+        "request_generic_approval",
+        "request_specialized_approval",
+        "run_postflight_audit",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Next Action",
+      "type": "string"
+    },
+    "current_assignment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "approval_boundary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionApprovalBoundary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task_binding": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "postflight_audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "convergence_binding": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "convergence_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "delivery_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ProductionArtifact"
+      },
+      "title": "Delivery Artifacts",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_plan_sha256",
+    "workflow_plan_sha256",
+    "workflow_state_sha256",
+    "status",
+    "workflow_status",
+    "milestone",
+    "next_action",
+    "observed_at"
+  ],
+  "title": "DelegatedProductionState",
+  "type": "object"
+}

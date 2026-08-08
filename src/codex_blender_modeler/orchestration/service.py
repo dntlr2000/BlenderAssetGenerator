@@ -689,10 +689,10 @@ def plan_workflow(
         raise ValueError("delivery_scope must be preview_only or portable_package")
     if profile_id not in {"portable_gltf", "fbx_interchange", "obj_legacy"}:
         raise ValueError("unsupported portable profile")
-    if execution_policy == "standard" and delivery_scope is not None:
+    if execution_policy == "standard" and delivery_scope == "portable_package":
         raise ValueError(
-            "explicit delivery_scope is currently supported only by "
-            "execution_policy=background_exterior; standard keeps legacy --scope behavior"
+            "explicit portable_package remains implicit for standard full workflows; "
+            "only preview_only may be selected explicitly"
         )
     resolved_profile = _profile_from_request(normalized_request, profile_id)
     if include_destination_handoff and resolved_profile == "obj_legacy":
@@ -790,9 +790,13 @@ def plan_workflow(
     else:
         selected_scope = _default_scope(routing.intent, scope)
         resolved_delivery = (
-            "portable_package"
-            if routing.intent == "portable_package" or selected_scope == "full"
-            else "preview_only"
+            delivery_scope
+            if delivery_scope is not None
+            else (
+                "portable_package"
+                if routing.intent == "portable_package" or selected_scope == "full"
+                else "preview_only"
+            )
         )
         routing = routing.model_copy(update={"delivery_scope": resolved_delivery})
     selected_budgets = _normalize_execution_budgets(

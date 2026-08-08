@@ -1,6 +1,6 @@
 {
   "additionalProperties": false,
-  "description": "Represent one expiring job write lock without storing host secrets.",
+  "description": "Represent one host-bound job write lock with legacy-readable expiry metadata.",
   "properties": {
     "schema_version": {
       "const": "0.8.0",
@@ -27,6 +27,20 @@
       "minimum": 0,
       "title": "Process Id",
       "type": "integer"
+    },
+    "owner_host": {
+      "anyOf": [
+        {
+          "maxLength": 255,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Owner Host"
     },
     "acquired_at": {
       "format": "date-time",

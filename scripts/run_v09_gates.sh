@@ -80,6 +80,38 @@ run_destination_handoff_gate() {
   uv run python -c 'import json,sys,pathlib; e=pathlib.Path(sys.argv[1]); v=json.load(open(e/"destination_handoff_validation.json", encoding="utf-8")); assert v["ok"] and v["status"] in {"passed","warning"}; assert (e/"codex_handoff/handoff_manifest.json").is_file(); assert (e/"codex_handoff/handoff_report.pdf").is_file(); assert (e/"codex_handoff/handoff_report.manifest.json").is_file(); assert sys.argv[2] == sys.argv[3]' "$envelope" "$package_hash_before" "$package_hash_after"
 }
 
+# Exercises the client-mediated dispatcher and read-only controller boundary without Blender.
+run_production_dispatch_gate() {
+  local reference="$PWD/examples/geometry_showcase/reference.png"
+  uv run cbm production-dispatch \
+    --request "Prepare one isolated static asset production workflow." \
+    --reference "$reference" \
+    --purpose "V0.9 delegated production controller smoke" \
+    --job-id v09_production_smoke \
+    --profile fbx_interchange
+  local dispatch_root
+  dispatch_root="$(find "$SMOKE_WORKSPACE/v09_production_smoke/production/dispatches" \
+    -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+  local dispatch_id controller_id
+  dispatch_id="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["dispatch_id"])' "$dispatch_root/dispatch_plan.json")"
+  controller_id="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["controller_id"])' "$dispatch_root/dispatch_plan.json")"
+  local profile_hash
+  profile_hash="$(uv run python -c 'import pathlib,sys; from codex_blender_modeler.production.models import CodexTaskLaunchManifest; from codex_blender_modeler.production.validation import controller_tool_profile_digest; p=pathlib.Path(sys.argv[1]); print(controller_tool_profile_digest(CodexTaskLaunchManifest.model_validate_json(p.read_text(encoding="utf-8"))))' "$dispatch_root/task_launch_manifest.json")"
+  uv run cbm production-bind-task v09_production_smoke "$dispatch_id" \
+    --controller-id "$controller_id" \
+    --external-task-id v09-production-smoke-task \
+    --confirm-tool-profile \
+    --tool-profile-sha256 "$profile_hash"
+  uv run cbm production-advance v09_production_smoke "$dispatch_id" \
+    --controller-id "$controller_id" --max-host-steps 2
+  uv run cbm production-advance v09_production_smoke "$dispatch_id" \
+    --controller-id "$controller_id"
+  uv run python -c 'import json,sys,pathlib; root=pathlib.Path(sys.argv[1]); state=json.load(open(root/"controller_state.json", encoding="utf-8")); assignment=json.load(open(pathlib.Path(sys.argv[2])/state["current_assignment"]["path"], encoding="utf-8")); assert state["next_action"] == "controller_author"; assert assignment["canonical_write_authority"] == "controller_only"; assert assignment["subagent_write_allowlist"] == []' "$dispatch_root" "$SMOKE_WORKSPACE/v09_production_smoke"
+  local audit_id="production-audit-$RUN_ID_SAFE"
+  uv run cbm workspace-audit --job-id v09_production_smoke --audit-id "$audit_id"
+  uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["status"] == "passed"' "$PWD/reports/v09/audits/$audit_id/workspace_audit.json"
+}
+
 if [[ "$SKIP_VISION" -eq 1 ]]; then
   uv sync --frozen --extra dev
 else
@@ -127,6 +159,7 @@ restore_workspace() {
 trap restore_workspace EXIT
 
 run_destination_handoff_gate
+run_production_dispatch_gate
 
 REFERENCE="$PWD/examples/geometry_showcase/reference.png"
 uv run cbm workflow-plan \

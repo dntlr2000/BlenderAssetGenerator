@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,11 @@ from codex_blender_modeler.qa.models import (
     SuggestedEdit,
     VisualQAReport,
     VisualQARequest,
+)
+from codex_blender_modeler.qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
+    StructuralRegressionFinding,
+    StructuralRegressionReport,
 )
 from codex_blender_modeler.workspace import sha256_file
 
@@ -242,6 +248,7 @@ def _job_fixture(
     material_plan: bool = False,
     constraints_present: bool = False,
     interior_target: bool = False,
+    spatial_modeling_plan: bool = False,
 ) -> tuple[Path, Path, str]:
     """Create a complete job and one selectable initial QA run without Blender."""
 
@@ -310,6 +317,8 @@ def _job_fixture(
         geometry["path"] = "geometry/custom_pyramid.mesh.json"
     scene_spec_path = root / "analysis" / "scene_spec.json"
     scene_spec_path.write_text(json.dumps(scene, indent=2), encoding="utf-8")
+    if spatial_modeling_plan:
+        _write_authored_spatial_modeling_plan(root)
     if interior_target:
         initialize_interior_scope(
             "convergence_asset",
@@ -376,8 +385,11 @@ def _job_fixture(
 
 
 def _write_authored_spatial_modeling_plan(root: Path) -> Path:
-    """Write the minimum valid authored spatial plan used by convergence rejection tests."""
+    """Write one valid authored spatial plan covering every fixture SceneSpec object."""
 
+    scene = json.loads(
+        (root / "analysis" / "scene_spec.json").read_text(encoding="utf-8")
+    )
     modeling_plan_path = root / "analysis" / "modeling_plan.json"
     modeling_plan_path.write_text(
         json.dumps(
@@ -388,11 +400,16 @@ def _write_authored_spatial_modeling_plan(root: Path) -> Path:
                 "stage": "authored",
                 "objects": [
                     {
-                        "id": TARGET_ID,
-                        "label": "fixture root",
-                        "scope_role": "primary",
-                        "assembly_role": "root",
+                        "id": item["id"],
+                        "label": item["id"],
+                        "scope_role": (
+                            "primary" if item["id"] == TARGET_ID else "supporting"
+                        ),
+                        "assembly_role": (
+                            "root" if item["id"] == TARGET_ID else "free_standing"
+                        ),
                     }
+                    for item in scene["objects"]
                 ],
                 "assembly_consistency_policy": "spatial_v1",
                 "assembly_frame": {
@@ -408,6 +425,21 @@ def _write_authored_spatial_modeling_plan(root: Path) -> Path:
         encoding="utf-8",
     )
     return modeling_plan_path
+
+
+def _structural_evidence(run_id: str, digit: str) -> AssemblySanityTerminalEvidence:
+    """Create one path-valid exact-hash five-view binding for service-level tests."""
+
+    run_root = f"qa/assembly_sanity/runs/{run_id}"
+    return AssemblySanityTerminalEvidence(
+        run_id=run_id,
+        plan_path=f"{run_root}/plan.json",
+        plan_sha256=digit * 64,
+        render_manifest_path=f"{run_root}/render_manifest.json",
+        render_manifest_sha256=str((int(digit) + 1) % 10) * 64,
+        report_path=f"{run_root}/report.json",
+        report_sha256=str((int(digit) + 2) % 10) * 64,
+    )
 
 
 def _fake_pdf(root: Path):
@@ -675,28 +707,64 @@ def test_plan_is_canonical_read_only_and_requires_exact_approval(
         )
 
 
-def test_plan_rejects_authored_spatial_asset_before_session_creation(
+def test_plan_binds_authored_spatial_asset_to_exact_five_view_baseline(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    """Planning routes authored spatial assets to the guarded one-shot workflow."""
+    """Planning accepts spatial assets only with one exact five-view baseline."""
 
-    root, scene_spec, run_id = _job_fixture(tmp_path, monkeypatch)
-    _write_authored_spatial_modeling_plan(root)
+    from codex_blender_modeler.auto_revision import convergence_session
+
+    root, scene_spec, run_id = _job_fixture(
+        tmp_path,
+        monkeypatch,
+        spatial_modeling_plan=True,
+    )
     scene_sha256 = sha256_file(scene_spec)
-    session_root = root / "qa" / "convergence" / "session-spatial"
+    evidence = AssemblySanityTerminalEvidence(
+        run_id="conv-session-spatial-initial",
+        plan_path=(
+            "qa/assembly_sanity/runs/conv-session-spatial-initial/plan.json"
+        ),
+        plan_sha256="1" * 64,
+        render_manifest_path=(
+            "qa/assembly_sanity/runs/conv-session-spatial-initial/"
+            "render_manifest.json"
+        ),
+        render_manifest_sha256="2" * 64,
+        report_path=(
+            "qa/assembly_sanity/runs/conv-session-spatial-initial/report.json"
+        ),
+        report_sha256="3" * 64,
+    )
+    monkeypatch.setattr(
+        convergence_session,
+        "_capture_convergence_structural_terminal",
+        lambda *_args, **_kwargs: evidence,
+    )
+    monkeypatch.setattr(
+        convergence_session,
+        "_structural_terminal_artifacts",
+        lambda *_args, **_kwargs: [],
+    )
+    planned = plan_job_visual_convergence(
+        "convergence_asset",
+        run_id,
+        session_id="session-spatial",
+        target_direct_score=0.8,
+        target_silhouette_iou=0.8,
+        allowed_target_ids=[TARGET_ID],
+    )
+    approved = approve_job_visual_convergence(
+        "convergence_asset",
+        "session-spatial",
+        plan_sha256=planned["plan_sha256"],
+        approval_note="Approve the exact spatial five-view convergence baseline.",
+    )
 
-    with pytest.raises(ValueError, match="manual one-shot guarded revision"):
-        plan_job_visual_convergence(
-            "convergence_asset",
-            run_id,
-            session_id="session-spatial",
-            target_direct_score=0.8,
-            target_silhouette_iou=0.8,
-            allowed_target_ids=[TARGET_ID],
-        )
-
-    assert not session_root.exists()
+    assert planned["structural_multiview_policy"] == "spatial_v1_required"
+    assert planned["initial_structural_evidence"] == evidence.model_dump(mode="json")
+    assert approved["status"] == "approved_bounded_session"
     assert sha256_file(scene_spec) == scene_sha256
 
 
@@ -714,11 +782,143 @@ def test_run_rechecks_authored_spatial_policy_for_existing_approval(
         root / "qa" / "convergence" / "session-fixture" / "iterations"
     )
 
-    with pytest.raises(ValueError, match="manual one-shot guarded revision"):
+    with pytest.raises(
+        ValueError,
+        match="canonical build inputs|host safety envelope",
+    ):
         run_job_visual_convergence("convergence_asset", "session-fixture")
 
     assert not iteration_root.exists()
     assert sha256_file(scene_spec) == scene_sha256
+
+
+@pytest.mark.parametrize(
+    ("structural_status", "expected_iteration_status", "termination_reason"),
+    [
+        ("passed", "accepted", "target_reached"),
+        ("regressed", "rolled_back", "structural_regression"),
+    ],
+)
+def test_spatial_iteration_uses_five_view_result_as_acceptance_veto(
+    tmp_path: Path,
+    monkeypatch,
+    structural_status: str,
+    expected_iteration_status: str,
+    termination_reason: str,
+) -> None:
+    """Accept visual gains only when exact five-view structural evidence does not regress."""
+
+    from codex_blender_modeler.auto_revision import convergence, convergence_session
+
+    root, scene_spec, run_id = _job_fixture(
+        tmp_path,
+        monkeypatch,
+        spatial_modeling_plan=True,
+    )
+    baseline_sha256 = sha256_file(scene_spec)
+    baseline = _structural_evidence("conv-fixture-initial", "1")
+    result_evidence = _structural_evidence("conv-fixture-result", "4")
+    captures = iter([baseline, result_evidence])
+    comparison_result_sha256: list[str] = []
+
+    monkeypatch.setattr(
+        convergence_session,
+        "_capture_convergence_structural_terminal",
+        lambda *_args, **_kwargs: next(captures),
+    )
+    monkeypatch.setattr(
+        convergence_session,
+        "_structural_terminal_artifacts",
+        lambda *_args, **_kwargs: [],
+    )
+
+    def compare(
+        _root: Path,
+        *,
+        baseline: AssemblySanityTerminalEvidence,
+        result: AssemblySanityTerminalEvidence,
+        expected_job_id: str | None = None,
+        generated_at: datetime | None = None,
+    ) -> StructuralRegressionReport:
+        """Return a stable comparison fixture while preserving the recorded timestamp."""
+
+        assert expected_job_id == "convergence_asset"
+        if not comparison_result_sha256:
+            comparison_result_sha256.append(sha256_file(scene_spec))
+        regressions = (
+            [
+                StructuralRegressionFinding(
+                    id="structural.fixture_regression",
+                    category="structural_status",
+                    before="passed",
+                    after="failed",
+                    message="Fixture five-view structure regressed.",
+                )
+            ]
+            if structural_status == "regressed"
+            else []
+        )
+        return StructuralRegressionReport(
+            job_id="convergence_asset",
+            status=structural_status,
+            baseline=baseline,
+            result=result,
+            baseline_scene_spec_sha256=baseline_sha256,
+            result_scene_spec_sha256=comparison_result_sha256[0],
+            modeling_plan_sha256=sha256_file(
+                root / "analysis" / "modeling_plan.json"
+            ),
+            regressions=regressions,
+            generated_at=generated_at or datetime(2026, 8, 1, tzinfo=UTC),
+        )
+
+    monkeypatch.setattr(
+        convergence_session,
+        "compare_assembly_sanity_terminals",
+        compare,
+    )
+    monkeypatch.setattr(
+        convergence,
+        "compare_assembly_sanity_terminals",
+        compare,
+    )
+    _plan_and_approve(run_id, target=0.7, max_iterations=1)
+    pipeline, _heights = _pipeline(scene_spec)
+    monkeypatch.setattr(convergence_session, "_run_job_pipeline", pipeline)
+    monkeypatch.setattr(
+        convergence_session,
+        "_run_post_visual_qa",
+        _post_qa_sequence(root, scene_spec, [0.72]),
+    )
+    monkeypatch.setattr(
+        convergence_session,
+        "generate_visual_convergence_pdf_report",
+        _fake_pdf(root),
+    )
+
+    result = run_job_visual_convergence("convergence_asset", "session-fixture")
+    receipt_path = (
+        root
+        / "qa"
+        / "convergence"
+        / "session-fixture"
+        / "iterations"
+        / "001"
+        / "receipt.json"
+    )
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    assert receipt["status"] == expected_iteration_status, json.dumps(
+        result,
+        indent=2,
+        default=str,
+    )
+    assert receipt["structural_multiview_status"] == structural_status
+    assert result["termination_reason"] == termination_reason
+    assert sha256_file(scene_spec) == (
+        comparison_result_sha256[0]
+        if structural_status == "passed"
+        else baseline_sha256
+    )
 
 
 def test_approved_interior_objects_remain_locked_out_of_convergence(

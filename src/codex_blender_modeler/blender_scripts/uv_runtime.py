@@ -33,8 +33,13 @@ def _smart_project_keywords() -> dict[str, Any]:
     return {name: value for name, value in candidates.items() if name in identifiers}
 
 
-def ensure_uv_mapping(obj: bpy.types.Object, mapping: dict[str, Any]) -> str:
-    """Preserve an existing requested UV set or deterministically Smart-unwrap a mesh."""
+def ensure_uv_mapping(
+    obj: bpy.types.Object,
+    mapping: dict[str, Any],
+    *,
+    generate_if_missing: bool = True,
+) -> str:
+    """Preserve a requested UV set or deterministically create it when policy permits."""
 
     mode = str(mapping.get("mode", "object"))
     if mode != "uv":
@@ -58,6 +63,10 @@ def ensure_uv_mapping(obj: bpy.types.Object, mapping: dict[str, Any]) -> str:
         obj["cbm_uv_set"] = uv_set
         obj["cbm_uv_generated"] = False
         return "preserved"
+    if not generate_if_missing:
+        raise RuntimeError(
+            f"Required existing UV set {uv_set!r} is missing on {obj.name}"
+        )
 
     layer = mesh.uv_layers.new(name=uv_set, do_init=False)
     mesh.uv_layers.active = layer

@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "CodexTaskBinding": {
+      "additionalProperties": false,
+      "description": "Bind one client-created Codex task to the exact prepared launch manifest.",
+      "properties": {
+        "schema_version": {
+          "const": "0.9.0",
+          "default": "0.9.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "binding_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Binding Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "controller_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Controller Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "launch_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Launch Manifest Sha256",
+          "type": "string"
+        },
+        "task_prompt_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Task Prompt Sha256",
+          "type": "string"
+        },
+        "controller_tool_profile_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Controller Tool Profile Sha256",
+          "type": "string"
+        },
+        "client_tool_policy_enforced": {
+          "const": true,
+          "default": true,
+          "title": "Client Tool Policy Enforced",
+          "type": "boolean"
+        },
+        "external_task_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "External Task Id",
+          "type": "string"
+        },
+        "external_host_id": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Host Id"
+        },
+        "bound_at": {
+          "format": "date-time",
+          "title": "Bound At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "binding_id",
+        "dispatch_id",
+        "controller_id",
+        "job_id",
+        "workflow_id",
+        "launch_manifest_sha256",
+        "task_prompt_sha256",
+        "controller_tool_profile_sha256",
+        "external_task_id",
+        "bound_at"
+      ],
+      "title": "CodexTaskBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Anchor one task binding to the immutable dispatch and launch evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dispatch Plan Sha256",
+      "type": "string"
+    },
+    "task_binding": {
+      "$ref": "#/$defs/CodexTaskBinding"
+    },
+    "launch_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Launch Manifest Sha256",
+      "type": "string"
+    },
+    "task_prompt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Task Prompt Sha256",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_plan_sha256",
+    "task_binding",
+    "launch_manifest_sha256",
+    "task_prompt_sha256",
+    "recorded_at"
+  ],
+  "title": "CodexTaskBindingReceipt",
+  "type": "object"
+}

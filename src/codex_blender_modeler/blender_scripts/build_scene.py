@@ -28,6 +28,9 @@ from common import (  # noqa: E402
     setup_camera,
     setup_lighting,
 )
+from surface_detail_uv_runtime import (  # noqa: E402
+    load_surface_detail_uv_requirements,
+)
 from uv_runtime import ensure_uv_mapping  # noqa: E402
 
 from codex_blender_modeler.build_provenance import (  # noqa: E402
@@ -80,6 +83,7 @@ def main() -> None:
     collection = ensure_collection("CBM_Generated")
     shader_recipes = load_runtime_shader_recipes(job_root, str(spec["job_id"]))
     material_mappings = load_runtime_material_mappings(job_root, str(spec["job_id"]))
+    surface_detail_uv_requirements = load_surface_detail_uv_requirements(job_root)
     material_ids = {str(material["id"]) for material in spec["materials"]}
     unknown_recipe_ids = sorted(set(shader_recipes) - material_ids)
     if unknown_recipe_ids:
@@ -114,6 +118,15 @@ def main() -> None:
         material["cbm_intended_scale_m"] = mapping["real_world_scale_m"]
 
     object_map: dict[str, list[bpy.types.Object]] = {}
+    object_ids = {str(item["id"]) for item in spec["objects"]}
+    unknown_surface_detail_parents = sorted(
+        set(surface_detail_uv_requirements) - object_ids
+    )
+    if unknown_surface_detail_parents:
+        raise RuntimeError(
+            "Surface-detail UV requirements reference missing SceneSpec objects: "
+            f"{unknown_surface_detail_parents}"
+        )
     count = 0
     for object_spec in spec["objects"]:
         generator = object_spec.get("generator")
@@ -128,7 +141,34 @@ def main() -> None:
                 index,
             )
             mapping = material_mappings.get(str(object_spec["material_id"]))
-            if mapping is not None:
+            detail_requirement = surface_detail_uv_requirements.get(
+                str(object_spec["id"])
+            )
+            if detail_requirement is not None:
+                if mapping is not None and (
+                    mapping["mode"] != "uv"
+                    or mapping["uv_set"] != detail_requirement["uv_set"]
+                ):
+                    raise RuntimeError(
+                        "MaterialPlan mapping conflicts with the ModelingPlan "
+                        f"surface-detail UVMap requirement for {object_spec['id']}"
+                    )
+                effective_mapping = mapping or detail_requirement
+                uv_result = ensure_uv_mapping(
+                    built_object,
+                    effective_mapping,
+                    generate_if_missing=bool(
+                        detail_requirement["generate_if_missing"]
+                    ),
+                )
+                built_object["cbm_surface_detail_uv_policy"] = uv_result
+                built_object["cbm_surface_detail_uv_ids"] = ",".join(
+                    detail_requirement["detail_ids"]
+                )
+                built_object["cbm_surface_detail_uv_strategies"] = ",".join(
+                    detail_requirement["strategies"]
+                )
+            elif mapping is not None:
                 ensure_uv_mapping(built_object, mapping)
             built.append(built_object)
             count += 1

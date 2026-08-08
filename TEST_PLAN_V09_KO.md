@@ -9,6 +9,9 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - CLI command 등록
 - MCP allowlist와 capability version
 - 프로젝트 `0.9.0`, workflow `0.8.0`, 기존 contract version 유지
+- production dispatch/controller의 strict `0.9.0` Schema 11개 parity
+- `production-dispatch`, `production-bind-task`, `production-status`, `production-advance`, `production-complete-step` CLI와 `create_asset_production_dispatch`, `bind_asset_production_task`, `get_asset_production_dispatch_status`, `advance_delegated_production_controller`, `record_delegated_production_step` MCP 표면
+- launch manifest의 allowlist-only controller MCP profile, forbidden approval/retry tools와 shell-denial policy
 
 ## Gate 2 — environment probe
 
@@ -57,6 +60,8 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - convergence PDF source 누락, hash mismatch 또는 source fingerprint 불일치
 - scan limit 초과
 - audit output overwrite
+- production launch, tool profile, task-binding receipt, advisory assignment, advance receipt chain 또는 postflight receipt 변조
+- production dispatch와 bound V0.8 workflow plan/state의 stale 또는 mismatched binding
 
 모든 사례에서 canonical 파일 byte hash가 바뀌지 않아야 한다.
 
@@ -71,6 +76,60 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - deterministic failure 후 자동 retry 없음
 - explicit `--retry-failed` token 한 번만 소비
 - max attempts, queue cancellation, underlying workflow 보존
+
+## Gate 4A — Asset Production Dispatcher와 Delegated Controller
+
+격리 CLI smoke는 새 dispatch 생성, exact client profile binding, host 진행과 첫
+read-only advisory assignment, production-aware workspace audit까지 확인한다. 아래의
+controller-authored completion, receipt chain과 terminal postflight 항목은 isolated
+temporary workspace 단위·통합 테스트에서 검증한다. CLI smoke가 실제 agent 산출물이나
+기존 승인을 합성해 terminal 상태를 만들지는 않는다.
+
+정상 사례:
+
+- 새 reference·purpose·content scope로 새 V0.8 `new_asset` workflow와 dispatch bundle 생성
+- `standard` 기본과 명시적 `background_exterior` 선택 유지
+- launch manifest가 repository task 미생성, client-mediated 경계, 상대 경로와 exact hash 기록
+- controller MCP는 정확한 allowlist만 갖고 approval/retry 도구와 동등한 shell command는 금지
+- supporting-client enforcement 확인 없이는 task binding 거부
+- binding receipt가 dispatch plan, launch, prompt와 controller-tool-profile SHA-256에 결속
+- agent 경계에서 exact read-only assignment 생성, subagent write allowlist가 비어 있음
+- controller만 선언된 V0.8 agent output을 작성하고 exact input fingerprint로 완료
+- 모든 advance receipt가 전후 workflow state bytes와 previous receipt SHA-256에 결속
+- completed workflow에서 atomic read-only V0.9 postflight receipt 생성
+- postflight warning은 보존하고 failure는 production acceptance 차단
+- 명시적 `standard + bounded_after_v06` dispatch가 최초 workflow를 V0.6
+  `preview_only`에서 완료하고 exact convergence plan/binding을 한 번만 생성
+- Controller가 `visual_convergence_plan` exact SHA-256 승인에서 멈추며 그 승인을
+  생성·추론하지 않음
+- 외부 exact 승인 뒤 Controller advance 한 번당 full Blender convergence iteration을
+  최대 한 번만 실행 또는 복구
+- authored `spatial_v1` iteration은 fresh initial/result five-view 구조 비교를 결속하고,
+  구조 비회귀는 유지하며 regression은 canonical rollback 후 terminal 처리
+- convergence terminal JSON/PDF와 immutable session directory가 postflight receipt에
+  exact hash로 결속되고, V0.7 package는 별도 새 workflow로 남음
+
+승인·안전 경계:
+
+- generic approval, InteriorScope, interior QA, candidate-review decision, guarded/convergence, V0.7 optimization과 Destination Handoff exact approval을 합성하지 않음
+- failed host step을 `production-advance`가 재시도하지 않음
+- `background_exterior` dispatch가 initial Destination Handoff를 포함하지 않음
+- `background_exterior + bounded_after_v06`와 bounded convergence + initial handoff 거부
+- subagent는 advisory output만 반환하며 controller-only writer contract를 바꾸지 않음
+
+음성 사례:
+
+- false client enforcement attestation, stale launch/profile/prompt 또는 reused binding
+- changed dispatch/workflow plan, assignment input, receipt bytes 또는 receipt-chain splice
+- task/controller identity mismatch와 live controller lock 충돌
+- unenforced client를 verified sandbox로 잘못 주장함
+- missing/wrong convergence-plan approval, convergence binding/plan/terminal evidence tampering
+- spatial five-view evidence 생성 실패 또는 result 구조 regression을 quality pass로 오인
+
+모든 사례에서 source input, canonical SceneSpec, geometry, material, authoring `.blend`와 기존
+approval evidence는 test fixture가 명시적으로 authoring하는 현재 step 외에는 바뀌지 않아야
+한다. Supporting client의 실제 task 생성과 OS-level tool/shell sandbox는 별도 client
+integration evidence가 없으면 `contract_verified` 이상으로 주장하지 않는다.
 
 ## Gate 5 — Codex Destination Handoff
 
@@ -144,6 +203,7 @@ Handoff와 audit 회귀:
 - 실제 Blender compatibility probe
 - V0.8 isolated workflow regression
 - V0.8 optional `destination.handoff` step이 exact package approval 뒤에 위치하고 output completion marker가 hash-bound인지 확인
+- V0.9 production dispatcher/controller가 기존 V0.8 approval과 V0.7/V0.9 handoff 경계를 보존하고 final postflight audit에서만 완료되는지 확인
 - V0.6 manual one-shot revision 기본 경로와 optional exact-plan bounded convergence 공개 표면·job-lock·strict path-limit narrowing 회귀
 - 한 host/MCP 호출당 full Blender iteration 최대 1회, receipt 없는 staging 복구 후에만 취소·terminalization, terminal+staging audit failure 회귀
 - `background_exterior`가 계속 canonical QA 1회, generated target 없음, post-QA automatic revision 없음으로 종료되는지 확인

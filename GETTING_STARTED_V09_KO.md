@@ -1,6 +1,6 @@
 # V0.9 빠른 시작
 
-V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
+V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서, client-mediated Asset Production Dispatcher/Controller와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
 
 직접 제작한 정적 `.blend`/`.fbx`/`.glb`는
 [External Static Asset Intake](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)로 exact-hash source를
@@ -110,6 +110,128 @@ uv run cbm queue-cancel <entry-id> --reason "user cancelled dispatch"
 
 이는 underlying V0.8 workflow를 취소하지 않는다.
 
+## 5A. Asset Production Dispatcher와 Delegated Controller
+
+새 레퍼런스, 사용 목적, 모델링 범위와 목적지 힌트를 한 번에 전달하려면 Asset
+Production Dispatcher를 사용할 수 있다. 기본 실행 정책은 `standard`이며
+`background_exterior`는 실내·실측·rig·animation·gameplay가 없는 적격 정적 외관에만
+명시적으로 선택한다.
+
+```powershell
+uv run cbm production-dispatch `
+  --request "새 레퍼런스를 engine-neutral static package까지 단계적으로 제작" `
+  --reference <reference-path> `
+  --purpose "<asset-purpose>" `
+  --job-id <job-id> `
+  --mode concept `
+  --content-scope full_reference `
+  --policy standard `
+  --profile portable_gltf `
+  --dest-kind unspecified
+```
+
+이 명령은 새 V0.8 workflow와 다음 immutable evidence를 준비하지만 Codex 작업을
+직접 생성하거나 인증하지 않는다.
+
+생성 직후 production 상태는 `status=prepared`, `next_action=bind_client_task`이다.
+Supporting client가 아래 exact profile을 실제로 강제하고 task binding receipt를 만든
+뒤에만 host/agent 작업을 진행할 수 있다.
+
+```text
+workspaces/<job-id>/production/dispatches/<dispatch-id>/
+├─ dispatch_request.json
+├─ controller_plan.json
+├─ codex_task_prompt.md
+├─ task_launch_manifest.json
+├─ dispatch_plan.json
+├─ controller_state.json
+├─ optional task_binding_receipt.json
+├─ optional convergence_binding.json
+├─ assignments/
+├─ advances/
+└─ final postflight_audit_receipt.json
+```
+
+`controller_state.json`은 편의용 current projection이며 immutable workflow, dispatch와
+receipt evidence를 대체하지 않는다.
+
+Codex Desktop/App 같은 supporting client가 `codex_task_prompt.md`로 실제 task를 만든다.
+그 client는 launch manifest의 `controller_mcp_allowlist`만 노출하고,
+`controller_forbidden_mcp_tools`의 approval/retry 도구와 동등한 shell 명령을 거부해야
+한다. 실제로 이 정책을 강제한 경우에만 task를 bind한다.
+
+```powershell
+uv run cbm production-bind-task <job-id> <dispatch-id> `
+  --controller-id <controller-id> `
+  --external-task-id <client-task-id> `
+  --confirm-tool-profile `
+  --tool-profile-sha256 <exact-controller-tool-profile-sha256>
+```
+
+Binding receipt는 exact launch manifest, task prompt와 controller-tool-profile SHA-256 및
+client enforcement attestation에 결속된다. 이 profile hash는 MCP allowlist, 금지된
+approval/retry surface, shell policy와 `required_client_capabilities` 목록을 함께 묶는다.
+이 attestation은 task나 사용자를 인증하거나 어떤 승인 권한을 부여하지 않는다.
+
+Controller는 다음 공개 표면만으로 상태를 읽고 한 번에 한 안전 행동씩 진행한다.
+
+```powershell
+uv run cbm production-status <job-id> <dispatch-id>
+uv run cbm production-advance <job-id> <dispatch-id> `
+  --controller-id <controller-id>
+uv run cbm production-complete-step <job-id> <dispatch-id> `
+  --controller-id <controller-id> `
+  --step-id <step-id> `
+  --input-fingerprint <exact-input-fingerprint> `
+  --note "controller authored the exact declared outputs"
+```
+
+Controller만 canonical writer다. 최대 3개의 subagent는 read-only advisory 결과만
+돌려주고 파일 write allowlist를 받지 않는다. 일반·전문 승인, InteriorScope,
+candidate-review/guarded/convergence, V0.7 optimization, Destination Handoff plan과 failed
+retry는 각각의 기존 소유 표면에서 별도로 처리한다. Controller는 그 승인을 만들거나
+retry를 수행하지 않고, 승인 evidence가 생긴 뒤 다음 `production-advance`에서 상태만
+재검증한다. Workflow 완료 후에는 exact terminal state에 묶인 V0.9 read-only postflight
+audit receipt를 생성해야 최종 완료다.
+
+V0.6 QA 뒤의 bounded 개선 반복까지 같은 production task에서 조율하려면 새 dispatch에
+`--convergence bounded_after_v06`, direct-score 목표, silhouette-IoU 목표와 최대 반복 수를
+명시한다. 이 모드는 `standard` 전용이고 최초 V0.8 workflow를 `preview_only`로 끝낸다.
+
+```powershell
+uv run cbm production-dispatch `
+  --request "새 레퍼런스를 V0.6 bounded convergence까지 제작" `
+  --reference <reference-path> `
+  --purpose "<asset-purpose>" `
+  --job-id <job-id> `
+  --mode concept `
+  --content-scope full_reference `
+  --policy standard `
+  --convergence bounded_after_v06 `
+  --target-direct 0.78 `
+  --target-iou 0.80 `
+  --min-gain 0.005 `
+  --conv-iters 3 `
+  --no-handoff
+```
+
+Preview workflow가 완료되면 Controller는 `convergence_binding.json`과 exact convergence
+plan을 한 번 생성하고 `visual_convergence_plan` 전문 승인에서 멈춘다. 사용자가 기존
+`approve_visual_convergence` 표면으로 그 exact plan SHA-256을 승인한 뒤에만 Controller가
+iteration을 진행한다. `production-advance` 한 번은 full Blender iteration을 최대 한 번만
+실행하거나 복구한다. authored `spatial_v1` 자산은 매 iteration마다 fresh result five-view
+구조 evidence가 initial five-view보다 회귀하지 않아야 하며, 회귀하면 rollback한다.
+
+이 delivery의 terminal은 목표 달성뿐 아니라 plateau, manual-only, rollback, budget 또는
+기타 정직한 종료 사유일 수 있다. Production 완료는 "목표 품질 달성"과 같은 뜻이 아니다.
+V0.7 package나 Destination Handoff가 필요하면 convergence terminal 뒤에 새 standard
+workflow를 만들고 각각의 exact 승인을 다시 받아야 한다.
+
+일반 사용자는 같은 역할의 MCP 도구를 Codex에 요청할 수 있으므로 PowerShell을 직접
+실행할 필요가 없다. 다만 저장소 단독으로 외부 task를 만들거나 인증할 수 없고,
+supporting client가 tool/shell restriction을 강제하지 않으면 악성 controller의 shell
+우회를 방지한다고 보장할 수 없다.
+
 ## 6. Codex Destination Handoff
 
 Handoff는 `portable_gltf` 또는 `fbx_interchange` package의 clean-import round trip이 `passed`인 경우에만 만들 수 있다. 원본 package 내부를 수정하지 않고 별도의 이동 가능 envelope를 만든다.
@@ -188,5 +310,6 @@ Gate는 Python/Ruff/doctor, Blender compatibility, V0.8 regression, 격리 workf
 - incompatible version은 자동 변경하지 않고 audit finding으로 남긴다.
 - migration이 필요하면 원본 백업, 별도 복사본, 명시적 migration plan, 전후 hash와 회귀 검증이 먼저다.
 - V0.9 queue나 audit 파일을 canonical SceneSpec의 대체물로 사용하지 않는다.
+- 기존 production dispatch, task binding과 advance receipt는 새 정책으로 rewrite하거나 재결속하지 않는다. 변경된 계약은 새 dispatch부터 사용한다.
 
 지원 범위와 실제 통과 결과는 [VERIFICATION_V09_KO.md](VERIFICATION_V09_KO.md)를 확인한다.

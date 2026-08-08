@@ -1,5 +1,54 @@
 {
   "$defs": {
+    "AssemblySanityTerminalEvidence": {
+      "additionalProperties": false,
+      "description": "Bind one immutable five-view plan, manifest, and report terminal by exact hash.",
+      "properties": {
+        "run_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "plan_path": {
+          "title": "Plan Path",
+          "type": "string"
+        },
+        "plan_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Plan Sha256",
+          "type": "string"
+        },
+        "render_manifest_path": {
+          "title": "Render Manifest Path",
+          "type": "string"
+        },
+        "render_manifest_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Render Manifest Sha256",
+          "type": "string"
+        },
+        "report_path": {
+          "title": "Report Path",
+          "type": "string"
+        },
+        "report_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Report Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "run_id",
+        "plan_path",
+        "plan_sha256",
+        "render_manifest_path",
+        "render_manifest_sha256",
+        "report_path",
+        "report_sha256"
+      ],
+      "title": "AssemblySanityTerminalEvidence",
+      "type": "object"
+    },
     "ConvergencePathLimit": {
       "additionalProperties": false,
       "description": "Bound one approved SceneSpec path family and its per-iteration numeric delta.",
@@ -244,6 +293,26 @@
       "default": "forbid",
       "title": "Constraint Regression Policy",
       "type": "string"
+    },
+    "structural_multiview_policy": {
+      "default": "not_applicable",
+      "enum": [
+        "not_applicable",
+        "spatial_v1_required"
+      ],
+      "title": "Structural Multiview Policy",
+      "type": "string"
+    },
+    "initial_structural_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AssemblySanityTerminalEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [

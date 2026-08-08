@@ -44,3 +44,6 @@ build/
 /.test-tmp-root-diag-retry
 /.pytest_tmp_mv_suite_20260808_0914
 /.pytest_tmp_v08_mv_20260808_0916
+/.pt-conv
+/.pt-prod
+/.pt-spatial

@@ -102,6 +102,48 @@ def test_workspace_audit_scans_extended_windows_json_paths(
     assert not any(item.code == "INVALID_JSON_CONTRACT" for item in findings)
 
 
+def test_workflow_contract_validation_ignores_fit_attempt_manifest(tmp_path: Path) -> None:
+    """Keep fit diagnostic manifests outside the top-level WorkflowAttempt contract."""
+
+    manifest = (
+        tmp_path
+        / "workspaces"
+        / "asset"
+        / "workflows"
+        / "wf-fit"
+        / "artifacts"
+        / "g"
+        / "fit"
+        / "attempts"
+        / "attempt-00"
+        / "fit_manifest.json"
+    )
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text('{"kind":"background_pre_qa_fit_attempt"}\n', encoding="utf-8")
+
+    stabilization_service._validate_workflow_contract(manifest)  # noqa: SLF001
+
+
+def test_workflow_contract_validation_rejects_invalid_top_level_attempt(tmp_path: Path) -> None:
+    """Continue enforcing WorkflowAttempt on exact top-level attempt receipt paths."""
+
+    receipt = (
+        tmp_path
+        / "workspaces"
+        / "asset"
+        / "workflows"
+        / "wf-attempt"
+        / "attempts"
+        / "qa.run"
+        / "attempt-invalid.json"
+    )
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text('{"kind":"not-a-workflow-attempt"}\n', encoding="utf-8")
+
+    with pytest.raises(ValueError):
+        stabilization_service._validate_workflow_contract(receipt)  # noqa: SLF001
+
+
 def _hashed_artifact(path: str, kind: str, digest: str = "a" * 64) -> HashedArtifact:
     """Create one strict V0.7 artifact reference for synthetic provenance."""
 

@@ -1,0 +1,119 @@
+{
+  "$defs": {
+    "ProductionArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained production artifact to a normalized path and exact digest.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ProductionArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind dispatcher, workflow, launch prompt, and controller to immutable hashes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_request": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "workflow_request": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "workflow_routing": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "workflow_plan": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "controller_plan": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "launch_manifest": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "task_prompt": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "target_boundary": {
+      "enum": [
+        "engine_neutral_package",
+        "engine_neutral_package_and_optional_handoff",
+        "approved_v06_convergence_terminal"
+      ],
+      "title": "Target Boundary",
+      "type": "string"
+    },
+    "task_creation_boundary": {
+      "const": "client_mediated",
+      "default": "client_mediated",
+      "title": "Task Creation Boundary",
+      "type": "string"
+    },
+    "existing_approval_contracts_preserved": {
+      "const": true,
+      "default": true,
+      "title": "Existing Approval Contracts Preserved",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_request",
+    "workflow_request",
+    "workflow_routing",
+    "workflow_plan",
+    "controller_plan",
+    "launch_manifest",
+    "task_prompt",
+    "target_boundary",
+    "created_at"
+  ],
+  "title": "AssetProductionDispatchPlan",
+  "type": "object"
+}

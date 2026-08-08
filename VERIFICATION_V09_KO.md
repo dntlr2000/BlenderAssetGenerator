@@ -320,3 +320,119 @@ regression으로 검증했지만, 다양한 실제 제3자 파일 corpus 검증�
 Blender master graph는 normalized authoring derivative에 보존되며, 목적지 전달은
 V0.7 derived raw PBR bake를 사용한다. Unity/Unreal/custom engine shader 또는 runtime
 parity는 여전히 검증하거나 주장하지 않는다.
+
+## 2026-08-09 Asset Production Dispatcher / Delegated Controller 검증
+
+새 레퍼런스의 제작 목적과 전달 범위를 V0.8 workflow에 결속하고, 별도 Codex 작업에서
+읽기 전용 보조 agent를 조율할 수 있는 V0.9 production 계층을 격리 workspace에서
+검증했다. 저장소는 작업 생성에 필요한 prompt와 launch manifest만 준비하며 실제 Codex
+작업 생성은 supporting client가 수행하는 `client_mediated` 방식이다.
+
+| 검증 | 결과 |
+|---|---|
+| 전체 Python 회귀 | `925 passed, 6 skipped` (`204.27s`) |
+| Ruff | 전체 저장소 통과 |
+| production Schema 생성·parity | 통과 |
+| CLI/MCP public surface와 allowlist | 통과 |
+| 초기 dispatcher 상태 | `prepared` / `bind_client_task` |
+| controller tool-profile 결속 | exact profile SHA-256 및 client enforcement 확인 |
+| delegated assignment | `read_only_advisory`, canonical write allowlist 비어 있음 |
+| V0.8 smoke | standard와 background workflow 회귀 통과 |
+| V0.9 production smoke audit | `passed`, 1 job / 30 files |
+| V0.7 GLB/FBX/OBJ package | 세 profile 모두 `complete` |
+| V0.7 clean-import round trip | 세 profile 모두 `passed`, error 0 |
+
+최신 격리 evidence:
+
+```text
+V0.8:
+reports/v08_smoke/155931927-168844/
+
+V0.9 dispatcher/controller and stabilization:
+reports/v09_smoke/20260808T163313473Z-317296/
+reports/v09/audits/production-audit-20260808t163313473z-317296/workspace_audit.json
+
+V0.7 GLB/FBX/OBJ roundtrip:
+reports/v07_smoke/20260808T164003045Z-251456/
+```
+
+V0.7 roundtrip의 format별 결과:
+
+| Profile | Status | Warning | Failed |
+|---|---|---:|---:|
+| `portable_gltf` | `passed` | 6 | 0 |
+| `fbx_interchange` | `passed` | 7 | 0 |
+| `obj_legacy` | `passed` | 11 | 0 |
+
+경고는 axis/unit metadata의 독립 검증 한계, custom split-normal/tangent/UV의
+format별 검증 한계, FBX/OBJ material semantics 손실처럼 기존 V0.7에서 문서화한
+범위다. raw PBR sidecar와 machine-readable package evidence가 계속 권위 원본이며,
+경고를 목적 엔진 runtime parity로 오해해서는 안 된다.
+
+Production bundle은 immutable dispatch/launch/controller 계약, client task binding,
+hash-chained advance receipt, exact workflow-state snapshot, completion/approval/attempt
+authority inventory와 postflight audit receipt를 보존한다. 정상 downstream derived
+supersession과 외부 변조를 구분하고, path traversal·symlink·junction·dangling leaf 및
+중첩 linked artifact는 fail-closed로 거부한다. 장시간 workflow lock은 TTL만으로 살아
+있는 소유자를 탈취하지 않는다.
+
+기존 V0.8 generic/specialized approval, InteriorScope, guarded revision, V0.7 exact
+optimization-plan 승인과 Destination Handoff exact-hash 승인은 변경하거나 대체하지
+않는다. Controller는 승인·retry 도구가 제외된 exact tool profile에 결속되어야 하며,
+지원 client가 이 제한을 실제로 강제하지 않는 unrestricted shell/task 환경까지 저장소
+단독으로 격리한다고 주장하지 않는다.
+
+## 2026-08-09 bounded convergence와 production bridge 재검증
+
+authored `spatial_v1` bounded convergence의 five-view 구조 veto와, explicit
+`standard + bounded_after_v06` Asset Production Dispatch 연결을 추가한 뒤 전체 회귀와
+격리 게이트를 다시 실행했다.
+
+| 검증 | 결과 |
+|---|---|
+| 핵심 convergence/orchestration/production 회귀 | `281 passed` |
+| 전체 Python 회귀 | `933 passed, 6 skipped` (`197.27s`) |
+| Ruff | 전체 저장소 통과 |
+| Schema 재생성·parity | 통과, production Schema 11개 |
+| `git diff --check` | 오류 0, Windows line-ending 경고만 존재 |
+| V0.8 isolated gate | 통과, Blender `5.0.1`, `BLENDER_EEVEE` |
+| V0.9 isolated gate | 통과, production audit·GLB handoff·stability PDF 생성 |
+| V0.7 GLB/FBX/OBJ gate | 세 profile package와 clean-import round trip 통과 |
+
+최신 격리 evidence:
+
+```text
+V0.8 orchestration:
+reports/v08_smoke/182516109-434504/
+
+V0.9 dispatcher/controller, handoff and stabilization:
+reports/v09_smoke/20260808T183031573Z-463724/
+
+V0.7 three-format roundtrip:
+reports/v07_smoke/20260808T183601045Z-347012/
+```
+
+V0.7 roundtrip 결과:
+
+| Profile | Status | Warning | Failed | 최대 bounds 오차 |
+|---|---|---:|---:|---:|
+| `portable_gltf` | `passed` | 6 | 0 | `0.0 m` |
+| `fbx_interchange` | `passed` | 7 | 0 | 약 `0.000001 m` |
+| `obj_legacy` | `passed` | 11 | 0 | 약 `0.000001 m` |
+
+신규 convergence 통합 테스트는 다음을 확인했다.
+
+- bounded dispatch가 `standard + preview_only` V0.8 plan을 생성한다.
+- completed preview 뒤 exact convergence plan과 immutable binding을 한 번만 만든다.
+- Controller는 plan SHA-256을 스스로 승인하지 않고 `visual_convergence_plan`에서 멈춘다.
+- 외부 exact 승인이 생긴 뒤 Controller 호출 한 번당 iteration은 최대 한 번이다.
+- terminal convergence만 V0.9 postflight에 결속하며 V0.7 package는 새 workflow로 남는다.
+- authored `spatial_v1`의 result five-view가 baseline보다 회귀하면 해당 iteration을
+  rollback하고 `structural_regression`으로 종료한다.
+
+다만 production convergence의 Controller 테스트는 격리된 deterministic fixture와
+mocked convergence host 결과를 사용했다. V0.8/V0.9/V0.7 게이트는 실제 Blender 5.0.1
+build/render/export/import를 통과했지만, 별도 client-mediated Codex task가 새로운 실제
+레퍼런스를 authoring하고 exact approval 뒤 여러 convergence iteration을 끝까지 수행하는
+실사용 E2E는 아직 별도 자산 검증 항목이다. 따라서 이번 결과는 controller 계약과
+회귀 안정성의 검증이며 특정 자산의 목표 유사도 달성을 보장하지 않는다.

@@ -1,0 +1,192 @@
+{
+  "$defs": {
+    "ProductionArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained production artifact to a normalized path and exact digest.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ProductionArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve one immutable controller transition in a hash-chained receipt stream.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous_receipt_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous Receipt Sha256"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dispatch Plan Sha256",
+      "type": "string"
+    },
+    "workflow_state_before_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow State Before Sha256",
+      "type": "string"
+    },
+    "workflow_state_after_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow State After Sha256",
+      "type": "string"
+    },
+    "workflow_state_before": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "workflow_state_after": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "action": {
+      "enum": [
+        "bind_client_task",
+        "resume_host",
+        "delegate_read_only",
+        "controller_author",
+        "plan_destination_handoff",
+        "plan_visual_convergence",
+        "run_visual_convergence",
+        "request_generic_approval",
+        "request_specialized_approval",
+        "run_postflight_audit",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "task_binding": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "assignment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "postflight_audit": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "convergence_artifact": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProductionArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "note": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Note",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "sequence",
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_plan_sha256",
+    "workflow_state_before_sha256",
+    "workflow_state_after_sha256",
+    "workflow_state_before",
+    "workflow_state_after",
+    "action",
+    "note",
+    "recorded_at"
+  ],
+  "title": "DelegatedProductionAdvanceReceipt",
+  "type": "object"
+}

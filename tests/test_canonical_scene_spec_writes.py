@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -104,6 +105,38 @@ def test_compare_replace_archives_exact_current_and_preserves_candidate(
     assert sha256_file(archive) == before
     assert candidate.is_file()
     assert not list(current.parent.glob(".scene_spec.replace-*.json"))
+
+
+def test_host_bound_live_owner_can_write_after_lock_ttl(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Allow a host-bound current-process owner to finish a long canonical write."""
+
+    root, current, candidate = _seed_job(tmp_path, monkeypatch)
+    before = sha256_file(current)
+    candidate_hash = sha256_file(candidate)
+    owner = "cli-long-writer-test"
+
+    with workflow_write_lock(root, "writer_asset", owner):
+        lock_path = root / "workflows" / ".lock.json"
+        payload = json.loads(lock_path.read_text(encoding="utf-8"))
+        payload["acquired_at"] = (datetime.now(UTC) - timedelta(minutes=2)).isoformat()
+        payload["expires_at"] = (datetime.now(UTC) - timedelta(minutes=1)).isoformat()
+        lock_path.write_text(
+            json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
+        result = replace_scene_spec_if_current(
+            "writer_asset",
+            candidate,
+            expected_current_sha256=before,
+            expected_candidate_sha256=candidate_hash,
+            lock_owner_id=owner,
+        )
+
+    assert sha256_file(current) == candidate_hash
+    assert sha256_file(Path(str(result["archived_scene_spec"]))) == before
 
 
 def test_compare_replace_rejects_stale_current_under_owned_lock(

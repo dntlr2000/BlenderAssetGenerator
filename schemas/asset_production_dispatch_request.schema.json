@@ -1,0 +1,279 @@
+{
+  "$defs": {
+    "ProductionArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained production artifact to a normalized path and exact digest.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ProductionArtifact",
+      "type": "object"
+    },
+    "ProductionConvergenceRequest": {
+      "additionalProperties": false,
+      "description": "Declare one optional exact-approval bounded V0.6 convergence phase.",
+      "properties": {
+        "mode": {
+          "default": "disabled",
+          "enum": [
+            "disabled",
+            "bounded_after_v06"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "target_direct_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Direct Score"
+        },
+        "target_silhouette_iou": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Silhouette Iou"
+        },
+        "minimum_iteration_gain": {
+          "default": 0.001,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Iteration Gain",
+          "type": "number"
+        },
+        "minimum_candidate_confidence": {
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Candidate Confidence",
+          "type": "number"
+        },
+        "max_iterations": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 1,
+          "title": "Max Iterations",
+          "type": "integer"
+        }
+      },
+      "title": "ProductionConvergenceRequest",
+      "type": "object"
+    },
+    "ProductionDestinationHint": {
+      "additionalProperties": false,
+      "description": "Keep a destination as planning data without claiming a validated adapter.",
+      "properties": {
+        "kind": {
+          "default": "unspecified",
+          "enum": [
+            "unspecified",
+            "engine_neutral",
+            "unity",
+            "unreal",
+            "custom"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "render_pipeline": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Render Pipeline"
+        }
+      },
+      "title": "ProductionDestinationHint",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve one user-authorized production objective without absolute source paths.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "controller_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Controller Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "purpose": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Purpose",
+      "type": "string"
+    },
+    "mode": {
+      "default": "concept",
+      "enum": [
+        "concept",
+        "measured"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "default": "full_reference",
+      "enum": [
+        "full_reference",
+        "primary_object_only"
+      ],
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "target_subject": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Subject"
+    },
+    "execution_policy": {
+      "default": "standard",
+      "enum": [
+        "standard",
+        "background_exterior"
+      ],
+      "title": "Execution Policy",
+      "type": "string"
+    },
+    "delivery_scope": {
+      "default": "portable_package",
+      "enum": [
+        "portable_package",
+        "v06_convergence"
+      ],
+      "title": "Delivery Scope",
+      "type": "string"
+    },
+    "profile_id": {
+      "default": "portable_gltf",
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "destination_hint": {
+      "$ref": "#/$defs/ProductionDestinationHint"
+    },
+    "include_destination_handoff": {
+      "default": false,
+      "title": "Include Destination Handoff",
+      "type": "boolean"
+    },
+    "convergence": {
+      "$ref": "#/$defs/ProductionConvergenceRequest"
+    },
+    "primary_reference": {
+      "$ref": "#/$defs/ProductionArtifact"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "dispatch_id",
+    "controller_id",
+    "job_id",
+    "workflow_id",
+    "purpose",
+    "primary_reference",
+    "created_at"
+  ],
+  "title": "AssetProductionDispatchRequest",
+  "type": "object"
+}

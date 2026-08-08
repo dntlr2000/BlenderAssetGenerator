@@ -779,7 +779,12 @@ def plan_job_assembly_multiview_sanity(
     if not contract.ok:
         failures = "; ".join(item.message for item in contract.checks if item.status == "failed")
         raise ValueError(f"assembly contract is invalid: {failures}")
-    provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_path)
+    provenance = collect_build_provenance(
+        root,
+        job_id,
+        scene_spec_path=scene_path,
+        validate_surface_details=False,
+    )
     selected_run_id = _validate_run_id(run_id or _new_run_id())
     run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
     if run_dir.exists():
@@ -866,7 +871,12 @@ def plan_job_assembly_multiview_sanity_for_sources(
     if not contract.ok:
         failures = "; ".join(item.message for item in contract.checks if item.status == "failed")
         raise ValueError(f"assembly contract is invalid: {failures}")
-    provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_path)
+    provenance = collect_build_provenance(
+        root,
+        job_id,
+        scene_spec_path=scene_path,
+        validate_surface_details=False,
+    )
     selected_run_id = _validate_run_id(run_id)
     run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
     if run_dir.exists():
@@ -936,7 +946,12 @@ def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, 
         path = _resolve_job_relative(root, source.path)
         if not path.is_file() or sha256_file(path) != source.sha256:
             raise RuntimeError(f"assembly sanity reference source changed: {source.kind}")
-    provenance = collect_build_provenance(root, plan.job_id, scene_spec_path=scene_path)
+    provenance = collect_build_provenance(
+        root,
+        plan.job_id,
+        scene_spec_path=scene_path,
+        validate_surface_details=False,
+    )
     if provenance["fingerprint"] != plan.build_fingerprint:
         raise RuntimeError("assembly sanity build fingerprint is stale")
     source_payload = {

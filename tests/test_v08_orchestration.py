@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
-from datetime import UTC, datetime
+import os
+import socket
+import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
+import codex_blender_modeler.orchestration.locks as orchestration_locks
 import codex_blender_modeler.orchestration.service as orchestration_service
 import codex_blender_modeler.qa.multiview_sanity as multiview_sanity
 from codex_blender_modeler.optimization.service import initialize_asset_profile
@@ -16,7 +20,11 @@ from codex_blender_modeler.orchestration.locks import (
     release_workflow_lock,
     write_expired_lock_for_test,
 )
-from codex_blender_modeler.orchestration.models import WorkflowAttempt, WorkflowStep
+from codex_blender_modeler.orchestration.models import (
+    WorkflowAttempt,
+    WorkflowLock,
+    WorkflowStep,
+)
 from codex_blender_modeler.orchestration.service import (
     approve_workflow_gate,
     cancel_workflow,
@@ -37,6 +45,38 @@ from codex_blender_modeler.qa.multiview_sanity import (
 from codex_blender_modeler.workspace import create_job, job_dir, sha256_file
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _write_workflow_lock_fixture(
+    root: Path,
+    *,
+    owner_host: str | None,
+    process_id: int,
+    expired: bool,
+    include_owner_host: bool = True,
+) -> WorkflowLock:
+    """Write one exact workflow-lock owner fixture for recovery-policy tests."""
+
+    now = datetime.now(UTC)
+    receipt = WorkflowLock(
+        lock_id="f" * 32,
+        workflow_id="wf-lock-owner",
+        job_id="lock_asset",
+        process_id=process_id,
+        owner_host=owner_host,
+        acquired_at=now - timedelta(minutes=2),
+        expires_at=(now - timedelta(minutes=1) if expired else now + timedelta(minutes=1)),
+    )
+    payload = receipt.model_dump(mode="json")
+    if not include_owner_host:
+        payload.pop("owner_host")
+    lock_path = root / "workflows" / ".lock.json"
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    lock_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    return receipt
 
 
 def _image(path: Path, color: tuple[int, int, int] = (60, 110, 170)) -> Path:
@@ -2223,13 +2263,161 @@ def test_lock_rejects_concurrency_and_recovers_expired_receipt(tmp_path: Path) -
     root = tmp_path / "job"
     root.mkdir()
     first = acquire_workflow_lock(root, "lock_asset", "wf-lock-test")
+    assert first.owner_host == socket.gethostname()
     with pytest.raises(RuntimeError, match="Another workflow"):
         acquire_workflow_lock(root, "lock_asset", "wf-second")
     release_workflow_lock(root, first)
-    write_expired_lock_for_test(root, "lock_asset", "wf-expired")
+    stale = write_expired_lock_for_test(root, "lock_asset", "wf-expired")
     recovered = acquire_workflow_lock(root, "lock_asset", "wf-recovered")
-    assert list((root / "workflows" / "stale_locks").glob("*.json"))
+    archived = list((root / "workflows" / "stale_locks").glob("*.json"))
+    assert len(archived) == 1
+    assert WorkflowLock.model_validate_json(
+        archived[0].read_text(encoding="utf-8")
+    ).lock_id == stale.lock_id
     release_workflow_lock(root, recovered)
+
+
+@pytest.mark.parametrize("process_state", ["alive", "unknown"])
+def test_expired_local_live_or_unknown_lock_is_never_recovered(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    process_state: str,
+) -> None:
+    """Keep an expired local lock when its owner is alive or cannot be classified."""
+
+    root = tmp_path / "job"
+    root.mkdir()
+    existing = _write_workflow_lock_fixture(
+        root,
+        owner_host=socket.gethostname(),
+        process_id=4242,
+        expired=True,
+    )
+
+    def classify_process(_process_id: int) -> str:
+        """Return the parameterized local-process state for this lock fixture."""
+
+        return process_state
+
+    monkeypatch.setattr(orchestration_locks, "_local_process_state", classify_process)
+    with pytest.raises(RuntimeError, match="live, remote, or unknown"):
+        acquire_workflow_lock(root, "lock_asset", "wf-contender")
+
+    current = WorkflowLock.model_validate_json(
+        (root / "workflows" / ".lock.json").read_text(encoding="utf-8")
+    )
+    assert current.lock_id == existing.lock_id
+    assert not (root / "workflows" / "stale_locks").exists()
+
+
+@pytest.mark.parametrize(
+    ("owner_host", "include_owner_host"),
+    [("remote-owner.invalid", True), (None, False)],
+)
+def test_expired_remote_or_legacy_unknown_lock_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    owner_host: str | None,
+    include_owner_host: bool,
+) -> None:
+    """Refuse automatic recovery when lock ownership is remote or lacks legacy host data."""
+
+    root = tmp_path / "job"
+    root.mkdir()
+    existing = _write_workflow_lock_fixture(
+        root,
+        owner_host=owner_host,
+        process_id=4242,
+        expired=True,
+        include_owner_host=include_owner_host,
+    )
+
+    def reject_local_probe(_process_id: int) -> str:
+        """Fail if remote or unknown ownership reaches a local PID probe."""
+
+        raise AssertionError("remote and unknown owners must not be probed locally")
+
+    monkeypatch.setattr(orchestration_locks, "_local_process_state", reject_local_probe)
+    with pytest.raises(RuntimeError, match="live, remote, or unknown"):
+        acquire_workflow_lock(root, "lock_asset", "wf-contender")
+
+    current = WorkflowLock.model_validate_json(
+        (root / "workflows" / ".lock.json").read_text(encoding="utf-8")
+    )
+    assert current.lock_id == existing.lock_id
+    assert not (root / "workflows" / "stale_locks").exists()
+
+
+def test_unexpired_local_dead_lock_waits_for_ttl(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Preserve the V0.8 TTL boundary even when the local owner is already dead."""
+
+    root = tmp_path / "job"
+    root.mkdir()
+    existing = _write_workflow_lock_fixture(
+        root,
+        owner_host=socket.gethostname(),
+        process_id=4242,
+        expired=False,
+    )
+
+    def dead_process(_process_id: int) -> str:
+        """Classify the fixture owner as conclusively dead."""
+
+        return "dead"
+
+    monkeypatch.setattr(orchestration_locks, "_local_process_state", dead_process)
+    with pytest.raises(RuntimeError, match="unexpired"):
+        acquire_workflow_lock(root, "lock_asset", "wf-contender")
+
+    current = WorkflowLock.model_validate_json(
+        (root / "workflows" / ".lock.json").read_text(encoding="utf-8")
+    )
+    assert current.lock_id == existing.lock_id
+    assert not (root / "workflows" / "stale_locks").exists()
+
+
+def test_unreadable_lock_is_not_archived(tmp_path: Path) -> None:
+    """Leave malformed lock evidence untouched for explicit manual recovery."""
+
+    root = tmp_path / "job"
+    lock_path = root / "workflows" / ".lock.json"
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text("{not-json\n", encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="unreadable"):
+        acquire_workflow_lock(root, "lock_asset", "wf-contender")
+
+    assert lock_path.read_text(encoding="utf-8") == "{not-json\n"
+    assert not (root / "workflows" / "stale_locks").exists()
+
+
+def test_lock_transition_guard_rejects_a_concurrent_recovery(tmp_path: Path) -> None:
+    """Serialize stale recovery so a contender cannot archive a newly acquired lock."""
+
+    lock_path = tmp_path / "job" / "workflows" / ".lock.json"
+    lock_path.parent.mkdir(parents=True)
+    with orchestration_locks._lock_transition_guard(lock_path):
+        with pytest.raises(RuntimeError, match="recovery is already in progress"):
+            with orchestration_locks._lock_transition_guard(lock_path):
+                raise AssertionError("a second transition guard must not be entered")
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows OpenProcess regression")
+def test_windows_process_liveness_uses_open_process(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Classify the current Windows PID without invoking signal-based os.kill."""
+
+    def reject_os_kill(_process_id: int, _signal: int) -> None:
+        """Fail if the Windows liveness path attempts signal-based probing."""
+
+        raise AssertionError("Windows PID liveness must use OpenProcess")
+
+    monkeypatch.setattr(orchestration_locks.os, "kill", reject_os_kill)
+    assert orchestration_locks._local_process_state(os.getpid()) == "alive"
 
 
 def test_failed_host_step_requires_explicit_retry(
@@ -3094,6 +3282,37 @@ def test_requires_standard_workflow_is_blocked_and_not_retryable(
             state.workflow_id,
             retry_failed=True,
         )
+
+
+def test_standard_full_workflow_can_end_at_explicit_v06_preview_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Allow a standard full authoring pass to stop after QA without V0.7 steps."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    state = plan_workflow(
+        "Create a standard static asset and stop after its V0.6 review evidence.",
+        job_id="standard_preview_boundary_asset",
+        reference_path=_image(tmp_path / "standard_preview_boundary.png"),
+        intent="new_asset",
+        scope="full",
+        execution_policy="standard",
+        delivery_scope="preview_only",
+    )
+    root = workspace / state.job_id / "workflows" / state.workflow_id
+    request = json.loads((root / "request.json").read_text(encoding="utf-8"))
+    routing = json.loads((root / "routing.json").read_text(encoding="utf-8"))
+    plan = json.loads((root / "plan.json").read_text(encoding="utf-8"))
+    step_ids = [step["step_id"] for step in plan["steps"]]
+
+    assert request["delivery_scope"] == "preview_only"
+    assert routing["delivery_scope"] == "preview_only"
+    assert plan["delivery_scope"] == "preview_only"
+    assert "qa.run" in step_ids
+    assert "qa.review" in step_ids
+    assert not any(step_id.startswith("portable.") for step_id in step_ids)
 
 
 def test_resume_finalizes_an_interrupted_attempt_receipt(

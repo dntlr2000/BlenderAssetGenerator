@@ -2,6 +2,42 @@
 
 ## 0.9.0
 
+- Extended standard bounded V0.6 convergence to authored `spatial_v1` assets. New plans bind a
+  fresh five-view structural baseline; every result iteration captures another exact five-view
+  evidence set, and semantic visibility/assembly regression vetoes acceptance and restores the
+  archived canonical SceneSpec. Legacy/non-spatial sessions retain the fixed-camera path with an
+  explicit `not_applicable` structural policy.
+- Added an explicit `standard + bounded_after_v06` bridge to Asset Production Dispatcher and the
+  Delegated Production Controller. The initial V0.8 workflow ends at one canonical V0.6 preview,
+  the Controller plans but cannot approve the exact convergence plan, and every later advance
+  executes or recovers at most one approved Blender iteration before a hash-bound V0.9 postflight.
+  Package optimization and Destination Handoff remain separate, newly approved workflows.
+- Added a backward-compatible explicit `standard + preview_only` V0.8 boundary so production
+  convergence can preserve its completed baseline workflow without implicitly entering V0.7.
+
+- Added strict `0.9.0` Asset Production Dispatcher and Delegated Production Controller contracts,
+  eleven checked-in Schemas, CLI/MCP surfaces, and V0.9 read-only audit coverage. A new reference,
+  purpose, content scope, portable profile, and destination hint now prepare one new V0.8
+  workflow plus a hash-bound client-mediated Codex task launch bundle.
+- Added a controller-only canonical-writer policy with at most three read-only advisory subagents,
+  exact workflow/input-bound assignments, and immutable hash-chained advance receipts. Standard
+  remains the default execution policy; `background_exterior` remains explicit and must use a
+  separate post-package Destination Handoff flow.
+- Hardened task launch and binding with an allowlist-only controller MCP profile, explicit denied
+  approval/retry tools and equivalent shell-command policy, client-enforcement requirement,
+  controller-tool-profile SHA-256 covering the required client capability list, exact task-binding
+  receipt, and fail-closed stale/tamper checks.
+  The repository prepares but does not create or authenticate the Codex task; an enforcing
+  supporting client remains responsible for actual task creation and tool/shell restrictions.
+- Preserved every existing generic and specialized approval, failed-step retry and Destination
+  Handoff exact-plan boundary. Production completion additionally requires an atomic V0.9
+  postflight audit receipt bound to the exact terminal workflow state and artifacts; repository
+  contracts do not claim to prevent a malicious controller from using an unrestricted client shell.
+- Hardened shared workflow locks so TTL expiry never steals a live, remote, unknown, or legacy
+  owner; automatic recovery now requires a conclusively dead same-host PID and an OS-serialized
+  lock transition. Production evidence paths reject traversal, symlinks, junctions, dangling
+  leaves, and linked directory members before reads or writes.
+
 - Added `candidate_review` as the default strategy for newly planned standard `revise_asset`
   workflows. The workflow-owned RevisionPlan is evaluated through isolated baseline/candidate
   builds, exact fixed-camera seven-pass QA, optional constraints, and authored `spatial_v1`

@@ -28,9 +28,10 @@ Turn reference images, orthographic views, dimensions, and user feedback into re
 13. `optimization/runs/<run-id>/` — immutable preflight, cost, consolidation, LOD, collision, UV, and optimized-scene evidence.
 14. `exports/packages/<profile-id>/<package-id>/` — immutable portable packages and receipts.
 15. `workflows/<workflow-id>/` — immutable V0.8 requests, routes, plans, exact approvals, agent completion markers, attempts, and reconstructed state.
-16. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
-17. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
-18. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
+16. `production/dispatches/<dispatch-id>/` — immutable V0.9 production request, controller/launch contracts, optional task binding, advisory assignments, hash-chained advance receipts, and postflight audit receipt.
+17. `reports/v09/` — immutable privacy-safe environment probes and read-only workspace audit evidence.
+18. `.cbm/queue/` — operational V0.9 single-worker queue state and immutable attempt receipts; never a canonical asset source.
+19. `.blend`, renders, reports, bakes, and exports — derived artifacts; never edit them as the canonical fix.
 
 For `job_kind=external_static_asset`, `intake/external_asset_manifest.json` and its exact
 source/dependency, plan, consumed approval, normalization receipt, validation, normalized blend,
@@ -107,7 +108,7 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 48. Agent-authored steps require an exact input/output-bound completion marker. A changed dependency or output makes that marker stale.
 49. Generic workflow approvals never replace InteriorScope, V0.6 revision, or V0.7 optimization approvals. Every specialized approval remains exact-hash, single-purpose, and fail-closed.
 50. Deterministic host failures do not retry automatically. Retry only the current failed step after an explicit `--retry-failed` request; preserve every prior attempt receipt.
-51. An expired workflow lock may be archived and recovered, but a live lock must reject concurrent writers. Any abandoned running attempt is finalized as interrupted before a fresh attempt starts.
+51. An expired workflow lock may be archived and recovered only when the same-host owner PID is conclusively dead; expiry alone, a live/unknown PID, a remote host, or a legacy lock without host evidence must reject automatic takeover. Any abandoned running attempt is finalized as interrupted before a fresh attempt starts.
 52. Cancellation stops future workflow execution without deleting canonical or derived evidence. A cancelled workflow cannot be resumed.
 53. Unity, Unreal, and custom destinations remain unsupported until a validated adapter exists. V0.8 may fall back to the V0.7 engine-neutral package boundary but must report that boundary explicitly.
 54. Budget fields bound host steps, QA iterations, texture resolution, triangles, and external-provider calls. Exhaustion must stop or wait; it must never silently expand scope.
@@ -200,7 +201,7 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 141. Ordinary single-view occlusion is advisory and cannot by itself demand V0.4 redesign. All-view semantic disappearance, required assembly failures, or explicit agent-observed cross-view geometry defects may recommend bounded V0.4 revision or manual redesign review, but never authorize a canonical change.
 142. Geometry-review workflow outputs bind all twenty exact pass images, the three host terminal JSON files, and the agent visual-review JSON. A PDF that explicitly names an assembly-sanity run must fail closed when that terminal or any image is missing, stale, or hash-mismatched.
 143. Manual approved one-shot V0.6 geometry revisions on authored `spatial_v1` assets capture exact baseline and result five-view structural terminals. Required-check worsening, all-view visibility loss, structural-status worsening, or geometry-review outcome worsening vetoes acceptance and triggers the existing rollback boundary.
-144. The manual revision multi-view guard is structural non-regression evidence, not an additional similarity score. Legacy/non-spatial plans remain readable and report the guard as `not_applicable`. New authored `spatial_v1` assets must fail closed before bounded-convergence planning or execution until each iteration's immutable plan, receipt, and audit contracts bind equivalent baseline/result multi-view evidence; use the manual one-shot guarded revision path meanwhile.
+144. The multi-view guard is structural non-regression evidence, not an additional similarity score. Legacy/non-spatial convergence plans remain readable and report the guard as `not_applicable`. New authored `spatial_v1` convergence sessions capture an exact initial five-view terminal and a fresh result terminal for every iteration; structural-status worsening, required-check regression, all-view visibility loss, or geometry-review regression vetoes acceptance and rolls the iteration back.
 145. Existing immutable workflows and QA runs are historical evidence and are not retroactively amended. New five-view workflow planning, agent visual reading, and structural revision guards apply to newly planned work or newly executed eligible manual revisions only.
 146. External Static Asset Intake is a separate static-only source route for new jobs backed by `.blend`, `.fbx`, or `.glb` evidence. It must never fabricate a SceneSpec or silently attach an external source to an existing job.
 147. Inspect external sources with Blender auto-execution disabled, preserve the copied source and declared dependencies by exact SHA-256, and reject animation, rigging, drivers, linked geometry, missing dependencies, unsupported script nodes, or other unsafe/non-static input before approval.
@@ -213,6 +214,20 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 154. One exact `candidate_review` decision approval may promote the exact candidate once. Revalidate every source and trial hash immediately before replacement, archive the baseline, rebuild/inspect/validate canonical outputs, consume the approval once, and restore/rebuild the baseline if final verification fails.
 155. `candidate_review` is limited to existing-object bounded transform and parametric geometry operations. Camera changes, material changes, semantic add/remove/reorder, InteriorScope changes, custom-mesh vertex/payload edits, and substantial redesign use explicit `revision_strategy=manual_guarded` or a separate V0.4 authoring workflow.
 156. Existing immutable workflows without `revision_strategy` remain legacy evidence and keep their original manual guarded behavior. The new default applies only to newly planned standard revisions; it never changes `background_exterior`, bounded-convergence, InteriorScope, V0.7 optimization, or Destination Handoff approval contracts.
+157. Asset Production Dispatcher creates a new V0.8 `new_asset` workflow plus an immutable V0.9 client-mediated launch bundle. The repository prepares the task prompt and manifest but never claims that it created or authenticated a Codex task.
+158. Delegated Production Controller is the only canonical writer. Subagents are read-only advisers, receive an empty write allowlist, and may only return findings for the controller to synthesize into the exact outputs declared by the current V0.8 agent step.
+159. A production launch uses an allowlist-only controller MCP profile and explicitly denies approval, failed-retry, and equivalent shell authority. The supporting Codex client must enforce that MCP allowlist and the shell/tool restrictions before binding its task.
+160. A task binding is valid only when its immutable receipt binds the exact launch manifest, task prompt, controller-tool-profile SHA-256, and a positive client-enforcement attestation. Binding a task grants no generic or specialized approval.
+161. Repository contracts can detect mismatched or tampered launch, binding, assignment, workflow, and receipt evidence, but the repository alone cannot create or authenticate a Codex task or prevent a malicious controller from bypassing policy through a shell exposed by an unenforcing client.
+162. Production dispatch defaults to `execution_policy=standard`; `background_exterior` remains explicit opt-in and cannot include Destination Handoff in the initial dispatch. A passed background package uses a separate handoff flow.
+163. Controller advancement preserves every generic and specialized approval, exact candidate-review decision, guarded/convergence approval, InteriorScope, interior-camera, V0.7 optimization, Destination Handoff plan hash, and explicit failed-step retry boundary. A broad production request never substitutes for them.
+164. Every controller transition writes an immutable hash-chained advance receipt. Unexpected dispatch, workflow, candidate, assignment, binding, or source changes fail closed instead of being repaired or silently accepted.
+165. A completed production workflow requires one atomic, exact-state-bound V0.9 read-only postflight audit receipt before the controller reports completion. Audit warnings remain visible and audit failure blocks acceptance without repairing the job.
+166. Production dispatch evidence is audited read-only. Existing workflows and dispatches are never retroactively rewritten, rebound, auto-approved, retried, or completed by a later lifecycle or controller change.
+167. Bounded production convergence is an explicit `standard`-only dispatch scope. Its initial V0.8 workflow ends at a completed `preview_only` V0.6 boundary; `background_exterior`, Destination Handoff, and combined V0.7 packaging are excluded from that dispatch.
+168. After the initial preview completes, the production controller may create one exact convergence plan and must stop for its SHA-256 approval. It cannot create that approval and may run or recover at most one full convergence iteration per `production-advance` call.
+169. A production convergence terminal may report target reached, plateau, rollback, manual-only work, budget exhaustion, or failure. Postflight binds the exact immutable convergence session and never treats an unmet target as a successful quality claim.
+170. Because accepted convergence legitimately supersedes the preview workflow's canonical SceneSpec and build, any V0.7 optimization/package or Destination Handoff must start as a new immutable standard workflow after convergence review; the original production dispatch cannot silently continue into packaging.
 
 ## v0.4 reference-analysis workflow
 
@@ -410,6 +425,10 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 6. Requeue a failed entry only after an explicit failed-step retry decision. Cancellation affects future queue dispatch only and does not cancel or delete the underlying workflow.
 7. Run the V0.9 release gate from an isolated smoke workspace. Do not use a user job to make a failing gate appear green.
 8. Record the exact verified environment and every unverified matrix cell. V0.9 is a release candidate, not proof of cross-platform or destination-engine parity.
+9. For a new reference, Asset Production Dispatcher may prepare one new V0.8 workflow, immutable controller plan, allowlist-only client launch manifest, and controller prompt. Task creation remains a supporting-client action.
+10. Bind a supporting-client task only after that client attests that it enforces the exact controller profile hash, including required client capabilities, the MCP allow/deny lists, and the approval/retry shell-command restriction.
+11. Advance one controller action at a time. Run deterministic host work, issue read-only advisory assignments, stop at existing approvals or failures, and run the exact V0.9 postflight audit only after workflow completion.
+12. Keep the V0.9 production controller distinct from the local queue. The queue dispatches existing workflows; it does not create production tasks, bind clients, or perform agent-authored steps.
 
 ## Testing
 
@@ -429,6 +448,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - Human-readable report: `uv run cbm report-pdf <job> --scope build|material|qa|export|full`
 - PDF verification: validate PDF text/pages and sidecar hashes, then render representative pages for visual inspection
 - V0.9 evidence: `uv run cbm stability-probe`, `uv run cbm workspace-audit`, and `uv run cbm stability-report-pdf`
+- V0.9 production dispatch/controller: `uv run pytest tests/test_v09_production_dispatch.py`
 
 ## File ownership
 
@@ -449,6 +469,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - `blender/`, `renders/`, `reports/`, `bakes/`, and non-package exports: derived artifacts
 - `output/pdf/`: derived user-facing PDF reports and provenance manifests; never canonical inputs
 - `workflows/`: immutable orchestration contracts, attempts, approvals, and derived state; never a replacement for canonical stage contracts
+- `production/dispatches/`: immutable dispatcher, client-launch, task-binding, advisory assignment, controller-transition, and postflight-audit evidence; never a source of approval authority
 - `reports/v09/`: repository-owned environment probes and read-only workspace audits with relative paths only
 - `.cbm/queue/`: operational single-worker queue, locks, leases, and immutable dispatch receipts; never canonical asset data
 - `output/pdf/v09/`: derived V0.9 stability PDFs and exact source-hash sidecars

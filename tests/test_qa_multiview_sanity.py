@@ -4,6 +4,7 @@ import json
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import pytest
 from PIL import Image
@@ -324,6 +325,40 @@ def test_plan_uses_exact_assembly_frame_views_and_relative_sources(
     assert plan.source_blend_path == "blender/scene.blend"
     assert plan.reference_sources[0].path == "input/reference.png"
     assert not (root / "qa" / "runs" / "weapon-five-view").exists()
+
+
+def test_geometry_multiview_defers_surface_detail_binding_validation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep V0.4 structural evidence runnable before the replacement UV is rebound in V0.5."""
+
+    _seed_job(tmp_path, monkeypatch)
+    original = sanity.collect_build_provenance
+    validation_flags: list[bool] = []
+
+    def capture_provenance(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        """Record the selective validation policy while preserving real provenance checks."""
+
+        validation_flags.append(bool(kwargs.get("validate_surface_details", True)))
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(sanity, "collect_build_provenance", capture_provenance)
+    planned = plan_job_assembly_multiview_sanity(
+        JOB_ID,
+        run_id="weapon-v04-before-v05",
+        resolution=128,
+    )
+    monkeypatch.setattr(sanity, "run_blender", _mock_renderer())
+
+    run_job_assembly_multiview_sanity(
+        JOB_ID,
+        "weapon-v04-before-v05",
+        plan_sha256=str(planned["plan_sha256"]),
+    )
+
+    assert validation_flags
+    assert validation_flags == [False] * len(validation_flags)
 
 
 def test_unpublished_plan_recovery_removes_only_known_atomic_temp(

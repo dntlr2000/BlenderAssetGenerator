@@ -111,6 +111,19 @@ from codex_blender_modeler.packaging.models import (
     RoundTripValidation,
     TexturePackManifest,
 )
+from codex_blender_modeler.production.models import (
+    AssetProductionDispatchPlan,
+    AssetProductionDispatchRequest,
+    CodexTaskBinding,
+    CodexTaskBindingReceipt,
+    CodexTaskLaunchManifest,
+    DelegatedProductionAdvanceReceipt,
+    DelegatedProductionControllerPlan,
+    DelegatedProductionState,
+    DelegatedWorkAssignment,
+    ProductionConvergenceBinding,
+    ProductionPostflightAuditReceipt,
+)
 from codex_blender_modeler.qa.diagnostic_models import (
     QADiagnosticBundleManifest,
     QADiagnosticReport,
@@ -243,6 +256,21 @@ SCHEMAS = {
     "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
     "queue_lock.schema.json": QueueLock,
     "stability_report_manifest.schema.json": StabilityReportManifest,
+    "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
+    "delegated_production_controller_plan.schema.json": DelegatedProductionControllerPlan,
+    "codex_task_launch_manifest.schema.json": CodexTaskLaunchManifest,
+    "asset_production_dispatch_plan.schema.json": AssetProductionDispatchPlan,
+    "codex_task_binding.schema.json": CodexTaskBinding,
+    "codex_task_binding_receipt.schema.json": CodexTaskBindingReceipt,
+    "delegated_work_assignment.schema.json": DelegatedWorkAssignment,
+    "delegated_production_advance_receipt.schema.json": (
+        DelegatedProductionAdvanceReceipt
+    ),
+    "delegated_production_state.schema.json": DelegatedProductionState,
+    "production_convergence_binding.schema.json": ProductionConvergenceBinding,
+    "production_postflight_audit_receipt.schema.json": (
+        ProductionPostflightAuditReceipt
+    ),
     "destination_handoff_plan.schema.json": DestinationHandoffPlan,
     "destination_context.schema.json": DestinationContext,
     "assembly_manifest.schema.json": AssemblyManifest,

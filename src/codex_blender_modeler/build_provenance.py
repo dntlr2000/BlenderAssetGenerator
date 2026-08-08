@@ -290,8 +290,9 @@ def collect_build_provenance(
     *,
     scene_spec_path: Path | None = None,
     validate_contracts: bool = True,
+    validate_surface_details: bool = True,
 ) -> dict[str, Any]:
-    """Collect build inputs, optionally running host-only Pydantic contract validation."""
+    """Collect build inputs with optional contract and surface-detail validation."""
 
     root = job_root.expanduser().resolve()
     spec_path = (
@@ -387,33 +388,34 @@ def collect_build_provenance(
                 raise BuildProvenanceError(
                     f"Assembly consistency validation failed: {formatted}"
                 )
-            try:
-                material_plan_path = root / "analysis" / "material_plan.json"
-                material_plan = (
-                    load_material_plan(material_plan_path)
-                    if material_plan_path.is_file()
-                    else None
-                )
-                surface_report = validate_surface_detail_contract(
-                    modeling_plan,
-                    parsed_scene_spec,
-                    root,
-                    material_plan=material_plan,
-                    require_materials=material_plan is not None,
-                )
-            except (OSError, ValueError) as exc:
-                raise BuildProvenanceError(
-                    f"Surface-detail contract validation failed: {exc}"
-                ) from exc
-            if not surface_report.ok:
-                failures = "; ".join(
-                    item.message
-                    for item in surface_report.checks
-                    if item.status == "failed"
-                )
-                raise BuildProvenanceError(
-                    f"Surface-detail contract validation failed: {failures}"
-                )
+            if validate_surface_details:
+                try:
+                    material_plan_path = root / "analysis" / "material_plan.json"
+                    material_plan = (
+                        load_material_plan(material_plan_path)
+                        if material_plan_path.is_file()
+                        else None
+                    )
+                    surface_report = validate_surface_detail_contract(
+                        modeling_plan,
+                        parsed_scene_spec,
+                        root,
+                        material_plan=material_plan,
+                        require_materials=material_plan is not None,
+                    )
+                except (OSError, ValueError) as exc:
+                    raise BuildProvenanceError(
+                        f"Surface-detail contract validation failed: {exc}"
+                    ) from exc
+                if not surface_report.ok:
+                    failures = "; ".join(
+                        item.message
+                        for item in surface_report.checks
+                        if item.status == "failed"
+                    )
+                    raise BuildProvenanceError(
+                        f"Surface-detail contract validation failed: {failures}"
+                    )
     camera = scene_spec.get("camera")
     if not isinstance(camera, dict):
         raise BuildProvenanceError("SceneSpec camera must be an object")

@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue와 Codex Destination Handoff를 추가합니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, client-mediated production dispatch/controller와 Codex Destination Handoff를 추가합니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -19,6 +19,7 @@
 | Stabilization evidence | `0.9.0` |
 | Codex Destination Handoff | `0.9.0` |
 | External Static Asset Intake | `0.9.0` |
+| Asset Production Dispatch / Controller | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
 | 최신 Python 회귀 | 880 passed, 5 skipped; Ruff passed |
 
@@ -44,6 +45,8 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
 - passed clean-import package에만 생성되는 hash-bound Codex Destination Handoff
 - 수동 제작 `.blend`/`.fbx`/`.glb`를 exact-hash static source로 등록해 V0.7/V0.9에 연결하는 External Static Asset Intake
+- 레퍼런스·사용 목적·content scope·목적지 힌트로 새 V0.8 workflow와 client-mediated Codex task launch bundle을 준비하는 Asset Production Dispatcher
+- controller-only canonical write, 최대 3개의 read-only advisory subagent, allowlist-only controller MCP profile과 hash-chained advance receipt
 - semantic hierarchy, transform, material/PBR, LOD/Collider와 목적지 import 계약
 - 목적지 프로젝트를 수정하기 전에 `import_plan.json`과 사용자 승인을 요구하는 안전 프롬프트
 - authoritative JSON을 기반으로 한 build, material, QA, export, full PDF 보고서
@@ -76,6 +79,7 @@ BlenderAssetGenerator/
 │  ├─ interior_qa/                   V0.6 실내 다각도 구조 검사
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
+│  ├─ production/                    V0.9 client-mediated dispatch와 single-writer controller
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
 │  ├─ external_intake/               V0.9 external static source contract
 │  ├─ stabilization/                 V0.9 probe, audit, queue, PDF
@@ -162,13 +166,14 @@ exact plan·manifest·report SHA-256에 결속된 `visual_review.json`이며, �
 parametric V0.4 수정이나 수동 재설계 검토를 권고할 수 있지만 수정 승인이나 적용
 권한은 만들지 않습니다.
 
-새로 저작된 `spatial_v1` 자산의 수동 1회 guarded revision은 적용 전후에 같은
-다섯 시점 구조 evidence를 다시 만들고 regression이면 rollback합니다. bounded
-convergence의 iteration receipt와 V0.9 audit에는 아직 동등한 다각도 증거 계약이
-없으므로, authored `spatial_v1` 자산은 계획 단계와 실행 단계에서 fail-closed되고
-수동 one-shot 경로를 안내합니다. legacy/non-spatial 경로의 기존 fixed-camera 동작은
-유지됩니다. 기존 job과 이미 계획된 workflow는 자동 migration하지 않으며 evidence가
-없으면 보고서에서 omit, `not_applicable` 또는 unavailable로 표시합니다. PDF는
+새로 저작된 `spatial_v1` 자산의 수동 1회 guarded revision과 bounded convergence는
+적용 전후에 같은 다섯 시점 구조 evidence를 다시 만듭니다. bounded session은 initial
+five-view terminal을 계획·승인에 결속하고, 각 iteration receipt와 V0.9 audit에 새
+result terminal 및 구조 비교 hash를 기록합니다. 구조 상태, 필수 관계, 전 시점
+가시성 또는 agent geometry review가 나빠지면 그 iteration을 rollback합니다.
+legacy/non-spatial 경로는 이 guard를 `not_applicable`로 유지합니다. 기존 job과 이미
+계획된 workflow는 자동 migration하지 않으며 evidence가 없으면 보고서에서 omit,
+`not_applicable` 또는 unavailable로 표시합니다. PDF는
 다각도 이미지를 포함하는 검토 보조물이고 machine-readable JSON과 그 hash가 권위
 있는 기록입니다.
 
@@ -453,10 +458,11 @@ snapshot에도 정확히 결속됩니다. 이 binding이 없는 legacy partial p
 historical status/audit 전용이며 승인·실행하지 않고 current direct QA에서 새
 plan을 작성합니다.
 
-단, 현재 ModelingPlan이 authored `spatial_v1`이면 plan/run 단계가 다각도 iteration
-증거 미결속을 이유로 즉시 중단됩니다. 이 경우에는 위의 manual one-shot guarded
-revision을 사용해야 합니다. legacy/non-spatial 자산에 대해서만 기존 fixed-camera
-bounded convergence 계약을 계속 사용할 수 있습니다.
+현재 ModelingPlan이 authored `spatial_v1`이면 계획 시 fresh initial five-view terminal을
+만들고, 각 실행에서 result terminal을 새로 만들어 non-regression을 확인합니다.
+five-view evidence를 만들거나 검증할 수 없으면 fail-closed되며 manual one-shot 또는
+V0.4 authoring 재진입을 안내합니다. legacy/non-spatial 자산은 기존 fixed-camera
+bounded convergence 계약을 그대로 사용합니다.
 
 PowerShell을 직접 실행할 필요는 없습니다. Codex에 다음처럼 요청하면
 `plan_visual_convergence` MCP 도구로 계획만 만들고 exact hash 승인에서
@@ -465,8 +471,9 @@ PowerShell을 직접 실행할 필요는 없습니다. Codex에 다음처럼 요
 ```text
 <JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
 standard bounded Visual QA convergence 가능 여부를 먼저 확인해.
-ModelingPlan이 authored spatial_v1이면 계획을 만들지 말고 manual one-shot
-guarded revision을 안내해. legacy/non-spatial일 때만 계획을 작성해.
+ModelingPlan이 authored spatial_v1이면 fresh initial five-view terminal을 계획에
+결속하고, 각 iteration의 result terminal과 structural comparison을 필수로 해.
+그 evidence를 만들 수 없을 때만 manual one-shot guarded revision을 안내해.
 목표 direct score와 silhouette IoU, 허용 semantic ID, path/delta 규칙,
 minimum gain, confidence와 모든 iteration budget을 보고해.
 strict host-safety-envelope 경로/SHA-256과 non-empty exact input map 상태도 보고해.
@@ -510,6 +517,71 @@ animation을 제거한 normalized authoring `.blend`를 생성합니다.
 clean-import round trip을 수행합니다. 목적 엔진 shader parity는 여전히 검증하지
 않습니다. 자세한 절차는 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
 참조하세요.
+
+## Asset Production Dispatcher와 Delegated Controller
+
+새 레퍼런스의 경로, 사용 목적, 모델링 범위와 선택적 목적지 힌트를 한 번에 주면
+`production-dispatch`가 새 V0.8 `new_asset` workflow와 다음 client launch bundle을
+준비합니다.
+
+```text
+workspaces/<job-id>/production/dispatches/<dispatch-id>/
+├─ dispatch_request.json
+├─ controller_plan.json
+├─ codex_task_prompt.md
+├─ task_launch_manifest.json
+├─ dispatch_plan.json
+├─ controller_state.json             derived current projection
+├─ optional task_binding_receipt.json
+├─ optional convergence_binding.json
+├─ assignments/
+├─ advances/
+└─ final postflight_audit_receipt.json
+```
+
+저장소는 prompt와 manifest를 준비할 뿐 Codex 작업을 직접 만들거나 인증했다고
+주장하지 않습니다. Codex Desktop/App 같은 supporting client가 실제 작업을 생성하고,
+launch manifest의 allowlist-only controller MCP profile 및 approval/retry MCP와 동등한
+shell 명령 금지를 강제한 뒤 task를 bind해야 합니다. Task binding receipt는 정확한
+launch/prompt/tool-profile SHA-256과 client enforcement attestation에 결속됩니다. 이
+profile hash는 required client capability 목록도 함께 묶습니다. 생성 직후 상태는
+`prepared / bind_client_task`이며 exact binding 전에는 controller write나 host 진행을
+거부합니다.
+
+Controller만 canonical 파일을 쓸 수 있습니다. Subagent는 최대 3개의 read-only
+advisory 작업만 병렬로 수행하고 write allowlist를 받지 않습니다. Controller는 기존
+V0.8 host와 agent 단계를 순차적으로 진행하며 generic review, InteriorScope, V0.6
+revision/convergence/candidate decision, V0.7 optimization, Destination Handoff와 failed
+retry 경계에서 그대로 멈춥니다. Workflow 완료 뒤에는 exact state에 결속된 V0.9
+read-only postflight audit까지 수행합니다.
+
+반복 승인을 줄이는 목적이면 새 dispatch에서 `standard`와
+`--convergence bounded_after_v06`를 명시하고 direct score·silhouette IoU 목표를
+함께 지정할 수 있습니다. 이 경로의 V0.8 workflow는 V0.6 `preview_only`에서 끝나며,
+controller가 exact convergence plan을 만든 뒤 그 SHA-256 승인에서 한 번 멈춥니다.
+승인 후 각 `production-advance`는 전체 Blender iteration을 최대 한 번만 실행하거나
+복구합니다. target reached, plateau, rollback, manual-only, budget 또는 failure terminal
+뒤 V0.9 postflight까지 완료하지만 품질 목표 달성을 보장하지는 않습니다. accepted
+convergence가 canonical SceneSpec을 바꿀 수 있으므로 V0.7 package와 Destination
+Handoff는 검토 후 새 immutable standard workflow에서 시작합니다.
+
+공개 CLI 표면은 `production-dispatch`, `production-bind-task`, `production-status`,
+`production-advance`, `production-complete-step`입니다. 같은 역할의 MCP 도구를 이용하면
+일반 사용자가 PowerShell을 직접 실행할 필요는 없습니다. 다만 supporting client가
+tool/shell 제한을 강제하지 않으면 저장소 계약만으로 악성 controller의 shell 우회를
+막을 수 없습니다.
+
+```text
+create_asset_production_dispatch
+bind_asset_production_task
+get_asset_production_dispatch_status
+advance_delegated_production_controller
+record_delegated_production_step
+```
+
+이 중 controller task 자체의 allowlist에는 상태 조회, advance, exact step completion의
+마지막 세 도구만 들어갑니다. Dispatch 생성과 task binding은 controller 바깥의
+supporting client가 수행합니다.
 
 ## V0.9 안정화 표면
 
@@ -557,6 +629,7 @@ immutable input
 → optional V0.6 approved multi-view interior QA
 → V0.7 derived optimization and portable package
 → V0.8 orchestration, resume and approval boundaries
+→ optional V0.9 client-mediated production controller and read-only advisers
 → optional V0.9 Codex Destination Handoff
 → V0.9 stabilization evidence and local gates
 ```
@@ -601,6 +674,8 @@ workflow의 spatial 검증을 통과한 것으로 승격되지 않습니다.
 - V0.7은 canonical authoring 데이터를 수정하지 않고 run-owned derived directory에서만 최적화합니다.
 - Handoff 생성은 원본 package와 canonical authoring 데이터를 변경하지 않고 모든 파일을 상대 경로와 SHA-256으로 결속합니다.
 - 일반 workflow 승인은 InteriorScope, Visual QA revision 또는 optimization의 전용 승인을 대체하지 못합니다.
+- Production Dispatcher는 `standard`를 기본으로 사용하며 `background_exterior`는 명시적 opt-in입니다. 어느 정책도 exact 전문 승인이나 failed retry 권한을 대신하지 않습니다.
+- Production task의 실제 생성·인증과 controller MCP/shell 제한은 supporting client 책임입니다. 저장소는 정확한 allowlist·attestation·receipt를 검증하지만 unenforced shell을 보안 경계로 주장하지 않습니다.
 
 전체 규칙은 [AGENTS.md](AGENTS.md)를 따릅니다.
 

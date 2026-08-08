@@ -96,6 +96,13 @@ from .orchestration import (
 from .orchestration.models import WorkflowBudgets
 from .packaging import package_asset, validate_asset_package
 from .packaging.material_conversion import convert_portable_materials
+from .production import (
+    advance_delegated_production_controller,
+    bind_asset_production_task,
+    create_asset_production_dispatch,
+    get_asset_production_dispatch_status,
+    record_delegated_production_step,
+)
 from .qa import (
     ExistingFileQATargetProvider,
     get_job_semantic_reference_mask_status,
@@ -1748,6 +1755,175 @@ def workflow_plan_command(
         ),
     )
     console.print_json(state.model_dump_json())
+
+
+@app.command("production-dispatch")
+def production_dispatch_command(
+    request: Annotated[str, typer.Option("--request")],
+    reference_path: Annotated[str, typer.Option("--reference")],
+    purpose: Annotated[str, typer.Option("--purpose")],
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    mode: Annotated[str, typer.Option("--mode")] = "concept",
+    reference_content_scope: Annotated[
+        str, typer.Option("--content-scope")
+    ] = "full_reference",
+    target_subject: Annotated[str | None, typer.Option("--subject")] = None,
+    execution_policy: Annotated[str, typer.Option("--policy")] = "standard",
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+    destination: Annotated[str, typer.Option("--dest-kind")] = "unspecified",
+    destination_name: Annotated[str | None, typer.Option("--dest-name")] = None,
+    destination_version: Annotated[str | None, typer.Option("--dest-version")] = None,
+    destination_render_pipeline: Annotated[
+        str | None, typer.Option("--dest-pipeline")
+    ] = None,
+    include_destination_handoff: Annotated[
+        bool,
+        typer.Option("--handoff/--no-handoff"),
+    ] = False,
+    max_host_steps: Annotated[int, typer.Option("--host-limit", min=1, max=64)] = 8,
+    max_qa_iterations: Annotated[int, typer.Option("--qa-limit", min=0, max=10)] = 1,
+    max_texture_resolution: Annotated[
+        int, typer.Option("--texture-limit", min=16, max=8192)
+    ] = 2048,
+    max_lod0_triangles: Annotated[int | None, typer.Option("--triangle-limit", min=1)] = None,
+    external_provider_budget: Annotated[
+        int, typer.Option("--provider-limit", min=0, max=100)
+    ] = 0,
+    convergence_mode: Annotated[
+        str, typer.Option("--convergence")
+    ] = "disabled",
+    convergence_target_direct_score: Annotated[
+        float | None, typer.Option("--target-direct", min=0.0, max=1.0)
+    ] = None,
+    convergence_target_silhouette_iou: Annotated[
+        float | None, typer.Option("--target-iou", min=0.0, max=1.0)
+    ] = None,
+    convergence_minimum_iteration_gain: Annotated[
+        float, typer.Option("--min-gain", min=0.000001, max=1.0)
+    ] = 0.001,
+    convergence_minimum_candidate_confidence: Annotated[
+        float, typer.Option("--min-confidence", min=0.0, max=1.0)
+    ] = 0.8,
+    convergence_max_iterations: Annotated[
+        int, typer.Option("--conv-iters", min=1, max=5)
+    ] = 3,
+) -> None:
+    """Create a V0.8 asset workflow and a client-mediated Codex task launch bundle."""
+
+    result = create_asset_production_dispatch(
+        request,
+        reference_path=reference_path,
+        purpose=purpose,
+        job_id=job_id,
+        mode=mode,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+        execution_policy=execution_policy,
+        profile_id=profile,
+        destination_kind=destination,
+        destination_name=destination_name,
+        destination_version=destination_version,
+        destination_render_pipeline=destination_render_pipeline,
+        include_destination_handoff=include_destination_handoff,
+        max_host_steps_per_resume=max_host_steps,
+        max_qa_iterations=max_qa_iterations,
+        max_texture_resolution=max_texture_resolution,
+        max_lod0_triangles=max_lod0_triangles,
+        external_provider_budget=external_provider_budget,
+        convergence_mode=convergence_mode,
+        convergence_target_direct_score=convergence_target_direct_score,
+        convergence_target_silhouette_iou=convergence_target_silhouette_iou,
+        convergence_minimum_iteration_gain=convergence_minimum_iteration_gain,
+        convergence_minimum_candidate_confidence=(
+            convergence_minimum_candidate_confidence
+        ),
+        convergence_max_iterations=convergence_max_iterations,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("production-bind-task")
+def production_bind_task_command(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: Annotated[str, typer.Option("--controller-id")],
+    external_task_id: Annotated[str, typer.Option("--external-task-id")],
+    external_host_id: Annotated[str | None, typer.Option("--external-host-id")] = None,
+    confirm_controller_tool_policy: Annotated[
+        bool,
+        typer.Option("--confirm-tool-profile"),
+    ] = False,
+    enforced_controller_tool_profile_sha256: Annotated[
+        str,
+        typer.Option("--tool-profile-sha256"),
+    ] = "",
+) -> None:
+    """Bind a task created by a supporting Codex client to one exact launch manifest."""
+
+    binding = bind_asset_production_task(
+        job_id,
+        dispatch_id,
+        controller_id,
+        external_task_id=external_task_id,
+        external_host_id=external_host_id,
+        client_tool_policy_enforced=confirm_controller_tool_policy,
+        enforced_controller_tool_profile_sha256=(
+            enforced_controller_tool_profile_sha256
+        ),
+    )
+    console.print_json(binding.model_dump_json())
+
+
+@app.command("production-status")
+def production_status_command(job_id: str, dispatch_id: str) -> None:
+    """Read production state without running host work or changing workflow evidence."""
+
+    console.print_json(
+        json.dumps(
+            get_asset_production_dispatch_status(job_id, dispatch_id),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("production-advance")
+def production_advance_command(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: Annotated[str, typer.Option("--controller-id")],
+    max_host_steps: Annotated[int | None, typer.Option("--max-host-steps", min=1, max=64)] = None,
+) -> None:
+    """Advance one safe production-controller action and stop at existing approvals."""
+
+    result = advance_delegated_production_controller(
+        job_id,
+        dispatch_id,
+        controller_id,
+        max_host_steps=max_host_steps,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("production-complete-step")
+def production_complete_step_command(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: Annotated[str, typer.Option("--controller-id")],
+    step_id: Annotated[str, typer.Option("--step-id")],
+    input_fingerprint: Annotated[str, typer.Option("--input-fingerprint")],
+    note: Annotated[str, typer.Option("--note")],
+) -> None:
+    """Record one controller-authored V0.8 agent step through its exact assignment."""
+
+    result = record_delegated_production_step(
+        job_id,
+        dispatch_id,
+        controller_id,
+        step_id=step_id,
+        input_fingerprint=input_fingerprint,
+        note=note,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
 
 
 @app.command("candidate-review-approve")

@@ -118,6 +118,19 @@ from .packaging import (
 from .packaging.material_conversion import (
     convert_portable_materials as convert_portable_materials_internal,
 )
+from .production import (
+    advance_delegated_production_controller as advance_production_controller_internal,
+)
+from .production import bind_asset_production_task as bind_production_task_internal
+from .production import (
+    create_asset_production_dispatch as create_production_dispatch_internal,
+)
+from .production import (
+    get_asset_production_dispatch_status as get_production_dispatch_status_internal,
+)
+from .production import (
+    record_delegated_production_step as record_production_step_internal,
+)
 from .qa import (
     ExistingFileQATargetProvider,
     get_job_semantic_reference_mask_status,
@@ -156,6 +169,7 @@ from .versioning import (
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
+    PRODUCTION_DISPATCH_SCHEMA_VERSION,
     PROJECT_VERSION,
     REFERENCE_SCHEMA_VERSION,
     SCENE_SPEC_VERSION,
@@ -401,7 +415,9 @@ def get_modeling_capabilities() -> dict:
                     "extension of an eligible existing job"
                 ),
                 "delivery_scope_behavior": (
-                    "explicit only for background_exterior; standard keeps legacy scope"
+                    "background_exterior selects preview/package explicitly; standard may "
+                    "stop at preview_only when a later exact-approved V0.6 convergence "
+                    "phase owns the terminal boundary"
                 ),
                 "generic_reviews_skipped": [
                     "proxy_geometry",
@@ -432,6 +448,7 @@ def get_modeling_capabilities() -> dict:
                 "interior_scope",
                 "interior_qa_plan",
                 "visual_revision",
+                "visual_convergence_plan",
                 "optimization_plan",
             ],
             "destination_default": "unspecified",
@@ -443,6 +460,29 @@ def get_modeling_capabilities() -> dict:
             "local_queue": "single worker; existing workflows only",
             "failed_retry": "explicit requeue authorization required",
             "approval_behavior": "never synthesized or bypassed",
+        },
+        "asset_production_dispatch": {
+            "task_launch": "client_mediated prompt and launch manifest",
+            "repository_creates_task": False,
+            "controller_writer_policy": "controller_only",
+            "subagent_policy": "read_only_advisory",
+            "default_execution_policy": "standard",
+            "host_execution": "existing V0.8 resume_workflow",
+            "postflight": "read-only V0.9 job audit",
+            "optional_bounded_convergence": {
+                "policy": "standard_only",
+                "initial_boundary": "completed V0.6 preview_only workflow",
+                "approval": "one exact visual-convergence plan SHA-256",
+                "iteration_execution": "at most one full iteration per controller call",
+                "spatial_v1_non_regression": "fresh exact five-view evidence per iteration",
+                "terminal_boundary": "approved_v06_convergence_terminal",
+                "package_afterward": "new immutable standard package workflow",
+            },
+            "approval_behavior": (
+                "all generic and specialized exact-hash boundaries remain active"
+            ),
+            "runtime_parity": False,
+            "contract_version": PRODUCTION_DISPATCH_SCHEMA_VERSION,
         },
         "interior_capabilities": {
             "default_policy": "disabled",
@@ -641,6 +681,137 @@ def plan_short_workflow(
         ),
     )
     return state.model_dump(mode="json")
+
+
+@mcp.tool()
+def create_asset_production_dispatch(
+    request: str,
+    reference_path: str,
+    purpose: str,
+    job_id: str | None = None,
+    mode: str = "concept",
+    reference_content_scope: str = "full_reference",
+    target_subject: str | None = None,
+    execution_policy: str = "standard",
+    profile_id: str = "portable_gltf",
+    destination_kind: str = "unspecified",
+    destination_name: str | None = None,
+    destination_version: str | None = None,
+    destination_render_pipeline: str | None = None,
+    include_destination_handoff: bool = False,
+    max_host_steps_per_resume: int = 8,
+    max_qa_iterations: int = 1,
+    max_texture_resolution: int = 2048,
+    max_lod0_triangles: int | None = None,
+    external_provider_budget: int = 0,
+    convergence_mode: str = "disabled",
+    convergence_target_direct_score: float | None = None,
+    convergence_target_silhouette_iou: float | None = None,
+    convergence_minimum_iteration_gain: float = 0.001,
+    convergence_minimum_candidate_confidence: float = 0.8,
+    convergence_max_iterations: int = 3,
+) -> dict:
+    """Prepare a new asset workflow and a hash-bound client-mediated Codex task bundle."""
+
+    return create_production_dispatch_internal(
+        request,
+        reference_path=reference_path,
+        purpose=purpose,
+        job_id=job_id,
+        mode=mode,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+        execution_policy=execution_policy,
+        profile_id=profile_id,
+        destination_kind=destination_kind,
+        destination_name=destination_name,
+        destination_version=destination_version,
+        destination_render_pipeline=destination_render_pipeline,
+        include_destination_handoff=include_destination_handoff,
+        max_host_steps_per_resume=max_host_steps_per_resume,
+        max_qa_iterations=max_qa_iterations,
+        max_texture_resolution=max_texture_resolution,
+        max_lod0_triangles=max_lod0_triangles,
+        external_provider_budget=external_provider_budget,
+        convergence_mode=convergence_mode,
+        convergence_target_direct_score=convergence_target_direct_score,
+        convergence_target_silhouette_iou=convergence_target_silhouette_iou,
+        convergence_minimum_iteration_gain=convergence_minimum_iteration_gain,
+        convergence_minimum_candidate_confidence=(
+            convergence_minimum_candidate_confidence
+        ),
+        convergence_max_iterations=convergence_max_iterations,
+    )
+
+
+@mcp.tool()
+def bind_asset_production_task(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: str,
+    external_task_id: str,
+    external_host_id: str | None = None,
+    client_tool_policy_enforced: bool = False,
+    enforced_controller_tool_profile_sha256: str = "",
+) -> dict:
+    """Bind a client task after its restricted controller tool profile is attested."""
+
+    return bind_production_task_internal(
+        job_id,
+        dispatch_id,
+        controller_id,
+        external_task_id=external_task_id,
+        external_host_id=external_host_id,
+        client_tool_policy_enforced=client_tool_policy_enforced,
+        enforced_controller_tool_profile_sha256=(
+            enforced_controller_tool_profile_sha256
+        ),
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_asset_production_dispatch_status(job_id: str, dispatch_id: str) -> dict:
+    """Read exact production and launch state without advancing any work."""
+
+    return get_production_dispatch_status_internal(job_id, dispatch_id)
+
+
+@mcp.tool()
+def advance_delegated_production_controller(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: str,
+    max_host_steps: int | None = None,
+) -> dict:
+    """Advance one safe controller action and stop at every existing approval boundary."""
+
+    return advance_production_controller_internal(
+        job_id,
+        dispatch_id,
+        controller_id,
+        max_host_steps=max_host_steps,
+    )
+
+
+@mcp.tool()
+def record_delegated_production_step(
+    job_id: str,
+    dispatch_id: str,
+    controller_id: str,
+    step_id: str,
+    input_fingerprint: str,
+    note: str,
+) -> dict:
+    """Record a controller-authored agent step against its exact issued assignment."""
+
+    return record_production_step_internal(
+        job_id,
+        dispatch_id,
+        controller_id,
+        step_id=step_id,
+        input_fingerprint=input_fingerprint,
+        note=note,
+    )
 
 
 @mcp.tool()

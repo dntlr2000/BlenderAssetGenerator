@@ -761,13 +761,14 @@ class WorkflowAttempt(V08StrictModel):
 
 
 class WorkflowLock(V08StrictModel):
-    """Represent one expiring job write lock without storing host secrets."""
+    """Represent one host-bound job write lock with legacy-readable expiry metadata."""
 
     schema_version: Literal["0.8.0"] = SCHEMA_VERSION
     lock_id: str = Field(pattern=r"^[a-f0-9]{32}$")
     workflow_id: WorkflowId
     job_id: JobId
     process_id: int = Field(ge=0)
+    owner_host: str | None = Field(default=None, min_length=1, max_length=255)
     acquired_at: datetime
     expires_at: datetime
 

@@ -153,6 +153,33 @@ def test_workspace_audit_fails_on_source_tamper_and_dangling_workflow(
     assert "DANGLING_WORKFLOW_POINTER" in codes
 
 
+def test_production_audit_reports_external_dispatch_link_without_resolving_it(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Turn an external production-root link into lexical machine evidence, not a crash."""
+
+    _settings, workspace = _isolated_settings(monkeypatch, tmp_path)
+    job_root = workspace / "linked_production_asset"
+    outside = tmp_path / "outside_dispatches"
+    outside.mkdir()
+    production = job_root / "production"
+    production.mkdir(parents=True)
+    dispatches = production / "dispatches"
+    try:
+        dispatches.symlink_to(outside, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlink creation is unavailable: {exc}")
+    findings = stabilization_service._audit_production_dispatches(
+        job_root,
+        job_root.name,
+    )
+    assert [item.code for item in findings] == ["PRODUCTION_DISPATCH_ROOT_INVALID"]
+    assert findings[0].path == (
+        "workspace/linked_production_asset/production/dispatches"
+    )
+
+
 def test_stability_pdf_is_hash_bound_private_and_immutable(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

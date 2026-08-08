@@ -94,6 +94,54 @@ function Invoke-DestinationHandoffGate {
     }
 }
 
+# Exercises the client-mediated dispatcher and read-only controller boundary without Blender.
+function Invoke-ProductionDispatchGate {
+    $Reference = (Resolve-Path "examples/geometry_showcase/reference.png").Path
+    Invoke-Uv run cbm production-dispatch `
+        --request "Prepare one isolated static asset production workflow." `
+        --reference $Reference `
+        --purpose "V0.9 delegated production controller smoke" `
+        --job-id v09_production_smoke `
+        --profile fbx_interchange
+    $DispatchRoot = Get-ChildItem `
+        (Join-Path $SmokeWorkspace "v09_production_smoke/production/dispatches") `
+        -Directory | Select-Object -First 1
+    $Plan = Get-Content -Raw (Join-Path $DispatchRoot.FullName "dispatch_plan.json") |
+        ConvertFrom-Json
+    $LaunchPath = Join-Path $DispatchRoot.FullName "task_launch_manifest.json"
+    $ProfileHash = Invoke-Uv run python -c `
+        'import pathlib,sys; from codex_blender_modeler.production.models import CodexTaskLaunchManifest; from codex_blender_modeler.production.validation import controller_tool_profile_digest; p=pathlib.Path(sys.argv[1]); print(controller_tool_profile_digest(CodexTaskLaunchManifest.model_validate_json(p.read_text())))' `
+        $LaunchPath
+    Invoke-Uv run cbm production-bind-task v09_production_smoke $Plan.dispatch_id `
+        --controller-id $Plan.controller_id `
+        --external-task-id v09-production-smoke-task `
+        --confirm-tool-profile `
+        --tool-profile-sha256 $ProfileHash
+    Invoke-Uv run cbm production-advance v09_production_smoke $Plan.dispatch_id `
+        --controller-id $Plan.controller_id --max-host-steps 2
+    Invoke-Uv run cbm production-advance v09_production_smoke $Plan.dispatch_id `
+        --controller-id $Plan.controller_id
+    $State = Get-Content -Raw (Join-Path $DispatchRoot.FullName "controller_state.json") |
+        ConvertFrom-Json
+    $Assignment = Get-Content -Raw `
+        (Join-Path $SmokeWorkspace "v09_production_smoke/$($State.current_assignment.path)") |
+        ConvertFrom-Json
+    if ($State.next_action -ne "controller_author" -or `
+        $Assignment.canonical_write_authority -ne "controller_only" -or `
+        $Assignment.subagent_write_allowlist.Count -ne 0) {
+        throw "V0.9 production dispatcher did not stop at the safe controller boundary."
+    }
+    $AuditId = "production-audit-${RunStamp}-$PID".ToLowerInvariant()
+    Invoke-Uv run cbm workspace-audit --job-id v09_production_smoke `
+        --audit-id $AuditId
+    $AuditPath = Join-Path (Get-Location) `
+        "reports/v09/audits/$AuditId/workspace_audit.json"
+    $Audit = Get-Content -Raw $AuditPath | ConvertFrom-Json
+    if ($Audit.status -ne "passed") {
+        throw "V0.9 production dispatch integrity audit did not pass."
+    }
+}
+
 if ($SkipVision) {
     Invoke-Uv sync --frozen --extra dev
 }
@@ -149,6 +197,7 @@ New-Item -ItemType Directory -Path $SmokeWorkspace -Force | Out-Null
 try {
     $env:CBM_WORKSPACE_ROOT = $SmokeWorkspace
     Invoke-DestinationHandoffGate
+    Invoke-ProductionDispatchGate
     $Reference = (Resolve-Path "examples/geometry_showcase/reference.png").Path
     Invoke-Uv run cbm workflow-plan `
         --request "Create a bounded V0.9 proxy smoke workflow." `

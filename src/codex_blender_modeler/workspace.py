@@ -5,6 +5,7 @@ import json
 import os
 import re
 import shutil
+import socket
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -362,7 +363,7 @@ def _require_scene_spec_lock_owner(
     job_id: str,
     lock_owner_id: str,
 ) -> None:
-    """Require the current process to own the exact shared job writer lock."""
+    """Require the current local process to own the exact shared job writer lock."""
 
     from .orchestration.models import WorkflowLock
 
@@ -377,11 +378,19 @@ def _require_scene_spec_lock_owner(
         raise RuntimeError(
             "Canonical SceneSpec replacement found an unreadable job write lock"
         ) from exc
+    now = datetime.now(UTC)
+    local_host = socket.gethostname().strip()
+    host_bound_owner = bool(
+        lock.owner_host
+        and local_host
+        and lock.owner_host.casefold() == local_host.casefold()
+    )
+    legacy_unexpired_owner = lock.owner_host is None and lock.expires_at > now
     if (
         lock.job_id != job_id
         or lock.workflow_id != lock_owner_id
         or lock.process_id != os.getpid()
-        or lock.expires_at <= datetime.now(UTC)
+        or not (host_bound_owner or legacy_unexpired_owner)
     ):
         raise RuntimeError(
             "Canonical SceneSpec replacement does not own the current job write lock"

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import inspect
 import tomllib
 from pathlib import Path
 
 from typer.testing import CliRunner
 
+from codex_blender_modeler import mcp_server
 from codex_blender_modeler.cli import app
 from codex_blender_modeler.versioning import (
     DESTINATION_HANDOFF_SCHEMA_VERSION,
+    PRODUCTION_DISPATCH_SCHEMA_VERSION,
     PROJECT_VERSION,
     STABILIZATION_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
@@ -27,6 +30,11 @@ EXPECTED_COMMANDS = {
     "handoff-generate",
     "handoff-validate",
     "handoff-status",
+    "production-dispatch",
+    "production-bind-task",
+    "production-status",
+    "production-advance",
+    "production-complete-step",
 }
 EXPECTED_MCP_TOOLS = {
     "probe_release_environment",
@@ -41,6 +49,11 @@ EXPECTED_MCP_TOOLS = {
     "generate_destination_handoff",
     "validate_destination_handoff",
     "get_destination_handoff_status",
+    "create_asset_production_dispatch",
+    "bind_asset_production_task",
+    "get_asset_production_dispatch_status",
+    "advance_delegated_production_controller",
+    "record_delegated_production_step",
 }
 
 
@@ -61,6 +74,66 @@ def test_v09_failed_requeue_requires_an_explicit_flag() -> None:
     assert "--retry-failed" in result.stdout
 
 
+def test_production_controller_cannot_receive_approval_or_retry_authority() -> None:
+    """Keep exact handoff approval and failed retry outside the controller advance API."""
+
+    result = CliRunner().invoke(app, ["production-advance", "--help"])
+    assert result.exit_code == 0
+    assert "--retry-failed" not in result.stdout
+    assert "--handoff-plan-sha256" not in result.stdout
+    binding = CliRunner().invoke(app, ["production-bind-task", "--help"])
+    assert binding.exit_code == 0
+    assert "--confirm-tool-profile" in binding.stdout
+    assert "--tool-profile-sha256" in binding.stdout
+
+
+def test_production_dispatch_cli_uses_unambiguous_compact_option_names() -> None:
+    """Keep every production-dispatch option distinguishable in narrow terminals."""
+
+    result = CliRunner().invoke(app, ["production-dispatch", "--help"])
+    assert result.exit_code == 0
+    for option in (
+        "--reference",
+        "--content-scope",
+        "--subject",
+        "--policy",
+        "--dest-kind",
+        "--dest-name",
+        "--dest-version",
+        "--dest-pipeline",
+        "--handoff",
+        "--host-limit",
+        "--qa-limit",
+        "--texture-limit",
+        "--triangle-limit",
+        "--provider-limit",
+        "--convergence",
+        "--target-direct",
+        "--target-iou",
+        "--min-gain",
+        "--min-confidence",
+        "--conv-iters",
+    ):
+        assert option in result.stdout
+
+
+def test_production_dispatch_mcp_exposes_bounded_convergence_inputs() -> None:
+    """Keep the MCP dispatcher aligned with the explicit CLI convergence contract."""
+
+    parameters = inspect.signature(
+        mcp_server.create_asset_production_dispatch
+    ).parameters
+    for name in (
+        "convergence_mode",
+        "convergence_target_direct_score",
+        "convergence_target_silhouette_iou",
+        "convergence_minimum_iteration_gain",
+        "convergence_minimum_candidate_confidence",
+        "convergence_max_iterations",
+    ):
+        assert name in parameters
+
+
 def test_v09_mcp_tools_are_explicitly_whitelisted() -> None:
     """Keep every stabilization operation inside the project MCP allowlist."""
 
@@ -77,3 +150,4 @@ def test_v09_advances_project_only_and_preserves_workflow_contract() -> None:
     assert STABILIZATION_SCHEMA_VERSION == "0.9.0"
     assert DESTINATION_HANDOFF_SCHEMA_VERSION == "0.9.0"
     assert WORKFLOW_SCHEMA_VERSION == "0.8.0"
+    assert PRODUCTION_DISPATCH_SCHEMA_VERSION == "0.9.0"

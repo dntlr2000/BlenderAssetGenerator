@@ -168,6 +168,14 @@ def validate_convergence_activation(
             approval.camera_fingerprint,
             plan.camera_fingerprint,
         ),
+        "structural_multiview_policy": (
+            approval.structural_multiview_policy,
+            plan.structural_multiview_policy,
+        ),
+        "initial_structural_evidence": (
+            approval.initial_structural_evidence,
+            plan.initial_structural_evidence,
+        ),
     }
     mismatches = sorted(label for label, values in checks.items() if values[0] != values[1])
     if mismatches:

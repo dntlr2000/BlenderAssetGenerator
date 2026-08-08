@@ -16,12 +16,17 @@
 |---|---|---|
 | `<JOB_ID>` | 새 자산의 고유 lowercase job ID | `temple_validation_01` |
 | `<REFERENCE_PATH>` | 기본 레퍼런스 이미지의 절대 경로 | `E:\References\temple.png` |
+| `<ASSET_PURPOSE>` | 자산의 사용 목적과 품질·규모 요구 | `원거리 배경용 정적 사원` |
 | `<MODE>` | `concept` 또는 `measured` | `concept` |
 | `<REFERENCE_CONTENT_SCOPE>` | `full_reference` 또는 `primary_object_only` | `primary_object_only` |
 | `<TARGET_SUBJECT>` | 오브젝트 전용 범위에서 만들 대상의 명확한 설명 | `이미지 중앙의 노란 잠수 자동차` |
 | `<EXECUTION_POLICY>` | `standard` 또는 `background_exterior` | `standard` |
 | `<DELIVERY_SCOPE>` | 빠른 경로의 `preview_only` 또는 `portable_package` | `preview_only` |
 | `<WORKFLOW_ID>` | Codex가 보고한 V0.8 workflow ID | 실제 보고값 |
+| `<DISPATCH_ID>` | Codex가 보고한 V0.9 production dispatch ID | 실제 보고값 |
+| `<CONTROLLER_ID>` | Codex가 보고한 single-writer controller ID | 실제 보고값 |
+| `<EXTERNAL_TASK_ID>` | supporting client가 실제로 생성한 Codex task ID | 실제 보고값 |
+| `<EXTERNAL_HOST_ID>` | 선택적인 supporting Codex client/host ID | 실제 보고값 |
 | `<STEP_ID>` | V0.8 workflow가 보고한 현재 agent/review step ID | 실제 보고값 |
 | `<QA_RUN_ID>` | Codex가 보고한 V0.6 QA run ID | 실제 보고값 |
 | `<REGISTRATION_ID>` | semantic reference mask candidate의 고유 registration ID | `maskset-01` |
@@ -99,6 +104,13 @@
   배경판과 대기 효과를 제외합니다. 대상이 모호하면 job 생성 전에 확인합니다.
 - content scope와 target subject는 job 생성 후 바꾸지 않습니다. 같은
   reference를 다른 범위로 만들려면 새 job ID를 사용합니다.
+- Asset Production Dispatcher는 별도 Codex 작업용 prompt와 launch manifest를 준비할
+  뿐, 저장소가 실제 task를 만들거나 인증했다고 주장하지 않습니다.
+- Production Controller만 canonical writer입니다. Subagent는 read-only advisory이며
+  supporting client가 exact controller MCP allowlist와 approval/retry shell 금지를 실제로
+  강제할 수 있을 때만 task를 bind합니다.
+- Production orchestration도 generic·specialized exact approval, handoff plan, failed retry
+  권한을 줄이지 않습니다. 최종 완료에는 exact V0.9 postflight audit receipt가 필요합니다.
 
 ---
 
@@ -344,6 +356,109 @@ requires_standard_workflow로 차단된 이유를 읽기 전용으로 검토해.
 같은 job의 current evidence를 입력으로 사용하는 새 immutable standard workflow의
 intent, scope, 첫 승인 경계와 예상 단계를 제안해.
 내가 전환 계획을 확인하기 전에는 새 workflow를 생성하거나 canonical 파일을 수정하지 마.
+```
+
+### 1.4 별도 Codex 제작 작업으로 package까지 조율
+
+현재 Codex client가 새 task 생성과 제한된 controller tool profile을 지원할 때 사용할 수
+있습니다. 이 프롬프트는 모든 단계를 선승인하지 않으며 다음 기존 승인 또는 실패
+경계에서 반드시 멈춥니다.
+
+```text
+<REFERENCE_PATH>의 새 레퍼런스를 <JOB_ID>로 만들기 위한
+Asset Production Dispatcher와 별도 Codex 제작 작업을 준비해.
+
+- 사용 목적: <ASSET_PURPOSE>
+- mode: <MODE>
+- reference_content_scope: <REFERENCE_CONTENT_SCOPE>
+- target_subject: <TARGET_SUBJECT>
+- execution_policy: standard
+- portable profile: <PROFILE_ID>
+- destination hint: <DESTINATION_HINT>
+- Destination Handoff 포함 여부: false
+
+1. create_asset_production_dispatch를 호출해 새 V0.8 new_asset workflow,
+   dispatch request, controller plan, Codex task prompt와 launch manifest를 생성해.
+2. dispatch ID <DISPATCH_ID>, controller ID <CONTROLLER_ID>, workflow ID,
+   task prompt path/hash와 controller-tool-profile hash를 보고해.
+3. launch manifest가 allowlist-only로 다음 controller MCP만 허용하는지 확인해:
+   - get_asset_production_dispatch_status
+   - advance_delegated_production_controller
+   - record_delegated_production_step
+4. approval/retry MCP와 동등한 shell 명령이 금지됐는지 확인해.
+5. 현재 Codex client가 이 MCP/shell 제한을 실제로 강제할 수 있을 때만
+   codex_task_prompt.md로 별도 task를 생성해. 저장소가 task를 생성했다고 주장하지 마.
+6. 생성한 task ID <EXTERNAL_TASK_ID>와 선택적 host ID <EXTERNAL_HOST_ID>를
+   bind_asset_production_task로 bind하되, 2번에서 보고한 exact
+   controller-tool-profile SHA-256을 그대로 제출하고 launch manifest의 client capability와
+   tool/shell policy를 실제로 강제한 경우에만 enforcement attestation을 기록해.
+7. 별도 task에서는 controller만 canonical output을 작성하게 하고,
+   subagent는 최대 3개의 read-only advisory 작업으로만 사용해.
+8. controller는 한 번에 한 production action만 진행하고 기존 V0.8 generic review,
+   InteriorScope, V0.6 revision/convergence/candidate decision, V0.7 optimization,
+   Destination Handoff exact plan과 failed retry 경계에서 멈춰.
+9. 각 정지점에서 exact path, SHA-256, 필요한 전용 승인과 다음 행동을 보고해.
+10. workflow가 완료되면 exact terminal state에 결속된 V0.9 read-only postflight audit을
+    수행하고 receipt가 current일 때만 production completed라고 보고해.
+
+현재 client가 task 생성 또는 controller MCP/shell restriction을 제공하지 못하면
+task를 bind하거나 자동화됐다고 주장하지 말고, prepared launch bundle의 경로와
+수동으로 이어갈 방법만 보고해. 목적지 metadata는 힌트이며 Unity/Unreal/custom
+runtime parity를 주장하지 마.
+```
+
+`background_exterior`를 쓰려면 위 프롬프트에서 명시적으로 바꿉니다. 이 경우 initial
+dispatch에 Destination Handoff를 포함하지 않고, passed package 뒤에 별도 handoff
+계획과 exact SHA-256 승인을 사용합니다.
+
+### 1.5 별도 Codex 제작 작업으로 V0.6 bounded convergence까지 조율
+
+V0.6 QA 뒤의 국소 형상 개선을 최대 `<MAX_ITERATIONS>`회까지 같은 exact 승인 범위에서
+이어 가려면 아래처럼 `standard + bounded_after_v06`를 명시합니다. 최초 V0.8 workflow는
+V0.6 `preview_only`에서 끝나며, Controller는 exact convergence plan을 만든 뒤 반드시
+사용자 승인을 기다립니다. 이 dispatch는 V0.7 package나 Destination Handoff를 함께
+수행하지 않습니다.
+
+```text
+<REFERENCE_PATH>의 새 레퍼런스를 <JOB_ID>로 제작하고,
+V0.6 직접 QA 뒤 bounded convergence까지 조율할 Asset Production Dispatch를 준비해.
+
+- 사용 목적: <ASSET_PURPOSE>
+- mode: <MODE>
+- reference_content_scope: <REFERENCE_CONTENT_SCOPE>
+- target_subject: <TARGET_SUBJECT>
+- execution_policy: standard
+- convergence_mode: bounded_after_v06
+- target_direct_score: <TARGET_DIRECT_SCORE>
+- target_silhouette_iou: <TARGET_SILHOUETTE_IOU>
+- minimum_iteration_gain: <MINIMUM_ITERATION_GAIN>
+- max_iterations: <MAX_ITERATIONS>
+- Destination Handoff 포함 여부: false
+
+1. create_asset_production_dispatch를 호출해 standard preview-only V0.8 workflow와
+   client-mediated production launch bundle을 생성해.
+2. 1.4와 동일하게 exact controller tool profile을 실제로 강제할 수 있을 때만
+   별도 task를 생성·bind하고, controller만 canonical writer로 사용해.
+3. V0.4→V0.5→정확히 1회의 canonical V0.6 7-pass QA까지 기존 generic/specialized
+   승인과 실패 경계를 보존해 진행해.
+4. preview workflow 완료 뒤 controller가 exact bounded convergence plan과
+   convergence binding을 생성하면 plan 경로와 SHA-256을 보고하고 멈춰.
+5. 내가 그 exact SHA-256을 별도로 승인하기 전에는 approval을 만들거나
+   iteration을 실행하지 마.
+6. 승인된 뒤 production controller advance 한 번당 full Blender iteration을 최대
+   1회만 실행하거나 복구해. 각 iteration은 direct score 최소 개선, silhouette IoU,
+   measured constraint와 authored spatial_v1 five-view 구조 비회귀를 모두 검사해.
+7. 비개선 또는 구조·constraint regression이면 해당 iteration을 rollback하고,
+   target reached, plateau, manual-only, budget, stale/tampering 또는 host failure에서
+   terminalize해. 목표 달성을 보장하거나 승인 envelope를 넓히지 마.
+8. terminal JSON/PDF와 exact convergence evidence에 결속된 V0.9 postflight audit이
+   current일 때만 production completed라고 보고해.
+9. 이후 V0.7 package가 필요하면 새 standard workflow와 별도의 exact V0.7
+   optimization-plan 승인을 제안하고 자동 진입하지 마.
+
+현재 client가 task 생성 또는 controller MCP/shell restriction을 강제하지 못하면
+prepared launch bundle만 보고하고 멈춰. 이 요청은 exact convergence-plan 승인,
+InteriorScope, V0.7 optimization 또는 Destination Handoff 승인을 대신하지 않는다.
 ```
 
 ## 2. 전체 파이프라인 조율 프롬프트
@@ -1058,7 +1173,7 @@ validation 실패, all-view visibility loss 또는 required assembly regression�
 
 ### 단계 7B — 선택적 bounded V0.6 수렴 세션
 
-이 단계는 한 candidate review가 아니라 여러 국소 direct-reference 반복을 하나의 exact 승인 세션으로 묶어야 할 때만 선택합니다. 기본 경로는 단계 7의 candidate review이고, 명시적 기존 one-shot은 단계 7A입니다. `background_exterior` fast lane, custom-mesh 정점 편집, 재질 수정, 실내, generated-target-only 후보, 측정 제약을 무시하는 수정에는 사용할 수 없습니다. 현재 bounded convergence session은 단계 7/7A의 five-view structural veto에 결속되지 않았습니다. 따라서 authored `spatial_v1` 자산에서는 plan/run이 fail-closed되며 단계 7의 candidate review 또는 단계 7A manual one-shot을 사용해야 합니다. legacy/non-spatial 자산만 기존 fixed-camera bounded 경로를 사용할 수 있습니다.
+이 단계는 한 candidate review가 아니라 여러 국소 direct-reference 반복을 하나의 exact 승인 세션으로 묶어야 할 때만 선택합니다. 기본 경로는 단계 7의 candidate review이고, 명시적 기존 one-shot은 단계 7A입니다. `background_exterior` fast lane, custom-mesh 정점 편집, 재질 수정, 실내, generated-target-only 후보, 측정 제약을 무시하는 수정에는 사용할 수 없습니다. authored `spatial_v1` 자산은 계획 시 fresh initial five-view 구조 evidence를 exact hash로 결속하고, 매 iteration의 fresh result five-view와 비교하여 구조 비회귀를 추가로 통과해야 합니다. legacy/non-spatial 자산은 기존 fixed-camera 경로를 유지하며 구조 veto를 `not_applicable`로 기록합니다.
 
 #### 7B-1. 계획만 생성하고 exact SHA-256 검토
 
@@ -1066,10 +1181,12 @@ validation 실패, all-view visibility loss 또는 required assembly regression�
 <JOB_ID>의 current direct QA run <QA_RUN_ID>을 기준으로
 선택적 standard bounded visual convergence 가능 여부를 먼저 확인해.
 
-ModelingPlan이 authored spatial_v1이면 five-view iteration evidence가
-plan/receipt/audit에 결속되지 않았으므로 session을 만들지 말고,
-단계 7의 candidate review 또는 단계 7A manual one-shot guarded revision을 안내한 뒤 멈춰.
-legacy/non-spatial일 때만 아래 bounded plan을 작성해.
+ModelingPlan이 authored spatial_v1이면 current authoring blend에서 fresh initial
+front/right/top/rear/oblique five-view 구조 evidence를 생성하고, 그 exact terminal
+evidence와 structural policy를 plan, host safety envelope와 approval 입력에 결속해.
+필수 five-view evidence를 안전하게 만들거나 검증할 수 없으면 session을 만들지 말고
+단계 7의 candidate review 또는 단계 7A manual one-shot guarded revision을 안내해.
+legacy/non-spatial이면 structural policy를 `not_applicable`로 기록하고 아래 plan을 작성해.
 
 - session_id: <CONVERGENCE_SESSION_ID>
 - target_direct_score: <TARGET_DIRECT_SCORE>
@@ -1093,7 +1210,8 @@ material/custom-mesh/interior/generated-target 제외를 명시해.
 CLI의 반복 가능한 `--path-limit-json` 또는 MCP의 `path_limits`를 쓸 때는
 host envelope의 경로·연산·delta 권한을 좁히는 데만 사용하고 확대하지 마.
 initial candidates SHA-256, initial build fingerprint/provenance SHA-256,
-constraint 존재 여부와 snapshot SHA-256도 함께 보고해.
+constraint 존재 여부와 snapshot SHA-256을 함께 보고해. authored spatial_v1이면
+initial structural evidence 경로·SHA-256과 five-view pass manifest도 보고해.
 
 이 실행 binding이 없는 legacy partial plan이면 승인 가능한 것처럼 보고하지 말고,
 status-only historical evidence임을 알린 뒤 current direct QA에서 새 plan이
@@ -1113,8 +1231,6 @@ exact plan SHA-256 <PLAN_SHA256>의 bounded 실행을 승인한다.
 
 현재 계획 hash, initial QA run, SceneSpec, camera, source/build fingerprint와
 constraint baseline이 모두 current인지 먼저 확인해.
-ModelingPlan이 authored spatial_v1이면 이 승인을 소비하거나 iteration을 시작하지 말고
-다각도 evidence 미결속 오류와 candidate review/manual one-shot 경로를 보고해.
 일치할 때만 approve_visual_convergence로 이 exact plan을 승인하고
 run_visual_convergence를 실행해.
 
@@ -1122,7 +1238,10 @@ run_visual_convergence를 실행해.
 result SceneSpec, revision authorization, 전후 수치와 exact hash receipt를 남겨.
 새 fixed-camera 7-pass QA의 direct score가 최소 gain 이상 개선되고
 silhouette IoU와 constraint가 regression하지 않을 때만 결과를 유지해.
-비개선, regression 또는 검증 실패면 해당 iteration을 rollback하고 종료해.
+authored spatial_v1이면 result SceneSpec의 fresh front/right/top/rear/oblique evidence를
+생성해 exact initial evidence와 구조 비회귀 비교를 수행하고, semantic visibility,
+부착 관계, 좌우/깊이 배치 또는 assembly finding이 regression하지 않을 때만 유지해.
+비개선, 구조·constraint regression 또는 검증 실패면 해당 iteration을 rollback하고 종료해.
 legacy/non-spatial bounded session에는 five-view baseline/result 비교를 적용하지 말고
 multiview veto가 `not_applicable`임을 terminal limitation에 명시해.
 
@@ -1571,6 +1690,21 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 다른 단계로 건너뛰거나 실패를 성공으로 재분류하지 마.
 ```
 
+### Production controller 대기·무결성 실패
+
+```text
+<JOB_ID> production dispatch <DISPATCH_ID>의 상태를 읽기 전용으로 점검해.
+get_asset_production_dispatch_status의 controller ID, workflow binding,
+launch/tool-profile/task-binding receipt, 현재 assignment, advance receipt chain과
+postflight receipt를 exact hash로 검증해.
+
+approval boundary라면 승인 도구를 controller task에 노출하거나 shell로 우회하지 말고
+소유한 별도 승인 표면과 정확한 SHA-256만 보고해.
+stale/tampered evidence라면 repair, rebind, retry 또는 완료 처리하지 마.
+supporting client가 tool policy를 강제하지 않았다면 새 attestation을 꾸며내지 말고
+binding을 거부해야 하는 이유를 보고해.
+```
+
 ---
 
 ## 6. 단계별 완료 체크리스트
@@ -1578,6 +1712,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 단계 | 필수 입력 | 주요 산출물 | 사용자 검토 자료 | 승인 필요 여부 | 다음 단계 | 재진입 조건 |
 |---|---|---|---|---|---|---|
 | 0 환경 점검 | 저장소, `<JOB_ID>`, `<REFERENCE_PATH>` | read-only 상태 보고 | doctor, 기존 compatibility evidence | 없음 | 1 | evidence 누락·stale 해결 후 |
+| Production dispatch/controller | 새 reference, purpose, scope, profile, client-enforced tool policy | V0.8 workflow, launch bundle, optional task binding, assignment/advance receipts, postflight receipt | prompt/launch/profile hash, 현재 approval boundary, final audit | 기존 단계별 exact 승인 유지; binding은 승인 아님 | 현재 workflow 단계 또는 완료 | client enforcement 불가, stale/tampered dispatch, approval/failure 대기 |
 | 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, bounded fit, V0.4 5-view host/agent review, 로컬 재질, 직접 QA, quality report | preview, multiview JSON/이미지, 직접 QA/quality JSON, QA·통합 PDF | 일반 단계 승인 없음; multiview agent completion은 유지 | `status=completed`, `milestone=delivered_for_review`, 독립 quality status 또는 별도 package workflow | scope 위험은 `standard`; geometry review 권고는 선택적 standard revision |
 | 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거와 quality warning, 승인된 V0.7 최적화, package, roundtrip | quality JSON, optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source/quality binding 변경 또는 roundtrip 실패 |
 | 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend`, 5-view host/agent review | preview, multiview JSON/이미지, build PDF, validation JSON | 프록시 승인; geometry review 자체는 승인 아님 | 2 또는 3 | 실루엣·분해 또는 cross-view 구조가 부정확할 때 |
@@ -1590,7 +1725,7 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 | 6B 선택적 외관 companion | completed canonical QA run, current source hashes | immutable attempts, terminal bundle, camera/shape/assembly attribution, optional five-view evidence | diagnostic JSON, attribution·limitation, structural views | revision 승인 없음; standalone five-view run은 exact plan hash 필요 | 7 또는 8 | terminal 전 retryable host 실패는 다음 attempt, source drift는 새 current QA |
 | 7 V0.6 candidate review | standard revise request, current canonical asset | 격리 baseline/candidate build·7-pass QA·optional constraint·5-view 비교, decision/PDF, promotion receipt | 전후 점수·silhouette·constraint·구조·변경 경로 | exact decision SHA-256 승격 승인 1회 | 6 또는 8 | non-promotable이면 새 revision/V0.4, envelope 밖이면 7A |
 | 7A manual guarded revision | QA run, 후보, compiled plan | 기존 approval, 적용·rollback; spatial_v1이면 전후 5-view veto | 전후 점수·constraint·구조 비교·변경 경로 | 후보+plan exact 사전 승인 | 6 또는 8 | 비개선·구조 regression은 rollback, 큰 문제는 2 |
-| 7B 선택적 bounded convergence | legacy/non-spatial standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget | exact plan/approval, iteration receipts, terminal JSON/PDF; authored spatial_v1은 plan/run 거부 | plan envelope/hash, iteration별 전후 점수·IoU·constraint와 multiview limitation | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | spatial_v1은 수동 7, plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
+| 7B 선택적 bounded convergence | standard job, current direct QA, 목표 점수·IoU, 허용 ID와 budget; spatial_v1이면 fresh initial five-view | exact plan/approval, iteration receipts, terminal JSON/PDF, spatial result five-view·구조 비교 | plan envelope/hash, iteration별 전후 점수·IoU·constraint·구조 비회귀 | convergence plan exact-hash 승인 1회 | 6, 8 또는 종료 | 구조 regression·plateau·manual-only·큰 외형은 2 또는 수동 7, stale이면 새 QA/plan |
 | 8 V0.7 review | 승인된 canonical asset, profile | preflight, review plan, optimization review | exact plan hash, 비용·손실, revise_asset 권고 | `approve/revise_asset/revise_profile/cancel` | 9 또는 standard revision | profile/source/preflight 변경, QA needs_revision |
 | 9 V0.7 package | approved exact plan | optimized scene, cost report, FBX/GLB package, manifest, roundtrip | export PDF, roundtrip JSON | exact plan 승인 및 final review | 10 또는 11 | roundtrip 실패, package stale |
 | 10 V0.9 audit | current workspace/package | probe, audit JSON, stability PDF | warning/failure 목록 | 수리에는 별도 승인 | 선택적 11 또는 종료 | 환경·workspace 변경 |
@@ -1598,13 +1733,14 @@ uv run cbm workflow-resume <JOB_ID> <WORKFLOW_ID> --retry-failed를 실행해.
 
 ## 현재 범위의 제한
 
+- Production Dispatcher는 supporting Codex client를 대신해 task를 생성·인증하지 않습니다. Repository contract는 hash와 attestation을 검증하지만 unenforced shell을 가진 악성 controller의 우회까지 방지한다고 보장하지 않습니다.
 - V0.4는 single-view의 보이지 않는 면과 실제 깊이를 복원된 진실로 만들지 못합니다.
 - V0.4 constraints는 residual을 평가하지만 임의의 CAD B-Rep 또는 비선형 제약을 자동 완전 해결하지 않습니다.
 - V0.4 five-view geometry review는 여러 각도에서 형상·조립·topology 일관성을 보는 구조 근거입니다. 한 시점의 occlusion은 advisory이고, 보정된 각도별 reference가 없으면 측면·후면 likeness는 `unscorable`입니다. 결과는 V0.4 parametric revision 또는 manual redesign review를 권고할 수 있지만 자동 승인·적용하지 않습니다.
 - V0.6 direct score와 generated target은 사람의 미적 승인이나 metric accuracy를 대체하지 않습니다.
 - V0.6 companion attribution은 카메라·형상·조립 원인 후보를 분류하는 보조 근거입니다. explicit semantic mask가 없으면 객체별 contour/orientation은 채점하지 않으며, 보정된 측면 reference가 없는 five-view는 구조적 evidence일 뿐 similarity는 `unscorable`입니다.
 - V0.6 candidate review는 existing-object의 제한된 parametric 수정만 격리 평가하며 direct score, silhouette, constraint와 authored spatial_v1 five-view 비회귀를 통과한 candidate만 최종 승격 대상으로 제시합니다. 큰 authoring 문제, custom-mesh 정점, 재질과 실내는 V0.4/V0.5 또는 manual guarded 범위입니다.
-- V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다. authored `spatial_v1`은 five-view iteration 증거가 결속되기 전까지 plan/run이 fail-closed되며 candidate review 또는 수동 one-shot을 사용합니다. legacy/non-spatial만 기존 fixed-camera bounded 경로를 유지합니다.
+- V0.6 bounded convergence는 계획된 direct-reference 국소 수정만 기본 3회, 절대 최대 5회 수행하며 목표 달성을 보장하지 않습니다. 큰 authoring 문제, custom-mesh 정점, 재질, 실내와 manual-only 후보는 자동 범위 밖입니다. authored `spatial_v1`은 exact initial/result five-view 구조 비회귀가 필수이며, evidence 생성·검증 실패나 구조 regression은 fail-closed 또는 rollback됩니다. legacy/non-spatial은 기존 fixed-camera 경로와 `not_applicable` 구조 상태를 유지합니다.
 - 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.
 - V0.9 Destination Handoff는 목적지 Codex를 위한 계약과 안전한 import prompt를 생성할 뿐 목적지 엔진을 실행하거나 프로젝트를 수정하지 않습니다.
