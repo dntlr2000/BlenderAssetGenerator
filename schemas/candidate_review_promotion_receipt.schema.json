@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "CandidateReviewArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable candidate-review artifact to its job-relative path and hash.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "CandidateReviewArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind canonical promotion and final rebuild evidence to one approved decision.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "promotion_kind": {
+      "const": "candidate_review_promotion_v1",
+      "default": "candidate_review_promotion_v1",
+      "title": "Promotion Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Trial Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workflow Id"
+    },
+    "decision_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Sha256",
+      "type": "string"
+    },
+    "approval_identity_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Approval Identity Sha256",
+      "type": "string"
+    },
+    "previous_canonical_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Previous Canonical Sha256",
+      "type": "string"
+    },
+    "candidate_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Scene Spec Sha256",
+      "type": "string"
+    },
+    "final_canonical_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Canonical Sha256",
+      "type": "string"
+    },
+    "archived_scene_spec": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CandidateReviewArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "final_blend": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "final_inventory": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "final_validation": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "final_build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Final Build Fingerprint",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "promoted",
+        "rolled_back"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "promoted_at": {
+      "format": "date-time",
+      "title": "Promoted At",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "trial_id",
+    "decision_sha256",
+    "approval_identity_sha256",
+    "previous_canonical_sha256",
+    "candidate_scene_spec_sha256",
+    "final_canonical_sha256",
+    "final_blend",
+    "final_inventory",
+    "final_validation",
+    "final_build_fingerprint",
+    "status",
+    "promoted_at"
+  ],
+  "title": "CandidateReviewPromotionReceipt",
+  "type": "object"
+}

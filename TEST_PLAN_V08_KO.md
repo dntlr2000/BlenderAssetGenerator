@@ -38,6 +38,8 @@ uv run ruff check .
 - 서로 다른 job과 workflow의 파일 경로가 격리됨
 - `standard`가 생략된 legacy 요청·route·plan·state를 재작성 없이 읽음
 - `background_exterior`가 명시적으로 선택된 경우에만 활성화됨
+- 새 standard `revise_asset`은 `revision_strategy=candidate_review`가 기본이며 legacy request의 누락 필드는 계속 로딩됨
+- 명시적 `manual_guarded`는 기존 revision 승인 경계를 유지함
 - `preview_only`와 `portable_package`가 request/route/plan/state에서 동일하게 보존됨
 - 새 fast plan에 optional `fast_quality_policy=review_delivery_v2`가 기록됨
 - legacy plan은 해당 필드가 없어도 기존 규칙으로 읽히고 재작성되지 않음
@@ -57,6 +59,7 @@ uv run ruff check .
 - 계획되지 않은 SceneSpec 또는 canonical MaterialPlan 변경은 stale/blocked
 - artifact ownership 충돌은 `orchestration_artifact_conflict`로 기록되고
   `requires_standard_workflow`로 잘못 분류되지 않음
+- candidate trial의 source/decision/pass/PDF hash 변경은 promotion 전에 fail-closed
 
 ## Gate 4 — 실패·잠금·재개
 
@@ -74,9 +77,23 @@ uv run ruff check .
 - 프록시·상세·swatch·QA·최종 package 일반 승인
 - InteriorScope 일반 승인 대체 불가
 - Interior QA exact camera-plan 일반 승인 대체 불가
-- V0.6 visual revision 일반 승인 대체 불가
+- 새 standard candidate review는 RevisionPlan 사전 승인을 생략하지만 exact decision SHA-256 승격 승인은 대체 불가
+- 명시적 manual guarded V0.6 visual revision 일반 승인 대체 불가
 - V0.7 optimization 일반 승인 대체 불가
 - optimization plan이 LOD/collider 설정을 표시한 뒤 exact hash 승인을 기다림
+
+### Standard candidate review matrix
+
+- canonical SceneSpec과 authoring blend는 격리 평가 동안 byte-for-byte 유지
+- workflow-owned plan만 기존 object의 허용된 transform/parametric geometry path를 사용
+- baseline/candidate build·inventory·validation과 정확히 7개 QA pass가 각각 hash-bound
+- fixed camera, semantic membership, material identity와 custom-mesh payload가 잠김
+- direct score minimum gain, silhouette IoU, measured constraints와 required five-view 구조가 비회귀일 때만 `promotable`
+- before/after PDF sidecar가 exact decision과 QA beauty/pass manifest에 결속
+- 틀린/stale decision SHA-256은 approval을 만들지 못함
+- exact approval 전 canonical 변경 없음
+- exact approval은 1회 소비되고 final rebuild 실패 시 baseline 복구
+- 새 기본값은 기존 immutable workflow를 재작성하거나 완료 처리하지 않음
 
 ### Background exterior approval matrix
 

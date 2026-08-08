@@ -2,6 +2,15 @@
 
 ## 0.9.0
 
+- Added `candidate_review` as the default strategy for newly planned standard `revise_asset`
+  workflows. The workflow-owned RevisionPlan is evaluated through isolated baseline/candidate
+  builds, exact fixed-camera seven-pass QA, optional constraints, and authored `spatial_v1`
+  five-view structural non-regression before one exact decision-hash promotion approval.
+- Added immutable candidate decision, approval, promotion-receipt, and PDF-sidecar contracts plus
+  CLI/MCP status and approval surfaces. Canonical SceneSpec and authoring outputs remain unchanged
+  until the final approval; explicit `manual_guarded` preserves the legacy pre-application gate,
+  and existing immutable workflows are not migrated.
+
 - Added External Static Asset Intake for user-authored `.blend`, `.fbx`, and `.glb` static
   assets. It inspects untrusted sources with Blender auto-execution disabled, copies exact source
   and image dependencies, records meter conversion and stable semantic/material mappings, and
@@ -82,7 +91,7 @@
   V0.8 completion checks, CLI/MCP validation, schemas, tests, and Korean guidance without changing
   SceneSpec `0.2.0`, material `0.5.0`, QA `0.6.0`, or orchestration `0.8.0` contract versions.
 - Added optional standard-only V0.6 bounded visual-convergence sessions with exact plan-hash approval, current direct-QA/camera/source binding, default three and hard maximum five iterations, direct-score and silhouette-IoU targets, constraint non-regression, immutable per-iteration receipts, rollback, and terminal JSON/PDF evidence.
-- Added CLI/MCP plan, approve, run, status, and cancel surfaces plus V0.9 read-only active/history audit coverage. Manual candidate-by-candidate guarded revision remains the default, `background_exterior` still performs exactly one canonical QA with no post-QA auto revision, and convergence never replaces InteriorScope, V0.7 optimization, or Destination Handoff approvals.
+- Added CLI/MCP plan, approve, run, status, and cancel surfaces plus V0.9 read-only active/history audit coverage. At that milestone manual candidate-by-candidate guarded revision remained the default; the later `candidate_review` entry above changes only newly planned standard `revise_asset` workflows. `background_exterior` still performs exactly one canonical QA with no post-QA auto revision, and convergence never replaces InteriorScope, V0.7 optimization, or Destination Handoff approvals.
 - Hardened convergence with a non-empty exact initial-input hash map, exact initial candidate/build/constraint snapshots, a shared canonical SceneSpec write lock and compare-and-swap, source/result build-contract validation, immutable before/after constraint evidence, QA/candidate/build receipt continuity, durable cancellation receipts, orphan-terminal replay detection, and explicit execution/status-only flags plus next-action reporting for legacy partial plans.
 - Added a strict hash-bound visual-convergence host-safety-envelope Schema. Excluded all InteriorScope-classified objects and material edits regardless of plan contents, re-derived the envelope at approval/run time, and allowed CLI/MCP path limits to narrow—but never broaden—its path, operation, or delta authority.
 - Limited each host/MCP invocation to one recoverable staged Blender iteration so timeouts do not create an unresumable immutable directory. Receipt-less staging must be recovered before cancellation or terminalization, and a terminal session with remaining staging is an integrity failure.

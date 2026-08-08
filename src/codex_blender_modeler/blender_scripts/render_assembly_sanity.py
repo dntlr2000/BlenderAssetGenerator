@@ -222,10 +222,12 @@ def _isolate_targets(
     semantic_objects: list[bpy.types.Object],
     target_ids: set[str],
 ) -> None:
-    """Hide semantic context outside the exact assembly target set for this run."""
+    """Hide non-target context without revealing authored hidden helper objects."""
 
     for obj in semantic_objects:
-        obj.hide_render = str(obj.get("cbm_id", "")) not in target_ids
+        obj.hide_render = bool(obj.hide_render) or (
+            str(obj.get("cbm_id", "")) not in target_ids
+        )
 
 
 def main() -> None:

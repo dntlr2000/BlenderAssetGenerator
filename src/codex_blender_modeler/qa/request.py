@@ -9,10 +9,19 @@ from .camera_fingerprint import camera_fingerprint, require_camera_fingerprint
 from .models import RenderPassManifest, VisualQARequest
 
 
-def _current_build_fingerprint(scene_spec_path: Path, job_id: str) -> str:
-    """Fingerprint every current canonical input that the Blender build consumed."""
+def _current_build_fingerprint(
+    scene_spec_path: Path,
+    job_id: str,
+    *,
+    job_root: Path | None = None,
+) -> str:
+    """Fingerprint exact build inputs for canonical or job-contained alternate specs."""
 
-    root = scene_spec_path.expanduser().resolve().parent.parent
+    root = (
+        job_root.expanduser().resolve()
+        if job_root is not None
+        else scene_spec_path.expanduser().resolve().parent.parent
+    )
     provenance = collect_build_provenance(
         root,
         job_id,
@@ -32,8 +41,9 @@ def create_visual_qa_request(
     render_pass_manifest_path: Path,
     scene_spec_path: Path,
     include_generated_target: bool = False,
+    job_root: Path | None = None,
 ) -> VisualQARequest:
-    """Create a request whose hashes freeze all direct-reference QA inputs."""
+    """Create a request whose hashes freeze canonical or isolated direct-QA inputs."""
 
     spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
     if spec.job_id != job_id:
@@ -51,8 +61,12 @@ def create_visual_qa_request(
     if manifest.scene_spec_sha256 is not None:
         if manifest.scene_spec_sha256 != sha256_file(scene_spec_path):
             raise ValueError("render-pass manifest was produced from a different SceneSpec")
-    if manifest.build_fingerprint != _current_build_fingerprint(scene_spec_path, job_id):
-        raise ValueError("render-pass manifest was produced from stale canonical build inputs")
+    if manifest.build_fingerprint != _current_build_fingerprint(
+        scene_spec_path,
+        job_id,
+        job_root=job_root,
+    ):
+        raise ValueError("render-pass manifest was produced from stale selected build inputs")
     return VisualQARequest(
         job_id=job_id,
         run_id=run_id,
@@ -75,8 +89,9 @@ def validate_visual_qa_request(
     request: VisualQARequest,
     *,
     scene_spec_path: Path,
+    job_root: Path | None = None,
 ) -> RenderPassManifest:
-    """Reject stale QA requests before comparison or revision candidate production."""
+    """Reject stale canonical or isolated QA requests before downstream decisions."""
 
     paths_and_hashes = [
         (Path(request.reference_path), request.reference_sha256, "reference"),
@@ -110,6 +125,7 @@ def validate_visual_qa_request(
     if manifest.build_fingerprint != _current_build_fingerprint(
         scene_spec_path,
         request.job_id,
+        job_root=job_root,
     ):
         raise ValueError("render-pass manifest build fingerprint is stale")
     for record in manifest.passes:

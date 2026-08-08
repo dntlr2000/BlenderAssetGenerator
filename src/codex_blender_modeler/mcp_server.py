@@ -30,6 +30,12 @@ from .auto_revision import (
     plan_job_visual_convergence,
     run_job_visual_convergence,
 )
+from .auto_revision.candidate_review_service import (
+    approve_candidate_review as approve_candidate_review_internal,
+)
+from .auto_revision.candidate_review_service import (
+    get_candidate_review_status as get_candidate_review_status_internal,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -261,19 +267,13 @@ def get_job_status(job_id: str) -> dict:
         ).exists(),
         "material_validation": (root / "reports" / "material_validation.json").exists(),
         "material_bakes": (root / "reports" / "material_bakes.json").exists(),
-        "surface_detail_validation": (
-            root / "reports" / "surface_detail_validation.json"
-        ).exists(),
-        "interior_scope_validation": (
-            root / "reports" / "interior_scope_validation.json"
-        ).exists(),
+        "surface_detail_validation": (root / "reports" / "surface_detail_validation.json").exists(),
+        "interior_scope_validation": (root / "reports" / "interior_scope_validation.json").exists(),
         "qa_latest": (root / "qa" / "latest.json").exists(),
         "interior_qa_latest": (root / "qa" / "interior" / "latest.json").exists(),
         "optimization_latest": (root / "optimization" / "latest.json").exists(),
         "workflow_latest": (root / "workflows" / "latest.json").exists(),
-        "external_asset_manifest": (
-            root / "intake" / "external_asset_manifest.json"
-        ).exists(),
+        "external_asset_manifest": (root / "intake" / "external_asset_manifest.json").exists(),
         "external_intake_validation": (root / "intake" / "validation.json").exists(),
         "build_pdf": (pdf_root / "build_report.pdf").exists(),
         "material_pdf": (pdf_root / "material_report.pdf").exists(),
@@ -314,9 +314,7 @@ def get_modeling_capabilities() -> dict:
             "image_model_qa": feature_config.features.image_model_qa,
             "automatic_revision": feature_config.features.automatic_revision,
             "portable_asset_core": feature_config.features.portable_asset_core,
-            "workflow_orchestration": (
-                feature_config.features.workflow_orchestration
-            ),
+            "workflow_orchestration": (feature_config.features.workflow_orchestration),
             "stabilization_core": feature_config.features.stabilization_core,
             "destination_handoff": feature_config.features.destination_handoff,
             "revision_mode": feature_config.qa.revision_mode,
@@ -390,6 +388,11 @@ def get_modeling_capabilities() -> dict:
             ],
             "primary_object_only_requires": "explicit target_subject",
             "execution_policies": ["standard", "background_exterior"],
+            "standard_revision_strategies": [
+                "candidate_review",
+                "manual_guarded",
+            ],
+            "default_standard_revision_strategy": "candidate_review",
             "delivery_scopes": ["preview_only", "portable_package"],
             "background_exterior": {
                 "opt_in_only": True,
@@ -590,6 +593,7 @@ def plan_short_workflow(
     reference_content_scope: str | None = None,
     target_subject: str | None = None,
     execution_policy: str = "standard",
+    revision_strategy: str = "candidate_review",
     delivery_scope: str | None = None,
     mode: str = "concept",
     view_kind: str | None = None,
@@ -617,6 +621,7 @@ def plan_short_workflow(
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        revision_strategy=revision_strategy,
         delivery_scope=delivery_scope,
         mode=mode,
         view_kind=view_kind,
@@ -636,6 +641,30 @@ def plan_short_workflow(
         ),
     )
     return state.model_dump(mode="json")
+
+
+@mcp.tool()
+def approve_candidate_review_promotion(
+    job_id: str,
+    trial_id: str,
+    decision_sha256: str,
+    approval_note: str | None = None,
+) -> dict:
+    """Approve one exact isolated before/after decision for single-use promotion."""
+
+    return approve_candidate_review_internal(
+        job_id,
+        trial_id,
+        decision_sha256=decision_sha256,
+        approval_note=approval_note,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def get_candidate_review_state(job_id: str, trial_id: str) -> dict:
+    """Read candidate-review evidence without approving or changing canonical geometry."""
+
+    return get_candidate_review_status_internal(job_id, trial_id)
 
 
 @mcp.tool()
@@ -813,9 +842,7 @@ def requeue_local_workflow(entry_id: str, retry_failed: bool = False) -> dict:
 def cancel_local_workflow_queue_entry(entry_id: str, reason: str) -> dict:
     """Cancel future queue dispatch without cancelling the underlying workflow."""
 
-    return cancel_local_queue_entry_internal(entry_id, reason=reason).model_dump(
-        mode="json"
-    )
+    return cancel_local_queue_entry_internal(entry_id, reason=reason).model_dump(mode="json")
 
 
 @mcp.tool()
@@ -889,9 +916,7 @@ def initialize_interior_scope(
         "authored": "authored",
     }
     if policy not in evidence_defaults:
-        raise ValueError(
-            "policy must be disabled, visible_only, proxy, measured, or authored"
-        )
+        raise ValueError("policy must be disabled, visible_only, proxy, measured, or authored")
     scope = initialize_interior_scope_internal(
         job_id,
         policy=policy,
@@ -1248,9 +1273,7 @@ def bake_materials(
     """Bake bounded portable PBR channels from the latest approved Blender scene."""
 
     if profile not in {"blender_eevee", "blender_cycles", "gltf_pbr"}:
-        raise ValueError(
-            "profile must be blender_eevee, blender_cycles, or gltf_pbr"
-        )
+        raise ValueError("profile must be blender_eevee, blender_cycles, or gltf_pbr")
     if render_device not in {"auto", "cpu", "gpu"}:
         raise ValueError("render_device must be auto, cpu, or gpu")
     return bake_job_materials(
@@ -1549,11 +1572,7 @@ def apply_revision_plan(job_id: str) -> dict:
     root = ensure_job_dirs(job_id)
     current = root / "analysis" / "scene_spec.json"
     plan = root / "analysis" / "revision_plan.json"
-    temp = (
-        root
-        / "analysis"
-        / f".scene_spec.mcp-apply-revision-{uuid4().hex}.next.json"
-    )
+    temp = root / "analysis" / f".scene_spec.mcp-apply-revision-{uuid4().hex}.next.json"
     owner = f"mcp-apply-revision-{uuid4().hex[:12]}"
     with canonical_scene_spec_write_lock(job_id, owner):
         _validated, report = apply_guarded_revision(
@@ -1634,9 +1653,7 @@ def normalize_external_static_asset(
 def validate_external_static_asset_intake(job_id: str) -> dict:
     """Verify intake hashes, dependencies, normalized blend, and V0.7 provenance."""
 
-    return validate_external_static_asset_intake_internal(job_id).model_dump(
-        mode="json"
-    )
+    return validate_external_static_asset_intake_internal(job_id).model_dump(mode="json")
 
 
 @mcp.tool()
@@ -1676,9 +1693,7 @@ def initialize_asset_profile(
             "asset_kind must be static_prop, static_environment, or static_architecture"
         )
     if consolidation_mode not in {"none", "by_semantic_group", "by_spatial_cell"}:
-        raise ValueError(
-            "consolidation_mode must be none, by_semantic_group, or by_spatial_cell"
-        )
+        raise ValueError("consolidation_mode must be none, by_semantic_group, or by_spatial_cell")
     if lod_mode not in {"profile_default", "enabled", "disabled"}:
         raise ValueError("lod_mode must be profile_default, enabled, or disabled")
     if pivot_policy not in {"keep", "bounds_center", "base_center"}:

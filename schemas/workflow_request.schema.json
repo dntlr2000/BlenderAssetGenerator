@@ -338,6 +338,22 @@
       "title": "Execution Policy",
       "type": "string"
     },
+    "revision_strategy": {
+      "anyOf": [
+        {
+          "enum": [
+            "candidate_review",
+            "manual_guarded"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Revision Strategy"
+    },
     "delivery_scope": {
       "anyOf": [
         {

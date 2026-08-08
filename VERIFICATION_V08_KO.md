@@ -1,5 +1,45 @@
 # V0.8 로컬 검증 기록
 
+## 2026-08-08 standard candidate review 기본 전략 검증
+
+새로 계획하는 `standard` `revise_asset` workflow의 기본 전략을
+`candidate_review`로 변경했다. 이 전략은 RevisionPlan 사전 사용자 승인을 생략하지만,
+계획 자체와 모든 exact fingerprint 검사를 없애지 않는다. workflow-owned RevisionPlan을
+격리된 baseline/candidate build와 고정 카메라 직접 QA로 먼저 평가하고, 사용자가 exact
+`decision_manifest.json` SHA-256을 승인한 경우에만 canonical SceneSpec을 한 번 승격한다.
+
+기존 workflow request에 `revision_strategy`가 없으면 legacy 동작을 유지한다.
+`manual_guarded`를 명시하면 기존 사전 RevisionPlan 승인 경계를 계속 사용하며,
+`background_exterior`에는 candidate review를 적용하지 않는다.
+
+검증 결과:
+
+| 항목 | 결과 |
+|---|---|
+| candidate-review 집중 회귀 | 통과 |
+| 전체 Python 테스트 | 887 passed, 5 skipped |
+| Ruff | 통과 |
+| Schema 생성 및 parity | 통과 |
+| V0.8 격리 orchestration gate | 통과 |
+| fast preview smoke | `completed` / `delivered_for_review` |
+| fast portable smoke | `completed` |
+| V0.7 GLB clean-import round trip | `passed`, 오류 0 |
+| V0.7 FBX clean-import round trip | `passed`, 오류 0 |
+| V0.7 OBJ clean-import round trip | `passed`, 오류 0 |
+| 사용자 workspace 변경 | 없음 |
+
+최종 격리 증거:
+
+- V0.8: `reports/v08_smoke/132827375-119528/`
+- V0.7: `reports/v07_smoke/20260808T132327840Z-119528/`
+
+후보 비교 산출물은 `qa/candidate_reviews/<trial-id>/` 아래에 보존한다. 승격 전에는
+canonical SceneSpec, authoring blend, material identity를 변경하지 않는다. 승인 직전과
+승격 직전에 source와 decision hash를 다시 검증하며, 최종 rebuild/inspect/validate가
+실패하면 baseline SceneSpec을 복구하고 다시 빌드한다. 카메라·재질·semantic membership,
+custom-mesh vertex/payload 또는 대규모 재설계는 이 자동 후보 범위가 아니므로
+`manual_guarded` 또는 별도 V0.4 authoring workflow를 사용한다.
+
 ## 2026-08-05 V0.4 다각도 geometry review 최종 검증
 
 새로 계획되는 V0.8 geometry workflow가 단일 preview 시점에서 끝나지 않도록

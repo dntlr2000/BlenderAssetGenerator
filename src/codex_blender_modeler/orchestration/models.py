@@ -69,6 +69,7 @@ WorkflowScope = Literal[
 ]
 ReferenceContentScope = Literal["primary_object_only", "full_reference"]
 ExecutionPolicy = Literal["standard", "background_exterior"]
+RevisionStrategy = Literal["candidate_review", "manual_guarded"]
 DeliveryScope = Literal["preview_only", "portable_package"]
 FastQualityPolicy = Literal["review_delivery_v2"]
 QualityStatus = Literal["passed", "needs_revision", "unscorable"]
@@ -241,6 +242,7 @@ class WorkflowRequest(V08StrictModel):
     reference_content_scope: ReferenceContentScope = "full_reference"
     target_subject: str | None = Field(default=None, min_length=1, max_length=256)
     execution_policy: ExecutionPolicy = "standard"
+    revision_strategy: RevisionStrategy | None = None
     delivery_scope: DeliveryScope | None = None
     fast_quality_policy: FastQualityPolicy | None = None
     background_preview_binding: BackgroundPreviewBinding | None = None
@@ -249,9 +251,7 @@ class WorkflowRequest(V08StrictModel):
     staged_view: WorkflowInputArtifact | None = None
     replace_existing_view: bool = False
     scale_anchors: list[str] = Field(default_factory=list)
-    profile_id: Literal["portable_gltf", "fbx_interchange", "obj_legacy"] = (
-        "portable_gltf"
-    )
+    profile_id: Literal["portable_gltf", "fbx_interchange", "obj_legacy"] = "portable_gltf"
     destination: DestinationRequest = Field(default_factory=DestinationRequest)
     include_destination_handoff: bool = False
     budgets: WorkflowBudgets = Field(default_factory=WorkflowBudgets)
@@ -261,13 +261,8 @@ class WorkflowRequest(V08StrictModel):
     def validate_view_request(self) -> WorkflowRequest:
         """Keep staged views distinct and enforce the bounded background fast lane."""
 
-        if (
-            self.reference_content_scope == "primary_object_only"
-            and self.target_subject is None
-        ):
-            raise ValueError(
-                "primary_object_only requires an explicit target_subject"
-            )
+        if self.reference_content_scope == "primary_object_only" and self.target_subject is None:
+            raise ValueError("primary_object_only requires an explicit target_subject")
         if self.staged_view is not None and self.staged_view.kind == "reference":
             raise ValueError("staged auxiliary view cannot use kind=reference")
         if self.replace_existing_view and self.staged_view is None:
@@ -275,66 +270,41 @@ class WorkflowRequest(V08StrictModel):
         if self.include_destination_handoff and self.profile_id == "obj_legacy":
             raise ValueError("destination handoff supports GLB and FBX packages only")
         if self.execution_policy == "background_exterior":
+            if self.revision_strategy is not None:
+                raise ValueError("background_exterior cannot select a standard revision strategy")
             if self.intent_hint not in {"auto", "new_asset", "portable_package"}:
-                raise ValueError(
-                    "background_exterior supports only new_asset or portable_package"
-                )
+                raise ValueError("background_exterior supports only new_asset or portable_package")
             if self.requested_scope != "full":
-                raise ValueError(
-                    "background_exterior requires requested_scope=full"
-                )
+                raise ValueError("background_exterior requires requested_scope=full")
             if self.mode != "concept":
-                raise ValueError(
-                    "background_exterior supports only unmeasured concept assets"
-                )
+                raise ValueError("background_exterior supports only unmeasured concept assets")
             if self.staged_view is not None or self.replace_existing_view:
-                raise ValueError(
-                    "background_exterior cannot add or replace measured views"
-                )
+                raise ValueError("background_exterior cannot add or replace measured views")
             if self.scale_anchors:
-                raise ValueError(
-                    "background_exterior cannot contain measured scale anchors"
-                )
+                raise ValueError("background_exterior cannot contain measured scale anchors")
             if self.include_destination_handoff:
-                raise ValueError(
-                    "background_exterior cannot generate a destination handoff"
-                )
+                raise ValueError("background_exterior cannot generate a destination handoff")
             if self.destination.kind not in {"unspecified", "engine_neutral"}:
-                raise ValueError(
-                    "background_exterior supports only an engine-neutral destination"
-                )
+                raise ValueError("background_exterior supports only an engine-neutral destination")
             if self.budgets.max_qa_iterations != 1:
-                raise ValueError(
-                    "background_exterior permits exactly one direct QA iteration"
-                )
+                raise ValueError("background_exterior permits exactly one direct QA iteration")
             if self.budgets.max_texture_resolution > 512:
-                raise ValueError(
-                    "background_exterior limits texture resolution to 512"
-                )
+                raise ValueError("background_exterior limits texture resolution to 512")
             if self.budgets.external_provider_budget != 0:
-                raise ValueError(
-                    "background_exterior forbids external provider calls"
-                )
+                raise ValueError("background_exterior forbids external provider calls")
             if self.delivery_scope is None:
-                raise ValueError(
-                    "background_exterior requires an explicit resolved delivery_scope"
-                )
+                raise ValueError("background_exterior requires an explicit resolved delivery_scope")
             if (
                 self.background_preview_binding is not None
                 and self.delivery_scope != "portable_package"
             ):
                 raise ValueError(
-                    "background preview bindings are valid only for portable_package "
-                    "continuations"
+                    "background preview bindings are valid only for portable_package continuations"
                 )
         elif self.background_preview_binding is not None:
-            raise ValueError(
-                "background_preview_binding is allowed only for background_exterior"
-            )
+            raise ValueError("background_preview_binding is allowed only for background_exterior")
         elif self.fast_quality_policy is not None:
-            raise ValueError(
-                "fast_quality_policy is allowed only for background_exterior"
-            )
+            raise ValueError("fast_quality_policy is allowed only for background_exterior")
         return self
 
 
@@ -458,13 +428,8 @@ class WorkflowPlan(V08StrictModel):
     def validate_ordered_dag(self) -> WorkflowPlan:
         """Require an ordered DAG and preserve all fast-lane safety boundaries."""
 
-        if (
-            self.reference_content_scope == "primary_object_only"
-            and self.target_subject is None
-        ):
-            raise ValueError(
-                "primary_object_only plans require an explicit target_subject"
-            )
+        if self.reference_content_scope == "primary_object_only" and self.target_subject is None:
+            raise ValueError("primary_object_only plans require an explicit target_subject")
         ids = [step.step_id for step in self.steps]
         if len(ids) != len(set(ids)):
             raise ValueError("workflow step IDs must be unique")
@@ -487,13 +452,9 @@ class WorkflowPlan(V08StrictModel):
                     "with full scope"
                 )
             if self.delivery_scope is None:
-                raise ValueError(
-                    "background_exterior plans require a resolved delivery_scope"
-                )
+                raise ValueError("background_exterior plans require a resolved delivery_scope")
             generic_approvals = [
-                step.step_id
-                for step in self.steps
-                if step.execution_mode == "approval"
+                step.step_id for step in self.steps if step.execution_mode == "approval"
             ]
             if generic_approvals:
                 raise ValueError(
@@ -505,9 +466,7 @@ class WorkflowPlan(V08StrictModel):
                 for step in self.steps
                 if step.execution_mode == "specialized_approval"
             ]
-            portable_steps = [
-                step for step in self.steps if step.phase == "portable"
-            ]
+            portable_steps = [step for step in self.steps if step.phase == "portable"]
             step_map = {step.step_id: step for step in self.steps}
             required_common = [
                 "job.created",
@@ -538,9 +497,7 @@ class WorkflowPlan(V08StrictModel):
             else:
                 required_common.extend(["qa.report", "background.eligibility"])
             if self.intent == "new_asset":
-                missing_common = [
-                    step_id for step_id in required_common if step_id not in step_map
-                ]
+                missing_common = [step_id for step_id in required_common if step_id not in step_map]
                 if missing_common:
                     raise ValueError(
                         "background_exterior plan is missing required bounded steps: "
@@ -557,8 +514,7 @@ class WorkflowPlan(V08StrictModel):
                     or qa_steps[0].parameters.get("include_generated_target") is not False
                 ):
                     raise ValueError(
-                        "background_exterior requires one direct QA run without a "
-                        "generated target"
+                        "background_exterior requires one direct QA run without a generated target"
                     )
                 if qa_steps[0].parameters.get("diagnostic_policy") is not None:
                     diagnostic_steps = [
@@ -575,17 +531,14 @@ class WorkflowPlan(V08StrictModel):
                         )
                 if self.fast_quality_policy == "review_delivery_v2":
                     fit_step = step_map["background.fit"]
-                    if (
-                        fit_step.tool_name != "fit_background_exterior"
-                        or int(fit_step.parameters.get("max_attempts", -1)) not in {0, 1, 2}
-                    ):
+                    if fit_step.tool_name != "fit_background_exterior" or int(
+                        fit_step.parameters.get("max_attempts", -1)
+                    ) not in {0, 1, 2}:
                         raise ValueError(
                             "new background quality plans require one bounded pre-QA fit"
                         )
             if self.delivery_scope == "preview_only" and portable_steps:
-                raise ValueError(
-                    "preview_only background plans cannot contain portable steps"
-                )
+                raise ValueError("preview_only background plans cannot contain portable steps")
             if self.delivery_scope == "preview_only" and specialized_gates:
                 raise ValueError(
                     "preview_only background plans cannot contain specialized approvals"
@@ -612,40 +565,29 @@ class WorkflowPlan(V08StrictModel):
                     )
                 portable_positions = [ids.index(step_id) for step_id in required_portable]
                 if portable_positions != sorted(portable_positions):
-                    raise ValueError(
-                        "portable background steps must preserve their fixed order"
-                    )
-                if step_map["portable.optimize"].depends_on != [
-                    "portable.plan_approval"
-                ]:
+                    raise ValueError("portable background steps must preserve their fixed order")
+                if step_map["portable.optimize"].depends_on != ["portable.plan_approval"]:
                     raise ValueError(
                         "portable optimization must depend on its specialized approval"
                     )
                 optimization_approvals = [
-                    step
-                    for step in self.steps
-                    if step.approval_gate == "optimization_plan"
+                    step for step in self.steps if step.approval_gate == "optimization_plan"
                 ]
                 if len(optimization_approvals) != 1:
                     raise ValueError(
-                        "portable background plans require exactly one "
-                        "optimization_plan approval"
+                        "portable background plans require exactly one optimization_plan approval"
                     )
                 if specialized_gates != ["optimization_plan"]:
                     raise ValueError(
-                        "portable background plans permit only the exact "
-                        "optimization_plan approval"
+                        "portable background plans permit only the exact optimization_plan approval"
                     )
                 if self.intent == "portable_package":
                     if self.terminal_step_id not in ids:
-                        raise ValueError(
-                            "background package continuation requires a terminal step"
-                        )
+                        raise ValueError("background package continuation requires a terminal step")
                     prerequisite = step_map.get("geometry.prerequisite")
                     if (
                         prerequisite is None
-                        or prerequisite.tool_name
-                        != "verify_background_preview_prerequisite"
+                        or prerequisite.tool_name != "verify_background_preview_prerequisite"
                         or prerequisite.parameters.get("require_new_output") is not True
                     ):
                         raise ValueError(
@@ -653,9 +595,7 @@ class WorkflowPlan(V08StrictModel):
                             "preview-binding prerequisite"
                         )
         elif self.fast_quality_policy is not None:
-            raise ValueError(
-                "fast_quality_policy is allowed only for background_exterior plans"
-            )
+            raise ValueError("fast_quality_policy is allowed only for background_exterior plans")
         return self
 
 
@@ -719,13 +659,8 @@ class WorkflowState(V08StrictModel):
     def validate_state_summary(self) -> WorkflowState:
         """Synchronize terminal and waiting fields with the aggregate workflow status."""
 
-        if (
-            self.reference_content_scope == "primary_object_only"
-            and self.target_subject is None
-        ):
-            raise ValueError(
-                "primary_object_only state requires an explicit target_subject"
-            )
+        if self.reference_content_scope == "primary_object_only" and self.target_subject is None:
+            raise ValueError("primary_object_only state requires an explicit target_subject")
         if self.status == "completed" and self.current_step_id is not None:
             raise ValueError("completed workflow cannot have a current step")
         if self.status == "cancelled" and not self.cancelled_reason:

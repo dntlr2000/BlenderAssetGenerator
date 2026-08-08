@@ -66,6 +66,7 @@ bbox의 합집합으로 제한된다. 따라서 주변 지형이 reference foreg
 V0.8은 모델링 파이프라인을 둘로 복제하지 않는다. 동일한 V0.4~V0.7 host/agent 계약 위에 다음 두 필드를 직교 정책으로 추가한다.
 
 - `execution_policy`: `standard` 또는 명시적 opt-in인 `background_exterior`
+- `revision_strategy`: 새 standard `revise_asset`의 `candidate_review`(기본) 또는 `manual_guarded`; legacy request에는 없을 수 있음
 - `delivery_scope`: 빠른 경로에서 사용자가 계획 전에 확정하는 `preview_only` 또는 `portable_package`; `standard`에서는 기존 `scope`와 intent로부터 effective 값이 내부 기록됨
 - `fast_quality_policy`: 새 빠른 경로의 `review_delivery_v2`; 실행 완료와 품질 합격을 분리하고 legacy plan에는 없을 수 있는 optional 필드
 
@@ -78,6 +79,8 @@ V0.8은 모델링 파이프라인을 둘로 복제하지 않는다. 동일한 V0
 standard
 └─ proxy/detail validation 뒤 5-view host·agent geometry review를 추가하고
    기존 material/QA/package 일반 검토와 전용 승인 유지
+   └─ revise_asset 기본 candidate_review는 사전 plan 승인을 생략하고
+      격리 비교 뒤 exact promotion 승인 1회만 요구
 
 background_exterior + preview_only
 └─ reference analysis
@@ -187,6 +190,33 @@ workspaces/<job>/qa/assembly_sanity/runs/<run-id>/
 - `manual`: 검증된 목적지 adapter가 없는 종료 경계
 
 일반 workflow 승인은 specialized approval을 대체할 수 없다.
+
+### Standard candidate review
+
+새 standard `revise_asset`은 `revision_strategy=candidate_review`를 기본으로 사용한다.
+이는 승인 자체를 없애는 모드가 아니라 승인 시점을 canonical 변경 직전으로 옮긴다.
+
+```text
+workflow-owned RevisionPlan
+→ immutable baseline/candidate SceneSpec
+→ isolated build/inventory/validation
+→ exact fixed-camera 7-pass direct QA 두 세트
+→ optional constraint + spatial_v1 five-view non-regression
+→ decision_manifest.json + before/after PDF
+→ exact decision SHA-256 specialized approval
+→ compare-and-swap canonical promotion + rebuild
+```
+
+Agent completion은 workflow-owned plan hash에 결속되고, 평가 trial은
+`qa/candidate_reviews/<trial-id>/` 아래에서 canonical과 분리된다. Decision은 reference,
+SceneSpec, geometry/material/texture source, QA request/pass/report와 구조 증거의 정확한
+hash를 기록한다. PDF는 JSON의 파생 자료다. Candidate가 direct-score minimum gain,
+silhouette·constraint·five-view 비회귀를 만족하지 못하면 promotable이 아니며 승인할
+수 없다. Camera, material, semantic add/remove, custom-mesh vertex와 redesign은
+`manual_guarded` 또는 V0.4 재저작으로 돌린다.
+
+기존 request에 `revision_strategy`가 없으면 legacy manual flow로 읽으며 소급 변환하지
+않는다. `background_exterior`에는 이 전략을 적용하지 않는다.
 
 사람이 결과를 확인하는 프록시, 상세 메시, 재질, QA, portable package gate 앞에는 기존 canonical JSON과 렌더를 투영한 PDF와 sidecar manifest를 생성한다. PDF는 읽기용이며 상태 판정과 승인은 계속 JSON/hash를 기준으로 한다.
 
@@ -324,7 +354,7 @@ workspaces/<job>/workflows/<workflow-id>/artifacts/pdf/<report-key>.manifest.jso
 
 - `interior_scope`: 현재 scope SHA-256과 수동 interactive 승인
 - `interior_qa_plan`: 현재 scope/source/build에 묶인 exact multi-view camera plan 승인
-- `visual_revision`: 선택 candidate와 단일 사용 approval
+- `visual_revision`: 기본 candidate review의 exact post-evaluation decision 승격 또는 명시적 manual guarded candidate의 단일 사용 approval
 - `optimization`: 표시된 LOD/collider/consolidation plan SHA-256 승인
 
 V0.8은 승인을 생성하거나 추론하지 않는다.
@@ -340,7 +370,7 @@ V0.8은 승인을 생성하거나 추론하지 않는다.
 
 - short request만으로 실내를 생성하지 않음
 - short request만으로 실내 QA camera plan을 승인하거나 렌더하지 않음
-- short request만으로 V0.6 수정 후보를 적용하지 않음
+- short request만으로 V0.6 수정 후보를 canonical에 적용하지 않음; candidate review의 격리 평가만 자동 진행 가능
 - short request만으로 LOD/collider 기본값을 최적화에 적용하지 않음
 - 외부 이미지 생성 provider budget 기본값은 0
 - canonical SceneSpec, geometry, 재질 및 입력은 각 기존 단계의 규칙대로만 변경

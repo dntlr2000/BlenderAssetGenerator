@@ -144,9 +144,7 @@ def _resume_interrupted_render_snapshot(
     if actual_entries != allowed_entries:
         raise FileExistsError(run_dir)
     manifest_path = run_dir / "render_pass_manifest.json"
-    manifest = RenderPassManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
-    )
+    manifest = RenderPassManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))
     expected_build = collect_build_provenance(root, job_id)
     if (
         manifest.job_id != job_id
@@ -157,9 +155,7 @@ def _resume_interrupted_render_snapshot(
     ):
         raise ValueError("Interrupted QA pass snapshot no longer matches canonical inputs")
     kinds = [record.kind for record in manifest.passes]
-    if len(kinds) != len(REQUIRED_QA_PASS_KINDS) or set(kinds) != set(
-        REQUIRED_QA_PASS_KINDS
-    ):
+    if len(kinds) != len(REQUIRED_QA_PASS_KINDS) or set(kinds) != set(REQUIRED_QA_PASS_KINDS):
         raise ValueError("Interrupted QA pass snapshot is not the exact seven-pass set")
     pass_dir = (run_dir / "passes").resolve()
     passes: dict[str, Path] = {}
@@ -220,10 +216,7 @@ def _generated_target_comparison(
             advisory_weight=advisory_weight,
         )
     except (OSError, ValueError) as exc:
-        return [], [
-            "Advisory QA target comparison skipped: "
-            f"{type(exc).__name__}: {exc}"
-        ]
+        return [], [f"Advisory QA target comparison skipped: {type(exc).__name__}: {exc}"]
     return findings, []
 
 
@@ -281,9 +274,7 @@ def run_job_visual_qa(
         reference_path=reference_path,
         analysis_mask_path=_reference_content_mask(root),
         spec=spec,
-        reference_content_scope=str(
-            metadata.get("reference_content_scope", "full_reference")
-        ),
+        reference_content_scope=str(metadata.get("reference_content_scope", "full_reference")),
     )
     request = create_visual_qa_request(
         job_id=job_id,
@@ -300,9 +291,7 @@ def run_job_visual_qa(
     write_json_atomic(request_path, request.model_dump(mode="json"))
     validate_visual_qa_request(request, scene_spec_path=scene_spec_path)
 
-    reference_source_ids = {
-        source.id for source in spec.sources if source.kind == "reference"
-    }
+    reference_source_ids = {source.id for source in spec.sources if source.kind == "reference"}
     report = compare_reference_to_render(
         request,
         silhouette_path=passes["silhouette"],
@@ -344,9 +333,7 @@ def run_job_visual_qa(
             findings=advisory_findings,
         )
         if advisory_warnings:
-            report = report.model_copy(
-                update={"warnings": [*report.warnings, *advisory_warnings]}
-            )
+            report = report.model_copy(update={"warnings": [*report.warnings, *advisory_warnings]})
 
     surface_report = validate_job_surface_details(
         job_id,
@@ -355,14 +342,10 @@ def run_job_visual_qa(
     )
     if not surface_report.ok:
         failures = "; ".join(
-            item.message
-            for item in surface_report.checks
-            if item.status == "failed"
+            item.message for item in surface_report.checks if item.status == "failed"
         )
         raise ValueError(f"Surface-detail QA prerequisite failed: {failures}")
-    surface_warnings = [
-        item.message for item in surface_report.checks if item.status == "warning"
-    ]
+    surface_warnings = [item.message for item in surface_report.checks if item.status == "warning"]
     surface_status = (
         surface_report.material_status
         if (root / "analysis" / "modeling_plan.json").is_file()
@@ -374,9 +357,7 @@ def run_job_visual_qa(
                 contract_status=surface_status,
                 declared_details=surface_report.total,
                 texture_bound_details=(
-                    surface_report.textured
-                    if surface_report.material_status == "validated"
-                    else 0
+                    surface_report.textured if surface_report.material_status == "validated" else 0
                 ),
                 omitted_details=surface_report.omitted,
                 failed_checks=surface_report.failed,
@@ -396,9 +377,7 @@ def run_job_visual_qa(
     candidates_path = run_dir / "revision_candidates.json"
     write_json_atomic(candidates_path, candidates.model_dump(mode="json"))
     group_suggestions = [
-        finding
-        for finding in report.findings
-        if finding.id.startswith("direct.group_position.")
+        finding for finding in report.findings if finding.id.startswith("direct.group_position.")
     ]
     direct_findings = [
         finding
@@ -435,9 +414,7 @@ def run_job_visual_qa(
             else None
         ),
         "qa_target_prompt": (
-            _relative_job_path(root, target_prompt_path)
-            if target_prompt_path is not None
-            else None
+            _relative_job_path(root, target_prompt_path) if target_prompt_path is not None else None
         ),
     }
     write_json_atomic(latest_path, latest)
@@ -463,4 +440,127 @@ def run_job_visual_qa(
         "candidate_count": len(candidates.candidates),
         "generated_target_status": report.generated_target_status,
         "latest": str(latest_path),
+    }
+
+
+def run_scene_spec_visual_qa_snapshot(
+    job_id: str,
+    *,
+    scene_spec_path: Path,
+    blend_path: Path,
+    run_dir: Path,
+    run_id: str,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+) -> dict[str, Any]:
+    """Create immutable direct QA evidence for an isolated candidate without updating latest."""
+
+    from ..blender_artifact_runner import render_scene_qa_passes
+
+    root = job_dir(job_id).resolve()
+    scene_spec_path = scene_spec_path.expanduser().resolve()
+    blend_path = blend_path.expanduser().resolve()
+    run_dir = run_dir.expanduser().resolve()
+    for label, path in (
+        ("candidate SceneSpec", scene_spec_path),
+        ("candidate Blender scene", blend_path),
+        ("candidate QA run", run_dir),
+    ):
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(f"{label} must stay inside the owning job") from exc
+    selected_run_id = _validate_run_id(run_id)
+    if run_dir.exists():
+        raise FileExistsError(f"candidate QA run already exists: {run_dir}")
+    spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
+    if spec.job_id != job_id:
+        raise ValueError("candidate QA SceneSpec belongs to another job")
+    metadata = load_job(job_id)
+    spec_hash = sha256_file(scene_spec_path)
+    fingerprint = camera_fingerprint(spec)
+    run_dir.mkdir(parents=True, exist_ok=False)
+    source_dir = run_dir / "render_source"
+    source_manifest_path = source_dir / "render_pass_manifest.json"
+    rendered = render_scene_qa_passes(
+        job_id,
+        scene_spec_path=scene_spec_path,
+        blend_path=blend_path,
+        output_dir=source_dir / "passes",
+        manifest_path=source_manifest_path,
+        render_engine=render_engine,
+        render_device=render_device,
+        run_id=selected_run_id,
+        camera_fingerprint=fingerprint,
+        scene_spec_sha256=spec_hash,
+    )
+    run_manifest, manifest_path, passes = _snapshot_render_passes(
+        rendered,
+        source_manifest_path=source_manifest_path,
+        run_dir=run_dir,
+    )
+    reference_path = find_reference(job_id)
+    reference_mask_path, reference_mask_manifest_path = prepare_run_reference_mask(
+        root=root,
+        run_dir=run_dir,
+        reference_path=reference_path,
+        analysis_mask_path=_reference_content_mask(root),
+        spec=spec,
+        reference_content_scope=str(metadata.get("reference_content_scope", "full_reference")),
+    )
+    request = create_visual_qa_request(
+        job_id=job_id,
+        run_id=selected_run_id,
+        mode=str(metadata.get("mode", spec.mode)),
+        reference_path=reference_path,
+        reference_mask_path=reference_mask_path,
+        preview_path=passes["beauty"],
+        render_pass_manifest_path=manifest_path,
+        scene_spec_path=scene_spec_path,
+        include_generated_target=False,
+        job_root=root,
+    )
+    request_path = run_dir / "request.json"
+    write_json_atomic(request_path, request.model_dump(mode="json"))
+    validate_visual_qa_request(
+        request,
+        scene_spec_path=scene_spec_path,
+        job_root=root,
+    )
+    reference_source_ids = {source.id for source in spec.sources if source.kind == "reference"}
+    report = compare_reference_to_render(
+        request,
+        silhouette_path=passes["silhouette"],
+        object_id_path=passes["object_id"],
+        object_id_colors=run_manifest.object_id_colors,
+        observed_regions=observed_regions_from_scene_spec(
+            scene_spec_path,
+            source_ids=reference_source_ids,
+        ),
+    )
+    report = enrich_direct_qa_suggestions(report, spec)
+    report_path = run_dir / "visual_qa_report.json"
+    write_json_atomic(report_path, report.model_dump(mode="json"))
+    candidates = build_revision_candidates(
+        report,
+        report_path=report_path,
+        scene_spec_path=scene_spec_path,
+    )
+    candidates_path = run_dir / "revision_candidates.json"
+    write_json_atomic(candidates_path, candidates.model_dump(mode="json"))
+    return {
+        "ok": True,
+        "job_id": job_id,
+        "run_id": selected_run_id,
+        "run_dir": str(run_dir),
+        "request": str(request_path),
+        "reference_mask": str(reference_mask_path),
+        "reference_mask_manifest": str(reference_mask_manifest_path),
+        "render_pass_manifest": str(manifest_path),
+        "visual_qa_report": str(report_path),
+        "revision_candidates": str(candidates_path),
+        "direct_score": report.direct_metrics.overall_direct_score,
+        "silhouette_iou": report.direct_metrics.silhouette_iou,
+        "generated_target_status": report.generated_target_status,
+        "canonical_latest_updated": False,
     }

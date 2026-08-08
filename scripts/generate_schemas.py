@@ -15,6 +15,12 @@ from codex_blender_modeler.architecture.models import (
     InteriorScopeApproval,
     InteriorScopeValidation,
 )
+from codex_blender_modeler.auto_revision.candidate_review_models import (
+    CandidateReviewApproval,
+    CandidateReviewDecision,
+    CandidateReviewPromotionReceipt,
+    CandidateReviewReportManifest,
+)
 from codex_blender_modeler.auto_revision.convergence_policy import (
     ConvergenceCandidateSelection,
 )
@@ -162,9 +168,7 @@ SCHEMAS = {
     "bake_manifest.schema.json": BakeManifest,
     "background_role_map.schema.json": BackgroundRoleMap,
     "background_fit_report.schema.json": BackgroundFitReport,
-    "background_scene_promotion_receipt.schema.json": (
-        BackgroundScenePromotionReceipt
-    ),
+    "background_scene_promotion_receipt.schema.json": (BackgroundScenePromotionReceipt),
     "background_quality_report.schema.json": BackgroundQualityReport,
     "render_pass_manifest.schema.json": RenderPassManifest,
     "visual_qa_request.schema.json": VisualQARequest,
@@ -173,9 +177,7 @@ SCHEMAS = {
     "semantic_reference_mask_promotion_receipt.schema.json": (
         SemanticReferenceMaskPromotionReceipt
     ),
-    "semantic_reference_mask_registry_status.schema.json": (
-        SemanticReferenceMaskRegistryStatus
-    ),
+    "semantic_reference_mask_registry_status.schema.json": (SemanticReferenceMaskRegistryStatus),
     "qa_diagnostic_request.schema.json": QADiagnosticRequest,
     "qa_diagnostic_report.schema.json": QADiagnosticReport,
     "qa_diagnostic_bundle.schema.json": QADiagnosticBundleManifest,
@@ -191,9 +193,7 @@ SCHEMAS = {
     "visual_convergence_plan.schema.json": VisualConvergencePlan,
     "visual_convergence_approval.schema.json": VisualConvergenceApproval,
     "visual_convergence_cancellation.schema.json": VisualConvergenceCancellation,
-    "visual_convergence_host_safety_envelope.schema.json": (
-        VisualConvergenceHostSafetyEnvelope
-    ),
+    "visual_convergence_host_safety_envelope.schema.json": (VisualConvergenceHostSafetyEnvelope),
     "visual_convergence_selection.schema.json": ConvergenceCandidateSelection,
     "visual_convergence_iteration.schema.json": VisualConvergenceIteration,
     "visual_convergence_iteration_authorization.schema.json": (
@@ -201,6 +201,10 @@ SCHEMAS = {
     ),
     "visual_convergence_report.schema.json": VisualConvergenceReport,
     "visual_convergence_report_manifest.schema.json": VisualConvergenceReportManifest,
+    "candidate_review_decision.schema.json": CandidateReviewDecision,
+    "candidate_review_approval.schema.json": CandidateReviewApproval,
+    "candidate_review_promotion_receipt.schema.json": CandidateReviewPromotionReceipt,
+    "candidate_review_report_manifest.schema.json": CandidateReviewReportManifest,
     "asset_profile.schema.json": AssetProfile,
     "optimization_plan.schema.json": OptimizationPlan,
     "optimization_review.schema.json": OptimizationReview,

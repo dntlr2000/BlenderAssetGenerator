@@ -4,6 +4,12 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 
+from codex_blender_modeler.auto_revision.candidate_review_models import (
+    CandidateReviewApproval,
+    CandidateReviewDecision,
+    CandidateReviewPromotionReceipt,
+    CandidateReviewReportManifest,
+)
 from codex_blender_modeler.qa.diagnostic_models import (
     QADiagnosticBundleManifest,
     QADiagnosticReport,
@@ -50,6 +56,9 @@ def test_v06_contract_schemas_are_valid_draft_2020_12() -> None:
         "visual_convergence_iteration.schema.json",
         "visual_convergence_report.schema.json",
         "visual_convergence_report_manifest.schema.json",
+        "candidate_review_decision.schema.json",
+        "candidate_review_approval.schema.json",
+        "candidate_review_promotion_receipt.schema.json",
         "human_report_manifest.schema.json",
     ]
     for name in names:
@@ -71,6 +80,10 @@ def test_v06_companion_schemas_match_strict_models() -> None:
         "assembly_sanity_report.schema.json": AssemblySanityReport,
         "geometry_multiview_visual_review.schema.json": GeometryMultiviewVisualReview,
         "structural_regression_report.schema.json": StructuralRegressionReport,
+        "candidate_review_decision.schema.json": CandidateReviewDecision,
+        "candidate_review_approval.schema.json": CandidateReviewApproval,
+        "candidate_review_promotion_receipt.schema.json": (CandidateReviewPromotionReceipt),
+        "candidate_review_report_manifest.schema.json": CandidateReviewReportManifest,
         "human_report_manifest.schema.json": HumanReportManifest,
     }
     for filename, model in contracts.items():
@@ -201,9 +214,7 @@ def test_assembly_schemas_reject_reordered_views_and_passes() -> None:
 
     plan, manifest = _ordered_assembly_schema_payloads()
     plan_validator = Draft202012Validator(AssemblySanityPlan.model_json_schema())
-    manifest_validator = Draft202012Validator(
-        AssemblySanityRenderManifest.model_json_schema()
-    )
+    manifest_validator = Draft202012Validator(AssemblySanityRenderManifest.model_json_schema())
     assert not list(plan_validator.iter_errors(plan))
     assert not list(manifest_validator.iter_errors(manifest))
 

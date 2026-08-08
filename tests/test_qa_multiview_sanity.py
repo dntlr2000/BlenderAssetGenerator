@@ -414,6 +414,50 @@ def test_geometry_review_targets_include_scoped_free_standing_objects() -> None:
     ]
 
 
+def test_geometry_review_targets_exclude_hidden_boolean_helpers() -> None:
+    """Keep hidden Boolean cutters out of render targets and visibility scoring."""
+
+    scene_payload = _scene().model_dump(mode="json")
+    scene_payload["objects"][0]["modifiers"] = [
+        {
+            "kind": "boolean",
+            "operation": "DIFFERENCE",
+            "target_id": "weapon.aperture_cut",
+            "hide_target": True,
+        }
+    ]
+    scene_payload["objects"].append(
+        {
+            "id": "weapon.aperture_cut",
+            "name": "Aperture Boolean Helper",
+            "geometry": {
+                "kind": "primitive",
+                "primitive": "cube",
+                "dimensions": [0.5, 0.4, 0.4],
+            },
+            "material_id": "mat.test",
+            "tags": ["boolean_helper", "implementation_helper"],
+        }
+    )
+    scene = SceneSpec.model_validate(scene_payload)
+    plan_payload = _modeling_plan().model_dump(mode="json")
+    plan_payload["objects"].append(
+        {
+            "id": "weapon.aperture_cut",
+            "label": "bounded aperture helper",
+            "source_ids": ["reference"],
+            "scope_role": "supporting",
+            "assembly_role": "free_standing",
+        }
+    )
+    plan = ModelingPlan.model_validate(plan_payload)
+
+    assert sanity._authored_spatial_target_ids(plan, scene) == [
+        "weapon.root",
+        "weapon.trigger",
+    ]
+
+
 def test_run_writes_structural_only_report_and_preserves_authoring_blend(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

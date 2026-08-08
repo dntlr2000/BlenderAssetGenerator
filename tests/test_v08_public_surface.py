@@ -16,6 +16,8 @@ from codex_blender_modeler.versioning import PROJECT_VERSION, WORKFLOW_SCHEMA_VE
 
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_COMMANDS = {
+    "candidate-review-approve",
+    "candidate-review-status",
     "workflow-plan",
     "workflow-status",
     "workflow-reconcile",
@@ -26,6 +28,8 @@ EXPECTED_COMMANDS = {
     "workflow-adapters",
 }
 EXPECTED_MCP_TOOLS = {
+    "approve_candidate_review_promotion",
+    "get_candidate_review_state",
     "plan_short_workflow",
     "get_workflow_state",
     "reconcile_short_workflow",
@@ -68,9 +72,11 @@ def test_v08_background_policy_is_available_without_powershell() -> None:
     }
     assert "--execution-policy" in option_names
     assert "--delivery-scope" in option_names
+    assert "--revision-strategy" in option_names
     parameters = inspect.signature(plan_short_workflow).parameters
     assert parameters["execution_policy"].default == "standard"
     assert parameters["delivery_scope"].default is None
+    assert parameters["revision_strategy"].default == "candidate_review"
 
     capabilities = get_modeling_capabilities()
     orchestration = capabilities["workflow_orchestration"]
@@ -82,6 +88,7 @@ def test_v08_background_policy_is_available_without_powershell() -> None:
         "preview_only",
         "portable_package",
     ]
+    assert orchestration["default_standard_revision_strategy"] == "candidate_review"
     assert orchestration["background_exterior"]["direct_qa_runs"] == 1
     assert orchestration["background_exterior"]["automatic_revision"] is False
     assert (

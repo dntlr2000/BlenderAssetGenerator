@@ -129,6 +129,7 @@ def test_v08_policy_fields_are_strict_but_legacy_optional() -> None:
         if model is WorkflowRequest:
             payload.pop("fast_quality_policy")
             payload.pop("background_preview_binding")
+            payload.pop("revision_strategy")
         if model is WorkflowPlan:
             payload.pop("fast_quality_policy")
         if model is WorkflowState:
@@ -142,6 +143,8 @@ def test_v08_policy_fields_are_strict_but_legacy_optional() -> None:
         if model in {WorkflowRequest, WorkflowPlan, WorkflowState}:
             assert parsed.reference_content_scope == "full_reference"
             assert parsed.target_subject is None
+        if model is WorkflowRequest:
+            assert parsed.revision_strategy is None
 
     request_schema = WorkflowRequest.model_json_schema()["properties"]
     assert request_schema["execution_policy"]["enum"] == [
@@ -154,6 +157,11 @@ def test_v08_policy_fields_are_strict_but_legacy_optional() -> None:
         "portable_package",
     ]
     assert request_schema["delivery_scope"]["default"] is None
+    assert request_schema["revision_strategy"]["anyOf"][0]["enum"] == [
+        "candidate_review",
+        "manual_guarded",
+    ]
+    assert request_schema["revision_strategy"]["default"] is None
     assert request_schema["background_preview_binding"]["default"] is None
     assert request_schema["reference_content_scope"]["enum"] == [
         "primary_object_only",

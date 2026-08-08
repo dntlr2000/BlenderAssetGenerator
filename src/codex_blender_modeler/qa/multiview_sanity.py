@@ -505,26 +505,18 @@ class GeometryMultiviewVisualReview(StrictModel):
                         "properties": {"outcome": {"const": "visually_coherent"}},
                         "required": ["outcome"],
                     },
-                    "then": {
-                        "properties": {"v04_reentry": {"const": "not_indicated"}}
-                    },
+                    "then": {"properties": {"v04_reentry": {"const": "not_indicated"}}},
                 },
                 {
                     "if": {
-                        "properties": {
-                            "outcome": {"const": "v04_revision_recommended"}
-                        },
+                        "properties": {"outcome": {"const": "v04_revision_recommended"}},
                         "required": ["outcome"],
                     },
-                    "then": {
-                        "properties": {"v04_reentry": {"const": "recommended"}}
-                    },
+                    "then": {"properties": {"v04_reentry": {"const": "recommended"}}},
                 },
                 {
                     "if": {
-                        "properties": {
-                            "outcome": {"const": "v04_redesign_review_required"}
-                        },
+                        "properties": {"outcome": {"const": "v04_redesign_review_required"}},
                         "required": ["outcome"],
                     },
                     "then": {"properties": {"v04_reentry": {"const": "required"}}},
@@ -534,9 +526,7 @@ class GeometryMultiviewVisualReview(StrictModel):
                         "properties": {"outcome": {"const": "unscorable"}},
                         "required": ["outcome"],
                     },
-                    "then": {
-                        "properties": {"v04_reentry": {"const": "not_indicated"}}
-                    },
+                    "then": {"properties": {"v04_reentry": {"const": "not_indicated"}}},
                 },
             ]
         },
@@ -714,8 +704,28 @@ def _view_plan(plan: ModelingPlan, target_ids: list[str]) -> list[AssemblySanity
     ]
 
 
-def _authored_spatial_target_ids(plan: ModelingPlan) -> list[str]:
-    """Select the root, attached parts, and every primary/supporting scope target."""
+def _hidden_implementation_helper_ids(scene_spec: SceneSpec) -> set[str]:
+    """Return Boolean and implementation helpers that must stay absent from renders."""
+
+    hidden_targets = {
+        str(modifier.target_id)
+        for item in scene_spec.objects
+        for modifier in item.modifiers
+        if modifier.kind == "boolean" and modifier.hide_target
+    }
+    tagged_helpers = {
+        item.id
+        for item in scene_spec.objects
+        if {"boolean_helper", "implementation_helper"}.intersection(item.tags)
+    }
+    return hidden_targets | tagged_helpers
+
+
+def _authored_spatial_target_ids(
+    plan: ModelingPlan,
+    scene_spec: SceneSpec | None = None,
+) -> list[str]:
+    """Select authored render targets while excluding hidden implementation helpers."""
 
     if (
         plan.assembly_consistency_policy != "spatial_v1"
@@ -725,11 +735,17 @@ def _authored_spatial_target_ids(plan: ModelingPlan) -> list[str]:
         raise ValueError(
             "assembly multi-view sanity requires an authored spatial_v1 assembly frame"
         )
+    excluded_ids = (
+        _hidden_implementation_helper_ids(scene_spec) if scene_spec is not None else set()
+    )
     target_ids = sorted(
         item.id
         for item in plan.objects
-        if item.assembly_role in {"root", "attached"}
-        or item.scope_role in {"primary", "supporting"}
+        if (
+            item.assembly_role in {"root", "attached"}
+            or item.scope_role in {"primary", "supporting"}
+        )
+        and item.id not in excluded_ids
     )
     if plan.assembly_frame.root_object_id not in target_ids:
         raise ValueError("assembly multi-view sanity requires its declared root target")
@@ -757,15 +773,11 @@ def plan_job_assembly_multiview_sanity(
         if not path.is_file():
             raise FileNotFoundError(f"{label} is missing: {path}")
     scene_spec = SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))
-    modeling_plan = ModelingPlan.model_validate_json(
-        modeling_plan_path.read_text(encoding="utf-8")
-    )
-    target_ids = _authored_spatial_target_ids(modeling_plan)
+    modeling_plan = ModelingPlan.model_validate_json(modeling_plan_path.read_text(encoding="utf-8"))
+    target_ids = _authored_spatial_target_ids(modeling_plan, scene_spec)
     contract = validate_assembly_prebuild_contract(modeling_plan, scene_spec)
     if not contract.ok:
-        failures = "; ".join(
-            item.message for item in contract.checks if item.status == "failed"
-        )
+        failures = "; ".join(item.message for item in contract.checks if item.status == "failed")
         raise ValueError(f"assembly contract is invalid: {failures}")
     provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_path)
     selected_run_id = _validate_run_id(run_id or _new_run_id())
@@ -821,6 +833,92 @@ def plan_job_assembly_multiview_sanity(
     }
 
 
+def plan_job_assembly_multiview_sanity_for_sources(
+    job_id: str,
+    *,
+    scene_spec_path: Path,
+    blend_path: Path,
+    run_id: str,
+    resolution: int = 384,
+) -> dict[str, Any]:
+    """Plan five-view structural evidence for one isolated job-contained candidate pair."""
+
+    root = job_dir(job_id).resolve()
+    metadata = load_job(job_id)
+    scene_path = scene_spec_path.expanduser().resolve()
+    source_blend = blend_path.expanduser().resolve()
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    for label, path in (
+        ("SceneSpec", scene_path),
+        ("ModelingPlan", modeling_plan_path),
+        ("candidate blend", source_blend),
+    ):
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(f"assembly sanity {label} must stay inside the job") from exc
+        if not path.is_file():
+            raise FileNotFoundError(f"{label} is missing: {path}")
+    scene_spec = SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))
+    modeling_plan = ModelingPlan.model_validate_json(modeling_plan_path.read_text(encoding="utf-8"))
+    target_ids = _authored_spatial_target_ids(modeling_plan, scene_spec)
+    contract = validate_assembly_prebuild_contract(modeling_plan, scene_spec)
+    if not contract.ok:
+        failures = "; ".join(item.message for item in contract.checks if item.status == "failed")
+        raise ValueError(f"assembly contract is invalid: {failures}")
+    provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_path)
+    selected_run_id = _validate_run_id(run_id)
+    run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
+    if run_dir.exists():
+        raise FileExistsError(f"assembly sanity run already exists: {selected_run_id}")
+    sources = _reference_sources(root, metadata)
+    source_payload = {
+        "job_id": job_id,
+        "scene_spec_sha256": sha256_file(scene_path),
+        "modeling_plan_sha256": sha256_file(modeling_plan_path),
+        "source_blend_sha256": sha256_file(source_blend),
+        "build_fingerprint": provenance["fingerprint"],
+        "reference_sources": [item.model_dump(mode="json") for item in sources],
+    }
+    plan = AssemblySanityPlan(
+        job_id=job_id,
+        run_id=selected_run_id,
+        scene_spec_path=_job_relative(root, scene_path),
+        scene_spec_sha256=source_payload["scene_spec_sha256"],
+        modeling_plan_path=_job_relative(root, modeling_plan_path),
+        modeling_plan_sha256=source_payload["modeling_plan_sha256"],
+        source_blend_path=_job_relative(root, source_blend),
+        source_blend_sha256=source_payload["source_blend_sha256"],
+        build_fingerprint=str(provenance["fingerprint"]),
+        source_fingerprint=stable_json_digest(source_payload),
+        review_policy="exterior_geometry_review_v2",
+        assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
+        target_ids=target_ids,
+        resolution=(resolution, resolution),
+        views=_view_plan(modeling_plan, target_ids),
+        reference_sources=sources,
+        created_at=_utc_now(),
+        limitations=[
+            "This is candidate-review structural evidence, not canonical V0.6 QA.",
+            "Temporary cameras do not modify or save the source Blender file.",
+            "The comparison is a veto-only three-dimensional regression guard.",
+        ],
+    )
+    run_dir.mkdir(parents=True, exist_ok=False)
+    plan_path = run_dir / "plan.json"
+    write_json_atomic(plan_path, plan.model_dump(mode="json"))
+    return {
+        "job_id": job_id,
+        "run_id": selected_run_id,
+        "status": "planned",
+        "plan": str(plan_path),
+        "plan_sha256": sha256_file(plan_path),
+        "view_ids": list(ASSEMBLY_SANITY_VIEW_IDS),
+        "review_policy": plan.review_policy,
+        "canonical_v06_qa_run": False,
+    }
+
+
 def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, Any]:
     """Re-hash and re-derive every canonical input before diagnostic rendering."""
 
@@ -847,21 +945,17 @@ def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, 
         "modeling_plan_sha256": plan.modeling_plan_sha256,
         "source_blend_sha256": plan.source_blend_sha256,
         "build_fingerprint": plan.build_fingerprint,
-        "reference_sources": [
-            item.model_dump(mode="json") for item in plan.reference_sources
-        ],
+        "reference_sources": [item.model_dump(mode="json") for item in plan.reference_sources],
     }
     if stable_json_digest(source_payload) != plan.source_fingerprint:
         raise RuntimeError("assembly sanity source fingerprint is internally inconsistent")
     scene_spec = SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))
-    modeling_plan = ModelingPlan.model_validate_json(
-        modeling_plan_path.read_text(encoding="utf-8")
-    )
+    modeling_plan = ModelingPlan.model_validate_json(modeling_plan_path.read_text(encoding="utf-8"))
     contract = validate_assembly_prebuild_contract(modeling_plan, scene_spec)
     if not contract.ok:
         raise RuntimeError("assembly sanity current assembly contract is invalid")
     try:
-        expected_targets = _authored_spatial_target_ids(modeling_plan)
+        expected_targets = _authored_spatial_target_ids(modeling_plan, scene_spec)
     except ValueError as exc:
         raise RuntimeError(
             "assembly sanity current ModelingPlan is not an authored spatial asset"
@@ -910,8 +1004,7 @@ def _validate_render_artifacts(
     ) != len(plan.target_ids):
         raise RuntimeError("assembly sanity object-ID color membership changed")
     if any(
-        re.fullmatch(r"#[0-9a-f]{6}", color) is None
-        for color in manifest.object_id_colors.values()
+        re.fullmatch(r"#[0-9a-f]{6}", color) is None for color in manifest.object_id_colors.values()
     ):
         raise RuntimeError("assembly sanity object-ID color encoding is invalid")
     for view, planned_view in zip(manifest.views, plan.views, strict=True):
@@ -963,9 +1056,7 @@ def _validate_assembly_camera_record(
             or len(values) != 3
             or not all(isinstance(value, (int, float)) and math.isfinite(value) for value in values)
         ):
-            raise RuntimeError(
-                f"assembly sanity camera {planned_view.view_id} has invalid {field}"
-            )
+            raise RuntimeError(f"assembly sanity camera {planned_view.view_id} has invalid {field}")
     numeric = [camera.get("lens_mm"), camera.get("clip_start"), camera.get("clip_end")]
     if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in numeric):
         raise RuntimeError(
@@ -1096,9 +1187,7 @@ def _coverage_and_findings(
         if status == "passed":
             continue
         target_ids = [
-            str(check[key])
-            for key in ("subject_id", "reference_id", "peer_id")
-            if check.get(key)
+            str(check[key]) for key in ("subject_id", "reference_id", "peer_id") if check.get(key)
         ]
         findings.append(
             AssemblySanityFinding(
@@ -1190,9 +1279,7 @@ def validate_assembly_sanity_terminal(
         if not path.is_file() or sha256_file(path) != expected:
             raise ValueError(f"assembly sanity terminal {label} is missing or changed")
     plan = AssemblySanityPlan.model_validate_json(resolved_plan.read_text(encoding="utf-8"))
-    run_root = (
-        resolved_root / "qa" / "assembly_sanity" / "runs" / plan.run_id
-    ).resolve()
+    run_root = (resolved_root / "qa" / "assembly_sanity" / "runs" / plan.run_id).resolve()
     if (
         resolved_plan != run_root / "plan.json"
         or resolved_manifest != run_root / "render_manifest.json"
@@ -1202,9 +1289,7 @@ def validate_assembly_sanity_terminal(
     manifest = AssemblySanityRenderManifest.model_validate_json(
         resolved_manifest.read_text(encoding="utf-8")
     )
-    report = AssemblySanityReport.model_validate_json(
-        resolved_report.read_text(encoding="utf-8")
-    )
+    report = AssemblySanityReport.model_validate_json(resolved_report.read_text(encoding="utf-8"))
     if (
         (expected_job_id is not None and plan.job_id != expected_job_id)
         or (expected_run_id is not None and plan.run_id != expected_run_id)
@@ -1246,11 +1331,7 @@ def validate_assembly_sanity_terminal(
         manifest,
     )
     visible = sorted(
-        {
-            target
-            for coverage in expected_coverage
-            for target in coverage.visible_target_ids
-        }
+        {target for coverage in expected_coverage for target in coverage.visible_target_ids}
     )
     unseen = sorted(set(plan.target_ids) - set(visible))
     expected_status: Literal["passed", "warning", "failed"]
@@ -1319,9 +1400,7 @@ def validate_geometry_multiview_visual_review(
     review = GeometryMultiviewVisualReview.model_validate_json(
         resolved_review.read_text(encoding="utf-8")
     )
-    run_root = (
-        resolved_root / "qa" / "assembly_sanity" / "runs" / review.run_id
-    ).resolve()
+    run_root = (resolved_root / "qa" / "assembly_sanity" / "runs" / review.run_id).resolve()
     if resolved_review != run_root / "visual_review.json":
         raise ValueError("geometry visual review is outside its exact assembly run")
     if expected_job_id is not None and review.job_id != expected_job_id:
@@ -1354,11 +1433,7 @@ def validate_geometry_multiview_visual_review(
     ):
         raise ValueError("geometry visual review source hashes changed")
     unknown_target_ids = sorted(
-        {
-            target_id
-            for finding in review.findings
-            for target_id in finding.target_ids
-        }
+        {target_id for finding in review.findings for target_id in finding.target_ids}
         - set(report.target_ids)
     )
     if unknown_target_ids:
@@ -1383,16 +1458,13 @@ def _recoverable_view_tree(
         raise RuntimeError("assembly sanity recovery views path is not a directory")
     _job_relative(root, views_dir)
     expected_view_ids = set(ASSEMBLY_SANITY_VIEW_IDS)
-    expected_pass_names = {
-        f"{kind}.png" for kind in ASSEMBLY_SANITY_PASS_KINDS
-    }
+    expected_pass_names = {f"{kind}.png" for kind in ASSEMBLY_SANITY_PASS_KINDS}
     files: list[Path] = []
     directories: list[Path] = []
     for view_dir in sorted(views_dir.iterdir(), key=lambda path: path.name):
         if view_dir.name not in expected_view_ids:
             raise RuntimeError(
-                "assembly sanity recovery found an unexpected views entry: "
-                f"{view_dir.name}"
+                f"assembly sanity recovery found an unexpected views entry: {view_dir.name}"
             )
         if view_dir.is_symlink() or not view_dir.is_dir():
             raise RuntimeError(
@@ -1406,9 +1478,7 @@ def _recoverable_view_tree(
                     f"{view_dir.name}/{artifact.name}"
                 )
             if artifact.is_symlink() or not artifact.is_file():
-                raise RuntimeError(
-                    "assembly sanity recovery requires regular run-owned pass files"
-                )
+                raise RuntimeError("assembly sanity recovery requires regular run-owned pass files")
             files.append(artifact)
     return files, directories
 
@@ -1417,9 +1487,7 @@ def _require_regular_optional_derived_file(path: Path, label: str) -> None:
     """Reject links or directories at one exact recoverable derived-file path."""
 
     if path.is_symlink() or (path.exists() and not path.is_file()):
-        raise RuntimeError(
-            f"assembly sanity recovery {label} is not a regular run-owned file"
-        )
+        raise RuntimeError(f"assembly sanity recovery {label} is not a regular run-owned file")
 
 
 def recover_unpublished_job_assembly_multiview_plan(
@@ -1444,9 +1512,7 @@ def recover_unpublished_job_assembly_multiview_plan(
         )
     _job_relative(root, run_dir)
     if plan_path.exists() or plan_path.is_symlink():
-        raise RuntimeError(
-            "assembly sanity unpublished-plan recovery refuses a published plan"
-        )
+        raise RuntimeError("assembly sanity unpublished-plan recovery refuses a published plan")
     temporary_pattern = re.compile(r"^\.plan\.json\.\d+\.tmp$")
     temporary_files: list[Path] = []
     for entry in sorted(run_dir.iterdir(), key=lambda path: path.name):
@@ -1456,8 +1522,7 @@ def recover_unpublished_job_assembly_multiview_plan(
             or temporary_pattern.fullmatch(entry.name) is None
         ):
             raise RuntimeError(
-                "assembly sanity unpublished-plan recovery found an unexpected entry: "
-                f"{entry.name}"
+                f"assembly sanity unpublished-plan recovery found an unexpected entry: {entry.name}"
             )
         temporary_files.append(entry)
     current_entries = sorted(run_dir.iterdir(), key=lambda path: path.name)
@@ -1637,13 +1702,7 @@ def _finalize_job_assembly_multiview_sanity_locked(
     )
     _validate_render_artifacts(root, plan, plan_sha256, manifest)
     coverage, findings = _coverage_and_findings(root, plan, manifest)
-    visible = sorted(
-        {
-            target
-            for item in coverage
-            for target in item.visible_target_ids
-        }
-    )
+    visible = sorted({target for item in coverage for target in item.visible_target_ids})
     unseen = sorted(set(plan.target_ids) - set(visible))
     if any(item.severity == "error" for item in findings):
         structural_status: Literal["passed", "warning", "failed"] = "failed"

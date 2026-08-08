@@ -42,3 +42,5 @@ build/
 /test-tmp-design-geometry-review-2
 /test-tmp-design-geometry-review-related
 /.test-tmp-root-diag-retry
+/.pytest_tmp_mv_suite_20260808_0914
+/.pytest_tmp_v08_mv_20260808_0916

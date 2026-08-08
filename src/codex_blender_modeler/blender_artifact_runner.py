@@ -78,23 +78,66 @@ def render_job_qa_passes(
 
     root, blend = _blend_path(job_id)
     scene_spec = root / "analysis" / "scene_spec.json"
+    return render_scene_qa_passes(
+        job_id,
+        scene_spec_path=scene_spec,
+        blend_path=blend,
+        output_dir=root / "renders" / "passes",
+        manifest_path=root / "reports" / "qa_pass_manifest.json",
+        render_engine=render_engine,
+        render_device=render_device,
+        run_id=run_id,
+        camera_fingerprint=camera_fingerprint,
+        scene_spec_sha256=scene_spec_sha256,
+    )
+
+
+def render_scene_qa_passes(
+    job_id: str,
+    *,
+    scene_spec_path: Path,
+    blend_path: Path,
+    output_dir: Path,
+    manifest_path: Path,
+    render_engine: str = "eevee",
+    render_device: str = "auto",
+    run_id: str | None = None,
+    camera_fingerprint: str | None = None,
+    scene_spec_sha256: str | None = None,
+) -> RenderPassManifest:
+    """Render exact seven-pass QA evidence for one job-contained SceneSpec/blend pair."""
+
+    root = job_dir(job_id).resolve()
+    scene_spec = scene_spec_path.expanduser().resolve()
+    blend = blend_path.expanduser().resolve()
+    resolved_output_dir = output_dir.expanduser().resolve()
+    resolved_manifest = manifest_path.expanduser().resolve()
+    for label, path in (
+        ("SceneSpec", scene_spec),
+        ("Blender scene", blend),
+        ("QA output", resolved_output_dir),
+        ("QA manifest", resolved_manifest),
+    ):
+        try:
+            path.relative_to(root)
+        except ValueError as exc:
+            raise ValueError(f"{label} must stay inside the owning job") from exc
+    if not scene_spec.is_file():
+        raise FileNotFoundError(f"SceneSpec does not exist: {scene_spec}")
+    if not blend.is_file():
+        raise FileNotFoundError(f"Blender scene does not exist: {blend}")
     provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_spec)
     current_scene_hash = str(provenance["scene_spec_sha256"])
     current_camera_fingerprint = str(provenance["camera_fingerprint"])
     if scene_spec_sha256 is not None and scene_spec_sha256 != current_scene_hash:
-        raise ValueError("requested QA SceneSpec hash does not match the canonical SceneSpec")
-    if (
-        camera_fingerprint is not None
-        and camera_fingerprint != current_camera_fingerprint
-    ):
-        raise ValueError("requested QA camera fingerprint does not match the canonical camera")
-    output_dir = root / "renders" / "passes"
-    manifest = root / "reports" / "qa_pass_manifest.json"
+        raise ValueError("requested QA SceneSpec hash does not match the selected SceneSpec")
+    if camera_fingerprint is not None and camera_fingerprint != current_camera_fingerprint:
+        raise ValueError("requested QA camera fingerprint does not match the selected camera")
     args = [
         "--output-dir",
-        str(output_dir),
+        str(resolved_output_dir),
         "--manifest",
-        str(manifest),
+        str(resolved_manifest),
         "--render-engine",
         render_engine,
         "--render-device",
@@ -113,7 +156,7 @@ def render_job_qa_passes(
         if value is not None:
             args.extend([flag, value])
     run_blender("render_qa_passes.py", args, blend_file=blend)
-    return RenderPassManifest.model_validate_json(manifest.read_text(encoding="utf-8"))
+    return RenderPassManifest.model_validate_json(resolved_manifest.read_text(encoding="utf-8"))
 
 
 def inspect_job_interior_qa_source(
@@ -156,9 +199,7 @@ def inspect_job_interior_qa_source(
     for target_id in target_ids:
         args.extend(["--target-id", target_id])
     run_blender("inspect_interior_qa_source.py", args, blend_file=blend)
-    return InteriorQASourceInventory.model_validate_json(
-        output_path.read_text(encoding="utf-8")
-    )
+    return InteriorQASourceInventory.model_validate_json(output_path.read_text(encoding="utf-8"))
 
 
 def render_job_interior_qa(
@@ -209,6 +250,4 @@ def render_job_interior_qa(
     if str(provenance["fingerprint"]) != plan.build_fingerprint:
         raise ValueError("interior QA plan is stale for the current canonical build")
     run_blender("render_interior_qa.py", args, blend_file=blend)
-    return InteriorQARenderManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
-    )
+    return InteriorQARenderManifest.model_validate_json(manifest_path.read_text(encoding="utf-8"))

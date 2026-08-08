@@ -207,6 +207,12 @@ For a revision of the current asset, keep the same job ID and use the guarded re
 148. External normalization requires one exact, single-use intake-plan SHA-256 approval. It writes a meter-normalized, script-free authoring derivative while preserving stable semantic IDs, hierarchy, UV layers, material identity, and explicit master-shader limitations; it never changes the immutable copied source.
 149. V0.7 may package an external source only when its manifest, consumed approval, normalization receipt, validation, normalized blend, build fingerprint, material contracts, shader recipes, and dependencies are all current. Portable PBR textures are derived bakes; Blender master shader parity in a destination engine is never implied.
 150. V0.9 audits external-intake provenance read-only and keeps package/handoff evidence bound to the external manifest. Deep Windows package and handoff evidence must use extended-length native I/O while preserving containment, link, dependency, and SHA-256 checks.
+151. Newly planned `standard` `revise_asset` workflows default to `revision_strategy=candidate_review`. They omit only the pre-execution RevisionPlan approval: the agent-authored plan remains workflow-owned, and the host builds and compares isolated baseline/candidate evidence before one exact user promotion decision.
+152. Candidate review must leave canonical SceneSpec, authoring `.blend`, materials, inputs, and current QA evidence unchanged until promotion. Its immutable trial binds both SceneSpecs, builds, inventories, validations, exact seven-pass requests/manifests/reports, optional constraints, and authored `spatial_v1` five-view structural comparison.
+153. Candidate promotion is eligible only when the direct score reaches the configured minimum gain, silhouette IoU does not regress, measured constraints do not regress, and any required five-view structural guard passes. The derived before/after PDF and sidecar are review aids; `decision_manifest.json` and its exact SHA-256 are authoritative.
+154. One exact `candidate_review` decision approval may promote the exact candidate once. Revalidate every source and trial hash immediately before replacement, archive the baseline, rebuild/inspect/validate canonical outputs, consume the approval once, and restore/rebuild the baseline if final verification fails.
+155. `candidate_review` is limited to existing-object bounded transform and parametric geometry operations. Camera changes, material changes, semantic add/remove/reorder, InteriorScope changes, custom-mesh vertex/payload edits, and substantial redesign use explicit `revision_strategy=manual_guarded` or a separate V0.4 authoring workflow.
+156. Existing immutable workflows without `revision_strategy` remain legacy evidence and keep their original manual guarded behavior. The new default applies only to newly planned standard revisions; it never changes `background_exterior`, bounded-convergence, InteriorScope, V0.7 optimization, or Destination Handoff approval contracts.
 
 ## v0.4 reference-analysis workflow
 
@@ -304,7 +310,7 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 8. Rebuild, re-render, re-inspect, re-validate, and reevaluate constraints after application.
 9. Keep canonical replacement and every verification step inside the rollback boundary; restore and rebuild the archived baseline on non-improvement, per-ID constraint regression, or verification failure.
 10. If an external QA target is used, preserve the exact prompt text and provider/model/version/seed/output provenance with the run.
-11. Keep the candidate-by-candidate one-shot flow as the default. For repeated standard revisions only, the user may request one bounded convergence plan from a current direct QA run.
+11. A newly planned standard `revise_asset` defaults to isolated `candidate_review`: author and evaluate the bounded candidate first, then ask once for the exact promotion decision SHA-256. Use `manual_guarded` when the request falls outside that envelope. For repeated eligible standard revisions, the user may instead request one bounded convergence plan from a current direct QA run.
 12. Show the target direct score, target silhouette IoU, allowed and locked semantic IDs, path/operation/delta rules, minimum gain, confidence threshold, per-iteration budgets, hard iteration limit, stop conditions, non-empty exact input-map status, host-safety-envelope path/SHA-256, and exact plan SHA-256. Planning must not modify canonical geometry.
 13. Stop until the user approves that exact plan hash. After approval, host policy may select only eligible direct-reference candidates inside the immutable envelope and does not require another user approval for each accepted iteration.
 14. Keep texture-routed surface details out of geometry candidates. Report their manifest coverage separately; route missing pixels to V0.5 and newly discovered silhouette/structural needs to V0.4.
@@ -365,7 +371,8 @@ Use this separate V0.6 path only when an approved InteriorScope already contains
 ## Revision rules
 
 - Parse the request into target IDs, exact paths, operations, exclusions, and acceptance criteria.
-- Prefer `plan-revision` + `apply-revision` over full SceneSpec regeneration.
+- For new standard `revise_asset` workflows, prefer workflow-owned `candidate_review` so plan, isolated build, exact QA, optional constraints, and comparison PDF are produced before the single canonical-promotion decision.
+- Use `plan-revision` + `apply-revision` through explicit `manual_guarded` for redesign, camera, material, semantic-membership, custom-mesh, or other changes outside the candidate envelope.
 - Preserve all values not reached by approved operations.
 - Rebuild from SceneSpec; do not hand-edit the `.blend` as the fix.
 - Re-render with the same comparison camera.
@@ -384,7 +391,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 4. Persist immutable request, route, and step plan contracts under `workflows/<workflow-id>/`.
 5. Execute only deterministic host steps. Generate the matching human-readable PDF projection before a generic review, then stop for agent-authored contracts, generic review, or specialized approval.
 6. Bind every agent completion and generic approval to the exact plan and current input/output fingerprint.
-7. Preserve InteriorScope, visual-revision, and optimization approvals as their existing specialized contracts; orchestration cannot synthesize them.
+7. Preserve InteriorScope, visual-revision, and optimization approvals as specialized contracts; orchestration cannot synthesize them. New standard revisions use one post-evaluation `candidate_review` promotion approval, while explicit `manual_guarded` keeps the legacy pre-application approval.
 8. Reconcile after every step from current files and hashes. Mark changed evidence stale instead of treating it as completed.
 9. Resume from the first incomplete step. Retry a failed host step only with explicit authorization and a new attempt receipt.
 10. Cancellation preserves all evidence. Destination-specific reconstruction remains deferred until a validated adapter is selected and tested.

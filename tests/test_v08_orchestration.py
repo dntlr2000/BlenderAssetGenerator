@@ -431,6 +431,7 @@ def test_legacy_revision_omits_spatial_only_multiview_review(
         "Revise the approved exterior proportions.",
         job_id="legacy_revision_asset",
         intent="revise_asset",
+        revision_strategy="manual_guarded",
     )
     workflow_root = (
         workspace
@@ -468,6 +469,57 @@ def test_legacy_revision_omits_spatial_only_multiview_review(
                 == "legacy_unbound"
             )
     assert any("not applicable" in note for note in plan["notes"])
+
+
+def test_standard_revision_defaults_to_single_gate_candidate_review(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Plan isolated before/after evaluation with only one final promotion approval."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _image(tmp_path / "candidate_review.png")
+    create_job("candidate_review_asset", reference, "concept", [])
+    root = workspace / "candidate_review_asset"
+    modeling_plan = {
+        "schema_version": "0.4.0",
+        "job_id": "candidate_review_asset",
+        "reference_analysis_path": "analysis/reference_analysis.json",
+        "camera_solution_path": "analysis/camera_solution.json",
+        "stage": "authored",
+        "objects": [{"id": "asset.root", "label": "root"}],
+        "assembly_consistency_policy": "legacy_unbound",
+    }
+    (root / "analysis" / "modeling_plan.json").write_text(
+        json.dumps(modeling_plan, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+    state = plan_workflow(
+        "Revise the main body proportions and compare before applying.",
+        job_id="candidate_review_asset",
+        intent="revise_asset",
+    )
+    workflow_root = root / "workflows" / state.workflow_id
+    request = json.loads((workflow_root / "request.json").read_text(encoding="utf-8"))
+    plan = json.loads((workflow_root / "plan.json").read_text(encoding="utf-8"))
+    steps = {item["step_id"]: item for item in plan["steps"]}
+
+    assert request["revision_strategy"] == "candidate_review"
+    assert set(steps) == {
+        "revision.author",
+        "revision.evaluate",
+        "revision.promotion_approval",
+        "revision.promote",
+    }
+    assert steps["revision.author"]["outputs"][0]["path"].startswith(
+        f"workflows/{state.workflow_id}/artifacts/r/"
+    )
+    assert steps["revision.evaluate"]["tool_name"] == "evaluate_candidate_revision"
+    assert steps["revision.promotion_approval"]["approval_gate"] == "visual_revision"
+    assert steps["revision.promote"]["tool_name"] == "promote_candidate_revision"
+    assert "revision.approval" not in steps
 
 
 def test_spatial_revision_keeps_five_view_geometry_review(
@@ -512,6 +564,7 @@ def test_spatial_revision_keeps_five_view_geometry_review(
         "Revise the approved exterior proportions.",
         job_id="spatial_revision_asset",
         intent="revise_asset",
+        revision_strategy="manual_guarded",
     )
     workflow_root = (
         workspace
@@ -731,6 +784,7 @@ def test_revision_step_fingerprint_tracks_current_modeling_plan_only_when_bound(
         "Revise the exterior proportions.",
         job_id="fingerprint_revision_asset",
         intent="revise_asset",
+        revision_strategy="manual_guarded",
     )
     _root, _workflow_root, request, plan, state = (
         orchestration_service._load_workflow(
@@ -803,6 +857,7 @@ def test_revision_host_postcheck_rejects_mid_execution_modeling_plan_drift(
         "Revise the exterior proportions.",
         job_id="midcall_revision_asset",
         intent="revise_asset",
+        revision_strategy="manual_guarded",
     )
     _root, workflow_root, request, plan, state = orchestration_service._load_workflow(
         "midcall_revision_asset",

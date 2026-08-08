@@ -104,7 +104,7 @@ uv run cbm workflow-adapters
 
 새 자산은 고유한 소문자 `job_id`와 primary reference로 시작합니다.
 
-기본 `standard` 정책은 기존 승인 경계를 그대로 유지합니다. 실내·실측·리깅이 필요 없는 단순 배경 외관은 작업 계획 전에 `background_exterior`를 명시적으로 선택할 수 있습니다. 사용자는 PowerShell을 실행할 필요 없이 Codex에 다음처럼 요청하면 됩니다.
+기본 `standard` 정책은 프록시·재질·패키지와 모든 전문 승인 경계를 유지합니다. 다만 새 `revise_asset` workflow는 `candidate_review`가 기본이어서 RevisionPlan 사전 승인을 생략하고, 격리된 후보를 build·QA한 뒤 canonical 승격 직전에 한 번만 exact decision SHA-256 승인을 받습니다. 실내·실측·리깅이 필요 없는 단순 배경 외관은 작업 계획 전에 `background_exterior`를 명시적으로 선택할 수 있습니다. 사용자는 PowerShell을 실행할 필요 없이 Codex에 다음처럼 요청하면 됩니다.
 
 레퍼런스에서 무엇을 만들지는 실행 정책과 별도의
 `reference_content_scope`로 선택합니다.
@@ -361,7 +361,7 @@ uv run cbm workflow-status temple_asset
 uv run cbm workflow-resume temple_asset <workflow-id>
 ```
 
-Agent가 작성해야 하는 modeling plan, SceneSpec, material plan 또는 revision plan에서는 workflow가 정상적으로 멈춥니다. 해당 산출물을 작성·검증한 뒤 현재 fingerprint와 함께 completion marker를 남겨야 다음 단계가 열립니다. `standard`는 프록시·재질 swatch·QA·package의 일반 승인을 유지합니다. `background_exterior`는 계획에서 그 일반 gate만 생략하며, agent completion과 V0.6 revision·V0.7 optimization 같은 전용 exact-hash 승인은 그대로 유지합니다.
+Agent가 작성해야 하는 modeling plan, SceneSpec, material plan 또는 revision plan에서는 workflow가 정상적으로 멈춥니다. 해당 산출물을 작성·검증한 뒤 현재 fingerprint와 함께 completion marker를 남겨야 다음 단계가 열립니다. `standard`는 프록시·재질 swatch·QA·package의 일반 승인을 유지합니다. 새 standard `revise_asset`만 기본 `candidate_review`에서 RevisionPlan 사전 사용자 승인을 생략하고 격리 평가 뒤 승격 승인 하나를 사용합니다. `background_exterior`는 계획에서 일반 gate만 생략하며, agent completion과 V0.7 optimization 같은 전용 exact-hash 승인은 그대로 유지합니다.
 
 새 workflow의 V0.5 재질 단계는 scaffold와 authored candidate를
 `workflows/<workflow-id>/artifacts/m/` 아래에서 서로 다른 불변 산출물로
@@ -410,6 +410,20 @@ uv run cbm workflow-plan `
   --intent revise_asset
 ```
 
+위 요청은 기본적으로 다음 순서로 진행됩니다.
+
+```text
+workflow-owned RevisionPlan 작성
+→ baseline/candidate 격리 build·inspect·validate
+→ 같은 카메라의 exact 7-pass direct QA
+→ optional constraint와 spatial_v1 five-view 비회귀 검사
+→ before/after PDF와 decision_manifest.json
+→ exact decision SHA-256 승인 대기
+→ 승인된 candidate만 canonical로 1회 승격·재빌드
+```
+
+카메라 변경, semantic 추가·삭제, custom-mesh vertex 편집, 재질 변경 또는 큰 재설계는 이 경로에서 거부됩니다. 그 경우 `--revision-strategy manual_guarded`를 명시하거나 V0.4 authoring으로 돌아갑니다. 이미 생성된 legacy workflow에는 새 기본값을 소급 적용하지 않습니다.
+
 완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)을 따릅니다.
 
 Portable workflow 뒤에 전달 계약까지 포함하려면 GLB 또는 FBX profile에서 선택 플래그를 사용합니다. 이 단계는 목적지 프로젝트를 수정하지 않습니다.
@@ -425,7 +439,9 @@ uv run cbm workflow-plan `
 
 ## 선택적 standard V0.6 수렴 세션
 
-기본 `standard` 경로는 계속 후보별 exact 승인과 1회 적용입니다. 이미 큰 형상과
+기본 `standard` `revise_asset` 경로는 후보를 먼저 격리 평가하고 canonical 승격 직전에
+exact decision SHA-256을 한 번 승인하는 `candidate_review`입니다. 명시적
+`manual_guarded`는 기존 후보별 사전 승인과 1회 적용을 유지합니다. 이미 큰 형상과
 비교 카메라가 승인됐고 같은 종류의 국소 수정 승인이 반복될 때만 bounded
 convergence를 선택할 수 있습니다. 사용자는 current direct QA run에서 생성된
 계획의 목표 direct score·silhouette IoU, 허용 semantic ID, path/operation/delta
@@ -581,7 +597,7 @@ workflow의 spatial 검증을 통과한 것으로 승격되지 않습니다.
 - 실내 semantic visibility는 검토 범위의 가시성이지 완성도나 레퍼런스 유사도 백분율이 아닙니다.
 - `.blend`를 canonical 수정 수단으로 사용하지 않습니다.
 - 생성 이미지 기반 QA target은 보조 근거이며 단독으로 revision을 승인하지 못합니다.
-- standard bounded convergence는 exact plan 승인 안에서만 per-iteration 승인을 줄이며, 계획 밖 수정이나 다른 전문 승인을 허용하지 않습니다.
+- standard `candidate_review`는 사전 RevisionPlan 승인을 한 번 줄일 뿐 exact 최종 승격 승인을 유지합니다. bounded convergence는 별도 exact plan 승인 안에서만 per-iteration 승인을 줄이며, 계획 밖 수정이나 다른 전문 승인을 허용하지 않습니다.
 - V0.7은 canonical authoring 데이터를 수정하지 않고 run-owned derived directory에서만 최적화합니다.
 - Handoff 생성은 원본 package와 canonical authoring 데이터를 변경하지 않고 모든 파일을 상대 경로와 SHA-256으로 결속합니다.
 - 일반 workflow 승인은 InteriorScope, Visual QA revision 또는 optimization의 전용 승인을 대체하지 못합니다.

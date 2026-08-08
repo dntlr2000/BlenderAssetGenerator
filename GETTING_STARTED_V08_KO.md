@@ -43,7 +43,7 @@ reference_content_scope=full_reference로 계획해.
 
 | 선택 | 종료 범위 | 생략되는 일반 검토 | 반드시 남는 경계 |
 |---|---|---|---|
-| `standard` | 기존 `scope` 규칙 | 없음 | 기존 일반·전용 승인 전체 |
+| `standard` | 기존 `scope` 규칙 | 새 `revise_asset`의 RevisionPlan 사전 승인만 기본 생략 | 프록시·재질·QA·패키지 일반 승인, 전문 승인, candidate 최종 승격 승인 |
 | `background_exterior + preview_only` | bounded pre-QA fit·V0.4 다각도 형상 검토·재질·직접 QA·quality JSON·통합 PDF | 프록시, 상세, swatch, QA 일반 승인 | 다각도 agent completion; 별도 전용 작업은 별도 workflow와 exact-hash 승인 |
 | `background_exterior + portable_package` | V0.7 package와 round trip | 위 일반 승인과 최종 package 일반 승인 | 정확한 V0.7 optimization-plan 승인 |
 
@@ -296,7 +296,46 @@ uv run cbm workflow-plan `
   --intent revise_asset
 ```
 
-V0.8은 RevisionPlan 저작까지 조율하지만 V0.6/V0.2의 전용 승인 없이 canonical 변경을 적용하지 않는다.
+새 standard revision의 기본 전략은 `candidate_review`다. RevisionPlan은
+`workflows/<workflow-id>/artifacts/r/revision_plan.json`에 작성되며 canonical을
+변경하지 않는다. Host가 baseline과 candidate를 각각 격리 build하고, 같은 카메라의
+exact 7-pass 직접 QA, optional constraint, authored `spatial_v1`의 five-view 구조
+비회귀 검사를 수행한다. `qa/candidate_reviews/<trial-id>/`의 before/after PDF와
+`decision_manifest.json`을 검토한 뒤, promotable decision의 정확한 SHA-256을 한 번
+승인해야 candidate가 canonical SceneSpec으로 승격된다. 내부 fingerprint는 자동
+검증되지만 사용자 승인으로 대체되지는 않는다.
+
+PowerShell 없이 Codex에는 다음처럼 요청할 수 있다.
+
+```text
+<JOB_ID>의 <REVISION_REQUEST>를 standard revise_asset로 계획해.
+revision_strategy=candidate_review 기본값을 사용해 RevisionPlan 작성부터
+격리 baseline/candidate build, exact 7-pass 직접 QA, constraint와 다각도
+비회귀 검사, before/after PDF 생성까지 진행해.
+canonical SceneSpec은 변경하지 말고 decision_manifest.json의 정확한 SHA-256,
+변경 ID/경로, direct score, silhouette IoU, constraint와 구조 결과를 보고한 뒤
+최종 승격 승인에서 멈춰.
+```
+
+Codex가 보고한 exact decision SHA-256을 검토한 뒤에만 다음처럼 승인한다.
+
+```text
+<JOB_ID>의 candidate review <TRIAL_ID>에 대해
+decision_manifest.json SHA-256 <DECISION_SHA256>의 canonical 승격 1회를 승인한다.
+승인 파일을 생성한 뒤 exact source와 trial hash를 다시 검증하고,
+일치할 때만 승격·재빌드·inspect·validate를 수행해.
+```
+
+카메라, 재질, semantic membership, custom-mesh vertex 또는 큰 재설계가 필요하면
+`candidate_review`를 억지로 사용하지 않는다. 기존 사전 승인형 경계가 필요한 경우:
+
+```text
+<JOB_ID>의 <REVISION_REQUEST>를 standard revise_asset로 계획하되
+revision_strategy=manual_guarded를 명시해. 기존 RevisionPlan exact 승인과
+one-shot rollback 경계를 유지해.
+```
+
+이미 계획된 legacy workflow는 자동 변환하지 않는다.
 
 ### 보조 시점 추가
 

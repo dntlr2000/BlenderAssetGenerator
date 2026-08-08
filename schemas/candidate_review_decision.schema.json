@@ -1,0 +1,311 @@
+{
+  "$defs": {
+    "CandidateReviewArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable candidate-review artifact to its job-relative path and hash.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "CandidateReviewArtifact",
+      "type": "object"
+    },
+    "CandidateReviewScore": {
+      "additionalProperties": false,
+      "description": "Record the comparable direct-reference scores used for one review decision.",
+      "properties": {
+        "baseline_direct_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Baseline Direct Score",
+          "type": "number"
+        },
+        "candidate_direct_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Direct Score",
+          "type": "number"
+        },
+        "direct_score_delta": {
+          "title": "Direct Score Delta",
+          "type": "number"
+        },
+        "baseline_silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Baseline Silhouette Iou",
+          "type": "number"
+        },
+        "candidate_silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Candidate Silhouette Iou",
+          "type": "number"
+        },
+        "silhouette_delta": {
+          "title": "Silhouette Delta",
+          "type": "number"
+        },
+        "minimum_direct_improvement": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Direct Improvement",
+          "type": "number"
+        }
+      },
+      "required": [
+        "baseline_direct_score",
+        "candidate_direct_score",
+        "direct_score_delta",
+        "baseline_silhouette_iou",
+        "candidate_silhouette_iou",
+        "silhouette_delta",
+        "minimum_direct_improvement"
+      ],
+      "title": "CandidateReviewScore",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze an isolated before/after evaluation before canonical promotion approval.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "review_kind": {
+      "const": "standard_candidate_review_v1",
+      "default": "standard_candidate_review_v1",
+      "title": "Review Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Trial Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Workflow Id"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "source_hashes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Source Hashes",
+      "type": "object"
+    },
+    "revision_plan": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_scene_spec": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_scene_spec": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "revision_diff": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_blend": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_blend": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_inventory": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_inventory": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_validation": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_validation": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_qa_report": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_qa_report": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_qa_request": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_qa_request": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_qa_manifest": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "candidate_qa_manifest": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "baseline_constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CandidateReviewArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_constraints": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CandidateReviewArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "structural_comparison": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CandidateReviewArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "changed_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Ids",
+      "type": "array"
+    },
+    "preserved_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Preserved Ids",
+      "type": "array"
+    },
+    "changed_paths": {
+      "items": {
+        "items": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ]
+        },
+        "type": "array"
+      },
+      "title": "Changed Paths",
+      "type": "array"
+    },
+    "scores": {
+      "$ref": "#/$defs/CandidateReviewScore"
+    },
+    "status": {
+      "enum": [
+        "promotable",
+        "not_improved",
+        "regressed",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "promotable": {
+      "title": "Promotable",
+      "type": "boolean"
+    },
+    "approval_required": {
+      "const": true,
+      "default": true,
+      "title": "Approval Required",
+      "type": "boolean"
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "trial_id",
+    "input_fingerprint",
+    "source_hashes",
+    "revision_plan",
+    "baseline_scene_spec",
+    "candidate_scene_spec",
+    "revision_diff",
+    "baseline_blend",
+    "candidate_blend",
+    "baseline_inventory",
+    "candidate_inventory",
+    "baseline_validation",
+    "candidate_validation",
+    "baseline_qa_report",
+    "candidate_qa_report",
+    "baseline_qa_request",
+    "candidate_qa_request",
+    "baseline_qa_manifest",
+    "candidate_qa_manifest",
+    "scores",
+    "status",
+    "promotable",
+    "evaluated_at"
+  ],
+  "title": "CandidateReviewDecision",
+  "type": "object"
+}

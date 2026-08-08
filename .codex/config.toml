@@ -14,6 +14,8 @@ enabled_tools = [
   "get_job_status",
   "get_modeling_capabilities",
   "plan_short_workflow",
+  "approve_candidate_review_promotion",
+  "get_candidate_review_state",
   "get_workflow_state",
   "reconcile_short_workflow",
   "resume_short_workflow",

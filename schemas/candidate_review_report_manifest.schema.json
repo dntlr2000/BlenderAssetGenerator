@@ -1,0 +1,97 @@
+{
+  "$defs": {
+    "CandidateReviewArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable candidate-review artifact to its job-relative path and hash.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "CandidateReviewArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one derived human review PDF to exact candidate decision evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_kind": {
+      "const": "candidate_review_v1",
+      "default": "candidate_review_v1",
+      "title": "Report Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Trial Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "pdf": {
+      "$ref": "#/$defs/CandidateReviewArtifact"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/CandidateReviewArtifact"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "font": {
+      "title": "Font",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "trial_id",
+    "decision",
+    "pdf",
+    "sources",
+    "source_fingerprint",
+    "font",
+    "generated_at"
+  ],
+  "title": "CandidateReviewReportManifest",
+  "type": "object"
+}

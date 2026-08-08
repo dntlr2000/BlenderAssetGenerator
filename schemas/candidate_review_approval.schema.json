@@ -1,0 +1,105 @@
+{
+  "additionalProperties": false,
+  "description": "Record one exact, user-authored, single-use candidate promotion approval.",
+  "properties": {
+    "schema_version": {
+      "const": "0.6.0",
+      "default": "0.6.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "approval_kind": {
+      "const": "candidate_review_promotion_v1",
+      "default": "candidate_review_promotion_v1",
+      "title": "Approval Kind",
+      "type": "string"
+    },
+    "approval_id": {
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "trial_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Trial Id",
+      "type": "string"
+    },
+    "decision_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Decision Sha256",
+      "type": "string"
+    },
+    "baseline_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Scene Spec Sha256",
+      "type": "string"
+    },
+    "candidate_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Scene Spec Sha256",
+      "type": "string"
+    },
+    "approved_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Approved By",
+      "type": "string"
+    },
+    "approval_note": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Approval Note"
+    },
+    "approved_at": {
+      "format": "date-time",
+      "title": "Approved At",
+      "type": "string"
+    },
+    "one_time": {
+      "const": true,
+      "default": true,
+      "title": "One Time",
+      "type": "boolean"
+    },
+    "used": {
+      "default": false,
+      "title": "Used",
+      "type": "boolean"
+    },
+    "used_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Used At"
+    }
+  },
+  "required": [
+    "approval_id",
+    "job_id",
+    "trial_id",
+    "decision_sha256",
+    "baseline_scene_spec_sha256",
+    "candidate_scene_spec_sha256",
+    "approved_at"
+  ],
+  "title": "CandidateReviewApproval",
+  "type": "object"
+}

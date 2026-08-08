@@ -392,11 +392,170 @@ def _bind_revision_modeling_plan_contract(
         if not step.step_id.startswith("revision.") or step.step_id in {
             "revision.author",
             "revision.approval",
+            "revision.promotion_approval",
         }:
             continue
-        steps[index] = step.model_copy(
-            update={"parameters": {**step.parameters, **binding}}
-        )
+        steps[index] = step.model_copy(update={"parameters": {**step.parameters, **binding}})
+
+
+def _append_candidate_review_revision_flow(
+    steps: list[WorkflowStep],
+    request: WorkflowRequest,
+    *,
+    assembly_consistency_policy: str,
+) -> str:
+    """Append isolated evaluation and one final exact promotion approval for revisions."""
+
+    trial_id = f"cr-{request.workflow_id[-16:]}"
+    plan_path = f"workflows/{request.workflow_id}/artifacts/r/revision_plan.json"
+    trial_root = f"qa/candidate_reviews/{trial_id}"
+    instructions = (
+        [
+            (
+                "Preserve every current spatial_v1 assembly relationship and parent-local "
+                "placement unless the user's exact request explicitly targets it."
+            ),
+            (
+                "Author only bounded existing-object transform or parametric geometry edits; "
+                "camera, materials, semantic membership, custom-mesh vertices, and redesign "
+                "work are outside candidate_review."
+            ),
+            (
+                "The plan is evaluated in a workflow-owned candidate. Do not write the "
+                "canonical SceneSpec or analysis/revision_plan.json."
+            ),
+        ]
+        if assembly_consistency_policy == "spatial_v1"
+        else [
+            (
+                "The exact source ModelingPlan is legacy_unbound. Preserve stable semantic "
+                "IDs and author only bounded existing-object parametric edits."
+            ),
+            (
+                "The plan is evaluated in a workflow-owned candidate. Do not write the "
+                "canonical SceneSpec or analysis/revision_plan.json."
+            ),
+        ]
+    )
+    steps.extend(
+        [
+            _step(
+                "revision.author",
+                "Author workflow-owned candidate RevisionPlan",
+                "geometry",
+                "agent",
+                tool="author_revision_plan",
+                outputs=[
+                    _artifact(
+                        "revision.candidate_plan",
+                        plan_path,
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    )
+                ],
+                instructions=instructions,
+            ),
+            _step(
+                "revision.evaluate",
+                "Build and compare isolated baseline and revision candidate",
+                "qa",
+                "host",
+                tool="evaluate_candidate_revision",
+                depends_on=["revision.author"],
+                outputs=[
+                    _artifact(
+                        "revision.candidate_decision",
+                        f"{trial_root}/decision_manifest.json",
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    ),
+                    _artifact(
+                        "revision.candidate_report",
+                        f"{trial_root}/candidate_review_report.pdf",
+                        lifecycle="immutable_run",
+                    ),
+                    _artifact(
+                        "revision.candidate_report_manifest",
+                        f"{trial_root}/candidate_review_report.manifest.json",
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    ),
+                ],
+                parameters={
+                    "trial_id": trial_id,
+                    "revision_plan_path": plan_path,
+                    "minimum_improvement": 0.001,
+                    "require_new_output": True,
+                },
+            ),
+            _step(
+                "revision.promotion_approval",
+                "Approve exact candidate-review promotion decision",
+                "qa",
+                "specialized_approval",
+                depends_on=["revision.evaluate"],
+                outputs=[
+                    _artifact(
+                        "revision.candidate_approval",
+                        f"{trial_root}/promotion_approval.json",
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    )
+                ],
+                gate="visual_revision",
+                parameters={"trial_id": trial_id},
+                instructions=[
+                    (
+                        "Show the exact decision_manifest.json SHA-256, before/after direct "
+                        "score, silhouette, constraints, changed IDs, blockers, and the "
+                        "derived candidate_review_report.pdf."
+                    ),
+                    (
+                        "Only one exact approval is required here; internal plan and build "
+                        "fingerprints remain machine-verified and are not separate user gates."
+                    ),
+                ],
+            ),
+            _step(
+                "revision.promote",
+                "Promote approved candidate and rebuild canonical authoring outputs",
+                "geometry",
+                "host",
+                tool="promote_candidate_revision",
+                depends_on=["revision.promotion_approval"],
+                outputs=[
+                    _artifact(
+                        "revision.promoted_scene_spec",
+                        "analysis/scene_spec.json",
+                        acceptance="valid_json",
+                        canonical=True,
+                    ),
+                    _artifact(
+                        "revision.promoted_blend",
+                        "blender/scene.blend",
+                    ),
+                    _artifact(
+                        "revision.promoted_inventory",
+                        "reports/scene_inventory.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "revision.promoted_validation",
+                        "reports/validation.json",
+                        acceptance="valid_json",
+                    ),
+                    _artifact(
+                        "revision.promotion_receipt",
+                        f"{trial_root}/promotion_receipt.json",
+                        acceptance="valid_json",
+                        lifecycle="immutable_run",
+                    ),
+                ],
+                parameters={"trial_id": trial_id, "require_new_output": True},
+            ),
+        ]
+    )
+    return "revision.promote"
 
 
 def _append_proxy_flow(
@@ -1104,8 +1263,7 @@ def _append_qa_flow(
             depends_on=[report],
             gate="qa_review",
             instructions=[
-                "This approval acknowledges the exact report; it does not authorize "
-                "a revision.",
+                "This approval acknowledges the exact report; it does not authorize a revision.",
                 "Apply candidates only through the separate hash-bound visual-revision flow.",
             ],
         )
@@ -1122,10 +1280,7 @@ def _append_background_eligibility(
 ) -> str:
     """Append review-delivery quality classification without rewriting V0.6 evidence."""
 
-    output = (
-        "reports/background_delivery/"
-        f"{request.workflow_id}_quality.json"
-    )
+    output = f"reports/background_delivery/{request.workflow_id}_quality.json"
     fit_root = f"workflows/{request.workflow_id}/artifacts/g/fit"
     steps.append(
         _step(
@@ -1530,8 +1685,7 @@ def _append_portable_flow(
         suffix = request.workflow_id[-8:]
         handoff_id = f"v08-{suffix}-handoff"
         handoff_root = (
-            "exports/destination_handoffs/"
-            f"{request.profile_id}/{package_id}/{handoff_id}"
+            f"exports/destination_handoffs/{request.profile_id}/{package_id}/{handoff_id}"
         )
         steps.append(
             _step(
@@ -1677,10 +1831,7 @@ def _bind_artifact_lifecycle(
                     f"{step.step_id}\0{output.path}".encode()
                 ).hexdigest()[:16]
                 suffix = PurePosixPath(output.path).suffix
-                snapshot_path = (
-                    f"workflows/{workflow_id}/artifacts/s/"
-                    f"{snapshot_key}{suffix}"
-                )
+                snapshot_path = f"workflows/{workflow_id}/artifacts/s/{snapshot_key}{suffix}"
                 outputs.append(
                     output.model_copy(
                         update={
@@ -1722,17 +1873,14 @@ def build_workflow_plan(
         request.execution_policy != routing.execution_policy
         or request.delivery_scope != routing.delivery_scope
     ):
-        raise ValueError(
-            "workflow request and routing execution policies do not match"
-        )
+        raise ValueError("workflow request and routing execution policies do not match")
     steps: list[WorkflowStep] = []
     scope = _scope_for_routing(request, routing)
     if routing.intent == "revise_asset":
         if existing_modeling_plan_sha256 is None:
             raise ValueError("revise_asset requires an exact existing ModelingPlan SHA-256")
         if len(existing_modeling_plan_sha256) != 64 or any(
-            character not in "0123456789abcdef"
-            for character in existing_modeling_plan_sha256
+            character not in "0123456789abcdef" for character in existing_modeling_plan_sha256
         ):
             raise ValueError("revise_asset ModelingPlan SHA-256 must be lowercase hex")
         if existing_assembly_consistency_policy not in {
@@ -1760,10 +1908,7 @@ def build_workflow_plan(
         )
         if request.execution_policy == "background_exterior":
             qa_run_id = f"v08-{request.workflow_id[-8:]}-qa"
-            quality_path = (
-                "reports/background_delivery/"
-                f"{request.workflow_id}_quality.json"
-            )
+            quality_path = f"reports/background_delivery/{request.workflow_id}_quality.json"
             terminal = _append_background_geometry_flow(
                 steps,
                 "job.created",
@@ -1813,9 +1958,7 @@ def build_workflow_plan(
                 "background_quality_report_path": quality_path,
             }
             if request.delivery_scope == "portable_package":
-                optimization_run_id, _conversion_id, package_id = _portable_ids(
-                    request
-                )
+                optimization_run_id, _conversion_id, package_id = _portable_ids(request)
                 report_parameters.update(
                     {
                         "optimization_run_id": optimization_run_id,
@@ -1891,107 +2034,106 @@ def build_workflow_plan(
         )
         terminal = "reference.analyze"
     elif routing.intent == "revise_asset":
-        steps.extend(
-            [
-                _step(
-                    "revision.author",
-                    "Author minimal guarded RevisionPlan",
-                    "geometry",
-                    "agent",
-                    tool="author_revision_plan",
-                    outputs=[
-                        _artifact(
-                            "revision.plan",
-                            "analysis/revision_plan.json",
-                            acceptance="valid_json",
-                            canonical=True,
-                        )
-                    ],
-                    instructions=(
-                        [
-                            (
-                                "Preserve every current spatial_v1 assembly relationship and "
-                                "parent-local placement unless the user's exact request "
-                                "explicitly targets that relationship."
-                            ),
-                            (
-                                "Do not convert a 2D reference-screen offset into an "
-                                "unobserved depth/lateral revision; keep inferred hidden-axis "
-                                "assumptions and stable subject/reference IDs intact."
-                            ),
-                        ]
-                        if existing_assembly_consistency_policy == "spatial_v1"
-                        else [
-                            (
-                                "The exact source ModelingPlan is legacy_unbound. Preserve "
-                                "stable semantic IDs and do not claim spatial-v1 assembly or "
-                                "multi-view evidence; migration requires a separate review."
-                            )
-                        ]
-                    ),
-                ),
-                _step(
-                    "revision.approval",
-                    "Approve exact guarded revision plan",
-                    "geometry",
-                    "approval",
-                    depends_on=["revision.author"],
-                    gate="detailed_geometry",
-                ),
-                _step(
-                    "revision.apply",
-                    "Apply guarded revision and archive previous SceneSpec",
-                    "geometry",
-                    "host",
-                    tool="apply_revision_plan",
-                    depends_on=["revision.approval"],
-                    outputs=[
-                        _artifact(
-                            "revision.scene_spec",
-                            "analysis/scene_spec.json",
-                            acceptance="valid_json",
-                            canonical=True,
-                        ),
-                        _artifact(
-                            "revision.diff",
-                            "reports/revision_diff.json",
-                            acceptance="valid_json",
-                        ),
-                    ],
-                    parameters={
-                        "require_new_output": True,
-                        "expected_modeling_plan_sha256": str(
-                            existing_modeling_plan_sha256
-                        ),
-                        "expected_assembly_consistency_policy": str(
-                            existing_assembly_consistency_policy
-                        ),
-                    },
-                ),
-            ]
-        )
-        terminal = _append_build_cycle(steps, "revision.apply", "revision")
-        if existing_assembly_consistency_policy == "spatial_v1":
-            terminal, review_run_id = _append_geometry_multiview_review(
+        if request.revision_strategy == "candidate_review":
+            terminal = _append_candidate_review_revision_flow(
                 steps,
-                terminal,
-                workflow_id=request.workflow_id,
-                prefix="revision",
-            )
-            terminal = _append_pdf_report(
-                steps,
-                terminal,
-                "revision",
-                "build",
-                parameters={"assembly_sanity_run_id": review_run_id},
+                request,
+                assembly_consistency_policy=str(existing_assembly_consistency_policy),
             )
         else:
-            terminal = _append_pdf_report(
-                steps,
-                terminal,
-                "revision",
-                "build",
+            steps.extend(
+                [
+                    _step(
+                        "revision.author",
+                        "Author minimal guarded RevisionPlan",
+                        "geometry",
+                        "agent",
+                        tool="author_revision_plan",
+                        outputs=[
+                            _artifact(
+                                "revision.plan",
+                                "analysis/revision_plan.json",
+                                acceptance="valid_json",
+                                canonical=True,
+                            )
+                        ],
+                        instructions=(
+                            [
+                                (
+                                    "Preserve every current spatial_v1 assembly relationship "
+                                    "and parent-local placement unless the user's exact request "
+                                    "explicitly targets that relationship."
+                                ),
+                                (
+                                    "Do not convert a 2D reference-screen offset into an "
+                                    "unobserved depth/lateral revision; keep inferred hidden-axis "
+                                    "assumptions and stable subject/reference IDs intact."
+                                ),
+                            ]
+                            if existing_assembly_consistency_policy == "spatial_v1"
+                            else [
+                                (
+                                    "The exact source ModelingPlan is legacy_unbound. Preserve "
+                                    "stable semantic IDs and do not claim spatial-v1 assembly or "
+                                    "multi-view evidence; migration requires a separate review."
+                                )
+                            ]
+                        ),
+                    ),
+                    _step(
+                        "revision.approval",
+                        "Approve exact guarded revision plan",
+                        "geometry",
+                        "approval",
+                        depends_on=["revision.author"],
+                        gate="detailed_geometry",
+                    ),
+                    _step(
+                        "revision.apply",
+                        "Apply guarded revision and archive previous SceneSpec",
+                        "geometry",
+                        "host",
+                        tool="apply_revision_plan",
+                        depends_on=["revision.approval"],
+                        outputs=[
+                            _artifact(
+                                "revision.scene_spec",
+                                "analysis/scene_spec.json",
+                                acceptance="valid_json",
+                                canonical=True,
+                            ),
+                            _artifact(
+                                "revision.diff",
+                                "reports/revision_diff.json",
+                                acceptance="valid_json",
+                            ),
+                        ],
+                        parameters={"require_new_output": True},
+                    ),
+                ]
             )
+            terminal = _append_build_cycle(steps, "revision.apply", "revision")
+            if existing_assembly_consistency_policy == "spatial_v1":
+                terminal, review_run_id = _append_geometry_multiview_review(
+                    steps,
+                    terminal,
+                    workflow_id=request.workflow_id,
+                    prefix="revision",
+                )
+                terminal = _append_pdf_report(
+                    steps,
+                    terminal,
+                    "revision",
+                    "build",
+                    parameters={"assembly_sanity_run_id": review_run_id},
+                )
+            else:
+                terminal = _append_pdf_report(
+                    steps,
+                    terminal,
+                    "revision",
+                    "build",
+                )
         _bind_revision_modeling_plan_contract(
             steps,
             modeling_plan_sha256=str(existing_modeling_plan_sha256),
@@ -2138,17 +2280,14 @@ def build_workflow_plan(
             prerequisite_tool = "verify_background_preview_prerequisite"
             prerequisite_title = "Verify exact completed background preview binding"
             binding_output = (
-                "reports/background_delivery/"
-                f"{request.workflow_id}_preview_binding.json"
+                f"reports/background_delivery/{request.workflow_id}_preview_binding.json"
             )
             prerequisite_parameters = {
                 "require_new_output": True,
                 "output_path": binding_output,
                 "preview_workflow_id": binding.workflow_id,
                 "preview_plan_sha256": binding.plan_sha256,
-                "preview_terminal_fingerprint": (
-                    binding.terminal_completion_fingerprint
-                ),
+                "preview_terminal_fingerprint": (binding.terminal_completion_fingerprint),
                 "source_fingerprint": binding.source_fingerprint,
                 "build_fingerprint": binding.build_fingerprint,
             }
@@ -2160,9 +2299,7 @@ def build_workflow_plan(
                             binding.standard_workflow_recommended
                         ),
                         "quality_report_path": binding.quality_report_path,
-                        "quality_report_sha256": str(
-                            binding.quality_report_sha256
-                        ),
+                        "quality_report_sha256": str(binding.quality_report_sha256),
                     }
                 )
             prerequisite_output = _artifact(
@@ -2185,9 +2322,7 @@ def build_workflow_plan(
             steps,
             "geometry.prerequisite",
             request,
-            require_final_review=(
-                request.execution_policy != "background_exterior"
-            ),
+            require_final_review=(request.execution_policy != "background_exterior"),
             source_quality_path=(
                 request.background_preview_binding.quality_report_path
                 if request.execution_policy == "background_exterior"
@@ -2197,9 +2332,7 @@ def build_workflow_plan(
         )
         if request.execution_policy == "background_exterior":
             delivery_prefix = f"background_delivery_{request.workflow_id[-8:]}"
-            optimization_run_id, _conversion_id, package_id = _portable_ids(
-                request
-            )
+            optimization_run_id, _conversion_id, package_id = _portable_ids(request)
             terminal = _append_pdf_report(
                 steps,
                 terminal,
@@ -2215,8 +2348,7 @@ def build_workflow_plan(
                                 request.background_preview_binding.quality_report_path
                             )
                         }
-                        if request.background_preview_binding.quality_report_path
-                        is not None
+                        if request.background_preview_binding.quality_report_path is not None
                         else {}
                     ),
                 },
@@ -2249,7 +2381,13 @@ def build_workflow_plan(
                 "background_exterior omits generic review gates but never bypasses "
                 "specialized approvals."
                 if request.execution_policy == "background_exterior"
-                else "standard preserves every generic and specialized review boundary."
+                else (
+                    "standard candidate_review omits only the pre-execution RevisionPlan "
+                    "approval and retains one exact post-evaluation promotion approval."
+                    if request.revision_strategy == "candidate_review"
+                    else "standard manual_guarded preserves every legacy generic and "
+                    "specialized review boundary."
+                )
             ),
             *(
                 [

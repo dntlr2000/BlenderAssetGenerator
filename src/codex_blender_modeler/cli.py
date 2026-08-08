@@ -32,6 +32,10 @@ from .auto_revision import (
     plan_job_visual_convergence,
     run_job_visual_convergence,
 )
+from .auto_revision.candidate_review_service import (
+    approve_candidate_review,
+    get_candidate_review_status,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -145,11 +149,7 @@ def _scene_spec_path(job_id: str) -> Path:
 def _scene_spec_candidate_path(job_id: str, operation: str) -> Path:
     """Create one collision-resistant job-local candidate path for a CLI writer."""
 
-    return (
-        job_dir(job_id)
-        / "analysis"
-        / f".scene_spec.{operation}-{uuid4().hex}.next.json"
-    )
+    return job_dir(job_id) / "analysis" / f".scene_spec.{operation}-{uuid4().hex}.next.json"
 
 
 def _cli_scene_spec_lock_owner(operation: str) -> str:
@@ -206,8 +206,7 @@ def _parse_convergence_path_limits(
             parsed.append(ConvergencePathLimit.model_validate(payload))
         except (json.JSONDecodeError, ValueError, TypeError) as exc:
             raise typer.BadParameter(
-                f"--path-limit-json item {index} is not a valid strict "
-                f"ConvergencePathLimit: {exc}"
+                f"--path-limit-json item {index} is not a valid strict ConvergencePathLimit: {exc}"
             ) from exc
     return parsed
 
@@ -257,9 +256,7 @@ def new_job(
     reference_content_scope: Annotated[
         str, typer.Option("--reference-content-scope")
     ] = "full_reference",
-    target_subject: Annotated[
-        str | None, typer.Option("--target-subject")
-    ] = None,
+    target_subject: Annotated[str | None, typer.Option("--target-subject")] = None,
     scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
     view: Annotated[
         list[str] | None,
@@ -422,9 +419,7 @@ def analyze(job_id: str) -> None:
     )
     console.print(f"SceneSpec created: {output} ({len(spec.objects)} objects)")
     if replacement["archived_scene_spec"]:
-        console.print(
-            f"Previous revision archived: {replacement['archived_scene_spec']}"
-        )
+        console.print(f"Previous revision archived: {replacement['archived_scene_spec']}")
 
 
 @app.command()
@@ -463,9 +458,7 @@ def revise(job_id: str, request: str) -> None:
     )
     console.print(f"Revised SceneSpec written: {current}")
     if replacement["archived_scene_spec"]:
-        console.print(
-            f"Previous revision archived: {replacement['archived_scene_spec']}"
-        )
+        console.print(f"Previous revision archived: {replacement['archived_scene_spec']}")
 
 
 @app.command("migrate-spec")
@@ -490,10 +483,7 @@ def migrate_spec(job_id: str) -> None:
     )
     console.print(f"Migrated to SceneSpec v0.2.0: {current}")
     if replacement["archived_scene_spec"]:
-        console.print(
-            f"Previous revision archived: {replacement['archived_scene_spec']}"
-        )
-
+        console.print(f"Previous revision archived: {replacement['archived_scene_spec']}")
 
 
 @app.command("plan-revision")
@@ -506,9 +496,7 @@ def plan_revision(job_id: str, request: str) -> None:
     images = find_input_images(job_id)
     if preview.is_file():
         images.append(preview)
-    template = (settings.repo_root / "prompts" / "plan_revision.md").read_text(
-        encoding="utf-8"
-    )
+    template = (settings.repo_root / "prompts" / "plan_revision.md").read_text(encoding="utf-8")
     base_hash = sha256_file(current)
     prompt = (
         template
@@ -558,11 +546,8 @@ def apply_revision(job_id: str) -> None:
     )
     console.print(f"Guarded revision applied: {current}")
     if replacement["archived_scene_spec"]:
-        console.print(
-            f"Previous revision archived: {replacement['archived_scene_spec']}"
-        )
+        console.print(f"Previous revision archived: {replacement['archived_scene_spec']}")
     console.print(f"Exact diff report: {report_path}")
-
 
 
 @app.command("init-constraints")
@@ -662,16 +647,12 @@ def generate_procedural_textures(
     intended_scale_m: Annotated[float, typer.Option("--scale-m", min=0.000001)] = 1.0,
     prompt: Annotated[str, typer.Option("--prompt")] = "",
     uv_set: Annotated[str, typer.Option("--uv-set")] = "Object",
-    surface_detail_id: Annotated[
-        list[str] | None, typer.Option("--surface-detail-id")
-    ] = None,
+    surface_detail_id: Annotated[list[str] | None, typer.Option("--surface-detail-id")] = None,
     surface_detail_binding_json: Annotated[
         list[str] | None, typer.Option("--surface-detail-binding-json")
     ] = None,
     detail_pattern: Annotated[str, typer.Option("--detail-pattern")] = "none",
-    output_relative_dir: Annotated[
-        str | None, typer.Option("--output-relative-dir")
-    ] = None,
+    output_relative_dir: Annotated[str | None, typer.Option("--output-relative-dir")] = None,
     overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
     attach: Annotated[bool, typer.Option("--attach/--no-attach")] = True,
 ) -> None:
@@ -689,15 +670,14 @@ def generate_procedural_textures(
                 "surface-detail-binding-json must contain one JSON object"
             ) from exc
         if not isinstance(payload, dict):
-            raise typer.BadParameter(
-                "surface-detail-binding-json must contain one JSON object"
-            )
+            raise typer.BadParameter("surface-detail-binding-json must contain one JSON object")
         bindings.append(payload)
     result = generate_job_procedural_textures(
         job_id,
         material_id,
         preset=preset,
-        channels=channel or (
+        channels=channel
+        or (
             "base_color",
             "roughness",
             "metallic",
@@ -794,15 +774,9 @@ def report_pdf(
     job_id: str,
     scope: Annotated[str, typer.Option("--scope")] = "full",
     qa_run_id: Annotated[str, typer.Option("--qa-run-id")] = "latest",
-    interior_qa_run_id: Annotated[
-        str, typer.Option("--interior-qa-run-id")
-    ] = "latest",
-    assembly_sanity_run_id: Annotated[
-        str | None, typer.Option("--assembly-sanity-run-id")
-    ] = None,
-    optimization_run_id: Annotated[
-        str, typer.Option("--optimization-run-id")
-    ] = "latest",
+    interior_qa_run_id: Annotated[str, typer.Option("--interior-qa-run-id")] = "latest",
+    assembly_sanity_run_id: Annotated[str | None, typer.Option("--assembly-sanity-run-id")] = None,
+    optimization_run_id: Annotated[str, typer.Option("--optimization-run-id")] = "latest",
     package_id: Annotated[str, typer.Option("--package-id")] = "latest",
     output: Annotated[Path | None, typer.Option("--output")] = None,
 ) -> None:
@@ -832,16 +806,10 @@ def visual_qa(
     generated_target: Annotated[bool, typer.Option("--generated-target")] = False,
     target_image: Annotated[Path | None, typer.Option("--target-image")] = None,
     target_model: Annotated[str, typer.Option("--target-model")] = "external-image-model",
-    target_model_version: Annotated[
-        str | None, typer.Option("--target-model-version")
-    ] = None,
+    target_model_version: Annotated[str | None, typer.Option("--target-model-version")] = None,
     target_seed: Annotated[int | None, typer.Option("--target-seed", min=0)] = None,
-    target_allowed_root: Annotated[
-        Path | None, typer.Option("--target-allowed-root")
-    ] = None,
-    target_prompt_file: Annotated[
-        Path | None, typer.Option("--target-prompt-file")
-    ] = None,
+    target_allowed_root: Annotated[Path | None, typer.Option("--target-allowed-root")] = None,
+    target_prompt_file: Annotated[Path | None, typer.Option("--target-prompt-file")] = None,
 ) -> None:
     """Render V0.6 passes and optionally import one advisory image-model target."""
 
@@ -865,9 +833,12 @@ def visual_qa(
     target_prompt = None
     if target_prompt_file is not None:
         try:
-            target_prompt = target_prompt_file.expanduser().resolve(strict=True).read_text(
-                encoding="utf-8"
-            ).strip()
+            target_prompt = (
+                target_prompt_file.expanduser()
+                .resolve(strict=True)
+                .read_text(encoding="utf-8")
+                .strip()
+            )
         except OSError as exc:
             raise typer.BadParameter(f"Cannot read target prompt file: {exc}") from exc
         if not target_prompt:
@@ -968,15 +939,11 @@ def qa_apply_approved(
 def qa_convergence_plan(
     job_id: str,
     initial_qa_run_id: str,
-    target_direct_score: Annotated[
-        float, typer.Option("--target-direct-score", min=0.0, max=1.0)
-    ],
+    target_direct_score: Annotated[float, typer.Option("--target-direct-score", min=0.0, max=1.0)],
     target_silhouette_iou: Annotated[
         float, typer.Option("--target-silhouette-iou", min=0.0, max=1.0)
     ],
-    allowed_target_id: Annotated[
-        list[str] | None, typer.Option("--allowed-target-id")
-    ] = None,
+    allowed_target_id: Annotated[list[str] | None, typer.Option("--allowed-target-id")] = None,
     session_id: Annotated[str | None, typer.Option("--session-id")] = None,
     minimum_iteration_gain: Annotated[
         float, typer.Option("--minimum-iteration-gain", min=0.000001, max=1.0)
@@ -984,18 +951,10 @@ def qa_convergence_plan(
     minimum_candidate_confidence: Annotated[
         float, typer.Option("--minimum-candidate-confidence", min=0.0, max=1.0)
     ] = 0.8,
-    max_iterations: Annotated[
-        int, typer.Option("--max-iterations", min=1, max=5)
-    ] = 3,
-    max_candidate_groups: Annotated[
-        int, typer.Option("--max-candidate-groups", min=1, max=20)
-    ] = 3,
-    max_candidates: Annotated[
-        int, typer.Option("--max-candidates", min=1, max=100)
-    ] = 12,
-    max_changed_ids: Annotated[
-        int, typer.Option("--max-changed-ids", min=1, max=50)
-    ] = 6,
+    max_iterations: Annotated[int, typer.Option("--max-iterations", min=1, max=5)] = 3,
+    max_candidate_groups: Annotated[int, typer.Option("--max-candidate-groups", min=1, max=20)] = 3,
+    max_candidates: Annotated[int, typer.Option("--max-candidates", min=1, max=100)] = 12,
+    max_changed_ids: Annotated[int, typer.Option("--max-changed-ids", min=1, max=50)] = 6,
     path_limit_json: Annotated[
         list[str] | None,
         typer.Option(
@@ -1100,56 +1059,32 @@ def asset_profile_init(
     job_id: str,
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     asset_kind: Annotated[str, typer.Option("--asset-kind")] = "static_prop",
-    consolidation: Annotated[
-        str, typer.Option("--consolidation")
-    ] = "by_semantic_group",
-    spatial_cell_size_m: Annotated[
-        float, typer.Option("--spatial-cell-size-m")
-    ] = 25.0,
-    maximum_objects_per_batch: Annotated[
-        int, typer.Option("--maximum-objects-per-batch")
-    ] = 64,
+    consolidation: Annotated[str, typer.Option("--consolidation")] = "by_semantic_group",
+    spatial_cell_size_m: Annotated[float, typer.Option("--spatial-cell-size-m")] = 25.0,
+    maximum_objects_per_batch: Annotated[int, typer.Option("--maximum-objects-per-batch")] = 64,
     lod_mode: Annotated[str, typer.Option("--lod-mode")] = "profile_default",
-    generate_uv1: Annotated[
-        bool | None, typer.Option("--generate-uv1/--no-generate-uv1")
-    ] = None,
+    generate_uv1: Annotated[bool | None, typer.Option("--generate-uv1/--no-generate-uv1")] = None,
     pivot_policy: Annotated[str, typer.Option("--pivot-policy")] = "keep",
-    collision_strategy: Annotated[
-        str, typer.Option("--collision-strategy")
-    ] = "profile_default",
+    collision_strategy: Annotated[str, typer.Option("--collision-strategy")] = "profile_default",
     max_collider_hulls_per_object: Annotated[
         int, typer.Option("--max-collider-hulls-per-object")
     ] = 8,
     max_collider_triangles_per_object: Annotated[
         int, typer.Option("--max-collider-triangles-per-object")
     ] = 256,
-    budget_enforcement: Annotated[
-        str, typer.Option("--budget-enforcement")
-    ] = "warning",
-    max_render_objects: Annotated[
-        int | None, typer.Option("--max-render-objects")
-    ] = None,
-    max_material_slots: Annotated[
-        int | None, typer.Option("--max-material-slots")
-    ] = None,
+    budget_enforcement: Annotated[str, typer.Option("--budget-enforcement")] = "warning",
+    max_render_objects: Annotated[int | None, typer.Option("--max-render-objects")] = None,
+    max_material_slots: Annotated[int | None, typer.Option("--max-material-slots")] = None,
     max_draw_calls: Annotated[int | None, typer.Option("--max-draw-calls")] = None,
-    max_lod0_triangles: Annotated[
-        int | None, typer.Option("--max-lod0-triangles")
-    ] = None,
-    max_collider_triangles: Annotated[
-        int | None, typer.Option("--max-collider-triangles")
-    ] = None,
-    max_overlap_candidates: Annotated[
-        int | None, typer.Option("--max-overlap-candidates")
-    ] = None,
+    max_lod0_triangles: Annotated[int | None, typer.Option("--max-lod0-triangles")] = None,
+    max_collider_triangles: Annotated[int | None, typer.Option("--max-collider-triangles")] = None,
+    max_overlap_candidates: Annotated[int | None, typer.Option("--max-overlap-candidates")] = None,
     overwrite: Annotated[bool, typer.Option("--overwrite")] = False,
 ) -> None:
     """Initialize one engine-neutral profile with explicit optimization defaults."""
 
     if profile not in {"portable_gltf", "fbx_interchange", "obj_legacy"}:
-        raise typer.BadParameter(
-            "profile must be portable_gltf, fbx_interchange, or obj_legacy"
-        )
+        raise typer.BadParameter("profile must be portable_gltf, fbx_interchange, or obj_legacy")
     if asset_kind not in {"static_prop", "static_environment", "static_architecture"}:
         raise typer.BadParameter(
             "asset-kind must be static_prop, static_environment, or static_architecture"
@@ -1163,9 +1098,7 @@ def asset_profile_init(
     if lod_mode not in {"profile_default", "enabled", "disabled"}:
         raise typer.BadParameter("lod-mode must be profile_default, enabled, or disabled")
     if pivot_policy not in {"keep", "bounds_center", "base_center"}:
-        raise typer.BadParameter(
-            "pivot-policy must be keep, bounds_center, or base_center"
-        )
+        raise typer.BadParameter("pivot-policy must be keep, bounds_center, or base_center")
     if collision_strategy not in {
         "profile_default",
         "none",
@@ -1262,8 +1195,7 @@ def interior_scope_approve(
 
     expected_confirmation = f"APPROVE {scope_sha256}"
     confirmation = typer.prompt(
-        "Manual approval required. Type the exact phrase "
-        f"'{expected_confirmation}'"
+        f"Manual approval required. Type the exact phrase '{expected_confirmation}'"
     )
     if confirmation.strip() != expected_confirmation:
         raise typer.Abort()
@@ -1341,9 +1273,7 @@ def qa_semantic_masks_status(job_id: str) -> None:
 def qa_diagnose(
     job_id: str,
     qa_run_id: Annotated[str, typer.Option("--qa-run-id")],
-    diagnostic_id: Annotated[
-        str, typer.Option("--diagnostic-id")
-    ] = "camera-geometry-v1",
+    diagnostic_id: Annotated[str, typer.Option("--diagnostic-id")] = "camera-geometry-v1",
     max_camera_probes: Annotated[
         int,
         typer.Option(
@@ -1408,9 +1338,7 @@ def interior_qa_plan(
     profile: Annotated[str, typer.Option("--profile")] = "standard",
     resolution: Annotated[int, typer.Option("--resolution", min=128, max=2048)] = 512,
     max_views: Annotated[int, typer.Option("--max-views", min=1, max=64)] = 24,
-    eye_height_m: Annotated[
-        float, typer.Option("--eye-height-m", min=0.01, max=3.0)
-    ] = 1.6,
+    eye_height_m: Annotated[float, typer.Option("--eye-height-m", min=0.01, max=3.0)] = 1.6,
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
 ) -> None:
     """Plan isolated multi-view interior QA and stop for exact hash approval."""
@@ -1452,9 +1380,7 @@ def interior_qa_plan_approve(
 def interior_qa_run(
     job_id: str,
     run_id: Annotated[str, typer.Option("--run-id")],
-    approved_plan_sha256: Annotated[
-        str, typer.Option("--approved-plan-sha256")
-    ],
+    approved_plan_sha256: Annotated[str, typer.Option("--approved-plan-sha256")],
     render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
     render_device: Annotated[str, typer.Option("--render-device")] = "auto",
 ) -> None:
@@ -1568,9 +1494,7 @@ def asset_preflight(
 @app.command("asset-optimize")
 def asset_optimize(
     job_id: str,
-    approved_plan_sha256: Annotated[
-        str, typer.Option("--approved-plan-sha256")
-    ],
+    approved_plan_sha256: Annotated[str, typer.Option("--approved-plan-sha256")],
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
 ) -> None:
@@ -1621,9 +1545,7 @@ def asset_package(
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
     package_id: Annotated[str | None, typer.Option("--package-id")] = None,
-    material_conversion_id: Annotated[
-        str | None, typer.Option("--material-conversion-id")
-    ] = None,
+    material_conversion_id: Annotated[str | None, typer.Option("--material-conversion-id")] = None,
     include_colliders: Annotated[
         bool, typer.Option("--include-colliders/--exclude-colliders")
     ] = True,
@@ -1702,9 +1624,7 @@ def handoff_plan_command(
     profile: Annotated[str, typer.Option("--profile")],
     package_id: Annotated[str, typer.Option("--package-id")],
     handoff_id: Annotated[str | None, typer.Option("--handoff-id")] = None,
-    destination_hint: Annotated[
-        str | None, typer.Option("--destination-hint")
-    ] = None,
+    destination_hint: Annotated[str | None, typer.Option("--destination-hint")] = None,
 ) -> None:
     """Plan one package-bound destination handoff without copying or changing assets."""
 
@@ -1758,9 +1678,7 @@ def handoff_validate_command(
 def handoff_status_command(job_id: str) -> None:
     """Show planned, generated, valid, invalid, and stale destination handoffs."""
 
-    console.print_json(
-        json.dumps(get_destination_handoff_status(job_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_destination_handoff_status(job_id), ensure_ascii=False))
 
 
 @app.command("workflow-plan")
@@ -1773,45 +1691,30 @@ def workflow_plan_command(
     reference_content_scope: Annotated[
         str | None, typer.Option("--reference-content-scope")
     ] = None,
-    target_subject: Annotated[
-        str | None, typer.Option("--target-subject")
-    ] = None,
-    execution_policy: Annotated[
-        str, typer.Option("--execution-policy")
-    ] = "standard",
-    delivery_scope: Annotated[
-        str | None, typer.Option("--delivery-scope")
-    ] = None,
+    target_subject: Annotated[str | None, typer.Option("--target-subject")] = None,
+    execution_policy: Annotated[str, typer.Option("--execution-policy")] = "standard",
+    revision_strategy: Annotated[str, typer.Option("--revision-strategy")] = "candidate_review",
+    delivery_scope: Annotated[str | None, typer.Option("--delivery-scope")] = None,
     mode: Annotated[str, typer.Option("--mode")] = "concept",
     view_kind: Annotated[str | None, typer.Option("--view-kind")] = None,
     replace_view: Annotated[bool, typer.Option("--replace-view")] = False,
     scale_anchor: Annotated[list[str] | None, typer.Option("--scale-anchor")] = None,
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     destination: Annotated[str, typer.Option("--destination")] = "unspecified",
-    destination_name: Annotated[
-        str | None, typer.Option("--destination-name")
-    ] = None,
-    destination_version: Annotated[
-        str | None, typer.Option("--destination-version")
-    ] = None,
+    destination_name: Annotated[str | None, typer.Option("--destination-name")] = None,
+    destination_version: Annotated[str | None, typer.Option("--destination-version")] = None,
     max_host_steps: Annotated[int, typer.Option("--max-host-steps", min=1, max=64)] = 8,
-    max_qa_iterations: Annotated[
-        int, typer.Option("--max-qa-iterations", min=0, max=10)
-    ] = 1,
+    max_qa_iterations: Annotated[int, typer.Option("--max-qa-iterations", min=0, max=10)] = 1,
     max_texture_resolution: Annotated[
         int, typer.Option("--max-texture-resolution", min=16, max=8192)
     ] = 2048,
-    max_lod0_triangles: Annotated[
-        int | None, typer.Option("--max-lod0-triangles", min=1)
-    ] = None,
+    max_lod0_triangles: Annotated[int | None, typer.Option("--max-lod0-triangles", min=1)] = None,
     external_provider_budget: Annotated[
         int, typer.Option("--external-provider-budget", min=0, max=100)
     ] = 0,
     include_destination_handoff: Annotated[
         bool,
-        typer.Option(
-            "--include-destination-handoff/--no-destination-handoff"
-        ),
+        typer.Option("--include-destination-handoff/--no-destination-handoff"),
     ] = False,
 ) -> None:
     """Route one short request into an immutable approval-aware workflow plan."""
@@ -1825,6 +1728,7 @@ def workflow_plan_command(
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        revision_strategy=revision_strategy,
         delivery_scope=delivery_scope,
         mode=mode,
         view_kind=view_kind,
@@ -1846,6 +1750,36 @@ def workflow_plan_command(
     console.print_json(state.model_dump_json())
 
 
+@app.command("candidate-review-approve")
+def candidate_review_approve_command(
+    job_id: str,
+    trial_id: str,
+    decision_sha256: Annotated[str, typer.Option("--decision-sha256")],
+    approval_note: Annotated[str | None, typer.Option("--approval-note")] = None,
+) -> None:
+    """Approve one exact promotable candidate decision for single-use promotion."""
+
+    approval = approve_candidate_review(
+        job_id,
+        trial_id,
+        decision_sha256=decision_sha256,
+        approval_note=approval_note,
+    )
+    console.print_json(approval.model_dump_json())
+
+
+@app.command("candidate-review-status")
+def candidate_review_status_command(job_id: str, trial_id: str) -> None:
+    """Read candidate decision, approval, source freshness, and promotion state."""
+
+    console.print_json(
+        json.dumps(
+            get_candidate_review_status(job_id, trial_id),
+            ensure_ascii=False,
+        )
+    )
+
+
 @app.command("workflow-status")
 def workflow_status_command(
     job_id: str,
@@ -1853,9 +1787,7 @@ def workflow_status_command(
 ) -> None:
     """Read one persisted workflow state without executing or approving anything."""
 
-    console.print_json(
-        json.dumps(get_workflow_status(job_id, workflow_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_workflow_status(job_id, workflow_id), ensure_ascii=False))
 
 
 @app.command("workflow-reconcile")
@@ -1870,9 +1802,7 @@ def workflow_reconcile_command(job_id: str, workflow_id: str) -> None:
 def workflow_resume_command(
     job_id: str,
     workflow_id: str,
-    max_host_steps: Annotated[
-        int | None, typer.Option("--max-host-steps", min=1, max=64)
-    ] = None,
+    max_host_steps: Annotated[int | None, typer.Option("--max-host-steps", min=1, max=64)] = None,
     retry_failed: Annotated[
         bool,
         typer.Option(
@@ -1967,9 +1897,7 @@ def stability_probe_command(
 def workspace_audit_command(
     job_id: Annotated[str | None, typer.Option("--job-id")] = None,
     audit_id: Annotated[str | None, typer.Option("--audit-id")] = None,
-    scan_limit: Annotated[
-        int | None, typer.Option("--scan-limit", min=100, max=1_000_000)
-    ] = None,
+    scan_limit: Annotated[int | None, typer.Option("--scan-limit", min=100, max=1_000_000)] = None,
 ) -> None:
     """Audit workspace hashes and receipts without migrating or repairing canonical data."""
 
@@ -2004,9 +1932,7 @@ def queue_enqueue_command(
     job_id: str,
     workflow_id: str,
     priority: Annotated[int, typer.Option("--priority", min=0, max=100)] = 50,
-    max_attempts: Annotated[
-        int, typer.Option("--max-attempts", min=1, max=10)
-    ] = 3,
+    max_attempts: Annotated[int, typer.Option("--max-attempts", min=1, max=10)] = 3,
 ) -> None:
     """Queue one existing non-terminal V0.8 workflow for bounded local execution."""
 
@@ -2029,9 +1955,7 @@ def queue_status_command() -> None:
 @app.command("queue-run")
 def queue_run_command(
     max_entries: Annotated[int, typer.Option("--max-entries", min=1, max=64)] = 1,
-    max_host_steps: Annotated[
-        int | None, typer.Option("--max-host-steps", min=1, max=64)
-    ] = None,
+    max_host_steps: Annotated[int | None, typer.Option("--max-host-steps", min=1, max=64)] = None,
 ) -> None:
     """Run queued host work sequentially and stop at agent or approval boundaries."""
 
