@@ -1769,6 +1769,9 @@ def production_dispatch_command(
     ] = "full_reference",
     target_subject: Annotated[str | None, typer.Option("--subject")] = None,
     execution_policy: Annotated[str, typer.Option("--policy")] = "standard",
+    controller_execution_mode: Annotated[
+        str, typer.Option("--ctrl-mode")
+    ] = "client_mediated",
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     destination: Annotated[str, typer.Option("--dest-kind")] = "unspecified",
     destination_name: Annotated[str | None, typer.Option("--dest-name")] = None,
@@ -1808,7 +1811,7 @@ def production_dispatch_command(
         int, typer.Option("--conv-iters", min=1, max=5)
     ] = 3,
 ) -> None:
-    """Create a V0.8 asset workflow and a client-mediated Codex task launch bundle."""
+    """Create a V0.8 workflow and an explicit production-controller bundle."""
 
     result = create_asset_production_dispatch(
         request,
@@ -1819,6 +1822,7 @@ def production_dispatch_command(
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        controller_execution_mode=controller_execution_mode,
         profile_id=profile,
         destination_kind=destination,
         destination_name=destination_name,

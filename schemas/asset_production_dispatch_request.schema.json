@@ -179,6 +179,15 @@
       "title": "Workflow Id",
       "type": "string"
     },
+    "controller_execution_mode": {
+      "default": "client_mediated",
+      "enum": [
+        "client_mediated",
+        "desktop_in_session"
+      ],
+      "title": "Controller Execution Mode",
+      "type": "string"
+    },
     "purpose": {
       "maxLength": 1000,
       "minLength": 1,

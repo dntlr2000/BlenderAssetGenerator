@@ -23,7 +23,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Describe a prepared Codex task without claiming that the repository launched it.",
+  "description": "Describe either a client-created task or an explicit current-task controller.",
   "properties": {
     "schema_version": {
       "const": "0.9.0",
@@ -57,14 +57,20 @@
       "type": "string"
     },
     "launch_mode": {
-      "const": "client_mediated",
       "default": "client_mediated",
+      "enum": [
+        "client_mediated",
+        "desktop_in_session"
+      ],
       "title": "Launch Mode",
       "type": "string"
     },
     "launch_status": {
-      "const": "prepared",
       "default": "prepared",
+      "enum": [
+        "prepared",
+        "ready_in_session"
+      ],
       "title": "Launch Status",
       "type": "string"
     },
@@ -93,8 +99,11 @@
       "$ref": "#/$defs/ProductionArtifact"
     },
     "controller_tool_policy": {
-      "const": "allowlist_only",
       "default": "allowlist_only",
+      "enum": [
+        "allowlist_only",
+        "workflow_contract_only"
+      ],
       "title": "Controller Tool Policy",
       "type": "string"
     },
@@ -115,16 +124,27 @@
       "type": "array"
     },
     "controller_shell_policy": {
-      "const": "approval_and_retry_commands_denied",
       "default": "approval_and_retry_commands_denied",
+      "enum": [
+        "approval_and_retry_commands_denied",
+        "prompt_guarded_no_attestation"
+      ],
       "title": "Controller Shell Policy",
       "type": "string"
     },
     "client_tool_policy_enforcement_required": {
-      "const": true,
       "default": true,
       "title": "Client Tool Policy Enforcement Required",
       "type": "boolean"
+    },
+    "approval_isolation": {
+      "default": "enforced_client_profile",
+      "enum": [
+        "enforced_client_profile",
+        "workflow_contract_only"
+      ],
+      "title": "Approval Isolation",
+      "type": "string"
     },
     "required_client_capabilities": {
       "items": {

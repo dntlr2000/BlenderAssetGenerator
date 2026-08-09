@@ -16,7 +16,7 @@ V0.9는 새로운 모델링 알고리즘을 대량 추가하는 단계가 아니
 | Stabilization evidence | `0.9.0` | 신규 |
 | Codex Destination Handoff | `0.9.0` | 신규 |
 | External Static Asset Intake | `0.9.0` | 신규 static-only source route |
-| Asset Production Dispatch / Controller | `0.9.0` | 신규 client-mediated orchestration layer |
+| Asset Production Dispatch / Controller | `0.9.0` | client-mediated 또는 명시적 desktop-in-session orchestration layer |
 
 V0.9는 오래된 정상 job을 자동 변환하지 않는다. 호환 가능한 계약은 그대로 읽고, 인식할 수 없거나 손상된 계약은 audit finding으로 남긴다.
 
@@ -94,8 +94,9 @@ Destination Handoff를 포함하지 않고 passed package 뒤에 별도 handoff 
 user objective + immutable reference
 → new V0.8 workflow
 → immutable dispatch/controller/launch contracts
-→ supporting client creates the Codex task
-→ exact task binding receipt
+→ controller execution mode
+   ├─ client_mediated → supporting client task + exact binding receipt
+   └─ desktop_in_session → current Codex task, no external binding
 → one controller action at a time
    ├─ deterministic V0.8 host step
    ├─ read-only advisory assignment
@@ -110,19 +111,26 @@ user objective + immutable reference
 → exact-state-bound read-only V0.9 postflight audit receipt
 ```
 
-`task_launch_manifest.json`은 `client_mediated`, `task_created_by_repository=false`를
-명시한다. 또한 allowlist-only `controller_mcp_allowlist`, 금지할 approval/retry MCP
-목록, `approval_and_retry_commands_denied` shell 정책과 client enforcement requirement를
-기록한다. Supporting client는 실제 task 생성·재개, MCP allowlist와 shell/tool 제한을
-제공해야 한다. `task_binding_receipt.json`은 exact launch manifest, task prompt,
-controller-tool-profile SHA-256과 `client_tool_policy_enforced=true` attestation을 하나의
-immutable dispatch plan에 결속한다. 이 profile digest는 MCP allow/deny 목록과 shell
-정책뿐 아니라 launch가 요구한 exact client capability 목록도 포함한다.
+`task_launch_manifest.json`은 `controller_execution_mode`와 다음 안전성 차이를 명시한다.
 
-Controller allowlist는 `get_asset_production_dispatch_status`,
+- `client_mediated`: `prepared`, allowlist-only MCP, approval/retry shell-denial policy,
+  `approval_isolation=enforced_client_profile`. Supporting client가 실제 task와 exact profile을
+  강제한 뒤 `task_binding_receipt.json`을 생성해야 한다.
+- `desktop_in_session`: `ready_in_session`, `approval_isolation=workflow_contract_only`,
+  `prompt_guarded_no_attestation`. 현재 Codex 작업이 controller가 되며 external task binding을
+  허용하지 않는다.
+
+두 모드 모두 `task_created_by_repository=false`다. `desktop_in_session`의 의미는 저장소가
+새 task를 만들었다는 뜻이 아니라 이미 열린 현재 task가 명시적으로 controller 책임을
+맡는다는 뜻이다. 이 모드는 per-task MCP/shell isolation을 증명하지 않으며 launch/status의
+경고로 그 제한을 노출한다.
+
+Client-mediated Controller allowlist는 `get_asset_production_dispatch_status`,
 `advance_delegated_production_controller`, `record_delegated_production_step` 세 MCP 도구로
 고정된다. Dispatch 생성·task binding·approval·failed retry·queue dispatch는 controller
-밖의 소유 표면이다.
+밖의 소유 표면이다. `desktop_in_session`도 진행에는 같은 세 MCP를 사용하지만 실제
+allowlist attestation은 없다. 따라서 사용자의 exact 현재 승인 메시지 없이 별도 승인
+표면을 호출하지 않는 것은 workflow 계약상 불변 조건이지 OS/client sandbox 보장이 아니다.
 
 Controller가 유일한 canonical writer다. Subagent는 최대 3개의 병렬 read-only reviewer
 역할만 수행하며 write allowlist는 비어 있다. Assignment는 exact workflow plan과 input
@@ -151,9 +159,10 @@ Terminal은 target reached뿐 아니라 plateau, manual-only, rollback 또는 bu
 모든 terminal artifact를 원자적으로 확인한다.
 
 이 계층은 supporting client를 보안 sandbox로 대체하지 않는다. 저장소는 launch/binding/
-assignment/receipt 변조를 fail-closed로 검출할 수 있지만, 스스로 Codex task를 생성·인증할
-수 없고 client가 허용한 임의 shell을 악성 controller가 우회 사용하는 것까지 막는다고
-보장하지 않는다.
+assignment/receipt 변조를 fail-closed로 검출할 수 있다. `client_mediated`의 격리 보장은
+supporting client의 exact attestation에 의존하고, `desktop_in_session`은 처음부터
+workflow-contract-only로 보고한다. 두 모드 모두 악성 controller가 이미 보유한 unrestricted
+shell을 우회 사용하는 것까지 저장소 단독으로 막는다고 보장하지 않는다.
 
 ## External Static Asset Intake
 

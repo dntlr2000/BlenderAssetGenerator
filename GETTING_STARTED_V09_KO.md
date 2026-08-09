@@ -1,6 +1,6 @@
 # V0.9 빠른 시작
 
-V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서, client-mediated Asset Production Dispatcher/Controller와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
+V0.9는 V0.8 workflow 위에 read-only audit, 환경 증거, single-worker queue, PDF 보고서, 두 가지 명시적 실행 모드를 가진 Asset Production Dispatcher/Controller와 Codex Destination Handoff를 추가한다. 기존 SceneSpec, 재질, QA와 V0.7 package 계약은 그대로 유지된다.
 
 직접 제작한 정적 `.blend`/`.fbx`/`.glb`는
 [External Static Asset Intake](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)로 exact-hash source를
@@ -126,16 +126,35 @@ uv run cbm production-dispatch `
   --mode concept `
   --content-scope full_reference `
   --policy standard `
+  --ctrl-mode client_mediated `
   --profile portable_gltf `
   --dest-kind unspecified
 ```
 
-이 명령은 새 V0.8 workflow와 다음 immutable evidence를 준비하지만 Codex 작업을
-직접 생성하거나 인증하지 않는다.
+`--ctrl-mode`의 기본값은 `client_mediated`다. 별도 supporting-client bridge 없이 현재
+Codex Desktop 작업이 controller를 맡게 하려면 사용자가 명시적으로
+`--ctrl-mode desktop_in_session`을 선택한다. 이 선택은 immutable dispatch evidence에
+기록되며 나중에 같은 dispatch를 다른 모드로 바꿀 수 없다.
 
-생성 직후 production 상태는 `status=prepared`, `next_action=bind_client_task`이다.
-Supporting client가 아래 exact profile을 실제로 강제하고 task binding receipt를 만든
-뒤에만 host/agent 작업을 진행할 수 있다.
+```powershell
+uv run cbm production-dispatch `
+  --request "현재 Codex 작업에서 새 정적 자산 제작을 단계적으로 조율" `
+  --reference <reference-path> `
+  --purpose "<asset-purpose>" `
+  --job-id <job-id> `
+  --policy standard `
+  --ctrl-mode desktop_in_session `
+  --profile portable_gltf
+```
+
+두 모드 모두 새 V0.8 workflow와 다음 immutable evidence를 준비한다.
+
+`client_mediated`의 생성 직후 상태는 `status=prepared`,
+`next_action=bind_client_task`이다. Supporting client가 아래 exact profile을 실제로
+강제하고 task binding receipt를 만든 뒤에만 host/agent 작업을 진행할 수 있다.
+`desktop_in_session`은 `launch_status=ready_in_session`이고 별도 binding 없이 현재
+workflow 경계부터 시작한다. 상태와 launch manifest에는
+`approval_isolation=workflow_contract_only`와 tool-profile 미강제 경고가 항상 남는다.
 
 ```text
 workspaces/<job-id>/production/dispatches/<dispatch-id>/
@@ -155,7 +174,7 @@ workspaces/<job-id>/production/dispatches/<dispatch-id>/
 `controller_state.json`은 편의용 current projection이며 immutable workflow, dispatch와
 receipt evidence를 대체하지 않는다.
 
-Codex Desktop/App 같은 supporting client가 `codex_task_prompt.md`로 실제 task를 만든다.
+다음 binding 절차는 `client_mediated`에서만 사용한다. Codex Desktop/App 같은 supporting client가 `codex_task_prompt.md`로 실제 task를 만든다.
 그 client는 launch manifest의 `controller_mcp_allowlist`만 노출하고,
 `controller_forbidden_mcp_tools`의 approval/retry 도구와 동등한 shell 명령을 거부해야
 한다. 실제로 이 정책을 강제한 경우에만 task를 bind한다.
@@ -173,7 +192,7 @@ client enforcement attestation에 결속된다. 이 profile hash는 MCP allowlis
 approval/retry surface, shell policy와 `required_client_capabilities` 목록을 함께 묶는다.
 이 attestation은 task나 사용자를 인증하거나 어떤 승인 권한을 부여하지 않는다.
 
-Controller는 다음 공개 표면만으로 상태를 읽고 한 번에 한 안전 행동씩 진행한다.
+두 모드의 Controller는 다음 공개 표면으로 상태를 읽고 한 번에 한 안전 행동씩 진행한다.
 
 ```powershell
 uv run cbm production-status <job-id> <dispatch-id>
@@ -194,6 +213,12 @@ retry를 수행하지 않고, 승인 evidence가 생긴 뒤 다음 `production-a
 재검증한다. Workflow 완료 후에는 exact terminal state에 묶인 V0.9 read-only postflight
 audit receipt를 생성해야 최종 완료다.
 
+`desktop_in_session`은 편의 실행 모드이지 approval-isolated sandbox가 아니다. 현재
+작업이 approval/retry 도구에 기술적으로 접근할 수 있더라도, exact hash나 실패 step에
+대한 새 사용자 메시지가 없으면 해당 도구를 호출해서는 안 된다. Initial production
+요청, 포괄적 승인 또는 목표 점수는 InteriorScope, convergence, V0.7 optimization,
+Destination Handoff와 failed retry 승인을 대체하지 않는다.
+
 V0.6 QA 뒤의 bounded 개선 반복까지 같은 production task에서 조율하려면 새 dispatch에
 `--convergence bounded_after_v06`, direct-score 목표, silhouette-IoU 목표와 최대 반복 수를
 명시한다. 이 모드는 `standard` 전용이고 최초 V0.8 workflow를 `preview_only`로 끝낸다.
@@ -207,6 +232,7 @@ uv run cbm production-dispatch `
   --mode concept `
   --content-scope full_reference `
   --policy standard `
+  --ctrl-mode desktop_in_session `
   --convergence bounded_after_v06 `
   --target-direct 0.78 `
   --target-iou 0.80 `
@@ -228,9 +254,11 @@ V0.7 package나 Destination Handoff가 필요하면 convergence terminal 뒤에 
 workflow를 만들고 각각의 exact 승인을 다시 받아야 한다.
 
 일반 사용자는 같은 역할의 MCP 도구를 Codex에 요청할 수 있으므로 PowerShell을 직접
-실행할 필요가 없다. 다만 저장소 단독으로 외부 task를 만들거나 인증할 수 없고,
-supporting client가 tool/shell restriction을 강제하지 않으면 악성 controller의 shell
-우회를 방지한다고 보장할 수 없다.
+실행할 필요가 없다. `desktop_in_session`은 이 사용 방식을 위한 모드이며 외부 task API가
+필요하지 않다. 다만 per-task MCP/shell 제한을 강제하지 않으므로 안전성은 immutable
+workflow 계약, exact fingerprint, single-writer lock, 승인 정지와 postflight audit에
+한정된다. 더 강한 controller 도구 격리가 필요하면 `client_mediated`와 이를 실제로
+강제하는 supporting client를 사용해야 한다.
 
 ## 6. Codex Destination Handoff
 

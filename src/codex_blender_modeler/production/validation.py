@@ -362,6 +362,12 @@ def validate_dispatch_bundle(
     }
     if identities != {(dispatch_id, request.controller_id, root.name, request.workflow_id)}:
         raise ValueError("production dispatch identity mismatch")
+    if not (
+        request.controller_execution_mode
+        == launch.launch_mode
+        == plan.task_creation_boundary
+    ):
+        raise ValueError("production controller execution mode mismatch")
     validate_artifact(root, plan.dispatch_request)
     validate_artifact(root, plan.workflow_request)
     validate_artifact(root, plan.workflow_routing)
@@ -382,6 +388,10 @@ def validate_dispatch_bundle(
         must_exist=False,
     )
     if binding_receipt_path.is_file():
+        if launch.launch_mode != "client_mediated":
+            raise ValueError(
+                "desktop_in_session dispatch cannot contain a client task binding"
+            )
         if (
             (
                 receipt := _load_model(

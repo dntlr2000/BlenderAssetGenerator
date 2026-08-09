@@ -8,6 +8,44 @@ Stabilization / Destination Handoff contract: `0.9.0`
 
 이 문서는 실제 실행 결과만 기록한다. 실행하지 않은 운영체제, Blender 버전과 목적 엔진은 계획과 관계없이 `unverified` 또는 `unsupported`로 유지한다. V1.0 승격은 현재 중단되어 있다.
 
+## 2026-08-09 `desktop_in_session` Production Controller 검증
+
+Asset Production Dispatcher의 기존 `client_mediated` 기본 경로를 유지하면서, 현재
+Codex Desktop 작업이 controller 역할을 맡는 명시적 `desktop_in_session` 실행 모드를
+추가했다. 이 모드는 외부 task API나 binding을 요구하지 않지만
+`approval_isolation=workflow_contract_only`로 기록되며 per-task MCP/shell enforcement를
+주장하지 않는다.
+
+검증 결과:
+
+| 검사 | 결과 |
+|---|---|
+| production/public-surface targeted pytest | 36 passed |
+| Schema parity와 CLI/MCP surface subset | 9 passed |
+| 전체 Python 회귀 | 939 passed, 6 skipped |
+| Ruff | passed |
+| PowerShell V0.9 gate script 구문 | passed |
+| Git Bash V0.9 gate script 구문 | passed |
+| `git diff --check` | passed |
+
+격리 temporary workspace 테스트는 다음을 확인했다.
+
+- `desktop_in_session` dispatch가 `ready_in_session`에서 시작하고 external task binding 없이
+  `resume_host → delegate_read_only → controller_author` 경계로 진행한다.
+- 상태·launch·prompt가 `workflow_contract_only`, tool-profile 미강제와 별도 task 미생성을
+  일관되게 보고한다.
+- desktop dispatch에 external binding을 시도하면 fail-closed로 거부한다.
+- 알 수 없는 controller mode는 reference 복사나 job 생성 전에 거부한다.
+- 기존 `client_mediated` dispatch는 exact client task/profile binding이 없으면 production
+  write와 host advance를 계속 거부한다.
+- 두 모드 모두 기존 V0.8 assignment input fingerprint, completion marker, single-writer
+  lock, generic/specialized approval과 V0.9 postflight 계약을 공유한다.
+
+이번 변경은 controller launch/진입 계약만 바꾸므로 Blender 실기동 package gate는 다시
+실행하지 않았다. V0.9 PowerShell·shell gate에는 두 모드를 함께 검사하는 isolated
+non-Blender production smoke를 추가했으며, 실제 Blender 형상·재질·package 검증은 기존
+V0.7/V0.8 gate와 전체 회귀 범위를 그대로 유지한다.
+
 ## 현재 검증 결과
 
 | 항목 | 결과 |

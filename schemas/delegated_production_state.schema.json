@@ -107,6 +107,24 @@
       "title": "Workflow State Sha256",
       "type": "string"
     },
+    "controller_execution_mode": {
+      "default": "client_mediated",
+      "enum": [
+        "client_mediated",
+        "desktop_in_session"
+      ],
+      "title": "Controller Execution Mode",
+      "type": "string"
+    },
+    "approval_isolation": {
+      "default": "enforced_client_profile",
+      "enum": [
+        "enforced_client_profile",
+        "workflow_contract_only"
+      ],
+      "title": "Approval Isolation",
+      "type": "string"
+    },
     "integrity_status": {
       "const": "valid",
       "default": "valid",

@@ -97,6 +97,7 @@ def test_production_dispatch_cli_uses_unambiguous_compact_option_names() -> None
         "--content-scope",
         "--subject",
         "--policy",
+        "--ctrl-mode",
         "--dest-kind",
         "--dest-name",
         "--dest-version",
@@ -124,6 +125,7 @@ def test_production_dispatch_mcp_exposes_bounded_convergence_inputs() -> None:
         mcp_server.create_asset_production_dispatch
     ).parameters
     for name in (
+        "controller_execution_mode",
         "convergence_mode",
         "convergence_target_direct_score",
         "convergence_target_silhouette_iou",
@@ -132,6 +134,19 @@ def test_production_dispatch_mcp_exposes_bounded_convergence_inputs() -> None:
         "convergence_max_iterations",
     ):
         assert name in parameters
+
+
+def test_modeling_capabilities_disclose_both_controller_execution_modes() -> None:
+    """Expose desktop convenience without overstating its approval isolation."""
+
+    production = mcp_server.get_modeling_capabilities()["asset_production_dispatch"]
+    assert production["controller_execution_modes"] == [
+        "client_mediated",
+        "desktop_in_session",
+    ]
+    assert production["default_controller_execution_mode"] == "client_mediated"
+    assert production["desktop_approval_isolation"] == "workflow_contract_only"
+    assert production["desktop_requires_external_task_binding"] is False
 
 
 def test_v09_mcp_tools_are_explicitly_whitelisted() -> None:

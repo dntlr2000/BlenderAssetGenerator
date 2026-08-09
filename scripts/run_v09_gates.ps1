@@ -94,7 +94,7 @@ function Invoke-DestinationHandoffGate {
     }
 }
 
-# Exercises the client-mediated dispatcher and read-only controller boundary without Blender.
+# Exercises both production controller modes and their read-only boundary without Blender.
 function Invoke-ProductionDispatchGate {
     $Reference = (Resolve-Path "examples/geometry_showcase/reference.png").Path
     Invoke-Uv run cbm production-dispatch `
@@ -139,6 +139,39 @@ function Invoke-ProductionDispatchGate {
     $Audit = Get-Content -Raw $AuditPath | ConvertFrom-Json
     if ($Audit.status -ne "passed") {
         throw "V0.9 production dispatch integrity audit did not pass."
+    }
+
+    Invoke-Uv run cbm production-dispatch `
+        --request "Prepare one current-task production workflow." `
+        --reference $Reference `
+        --purpose "V0.9 desktop in-session controller smoke" `
+        --job-id v09_desktop_production_smoke `
+        --ctrl-mode desktop_in_session `
+        --profile fbx_interchange
+    $DesktopDispatchRoot = Get-ChildItem `
+        (Join-Path $SmokeWorkspace `
+            "v09_desktop_production_smoke/production/dispatches") `
+        -Directory | Select-Object -First 1
+    $DesktopPlan = Get-Content -Raw `
+        (Join-Path $DesktopDispatchRoot.FullName "dispatch_plan.json") | ConvertFrom-Json
+    Invoke-Uv run cbm production-advance v09_desktop_production_smoke `
+        $DesktopPlan.dispatch_id --controller-id $DesktopPlan.controller_id `
+        --max-host-steps 2
+    Invoke-Uv run cbm production-advance v09_desktop_production_smoke `
+        $DesktopPlan.dispatch_id --controller-id $DesktopPlan.controller_id
+    $DesktopState = Get-Content -Raw `
+        (Join-Path $DesktopDispatchRoot.FullName "controller_state.json") | ConvertFrom-Json
+    $DesktopLaunch = Get-Content -Raw `
+        (Join-Path $DesktopDispatchRoot.FullName "task_launch_manifest.json") |
+        ConvertFrom-Json
+    if ($DesktopState.next_action -ne "controller_author" -or `
+        $DesktopState.controller_execution_mode -ne "desktop_in_session" -or `
+        $DesktopState.approval_isolation -ne "workflow_contract_only" -or `
+        $null -ne $DesktopState.task_binding -or `
+        $DesktopLaunch.launch_status -ne "ready_in_session" -or `
+        (Test-Path (Join-Path $DesktopDispatchRoot.FullName `
+            "task_binding_receipt.json"))) {
+        throw "V0.9 desktop-in-session dispatch did not preserve its runtime boundary."
     }
 }
 

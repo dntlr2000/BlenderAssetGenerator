@@ -411,6 +411,53 @@ runtime parity를 주장하지 마.
 dispatch에 Destination Handoff를 포함하지 않고, passed package 뒤에 별도 handoff
 계획과 exact SHA-256 승인을 사용합니다.
 
+### 1.4A 현재 Codex Desktop 작업 안에서 조율
+
+별도 task 생성 API나 supporting-client bridge가 없을 때는 아래처럼
+`desktop_in_session`을 명시합니다. 이 모드는 외부 binding을 생략하지만 승인 자체를
+생략하지 않으며, per-task MCP/shell 격리를 보장하지 않습니다.
+
+```text
+<REFERENCE_PATH>의 새 레퍼런스를 <JOB_ID>로 만들기 위한
+Asset Production Dispatcher를 현재 Codex Desktop 작업 안에서 시작해.
+
+- 사용 목적: <ASSET_PURPOSE>
+- mode: <MODE>
+- reference_content_scope: <REFERENCE_CONTENT_SCOPE>
+- target_subject: <TARGET_SUBJECT>
+- execution_policy: standard
+- controller_execution_mode: desktop_in_session
+- portable profile: <PROFILE_ID>
+- destination hint: <DESTINATION_HINT>
+- Destination Handoff 포함 여부: false
+
+1. create_asset_production_dispatch에 controller_execution_mode=desktop_in_session을
+   명시해 새 V0.8 workflow와 immutable V0.9 dispatch bundle을 생성해.
+2. launch_status=ready_in_session,
+   approval_isolation=workflow_contract_only,
+   controller_tool_profile_enforced=false인지 보고해.
+3. 별도 Codex task를 생성하거나 bind_asset_production_task를 호출하지 마.
+4. 현재 작업이 controller 역할을 맡고 get_asset_production_dispatch_status,
+   advance_delegated_production_controller,
+   record_delegated_production_step으로 한 번에 한 안전 행동씩 진행해.
+5. subagent가 필요하면 read-only advisory로만 사용하고, canonical output은 현재
+   controller만 exact assignment 범위에 작성해.
+6. generic review, InteriorScope, V0.6 revision/convergence, V0.7 optimization,
+   Destination Handoff와 failed retry 경계에서는 반드시 멈춰.
+7. 내가 새 메시지로 exact 현재 SHA-256 또는 failed step을 명시적으로 승인하기
+   전에는 접근 가능한 approval/retry 도구를 호출하지 마. 포괄적 사전 승인을
+   exact 승인으로 해석하지 마.
+8. 각 정지점에서 exact path, SHA-256, 현재 next_action과 필요한 전용 승인만 보고해.
+9. workflow가 완료되면 exact terminal evidence에 결속된 V0.9 postflight audit을
+   수행하고 current/valid receipt가 있을 때만 production completed라고 보고해.
+10. 이 모드를 approval-isolated, client-profile-enforced 또는 완전 무인으로 표현하지 마.
+    목적지 runtime parity도 주장하지 마.
+```
+
+더 강한 도구 격리가 필요하면 1.4의 `client_mediated` 경로와 exact profile을 실제로
+강제할 수 있는 supporting client를 사용합니다. 이미 생성한 dispatch의 실행 모드를
+나중에 바꾸지 말고 새 job/dispatch 계획 단계에서 선택합니다.
+
 ### 1.5 별도 Codex 제작 작업으로 V0.6 bounded convergence까지 조율
 
 V0.6 QA 뒤의 국소 형상 개선을 최대 `<MAX_ITERATIONS>`회까지 같은 exact 승인 범위에서
@@ -460,6 +507,11 @@ V0.6 직접 QA 뒤 bounded convergence까지 조율할 Asset Production Dispatch
 prepared launch bundle만 보고하고 멈춰. 이 요청은 exact convergence-plan 승인,
 InteriorScope, V0.7 optimization 또는 Destination Handoff 승인을 대신하지 않는다.
 ```
+
+같은 bounded convergence를 현재 Desktop 작업에서 조율하려면 1.4A의
+`controller_execution_mode=desktop_in_session` 규칙을 적용합니다. 이 경우 별도 task
+binding은 생략하지만 exact convergence-plan SHA-256 승인과 iteration 안전 envelope는
+그대로 유지됩니다.
 
 ## 2. 전체 파이프라인 조율 프롬프트
 
@@ -1698,6 +1750,10 @@ get_asset_production_dispatch_status의 controller ID, workflow binding,
 launch/tool-profile/task-binding receipt, 현재 assignment, advance receipt chain과
 postflight receipt를 exact hash로 검증해.
 
+controller_execution_mode가 desktop_in_session이면 task binding 부재는 정상이다.
+대신 approval_isolation=workflow_contract_only와 tool-profile 미강제 경고가 있는지
+확인하고, client-mediated와 같은 격리 보장을 주장하지 마.
+
 approval boundary라면 승인 도구를 controller task에 노출하거나 shell로 우회하지 말고
 소유한 별도 승인 표면과 정확한 SHA-256만 보고해.
 stale/tampered evidence라면 repair, rebind, retry 또는 완료 처리하지 마.
@@ -1712,7 +1768,7 @@ binding을 거부해야 하는 이유를 보고해.
 | 단계 | 필수 입력 | 주요 산출물 | 사용자 검토 자료 | 승인 필요 여부 | 다음 단계 | 재진입 조건 |
 |---|---|---|---|---|---|---|
 | 0 환경 점검 | 저장소, `<JOB_ID>`, `<REFERENCE_PATH>` | read-only 상태 보고 | doctor, 기존 compatibility evidence | 없음 | 1 | evidence 누락·stale 해결 후 |
-| Production dispatch/controller | 새 reference, purpose, scope, profile, client-enforced tool policy | V0.8 workflow, launch bundle, optional task binding, assignment/advance receipts, postflight receipt | prompt/launch/profile hash, 현재 approval boundary, final audit | 기존 단계별 exact 승인 유지; binding은 승인 아님 | 현재 workflow 단계 또는 완료 | client enforcement 불가, stale/tampered dispatch, approval/failure 대기 |
+| Production dispatch/controller | 새 reference, purpose, scope, profile, `client_mediated` 또는 명시적 `desktop_in_session` | V0.8 workflow, launch bundle, client mode의 optional task binding, assignment/advance receipts, postflight receipt | mode/isolation, prompt/launch/profile hash, 현재 approval boundary, final audit | 기존 단계별 exact 승인 유지; binding은 승인 아님 | 현재 workflow 단계 또는 완료 | client enforcement 불가, desktop workflow-only 제한, stale/tampered dispatch, approval/failure 대기 |
 | 빠른 배경 preview | 새 단일 concept reference, `background_exterior`, `preview_only` | 중간 상세 외관, bounded fit, V0.4 5-view host/agent review, 로컬 재질, 직접 QA, quality report | preview, multiview JSON/이미지, 직접 QA/quality JSON, QA·통합 PDF | 일반 단계 승인 없음; multiview agent completion은 유지 | `status=completed`, `milestone=delivered_for_review`, 독립 quality status 또는 별도 package workflow | scope 위험은 `standard`; geometry review 권고는 선택적 standard revision |
 | 빠른 배경 package | 새 단일 concept reference 또는 current fast preview, `background_exterior`, `portable_package` | 위 preview 증거와 quality warning, 승인된 V0.7 최적화, package, roundtrip | quality JSON, optimization review/hash, export PDF, roundtrip JSON | V0.7 optimization-plan exact-hash 승인 1회 | `status=completed` | profile/source/quality binding 변경 또는 roundtrip 실패 |
 | 1 V0.4 프록시 | 새 ID, reference, mode | job, reference analysis, camera solution, modeling plan, proxy SceneSpec, `.blend`, 5-view host/agent review | preview, multiview JSON/이미지, build PDF, validation JSON | 프록시 승인; geometry review 자체는 승인 아님 | 2 또는 3 | 실루엣·분해 또는 cross-view 구조가 부정확할 때 |

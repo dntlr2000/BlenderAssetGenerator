@@ -82,8 +82,11 @@
       "type": "string"
     },
     "task_creation_boundary": {
-      "const": "client_mediated",
       "default": "client_mediated",
+      "enum": [
+        "client_mediated",
+        "desktop_in_session"
+      ],
       "title": "Task Creation Boundary",
       "type": "string"
     },

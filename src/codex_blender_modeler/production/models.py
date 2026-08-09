@@ -1,4 +1,4 @@
-"""Strict V0.9 contracts for client-mediated production dispatch and control."""
+"""Strict V0.9 contracts for production dispatch and controller execution."""
 
 from __future__ import annotations
 
@@ -18,6 +18,9 @@ from ..stabilization.models import (
 )
 
 SCHEMA_VERSION = "0.9.0"
+
+ControllerExecutionMode = Literal["client_mediated", "desktop_in_session"]
+ApprovalIsolation = Literal["enforced_client_profile", "workflow_contract_only"]
 
 ProductionNextAction = Literal[
     "bind_client_task",
@@ -107,6 +110,7 @@ class AssetProductionDispatchRequest(V09StrictModel):
     controller_id: PortableId
     job_id: JobId
     workflow_id: WorkflowId
+    controller_execution_mode: ControllerExecutionMode = "client_mediated"
     purpose: str = Field(min_length=1, max_length=1000)
     mode: Literal["concept", "measured"] = "concept"
     reference_content_scope: Literal["full_reference", "primary_object_only"] = (
@@ -191,7 +195,7 @@ class DelegatedProductionControllerPlan(V09StrictModel):
 
 
 class CodexTaskLaunchManifest(V09StrictModel):
-    """Describe a prepared Codex task without claiming that the repository launched it."""
+    """Describe either a client-created task or an explicit current-task controller."""
 
     schema_version: Literal["0.9.0"] = SCHEMA_VERSION
     launch_id: PortableId
@@ -199,20 +203,24 @@ class CodexTaskLaunchManifest(V09StrictModel):
     controller_id: PortableId
     job_id: JobId
     workflow_id: WorkflowId
-    launch_mode: Literal["client_mediated"] = "client_mediated"
-    launch_status: Literal["prepared"] = "prepared"
+    launch_mode: ControllerExecutionMode = "client_mediated"
+    launch_status: Literal["prepared", "ready_in_session"] = "prepared"
     task_created_by_repository: Literal[False] = False
     task_title: str = Field(min_length=1, max_length=160)
     working_directory: Literal["."] = "."
     task_prompt: ProductionArtifact
     controller_plan: ProductionArtifact
-    controller_tool_policy: Literal["allowlist_only"] = "allowlist_only"
+    controller_tool_policy: Literal["allowlist_only", "workflow_contract_only"] = (
+        "allowlist_only"
+    )
     controller_mcp_allowlist: list[str] = Field(min_length=1)
     controller_forbidden_mcp_tools: list[str] = Field(min_length=1)
-    controller_shell_policy: Literal["approval_and_retry_commands_denied"] = (
-        "approval_and_retry_commands_denied"
-    )
-    client_tool_policy_enforcement_required: Literal[True] = True
+    controller_shell_policy: Literal[
+        "approval_and_retry_commands_denied",
+        "prompt_guarded_no_attestation",
+    ] = "approval_and_retry_commands_denied"
+    client_tool_policy_enforcement_required: bool = True
+    approval_isolation: ApprovalIsolation = "enforced_client_profile"
     required_client_capabilities: list[
         Literal[
             "create_or_start_codex_task",
@@ -225,6 +233,42 @@ class CodexTaskLaunchManifest(V09StrictModel):
     ] = Field(min_length=1)
     limitations: list[str] = Field(min_length=1)
     prepared_at: datetime
+
+    @model_validator(mode="after")
+    def validate_execution_mode_contract(self) -> CodexTaskLaunchManifest:
+        """Keep client isolation promises distinct from current-task workflow guards."""
+
+        if self.launch_mode == "client_mediated":
+            expected = (
+                self.launch_status == "prepared"
+                and self.controller_tool_policy == "allowlist_only"
+                and self.controller_shell_policy
+                == "approval_and_retry_commands_denied"
+                and self.client_tool_policy_enforcement_required is True
+                and self.approval_isolation == "enforced_client_profile"
+                and "create_or_start_codex_task" in self.required_client_capabilities
+                and "enforce_controller_tool_profile"
+                in self.required_client_capabilities
+            )
+            if not expected:
+                raise ValueError("client_mediated launch requires an enforced client profile")
+        else:
+            expected = (
+                self.launch_status == "ready_in_session"
+                and self.controller_tool_policy == "workflow_contract_only"
+                and self.controller_shell_policy == "prompt_guarded_no_attestation"
+                and self.client_tool_policy_enforcement_required is False
+                and self.approval_isolation == "workflow_contract_only"
+                and "create_or_start_codex_task"
+                not in self.required_client_capabilities
+                and "enforce_controller_tool_profile"
+                not in self.required_client_capabilities
+            )
+            if not expected:
+                raise ValueError(
+                    "desktop_in_session launch must disclose its non-isolated tool profile"
+                )
+        return self
 
 
 class AssetProductionDispatchPlan(V09StrictModel):
@@ -247,7 +291,7 @@ class AssetProductionDispatchPlan(V09StrictModel):
         "engine_neutral_package_and_optional_handoff",
         "approved_v06_convergence_terminal",
     ]
-    task_creation_boundary: Literal["client_mediated"] = "client_mediated"
+    task_creation_boundary: ControllerExecutionMode = "client_mediated"
     existing_approval_contracts_preserved: Literal[True] = True
     created_at: datetime
 
@@ -395,6 +439,8 @@ class DelegatedProductionState(V09StrictModel):
     dispatch_plan_sha256: Sha256
     workflow_plan_sha256: Sha256
     workflow_state_sha256: Sha256
+    controller_execution_mode: ControllerExecutionMode = "client_mediated"
+    approval_isolation: ApprovalIsolation = "enforced_client_profile"
     integrity_status: Literal["valid"] = "valid"
     status: ProductionStatus
     workflow_status: str = Field(min_length=1, max_length=64)

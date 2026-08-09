@@ -2,6 +2,14 @@
 
 ## 0.9.0
 
+- Added explicit `desktop_in_session` execution for Asset Production Dispatcher and Delegated
+  Production Controller. The current Codex Desktop task can now advance a dispatch without an
+  external task API or binding, while launch/state evidence explicitly reports
+  `approval_isolation=workflow_contract_only` and never claims per-task MCP/shell enforcement.
+  Existing `client_mediated` remains the default and still fails closed until its exact restricted
+  controller profile is client-attested. Both modes preserve all V0.8 approvals, fingerprints,
+  single-writer locks, bounded convergence approval, V0.7 optimization approval, handoff approval,
+  failed-retry boundaries, and V0.9 postflight audit.
 - Extended standard bounded V0.6 convergence to authored `spatial_v1` assets. New plans bind a
   fresh five-view structural baseline; every result iteration captures another exact five-view
   evidence set, and semantic visibility/assembly regression vetoes acceptance and restores the

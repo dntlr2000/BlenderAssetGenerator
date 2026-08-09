@@ -354,6 +354,7 @@ def create_asset_production_dispatch(
     reference_content_scope: str = "full_reference",
     target_subject: str | None = None,
     execution_policy: str = "standard",
+    controller_execution_mode: str = "client_mediated",
     profile_id: str = "portable_gltf",
     destination_kind: str = "unspecified",
     destination_name: str | None = None,
@@ -372,13 +373,17 @@ def create_asset_production_dispatch(
     convergence_minimum_candidate_confidence: float = 0.8,
     convergence_max_iterations: int = 3,
 ) -> dict[str, Any]:
-    """Create one new-asset workflow plus a hash-bound client task launch bundle."""
+    """Create one new-asset workflow plus an explicit controller-runtime bundle."""
 
     normalized_purpose = purpose.strip()
     if not normalized_purpose:
         raise ValueError("production purpose must not be empty")
     if execution_policy not in {"standard", "background_exterior"}:
         raise ValueError("execution_policy must be standard or background_exterior")
+    if controller_execution_mode not in {"client_mediated", "desktop_in_session"}:
+        raise ValueError(
+            "controller_execution_mode must be client_mediated or desktop_in_session"
+        )
     if execution_policy == "background_exterior" and include_destination_handoff:
         raise ValueError(
             "background_exterior requires a separate handoff after its passed package"
@@ -489,6 +494,7 @@ def create_asset_production_dispatch(
         controller_id=controller_id,
         job_id=state.job_id,
         workflow_id=state.workflow_id,
+        controller_execution_mode=controller_execution_mode,  # type: ignore[arg-type]
         purpose=normalized_purpose,
         mode=mode,  # type: ignore[arg-type]
         reference_content_scope=reference_content_scope,  # type: ignore[arg-type]
@@ -539,35 +545,70 @@ def create_asset_production_dispatch(
         dispatch_request_sha256=sha256_file(request_path),
         controller_plan_path=_job_relative(root, controller_path),
         controller_plan_sha256=sha256_file(controller_path),
+        controller_execution_mode=controller_execution_mode,
     )
     _write_immutable_text(root, prompt_path, prompt)
+    client_mediated = controller_execution_mode == "client_mediated"
     launch = CodexTaskLaunchManifest(
         launch_id=_production_id("launch"),
         dispatch_id=dispatch_id,
         controller_id=controller_id,
         job_id=state.job_id,
         workflow_id=state.workflow_id,
+        launch_mode=controller_execution_mode,  # type: ignore[arg-type]
+        launch_status=("prepared" if client_mediated else "ready_in_session"),
         task_title=f"Asset production: {state.job_id}",
         task_prompt=_artifact(root, prompt_path),
         controller_plan=_artifact(root, controller_path),
+        controller_tool_policy=(
+            "allowlist_only" if client_mediated else "workflow_contract_only"
+        ),
         controller_mcp_allowlist=_CONTROLLER_MCP_ALLOWLIST,
         controller_forbidden_mcp_tools=_CONTROLLER_FORBIDDEN_MCP_TOOLS,
+        controller_shell_policy=(
+            "approval_and_retry_commands_denied"
+            if client_mediated
+            else "prompt_guarded_no_attestation"
+        ),
+        client_tool_policy_enforcement_required=client_mediated,
+        approval_isolation=(
+            "enforced_client_profile"
+            if client_mediated
+            else "workflow_contract_only"
+        ),
         required_client_capabilities=[
-            "create_or_start_codex_task",
-            "resume_codex_task",
             "read_repository_files",
             "call_project_mcp_tools",
             "delegate_read_only_subagents",
-            "enforce_controller_tool_profile",
+            *(
+                [
+                    "create_or_start_codex_task",
+                    "resume_codex_task",
+                    "enforce_controller_tool_profile",
+                ]
+                if client_mediated
+                else []
+            ),
         ],
-        limitations=[
-            "The repository prepared this launch but did not create a Codex task.",
-            "Subagents are read-only advisers; the controller is the only canonical writer.",
-            "Every existing generic and specialized approval boundary remains active.",
-            "Destination metadata is a hint and does not establish runtime parity.",
-            "The supporting client must enforce the launch allowlist and deny "
-            "approval or retry commands.",
-        ],
+        limitations=(
+            [
+                "The repository prepared this launch but did not create a Codex task.",
+                "Subagents are read-only advisers; the controller is the only canonical writer.",
+                "Every existing generic and specialized approval boundary remains active.",
+                "Destination metadata is a hint and does not establish runtime parity.",
+                "The supporting client must enforce the launch allowlist and deny "
+                "approval or retry commands.",
+            ]
+            if client_mediated
+            else [
+                "The current Codex task acts as controller without a separate task binding.",
+                "No per-task MCP allowlist or shell-policy enforcement is attested.",
+                "Approval isolation is workflow-contract-only and must not be overstated.",
+                "Subagents remain read-only advisers; the controller is the canonical writer.",
+                "Every existing generic and specialized approval boundary remains active.",
+                "Destination metadata is a hint and does not establish runtime parity.",
+            ]
+        ),
         prepared_at=created_at,
     )
     launch_path = dispatch_root / "task_launch_manifest.json"
@@ -593,6 +634,7 @@ def create_asset_production_dispatch(
                 else "engine_neutral_package"
             )
         ),
+        task_creation_boundary=controller_execution_mode,  # type: ignore[arg-type]
         created_at=created_at,
     )
     dispatch_plan_path = dispatch_root / "dispatch_plan.json"
@@ -609,8 +651,11 @@ def create_asset_production_dispatch(
         "task_prompt_path": _job_relative(root, prompt_path),
         "task_prompt_sha256": sha256_file(prompt_path),
         "controller_tool_profile_sha256": controller_tool_profile_digest(launch),
-        "launch_status": "prepared",
+        "launch_status": launch.launch_status,
         "task_created_by_repository": False,
+        "controller_execution_mode": controller_execution_mode,
+        "approval_isolation": launch.approval_isolation,
+        "controller_tool_profile_enforced": False,
     }
 
 
@@ -632,18 +677,26 @@ def bind_asset_production_task(
         )
 
     root = job_dir(validate_job_id(job_id))
-    dispatch_root, request, _controller, _launch, plan = validate_dispatch_bundle(
+    dispatch_root, request, _controller, launch, plan = validate_dispatch_bundle(
         root, dispatch_id
     )
     if request.controller_id != controller_id:
         raise PermissionError("controller_id does not own this production dispatch")
+    if launch.launch_mode != "client_mediated":
+        raise ValueError(
+            "desktop_in_session dispatches do not accept an external task binding"
+        )
     with _dispatch_write_lock(root, dispatch_root, controller_id):
-        dispatch_root, request, _controller, _launch, plan = validate_dispatch_bundle(
+        dispatch_root, request, _controller, launch, plan = validate_dispatch_bundle(
             root, dispatch_id
         )
         if request.controller_id != controller_id:
             raise PermissionError("controller_id does not own this production dispatch")
-        expected_profile_sha256 = controller_tool_profile_digest(_launch)
+        if launch.launch_mode != "client_mediated":
+            raise ValueError(
+                "desktop_in_session dispatches do not accept an external task binding"
+            )
+        expected_profile_sha256 = controller_tool_profile_digest(launch)
         if not hmac.compare_digest(
             enforced_controller_tool_profile_sha256.lower(),
             expected_profile_sha256,
@@ -1107,18 +1160,25 @@ def _convergence_terminal_artifacts(
     ]
 
 
-def _require_enforced_task_binding(
+def _require_controller_runtime(
     root: Path,
     dispatch_root: Path,
-) -> ProductionArtifact:
-    """Require the exact client-attested controller profile before any production write."""
+    dispatch: AssetProductionDispatchRequest,
+    launch: CodexTaskLaunchManifest,
+) -> ProductionArtifact | None:
+    """Require client isolation or explicitly disclose current-task contract-only control."""
 
     artifact = _task_binding_artifact(root, dispatch_root)
-    if artifact is None:
+    if dispatch.controller_execution_mode != launch.launch_mode:
+        raise ValueError("production controller execution mode is inconsistent")
+    if launch.launch_mode == "client_mediated" and artifact is None:
         raise PermissionError(
             "production writes require an exact client task binding and enforced tool profile"
         )
-    validate_artifact(root, artifact)
+    if launch.launch_mode == "desktop_in_session" and artifact is not None:
+        raise ValueError("desktop_in_session cannot use an external task binding")
+    if artifact is not None:
+        validate_artifact(root, artifact)
     return artifact
 
 
@@ -1165,7 +1225,7 @@ def _postflight_controller_outcome(
 def _reconstruct_controller_state(root: Path, dispatch_id: str) -> DelegatedProductionState:
     """Derive the next safe controller action from exact V0.8 and V0.9 evidence."""
 
-    dispatch_root, dispatch, _controller, _launch, dispatch_plan = validate_dispatch_bundle(
+    dispatch_root, dispatch, _controller, launch, dispatch_plan = validate_dispatch_bundle(
         root, dispatch_id
     )
     workflow_plan_path, workflow_plan = _load_workflow_plan(root, dispatch.workflow_id)
@@ -1196,7 +1256,16 @@ def _reconstruct_controller_state(root: Path, dispatch_id: str) -> DelegatedProd
         dispatch_root,
     )
     convergence_report_artifact = None
-    if task_binding is None:
+    if launch.launch_mode == "desktop_in_session":
+        warnings.extend(
+            [
+                "desktop_in_session uses workflow-contract-only approval guards; "
+                "no per-task tool-profile isolation is attested.",
+                "Only an explicit user message for the exact current fingerprint may "
+                "authorize an approval or failed-step retry.",
+            ]
+        )
+    if launch.launch_mode == "client_mediated" and task_binding is None:
         status = "prepared"
         next_action = "bind_client_task"
     elif workflow_state.status == "completed":
@@ -1366,6 +1435,8 @@ def _reconstruct_controller_state(root: Path, dispatch_id: str) -> DelegatedProd
         dispatch_plan_sha256=sha256_file(dispatch_root / "dispatch_plan.json"),
         workflow_plan_sha256=sha256_file(workflow_plan_path),
         workflow_state_sha256=sha256_file(workflow_state_path),
+        controller_execution_mode=launch.launch_mode,
+        approval_isolation=launch.approval_isolation,
         status=status,  # type: ignore[arg-type]
         workflow_status=workflow_state.status,
         milestone=workflow_state.milestone,
@@ -1405,6 +1476,9 @@ def get_asset_production_dispatch_status(job_id: str, dispatch_id: str) -> dict[
         "state": state.model_dump(mode="json"),
         "task_launch": launch.model_dump(mode="json"),
         "controller_tool_profile_sha256": controller_tool_profile_digest(launch),
+        "controller_execution_mode": launch.launch_mode,
+        "approval_isolation": launch.approval_isolation,
+        "controller_tool_profile_enforced": state.task_binding is not None,
     }
 
 
@@ -1641,18 +1715,18 @@ def advance_delegated_production_controller(
     """Advance one controller action while preserving every existing approval boundary."""
 
     root = job_dir(validate_job_id(job_id))
-    dispatch_root, dispatch, _controller, _launch, _dispatch_plan = validate_dispatch_bundle(
+    dispatch_root, dispatch, _controller, launch, _dispatch_plan = validate_dispatch_bundle(
         root, dispatch_id
     )
     if dispatch.controller_id != controller_id:
         raise PermissionError("controller_id does not own this production dispatch")
     with _dispatch_write_lock(root, dispatch_root, controller_id):
-        dispatch_root, dispatch, _controller, _launch, _dispatch_plan = (
+        dispatch_root, dispatch, _controller, launch, _dispatch_plan = (
             validate_dispatch_bundle(root, dispatch_id)
         )
         if dispatch.controller_id != controller_id:
             raise PermissionError("controller_id does not own this production dispatch")
-        _require_enforced_task_binding(root, dispatch_root)
+        _require_controller_runtime(root, dispatch_root, dispatch, launch)
         convergence_binding_artifact = _convergence_binding_artifact(
             root,
             dispatch_root,
@@ -1819,18 +1893,18 @@ def record_delegated_production_step(
     """Complete one controller-authored agent step through the existing exact V0.8 marker."""
 
     root = job_dir(validate_job_id(job_id))
-    dispatch_root, dispatch, _controller, _launch, _plan = validate_dispatch_bundle(
+    dispatch_root, dispatch, _controller, launch, _plan = validate_dispatch_bundle(
         root, dispatch_id
     )
     if dispatch.controller_id != controller_id:
         raise PermissionError("controller_id does not own this production dispatch")
     with _dispatch_write_lock(root, dispatch_root, controller_id):
-        dispatch_root, dispatch, _controller, _launch, _plan = validate_dispatch_bundle(
+        dispatch_root, dispatch, _controller, launch, _plan = validate_dispatch_bundle(
             root, dispatch_id
         )
         if dispatch.controller_id != controller_id:
             raise PermissionError("controller_id does not own this production dispatch")
-        _require_enforced_task_binding(root, dispatch_root)
+        _require_controller_runtime(root, dispatch_root, dispatch, launch)
         reconcile_workflow(job_id, dispatch.workflow_id)
         before = _reconstruct_controller_state(root, dispatch_id)
         workflow_state_path, _workflow_state = _load_workflow_state(

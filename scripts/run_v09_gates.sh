@@ -80,7 +80,7 @@ run_destination_handoff_gate() {
   uv run python -c 'import json,sys,pathlib; e=pathlib.Path(sys.argv[1]); v=json.load(open(e/"destination_handoff_validation.json", encoding="utf-8")); assert v["ok"] and v["status"] in {"passed","warning"}; assert (e/"codex_handoff/handoff_manifest.json").is_file(); assert (e/"codex_handoff/handoff_report.pdf").is_file(); assert (e/"codex_handoff/handoff_report.manifest.json").is_file(); assert sys.argv[2] == sys.argv[3]' "$envelope" "$package_hash_before" "$package_hash_after"
 }
 
-# Exercises the client-mediated dispatcher and read-only controller boundary without Blender.
+# Exercises both production controller modes and their read-only boundary without Blender.
 run_production_dispatch_gate() {
   local reference="$PWD/examples/geometry_showcase/reference.png"
   uv run cbm production-dispatch \
@@ -110,6 +110,24 @@ run_production_dispatch_gate() {
   local audit_id="production-audit-$RUN_ID_SAFE"
   uv run cbm workspace-audit --job-id v09_production_smoke --audit-id "$audit_id"
   uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); assert p["status"] == "passed"' "$PWD/reports/v09/audits/$audit_id/workspace_audit.json"
+
+  uv run cbm production-dispatch \
+    --request "Prepare one current-task production workflow." \
+    --reference "$reference" \
+    --purpose "V0.9 desktop in-session controller smoke" \
+    --job-id v09_desktop_production_smoke \
+    --ctrl-mode desktop_in_session \
+    --profile fbx_interchange
+  local desktop_dispatch_root desktop_dispatch_id desktop_controller_id
+  desktop_dispatch_root="$(find "$SMOKE_WORKSPACE/v09_desktop_production_smoke/production/dispatches" \
+    -mindepth 1 -maxdepth 1 -type d | head -n 1)"
+  desktop_dispatch_id="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["dispatch_id"])' "$desktop_dispatch_root/dispatch_plan.json")"
+  desktop_controller_id="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["controller_id"])' "$desktop_dispatch_root/dispatch_plan.json")"
+  uv run cbm production-advance v09_desktop_production_smoke "$desktop_dispatch_id" \
+    --controller-id "$desktop_controller_id" --max-host-steps 2
+  uv run cbm production-advance v09_desktop_production_smoke "$desktop_dispatch_id" \
+    --controller-id "$desktop_controller_id"
+  uv run python -c 'import json,sys,pathlib; root=pathlib.Path(sys.argv[1]); state=json.load(open(root/"controller_state.json", encoding="utf-8")); launch=json.load(open(root/"task_launch_manifest.json", encoding="utf-8")); assert state["next_action"] == "controller_author"; assert state["controller_execution_mode"] == "desktop_in_session"; assert state["approval_isolation"] == "workflow_contract_only"; assert state["task_binding"] is None; assert launch["launch_status"] == "ready_in_session"; assert not (root/"task_binding_receipt.json").exists()' "$desktop_dispatch_root"
 }
 
 if [[ "$SKIP_VISION" -eq 1 ]]; then

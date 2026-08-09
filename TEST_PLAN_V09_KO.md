@@ -11,7 +11,8 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - 프로젝트 `0.9.0`, workflow `0.8.0`, 기존 contract version 유지
 - production dispatch/controller의 strict `0.9.0` Schema 11개 parity
 - `production-dispatch`, `production-bind-task`, `production-status`, `production-advance`, `production-complete-step` CLI와 `create_asset_production_dispatch`, `bind_asset_production_task`, `get_asset_production_dispatch_status`, `advance_delegated_production_controller`, `record_delegated_production_step` MCP 표면
-- launch manifest의 allowlist-only controller MCP profile, forbidden approval/retry tools와 shell-denial policy
+- `client_mediated` launch manifest의 allowlist-only controller MCP profile, forbidden approval/retry tools와 shell-denial policy
+- 명시적 `desktop_in_session` launch의 무바인딩 시작, `workflow_contract_only` disclosure와 client-profile 비주장
 
 ## Gate 2 — environment probe
 
@@ -93,6 +94,9 @@ temporary workspace 단위·통합 테스트에서 검증한다. CLI smoke가 �
 - controller MCP는 정확한 allowlist만 갖고 approval/retry 도구와 동등한 shell command는 금지
 - supporting-client enforcement 확인 없이는 task binding 거부
 - binding receipt가 dispatch plan, launch, prompt와 controller-tool-profile SHA-256에 결속
+- `desktop_in_session`은 `ready_in_session`에서 바로 현재 workflow 경계를 반환하고 external task binding을 거부
+- desktop mode의 상태·prompt·Schema가 `workflow_contract_only`와 tool-profile 미강제를 일관되게 노출
+- desktop mode도 exact input fingerprint, single-writer lock, 모든 V0.8 승인/failed-retry 경계를 그대로 보존
 - agent 경계에서 exact read-only assignment 생성, subagent write allowlist가 비어 있음
 - controller만 선언된 V0.8 agent output을 작성하고 exact input fingerprint로 완료
 - 모든 advance receipt가 전후 workflow state bytes와 previous receipt SHA-256에 결속
@@ -122,6 +126,7 @@ temporary workspace 단위·통합 테스트에서 검증한다. CLI smoke가 �
 - false client enforcement attestation, stale launch/profile/prompt 또는 reused binding
 - changed dispatch/workflow plan, assignment input, receipt bytes 또는 receipt-chain splice
 - task/controller identity mismatch와 live controller lock 충돌
+- execution-mode 불일치, desktop dispatch의 위조 task binding, client dispatch의 binding 누락
 - unenforced client를 verified sandbox로 잘못 주장함
 - missing/wrong convergence-plan approval, convergence binding/plan/terminal evidence tampering
 - spatial five-view evidence 생성 실패 또는 result 구조 regression을 quality pass로 오인

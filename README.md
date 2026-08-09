@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, client-mediated production dispatch/controller와 Codex Destination Handoff를 추가합니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -21,7 +21,7 @@
 | External Static Asset Intake | `0.9.0` |
 | Asset Production Dispatch / Controller | `0.9.0` |
 | 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 880 passed, 5 skipped; Ruff passed |
+| 최신 Python 회귀 | 939 passed, 6 skipped; Ruff passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -45,7 +45,7 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - exact environment/audit JSON hash에 묶인 V0.9 stability PDF와 sidecar
 - passed clean-import package에만 생성되는 hash-bound Codex Destination Handoff
 - 수동 제작 `.blend`/`.fbx`/`.glb`를 exact-hash static source로 등록해 V0.7/V0.9에 연결하는 External Static Asset Intake
-- 레퍼런스·사용 목적·content scope·목적지 힌트로 새 V0.8 workflow와 client-mediated Codex task launch bundle을 준비하는 Asset Production Dispatcher
+- 레퍼런스·사용 목적·content scope·목적지 힌트로 새 V0.8 workflow와 `client_mediated` 또는 명시적 `desktop_in_session` controller bundle을 준비하는 Asset Production Dispatcher
 - controller-only canonical write, 최대 3개의 read-only advisory subagent, allowlist-only controller MCP profile과 hash-chained advance receipt
 - semantic hierarchy, transform, material/PBR, LOD/Collider와 목적지 import 계약
 - 목적지 프로젝트를 수정하기 전에 `import_plan.json`과 사용자 승인을 요구하는 안전 프롬프트
@@ -521,7 +521,7 @@ clean-import round trip을 수행합니다. 목적 엔진 shader parity는 여�
 ## Asset Production Dispatcher와 Delegated Controller
 
 새 레퍼런스의 경로, 사용 목적, 모델링 범위와 선택적 목적지 힌트를 한 번에 주면
-`production-dispatch`가 새 V0.8 `new_asset` workflow와 다음 client launch bundle을
+`production-dispatch`가 새 V0.8 `new_asset` workflow와 다음 controller launch bundle을
 준비합니다.
 
 ```text
@@ -539,14 +539,19 @@ workspaces/<job-id>/production/dispatches/<dispatch-id>/
 └─ final postflight_audit_receipt.json
 ```
 
-저장소는 prompt와 manifest를 준비할 뿐 Codex 작업을 직접 만들거나 인증했다고
-주장하지 않습니다. Codex Desktop/App 같은 supporting client가 실제 작업을 생성하고,
-launch manifest의 allowlist-only controller MCP profile 및 approval/retry MCP와 동등한
-shell 명령 금지를 강제한 뒤 task를 bind해야 합니다. Task binding receipt는 정확한
-launch/prompt/tool-profile SHA-256과 client enforcement attestation에 결속됩니다. 이
-profile hash는 required client capability 목록도 함께 묶습니다. 생성 직후 상태는
-`prepared / bind_client_task`이며 exact binding 전에는 controller write나 host 진행을
-거부합니다.
+실행 모드는 다음 두 가지이며 기본값은 계속 `client_mediated`입니다.
+
+| 모드 | 시작 상태 | 보안 경계 |
+|---|---|---|
+| `client_mediated` | `prepared / bind_client_task` | supporting client가 exact MCP/shell profile을 강제·attest한 뒤에만 실행 |
+| `desktop_in_session` | `ready_in_session`에서 현재 Codex 작업이 바로 controller 역할 | 별도 task binding 없음; `workflow_contract_only`이며 도구 격리를 주장하지 않음 |
+
+`client_mediated`에서는 저장소가 prompt와 manifest를 준비할 뿐 Codex 작업을 직접
+만들거나 인증했다고 주장하지 않습니다. Supporting client가 실제 작업을 만들고 exact
+controller profile을 강제한 뒤 binding receipt를 생성해야 합니다. 반면
+`desktop_in_session`은 사용자가 해당 모드를 명시적으로 선택한 immutable dispatch에서만
+활성화되며, 현재 작업이 production MCP를 통해 한 단계씩 진행합니다. 두 모드 모두 기존
+generic/specialized exact 승인과 failed-retry 경계를 그대로 유지합니다.
 
 Controller만 canonical 파일을 쓸 수 있습니다. Subagent는 최대 3개의 read-only
 advisory 작업만 병렬로 수행하고 write allowlist를 받지 않습니다. Controller는 기존
@@ -565,11 +570,12 @@ controller가 exact convergence plan을 만든 뒤 그 SHA-256 승인에서 한 
 convergence가 canonical SceneSpec을 바꿀 수 있으므로 V0.7 package와 Destination
 Handoff는 검토 후 새 immutable standard workflow에서 시작합니다.
 
-공개 CLI 표면은 `production-dispatch`, `production-bind-task`, `production-status`,
+공개 CLI 표면은 `production-dispatch --ctrl-mode <mode>`, `production-bind-task`, `production-status`,
 `production-advance`, `production-complete-step`입니다. 같은 역할의 MCP 도구를 이용하면
-일반 사용자가 PowerShell을 직접 실행할 필요는 없습니다. 다만 supporting client가
-tool/shell 제한을 강제하지 않으면 저장소 계약만으로 악성 controller의 shell 우회를
-막을 수 없습니다.
+일반 사용자가 PowerShell을 직접 실행할 필요는 없습니다. `production-bind-task`는
+`client_mediated` 전용입니다. `desktop_in_session`은 별도 API나 supporting-client bridge
+없이 현재 Codex Desktop 작업에서 사용할 수 있지만, 저장소 계약만으로 악성
+controller의 shell 우회를 막는 모드는 아닙니다.
 
 ```text
 create_asset_production_dispatch
@@ -579,9 +585,10 @@ advance_delegated_production_controller
 record_delegated_production_step
 ```
 
-이 중 controller task 자체의 allowlist에는 상태 조회, advance, exact step completion의
-마지막 세 도구만 들어갑니다. Dispatch 생성과 task binding은 controller 바깥의
-supporting client가 수행합니다.
+`client_mediated` controller task의 allowlist에는 상태 조회, advance, exact step
+completion의 마지막 세 도구만 들어갑니다. `desktop_in_session`에서도 이 세 도구를
+진행 표면으로 사용하지만 allowlist enforcement attestation은 없으며, exact 승인 도구는
+사용자의 해당 hash 승인 메시지가 있은 뒤에만 별도 소유 표면으로 호출해야 합니다.
 
 ## V0.9 안정화 표면
 

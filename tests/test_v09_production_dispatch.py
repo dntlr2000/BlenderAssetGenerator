@@ -103,6 +103,7 @@ def _dispatch(
     *,
     job_id: str = "production_asset",
     execution_policy: str = "standard",
+    controller_execution_mode: str = "client_mediated",
     destination_kind: str = "unspecified",
     convergence: bool = False,
 ) -> tuple[Path, dict]:
@@ -116,6 +117,7 @@ def _dispatch(
         purpose="Static environment review asset",
         job_id=job_id,
         execution_policy=execution_policy,
+        controller_execution_mode=controller_execution_mode,
         profile_id="fbx_interchange",
         destination_kind=destination_kind,
         convergence_mode=("bounded_after_v06" if convergence else "disabled"),
@@ -356,6 +358,107 @@ def test_dispatch_prepares_relative_client_launch_and_read_only_status(
     assert status["state"]["workflow_id"] == workflow_id
     assert status["state"]["controller_id"] == controller_id
     assert before == after == []
+
+
+def test_desktop_in_session_starts_without_external_binding_and_advances_safely(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Run the current Codex task as controller without claiming client-profile isolation."""
+
+    root, result = _dispatch(
+        monkeypatch,
+        tmp_path,
+        job_id="desktop_session_asset",
+        controller_execution_mode="desktop_in_session",
+    )
+    dispatch_id, controller_id, _workflow_id = _dispatch_identity(result)
+    assert result["launch_status"] == "ready_in_session"
+    assert result["controller_execution_mode"] == "desktop_in_session"
+    assert result["approval_isolation"] == "workflow_contract_only"
+    assert result["controller_tool_profile_enforced"] is False
+    assert result["controller_state"]["next_action"] == "resume_host"
+    assert result["controller_state"]["task_binding"] is None
+    assert any(
+        "no per-task tool-profile isolation" in warning
+        for warning in result["controller_state"]["warnings"]
+    )
+
+    advanced = advance_delegated_production_controller(
+        root.name,
+        dispatch_id,
+        controller_id,
+        max_host_steps=2,
+    )
+    assert advanced["state"]["next_action"] == "delegate_read_only"
+    assert advanced["state"]["approval_isolation"] == "workflow_contract_only"
+    assigned = advance_delegated_production_controller(
+        root.name,
+        dispatch_id,
+        controller_id,
+    )
+    assert assigned["state"]["next_action"] == "controller_author"
+    assert assigned["advance_receipt"]["task_binding"] is None
+    assignment_path = root / assigned["state"]["current_assignment"]["path"]
+    assignment = DelegatedWorkAssignment.model_validate_json(
+        assignment_path.read_text(encoding="utf-8")
+    )
+    _author_modeling_plan(root)
+    completed = record_delegated_production_step(
+        root.name,
+        dispatch_id,
+        controller_id,
+        step_id=assignment.step_id,
+        input_fingerprint=assignment.input_fingerprint,
+        note="Current desktop task authored the exact assigned ModelingPlan.",
+    )
+    assert completed["state"]["next_action"] == "delegate_read_only"
+    assert completed["advance_receipt"]["task_binding"] is None
+
+
+def test_desktop_in_session_rejects_external_task_binding(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Keep current-task execution distinct from the externally isolated task route."""
+
+    root, result = _dispatch(
+        monkeypatch,
+        tmp_path,
+        job_id="desktop_binding_asset",
+        controller_execution_mode="desktop_in_session",
+    )
+    dispatch_id, controller_id, _workflow_id = _dispatch_identity(result)
+    with pytest.raises(ValueError, match="do not accept an external task binding"):
+        bind_asset_production_task(
+            root.name,
+            dispatch_id,
+            controller_id,
+            external_task_id="thread_should_not_bind",
+            client_tool_policy_enforced=True,
+            enforced_controller_tool_profile_sha256=result[
+                "controller_tool_profile_sha256"
+            ],
+        )
+
+
+def test_invalid_controller_execution_mode_fails_before_creating_a_job(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject unknown controller runtimes before copying a reference or creating evidence."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    with pytest.raises(ValueError, match="controller_execution_mode"):
+        create_asset_production_dispatch(
+            "Create a static asset.",
+            reference_path=_image(tmp_path / "invalid_controller_mode.png"),
+            purpose="Static asset",
+            job_id="invalid_controller_mode_asset",
+            controller_execution_mode="unsupported",
+        )
+    assert not (workspace / "invalid_controller_mode_asset").exists()
 
 
 def test_controller_issues_read_only_assignment_and_records_exact_completion(

@@ -462,7 +462,13 @@ def get_modeling_capabilities() -> dict:
             "approval_behavior": "never synthesized or bypassed",
         },
         "asset_production_dispatch": {
-            "task_launch": "client_mediated prompt and launch manifest",
+            "controller_execution_modes": [
+                "client_mediated",
+                "desktop_in_session",
+            ],
+            "default_controller_execution_mode": "client_mediated",
+            "desktop_approval_isolation": "workflow_contract_only",
+            "desktop_requires_external_task_binding": False,
             "repository_creates_task": False,
             "controller_writer_policy": "controller_only",
             "subagent_policy": "read_only_advisory",
@@ -693,6 +699,7 @@ def create_asset_production_dispatch(
     reference_content_scope: str = "full_reference",
     target_subject: str | None = None,
     execution_policy: str = "standard",
+    controller_execution_mode: str = "client_mediated",
     profile_id: str = "portable_gltf",
     destination_kind: str = "unspecified",
     destination_name: str | None = None,
@@ -711,7 +718,7 @@ def create_asset_production_dispatch(
     convergence_minimum_candidate_confidence: float = 0.8,
     convergence_max_iterations: int = 3,
 ) -> dict:
-    """Prepare a new asset workflow and a hash-bound client-mediated Codex task bundle."""
+    """Prepare a new workflow and an explicit production-controller bundle."""
 
     return create_production_dispatch_internal(
         request,
@@ -722,6 +729,7 @@ def create_asset_production_dispatch(
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        controller_execution_mode=controller_execution_mode,
         profile_id=profile_id,
         destination_kind=destination_kind,
         destination_name=destination_name,
