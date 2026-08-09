@@ -10,11 +10,15 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
 
+from ..analysis.models import ModelingPlan
+from ..analysis.surface_details import validate_surface_detail_contract
 from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..build_provenance import collect_build_provenance
 from ..constraints.evaluator import evaluate_constraint_set, load_constraints
+from ..materials.io import load_material_plan
 from ..models import SceneSpec
+from ..qa.hashing import canonical_model_sha256
 from ..qa.models import VisualQAReport, VisualQARequest
 from ..qa.multiview_sanity import (
     plan_job_assembly_multiview_sanity_for_sources,
@@ -28,6 +32,7 @@ from ..qa.structural_regression import (
 )
 from ..revision import RevisionPlan, apply_revision_plan, load_revision_plan
 from ..workspace import (
+    canonical_scene_spec_write_lock,
     current_job_write_lock_owner,
     job_dir,
     replace_scene_spec_if_current,
@@ -251,7 +256,14 @@ def _build_candidate_scene(
     )
     run_blender(
         "validate_scene.py",
-        ["--spec", str(scene_spec_path), "--output", str(validation_path)],
+        [
+            "--spec",
+            str(scene_spec_path),
+            "--job-root",
+            str(root),
+            "--output",
+            str(validation_path),
+        ],
         blend_file=blend_path,
     )
     validation = json.loads(validation_path.read_text(encoding="utf-8"))
@@ -408,28 +420,35 @@ def validate_candidate_review_decision(
     )
     if baseline_report.camera_fingerprint != candidate_report.camera_fingerprint:
         raise CandidateReviewConflict("candidate-review comparison camera changed")
-    for request_artifact, report, scene_artifact, manifest_artifact in (
+    for request_artifact, report, scene_artifact, manifest_artifact, inventory_artifact in (
         (
             decision.baseline_qa_request,
             baseline_report,
             decision.baseline_scene_spec,
             decision.baseline_qa_manifest,
+            decision.baseline_inventory,
         ),
         (
             decision.candidate_qa_request,
             candidate_report,
             decision.candidate_scene_spec,
             decision.candidate_qa_manifest,
+            decision.candidate_inventory,
         ),
     ):
         request_path = _resolve_job_relative(root, request_artifact.path)
         request = VisualQARequest.model_validate_json(request_path.read_text(encoding="utf-8"))
-        if report.request_sha256 != sha256_file(request_path):
+        if report.request_sha256 != canonical_model_sha256(request):
             raise CandidateReviewConflict("candidate-review QA report request hash changed")
         manifest = validate_visual_qa_request(
             request,
             scene_spec_path=_resolve_job_relative(root, scene_artifact.path),
             job_root=root,
+            surface_detail_inventory_path=_resolve_job_relative(
+                root,
+                inventory_artifact.path,
+            ),
+            validate_surface_details=False,
         )
         if (
             sha256_file(_resolve_job_relative(root, manifest_artifact.path))
@@ -569,7 +588,16 @@ def evaluate_candidate_review(
         6,
     )
     silhouette_regressed = silhouette_delta < -0.000001
-    accepted = convergence.accepted and not silhouette_regressed
+    surface_detail_blockers = _candidate_surface_detail_blockers(
+        root,
+        candidate,
+        candidate_inventory,
+    )
+    accepted = (
+        convergence.accepted
+        and not silhouette_regressed
+        and not surface_detail_blockers
+    )
     status = (
         "promotable"
         if accepted
@@ -580,6 +608,10 @@ def evaluate_candidate_review(
     blockers = [] if accepted else list(convergence.reasons)
     if silhouette_regressed:
         blockers.append("Fixed-camera silhouette IoU regressed during candidate evaluation.")
+    blockers.extend(
+        f"Candidate invalidates the authored V0.5 surface-detail contract: {message}"
+        for message in surface_detail_blockers
+    )
     decision = CandidateReviewDecision(
         job_id=job_id,
         trial_id=selected_trial_id,
@@ -736,6 +768,36 @@ def _rebuild_canonical(root: Path, job_id: str) -> tuple[Path, Path, Path]:
     return blend, inventory, validation
 
 
+def _candidate_surface_detail_blockers(
+    root: Path,
+    candidate: SceneSpec,
+    candidate_inventory: Path,
+) -> list[str]:
+    """Reject candidates that stale an authored spatial surface-detail binding."""
+
+    modeling_plan_path = root / "analysis" / "modeling_plan.json"
+    material_plan_path = root / "analysis" / "material_plan.json"
+    if not modeling_plan_path.is_file() or not material_plan_path.is_file():
+        return []
+    modeling_plan = ModelingPlan.model_validate_json(
+        modeling_plan_path.read_text(encoding="utf-8")
+    )
+    material_plan = load_material_plan(material_plan_path)
+    report = validate_surface_detail_contract(
+        modeling_plan,
+        candidate,
+        root,
+        material_plan=material_plan,
+        require_materials=True,
+        inventory_path=candidate_inventory,
+    )
+    return [
+        item.message
+        for item in report.checks
+        if item.status == "failed" and item.phase == "material"
+    ]
+
+
 def promote_candidate_review(
     job_id: str,
     trial_id: str,
@@ -776,6 +838,8 @@ def promote_candidate_review(
     notes = ["Canonical SceneSpec was promoted from exact isolated candidate evidence."]
     try:
         blend, inventory, validation = _rebuild_canonical(root, job_id)
+        final_spec = root / "analysis" / "scene_spec.json"
+        provenance = collect_build_provenance(root, job_id, scene_spec_path=final_spec)
     except Exception as exc:
         baseline_path = _resolve_job_relative(root, decision.baseline_scene_spec.path)
         replace_scene_spec_if_current(
@@ -786,12 +850,15 @@ def promote_candidate_review(
             lock_owner_id=lock_owner,
         )
         blend, inventory, validation = _rebuild_canonical(root, job_id)
+        final_spec = root / "analysis" / "scene_spec.json"
+        provenance = collect_build_provenance(root, job_id, scene_spec_path=final_spec)
         status = "rolled_back"
-        notes.append(f"Promotion rebuild failed and canonical baseline was restored: {exc}")
+        notes.append(
+            "Promotion rebuild or provenance validation failed and canonical baseline "
+            f"was restored: {exc}"
+        )
     consumed = approval.model_copy(update={"used": True, "used_at": _utc_now()})
     write_json_atomic(approval_path, consumed.model_dump(mode="json"))
-    final_spec = root / "analysis" / "scene_spec.json"
-    provenance = collect_build_provenance(root, job_id, scene_spec_path=final_spec)
     receipt = CandidateReviewPromotionReceipt(
         job_id=job_id,
         trial_id=selected_trial_id,
@@ -813,6 +880,90 @@ def promote_candidate_review(
     _write_immutable_json(receipt_path, receipt.model_dump(mode="json"))
     if status == "rolled_back":
         raise RuntimeError(notes[-1])
+    return receipt
+
+
+def recover_failed_candidate_review_promotion(
+    job_id: str,
+    trial_id: str,
+    *,
+    decision_sha256: str,
+    workflow_id: str | None = None,
+) -> CandidateReviewPromotionReceipt:
+    """Restore an approval-consumed receipt-less promotion to its exact baseline."""
+
+    root = job_dir(job_id).resolve()
+    selected_trial_id = _validate_trial_id(trial_id)
+    trial_root = root / "qa" / "candidate_reviews" / selected_trial_id
+    decision_path = trial_root / "decision_manifest.json"
+    receipt_path = trial_root / "promotion_receipt.json"
+    if receipt_path.exists():
+        raise FileExistsError("candidate-review promotion receipt already exists")
+    if not decision_path.is_file() or sha256_file(decision_path) != decision_sha256:
+        raise CandidateReviewConflict("candidate-review recovery decision SHA-256 is stale")
+    decision, approval = validate_candidate_review_approval(
+        root,
+        selected_trial_id,
+        require_current_sources=False,
+    )
+    if not approval.used:
+        raise PermissionError("candidate-review recovery requires a consumed approval")
+    canonical_path = root / "analysis" / "scene_spec.json"
+    current_hash = sha256_file(canonical_path)
+    if current_hash not in {
+        decision.candidate_scene_spec.sha256,
+        decision.baseline_scene_spec.sha256,
+    }:
+        raise CandidateReviewConflict(
+            "candidate-review recovery found an unrelated canonical SceneSpec"
+        )
+    baseline_path = _resolve_job_relative(root, decision.baseline_scene_spec.path)
+    owner = f"candidate-recovery-{uuid4().hex[:12]}"
+    archived_path: Path | None = None
+    with canonical_scene_spec_write_lock(job_id, owner):
+        if current_hash == decision.candidate_scene_spec.sha256:
+            replacement = replace_scene_spec_if_current(
+                job_id,
+                baseline_path,
+                expected_current_sha256=decision.candidate_scene_spec.sha256,
+                expected_candidate_sha256=decision.baseline_scene_spec.sha256,
+                lock_owner_id=owner,
+            )
+            archived_value = replacement.get("archived_scene_spec")
+            archived_path = Path(str(archived_value)).resolve() if archived_value else None
+        blend, inventory, validation = _rebuild_canonical(root, job_id)
+        provenance = collect_build_provenance(
+            root,
+            job_id,
+            scene_spec_path=canonical_path,
+        )
+        approval_identity = stable_json_digest(
+            approval.model_dump(mode="json", exclude={"used", "used_at"})
+        )
+        receipt = CandidateReviewPromotionReceipt(
+            job_id=job_id,
+            trial_id=selected_trial_id,
+            workflow_id=workflow_id,
+            decision_sha256=decision_sha256,
+            approval_identity_sha256=approval_identity,
+            previous_canonical_sha256=decision.baseline_scene_spec.sha256,
+            candidate_scene_spec_sha256=decision.candidate_scene_spec.sha256,
+            final_canonical_sha256=sha256_file(canonical_path),
+            archived_scene_spec=(
+                _artifact(root, archived_path) if archived_path is not None else None
+            ),
+            final_blend=_artifact(root, blend),
+            final_inventory=_artifact(root, inventory),
+            final_validation=_artifact(root, validation),
+            final_build_fingerprint=str(provenance["fingerprint"]),
+            status="rolled_back",
+            promoted_at=_utc_now(),
+            notes=[
+                "Recovered an approval-consumed candidate promotion that failed before "
+                "writing its immutable receipt; the exact baseline was restored."
+            ],
+        )
+        _write_immutable_json(receipt_path, receipt.model_dump(mode="json"))
     return receipt
 
 

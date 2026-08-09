@@ -14,6 +14,8 @@ def _current_build_fingerprint(
     job_id: str,
     *,
     job_root: Path | None = None,
+    surface_detail_inventory_path: Path | None = None,
+    validate_surface_details: bool = True,
 ) -> str:
     """Fingerprint exact build inputs for canonical or job-contained alternate specs."""
 
@@ -26,6 +28,8 @@ def _current_build_fingerprint(
         root,
         job_id,
         scene_spec_path=scene_spec_path,
+        validate_surface_details=validate_surface_details,
+        surface_detail_inventory_path=surface_detail_inventory_path,
     )
     return str(provenance["fingerprint"])
 
@@ -42,6 +46,8 @@ def create_visual_qa_request(
     scene_spec_path: Path,
     include_generated_target: bool = False,
     job_root: Path | None = None,
+    surface_detail_inventory_path: Path | None = None,
+    validate_surface_details: bool = True,
 ) -> VisualQARequest:
     """Create a request whose hashes freeze canonical or isolated direct-QA inputs."""
 
@@ -65,6 +71,8 @@ def create_visual_qa_request(
         scene_spec_path,
         job_id,
         job_root=job_root,
+        surface_detail_inventory_path=surface_detail_inventory_path,
+        validate_surface_details=validate_surface_details,
     ):
         raise ValueError("render-pass manifest was produced from stale selected build inputs")
     return VisualQARequest(
@@ -90,6 +98,8 @@ def validate_visual_qa_request(
     *,
     scene_spec_path: Path,
     job_root: Path | None = None,
+    surface_detail_inventory_path: Path | None = None,
+    validate_surface_details: bool = True,
 ) -> RenderPassManifest:
     """Reject stale canonical or isolated QA requests before downstream decisions."""
 
@@ -126,6 +136,8 @@ def validate_visual_qa_request(
         scene_spec_path,
         request.job_id,
         job_root=job_root,
+        surface_detail_inventory_path=surface_detail_inventory_path,
+        validate_surface_details=validate_surface_details,
     ):
         raise ValueError("render-pass manifest build fingerprint is stale")
     for record in manifest.passes:

@@ -450,6 +450,7 @@ def run_scene_spec_visual_qa_snapshot(
     blend_path: Path,
     run_dir: Path,
     run_id: str,
+    surface_detail_inventory_path: Path | None = None,
     render_engine: str = "eevee",
     render_device: str = "auto",
 ) -> dict[str, Any]:
@@ -493,6 +494,7 @@ def run_scene_spec_visual_qa_snapshot(
         run_id=selected_run_id,
         camera_fingerprint=fingerprint,
         scene_spec_sha256=spec_hash,
+        surface_detail_inventory_path=surface_detail_inventory_path,
     )
     run_manifest, manifest_path, passes = _snapshot_render_passes(
         rendered,
@@ -519,6 +521,7 @@ def run_scene_spec_visual_qa_snapshot(
         scene_spec_path=scene_spec_path,
         include_generated_target=False,
         job_root=root,
+        surface_detail_inventory_path=surface_detail_inventory_path,
     )
     request_path = run_dir / "request.json"
     write_json_atomic(request_path, request.model_dump(mode="json"))
@@ -526,6 +529,7 @@ def run_scene_spec_visual_qa_snapshot(
         request,
         scene_spec_path=scene_spec_path,
         job_root=root,
+        surface_detail_inventory_path=surface_detail_inventory_path,
     )
     reference_source_ids = {source.id for source in spec.sources if source.kind == "reference"}
     report = compare_reference_to_render(

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -9,16 +11,20 @@ from codex_blender_modeler.auto_revision.candidate_review_reporting import (
     generate_candidate_review_pdf,
 )
 from codex_blender_modeler.auto_revision.candidate_review_service import (
+    _build_candidate_scene,
     _validate_candidate_invariants,
     _validate_review_plan,
     approve_candidate_review,
     evaluate_candidate_review,
     get_candidate_review_status,
     promote_candidate_review,
+    recover_failed_candidate_review_promotion,
 )
+from codex_blender_modeler.blender_artifacts import write_json_atomic
 from codex_blender_modeler.build_provenance import collect_build_provenance
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
+from codex_blender_modeler.qa.hashing import canonical_model_sha256
 from codex_blender_modeler.qa.models import (
     REQUIRED_QA_PASS_KINDS,
     BoundingBoxMetric,
@@ -32,6 +38,7 @@ from codex_blender_modeler.revision import RevisionOperation, RevisionPlan
 from codex_blender_modeler.workspace import (
     canonical_scene_spec_write_lock,
     create_job,
+    replace_scene_spec_if_current,
     sha256_file,
 )
 
@@ -60,6 +67,59 @@ def _plan(path: Path, operation: RevisionOperation) -> RevisionPlan:
         operations=[operation],
         acceptance_criteria=["Direct evidence improves without regression."],
     )
+
+
+def test_candidate_build_validates_against_canonical_job_root(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bind isolated candidate validation to the canonical assembly contract root."""
+
+    job_root = tmp_path / "candidate_job"
+    spec_path = job_root / "qa" / "trial" / "scene_spec.json"
+    output_root = job_root / "qa" / "trial" / "build"
+    spec_path.parent.mkdir(parents=True)
+    spec_path.write_text("{}\n", encoding="utf-8")
+
+    def fake_run_blender(
+        script_name: str,
+        args: list[str],
+        *,
+        blend_file: Path | None = None,
+        **_kwargs: object,
+    ) -> None:
+        """Create minimal outputs while checking candidate validation arguments."""
+
+        if script_name == "build_scene.py":
+            output = Path(args[args.index("--output") + 1])
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_bytes(b"candidate-blend")
+        elif script_name == "inspect_scene.py":
+            output = Path(args[args.index("--output") + 1])
+            output.write_text('{"objects": []}\n', encoding="utf-8")
+            assert blend_file == output_root / "scene.blend"
+        elif script_name == "validate_scene.py":
+            assert Path(args[args.index("--job-root") + 1]) == job_root
+            output = Path(args[args.index("--output") + 1])
+            output.write_text('{"ok": true}\n', encoding="utf-8")
+            assert blend_file == output_root / "scene.blend"
+        else:
+            raise AssertionError(f"unexpected Blender script: {script_name}")
+
+    monkeypatch.setattr(
+        "codex_blender_modeler.auto_revision.candidate_review_service.run_blender",
+        fake_run_blender,
+    )
+
+    blend, inventory, validation = _build_candidate_scene(
+        job_root,
+        spec_path,
+        output_root,
+    )
+
+    assert blend == output_root / "scene.blend"
+    assert inventory == output_root / "scene_inventory.json"
+    assert validation == output_root / "validation.json"
 
 
 def test_candidate_review_accepts_bounded_existing_object_parameter(tmp_path: Path) -> None:
@@ -158,12 +218,13 @@ def _fake_candidate_qa(
     blend_path: Path,
     run_dir: Path,
     run_id: str,
+    surface_detail_inventory_path: Path | None = None,
     render_engine: str = "eevee",
     render_device: str = "auto",
 ) -> dict[str, object]:
     """Write exact seven-pass and direct-score fixtures without launching Blender."""
 
-    del blend_path, render_engine, render_device
+    del blend_path, render_engine, render_device, surface_detail_inventory_path
     root = next(parent for parent in scene_spec_path.parents if parent.name == job_id)
     run_dir.mkdir(parents=True, exist_ok=False)
     pass_dir = run_dir / "passes"
@@ -233,7 +294,7 @@ def _fake_candidate_qa(
     report = VisualQAReport(
         job_id=job_id,
         run_id=run_id,
-        request_sha256=sha256_file(request_path),
+        request_sha256=canonical_model_sha256(request),
         camera_fingerprint=camera_fingerprint(spec),
         direct_metrics=metrics,
         generated_target_status="not_requested",
@@ -247,11 +308,16 @@ def _fake_candidate_qa(
     }
 
 
+@pytest.mark.parametrize(
+    "promotion_mode",
+    ["promoted", "provenance_rollback", "orphan_recovery"],
+)
 def test_candidate_review_evaluates_then_promotes_only_after_exact_approval(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
+    promotion_mode: str,
 ) -> None:
-    """Keep canonical geometry unchanged until one exact decision approval is consumed."""
+    """Promote exactly once or restore the baseline after bounded promotion failures."""
 
     workspace = tmp_path / "workspaces"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
@@ -348,14 +414,75 @@ def test_candidate_review_evaluates_then_promotes_only_after_exact_approval(
         "codex_blender_modeler.auto_revision.candidate_review_service._rebuild_canonical",
         fake_rebuild,
     )
-    with canonical_scene_spec_write_lock("candidate_service_asset", "wf-candidate"):
-        receipt = promote_candidate_review(
+    approval_payload = root / "qa" / "candidate_reviews" / "trial-01" / "promotion_approval.json"
+    if promotion_mode == "orphan_recovery":
+        consumed = approval.model_copy(update={"used": True, "used_at": datetime.now(UTC)})
+        write_json_atomic(approval_payload, consumed.model_dump(mode="json"))
+        candidate_path = (
+            root / "qa" / "candidate_reviews" / "trial-01" / "candidate" / "scene_spec.json"
+        )
+        with canonical_scene_spec_write_lock("candidate_service_asset", "orphan-fixture"):
+            replace_scene_spec_if_current(
+                "candidate_service_asset",
+                candidate_path,
+                expected_current_sha256=baseline_hash,
+                expected_candidate_sha256=decision.candidate_scene_spec.sha256,
+                lock_owner_id="orphan-fixture",
+            )
+        receipt = recover_failed_candidate_review_promotion(
             "candidate_service_asset",
             "trial-01",
+            decision_sha256=sha256_file(decision_path),
             workflow_id="wf-candidate",
         )
+        assert receipt.status == "rolled_back"
+        assert sha256_file(canonical) == baseline_hash
+    else:
+        if promotion_mode == "provenance_rollback":
+            original_collect = collect_build_provenance
+            calls = 0
 
-    assert receipt.status == "promoted"
-    assert sha256_file(canonical) == decision.candidate_scene_spec.sha256
-    approval_payload = root / "qa" / "candidate_reviews" / "trial-01" / "promotion_approval.json"
+            def fail_candidate_provenance(*args: object, **kwargs: object) -> dict[str, object]:
+                """Fail candidate provenance once, then validate the restored baseline."""
+
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    raise RuntimeError("fixture post-rebuild provenance failure")
+                return original_collect(*args, **kwargs)
+
+            monkeypatch.setattr(
+                "codex_blender_modeler.auto_revision.candidate_review_service.collect_build_provenance",
+                fail_candidate_provenance,
+            )
+            with pytest.raises(RuntimeError, match="baseline was restored"):
+                with canonical_scene_spec_write_lock(
+                    "candidate_service_asset",
+                    "wf-candidate",
+                ):
+                    promote_candidate_review(
+                        "candidate_service_asset",
+                        "trial-01",
+                        workflow_id="wf-candidate",
+                    )
+            receipt_payload = json.loads(
+                (
+                    root
+                    / "qa"
+                    / "candidate_reviews"
+                    / "trial-01"
+                    / "promotion_receipt.json"
+                ).read_text(encoding="utf-8")
+            )
+            assert receipt_payload["status"] == "rolled_back"
+            assert sha256_file(canonical) == baseline_hash
+        else:
+            with canonical_scene_spec_write_lock("candidate_service_asset", "wf-candidate"):
+                receipt = promote_candidate_review(
+                    "candidate_service_asset",
+                    "trial-01",
+                    workflow_id="wf-candidate",
+                )
+            assert receipt.status == "promoted"
+            assert sha256_file(canonical) == decision.candidate_scene_spec.sha256
     assert '"used": true' in approval_payload.read_text(encoding="utf-8")

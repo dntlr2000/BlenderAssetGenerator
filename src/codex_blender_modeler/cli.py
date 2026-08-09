@@ -35,6 +35,7 @@ from .auto_revision import (
 from .auto_revision.candidate_review_service import (
     approve_candidate_review,
     get_candidate_review_status,
+    recover_failed_candidate_review_promotion,
 )
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
@@ -1958,6 +1959,24 @@ def candidate_review_status_command(job_id: str, trial_id: str) -> None:
             ensure_ascii=False,
         )
     )
+
+
+@app.command("candidate-review-recover-promotion")
+def candidate_review_recover_promotion_command(
+    job_id: str,
+    trial_id: str,
+    decision_sha256: Annotated[str, typer.Option("--decision-sha256")],
+    workflow_id: Annotated[str | None, typer.Option("--workflow-id")] = None,
+) -> None:
+    """Rollback one consumed receipt-less candidate promotion to its exact baseline."""
+
+    receipt = recover_failed_candidate_review_promotion(
+        job_id,
+        trial_id,
+        decision_sha256=decision_sha256,
+        workflow_id=workflow_id,
+    )
+    console.print_json(receipt.model_dump_json())
 
 
 @app.command("workflow-status")

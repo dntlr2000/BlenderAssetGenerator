@@ -39,10 +39,11 @@ def scheduled_modifier_kinds(modifiers: list[dict]) -> list[str]:
 
 
 def parse_args() -> argparse.Namespace:
-    """Parse the SceneSpec and validation-report paths passed by the Blender runner."""
+    """Parse SceneSpec, optional job-root, and report paths from the Blender runner."""
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", required=True)
+    parser.add_argument("--job-root")
     parser.add_argument("--output", required=True)
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     return parser.parse_args(argv)
@@ -197,7 +198,12 @@ def main() -> None:
     args = parse_args()
     spec_path = Path(args.spec).expanduser().resolve()
     spec = json.loads(spec_path.read_text(encoding="utf-8"))
-    assembly_contract = load_assembly_contract(spec_path.parent.parent)
+    job_root = (
+        Path(args.job_root).expanduser().resolve()
+        if args.job_root
+        else spec_path.parent.parent
+    )
+    assembly_contract = load_assembly_contract(job_root)
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
 

@@ -68,10 +68,18 @@ def _manifest_path_for_item(
     return resolve_job_path(job_root, str(manifest_value), "texture_manifest")
 
 
-def _load_inventory_uv_evidence(job_root: Path) -> dict[str, list[dict]]:
-    """Index current scene-inventory UV evidence by stable semantic object ID."""
+def _load_inventory_uv_evidence(
+    job_root: Path,
+    *,
+    inventory_path: Path | None = None,
+) -> dict[str, list[dict]]:
+    """Index canonical or isolated scene-inventory UV evidence by semantic ID."""
 
-    path = job_root / "reports" / "scene_inventory.json"
+    path = (
+        inventory_path.expanduser().resolve()
+        if inventory_path is not None
+        else job_root / "reports" / "scene_inventory.json"
+    )
     if not path.is_file():
         return {}
     try:
@@ -93,6 +101,7 @@ def validate_surface_detail_contract(
     *,
     material_plan: MaterialPlan | None = None,
     require_materials: bool = False,
+    inventory_path: Path | None = None,
 ) -> SurfaceDetailValidationReport:
     """Verify non-mesh decisions against SceneSpec and optional V0.5 texture contracts."""
 
@@ -137,7 +146,9 @@ def validate_surface_detail_contract(
     )
     require_spatial_bindings = binding_policy == "spatial_v1"
     inventory_by_id = (
-        _load_inventory_uv_evidence(job_root) if require_spatial_bindings else {}
+        _load_inventory_uv_evidence(job_root, inventory_path=inventory_path)
+        if require_spatial_bindings
+        else {}
     )
     textured = sum(
         detail.representation != "omit" for detail in plan.surface_details

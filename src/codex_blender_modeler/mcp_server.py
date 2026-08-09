@@ -36,6 +36,9 @@ from .auto_revision.candidate_review_service import (
 from .auto_revision.candidate_review_service import (
     get_candidate_review_status as get_candidate_review_status_internal,
 )
+from .auto_revision.candidate_review_service import (
+    recover_failed_candidate_review_promotion as recover_failed_candidate_review_promotion_internal,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -844,6 +847,23 @@ def get_candidate_review_state(job_id: str, trial_id: str) -> dict:
     """Read candidate-review evidence without approving or changing canonical geometry."""
 
     return get_candidate_review_status_internal(job_id, trial_id)
+
+
+@mcp.tool()
+def recover_candidate_review_promotion_failure(
+    job_id: str,
+    trial_id: str,
+    decision_sha256: str,
+    workflow_id: str | None = None,
+) -> dict:
+    """Rollback one consumed receipt-less candidate promotion to its exact baseline."""
+
+    return recover_failed_candidate_review_promotion_internal(
+        job_id,
+        trial_id,
+        decision_sha256=decision_sha256,
+        workflow_id=workflow_id,
+    ).model_dump(mode="json")
 
 
 @mcp.tool()

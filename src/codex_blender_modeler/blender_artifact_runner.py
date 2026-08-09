@@ -104,8 +104,9 @@ def render_scene_qa_passes(
     run_id: str | None = None,
     camera_fingerprint: str | None = None,
     scene_spec_sha256: str | None = None,
+    surface_detail_inventory_path: Path | None = None,
 ) -> RenderPassManifest:
-    """Render exact seven-pass QA evidence for one job-contained SceneSpec/blend pair."""
+    """Render seven-pass QA against canonical or isolated inventory evidence."""
 
     root = job_dir(job_id).resolve()
     scene_spec = scene_spec_path.expanduser().resolve()
@@ -126,7 +127,12 @@ def render_scene_qa_passes(
         raise FileNotFoundError(f"SceneSpec does not exist: {scene_spec}")
     if not blend.is_file():
         raise FileNotFoundError(f"Blender scene does not exist: {blend}")
-    provenance = collect_build_provenance(root, job_id, scene_spec_path=scene_spec)
+    provenance = collect_build_provenance(
+        root,
+        job_id,
+        scene_spec_path=scene_spec,
+        surface_detail_inventory_path=surface_detail_inventory_path,
+    )
     current_scene_hash = str(provenance["scene_spec_sha256"])
     current_camera_fingerprint = str(provenance["camera_fingerprint"])
     if scene_spec_sha256 is not None and scene_spec_sha256 != current_scene_hash:

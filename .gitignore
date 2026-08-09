@@ -47,3 +47,9 @@ build/
 /.pt-conv
 /.pt-prod
 /.pt-spatial
+/pytest_tmp_candidate_review_0716
+/pytest_tmp_candidate_review_0717
+/pytest_tmp_candidate_review_0715
+/pytest_tmp_candidate_review_0702
+/pytest_tmp_candidate_review_0703
+/.codex-runs

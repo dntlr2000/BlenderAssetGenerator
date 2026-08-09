@@ -291,8 +291,9 @@ def collect_build_provenance(
     scene_spec_path: Path | None = None,
     validate_contracts: bool = True,
     validate_surface_details: bool = True,
+    surface_detail_inventory_path: Path | None = None,
 ) -> dict[str, Any]:
-    """Collect build inputs with optional contract and surface-detail validation."""
+    """Collect build inputs with optional contract and isolated inventory validation."""
 
     root = job_root.expanduser().resolve()
     spec_path = (
@@ -402,6 +403,7 @@ def collect_build_provenance(
                         root,
                         material_plan=material_plan,
                         require_materials=material_plan is not None,
+                        inventory_path=surface_detail_inventory_path,
                     )
                 except (OSError, ValueError) as exc:
                     raise BuildProvenanceError(
