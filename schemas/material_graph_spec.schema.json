@@ -1,0 +1,790 @@
+{
+  "$defs": {
+    "BakePolicy": {
+      "additionalProperties": false,
+      "description": "Declare deterministic portable bake outputs without choosing an engine graph.",
+      "properties": {
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "occlusion",
+              "emission",
+              "opacity"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "resolution": {
+          "default": [
+            1024,
+            1024
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "margin_px": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Margin Px",
+          "type": "integer"
+        },
+        "preserve_raw_channels": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Raw Channels",
+          "type": "boolean"
+        }
+      },
+      "title": "BakePolicy",
+      "type": "object"
+    },
+    "ChannelBinding": {
+      "additionalProperties": false,
+      "description": "Bind one PBR channel to a constant or immutable image source.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "emission",
+            "opacity"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "constant",
+            "image"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "constant": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialGraphArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "physical_scale": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextureScale"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sampling": {
+          "default": "repeat",
+          "enum": [
+            "repeat",
+            "clamp",
+            "clip"
+          ],
+          "title": "Sampling",
+          "type": "string"
+        },
+        "localized_detail": {
+          "default": false,
+          "title": "Localized Detail",
+          "type": "boolean"
+        },
+        "normal_format": {
+          "anyOf": [
+            {
+              "enum": [
+                "OpenGL",
+                "DirectX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Format"
+        }
+      },
+      "required": [
+        "channel",
+        "source_kind",
+        "color_space"
+      ],
+      "title": "ChannelBinding",
+      "type": "object"
+    },
+    "CurvatureMask": {
+      "additionalProperties": false,
+      "description": "Mask by bounded convexity or concavity sampled at a physical radius.",
+      "properties": {
+        "kind": {
+          "const": "curvature",
+          "default": "curvature",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "default": "both",
+          "enum": [
+            "convex",
+            "concave",
+            "both"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "radius_m": {
+          "exclusiveMinimum": 0,
+          "title": "Radius M",
+          "type": "number"
+        },
+        "low": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Low",
+          "type": "number"
+        },
+        "high": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "High",
+          "type": "number"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "radius_m"
+      ],
+      "title": "CurvatureMask",
+      "type": "object"
+    },
+    "ImageMask": {
+      "additionalProperties": false,
+      "description": "Mask a layer by one immutable non-color image.",
+      "properties": {
+        "kind": {
+          "const": "image",
+          "default": "image",
+          "title": "Kind",
+          "type": "string"
+        },
+        "image": {
+          "$ref": "#/$defs/MaterialGraphArtifact"
+        },
+        "channel": {
+          "default": "luminance",
+          "enum": [
+            "R",
+            "G",
+            "B",
+            "A",
+            "luminance"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "color_space": {
+          "const": "Non-Color",
+          "default": "Non-Color",
+          "title": "Color Space",
+          "type": "string"
+        },
+        "sampling": {
+          "default": "clamp",
+          "enum": [
+            "clamp",
+            "clip"
+          ],
+          "title": "Sampling",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "title": "ImageMask",
+      "type": "object"
+    },
+    "MaterialGraphArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained graph input to a portable path and exact digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "material_plan",
+            "shader_recipe",
+            "texture",
+            "reference",
+            "mask",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "MaterialGraphArtifact",
+      "type": "object"
+    },
+    "MaterialGraphLayer": {
+      "additionalProperties": false,
+      "description": "Describe one ordered whitelist-only layer over the stable base material.",
+      "properties": {
+        "layer_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Layer Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 0,
+          "title": "Order",
+          "type": "integer"
+        },
+        "material_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "blend_mode": {
+          "enum": [
+            "replace",
+            "mix",
+            "multiply",
+            "add",
+            "screen",
+            "overlay"
+          ],
+          "title": "Blend Mode",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelBinding"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "curvature": "#/$defs/CurvatureMask",
+                  "image": "#/$defs/ImageMask",
+                  "position_slope": "#/$defs/PositionSlopeMask",
+                  "semantic_object": "#/$defs/SemanticObjectMask",
+                  "vertex_attribute": "#/$defs/VertexAttributeMask"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ImageMask"
+                },
+                {
+                  "$ref": "#/$defs/VertexAttributeMask"
+                },
+                {
+                  "$ref": "#/$defs/SemanticObjectMask"
+                },
+                {
+                  "$ref": "#/$defs/CurvatureMask"
+                },
+                {
+                  "$ref": "#/$defs/PositionSlopeMask"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask"
+        }
+      },
+      "required": [
+        "layer_id",
+        "order",
+        "material_id",
+        "blend_mode",
+        "channels"
+      ],
+      "title": "MaterialGraphLayer",
+      "type": "object"
+    },
+    "MaterialGraphProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze job, workflow, dispatch, contract, and exact input provenance.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "project_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Project Version",
+          "type": "string"
+        },
+        "material_contract_version": {
+          "const": "0.5.0",
+          "default": "0.5.0",
+          "title": "Material Contract Version",
+          "type": "string"
+        },
+        "graph_contract_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Graph Contract Version",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/MaterialGraphArtifact"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "project_version",
+        "inputs"
+      ],
+      "title": "MaterialGraphProvenance",
+      "type": "object"
+    },
+    "NormalDisplacementPolicy": {
+      "additionalProperties": false,
+      "description": "Separate portable tangent normals from bounded physical displacement.",
+      "properties": {
+        "normal_mode": {
+          "default": "tangent_space",
+          "enum": [
+            "disabled",
+            "tangent_space",
+            "object_space"
+          ],
+          "title": "Normal Mode",
+          "type": "string"
+        },
+        "displacement_mode": {
+          "default": "bump_only",
+          "enum": [
+            "disabled",
+            "bump_only",
+            "true_displacement"
+          ],
+          "title": "Displacement Mode",
+          "type": "string"
+        },
+        "maximum_displacement_m": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Maximum Displacement M",
+          "type": "number"
+        },
+        "require_subdivision": {
+          "default": false,
+          "title": "Require Subdivision",
+          "type": "boolean"
+        }
+      },
+      "title": "NormalDisplacementPolicy",
+      "type": "object"
+    },
+    "PositionSlopeMask": {
+      "additionalProperties": false,
+      "description": "Mask by object-space position or world-space surface slope.",
+      "properties": {
+        "kind": {
+          "const": "position_slope",
+          "default": "position_slope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "position",
+            "slope"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "meters",
+            "degrees"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "minimum",
+        "maximum",
+        "unit"
+      ],
+      "title": "PositionSlopeMask",
+      "type": "object"
+    },
+    "PreviewLightingPolicy": {
+      "additionalProperties": false,
+      "description": "Keep neutral material inspection separate from reference-matched comparison.",
+      "properties": {
+        "neutral_profile": {
+          "const": "neutral_studio",
+          "default": "neutral_studio",
+          "title": "Neutral Profile",
+          "type": "string"
+        },
+        "neutral_exposure": {
+          "default": 0.0,
+          "maximum": 10,
+          "minimum": -10,
+          "title": "Neutral Exposure",
+          "type": "number"
+        },
+        "reference_profile": {
+          "const": "reference_matched",
+          "default": "reference_matched",
+          "title": "Reference Profile",
+          "type": "string"
+        },
+        "reference_source": {
+          "$ref": "#/$defs/MaterialGraphArtifact"
+        },
+        "reference_confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Reference Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "reference_source",
+        "reference_confidence"
+      ],
+      "title": "PreviewLightingPolicy",
+      "type": "object"
+    },
+    "SemanticObjectMask": {
+      "additionalProperties": false,
+      "description": "Restrict a layer to stable semantic or object identities.",
+      "properties": {
+        "kind": {
+          "const": "semantic_object",
+          "default": "semantic_object",
+          "title": "Kind",
+          "type": "string"
+        },
+        "semantic_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Semantic Ids",
+          "type": "array"
+        },
+        "object_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Object Ids",
+          "type": "array"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "title": "SemanticObjectMask",
+      "type": "object"
+    },
+    "TextureScale": {
+      "additionalProperties": false,
+      "description": "Describe physical texture size without relying on arbitrary node transforms.",
+      "properties": {
+        "width_m": {
+          "exclusiveMinimum": 0,
+          "title": "Width M",
+          "type": "number"
+        },
+        "height_m": {
+          "exclusiveMinimum": 0,
+          "title": "Height M",
+          "type": "number"
+        },
+        "uv_set": {
+          "default": "UVMap",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Uv Set",
+          "type": "string"
+        }
+      },
+      "required": [
+        "width_m",
+        "height_m"
+      ],
+      "title": "TextureScale",
+      "type": "object"
+    },
+    "VertexAttributeMask": {
+      "additionalProperties": false,
+      "description": "Mask a layer by one bounded mesh attribute name.",
+      "properties": {
+        "kind": {
+          "const": "vertex_attribute",
+          "default": "vertex_attribute",
+          "title": "Kind",
+          "type": "string"
+        },
+        "attribute": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Attribute",
+          "type": "string"
+        },
+        "domain": {
+          "default": "POINT",
+          "enum": [
+            "POINT",
+            "CORNER",
+            "FACE"
+          ],
+          "title": "Domain",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attribute"
+      ],
+      "title": "VertexAttributeMask",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Define a stable material base and ordered portable layers without arbitrary nodes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/MaterialGraphProvenance"
+    },
+    "material_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Material Id",
+      "type": "string"
+    },
+    "base_channels": {
+      "items": {
+        "$ref": "#/$defs/ChannelBinding"
+      },
+      "minItems": 1,
+      "title": "Base Channels",
+      "type": "array"
+    },
+    "layers": {
+      "items": {
+        "$ref": "#/$defs/MaterialGraphLayer"
+      },
+      "title": "Layers",
+      "type": "array"
+    },
+    "normal_displacement": {
+      "$ref": "#/$defs/NormalDisplacementPolicy"
+    },
+    "bake": {
+      "$ref": "#/$defs/BakePolicy"
+    },
+    "preview_lighting": {
+      "$ref": "#/$defs/PreviewLightingPolicy"
+    },
+    "graph_policy": {
+      "const": "whitelisted_material_graph_v1",
+      "default": "whitelisted_material_graph_v1",
+      "title": "Graph Policy",
+      "type": "string"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    }
+  },
+  "required": [
+    "graph_id",
+    "provenance",
+    "material_id",
+    "base_channels",
+    "preview_lighting"
+  ],
+  "title": "MaterialGraphSpec",
+  "type": "object"
+}

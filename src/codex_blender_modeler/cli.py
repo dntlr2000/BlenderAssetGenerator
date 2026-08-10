@@ -37,6 +37,8 @@ from .auto_revision.candidate_review_service import (
     get_candidate_review_status,
     recover_failed_candidate_review_promotion,
 )
+from .autonomy.planner import plan_autonomous_static_prop
+from .autonomy.profiles import get_autonomy_profile_status
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -58,6 +60,10 @@ from .handoff import (
     get_destination_handoff_status,
     plan_destination_handoff,
     validate_destination_handoff,
+)
+from .integrated_quality import (
+    get_integrated_quality_status,
+    run_integrated_quality,
 )
 from .interior_qa import (
     approve_job_interior_qa_plan,
@@ -124,6 +130,10 @@ from .stabilization import (
     probe_release_environment,
     requeue_local_workflow,
     run_local_workflow_queue,
+)
+from .structural_geometry.migration_service import (
+    apply_scene_spec_v03_migration,
+    plan_scene_spec_v03_migration,
 )
 from .texturing import (
     attach_texture_manifest_to_plan,
@@ -1756,6 +1766,232 @@ def workflow_plan_command(
         ),
     )
     console.print_json(state.model_dump_json())
+
+
+@app.command("autonomy-profile-status")
+def autonomy_profile_status_command(
+    profile_id: Annotated[str | None, typer.Option("--profile-id")] = None,
+) -> None:
+    """List the sole verified autonomy profile and disabled experimental entries."""
+
+    console.print_json(
+        json.dumps(get_autonomy_profile_status(profile_id), ensure_ascii=False)
+    )
+
+
+@app.command("scene-spec-v03-migration-plan")
+def scene_spec_v03_migration_plan_command(job_id: str, migration_id: str) -> None:
+    """Create one immutable derived-only SceneSpec 0.3 migration plan and candidate."""
+
+    console.print_json(
+        json.dumps(
+            plan_scene_spec_v03_migration(job_id, migration_id),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("scene-spec-v03-migration-apply")
+def scene_spec_v03_migration_apply_command(
+    job_id: str,
+    migration_id: str,
+    exact_plan_sha256: Annotated[str, typer.Option("--exact-plan-sha256")],
+) -> None:
+    """Apply one exact migration plan to a derived copy without canonical mutation."""
+
+    console.print_json(
+        json.dumps(
+            apply_scene_spec_v03_migration(
+                job_id,
+                migration_id,
+                exact_plan_sha256=exact_plan_sha256,
+            ),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("autonomy-plan")
+def autonomy_plan_command(
+    request: str,
+    reference_path: Annotated[str, typer.Option("--reference")],
+    target_subject: Annotated[str, typer.Option("--target-subject")],
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    controller_execution_mode: Annotated[
+        str, typer.Option("--controller-mode")
+    ] = "desktop_in_session",
+    include_destination_handoff_envelope: Annotated[
+        bool,
+        typer.Option("--handoff-envelope/--no-handoff-envelope"),
+    ] = False,
+) -> None:
+    """Create one bounded static-prop autonomy overlay on a new standard workflow."""
+
+    result = plan_autonomous_static_prop(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        include_destination_handoff_envelope=(
+            include_destination_handoff_envelope
+        ),
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-bind")
+def autonomy_bind_command(
+    job_id: str,
+    session_id: str,
+    external_task_id: Annotated[str, typer.Option("--external-task-id")],
+    external_host_id: Annotated[str | None, typer.Option("--external-host-id")] = None,
+    enforced_controller_tool_profile_sha256: Annotated[
+        str | None,
+        typer.Option("--tool-profile-sha256"),
+    ] = None,
+) -> None:
+    """Bind a client-mediated autonomy session to one exact external controller task."""
+
+    from .autonomy.service import bind_autonomy_controller
+
+    result = bind_autonomy_controller(
+        job_id,
+        session_id,
+        external_task_id=external_task_id,
+        external_host_id=external_host_id,
+        enforced_controller_tool_profile_sha256=(
+            enforced_controller_tool_profile_sha256
+        ),
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-status")
+def autonomy_status_command(job_id: str, session_id: str) -> None:
+    """Verify and report one exact autonomy session without advancing it."""
+
+    from .autonomy.service import get_autonomy_status
+
+    console.print_json(
+        json.dumps(get_autonomy_status(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("autonomy-advance")
+def autonomy_advance_command(job_id: str, session_id: str) -> None:
+    """Execute at most one locked state-machine action and write its exact receipt."""
+
+    from .autonomy.service import advance_autonomy
+
+    console.print_json(
+        json.dumps(advance_autonomy(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("autonomy-run")
+def autonomy_run_command(
+    job_id: str,
+    session_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=64)] = 8,
+) -> None:
+    """Supervise a bounded number of separately locked autonomy actions."""
+
+    from .autonomy.service import run_autonomy
+
+    console.print_json(
+        json.dumps(
+            run_autonomy(job_id, session_id, max_actions=max_actions),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("autonomy-resume")
+def autonomy_resume_command(
+    job_id: str,
+    session_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=64)] = 8,
+) -> None:
+    """Resume a non-terminal session through the same bounded supervisor contract."""
+
+    from .autonomy.service import resume_autonomy
+
+    console.print_json(
+        json.dumps(
+            resume_autonomy(job_id, session_id, max_actions=max_actions),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("autonomy-cancel")
+def autonomy_cancel_command(
+    job_id: str,
+    session_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Cancel future autonomy actions without deleting canonical or immutable evidence."""
+
+    from .autonomy.service import cancel_autonomy
+
+    console.print_json(
+        json.dumps(
+            cancel_autonomy(job_id, session_id, reason=reason),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("integrated-quality-run")
+def integrated_quality_run_command(
+    job_id: str,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    quality_profile_path: Annotated[
+        str | None, typer.Option("--quality-profile")
+    ] = None,
+    qa_report_path: Annotated[str | None, typer.Option("--qa-report")] = None,
+    validation_path: Annotated[str | None, typer.Option("--validation")] = None,
+    material_validation_path: Annotated[
+        str | None, typer.Option("--material-validation")
+    ] = None,
+    material_fidelity_path: Annotated[
+        str | None, typer.Option("--material-fidelity")
+    ] = None,
+    mesh_preflight_path: Annotated[
+        str | None, typer.Option("--mesh-preflight")
+    ] = None,
+    roundtrip_path: Annotated[str | None, typer.Option("--roundtrip")] = None,
+) -> None:
+    """Write an immutable four-axis companion report from explicit existing evidence."""
+
+    result = run_integrated_quality(
+        job_id,
+        run_id=run_id,
+        quality_profile_path=quality_profile_path,
+        qa_report_path=qa_report_path,
+        validation_path=validation_path,
+        material_validation_path=material_validation_path,
+        material_fidelity_path=material_fidelity_path,
+        mesh_preflight_path=mesh_preflight_path,
+        roundtrip_path=roundtrip_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("integrated-quality-status")
+def integrated_quality_status_command(
+    job_id: str,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Verify one exact companion report; latest is only a convenience selector."""
+
+    console.print_json(
+        json.dumps(
+            get_integrated_quality_status(job_id, run_id),
+            ensure_ascii=False,
+        )
+    )
 
 
 @app.command("production-dispatch")

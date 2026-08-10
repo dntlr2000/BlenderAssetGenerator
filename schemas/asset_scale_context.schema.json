@@ -1,0 +1,204 @@
+{
+  "$defs": {
+    "Bounds3D": {
+      "additionalProperties": false,
+      "description": "Store one finite positive axis-aligned metric bounding box.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "Bounds3D",
+      "type": "object"
+    },
+    "StructuralEvidenceArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one scale-context input to a contained path and exact digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "modeling_plan",
+            "reference",
+            "inventory",
+            "constraint_report",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "StructuralEvidenceArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Resolve scale parameters inside one exact immutable AQ evidence envelope.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "asset_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/StructuralEvidenceArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "local_bbox": {
+      "$ref": "#/$defs/Bounds3D"
+    },
+    "assembly_bbox": {
+      "$ref": "#/$defs/Bounds3D"
+    },
+    "shortest_dimension_m": {
+      "exclusiveMinimum": 0,
+      "title": "Shortest Dimension M",
+      "type": "number"
+    },
+    "projected_pixel_size": {
+      "exclusiveMinimum": 0,
+      "title": "Projected Pixel Size",
+      "type": "number"
+    },
+    "target_texel_density_px_m": {
+      "exclusiveMinimum": 0,
+      "title": "Target Texel Density Px M",
+      "type": "number"
+    },
+    "ratio_overrides": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Ratio Overrides",
+      "type": "object"
+    },
+    "absolute_overrides_m": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Absolute Overrides M",
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "asset_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "local_bbox",
+    "assembly_bbox",
+    "shortest_dimension_m",
+    "projected_pixel_size",
+    "target_texel_density_px_m"
+  ],
+  "title": "AssetScaleContext",
+  "type": "object"
+}

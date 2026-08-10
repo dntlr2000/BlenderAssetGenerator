@@ -53,3 +53,46 @@ build/
 /pytest_tmp_candidate_review_0702
 /pytest_tmp_candidate_review_0703
 /.codex-runs
+/.pytest_tmp_spatial_20260809b
+/.pytest_tmp_spatial_20260809c
+/.pytest_tmp_v09_convergence_20260809
+/.pytest-tmp
+
+# Root-local isolated pytest and Autonomous Quality scratch workspaces.
+/.test-tmp-*/
+/.pytest_tmp_*/
+/.pytest-*/
+/.tmp-aq-*/
+/.t-aq*/
+/.tauth/
+/.tbah/
+/.tbau/
+/.tap1/
+/.u9/
+/.u10/
+
+# Short basetemp roots used to avoid Windows MAX_PATH failures.
+/.a/
+/.b/
+/.c/
+/.d/
+/.e/
+/.hg/
+/.hi/
+/.hj/
+/.hk/
+/.hl/
+/.m/
+/.n2/
+/.p/
+/.q/
+/.q1/
+/.r/
+/.s/
+/.s1/
+/.s2/
+
+# Local tool/runtime logs and test-only output.
+/.codex_runtime/
+/NVIDIA Corporation/
+/test_artifacts/

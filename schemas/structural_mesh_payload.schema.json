@@ -1,0 +1,383 @@
+{
+  "$defs": {
+    "EdgeReference": {
+      "additionalProperties": false,
+      "description": "Address one compiled mesh edge by its canonical ordered vertex pair.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "vertices"
+      ],
+      "title": "EdgeReference",
+      "type": "object"
+    },
+    "FaceGroup": {
+      "additionalProperties": false,
+      "description": "Assign a stable group name to deterministic compiled polygon indices.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "face_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Face Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "face_indices"
+      ],
+      "title": "FaceGroup",
+      "type": "object"
+    },
+    "GeometryIntent": {
+      "additionalProperties": false,
+      "description": "Preserve face, edge, shading, topology, subdivision, and LOD intent.",
+      "properties": {
+        "face_groups": {
+          "items": {
+            "$ref": "#/$defs/FaceGroup"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "sharp_edges": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Sharp Edges",
+          "type": "array"
+        },
+        "crease_edges": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Crease Edges",
+          "type": "array"
+        },
+        "bevel_weights": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Bevel Weights",
+          "type": "array"
+        },
+        "uv_seams": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Uv Seams",
+          "type": "array"
+        },
+        "smoothing_policy": {
+          "$ref": "#/$defs/SmoothingPolicy"
+        },
+        "topology_policy": {
+          "default": "static_prop_closed",
+          "enum": [
+            "static_prop_closed",
+            "static_prop_open",
+            "game_ready_lowpoly",
+            "highpoly_bake_source",
+            "modular_architecture",
+            "terrain"
+          ],
+          "title": "Topology Policy",
+          "type": "string"
+        },
+        "subdivision_intent": {
+          "$ref": "#/$defs/SubdivisionIntent"
+        },
+        "lod_intent": {
+          "$ref": "#/$defs/LODIntent"
+        }
+      },
+      "title": "GeometryIntent",
+      "type": "object"
+    },
+    "LODIntent": {
+      "additionalProperties": false,
+      "description": "Carry advisory semantic LOD policy into later V0.7 review.",
+      "properties": {
+        "preserve_silhouette": {
+          "default": true,
+          "title": "Preserve Silhouette",
+          "type": "boolean"
+        },
+        "protected_face_groups": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Protected Face Groups",
+          "type": "array"
+        },
+        "minimum_triangle_ratio": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Triangle Ratio",
+          "type": "number"
+        }
+      },
+      "title": "LODIntent",
+      "type": "object"
+    },
+    "MeshFinding": {
+      "additionalProperties": false,
+      "description": "Record one deterministic warning or failure discovered during materialization.",
+      "properties": {
+        "code": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "MeshFinding",
+      "type": "object"
+    },
+    "SmoothingPolicy": {
+      "additionalProperties": false,
+      "description": "Describe deterministic flat, angle-based, or weighted hard-surface shading.",
+      "properties": {
+        "mode": {
+          "default": "legacy",
+          "enum": [
+            "legacy",
+            "flat",
+            "smooth_by_angle",
+            "weighted_normals"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "angle_degrees": {
+          "default": 30.0,
+          "exclusiveMaximum": 180,
+          "exclusiveMinimum": 0,
+          "title": "Angle Degrees",
+          "type": "number"
+        },
+        "keep_sharp": {
+          "default": true,
+          "title": "Keep Sharp",
+          "type": "boolean"
+        }
+      },
+      "title": "SmoothingPolicy",
+      "type": "object"
+    },
+    "SubdivisionIntent": {
+      "additionalProperties": false,
+      "description": "Record bounded subdivision intent without silently adding unsupported topology.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "levels": {
+          "default": 0,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "boundary_smoothing": {
+          "default": "preserve_corners",
+          "enum": [
+            "preserve_corners",
+            "smooth_all"
+          ],
+          "title": "Boundary Smoothing",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionIntent",
+      "type": "object"
+    },
+    "WeightedEdge": {
+      "additionalProperties": false,
+      "description": "Attach one normalized crease or bevel weight to a canonical edge.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "vertices",
+        "weight"
+      ],
+      "title": "WeightedEdge",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Store one strict materialized mesh with stable face ordering and optional intent.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "semantic_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Semantic Id",
+      "type": "string"
+    },
+    "builder_kind": {
+      "enum": [
+        "loft",
+        "sweep",
+        "boolean_tree",
+        "multi_loop_extrude",
+        "geometry_nodes_template"
+      ],
+      "title": "Builder Kind",
+      "type": "string"
+    },
+    "vertices": {
+      "items": {
+        "maxItems": 3,
+        "minItems": 3,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "minItems": 3,
+      "title": "Vertices",
+      "type": "array"
+    },
+    "faces": {
+      "items": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "minItems": 1,
+      "title": "Faces",
+      "type": "array"
+    },
+    "loop_uvs": {
+      "anyOf": [
+        {
+          "items": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Loop Uvs"
+    },
+    "geometry_intent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GeometryIntent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/MeshFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    }
+  },
+  "required": [
+    "semantic_id",
+    "builder_kind",
+    "vertices",
+    "faces"
+  ],
+  "title": "StructuralMeshPayload",
+  "type": "object"
+}

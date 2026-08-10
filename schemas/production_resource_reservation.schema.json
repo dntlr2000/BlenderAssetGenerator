@@ -1,0 +1,297 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "description": "Count consumed actions without changing the authorized budget.",
+      "properties": {
+        "initial_candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "total_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Actions",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    },
+    "ProductionResourceDelta": {
+      "additionalProperties": false,
+      "description": "Describe resource counters that must be reserved before one host step.",
+      "properties": {
+        "total_blender_builds": {
+          "default": 0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        }
+      },
+      "title": "ProductionResourceDelta",
+      "type": "object"
+    },
+    "ProductionStepResourceClassification": {
+      "additionalProperties": false,
+      "description": "Map one known V0.8 host tool to its pre-execution AQ resource cost.",
+      "properties": {
+        "step_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+          "title": "Step Id",
+          "type": "string"
+        },
+        "tool_name": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Tool Name",
+          "type": "string"
+        },
+        "phase": {
+          "maxLength": 32,
+          "minLength": 1,
+          "title": "Phase",
+          "type": "string"
+        },
+        "resource_kind": {
+          "enum": [
+            "none",
+            "scene_build",
+            "quality_evaluation",
+            "scene_build_and_quality_evaluation"
+          ],
+          "title": "Resource Kind",
+          "type": "string"
+        },
+        "delta": {
+          "$ref": "#/$defs/ProductionResourceDelta"
+        },
+        "charge_timing": {
+          "const": "before_execution",
+          "default": "before_execution",
+          "title": "Charge Timing",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step_id",
+        "tool_name",
+        "phase",
+        "resource_kind",
+        "delta",
+        "rationale"
+      ],
+      "title": "ProductionStepResourceClassification",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one pre-execution budget transition to an exact V0.8 host step.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "workflow_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "budget_authority": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "workflow_step_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,95}$",
+      "title": "Workflow Step Id",
+      "type": "string"
+    },
+    "workflow_tool_name": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Workflow Tool Name",
+      "type": "string"
+    },
+    "workflow_input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow Input Fingerprint",
+      "type": "string"
+    },
+    "classification": {
+      "$ref": "#/$defs/ProductionStepResourceClassification"
+    },
+    "budget_before": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "budget_after": {
+      "$ref": "#/$defs/BudgetUsage"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "session_id",
+    "workflow_plan",
+    "budget_authority",
+    "workflow_step_id",
+    "workflow_tool_name",
+    "workflow_input_fingerprint",
+    "classification",
+    "budget_before",
+    "budget_after"
+  ],
+  "title": "ProductionResourceReservation",
+  "type": "object"
+}

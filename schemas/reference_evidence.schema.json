@@ -1,0 +1,429 @@
+{
+  "$defs": {
+    "AdvisoryObservation": {
+      "additionalProperties": false,
+      "description": "Preserve optional provider advice without granting mask or camera authority.",
+      "properties": {
+        "observation_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "foreground",
+            "camera",
+            "occlusion",
+            "uncertainty"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "provenance": {
+          "$ref": "#/$defs/EvidenceProvenance"
+        }
+      },
+      "required": [
+        "observation_id",
+        "category",
+        "message",
+        "confidence",
+        "provenance"
+      ],
+      "title": "AdvisoryObservation",
+      "type": "object"
+    },
+    "EvidenceArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative evidence artifact to its exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "path",
+        "sha256",
+        "media_type",
+        "byte_size"
+      ],
+      "title": "EvidenceArtifact",
+      "type": "object"
+    },
+    "EvidenceProvenance": {
+      "additionalProperties": false,
+      "description": "Identify the exact deterministic producer and method for one evidence artifact.",
+      "properties": {
+        "producer": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "pillow",
+            "opencv",
+            "mixed",
+            "advisory"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "method": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "type": "boolean"
+        },
+        "advisory_only": {
+          "default": false,
+          "title": "Advisory Only",
+          "type": "boolean"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "producer",
+        "producer_version",
+        "provider",
+        "method",
+        "deterministic"
+      ],
+      "title": "EvidenceProvenance",
+      "type": "object"
+    },
+    "ForegroundMaskCandidate": {
+      "additionalProperties": false,
+      "description": "Describe one bounded, deterministic foreground-mask candidate.",
+      "properties": {
+        "candidate_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "rank": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "artifact": {
+          "$ref": "#/$defs/EvidenceArtifact"
+        },
+        "provenance": {
+          "$ref": "#/$defs/EvidenceProvenance"
+        },
+        "metrics": {
+          "$ref": "#/$defs/ForegroundMaskMetrics"
+        },
+        "status": {
+          "enum": [
+            "usable",
+            "underconstrained"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "rank",
+        "artifact",
+        "provenance",
+        "metrics",
+        "status"
+      ],
+      "title": "ForegroundMaskCandidate",
+      "type": "object"
+    },
+    "ForegroundMaskMetrics": {
+      "additionalProperties": false,
+      "description": "Record bounded diagnostic metrics for one foreground-mask hypothesis.",
+      "properties": {
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "area_ratio": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Area Ratio",
+          "type": "number"
+        },
+        "edge_agreement": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Edge Agreement",
+          "type": "number"
+        },
+        "border_contact_ratio": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Border Contact Ratio",
+          "type": "number"
+        },
+        "bilateral_symmetry": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Bilateral Symmetry",
+          "type": "number"
+        },
+        "shadow_likelihood": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Shadow Likelihood",
+          "type": "number"
+        },
+        "reflection_likelihood": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Reflection Likelihood",
+          "type": "number"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "bbox_norm",
+        "area_ratio",
+        "edge_agreement",
+        "border_contact_ratio",
+        "bilateral_symmetry",
+        "shadow_likelihood",
+        "reflection_likelihood",
+        "confidence"
+      ],
+      "title": "ForegroundMaskMetrics",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one run; producer/version remain in strict nested EvidenceProvenance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "evidence_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_image": {
+      "$ref": "#/$defs/EvidenceArtifact"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "mask_candidates": {
+      "items": {
+        "$ref": "#/$defs/ForegroundMaskCandidate"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Mask Candidates",
+      "type": "array"
+    },
+    "selected_candidate_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Candidate Id"
+    },
+    "status": {
+      "enum": [
+        "ready",
+        "underconstrained",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "advisory_observations": {
+      "items": {
+        "$ref": "#/$defs/AdvisoryObservation"
+      },
+      "title": "Advisory Observations",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/EvidenceProvenance"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "run_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_image",
+    "source_fingerprint",
+    "mask_candidates",
+    "status",
+    "provenance",
+    "created_at"
+  ],
+  "title": "ReferenceEvidence",
+  "type": "object"
+}

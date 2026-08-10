@@ -1,0 +1,467 @@
+{
+  "$defs": {
+    "AABB": {
+      "additionalProperties": false,
+      "description": "Represent one finite, non-inverted axis-aligned meter-space bound.",
+      "properties": {
+        "minimum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "AABB",
+      "type": "object"
+    },
+    "AssemblyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one assembly input or result to a contained path and exact digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "modeling_plan",
+            "blend",
+            "mesh_snapshot",
+            "assembly_request",
+            "broad_phase",
+            "narrow_phase",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "AssemblyArtifact",
+      "type": "object"
+    },
+    "AssemblyProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze the job, workflow, dispatch, contract, and evaluated source inputs.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "project_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Project Version",
+          "type": "string"
+        },
+        "assembly_contract_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Assembly Contract Version",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/AssemblyArtifact"
+          },
+          "minItems": 3,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "project_version",
+        "inputs"
+      ],
+      "title": "AssemblyProvenance",
+      "type": "object"
+    },
+    "BVHNarrowObservation": {
+      "additionalProperties": false,
+      "description": "Capture bounded nearest-distance and optional evaluated BVH overlap evidence.",
+      "properties": {
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "empty",
+            "evaluation_failure"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "backend": {
+          "enum": [
+            "blender_bvh",
+            "pure_python_bounded"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "overlap_triangle_pair_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overlap Triangle Pair Count"
+        },
+        "minimum_distance_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Distance M"
+        },
+        "penetration_depth_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Penetration Depth M"
+        },
+        "sampled_point_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Sampled Point Count",
+          "type": "integer"
+        },
+        "bounded_sample_limit": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Bounded Sample Limit",
+          "type": "integer"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "subject_id",
+        "reference_id",
+        "status",
+        "backend",
+        "bounded_sample_limit"
+      ],
+      "title": "BVHNarrowObservation",
+      "type": "object"
+    },
+    "SemanticAssemblyRelation": {
+      "additionalProperties": false,
+      "description": "Declare one semantic assembly expectation and its supported tolerance.",
+      "properties": {
+        "relation_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Relation Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "required_contact",
+            "supported_insertion_depth",
+            "supported_clearance",
+            "bilateral_symmetry",
+            "center_plane"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "peer_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Peer Id"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "minimum_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum M"
+        },
+        "maximum_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum M"
+        },
+        "tolerance_m": {
+          "default": 0.001,
+          "minimum": 0,
+          "title": "Tolerance M",
+          "type": "number"
+        },
+        "measured_value_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Value M"
+        }
+      },
+      "required": [
+        "relation_id",
+        "kind",
+        "subject_id",
+        "reference_id"
+      ],
+      "title": "SemanticAssemblyRelation",
+      "type": "object"
+    },
+    "TriangleMeshEvidence": {
+      "additionalProperties": false,
+      "description": "Store one evaluated triangle mesh in a form accepted by BVH backends.",
+      "properties": {
+        "object_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Object Id",
+          "type": "string"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/AssemblyArtifact"
+        },
+        "bounds": {
+          "$ref": "#/$defs/AABB"
+        },
+        "vertices_m": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Vertices M",
+          "type": "array"
+        },
+        "triangles": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Triangles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "object_id",
+        "snapshot",
+        "bounds",
+        "vertices_m",
+        "triangles"
+      ],
+      "title": "TriangleMeshEvidence",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the evaluated meshes, semantic relations, and bounded query budget.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AssemblyProvenance"
+    },
+    "meshes": {
+      "items": {
+        "$ref": "#/$defs/TriangleMeshEvidence"
+      },
+      "minItems": 1,
+      "title": "Meshes",
+      "type": "array"
+    },
+    "semantic_relations": {
+      "items": {
+        "$ref": "#/$defs/SemanticAssemblyRelation"
+      },
+      "title": "Semantic Relations",
+      "type": "array"
+    },
+    "narrow_observations": {
+      "items": {
+        "$ref": "#/$defs/BVHNarrowObservation"
+      },
+      "title": "Narrow Observations",
+      "type": "array"
+    },
+    "maximum_distance_samples": {
+      "default": 512,
+      "maximum": 8192,
+      "minimum": 1,
+      "title": "Maximum Distance Samples",
+      "type": "integer"
+    },
+    "maximum_triangle_pair_tests": {
+      "default": 4096,
+      "maximum": 65536,
+      "minimum": 1,
+      "title": "Maximum Triangle Pair Tests",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "request_id",
+    "provenance",
+    "meshes"
+  ],
+  "title": "AssemblyCompanionRequest",
+  "type": "object"
+}

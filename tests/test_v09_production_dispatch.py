@@ -14,7 +14,8 @@ from codex_blender_modeler.auto_revision.convergence_session_models import (
     ConvergencePathLimit,
     VisualConvergencePlan,
 )
-from codex_blender_modeler.blender_artifacts import sha256_file
+from codex_blender_modeler.blender_artifacts import native_io_path, sha256_file
+from codex_blender_modeler.orchestration.service import _artifact_digest
 from codex_blender_modeler.production import service as production_service
 from codex_blender_modeler.production.models import (
     AssetProductionDispatchPlan,
@@ -728,15 +729,21 @@ def test_postflight_binds_v08_directory_artifacts_with_their_exact_digest(
     _bind_dispatch(root, result)
     directory = root / "workflows" / workflow_id / "artifacts" / "material_candidate"
     directory.mkdir(parents=True)
-    member = directory / "material_plan.authored.json"
-    member.write_text('{"fixture": true}\n', encoding="utf-8")
+    long_directory = directory / ("canonical-" + "a" * 90) / ("material-" + "b" * 90)
+    os.makedirs(native_io_path(long_directory), exist_ok=True)
+    member = long_directory / "material_plan.authored.json"
+    with open(native_io_path(member), "w", encoding="utf-8") as handle:
+        handle.write('{"fixture": true}\n')
+    assert len(os.path.abspath(os.fspath(member))) > 260
+    v08_digest = _artifact_digest(directory)
+    assert v08_digest == production_artifact_digest(directory, containment_root=root)
     state_path = root / "workflows" / workflow_id / "state.json"
     state = json.loads(state_path.read_text(encoding="utf-8"))
     state["steps"][0]["artifacts"].append(
         {
             "artifact_id": "production.directory_fixture",
             "path": directory.relative_to(root).as_posix(),
-            "sha256": production_artifact_digest(directory),
+            "sha256": v08_digest,
             "integrity": "valid",
             "currency": "current",
             "verification": "verified",
@@ -775,7 +782,8 @@ def test_postflight_binds_v08_directory_artifacts_with_their_exact_digest(
         item.path == directory.relative_to(root).as_posix()
         for item in receipt.terminal_artifacts
     )
-    member.write_text('{"fixture": false}\n', encoding="utf-8")
+    with open(native_io_path(member), "w", encoding="utf-8") as handle:
+        handle.write('{"fixture": false}\n')
     with pytest.raises(ValueError, match="hash mismatch"):
         get_asset_production_dispatch_status(root.name, dispatch_id)
 

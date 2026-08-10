@@ -19,7 +19,7 @@ from ..auto_revision.convergence_session import (
     plan_job_visual_convergence,
     run_job_visual_convergence,
 )
-from ..blender_artifacts import sha256_file, write_json_atomic
+from ..blender_artifacts import native_io_path, sha256_file, write_json_atomic
 from ..handoff.service import (
     plan_destination_handoff,
     validate_destination_handoff,
@@ -97,6 +97,31 @@ def _production_id(prefix: str) -> str:
     return f"{prefix}-{stamp}-{uuid4().hex[:8]}"
 
 
+def _path_exists(path: Path) -> bool:
+    """Check a production path through its extended-length Windows filename."""
+
+    return os.path.exists(native_io_path(path))
+
+
+def _path_is_file(path: Path) -> bool:
+    """Check a production file without relying on the Windows MAX_PATH limit."""
+
+    return os.path.isfile(native_io_path(path))
+
+
+def _path_is_dir(path: Path) -> bool:
+    """Check a production directory without relying on the Windows MAX_PATH limit."""
+
+    return os.path.isdir(native_io_path(path))
+
+
+def _read_utf8(path: Path) -> str:
+    """Read one production text artifact through its native extended-length path."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
 def _prepare_production_output(root: Path, path: Path) -> Path:
     """Create only contained non-link parents and revalidate the output leaf."""
 
@@ -106,7 +131,7 @@ def _prepare_production_output(root: Path, path: Path) -> Path:
         safe_path.parent,
         must_exist=False,
     )
-    safe_parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(safe_parent), exist_ok=True)
     ensure_contained_production_path(root, safe_parent, must_exist=True)
     return ensure_contained_production_path(root, safe_path, must_exist=False)
 
@@ -115,7 +140,7 @@ def _write_immutable_json(root: Path, path: Path, payload: dict[str, Any]) -> No
     """Write one immutable production JSON artifact and reject replacement."""
 
     safe_path = _prepare_production_output(root, path)
-    if safe_path.exists():
+    if _path_exists(safe_path):
         raise FileExistsError(
             f"immutable production artifact already exists: {safe_path.name}"
         )
@@ -127,7 +152,7 @@ def _write_immutable_text(root: Path, path: Path, text: str) -> None:
     """Write one immutable UTF-8 prompt with deterministic newlines."""
 
     safe_path = _prepare_production_output(root, path)
-    if safe_path.exists():
+    if _path_exists(safe_path):
         raise FileExistsError(
             f"immutable production artifact already exists: {safe_path.name}"
         )
@@ -136,10 +161,10 @@ def _write_immutable_text(root: Path, path: Path, text: str) -> None:
         safe_path.parent / f".{uuid4().hex[:12]}.tmp",
         must_exist=False,
     )
-    with open(temporary, "w", encoding="utf-8", newline="\n") as handle:
+    with open(native_io_path(temporary), "w", encoding="utf-8", newline="\n") as handle:
         handle.write(text.rstrip() + "\n")
     ensure_contained_production_path(root, safe_path.parent, must_exist=True)
-    os.replace(temporary, safe_path)
+    os.replace(native_io_path(temporary), native_io_path(safe_path))
     ensure_contained_production_path(root, safe_path, must_exist=True)
 
 
@@ -147,7 +172,7 @@ def _write_immutable_bytes(root: Path, path: Path, payload: bytes) -> None:
     """Write one exact immutable byte snapshot without newline normalization."""
 
     safe_path = _prepare_production_output(root, path)
-    if safe_path.exists():
+    if _path_exists(safe_path):
         raise FileExistsError(
             f"immutable production artifact already exists: {safe_path.name}"
         )
@@ -156,10 +181,10 @@ def _write_immutable_bytes(root: Path, path: Path, payload: bytes) -> None:
         safe_path.parent / f".{uuid4().hex[:12]}.tmp",
         must_exist=False,
     )
-    with open(temporary, "wb") as handle:
+    with open(native_io_path(temporary), "wb") as handle:
         handle.write(payload)
     ensure_contained_production_path(root, safe_path.parent, must_exist=True)
-    os.replace(temporary, safe_path)
+    os.replace(native_io_path(temporary), native_io_path(safe_path))
     ensure_contained_production_path(root, safe_path, must_exist=True)
 
 
@@ -197,9 +222,9 @@ def _load_workflow_state(root: Path, workflow_id: str) -> tuple[Path, WorkflowSt
         root / "workflows" / workflow_id / "state.json",
         must_exist=True,
     )
-    if not path.is_file():
+    if not _path_is_file(path):
         raise FileNotFoundError(path)
-    return path, WorkflowState.model_validate_json(path.read_text(encoding="utf-8"))
+    return path, WorkflowState.model_validate_json(_read_utf8(path))
 
 
 def _load_workflow_plan(root: Path, workflow_id: str) -> tuple[Path, WorkflowPlan]:
@@ -210,9 +235,9 @@ def _load_workflow_plan(root: Path, workflow_id: str) -> tuple[Path, WorkflowPla
         root / "workflows" / workflow_id / "plan.json",
         must_exist=True,
     )
-    if not path.is_file():
+    if not _path_is_file(path):
         raise FileNotFoundError(path)
-    return path, WorkflowPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    return path, WorkflowPlan.model_validate_json(_read_utf8(path))
 
 
 def _process_alive(process_id: int) -> bool:
@@ -284,7 +309,7 @@ def _dispatch_write_lock(
                 must_exist=True,
             )
             try:
-                current = json.loads(lock_path.read_text(encoding="utf-8"))
+                current = json.loads(_read_utf8(lock_path))
             except (OSError, json.JSONDecodeError, ValueError) as exc:
                 raise RuntimeError(
                     "production controller lock exists but is unreadable; inspect it manually"
@@ -321,7 +346,7 @@ def _dispatch_write_lock(
                 lock_path,
                 must_exist=True,
             )
-            current = json.loads(lock_path.read_text(encoding="utf-8"))
+            current = json.loads(_read_utf8(lock_path))
             if current.get("lock_id") != lock_id:
                 raise RuntimeError("production controller lock ownership changed")
             lock_path.unlink()
@@ -469,7 +494,7 @@ def create_asset_production_dispatch(
         workflow_root / "plan.json",
         must_exist=True,
     )
-    workflow_request = json.loads(workflow_request_path.read_text(encoding="utf-8"))
+    workflow_request = json.loads(_read_utf8(workflow_request_path))
     primary = workflow_request.get("primary_reference")
     if not isinstance(primary, dict):
         raise RuntimeError("planned workflow has no primary reference binding")
@@ -803,7 +828,7 @@ def _dependency_read_artifacts(
                 continue
             path = resolve_job_relative(root, observed.path)
             if (
-                path.exists()
+                _path_exists(path)
                 and production_artifact_digest(path, containment_root=root)
                 == observed.sha256
             ):
@@ -853,8 +878,8 @@ def _ensure_assignment(
         issued_at=_utc_now(),
     )
     path = ensure_contained_production_path(root, path, must_exist=False)
-    if path.exists():
-        current = DelegatedWorkAssignment.model_validate_json(path.read_text(encoding="utf-8"))
+    if _path_exists(path):
+        current = DelegatedWorkAssignment.model_validate_json(_read_utf8(path))
         if current.model_dump(mode="json") != assignment.model_dump(mode="json"):
             stable_current = current.model_copy(update={"issued_at": assignment.issued_at})
             if stable_current.model_dump(mode="json") != assignment.model_dump(mode="json"):
@@ -879,9 +904,9 @@ def _find_assignment(
         / f"{_assignment_id(step_id, input_fingerprint)}.json",
         must_exist=False,
     )
-    if not path.is_file():
+    if not _path_is_file(path):
         return None
-    assignment = DelegatedWorkAssignment.model_validate_json(path.read_text(encoding="utf-8"))
+    assignment = DelegatedWorkAssignment.model_validate_json(_read_utf8(path))
     if assignment.step_id != step_id or assignment.input_fingerprint != input_fingerprint:
         raise ValueError("delegated assignment is stale or mismatched")
     return _artifact(root, path)
@@ -914,7 +939,7 @@ def _delivery_artifacts(root: Path, state: WorkflowState) -> list[ProductionArti
                 continue
             path = resolve_job_relative(root, observed.path)
             if (
-                path.exists()
+                _path_exists(path)
                 and production_artifact_digest(path, containment_root=root)
                 == observed.sha256
             ):
@@ -935,7 +960,7 @@ def _terminal_artifacts(root: Path, state: WorkflowState) -> list[ProductionArti
                 continue
             path = resolve_job_relative(root, observed.path)
             if (
-                not path.exists()
+                not _path_exists(path)
                 or production_artifact_digest(path, containment_root=root)
                 != observed.sha256
             ):
@@ -957,7 +982,7 @@ def _task_binding_artifact(root: Path, dispatch_root: Path) -> ProductionArtifac
         dispatch_root / "task_binding_receipt.json",
         must_exist=False,
     )
-    return _artifact(root, path) if path.is_file() else None
+    return _artifact(root, path) if _path_is_file(path) else None
 
 
 def _postflight_artifact(root: Path, dispatch_root: Path) -> ProductionArtifact | None:
@@ -968,7 +993,7 @@ def _postflight_artifact(root: Path, dispatch_root: Path) -> ProductionArtifact 
         dispatch_root / "postflight_audit_receipt.json",
         must_exist=False,
     )
-    return _artifact(root, path) if path.is_file() else None
+    return _artifact(root, path) if _path_is_file(path) else None
 
 
 def _convergence_binding_artifact(
@@ -982,7 +1007,7 @@ def _convergence_binding_artifact(
         dispatch_root / "convergence_binding.json",
         must_exist=False,
     )
-    return _artifact(root, path) if path.is_file() else None
+    return _artifact(root, path) if _path_is_file(path) else None
 
 
 def _load_convergence_binding(
@@ -995,7 +1020,7 @@ def _load_convergence_binding(
 
     path = validate_artifact(root, artifact)
     binding = ProductionConvergenceBinding.model_validate_json(
-        path.read_text(encoding="utf-8")
+        _read_utf8(path)
     )
     if (
         binding.dispatch_id != dispatch.dispatch_id
@@ -1114,17 +1139,17 @@ def _convergence_progress_artifact(
         must_exist=True,
     )
     terminal_path = session_root / "convergence_report.json"
-    if status.get("status") == "terminal" and terminal_path.is_file():
+    if status.get("status") == "terminal" and _path_is_file(terminal_path):
         return _artifact(root, terminal_path)
     iteration_count = int(status.get("iteration_count", 0))
     if iteration_count > 0:
         receipt_path = (
             session_root / "iterations" / f"{iteration_count:03d}" / "receipt.json"
         )
-        if receipt_path.is_file():
+        if _path_is_file(receipt_path):
             return _artifact(root, receipt_path)
     approval_path = session_root / "approval.json"
-    if approval_path.is_file():
+    if _path_is_file(approval_path):
         return _artifact(root, approval_path)
     return binding.convergence_plan
 
@@ -1192,7 +1217,7 @@ def _postflight_controller_outcome(
     """Validate one exact postflight receipt and project its terminal controller state."""
 
     postflight = ProductionPostflightAuditReceipt.model_validate_json(
-        validate_artifact(root, audit_artifact).read_text(encoding="utf-8")
+        _read_utf8(validate_artifact(root, audit_artifact))
     )
     if (
         postflight.dispatch_id != dispatch.dispatch_id
@@ -1363,7 +1388,7 @@ def _reconstruct_controller_state(root: Path, dispatch_id: str) -> DelegatedProd
     ):
         if step.step_id == "destination.handoff":
             handoff_plan_path = _handoff_plan_path(root, step)
-            if handoff_plan_path.is_file():
+            if _path_is_file(handoff_plan_path):
                 approval = ProductionApprovalBoundary(
                     step_id=step.step_id,
                     gate="destination_handoff_plan",
@@ -1470,7 +1495,7 @@ def get_asset_production_dispatch_status(job_id: str, dispatch_id: str) -> dict[
         must_exist=True,
     )
     launch = CodexTaskLaunchManifest.model_validate_json(
-        launch_path.read_text(encoding="utf-8")
+        _read_utf8(launch_path)
     )
     return {
         "state": state.model_dump(mode="json"),
@@ -1490,12 +1515,17 @@ def _advance_receipt_paths(root: Path, dispatch_root: Path) -> list[Path]:
         dispatch_root / "advances",
         must_exist=False,
     )
-    if not advances_root.exists():
+    if not _path_exists(advances_root):
         return []
-    if not advances_root.is_dir():
+    if not _path_is_dir(advances_root):
         raise ValueError("production advances path is not a directory")
     production_artifact_digest(advances_root, containment_root=root)
-    return sorted(advances_root.glob("*.json"))
+    with os.scandir(native_io_path(advances_root)) as iterator:
+        return sorted(
+            advances_root / entry.name
+            for entry in iterator
+            if entry.is_file(follow_symlinks=False) and entry.name.endswith(".json")
+        )
 
 
 def _record_advance_receipt(
@@ -1631,7 +1661,7 @@ def _run_postflight_audit(
         dispatch_root / "postflight_audit_receipt.json",
         must_exist=False,
     )
-    if receipt_path.exists():
+    if _path_exists(receipt_path):
         raise FileExistsError("production postflight audit receipt already exists")
     audit_id = _production_id("production-audit")
     workflow_state_path = ensure_contained_production_path(
@@ -1650,7 +1680,7 @@ def _run_postflight_audit(
             containment_root=root,
         )
         before_state = WorkflowState.model_validate_json(
-            workflow_state_path.read_text(encoding="utf-8")
+            _read_utf8(workflow_state_path)
         )
         if dispatch.convergence.mode == "bounded_after_v06":
             binding_artifact = _convergence_binding_artifact(root, dispatch_root)
@@ -1915,7 +1945,7 @@ def record_delegated_production_step(
             raise RuntimeError("production controller is not waiting for authored agent output")
         assignment_path = validate_artifact(root, before.current_assignment)
         assignment = DelegatedWorkAssignment.model_validate_json(
-            assignment_path.read_text(encoding="utf-8")
+            _read_utf8(assignment_path)
         )
         if assignment.step_id != step_id or assignment.input_fingerprint != input_fingerprint:
             raise ValueError("controller completion does not match the exact current assignment")

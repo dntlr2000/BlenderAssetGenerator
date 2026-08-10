@@ -1,0 +1,73 @@
+{
+  "additionalProperties": false,
+  "description": "Bind one explicit legacy source to the exact validated 0.3 candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "source_schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Source Schema Version",
+      "type": "string"
+    },
+    "target_schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Target Schema Version",
+      "type": "string"
+    },
+    "source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Sha256",
+      "type": "string"
+    },
+    "candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Sha256",
+      "type": "string"
+    },
+    "source_file_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source File Sha256"
+    },
+    "candidate_file_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidate File Sha256"
+    },
+    "added_fields": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Added Fields",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_sha256",
+    "candidate_sha256"
+  ],
+  "title": "SceneSpecV03MigrationPlan",
+  "type": "object"
+}

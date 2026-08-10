@@ -1,0 +1,258 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "autonomous_quality_core_v1",
+  "project_version": "0.9.0",
+  "autonomy_contract_version": "0.1.0",
+  "cases": [
+    {
+      "case_id": "simple_box",
+      "category": "simple_box",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": false,
+      "payload": {
+        "geometry": {
+          "kind": "primitive",
+          "primitive": "cube",
+          "dimensions": [1.0, 2.0, 3.0],
+          "segments": 8,
+          "ring_segments": 8
+        }
+      },
+      "claim_scope": "Validates the existing primitive contract and exact metric dimensions only."
+    },
+    {
+      "case_id": "tapered_loft",
+      "category": "loft",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": true,
+      "payload": {
+        "geometry": {
+          "kind": "loft",
+          "sections": [
+            {
+              "points": [[-1.0, -1.0, 0.0], [1.0, -1.0, 0.0], [1.0, 1.0, 0.0], [-1.0, 1.0, 0.0]],
+              "closed": true
+            },
+            {
+              "points": [[-0.5, -0.5, 2.0], [0.5, -0.5, 2.0], [0.5, 0.5, 2.0], [-0.5, 0.5, 2.0]],
+              "closed": true
+            }
+          ],
+          "resample_count": 4,
+          "cap_policy": "ends",
+          "correspondence_policy": "minimum_twist",
+          "twist_offsets": []
+        }
+      },
+      "claim_scope": "Validates deterministic loft resampling, topology ordering, and optional Blender materialization."
+    },
+    {
+      "case_id": "curved_sweep",
+      "category": "sweep",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": true,
+      "payload": {
+        "geometry": {
+          "kind": "sweep",
+          "profile": [[-0.2, -0.1], [0.2, -0.1], [0.2, 0.1], [-0.2, 0.1]],
+          "profile_closed": true,
+          "path": [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.5, 2.0, 0.5], [1.0, 3.0, 1.0]],
+          "path_closed": false,
+          "scales": [1.0, 0.9, 0.8, 0.7],
+          "twist_degrees": [0.0, 10.0, 20.0, 30.0],
+          "cap_policy": "ends"
+        }
+      },
+      "claim_scope": "Validates deterministic transported-frame sweep construction and optional Blender materialization."
+    },
+    {
+      "case_id": "boolean_panel",
+      "category": "boolean_panel",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": true,
+      "payload": {
+        "geometry": {
+          "kind": "boolean_tree",
+          "operands": [
+            {
+              "id": "panel",
+              "geometry": {
+                "kind": "primitive",
+                "primitive": "cube",
+                "dimensions": [2.0, 0.25, 1.0],
+                "segments": 8,
+                "ring_segments": 8
+              },
+              "transform": {
+                "location": [0.0, 0.0, 0.0],
+                "rotation_deg": [0.0, 0.0, 0.0],
+                "scale": [1.0, 1.0, 1.0]
+              }
+            },
+            {
+              "id": "cutout",
+              "geometry": {
+                "kind": "primitive",
+                "primitive": "cube",
+                "dimensions": [0.5, 0.5, 0.5],
+                "segments": 8,
+                "ring_segments": 8
+              },
+              "transform": {
+                "location": [0.0, 0.0, 0.0],
+                "rotation_deg": [0.0, 0.0, 0.0],
+                "scale": [1.0, 1.0, 1.0]
+              }
+            }
+          ],
+          "operations": [
+            {
+              "id": "root",
+              "operation": "DIFFERENCE",
+              "left_id": "panel",
+              "right_id": "cutout",
+              "solver": "EXACT"
+            }
+          ],
+          "root_id": "root",
+          "fail_on_non_manifold": true
+        }
+      },
+      "claim_scope": "Validates a complete declarative Boolean tree; actual mesh evaluation is Blender opt-in evidence."
+    },
+    {
+      "case_id": "small_assembly",
+      "category": "small_assembly",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": false,
+      "payload": {
+        "request": {
+          "schema_version": "0.1.0",
+          "request_id": "aq-small-assembly",
+          "provenance": {
+            "job_id": "aq_benchmark",
+            "workflow_id": "workflow-aq-benchmark",
+            "dispatch_id": "dispatch-aq-benchmark",
+            "project_version": "0.9.0",
+            "assembly_contract_version": "0.1.0",
+            "inputs": [
+              {"role": "scene_spec", "path": "analysis/scene_spec.json", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              {"role": "modeling_plan", "path": "analysis/modeling_plan.json", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+              {"role": "blend", "path": "blender/scene.blend", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}
+            ]
+          },
+          "meshes": [
+            {
+              "object_id": "assembly.base",
+              "snapshot": {"role": "mesh_snapshot", "path": "reports/assembly/base.mesh.json", "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+              "bounds": {"minimum": [0.0, 0.0, 0.0], "maximum": [1.0, 1.0, 0.0]},
+              "vertices_m": [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 1.0, 0.0]],
+              "triangles": [[0, 1, 2]]
+            },
+            {
+              "object_id": "assembly.cap",
+              "snapshot": {"role": "mesh_snapshot", "path": "reports/assembly/cap.mesh.json", "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"},
+              "bounds": {"minimum": [0.0, 0.0, 0.005], "maximum": [1.0, 1.0, 0.005]},
+              "vertices_m": [[0.0, 0.0, 0.005], [1.0, 0.0, 0.005], [0.0, 1.0, 0.005]],
+              "triangles": [[0, 1, 2]]
+            }
+          ],
+          "semantic_relations": [
+            {
+              "relation_id": "base-cap-contact",
+              "kind": "required_contact",
+              "subject_id": "assembly.base",
+              "reference_id": "assembly.cap",
+              "peer_id": null,
+              "required": true,
+              "minimum_m": null,
+              "maximum_m": 0.01,
+              "tolerance_m": 0.001,
+              "measured_value_m": null
+            }
+          ],
+          "narrow_observations": [],
+          "maximum_distance_samples": 16,
+          "maximum_triangle_pair_tests": 64
+        }
+      },
+      "claim_scope": "Validates bounded semantic-contact evidence, not mechanical operation or hidden assembly truth."
+    },
+    {
+      "case_id": "height_grid_terrain",
+      "category": "terrain",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": false,
+      "payload": {
+        "geometry": {
+          "kind": "terrain",
+          "mode": "height_grid",
+          "size": [4.0, 4.0, 1.0],
+          "heights": [[0.0, 0.1, 0.0], [0.1, 0.4, 0.1], [0.0, 0.1, 0.0]],
+          "heightmap_path": null,
+          "resolution": [3, 3],
+          "skirt_depth": 0.1
+        }
+      },
+      "claim_scope": "Validates the bounded inline terrain contract and deterministic grid counts."
+    },
+    {
+      "case_id": "clean_material_graph",
+      "category": "material_graph",
+      "expected_outcome": "passed",
+      "blender_smoke_supported": false,
+      "payload": {
+        "graph": {
+          "schema_version": "0.1.0",
+          "graph_id": "aq-clean-material",
+          "provenance": {
+            "job_id": "aq_benchmark",
+            "workflow_id": "workflow-aq-benchmark",
+            "dispatch_id": "dispatch-aq-benchmark",
+            "project_version": "0.9.0",
+            "material_contract_version": "0.5.0",
+            "graph_contract_version": "0.1.0",
+            "inputs": [
+              {"role": "material_plan", "path": "analysis/material_plan.json", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+              {"role": "scene_spec", "path": "analysis/scene_spec.json", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}
+            ]
+          },
+          "material_id": "mat.body",
+          "base_channels": [
+            {"channel": "base_color", "source_kind": "constant", "color_space": "sRGB", "constant": [0.25, 0.35, 0.45, 1.0], "image": null, "physical_scale": null, "sampling": "repeat", "localized_detail": false, "normal_format": null},
+            {"channel": "roughness", "source_kind": "constant", "color_space": "Non-Color", "constant": 0.55, "image": null, "physical_scale": null, "sampling": "repeat", "localized_detail": false, "normal_format": null},
+            {"channel": "metallic", "source_kind": "constant", "color_space": "Non-Color", "constant": 0.0, "image": null, "physical_scale": null, "sampling": "repeat", "localized_detail": false, "normal_format": null}
+          ],
+          "layers": [],
+          "normal_displacement": {"normal_mode": "tangent_space", "displacement_mode": "bump_only", "maximum_displacement_m": 0.0, "require_subdivision": false},
+          "bake": {"required": false, "channels": [], "resolution": [1024, 1024], "margin_px": 16, "preserve_raw_channels": true},
+          "preview_lighting": {
+            "neutral_profile": "neutral_studio",
+            "neutral_exposure": 0.0,
+            "reference_profile": "reference_matched",
+            "reference_source": {"role": "reference", "path": "input/reference.png", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+            "reference_confidence": 0.75
+          },
+          "graph_policy": "whitelisted_material_graph_v1",
+          "assumptions": ["Fixture validates graph contracts only."]
+        }
+      },
+      "claim_scope": "Validates portable channel semantics and the whitelist-only MaterialGraphSpec contract."
+    },
+    {
+      "case_id": "topology_uv_failure",
+      "category": "topology_uv_failure",
+      "expected_outcome": "failed",
+      "blender_smoke_supported": false,
+      "payload": {
+        "profile": "game_ready_lowpoly"
+      },
+      "claim_scope": "Proves that an explicit missing or invalid UV0 remains a hard failure rather than a fabricated pass."
+    }
+  ],
+  "limitations": [
+    "The suite is a deterministic contract and host-math benchmark, not a reference-image reconstruction benchmark.",
+    "Expected negative fixtures pass the gate only when the observed contract outcome remains failed.",
+    "Blender materialization is opt-in and limited to manifest-declared structural cases."
+  ]
+}

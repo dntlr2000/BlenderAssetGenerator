@@ -6,6 +6,11 @@ from types import SimpleNamespace
 
 import pytest
 
+from codex_blender_modeler.autonomy.models import (
+    AutonomyArtifact,
+    BudgetUsage,
+    PolicyAuthorization,
+)
 from codex_blender_modeler.background_quality.models import BackgroundQualityReport
 from codex_blender_modeler.optimization.io import load_model, write_model
 from codex_blender_modeler.optimization.models import (
@@ -20,6 +25,7 @@ from codex_blender_modeler.optimization.models import (
 )
 from codex_blender_modeler.optimization.optimizer import (
     _consume_optimization_approval,
+    _snapshot_optimization_policy_authorization,
     _validate_reviewed_directives,
     approve_asset_optimization,
     plan_asset_optimization,
@@ -29,6 +35,9 @@ from codex_blender_modeler.optimization.preflight import (
     profile_artifact,
 )
 from codex_blender_modeler.optimization.profiles import create_builtin_profile
+from codex_blender_modeler.packaging.service import (
+    _verify_optimization_authorization_evidence,
+)
 from codex_blender_modeler.workspace import sha256_file
 
 
@@ -449,6 +458,12 @@ def test_exact_approval_is_single_use_and_bound_to_the_reviewed_plan(
     assert consumed.used is True
     stored = load_model(run_root / "optimization_approval.json", OptimizationApproval)
     assert stored.used_at is not None
+    selected = _verify_optimization_authorization_evidence(
+        root,
+        run_root,
+        current_plan,
+    )
+    assert selected["optimization_approval"] == run_root / "optimization_approval.json"
     with pytest.raises(RuntimeError, match="already been consumed"):
         _consume_optimization_approval(
             root,
@@ -510,3 +525,113 @@ def test_approval_rejects_a_changed_execution_plan(
             changed_plan,
             review.plan_sha256,
         )
+
+
+def test_policy_authorization_snapshot_is_exact_immutable_and_exclusive(
+    tmp_path: Path,
+) -> None:
+    """Snapshot exact policy bytes once and reject changed or mixed approval evidence."""
+
+    run_root = tmp_path / "optimization" / "runs" / "run-policy"
+    source = tmp_path / "policy_authorizations" / "optimization.json"
+    run_root.mkdir(parents=True)
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b'{"exact":"policy"}\n')
+
+    snapshot = _snapshot_optimization_policy_authorization(run_root, source)
+    assert snapshot.read_bytes() == source.read_bytes()
+    assert _snapshot_optimization_policy_authorization(run_root, source) == snapshot
+
+    source.write_bytes(b'{"exact":"changed"}\n')
+    with pytest.raises(RuntimeError, match="snapshot changed"):
+        _snapshot_optimization_policy_authorization(run_root, source)
+
+    source.write_bytes(snapshot.read_bytes())
+    (run_root / "optimization_approval.json").write_text("{}\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="mixes user approval"):
+        _snapshot_optimization_policy_authorization(run_root, source)
+
+
+def test_packaging_accepts_one_exact_policy_path_and_rejects_mixed_or_tampered(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Accept policy evidence alone while failing closed on mixed or stale targets."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    review = plan_asset_optimization(
+        "review_case",
+        profile_id="portable_gltf",
+        run_id=run_id,
+    )
+    run_root = root / "optimization" / "runs" / run_id
+    reviewed_plan = load_model(run_root / "review_plan.json", OptimizationPlan)
+    now = datetime(2026, 8, 10, tzinfo=UTC)
+    approved_plan = OptimizationPlan.model_validate(
+        reviewed_plan.model_copy(
+            update={"status": "approved", "approved_at": now}
+        ).model_dump(mode="json")
+    )
+    review_plan_relative = (run_root / "review_plan.json").relative_to(root).as_posix()
+    review_plan_artifact = AutonomyArtifact(
+        path=review_plan_relative,
+        sha256=review.plan_sha256,
+    )
+    support = AutonomyArtifact(path="support/policy.json", sha256="a" * 64)
+    policy = PolicyAuthorization(
+        contract_id="policy-optimization-test",
+        authorization_id="policy-optimization-test",
+        job_id="review_case",
+        workflow_id="wf-review-case",
+        dispatch_id="dispatch-review-case",
+        input_sha256="b" * 64,
+        source_fingerprint="c" * 64,
+        producer="test.policy",
+        producer_version="0.1.0",
+        provenance=[support],
+        created_at=now,
+        root_authorization=support,
+        root_authorization_sha256=support.sha256,
+        profile=support,
+        profile_sha256=support.sha256,
+        budget=support,
+        workflow_step_id="portable.optimization-review",
+        workflow_input_fingerprint="d" * 64,
+        gate_kind="optimization_plan",
+        gate_target=support,
+        target_artifact=review_plan_artifact,
+        decision_reasons=["Exact test policy target."],
+        budget_before=BudgetUsage(),
+        budget_after=BudgetUsage(total_actions=1),
+        consumed=True,
+        consumed_at=now,
+    )
+    policy_path = run_root / "optimization_policy_authorization.json"
+    policy_path.write_text(policy.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    monkeypatch.setattr(
+        "codex_blender_modeler.autonomy.authorization.validate_policy_authorization",
+        lambda *_args, **_kwargs: None,
+    )
+
+    selected = _verify_optimization_authorization_evidence(
+        root,
+        run_root,
+        approved_plan,
+    )
+    assert selected["optimization_policy_authorization"] == policy_path
+
+    (run_root / "optimization_approval.json").write_text("{}\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="mixes user approval"):
+        _verify_optimization_authorization_evidence(root, run_root, approved_plan)
+    (run_root / "optimization_approval.json").unlink()
+
+    tampered = policy.model_copy(
+        update={
+            "target_artifact": review_plan_artifact.model_copy(
+                update={"sha256": "0" * 64}
+            )
+        }
+    )
+    policy_path.write_text(tampered.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="does not match"):
+        _verify_optimization_authorization_evidence(root, run_root, approved_plan)

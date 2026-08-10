@@ -22,8 +22,11 @@ from ..auto_revision.convergence_policy import (
 )
 from ..auto_revision.convergence_session import (
     _audit_qa_authoritative_evidence,
+    _audit_structural_comparison_evidence,
     _candidate_baselines,
+    _current_structural_evidence,
     _require_host_safety_envelope,
+    _structural_terminal_artifacts,
 )
 from ..auto_revision.convergence_session_models import (
     HashBoundConvergenceArtifact,
@@ -1267,6 +1270,22 @@ def _audit_initial_convergence_snapshots(
         ] = plan.initial_constraints_sha256
     elif constraints_path.exists():
         raise ValueError("unexpected visual convergence constraint snapshot")
+    if plan.structural_multiview_policy == "spatial_v1_required":
+        if plan.initial_structural_evidence is None:
+            raise ValueError(
+                "spatial visual convergence plan lacks initial five-view evidence"
+            )
+        for artifact in _structural_terminal_artifacts(
+            root,
+            plan.initial_structural_evidence,
+            expected_job_id=plan.job_id,
+            expected_scene_spec_sha256=plan.initial_scene_spec_sha256,
+        ):
+            artifacts[artifact.relative_path] = artifact.sha256
+    elif plan.initial_structural_evidence is not None:
+        raise ValueError(
+            "non-spatial visual convergence plan carries five-view evidence"
+        )
     return artifacts
 
 
@@ -1957,6 +1976,34 @@ def _verify_convergence_iteration_artifacts(
             )
         )
 
+    if (
+        plan.structural_multiview_policy == "spatial_v1_required"
+        and receipt.structural_multiview_status != "not_applicable"
+    ):
+        expected_source_structural = (
+            previous_receipt.result_structural_evidence
+            if previous_receipt is not None
+            else plan.initial_structural_evidence
+        )
+        if (
+            expected_source_structural is None
+            or receipt.source_structural_evidence != expected_source_structural
+        ):
+            raise ValueError(
+                "visual convergence source five-view evidence is outside the "
+                "accepted receipt chain"
+            )
+    structural_artifacts, _structural_non_regression = (
+        _audit_structural_comparison_evidence(
+            root=root,
+            iteration_root=iteration_root,
+            plan=plan,
+            receipt=receipt,
+        )
+    )
+    for artifact in structural_artifacts:
+        artifacts[artifact.relative_path] = artifact.sha256
+
     result_build_fields = (
         receipt.result_build_fingerprint,
         receipt.result_build_provenance_sha256,
@@ -2272,6 +2319,18 @@ def _audit_one_visual_convergence_session(
         or report.target_silhouette_iou != plan.target_silhouette_iou
     ):
         raise ValueError("terminal visual convergence report binding mismatch")
+    expected_final_structural = _current_structural_evidence(
+        plan,
+        receipts_with_paths,
+    )
+    if (
+        report.structural_multiview_policy != plan.structural_multiview_policy
+        or report.initial_structural_evidence != plan.initial_structural_evidence
+        or report.final_structural_evidence != expected_final_structural
+    ):
+        raise ValueError(
+            "terminal visual convergence five-view summary binding mismatch"
+        )
     if plan.initial_candidates_sha256 is not None:
         if report.initial_scene_spec_snapshot is None:
             raise ValueError(

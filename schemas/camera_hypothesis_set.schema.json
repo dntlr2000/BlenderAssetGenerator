@@ -1,0 +1,501 @@
+{
+  "$defs": {
+    "CameraEvidenceCue": {
+      "additionalProperties": false,
+      "description": "Describe one bounded cue supporting or weakening a projection hypothesis.",
+      "properties": {
+        "cue_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Cue Id",
+          "type": "string"
+        },
+        "cue_type": {
+          "enum": [
+            "line_orientation",
+            "vanishing_tendency",
+            "silhouette_symmetry",
+            "orthographic_view_kind",
+            "projection_ambiguity",
+            "user_hint"
+          ],
+          "title": "Cue Type",
+          "type": "string"
+        },
+        "supports": {
+          "enum": [
+            "perspective",
+            "orthographic",
+            "ambiguous"
+          ],
+          "title": "Supports",
+          "type": "string"
+        },
+        "strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "source_artifact_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Source Artifact Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "cue_id",
+        "cue_type",
+        "supports",
+        "strength",
+        "description"
+      ],
+      "title": "CameraEvidenceCue",
+      "type": "object"
+    },
+    "CameraHypothesis": {
+      "additionalProperties": false,
+      "description": "Record one perspective or orthographic camera hypothesis for low-resolution fit.",
+      "properties": {
+        "hypothesis_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Hypothesis Id",
+          "type": "string"
+        },
+        "rank": {
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "projection": {
+          "enum": [
+            "perspective",
+            "orthographic"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "intrinsics": {
+          "$ref": "#/$defs/CameraIntrinsics"
+        },
+        "pose": {
+          "$ref": "#/$defs/CameraPoseHypothesis"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "evidence_cue_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Cue Ids",
+          "type": "array"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "underconstrained": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Underconstrained",
+          "type": "array"
+        }
+      },
+      "required": [
+        "hypothesis_id",
+        "rank",
+        "projection",
+        "intrinsics",
+        "pose",
+        "confidence",
+        "evidence_cue_ids"
+      ],
+      "title": "CameraHypothesis",
+      "type": "object"
+    },
+    "CameraIntrinsics": {
+      "additionalProperties": false,
+      "description": "Store normalized camera intrinsics without claiming recovered calibration.",
+      "properties": {
+        "focal_length_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Focal Length Mm"
+        },
+        "sensor_width_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensor Width Mm"
+        },
+        "principal_point_norm": {
+          "default": [
+            0.5,
+            0.5
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Principal Point Norm",
+          "type": "array"
+        },
+        "ortho_scale_normalized": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 100,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ortho Scale Normalized"
+        },
+        "radial_distortion_k1": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": -2,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radial Distortion K1"
+        },
+        "radial_distortion_k2": {
+          "anyOf": [
+            {
+              "maximum": 2,
+              "minimum": -2,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Radial Distortion K2"
+        }
+      },
+      "title": "CameraIntrinsics",
+      "type": "object"
+    },
+    "CameraPoseHypothesis": {
+      "additionalProperties": false,
+      "description": "Describe an image-relative pose suitable only for staging comparisons.",
+      "properties": {
+        "azimuth_deg": {
+          "maximum": 360,
+          "minimum": -360,
+          "title": "Azimuth Deg",
+          "type": "number"
+        },
+        "elevation_deg": {
+          "maximum": 89.9,
+          "minimum": -89.9,
+          "title": "Elevation Deg",
+          "type": "number"
+        },
+        "roll_deg": {
+          "maximum": 180,
+          "minimum": -180,
+          "title": "Roll Deg",
+          "type": "number"
+        },
+        "distance_scale": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Distance Scale"
+        },
+        "target_norm": {
+          "default": [
+            0.5,
+            0.5,
+            0.5
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target Norm",
+          "type": "array"
+        }
+      },
+      "required": [
+        "azimuth_deg",
+        "elevation_deg",
+        "roll_deg"
+      ],
+      "title": "CameraPoseHypothesis",
+      "type": "object"
+    },
+    "EvidenceProvenance": {
+      "additionalProperties": false,
+      "description": "Identify the exact deterministic producer and method for one evidence artifact.",
+      "properties": {
+        "producer": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "pillow",
+            "opencv",
+            "mixed",
+            "advisory"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "method": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Method",
+          "type": "string"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "type": "boolean"
+        },
+        "advisory_only": {
+          "default": false,
+          "title": "Advisory Only",
+          "type": "boolean"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "producer",
+        "producer_version",
+        "provider",
+        "method",
+        "deterministic"
+      ],
+      "title": "EvidenceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind camera alternatives; producer/version remain in EvidenceProvenance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "hypothesis_set_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Hypothesis Set Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "reference_evidence_path": {
+      "title": "Reference Evidence Path",
+      "type": "string"
+    },
+    "reference_evidence_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Evidence Sha256",
+      "type": "string"
+    },
+    "evidence_cues": {
+      "items": {
+        "$ref": "#/$defs/CameraEvidenceCue"
+      },
+      "minItems": 1,
+      "title": "Evidence Cues",
+      "type": "array"
+    },
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/CameraHypothesis"
+      },
+      "maxItems": 6,
+      "minItems": 2,
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "staging_hypothesis_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Staging Hypothesis Id",
+      "type": "string"
+    },
+    "projection_ambiguity": {
+      "enum": [
+        "constrained",
+        "ambiguous",
+        "underconstrained"
+      ],
+      "title": "Projection Ambiguity",
+      "type": "string"
+    },
+    "ambiguity_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Ambiguity Reasons",
+      "type": "array"
+    },
+    "canonical_camera_mutated": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Camera Mutated",
+      "type": "boolean"
+    },
+    "canonical_promotion_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Promotion Allowed",
+      "type": "boolean"
+    },
+    "provenance": {
+      "$ref": "#/$defs/EvidenceProvenance"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "hypothesis_set_id",
+    "run_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "reference_evidence_path",
+    "reference_evidence_sha256",
+    "evidence_cues",
+    "hypotheses",
+    "staging_hypothesis_id",
+    "projection_ambiguity",
+    "provenance",
+    "created_at"
+  ],
+  "title": "CameraHypothesisSet",
+  "type": "object"
+}

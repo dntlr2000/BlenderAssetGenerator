@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import struct
 from collections import Counter
 from collections.abc import Iterable
@@ -10,10 +11,22 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 
+def native_io_path(path: Path) -> str:
+    """Return an absolute path spelling that supports Windows extended lengths."""
+
+    resolved = os.path.abspath(os.fspath(path.expanduser()))
+    if os.name != "nt" or resolved.startswith("\\\\?\\"):
+        return resolved
+    if resolved.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + resolved[2:]
+    return "\\\\?\\" + resolved
+
+
 def read_json_object(path: Path) -> dict[str, Any]:
     """Read one required JSON object and reject non-object top-level values."""
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        payload = json.load(handle)
     if not isinstance(payload, dict):
         raise ValueError(f"Expected a JSON object: {path}")
     return payload
@@ -22,18 +35,17 @@ def read_json_object(path: Path) -> dict[str, Any]:
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     """Write one deterministic UTF-8 JSON report after creating its parent directory."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
+    with open(native_io_path(path), "w", encoding="utf-8", newline="\n") as handle:
+        json.dump(payload, handle, indent=2, sort_keys=True, ensure_ascii=False)
+        handle.write("\n")
 
 
 def sha256_file(path: Path) -> str:
     """Return a lowercase SHA-256 digest without loading the complete file into memory."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()

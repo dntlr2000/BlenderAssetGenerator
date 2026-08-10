@@ -44,9 +44,7 @@ def test_embedded_absolute_path_audit_covers_text_utf8_and_utf16(tmp_path: Path)
     false_binary.write_bytes(b"K:\\Kyi/Ew")
 
     assert _embedded_absolute_path_findings([clean], tmp_path) == []
-    findings = _embedded_absolute_path_findings(
-        [windows, unc, posix, false_binary], tmp_path
-    )
+    findings = _embedded_absolute_path_findings([windows, unc, posix, false_binary], tmp_path)
     assert len(findings) == 3
     assert any(":windows:" in finding for finding in findings)
     assert any(":utf16le:" in finding for finding in findings)
@@ -134,12 +132,7 @@ def test_asset_profile_initialization_is_job_scoped_and_idempotent(
     workspace = tmp_path / "workspaces"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
     first = initialize_asset_profile("portable_asset_case")
-    profile_path = (
-        workspace
-        / "portable_asset_case"
-        / "asset_profiles"
-        / "portable_gltf.json"
-    )
+    profile_path = workspace / "portable_asset_case" / "asset_profiles" / "portable_gltf.json"
     before = profile_path.read_bytes()
     second = initialize_asset_profile("portable_asset_case")
     assert first == second
@@ -312,10 +305,13 @@ def test_roundtrip_bounds_require_nonempty_exact_object_sets_and_aggregate_match
     imported = [{"name": "asset.imported", "bbox_world": {"min": [0, 0, 0], "max": [2, 1, 1]}}]
     comparisons = [{"expected_name": "asset", "actual_name": "asset.imported"}]
     assert _roundtrip_object_sets_match(expected, imported, comparisons)
-    assert _bounds_error(
-        Bounds3D(minimum=(0, 0, 0), maximum=(1, 1, 1)),
-        Bounds3D(minimum=(0, 0, 0), maximum=(2, 1, 1)),
-    ) == 1.0
+    assert (
+        _bounds_error(
+            Bounds3D(minimum=(0, 0, 0), maximum=(1, 1, 1)),
+            Bounds3D(minimum=(0, 0, 0), maximum=(2, 1, 1)),
+        )
+        == 1.0
+    )
     assert not _roundtrip_object_sets_match(expected, imported, [])
 
 
@@ -480,6 +476,130 @@ def test_texture_manifest_requires_bake_and_preserves_canonical_image_bytes(
     assert records[0].mappings[0].source.path == "textures/mat.test/base_color.png"
 
 
+def test_raw_pbr_sidecar_occlusion_is_hash_verified_and_packaged(
+    tmp_path: Path,
+) -> None:
+    """Preserve sidecar-only Occlusion without changing the canonical TextureManifest."""
+
+    root = tmp_path / "job"
+    _, manifest_path, _ = _write_texture_contract_fixture(root)
+    manifest_sha256 = sha256_file(manifest_path)
+    occlusion_path = manifest_path.parent / "occlusion.png"
+    Image.new("L", (4, 3), color=255).save(occlusion_path)
+    sidecar_path = manifest_path.parent / "raw_pbr_channels.json"
+    sidecar_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.5.0",
+                "material_id": "mat.test",
+                "status": "authored_source_channels",
+                "channels": {
+                    "occlusion": {
+                        "path": "occlusion.png",
+                        "sha256": sha256_file(occlusion_path),
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    contracts, _, _ = _canonical_texture_contracts(root)
+    contract = contracts["mat.test"]
+    assert contract.image_channels["occlusion"] == occlusion_path.resolve()
+    assert contract.raw_sidecar_sha256 == sha256_file(sidecar_path)
+    assert sha256_file(manifest_path) == manifest_sha256
+
+    staging = root / "exports" / ".package.tmp"
+    final = root / "exports" / "packages" / "portable_gltf" / "package-001"
+    staging.mkdir(parents=True)
+    records = _copy_canonical_image_channels(root, staging, final, contracts)
+    copied_root = next((staging / "textures" / "canonical").iterdir())
+    assert (copied_root / "occlusion.png").read_bytes() == occlusion_path.read_bytes()
+    assert (copied_root / "raw_pbr_channels.json").read_bytes() == sidecar_path.read_bytes()
+    assert {record.mappings[0].source_channel for record in records} == {
+        "base_color",
+        "occlusion",
+    }
+
+
+def test_raw_pbr_sidecar_accepts_manifest_backed_legacy_string_channels(
+    tmp_path: Path,
+) -> None:
+    """Accept v0.1 string paths only when they duplicate canonical image channels."""
+
+    root = tmp_path / "job"
+    image_path, manifest_path, _ = _write_texture_contract_fixture(root)
+    sidecar_path = manifest_path.parent / "raw_pbr_channels.json"
+    sidecar_path.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1.0",
+                "material_id": "mat.test",
+                "channels": {
+                    "base_color": "base_color.png",
+                    "occlusion": {"constant": 1.0},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    contracts, _, _ = _canonical_texture_contracts(root)
+    contract = contracts["mat.test"]
+
+    assert contract.image_channels["base_color"] == image_path.resolve()
+    assert contract.image_channel_hashes["base_color"] == sha256_file(image_path)
+    assert contract.raw_sidecar_sha256 == sha256_file(sidecar_path)
+
+
+def test_raw_pbr_sidecar_rejects_unbound_legacy_string_channels(tmp_path: Path) -> None:
+    """Reject legacy paths that are not identical image channels in the TextureManifest."""
+
+    root = tmp_path / "job"
+    _, manifest_path, _ = _write_texture_contract_fixture(root)
+    (manifest_path.parent / "raw_pbr_channels.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1.0",
+                "material_id": "mat.test",
+                "channels": {"roughness": "roughness.png"},
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="must duplicate one TextureManifest image"):
+        _canonical_texture_contracts(root)
+
+
+def test_raw_pbr_sidecar_rejects_changed_occlusion_hash(tmp_path: Path) -> None:
+    """Fail closed when a sidecar channel no longer matches its declared SHA-256."""
+
+    root = tmp_path / "job"
+    _, manifest_path, _ = _write_texture_contract_fixture(root)
+    occlusion_path = manifest_path.parent / "occlusion.png"
+    Image.new("L", (4, 3), color=255).save(occlusion_path)
+    (manifest_path.parent / "raw_pbr_channels.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "0.5.0",
+                "material_id": "mat.test",
+                "channels": {
+                    "occlusion": {
+                        "path": "occlusion.png",
+                        "sha256": "0" * 64,
+                    }
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="sidecar channel hash changed"):
+        _canonical_texture_contracts(root)
+
+
 def test_procedural_manifest_channel_requires_matching_fresh_bake_output(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -531,15 +651,11 @@ def test_procedural_manifest_channel_requires_matching_fresh_bake_output(
                 "source_scene_spec_sha256": "d" * 64,
                 "source_geometry_payloads_sha256": {},
                 "source_camera_fingerprint": "e" * 64,
-                "source_material_plan_sha256": current_build[
-                    "material_plan_sha256"
-                ],
+                "source_material_plan_sha256": current_build["material_plan_sha256"],
                 "source_shader_recipe_sha256": sha256_file(recipe_path),
                 "source_texture_manifest": "textures/mat.test/texture_manifest.json",
                 "source_texture_manifest_sha256": sha256_file(manifest_path),
-                "source_texture_channels_sha256": {
-                    "base_color": sha256_file(image_path)
-                },
+                "source_texture_channels_sha256": {"base_color": sha256_file(image_path)},
                 "source_blend_sha256": blend_sha256,
                 "source_build_fingerprint": fingerprint,
                 "source_material_fingerprint": material_fingerprint,
@@ -590,9 +706,7 @@ def test_procedural_manifest_channel_requires_matching_fresh_bake_output(
     )
     assert [manifest.material_id for manifest in manifests] == ["mat.test"]
     assert required == {"mat.test"}
-    assert contracts["mat.test"].image_channel_hashes == {
-        "base_color": sha256_file(image_path)
-    }
+    assert contracts["mat.test"].image_channel_hashes == {"base_color": sha256_file(image_path)}
 
 
 def test_gltf_pack_rejects_prepacked_orm_without_component_provenance(
@@ -626,13 +740,9 @@ def test_latest_complete_run_skips_newer_failed_pointer(tmp_path: Path) -> None:
     failed = tmp_path / "optimization" / "runs" / "20260716-failed"
     (complete / "optimized").mkdir(parents=True)
     failed.mkdir(parents=True)
-    (complete / "optimization_plan.json").write_text(
-        '{"status":"complete"}', encoding="utf-8"
-    )
+    (complete / "optimization_plan.json").write_text('{"status":"complete"}', encoding="utf-8")
     (complete / "optimized" / "scene.blend").write_bytes(b"blend")
-    (failed / "optimization_plan.json").write_text(
-        '{"status":"failed"}', encoding="utf-8"
-    )
+    (failed / "optimization_plan.json").write_text('{"status":"failed"}', encoding="utf-8")
     latest = tmp_path / "optimization" / "latest.json"
     latest.write_text(
         '{"run_id":"20260716-failed","status":"optimization_failed"}',

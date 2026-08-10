@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -20,8 +20,12 @@
 | Codex Destination Handoff | `0.9.0` |
 | External Static Asset Intake | `0.9.0` |
 | Asset Production Dispatch / Controller | `0.9.0` |
-| 실제 검증 환경 | Windows, Python 3.14.6, Blender 5.0.1 |
-| 최신 Python 회귀 | 939 passed, 6 skipped; Ruff passed |
+| Autonomous Quality / Integrated Quality | `0.1.0` opt-in companion |
+| SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
+| 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
+| AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
+| AQ post-change 최종 회귀 | 1145 passed, 20 skipped, 8 warnings in 149.21s; Ruff passed |
+| AQ 통합 gate | exit 0; focused 195 passed, 2 skipped; Blender 14 passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -50,6 +54,9 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - semantic hierarchy, transform, material/PBR, LOD/Collider와 목적지 import 계약
 - 목적지 프로젝트를 수정하기 전에 `import_plan.json`과 사용자 승인을 요구하는 안전 프롬프트
 - authoritative JSON을 기반으로 한 build, material, QA, export, full PDF 보고서
+- 새 `standard` production dispatch 위에서만 동작하는 bounded
+  `autonomous_static_prop_v1`: reference evidence, 격리 후보 탐색, 네 축 Integrated Quality,
+  exact policy authorization, portable GLB 또는 non-production review bundle
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -80,6 +87,12 @@ BlenderAssetGenerator/
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
 │  ├─ production/                    V0.9 client-mediated dispatch와 single-writer controller
+│  ├─ reference_evidence/            AQ mask 후보와 camera hypothesis companion
+│  ├─ structural_geometry/           opt-in SceneSpec V03와 derived-only migration
+│  ├─ material_graph/                whitelist-only material graph companion
+│  ├─ integrated_quality/            AQ 네 축 품질과 hard gates
+│  ├─ autonomy/                      AQ profile, budget, authorization와 supervisor
+│  ├─ autonomy_benchmarks/           deterministic AQ benchmark runner
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
 │  ├─ external_intake/               V0.9 external static source contract
 │  ├─ stabilization/                 V0.9 probe, audit, queue, PDF
@@ -590,6 +603,63 @@ completion의 마지막 세 도구만 들어갑니다. `desktop_in_session`에�
 진행 표면으로 사용하지만 allowlist enforcement attestation은 없으며, exact 승인 도구는
 사용자의 해당 hash 승인 메시지가 있은 뒤에만 별도 소유 표면으로 호출해야 합니다.
 
+## 선택적 Autonomous Quality 0.1.0
+
+AQ는 기존 `standard`와 `background_exterior` 정책을 바꾸는 새 기본 모드가 아닙니다.
+`autonomous_static_prop_v1`을 명시적으로 선택한 새 `concept` +
+`primary_object_only` 정적 소품 job에만 새 `standard` workflow/production dispatch 위로
+적용됩니다. Interior, measured/blueprint, rig, animation, gameplay, destination-project write,
+external provider와 임의 Python/Blender/node graph 실행은 이 profile 밖입니다.
+
+```text
+exact initial request + primary reference + target subject
+→ RootAuthorization와 immutable profile/budget
+→ local Reference Evidence와 최대 3개 initial candidate
+→ bounded structural/parametric/material rounds(기본 material round 2회)
+→ Integrated Quality(reference/structure/material/production)
+   ├─ accepted → V0.7 portable GLB → fresh clean import → quality_passed
+   └─ non-pass/unscorable/bounded stop → review-only bundle → review_required
+```
+
+`authorization_source=preauthorized_profile`은 사용자 승인 기록이 아니라 exact profile
+범위 안의 routine gate를 결정한 policy authorization입니다. InteriorScope, interior-QA
+camera plan, destination import plan, reference/scope/target 변경, budget 확대와 임의 실행은
+대체하지 못합니다. 기존 workflow의 approval/receipt를 AQ authorization으로 변환하지도
+않습니다. 새 authorization도 처음 저장한 직후 다시 읽어 root/profile/budget, exact target,
+dependency, predecessor, single-use 상태와 파일 hash identity를 모두 검증한 뒤에만 side
+effect를 허용합니다.
+
+품질 통과는 기존 V0.6 direct score 하나로 결정하지 않습니다. direct score의 값과 의미를
+보존하면서 reference alignment, structural integrity, material fidelity, production
+readiness를 분리하고, unavailable evidence는 `unscorable`로 유지합니다. hard gate를
+통과한 후보 중 비회귀·meaningful gain·Pareto·최소 변경 순서로 한 후보만 승격합니다.
+
+V0.7 package 단계의 자동 복구는 일반 retry가 아닙니다. 기본 한 번의 예산 안에서 기존
+immutable package ID 충돌 또는 format-only roundtrip 오류만 fresh `-aqrNN` package ID로
+다시 만들 수 있습니다. 새 clean-import roundtrip까지 통과해야 받아들이며 material,
+bounds, dependency, Blender, canonical/source 오류는 fail-closed입니다.
+
+Windows 장경로 package/handoff 검증은 같은 package-relative 재귀 file set과 digest 규칙을
+사용합니다. 따라서 생성 단계의 정상 directory evidence가 V0.9 postflight에서 다른 hash로
+오판되지 않으며, 실제 추가·변조 파일은 계속 fail-closed로 탐지됩니다.
+
+품질 미달 review bundle은 best-known `.blend`, preview GLB, representative render, exact IQ
+JSON, unresolved findings, history/comparison, manual action과 PDF/sidecar를 제공하지만
+`production_ready=false`, `destination_handoff_eligible=false`입니다. production package나
+목적지 전달 자산으로 사용하면 안 됩니다.
+
+SceneSpec `0.3.0`은 구조 형상용 별도 opt-in 계약입니다. AQ structural candidate는 선택적으로
+full V03 assignment를 받아 모든 structural object를 candidate-owned payload/receipt/`.blend`
+증거로 materialize한 뒤, 기존 build 경로가 읽는 path-backed `0.2.0` candidate로 compile할 수
+있습니다. canonical 기본 계약은 계속 `0.2.0`입니다. 공개
+`scene-spec-v03-migration-plan` / `scene-spec-v03-migration-apply`와 동등 MCP는 exact plan
+hash에 결속된 derived copy와 receipt만 만들며 canonical SceneSpec `0.2.0`을 교체하지
+않습니다.
+
+일반 사용자는 PowerShell 대신 Codex/MCP로 요청할 수 있습니다. 실제 사용 범위와 종료
+결과는 [AQ 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md), 계약은
+[AQ 아키텍처](ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)를 따릅니다.
+
 ## V0.9 안정화 표면
 
 ```powershell
@@ -683,6 +753,12 @@ workflow의 spatial 검증을 통과한 것으로 승격되지 않습니다.
 - 일반 workflow 승인은 InteriorScope, Visual QA revision 또는 optimization의 전용 승인을 대체하지 못합니다.
 - Production Dispatcher는 `standard`를 기본으로 사용하며 `background_exterior`는 명시적 opt-in입니다. 어느 정책도 exact 전문 승인이나 failed retry 권한을 대신하지 않습니다.
 - Production task의 실제 생성·인증과 controller MCP/shell 제한은 supporting client 책임입니다. 저장소는 정확한 allowlist·attestation·receipt를 검증하지만 unenforced shell을 보안 경계로 주장하지 않습니다.
+- AQ의 profile authorization은 사용자 승인으로 기록되지 않으며 root/profile/budget/target
+  hash에 결속된 single-use 기계 결정입니다. 범위 밖 요청이나 stale/tampered evidence는
+  자동 승인하거나 budget을 늘리지 않고 중단합니다.
+- AQ의 `quality_passed`는 final IQ, immutable package manifest와 fresh passed roundtrip을
+  함께 요구합니다. `review_required` bundle은 production package나 Destination Handoff
+  증거가 아닙니다.
 
 전체 규칙은 [AGENTS.md](AGENTS.md)를 따릅니다.
 
@@ -702,6 +778,22 @@ uv run cbm doctor
 .\scripts\run_v09_gates.ps1
 ```
 
+선택적 AQ gate:
+
+```powershell
+.\scripts\run_autonomous_quality_gates.ps1 -RunBlender
+```
+
+AQ 구현 전 기준선은 `945 passed, 6 skipped`와 Ruff 통과입니다. 2026-08-10 post-change
+전체 결과는 `1145 passed, 20 skipped, 8 warnings in 149.21s`(1165 collected, short
+external basetemp `C:/Users/Woosik/AppData/Local/Temp/j8`), Ruff `All checks passed`, doctor
+OK, Blender 5.0.1 compatibility GLB/FBX/OBJ 통과입니다. AQ gate는 focused
+`195 passed, 2 skipped, 8 warnings in 16.98s`, 실제 Blender 묶음
+`14 passed, 6 warnings in 352.03s`, benchmark `8/8`과
+V0.7~V0.9 chained regression을 포함해 exit 0으로 끝났습니다. 기준선 결과를 AQ 회귀
+통과로 재사용하지 않습니다. exact 경로와 hash는
+[AQ 검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)에 있습니다.
+
 V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 
 ```powershell
@@ -713,6 +805,11 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 ## 문서 안내
 
 - [V1.0 공식 로드맵](ROADMAP_V1_KO.md)
+- [Autonomous Quality 0.1.0 아키텍처](ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 테스트 계획](TEST_PLAN_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 마이그레이션 정책](MIGRATION_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)
 - [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
 - [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)

@@ -1,0 +1,311 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "description": "Count consumed actions without changing the authorized budget.",
+      "properties": {
+        "initial_candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "total_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Actions",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    },
+    "ProductionResourceDelta": {
+      "additionalProperties": false,
+      "description": "Describe resource counters that must be reserved before one host step.",
+      "properties": {
+        "total_blender_builds": {
+          "default": 0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        }
+      },
+      "title": "ProductionResourceDelta",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove one bounded repair result without ever fabricating package acceptance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "repair_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "failure": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "host_attempts": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Host Attempts",
+      "type": "array"
+    },
+    "canonical_input_fingerprint_before": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Input Fingerprint Before",
+      "type": "string"
+    },
+    "canonical_input_fingerprint_after": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Input Fingerprint After",
+      "type": "string"
+    },
+    "package_manifest_after": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "roundtrip_validation_after": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "roundtrip_package_manifest_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Roundtrip Package Manifest Sha256"
+    },
+    "reserved_delta": {
+      "$ref": "#/$defs/ProductionResourceDelta"
+    },
+    "budget_before": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "budget_after": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "outcome": {
+      "enum": [
+        "repaired",
+        "failed",
+        "aborted"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "roundtrip_passed": {
+      "title": "Roundtrip Passed",
+      "type": "boolean"
+    },
+    "package_accepted": {
+      "title": "Package Accepted",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "session_id",
+    "repair_plan",
+    "failure",
+    "host_attempts",
+    "canonical_input_fingerprint_before",
+    "canonical_input_fingerprint_after",
+    "reserved_delta",
+    "budget_before",
+    "budget_after",
+    "outcome",
+    "roundtrip_passed",
+    "package_accepted",
+    "completed_at",
+    "notes"
+  ],
+  "title": "PackageRepairReceipt",
+  "type": "object"
+}

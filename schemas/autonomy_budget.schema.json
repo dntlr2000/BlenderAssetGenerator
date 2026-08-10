@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Declare immutable bounded work allowances for one autonomy session.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "budget_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Budget Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "default": "codex_blender_modeler.autonomy",
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "initial_candidates": {
+      "default": 3,
+      "maximum": 4,
+      "minimum": 1,
+      "title": "Initial Candidates",
+      "type": "integer"
+    },
+    "structural_rounds": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Structural Rounds",
+      "type": "integer"
+    },
+    "candidates_per_structural_round": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Candidates Per Structural Round",
+      "type": "integer"
+    },
+    "parametric_convergence_iterations": {
+      "default": 3,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Parametric Convergence Iterations",
+      "type": "integer"
+    },
+    "material_rounds": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Material Rounds",
+      "type": "integer"
+    },
+    "package_repairs": {
+      "default": 1,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Package Repairs",
+      "type": "integer"
+    },
+    "total_blender_builds": {
+      "default": 12,
+      "maximum": 18,
+      "minimum": 1,
+      "title": "Total Blender Builds",
+      "type": "integer"
+    },
+    "total_quality_evaluations": {
+      "default": 8,
+      "maximum": 12,
+      "minimum": 1,
+      "title": "Total Quality Evaluations",
+      "type": "integer"
+    },
+    "canonical_promotions": {
+      "default": 5,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Canonical Promotions",
+      "type": "integer"
+    },
+    "plateau_patience": {
+      "default": 1,
+      "maximum": 2,
+      "minimum": 1,
+      "title": "Plateau Patience",
+      "type": "integer"
+    },
+    "repeated_identical_failure_limit": {
+      "default": 1,
+      "maximum": 2,
+      "minimum": 1,
+      "title": "Repeated Identical Failure Limit",
+      "type": "integer"
+    },
+    "global_action_limit": {
+      "default": 64,
+      "maximum": 128,
+      "minimum": 1,
+      "title": "Global Action Limit",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "budget_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "provenance",
+    "created_at"
+  ],
+  "title": "AutonomyBudget",
+  "type": "object"
+}

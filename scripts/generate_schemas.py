@@ -39,6 +39,47 @@ from codex_blender_modeler.auto_revision.models import (
     RevisionApproval,
     RevisionCandidates,
 )
+from codex_blender_modeler.autonomy.failure_recovery import (
+    HostAttemptFailure,
+    HostAttemptIntent,
+    HostFailureTerminalReceipt,
+)
+from codex_blender_modeler.autonomy.material_models import (
+    MaterialCandidateAssignment,
+    MaterialCandidateCompletionMarker,
+    MaterialCandidateEvaluation,
+    MaterialCandidatePromotionReceipt,
+    MaterialCandidateRanking,
+    MaterialRoundInputSnapshot,
+)
+from codex_blender_modeler.autonomy.models import (
+    AutonomyBudget,
+    AutonomyControllerBinding,
+    AutonomyIterationReceipt,
+    AutonomyPlan,
+    AutonomyProfile,
+    AutonomyState,
+    AutonomyTerminal,
+    AutonomyTerminalIntent,
+    CandidateAuthoringAssignment,
+    CandidateCompletionMarker,
+    CandidateEvaluation,
+    CandidatePromotionReceipt,
+    PolicyAuthorization,
+    PolicyGateTarget,
+    ReviewBundleManifest,
+    ReviewBundleReceipt,
+    RootAuthorization,
+    StructuralCandidateManifest,
+    StructuralCandidatePlan,
+)
+from codex_blender_modeler.autonomy.production_budget import (
+    PackageRepairFailure,
+    PackageRepairPlan,
+    PackageRepairReceipt,
+    ProductionResourceReceipt,
+    ProductionResourceReservation,
+)
 from codex_blender_modeler.background_quality.models import (
     BackgroundFitReport,
     BackgroundQualityReport,
@@ -46,6 +87,14 @@ from codex_blender_modeler.background_quality.models import (
     BackgroundScenePromotionReceipt,
 )
 from codex_blender_modeler.baking.models import BakeManifest
+from codex_blender_modeler.blender_scripts.assembly.models import (
+    AssemblyCompanionReport,
+    AssemblyCompanionRequest,
+)
+from codex_blender_modeler.blender_scripts.topology.models import (
+    TopologyCompanionReport,
+    TopologyProfile,
+)
 from codex_blender_modeler.constraints.models import ConstraintSet, ConstraintSolution
 from codex_blender_modeler.external_intake.models import (
     ExternalAssetIntakeApproval,
@@ -67,6 +116,12 @@ from codex_blender_modeler.handoff.models import (
     ImportChecklist,
     MaterialMappingManifest,
 )
+from codex_blender_modeler.integrated_quality.models import (
+    CandidateRanking,
+    IntegratedQualityReport,
+    IntegratedQualityReportManifest,
+    QualityGateProfile,
+)
 from codex_blender_modeler.interior_qa.models import (
     InteriorQALatest,
     InteriorQAPlan,
@@ -76,6 +131,7 @@ from codex_blender_modeler.interior_qa.models import (
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
 )
+from codex_blender_modeler.material_graph.models import MaterialGraphSpec
 from codex_blender_modeler.materials.fidelity_models import MaterialFidelityReport
 from codex_blender_modeler.materials.models import (
     MaterialPlan,
@@ -147,6 +203,11 @@ from codex_blender_modeler.qa.semantic_mask_registry_models import (
     SemanticReferenceMaskRegistryStatus,
 )
 from codex_blender_modeler.qa.structural_regression import StructuralRegressionReport
+from codex_blender_modeler.reference_evidence.models import (
+    CameraHypothesisSet,
+    ReferenceEvidence,
+    ReferenceEvidenceRunResult,
+)
 from codex_blender_modeler.reporting.models import HumanReportManifest
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
@@ -155,6 +216,16 @@ from codex_blender_modeler.stabilization.models import (
     QueueLock,
     StabilityReportManifest,
     WorkspaceAuditReport,
+)
+from codex_blender_modeler.structural_geometry.migration import (
+    SceneSpecV03MigrationPlan,
+    SceneSpecV03MigrationReceipt,
+)
+from codex_blender_modeler.structural_geometry.models import (
+    AssetScaleContext,
+    SceneSpecV03,
+    StructuralGeometryCandidate,
+    StructuralMeshPayload,
 )
 from codex_blender_modeler.texturing.models import TextureManifest
 
@@ -283,6 +354,57 @@ SCHEMAS = {
     "destination_import_receipt.schema.json": DestinationImportReceipt,
     "destination_import_validation.schema.json": DestinationImportValidation,
     "human_report_manifest.schema.json": HumanReportManifest,
+    "reference_evidence.schema.json": ReferenceEvidence,
+    "camera_hypothesis_set.schema.json": CameraHypothesisSet,
+    "reference_evidence_run_result.schema.json": ReferenceEvidenceRunResult,
+    "integrated_quality_report.schema.json": IntegratedQualityReport,
+    "integrated_quality_report_manifest.schema.json": IntegratedQualityReportManifest,
+    "quality_gate_profile.schema.json": QualityGateProfile,
+    "candidate_ranking.schema.json": CandidateRanking,
+    "scene_spec_v03.schema.json": SceneSpecV03,
+    "scene_spec_v03_migration_plan.schema.json": SceneSpecV03MigrationPlan,
+    "scene_spec_v03_migration_receipt.schema.json": SceneSpecV03MigrationReceipt,
+    "structural_geometry_candidate.schema.json": StructuralGeometryCandidate,
+    "structural_mesh_payload.schema.json": StructuralMeshPayload,
+    "asset_scale_context.schema.json": AssetScaleContext,
+    "material_graph_spec.schema.json": MaterialGraphSpec,
+    "assembly_companion_request.schema.json": AssemblyCompanionRequest,
+    "assembly_companion_report.schema.json": AssemblyCompanionReport,
+    "topology_profile.schema.json": TopologyProfile,
+    "topology_companion_report.schema.json": TopologyCompanionReport,
+    "autonomy_budget.schema.json": AutonomyBudget,
+    "autonomy_profile.schema.json": AutonomyProfile,
+    "root_authorization.schema.json": RootAuthorization,
+    "autonomy_plan.schema.json": AutonomyPlan,
+    "autonomy_controller_binding.schema.json": AutonomyControllerBinding,
+    "policy_gate_target.schema.json": PolicyGateTarget,
+    "policy_authorization.schema.json": PolicyAuthorization,
+    "candidate_authoring_assignment.schema.json": CandidateAuthoringAssignment,
+    "candidate_completion_marker.schema.json": CandidateCompletionMarker,
+    "structural_candidate_plan.schema.json": StructuralCandidatePlan,
+    "structural_candidate_manifest.schema.json": StructuralCandidateManifest,
+    "candidate_evaluation.schema.json": CandidateEvaluation,
+    "candidate_promotion_receipt.schema.json": CandidatePromotionReceipt,
+    "autonomy_state.schema.json": AutonomyState,
+    "autonomy_iteration_receipt.schema.json": AutonomyIterationReceipt,
+    "autonomy_terminal.schema.json": AutonomyTerminal,
+    "autonomy_terminal_intent.schema.json": AutonomyTerminalIntent,
+    "review_bundle_manifest.schema.json": ReviewBundleManifest,
+    "review_bundle_receipt.schema.json": ReviewBundleReceipt,
+    "material_round_input_snapshot.schema.json": MaterialRoundInputSnapshot,
+    "material_candidate_assignment.schema.json": MaterialCandidateAssignment,
+    "material_candidate_completion_marker.schema.json": MaterialCandidateCompletionMarker,
+    "material_candidate_evaluation.schema.json": MaterialCandidateEvaluation,
+    "material_candidate_ranking.schema.json": MaterialCandidateRanking,
+    "material_candidate_promotion_receipt.schema.json": MaterialCandidatePromotionReceipt,
+    "host_attempt_intent.schema.json": HostAttemptIntent,
+    "host_attempt_failure.schema.json": HostAttemptFailure,
+    "host_failure_terminal_receipt.schema.json": HostFailureTerminalReceipt,
+    "production_resource_reservation.schema.json": ProductionResourceReservation,
+    "production_resource_receipt.schema.json": ProductionResourceReceipt,
+    "package_repair_failure.schema.json": PackageRepairFailure,
+    "package_repair_plan.schema.json": PackageRepairPlan,
+    "package_repair_receipt.schema.json": PackageRepairReceipt,
 }
 
 

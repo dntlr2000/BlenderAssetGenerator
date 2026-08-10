@@ -18,6 +18,10 @@ from codex_blender_modeler.auto_revision.convergence_session import (
     plan_job_visual_convergence,
     run_job_visual_convergence,
 )
+from codex_blender_modeler.auto_revision.convergence_session_models import (
+    HashBoundConvergenceArtifact,
+    VisualConvergencePlan,
+)
 from codex_blender_modeler.build_provenance import collect_build_provenance
 from codex_blender_modeler.config import Settings
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
@@ -31,6 +35,9 @@ from codex_blender_modeler.qa.models import (
     SuggestedEdit,
     VisualQAReport,
     VisualQARequest,
+)
+from codex_blender_modeler.qa.structural_regression import (
+    AssemblySanityTerminalEvidence,
 )
 from codex_blender_modeler.stabilization import audit_workspace_state
 from codex_blender_modeler.workspace import create_job, sha256_file
@@ -463,6 +470,93 @@ def test_v09_audit_accepts_terminal_chain_and_later_canonical_revision(
     )
     assert second.status == "passed"
     assert second.jobs[0].visual_convergence_status == "valid"
+
+
+def test_v09_initial_snapshot_audit_binds_spatial_five_view_evidence(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Include approved five-view terminals in the exact convergence evidence set."""
+
+    root, _scene_spec_path, run_id = _job(monkeypatch, tmp_path)
+    planned = plan_job_visual_convergence(
+        "convergence_audit",
+        run_id,
+        session_id="audit-session",
+        target_direct_score=0.7,
+        target_silhouette_iou=0.7,
+        allowed_target_ids=[TARGET_ID],
+        max_iterations=1,
+    )
+    plan = VisualConvergencePlan.model_validate_json(
+        Path(planned["plan"]).read_text(encoding="utf-8")
+    )
+    evidence = AssemblySanityTerminalEvidence(
+        run_id="audit-structural",
+        plan_path="qa/assembly_sanity/runs/audit-structural/plan.json",
+        plan_sha256=SHA,
+        render_manifest_path=(
+            "qa/assembly_sanity/runs/audit-structural/render_manifest.json"
+        ),
+        render_manifest_sha256=SHA,
+        report_path="qa/assembly_sanity/runs/audit-structural/report.json",
+        report_sha256=SHA,
+    )
+    spatial_plan = plan.model_copy(
+        update={
+            "structural_multiview_policy": "spatial_v1_required",
+            "initial_structural_evidence": evidence,
+        }
+    )
+    expected = [
+        HashBoundConvergenceArtifact(
+            relative_path=evidence.plan_path,
+            sha256=evidence.plan_sha256,
+        ),
+        HashBoundConvergenceArtifact(
+            relative_path=evidence.render_manifest_path,
+            sha256=evidence.render_manifest_sha256,
+        ),
+        HashBoundConvergenceArtifact(
+            relative_path=evidence.report_path,
+            sha256=evidence.report_sha256,
+        ),
+    ]
+
+    def structural_artifacts(*args, **kwargs):
+        """Verify the audit forwards the exact structural ownership bindings."""
+
+        assert args[0] == root
+        assert args[1] == evidence
+        assert kwargs["expected_job_id"] == "convergence_audit"
+        assert kwargs["expected_scene_spec_sha256"] == plan.initial_scene_spec_sha256
+        return expected
+
+    monkeypatch.setattr(
+        stabilization_service,
+        "_structural_terminal_artifacts",
+        structural_artifacts,
+    )
+
+    def host_safety(root_value, session_root, plan_value):
+        """Keep this focused test isolated from host-envelope re-derivation."""
+
+        assert root_value == root
+        assert session_root.name == "audit-session"
+        assert plan_value == spatial_plan
+
+    monkeypatch.setattr(
+        stabilization_service,
+        "_require_host_safety_envelope",
+        host_safety,
+    )
+    artifacts = stabilization_service._audit_initial_convergence_snapshots(
+        root,
+        root / "qa" / "convergence" / "audit-session",
+        spatial_plan,
+    )
+    for artifact in expected:
+        assert artifacts[artifact.relative_path] == artifact.sha256
 
 
 def test_v09_audit_rejects_terminal_session_with_receiptless_staging(

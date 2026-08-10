@@ -1,0 +1,371 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    },
+    "AutonomyBudget": {
+      "additionalProperties": false,
+      "description": "Declare immutable bounded work allowances for one autonomy session.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "budget_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Budget Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "producer": {
+          "default": "codex_blender_modeler.autonomy",
+          "minLength": 1,
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "provenance": {
+          "items": {
+            "$ref": "#/$defs/AutonomyArtifact"
+          },
+          "minItems": 1,
+          "title": "Provenance",
+          "type": "array"
+        },
+        "initial_candidates": {
+          "default": 3,
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "candidates_per_structural_round": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Candidates Per Structural Round",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 3,
+          "maximum": 5,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 2,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 1,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 12,
+          "maximum": 18,
+          "minimum": 1,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 8,
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 5,
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "plateau_patience": {
+          "default": 1,
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Plateau Patience",
+          "type": "integer"
+        },
+        "repeated_identical_failure_limit": {
+          "default": 1,
+          "maximum": 2,
+          "minimum": 1,
+          "title": "Repeated Identical Failure Limit",
+          "type": "integer"
+        },
+        "global_action_limit": {
+          "default": 64,
+          "maximum": 128,
+          "minimum": 1,
+          "title": "Global Action Limit",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "budget_id",
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "input_sha256",
+        "source_fingerprint",
+        "provenance",
+        "created_at"
+      ],
+      "title": "AutonomyBudget",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Snapshot one verified or explicitly experimental autonomy policy.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "autonomous_static_prop_v1",
+        "autonomous_environment_v1",
+        "autonomous_architecture_v1",
+        "autonomous_measured_asset_v1"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "verified_active",
+        "disabled_experimental"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "production_mode": {
+      "const": "autonomous_profile",
+      "default": "autonomous_profile",
+      "title": "Production Mode",
+      "type": "string"
+    },
+    "underlying_execution_policy": {
+      "const": "standard",
+      "default": "standard",
+      "title": "Underlying Execution Policy",
+      "type": "string"
+    },
+    "allowed_mode": {
+      "const": "concept",
+      "default": "concept",
+      "title": "Allowed Mode",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "const": "primary_object_only",
+      "default": "primary_object_only",
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "output_profile": {
+      "const": "portable_gltf",
+      "default": "portable_gltf",
+      "title": "Output Profile",
+      "type": "string"
+    },
+    "allowed_asset_kinds": {
+      "items": {
+        "enum": [
+          "static_hard_surface",
+          "static_prop"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Asset Kinds",
+      "type": "array"
+    },
+    "allowed_gate_kinds": {
+      "items": {
+        "enum": [
+          "generic_proxy_review",
+          "generic_detail_review",
+          "material_swatch_acknowledgement",
+          "structural_candidate_promotion",
+          "bounded_convergence_plan",
+          "bounded_convergence_candidate",
+          "material_candidate_promotion",
+          "qa_review_acknowledgement",
+          "optimization_plan",
+          "final_package_acknowledgement",
+          "destination_handoff_envelope_plan"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Gate Kinds",
+      "type": "array"
+    },
+    "prohibited_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Prohibited Capabilities",
+      "type": "array"
+    },
+    "default_budget": {
+      "$ref": "#/$defs/AutonomyBudget"
+    },
+    "quality_gate_profile": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "optional_destination_handoff_envelope": {
+      "default": true,
+      "title": "Optional Destination Handoff Envelope",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "profile_id",
+    "status",
+    "allowed_asset_kinds",
+    "allowed_gate_kinds",
+    "prohibited_capabilities",
+    "default_budget",
+    "quality_gate_profile"
+  ],
+  "title": "AutonomyProfile",
+  "type": "object"
+}

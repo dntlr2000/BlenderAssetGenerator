@@ -1,0 +1,257 @@
+{
+  "$defs": {
+    "AxisThreshold": {
+      "additionalProperties": false,
+      "description": "Configure pass and warning boundaries for one independently reported axis.",
+      "properties": {
+        "axis": {
+          "enum": [
+            "reference_alignment",
+            "structural_integrity",
+            "material_fidelity",
+            "production_readiness"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "pass_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Pass Score",
+          "type": "number"
+        },
+        "warning_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Warning Score",
+          "type": "number"
+        }
+      },
+      "required": [
+        "axis",
+        "pass_score",
+        "warning_score"
+      ],
+      "title": "AxisThreshold",
+      "type": "object"
+    },
+    "ProducerIdentity": {
+      "additionalProperties": false,
+      "description": "Identify the exact component and implementation version that emitted evidence.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ProducerIdentity",
+      "type": "object"
+    },
+    "QualityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable quality input to its relative path and exact digest.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "producer": {
+          "$ref": "#/$defs/ProducerIdentity"
+        },
+        "produced_at": {
+          "format": "date-time",
+          "title": "Produced At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "relative_path",
+        "sha256",
+        "producer",
+        "produced_at"
+      ],
+      "title": "QualityArtifact",
+      "type": "object"
+    },
+    "QualityGateRule": {
+      "additionalProperties": false,
+      "description": "Declare one hard-gate dependency on a named quality axis.",
+      "properties": {
+        "gate_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Gate Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "reference_alignment",
+            "structural_integrity",
+            "material_fidelity",
+            "production_readiness"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "accepted_statuses": {
+          "items": {
+            "enum": [
+              "passed",
+              "warning"
+            ],
+            "type": "string"
+          },
+          "title": "Accepted Statuses",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gate_id",
+        "axis",
+        "message"
+      ],
+      "title": "QualityGateRule",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze integrated quality thresholds and hard-gate policy as an immutable profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "$ref": "#/$defs/ProducerIdentity"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/QualityArtifact"
+      },
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "axis_thresholds": {
+      "items": {
+        "$ref": "#/$defs/AxisThreshold"
+      },
+      "minItems": 1,
+      "title": "Axis Thresholds",
+      "type": "array"
+    },
+    "gate_rules": {
+      "items": {
+        "$ref": "#/$defs/QualityGateRule"
+      },
+      "title": "Gate Rules",
+      "type": "array"
+    },
+    "meaningful_gain_min": {
+      "default": 0.01,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Meaningful Gain Min",
+      "type": "number"
+    },
+    "critical_regression_tolerance": {
+      "default": 0.0,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Critical Regression Tolerance",
+      "type": "number"
+    }
+  },
+  "required": [
+    "schema_version",
+    "profile_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "axis_thresholds"
+  ],
+  "title": "QualityGateProfile",
+  "type": "object"
+}

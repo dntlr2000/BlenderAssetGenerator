@@ -219,21 +219,29 @@ def _apply_manifest_graph(
     links: bpy.types.NodeLinks,
     manifest: dict,
 ) -> None:
-    """Apply the constrained image/procedural manifest graph to a Principled shader."""
+    """Apply the constrained manifest graph with provider-bound image sampling."""
 
     channels = manifest.get("channels", {})
     procedural = manifest.get("procedural", {})
     spatial_bindings = manifest.get("surface_detail_bindings", [])
     spatial_mode = bool(spatial_bindings)
+    provenance = manifest.get("provenance", {})
+    portable_uniform_mode = (
+        isinstance(provenance, dict)
+        and provenance.get("provider") == "cbm_autonomy_uniform_pbr"
+    )
     image_extension = "REPEAT"
     if spatial_mode:
         wrap = str(spatial_bindings[0]["wrap"])
         image_extension = {"clip": "CLIP", "clamp": "EXTEND"}[wrap]
+    elif portable_uniform_mode:
+        # AQ portable maps are deliberately non-tiling and use exact UVMap identity.
+        image_extension = "EXTEND"
     image_vector_socket = _coordinate_socket(
         nodes,
         links,
         manifest,
-        identity_uv=spatial_mode,
+        identity_uv=spatial_mode or portable_uniform_mode,
     )
     procedural_vector_socket = image_vector_socket
     procedural_uv_set = procedural.get("coordinate_uv_set")
@@ -265,7 +273,10 @@ def _apply_manifest_graph(
     }
     material["cbm_spatial_binding_count"] = len(spatial_bindings)
     material["cbm_image_wrap"] = image_extension
-    material["cbm_sampling_mode"] = "spatial_uv_identity" if spatial_mode else "legacy_scaled"
+    sampling_mode = "spatial_uv_identity" if spatial_mode else "legacy_scaled"
+    if portable_uniform_mode:
+        sampling_mode = "portable_uv_identity"
+    material["cbm_sampling_mode"] = sampling_mode
     material["cbm_spatial_bindings"] = json.dumps(
         [
             {

@@ -37,7 +37,12 @@ from ..background_quality import (
     run_background_pre_qa_fit,
 )
 from ..blender_artifact_runner import inspect_job_materials, render_job_material_swatches
-from ..blender_artifacts import stable_json_digest, write_json_atomic
+from ..blender_artifacts import (
+    native_io_path,
+    sha256_directory,
+    stable_json_digest,
+    write_json_atomic,
+)
 from ..blender_runner import run_blender
 from ..config import load_feature_config
 from ..interior_qa import plan_job_interior_qa, run_job_interior_qa
@@ -916,17 +921,11 @@ def plan_workflow(
 def _artifact_digest(path: Path) -> str:
     """Hash one file or deterministic directory listing for state reconstruction."""
 
-    if path.is_file():
+    if os.path.isfile(native_io_path(path)):
         return sha256_file(path)
-    records = [
-        {
-            "path": item.relative_to(path).as_posix(),
-            "sha256": sha256_file(item),
-        }
-        for item in sorted(path.rglob("*"))
-        if item.is_file()
-    ]
-    return stable_json_digest(records)
+    if os.path.isdir(native_io_path(path)):
+        return sha256_directory(path)
+    raise FileNotFoundError(path)
 
 
 def _copy_artifact_immutable(source: Path, destination: Path) -> None:
@@ -1565,6 +1564,61 @@ def _load_approval(
     return _load_model(path, WorkflowApproval) if path.is_file() else None
 
 
+_POLICY_GATE_BY_WORKFLOW_GATE = {
+    "proxy_geometry": "generic_proxy_review",
+    "detailed_geometry": "generic_detail_review",
+    "material_swatches": "material_swatch_acknowledgement",
+    "qa_review": "qa_review_acknowledgement",
+    "final_package": "final_package_acknowledgement",
+    "optimization_plan": "optimization_plan",
+}
+
+
+def _load_policy_authorization(
+    root: Path,
+    workflow_root: Path,
+    plan: WorkflowPlan,
+    step: WorkflowStep,
+    *,
+    input_fingerprint: str,
+    actual_plan_hash: str,
+):
+    """Load an optional exact autonomy policy grant without synthesizing user approval."""
+
+    gate_kind = _POLICY_GATE_BY_WORKFLOW_GATE.get(str(step.approval_gate))
+    if gate_kind is None:
+        return None
+    path = workflow_root / "policy_authorizations" / f"{step.step_id}.json"
+    if not path.is_file():
+        return None
+    from ..autonomy.authorization import validate_policy_authorization
+    from ..autonomy.models import PolicyAuthorization, PolicyGateTarget
+
+    authorization = _load_model(path, PolicyAuthorization)
+    validate_policy_authorization(
+        root,
+        authorization,
+        expected_job_id=plan.job_id,
+        expected_workflow_id=plan.workflow_id,
+        expected_step_id=step.step_id,
+        expected_gate_kind=gate_kind,
+        expected_input_fingerprint=input_fingerprint,
+    )
+    target_path = _resolve_job_path(root, authorization.gate_target.path)
+    target = _load_model(target_path, PolicyGateTarget)
+    if (
+        target.job_id != plan.job_id
+        or target.workflow_id != plan.workflow_id
+        or target.dispatch_id != authorization.dispatch_id
+        or target.workflow_step_id != step.step_id
+        or target.workflow_input_fingerprint != input_fingerprint
+        or target.gate_kind != gate_kind
+        or target.workflow_plan.sha256 != actual_plan_hash
+    ):
+        raise ValueError("Policy gate target is stale or bound to another workflow boundary")
+    return authorization
+
+
 def _matching_succeeded_attempt(
     workflow_root: Path,
     step: WorkflowStep,
@@ -2036,7 +2090,34 @@ def _reconcile_locked(
                     error = "Workflow approval is stale relative to current evidence."
                     reason_code = "orchestration_artifact_conflict"
             else:
-                status = "waiting_for_approval"
+                try:
+                    policy_authorization = _load_policy_authorization(
+                        root,
+                        workflow_root,
+                        plan,
+                        step,
+                        input_fingerprint=input_fingerprint,
+                        actual_plan_hash=actual_plan_hash,
+                    )
+                except (OSError, RuntimeError, ValueError) as exc:
+                    status = "stale"
+                    error = f"Autonomy policy authorization is stale: {exc}"
+                    reason_code = "orchestration_artifact_conflict"
+                else:
+                    if policy_authorization is None:
+                        status = "waiting_for_approval"
+                    else:
+                        status = "complete"
+                        approval_id = policy_authorization.authorization_id
+                        completion_fingerprint = stable_json_digest(
+                            {
+                                "input": input_fingerprint,
+                                "policy_authorization": (
+                                    policy_authorization.authorization_id
+                                ),
+                            }
+                        )
+                        completed_at = policy_authorization.consumed_at
         elif step.execution_mode == "specialized_approval":
             if _specialized_approval_valid(root, step, artifacts):
                 status = "complete"
@@ -2050,7 +2131,34 @@ def _reconcile_locked(
                 )
                 completed_at = _utc_now()
             else:
-                status = "waiting_for_approval"
+                try:
+                    policy_authorization = _load_policy_authorization(
+                        root,
+                        workflow_root,
+                        plan,
+                        step,
+                        input_fingerprint=input_fingerprint,
+                        actual_plan_hash=actual_plan_hash,
+                    )
+                except (OSError, RuntimeError, ValueError) as exc:
+                    status = "stale"
+                    error = f"Autonomy policy authorization is stale: {exc}"
+                    reason_code = "orchestration_artifact_conflict"
+                else:
+                    if policy_authorization is None:
+                        status = "waiting_for_approval"
+                    else:
+                        status = "complete"
+                        approval_id = policy_authorization.authorization_id
+                        completion_fingerprint = stable_json_digest(
+                            {
+                                "input": input_fingerprint,
+                                "policy_authorization": (
+                                    policy_authorization.authorization_id
+                                ),
+                            }
+                        )
+                        completed_at = policy_authorization.consumed_at
         elif step.execution_mode == "manual":
             status = "blocked"
             error = "No validated destination adapter is available."
@@ -3265,11 +3373,30 @@ def _execute_host_tool(
     if tool == "optimize_portable_asset":
         run_id = str(step.parameters["run_id"])
         approved_hash = sha256_file(root / "optimization" / "runs" / run_id / "review_plan.json")
+        policy_path = (
+            workflow_root
+            / "policy_authorizations"
+            / "portable.plan_approval.json"
+        )
+        policy_input_fingerprint = None
+        if policy_path.is_file():
+            from ..autonomy.models import PolicyAuthorization
+
+            policy_input_fingerprint = _load_model(
+                policy_path,
+                PolicyAuthorization,
+            ).workflow_input_fingerprint
         optimize_asset(
             request.job_id,
             profile_id=str(step.parameters["profile_id"]),
             run_id=run_id,
             approved_plan_sha256=approved_hash,
+            policy_authorization_path=(policy_path if policy_path.is_file() else None),
+            workflow_id=(request.workflow_id if policy_path.is_file() else None),
+            workflow_step_id=(
+                "portable.plan_approval" if policy_path.is_file() else None
+            ),
+            workflow_input_fingerprint=policy_input_fingerprint,
         )
         return
     if tool == "convert_portable_materials":

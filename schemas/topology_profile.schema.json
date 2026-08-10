@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "TopologyCheckPolicy": {
+      "additionalProperties": false,
+      "description": "Classify one profile check as a hard failure or warning.",
+      "properties": {
+        "check": {
+          "enum": [
+            "non_finite",
+            "degenerate_face",
+            "self_intersection",
+            "winding",
+            "flipped_normal",
+            "loose_geometry",
+            "open_boundary",
+            "triangle_aspect",
+            "ngon_limit",
+            "uv0",
+            "uv_overlap",
+            "island_padding",
+            "texel_density",
+            "tangent",
+            "subdivision_pinching",
+            "lod_silhouette_error",
+            "clean_import_normal_preservation",
+            "clean_import_material_preservation"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "failure_severity": {
+          "enum": [
+            "hard_failure",
+            "warning"
+          ],
+          "title": "Failure Severity",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "failure_severity",
+        "rationale"
+      ],
+      "title": "TopologyCheckPolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Define one of the six immutable topology acceptance profiles.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "name": {
+      "enum": [
+        "static_prop_closed",
+        "static_prop_open",
+        "game_ready_lowpoly",
+        "highpoly_bake_source",
+        "modular_architecture",
+        "terrain"
+      ],
+      "title": "Name",
+      "type": "string"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/TopologyCheckPolicy"
+      },
+      "maxItems": 18,
+      "minItems": 18,
+      "title": "Checks",
+      "type": "array"
+    }
+  },
+  "required": [
+    "name",
+    "checks"
+  ],
+  "title": "TopologyProfile",
+  "type": "object"
+}

@@ -1,0 +1,653 @@
+{
+  "$defs": {
+    "EvidenceAvailability": {
+      "additionalProperties": false,
+      "description": "Record whether an expected evidence channel is usable without inventing a score.",
+      "properties": {
+        "evidence_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "reference_alignment",
+            "structural_integrity",
+            "material_fidelity",
+            "production_readiness"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "degraded",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "artifact_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Id"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "axis",
+        "status",
+        "confidence",
+        "reason"
+      ],
+      "title": "EvidenceAvailability",
+      "type": "object"
+    },
+    "HardGateResult": {
+      "additionalProperties": false,
+      "description": "Record one fail-closed gate result independently from weighted quality observations.",
+      "properties": {
+        "gate_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Gate Id",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "reference_alignment",
+            "structural_integrity",
+            "material_fidelity",
+            "production_readiness"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gate_id",
+        "axis",
+        "status",
+        "required",
+        "blocking",
+        "message"
+      ],
+      "title": "HardGateResult",
+      "type": "object"
+    },
+    "ProducerIdentity": {
+      "additionalProperties": false,
+      "description": "Identify the exact component and implementation version that emitted evidence.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ProducerIdentity",
+      "type": "object"
+    },
+    "QualityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable quality input to its relative path and exact digest.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "relative_path": {
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "producer": {
+          "$ref": "#/$defs/ProducerIdentity"
+        },
+        "produced_at": {
+          "format": "date-time",
+          "title": "Produced At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "relative_path",
+        "sha256",
+        "producer",
+        "produced_at"
+      ],
+      "title": "QualityArtifact",
+      "type": "object"
+    },
+    "QualityAxisResult": {
+      "additionalProperties": false,
+      "description": "Summarize one quality axis while preserving all underlying metric evidence.",
+      "properties": {
+        "axis": {
+          "enum": [
+            "reference_alignment",
+            "structural_integrity",
+            "material_fidelity",
+            "production_readiness"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "metrics": {
+          "items": {
+            "$ref": "#/$defs/QualityMetric"
+          },
+          "title": "Metrics",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "axis",
+        "status",
+        "confidence"
+      ],
+      "title": "QualityAxisResult",
+      "type": "object"
+    },
+    "QualityMetric": {
+      "additionalProperties": false,
+      "description": "Store one independently interpreted measurement without collapsing quality axes.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "warning",
+            "failed",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "maxLength": 32,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "higher_is_better",
+                "lower_is_better",
+                "boolean"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Direction"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "critical": {
+          "default": false,
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric_id",
+        "status",
+        "confidence",
+        "message"
+      ],
+      "title": "QualityMetric",
+      "type": "object"
+    },
+    "QualityProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze the job, workflow, dispatch, source, and exact input artifact identities.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "input_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Sha256",
+          "type": "string"
+        },
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/QualityArtifact"
+          },
+          "minItems": 1,
+          "title": "Artifacts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "source_fingerprint",
+        "input_sha256",
+        "artifacts"
+      ],
+      "title": "QualityProvenance",
+      "type": "object"
+    },
+    "ReentryRecommendation": {
+      "additionalProperties": false,
+      "description": "Route a measured quality issue back to the earliest responsible authoring stage.",
+      "properties": {
+        "recommendation_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Recommendation Id",
+          "type": "string"
+        },
+        "stage": {
+          "enum": [
+            "v0.4",
+            "v0.5",
+            "v0.6",
+            "v0.7",
+            "manual_review"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "axis": {
+          "anyOf": [
+            {
+              "enum": [
+                "reference_alignment",
+                "structural_integrity",
+                "material_fidelity",
+                "production_readiness"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Axis"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "reason_codes": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recommendation_id",
+        "stage",
+        "reason_codes",
+        "message"
+      ],
+      "title": "ReentryRecommendation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authoritatively combine hard gates and independent quality axes without a weighted sum.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "gate_profile_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Gate Profile Id",
+      "type": "string"
+    },
+    "gate_profile_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Gate Profile Sha256",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/QualityProvenance"
+    },
+    "producer": {
+      "$ref": "#/$defs/ProducerIdentity"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "passed",
+        "needs_revision",
+        "unscorable",
+        "blocked"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "quality_accepted": {
+      "title": "Quality Accepted",
+      "type": "boolean"
+    },
+    "legacy_v06_direct_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Legacy V06 Direct Score"
+    },
+    "hard_gates": {
+      "items": {
+        "$ref": "#/$defs/HardGateResult"
+      },
+      "title": "Hard Gates",
+      "type": "array"
+    },
+    "axes": {
+      "items": {
+        "$ref": "#/$defs/QualityAxisResult"
+      },
+      "minItems": 1,
+      "title": "Axes",
+      "type": "array"
+    },
+    "evidence_availability": {
+      "items": {
+        "$ref": "#/$defs/EvidenceAvailability"
+      },
+      "minItems": 1,
+      "title": "Evidence Availability",
+      "type": "array"
+    },
+    "blocking_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking Reasons",
+      "type": "array"
+    },
+    "reentry": {
+      "items": {
+        "$ref": "#/$defs/ReentryRecommendation"
+      },
+      "title": "Reentry",
+      "type": "array"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "report_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "gate_profile_id",
+    "gate_profile_sha256",
+    "provenance",
+    "producer",
+    "created_at",
+    "outcome",
+    "quality_accepted",
+    "axes",
+    "evidence_availability"
+  ],
+  "title": "IntegratedQualityReport",
+  "type": "object"
+}

@@ -1,0 +1,206 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record conservative validation and fidelity evidence for one material candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "evaluation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Round Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "candidate_index": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Candidate Index",
+      "type": "integer"
+    },
+    "strategy": {
+      "enum": [
+        "faithful_v05",
+        "portable_pbr_v05"
+      ],
+      "title": "Strategy",
+      "type": "string"
+    },
+    "assignment": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "completion_marker": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "material_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "contract_validation": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "fidelity_report": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "contract_valid": {
+      "title": "Contract Valid",
+      "type": "boolean"
+    },
+    "fidelity_status": {
+      "enum": [
+        "passed",
+        "warning",
+        "unscorable",
+        "failed"
+      ],
+      "title": "Fidelity Status",
+      "type": "string"
+    },
+    "portable_material_coverage": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Portable Material Coverage",
+      "type": "number"
+    },
+    "change_magnitude": {
+      "minimum": 0,
+      "title": "Change Magnitude",
+      "type": "number"
+    },
+    "eligible_for_selection": {
+      "title": "Eligible For Selection",
+      "type": "boolean"
+    },
+    "ranking_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Ranking Reasons",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "evaluation_id",
+    "session_id",
+    "round_id",
+    "candidate_id",
+    "candidate_index",
+    "strategy",
+    "assignment",
+    "completion_marker",
+    "material_plan",
+    "contract_validation",
+    "fidelity_report",
+    "contract_valid",
+    "fidelity_status",
+    "portable_material_coverage",
+    "change_magnitude",
+    "eligible_for_selection",
+    "ranking_reasons"
+  ],
+  "title": "MaterialCandidateEvaluation",
+  "type": "object"
+}

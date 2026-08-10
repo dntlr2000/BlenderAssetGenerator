@@ -39,6 +39,12 @@ from .auto_revision.candidate_review_service import (
 from .auto_revision.candidate_review_service import (
     recover_failed_candidate_review_promotion as recover_failed_candidate_review_promotion_internal,
 )
+from .autonomy.planner import (
+    plan_autonomous_static_prop as plan_autonomous_static_prop_internal,
+)
+from .autonomy.profiles import (
+    get_autonomy_profile_status as get_autonomy_profile_status_internal,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -72,6 +78,10 @@ from .handoff import plan_destination_handoff as plan_destination_handoff_intern
 from .handoff import (
     validate_destination_handoff as validate_destination_handoff_internal,
 )
+from .integrated_quality import (
+    get_integrated_quality_status as get_integrated_quality_status_internal,
+)
+from .integrated_quality import run_integrated_quality as run_integrated_quality_internal
 from .interior_qa import (
     approve_job_interior_qa_plan,
     get_job_interior_qa_status,
@@ -159,6 +169,12 @@ from .stabilization import get_local_workflow_queue as get_local_workflow_queue_
 from .stabilization import probe_release_environment as probe_release_environment_internal
 from .stabilization import requeue_local_workflow as requeue_local_workflow_internal
 from .stabilization import run_local_workflow_queue as run_local_workflow_queue_internal
+from .structural_geometry.migration_service import (
+    apply_scene_spec_v03_migration as apply_scene_spec_v03_migration_internal,
+)
+from .structural_geometry.migration_service import (
+    plan_scene_spec_v03_migration as plan_scene_spec_v03_migration_internal,
+)
 from .texturing import (
     attach_texture_manifest_to_plan,
     generate_job_procedural_textures,
@@ -323,6 +339,10 @@ def get_modeling_capabilities() -> dict:
         "stabilization_schema_version": STABILIZATION_SCHEMA_VERSION,
         "destination_handoff_schema_version": DESTINATION_HANDOFF_SCHEMA_VERSION,
         "external_static_asset_schema_version": EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
+        "experimental_contract_versions": {
+            "autonomy": "0.1.0",
+            "integrated_quality": "0.1.0",
+        },
         "feature_flags": {
             "material_core": feature_config.features.material_core,
             "shader_core": feature_config.features.shader_core,
@@ -493,6 +513,20 @@ def get_modeling_capabilities() -> dict:
             "runtime_parity": False,
             "contract_version": PRODUCTION_DISPATCH_SCHEMA_VERSION,
         },
+        "autonomous_quality": {
+            "status": "experimental_overlay",
+            "underlying_execution_policy": "standard",
+            "profiles": get_autonomy_profile_status_internal()["profiles"],
+            "verified_active_profile": "autonomous_static_prop_v1",
+            "reference_content_scope": "primary_object_only",
+            "output_profile": "portable_gltf",
+            "policy_authorization": (
+                "routine exact gate authorization; never synthesized user approval"
+            ),
+            "bounded_supervisor": True,
+            "advance_actions_per_call": 1,
+            "runtime_parity": False,
+        },
         "interior_capabilities": {
             "default_policy": "disabled",
             "policies": ["disabled", "visible_only", "proxy", "measured", "authored"],
@@ -630,6 +664,171 @@ def get_modeling_capabilities() -> dict:
             "Single-view concept reconstruction remains approximate without scale/camera anchors.",
         ],
     }
+
+
+@mcp.tool()
+def get_autonomy_profile_status(profile_id: str | None = None) -> dict:
+    """List the verified autonomy profile without activating experimental entries."""
+
+    return get_autonomy_profile_status_internal(profile_id)
+
+
+@mcp.tool()
+def plan_scene_spec_v03_migration(job_id: str, migration_id: str) -> dict:
+    """Publish one derived-only SceneSpec 0.3 migration plan and exact candidate."""
+
+    return plan_scene_spec_v03_migration_internal(job_id, migration_id)
+
+
+@mcp.tool()
+def apply_scene_spec_v03_migration(
+    job_id: str,
+    migration_id: str,
+    exact_plan_sha256: str,
+) -> dict:
+    """Apply an exact plan only to run-owned derived SceneSpec 0.3 evidence."""
+
+    return apply_scene_spec_v03_migration_internal(
+        job_id,
+        migration_id,
+        exact_plan_sha256=exact_plan_sha256,
+    )
+
+
+@mcp.tool()
+def plan_autonomous_quality(
+    request: str,
+    reference_path: str,
+    target_subject: str,
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    include_destination_handoff_envelope: bool = False,
+) -> dict:
+    """Plan one bounded static-prop autonomy overlay over a standard workflow."""
+
+    return plan_autonomous_static_prop_internal(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        include_destination_handoff_envelope=(
+            include_destination_handoff_envelope
+        ),
+    )
+
+
+@mcp.tool()
+def bind_autonomy_controller(
+    job_id: str,
+    session_id: str,
+    external_task_id: str,
+    external_host_id: str | None = None,
+    enforced_controller_tool_profile_sha256: str | None = None,
+) -> dict:
+    """Bind one client-mediated session to exact external controller evidence."""
+
+    from .autonomy.service import bind_autonomy_controller as bind_internal
+
+    return bind_internal(
+        job_id,
+        session_id,
+        external_task_id=external_task_id,
+        external_host_id=external_host_id,
+        enforced_controller_tool_profile_sha256=(
+            enforced_controller_tool_profile_sha256
+        ),
+    )
+
+
+@mcp.tool()
+def get_autonomy_state(job_id: str, session_id: str) -> dict:
+    """Verify and return one autonomy state without executing any transition."""
+
+    from .autonomy.service import get_autonomy_status
+
+    return get_autonomy_status(job_id, session_id)
+
+
+@mcp.tool()
+def advance_autonomous_quality(job_id: str, session_id: str) -> dict:
+    """Execute at most one locked autonomy action and preserve its receipt boundary."""
+
+    from .autonomy.service import advance_autonomy
+
+    return advance_autonomy(job_id, session_id)
+
+
+@mcp.tool()
+def run_autonomous_quality(
+    job_id: str,
+    session_id: str,
+    max_actions: int = 8,
+) -> dict:
+    """Supervise a bounded count of individually locked state-machine actions."""
+
+    from .autonomy.service import run_autonomy
+
+    return run_autonomy(job_id, session_id, max_actions=max_actions)
+
+
+@mcp.tool()
+def resume_autonomous_quality(
+    job_id: str,
+    session_id: str,
+    max_actions: int = 8,
+) -> dict:
+    """Resume a non-terminal autonomy session without adding retry authority."""
+
+    from .autonomy.service import resume_autonomy
+
+    return resume_autonomy(job_id, session_id, max_actions=max_actions)
+
+
+@mcp.tool()
+def cancel_autonomous_quality(job_id: str, session_id: str, reason: str) -> dict:
+    """Cancel future autonomy actions without deleting any accumulated evidence."""
+
+    from .autonomy.service import cancel_autonomy
+
+    return cancel_autonomy(job_id, session_id, reason=reason)
+
+
+@mcp.tool()
+def run_integrated_quality(
+    job_id: str,
+    run_id: str | None = None,
+    quality_profile_path: str | None = None,
+    qa_report_path: str | None = None,
+    validation_path: str | None = None,
+    material_validation_path: str | None = None,
+    material_fidelity_path: str | None = None,
+    mesh_preflight_path: str | None = None,
+    roundtrip_path: str | None = None,
+) -> dict:
+    """Create one immutable four-axis report from explicit job-local evidence."""
+
+    return run_integrated_quality_internal(
+        job_id,
+        run_id=run_id,
+        quality_profile_path=quality_profile_path,
+        qa_report_path=qa_report_path,
+        validation_path=validation_path,
+        material_validation_path=material_validation_path,
+        material_fidelity_path=material_fidelity_path,
+        mesh_preflight_path=mesh_preflight_path,
+        roundtrip_path=roundtrip_path,
+    )
+
+
+@mcp.tool()
+def get_integrated_quality_status(
+    job_id: str,
+    run_id: str | None = None,
+) -> dict:
+    """Verify one exact integrated report while treating latest as a selector only."""
+
+    return get_integrated_quality_status_internal(job_id, run_id)
 
 
 @mcp.tool()

@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import os
 import re
+import stat
 from pathlib import Path
 from typing import Any
 
 from ..auto_revision.convergence_session_models import VisualConvergencePlan
-from ..blender_artifacts import sha256_file, stable_json_digest
+from ..blender_artifacts import (
+    deterministic_directory_files,
+    native_io_path,
+    sha256_directory,
+    sha256_file,
+    stable_json_digest,
+)
 from ..orchestration.models import WorkflowState
 from .models import (
     AssetProductionDispatchPlan,
@@ -42,8 +49,33 @@ def validate_production_id(value: str, label: str = "production id") -> str:
 def _is_link_like(path: Path) -> bool:
     """Detect symbolic links and Windows junctions before production path traversal."""
 
-    is_junction = getattr(path, "is_junction", None)
-    return path.is_symlink() or bool(is_junction and is_junction())
+    native = native_io_path(path)
+    if os.path.islink(native):
+        return True
+    try:
+        metadata = os.lstat(native)
+    except FileNotFoundError:
+        return False
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+
+def _path_exists(path: Path) -> bool:
+    """Check a production path through the extended-length Windows filename."""
+
+    return os.path.exists(native_io_path(path))
+
+
+def _path_is_file(path: Path) -> bool:
+    """Check a regular production file without the Windows MAX_PATH limit."""
+
+    return os.path.isfile(native_io_path(path))
+
+
+def _path_is_dir(path: Path) -> bool:
+    """Check a production directory without the Windows MAX_PATH limit."""
+
+    return os.path.isdir(native_io_path(path))
 
 
 def ensure_contained_production_path(
@@ -56,7 +88,7 @@ def ensure_contained_production_path(
 
     lexical_root = Path(os.path.abspath(os.fspath(root)))
     lexical_path = Path(os.path.abspath(os.fspath(path)))
-    if not lexical_root.is_dir():
+    if not _path_is_dir(lexical_root):
         raise FileNotFoundError(lexical_root)
     try:
         relative = lexical_path.relative_to(lexical_root)
@@ -76,7 +108,7 @@ def ensure_contained_production_path(
         resolved_path.relative_to(resolved_root)
     except ValueError as exc:
         raise ValueError("production path resolves outside its owning job workspace") from exc
-    if must_exist and not lexical_path.exists():
+    if must_exist and not _path_exists(lexical_path):
         raise FileNotFoundError(lexical_path)
     return lexical_path
 
@@ -95,7 +127,7 @@ def validate_artifact(root: Path, artifact: ProductionArtifact) -> Path:
     """Verify one exact file-or-directory artifact and its SHA-256 binding."""
 
     path = resolve_job_relative(root, artifact.path)
-    if not path.exists():
+    if not _path_exists(path):
         raise FileNotFoundError(f"production artifact is missing: {artifact.path}")
     if production_artifact_digest(path, containment_root=root) != artifact.sha256:
         raise ValueError(f"production artifact hash mismatch: {artifact.path}")
@@ -105,29 +137,16 @@ def validate_artifact(root: Path, artifact: ProductionArtifact) -> Path:
 def _safe_directory_files(root: Path, directory: Path) -> list[Path]:
     """Collect regular files recursively while refusing linked or special entries."""
 
-    pending = [ensure_contained_production_path(root, directory, must_exist=True)]
-    files: list[Path] = []
-    while pending:
-        current = pending.pop()
-        if not current.is_dir():
-            raise ValueError(f"production directory member is not a directory: {current}")
-        with os.scandir(current) as iterator:
-            entries = list(iterator)
-        for entry in entries:
-            member = ensure_contained_production_path(
-                root,
-                Path(entry.path),
-                must_exist=True,
-            )
-            if entry.is_dir(follow_symlinks=False):
-                pending.append(member)
-            elif entry.is_file(follow_symlinks=False):
-                files.append(member)
-            else:
-                raise ValueError(
-                    f"production directory contains an unsupported entry: {member.name}"
-                )
-    return sorted(files)
+    safe_directory = ensure_contained_production_path(
+        root,
+        directory,
+        must_exist=True,
+    )
+    files = deterministic_directory_files(safe_directory)
+    return [
+        ensure_contained_production_path(root, member, must_exist=True)
+        for member in files
+    ]
 
 
 def production_artifact_digest(
@@ -137,19 +156,15 @@ def production_artifact_digest(
 ) -> str:
     """Match V0.8's digest while rejecting linked or escaping directory members."""
 
-    root = containment_root or (path if path.is_dir() else path.parent)
+    root = containment_root or (path if _path_is_dir(path) else path.parent)
     safe_path = ensure_contained_production_path(root, path, must_exist=True)
-    if safe_path.is_file():
+    if _path_is_file(safe_path):
         return sha256_file(safe_path)
-    if safe_path.is_dir():
-        records = [
-            {
-                "path": item.relative_to(safe_path).as_posix(),
-                "sha256": sha256_file(item),
-            }
-            for item in _safe_directory_files(root, safe_path)
-        ]
-        return stable_json_digest(records)
+    if _path_is_dir(safe_path):
+        return sha256_directory(
+            safe_path,
+            files=_safe_directory_files(root, safe_path),
+        )
     raise FileNotFoundError(safe_path)
 
 
@@ -160,7 +175,13 @@ def collect_workflow_authority_artifacts(
     """Inventory exact V0.8 approval, completion, and attempt authority receipts."""
 
     artifacts: dict[str, ProductionArtifact] = {}
-    for family in ("approvals", "completions", "attempts"):
+    for family in (
+        "approvals",
+        "completions",
+        "attempts",
+        "policy_targets",
+        "policy_authorizations",
+    ):
         family_root = resolve_job_relative(root, f"workflows/{workflow_id}/{family}")
         if not family_root.exists():
             continue

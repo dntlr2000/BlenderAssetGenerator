@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from ..blender_runner import run_blender
 from ..config import load_feature_config
@@ -1136,6 +1138,11 @@ def _consume_optimization_approval(
     review_plan_path = run_root / "review_plan.json"
     review_path = run_root / "optimization_review.json"
     approval_path = run_root / "optimization_approval.json"
+    policy_snapshot_path = run_root / "optimization_policy_authorization.json"
+    if policy_snapshot_path.exists():
+        raise RuntimeError(
+            "Optimization run mixes user approval and policy authorization evidence"
+        )
     reviewed_plan = load_model(review_plan_path, OptimizationPlan)
     review = load_model(review_path, OptimizationReview)
     approval = load_model(approval_path, OptimizationApproval)
@@ -1170,14 +1177,107 @@ def _consume_optimization_approval(
     return consumed
 
 
+def _snapshot_optimization_policy_authorization(
+    run_root: Path,
+    policy_authorization_path: Path,
+) -> Path:
+    """Copy one already-validated policy grant into immutable run-owned evidence."""
+
+    if (run_root / "optimization_approval.json").exists():
+        raise RuntimeError(
+            "Optimization run mixes user approval and policy authorization evidence"
+        )
+    source = policy_authorization_path.resolve(strict=True)
+    target = run_root / "optimization_policy_authorization.json"
+    content = source.read_bytes()
+    if target.exists():
+        if not target.is_file() or target.read_bytes() != content:
+            raise RuntimeError("Optimization policy authorization snapshot changed")
+        return target
+    temporary = run_root / f".optimization-policy-{uuid4().hex[:8]}.tmp"
+    temporary.write_bytes(content)
+    os.replace(temporary, target)
+    return target
+
+
+def _consume_optimization_policy_authorization(
+    root: Path,
+    run_root: Path,
+    plan: OptimizationPlan,
+    approved_plan_sha256: str | None,
+    *,
+    policy_authorization_path: Path,
+    workflow_id: str,
+    workflow_step_id: str,
+    workflow_input_fingerprint: str,
+):
+    """Validate a consumed autonomy policy grant without forging a user approval."""
+
+    from ..autonomy.authorization import validate_policy_authorization
+    from ..autonomy.models import PolicyAuthorization
+
+    review_plan_path = run_root / "review_plan.json"
+    review_path = run_root / "optimization_review.json"
+    if (run_root / "optimization_approval.json").exists():
+        raise RuntimeError(
+            "Optimization run mixes user approval and policy authorization evidence"
+        )
+    reviewed_plan = load_model(review_plan_path, OptimizationPlan)
+    review = load_model(review_path, OptimizationReview)
+    plan_hash = sha256_file(review_plan_path)
+    if not approved_plan_sha256 or approved_plan_sha256.lower() != plan_hash:
+        raise RuntimeError("asset-optimize requires the exact policy-authorized plan SHA-256")
+    authorization = PolicyAuthorization.model_validate_json(
+        policy_authorization_path.read_text(encoding="utf-8")
+    )
+    validate_policy_authorization(
+        root,
+        authorization,
+        expected_job_id=plan.job_id,
+        expected_workflow_id=workflow_id,
+        expected_step_id=workflow_step_id,
+        expected_gate_kind="optimization_plan",
+        expected_input_fingerprint=workflow_input_fingerprint,
+    )
+    expected_target = review_plan_path.resolve().relative_to(root.resolve()).as_posix()
+    if (
+        authorization.target_artifact.path != expected_target
+        or authorization.target_artifact.sha256 != plan_hash
+        or review.plan_sha256 != plan_hash
+        or review.job_id != plan.job_id
+        or review.run_id != run_root.name
+        or review.profile_artifact != plan.profile_artifact
+        or review.preflight_report != plan.preflight_report
+        or review.source != plan.source
+        or reviewed_plan.status != "draft"
+        or plan != reviewed_plan
+        or authorization.consumed_at is None
+    ):
+        raise RuntimeError("Optimization policy authorization is stale or mismatched")
+    _snapshot_optimization_policy_authorization(
+        run_root,
+        policy_authorization_path,
+    )
+    approved = reviewed_plan.model_copy(
+        update={"status": "approved", "approved_at": authorization.consumed_at}
+    )
+    approved = OptimizationPlan.model_validate(approved.model_dump(mode="json"))
+    write_model(run_root / "optimization_plan.json", approved)
+    return authorization
+
+
 def optimize_asset(
     job_id: str,
     *,
     profile_id: str = "portable_gltf",
     run_id: str | None = None,
     approved_plan_sha256: str | None = None,
+    policy_authorization_path: str | Path | None = None,
+    workflow_id: str | None = None,
+    workflow_step_id: str | None = None,
+    workflow_input_fingerprint: str | None = None,
 ) -> OptimizationPlan:
-    """Execute one reviewed and explicitly approved derived-asset plan exactly once."""
+    """Execute one exactly user- or policy-authorized derived-asset plan once."""
 
     if not load_feature_config().features.portable_asset_core:
         raise RuntimeError("portable_asset_core is disabled in cbm.toml")
@@ -1202,19 +1302,47 @@ def optimize_asset(
     ):
         raise RuntimeError("Reviewed source, profile, or preflight changed; start a new V0.7 run")
     _validate_reviewed_directives(plan, preflight)
-    approval = _consume_optimization_approval(
-        root,
-        run_root,
-        plan,
-        approved_plan_sha256,
-    )
+    if policy_authorization_path is None:
+        approval = _consume_optimization_approval(
+            root,
+            run_root,
+            plan,
+            approved_plan_sha256,
+        )
+        approval_note = (
+            "Execution is bound to one explicit, hash-matched, single-use user approval."
+        )
+        approved_at = approval.approved_at
+    else:
+        if not workflow_id or not workflow_step_id or not workflow_input_fingerprint:
+            raise ValueError("policy-authorized optimization requires exact workflow binding")
+        policy_path = Path(policy_authorization_path).expanduser().resolve()
+        try:
+            policy_path.relative_to(root.resolve())
+        except ValueError as exc:
+            raise ValueError("optimization policy authorization escaped its job") from exc
+        approval = _consume_optimization_policy_authorization(
+            root,
+            run_root,
+            plan,
+            approved_plan_sha256,
+            policy_authorization_path=policy_path,
+            workflow_id=workflow_id,
+            workflow_step_id=workflow_step_id,
+            workflow_input_fingerprint=workflow_input_fingerprint,
+        )
+        approval_note = (
+            "Execution is bound to one exact preauthorized-profile PolicyAuthorization; "
+            "no user OptimizationApproval was created."
+        )
+        approved_at = approval.consumed_at
     plan = plan.model_copy(
         update={
             "status": "running",
-            "approved_at": approval.approved_at,
+            "approved_at": approved_at,
             "notes": [
                 *plan.notes,
-                "Execution is bound to one explicit, hash-matched, single-use approval.",
+                approval_note,
             ],
         }
     )

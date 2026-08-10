@@ -1,0 +1,459 @@
+{
+  "$defs": {
+    "AssemblyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one assembly input or result to a contained path and exact digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "modeling_plan",
+            "blend",
+            "mesh_snapshot",
+            "assembly_request",
+            "broad_phase",
+            "narrow_phase",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "AssemblyArtifact",
+      "type": "object"
+    },
+    "AssemblyFinding": {
+      "additionalProperties": false,
+      "description": "Report one broad, narrow, or semantic assembly observation.",
+      "properties": {
+        "finding_id": {
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "phase": {
+          "enum": [
+            "broad",
+            "narrow",
+            "semantic"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "hard_failure",
+            "warning",
+            "info",
+            "unscorable"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "code": {
+          "pattern": "^[A-Z0-9_]{3,96}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "subject_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject Id"
+        },
+        "reference_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Id"
+        },
+        "relation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relation Id"
+        },
+        "measured_value_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Value M"
+        },
+        "limit_value_m": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limit Value M"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "phase",
+        "severity",
+        "code",
+        "message"
+      ],
+      "title": "AssemblyFinding",
+      "type": "object"
+    },
+    "AssemblyProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze the job, workflow, dispatch, contract, and evaluated source inputs.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "project_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Project Version",
+          "type": "string"
+        },
+        "assembly_contract_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Assembly Contract Version",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/AssemblyArtifact"
+          },
+          "minItems": 3,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "project_version",
+        "inputs"
+      ],
+      "title": "AssemblyProvenance",
+      "type": "object"
+    },
+    "BVHNarrowObservation": {
+      "additionalProperties": false,
+      "description": "Capture bounded nearest-distance and optional evaluated BVH overlap evidence.",
+      "properties": {
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "available",
+            "empty",
+            "evaluation_failure"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "backend": {
+          "enum": [
+            "blender_bvh",
+            "pure_python_bounded"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "overlap_triangle_pair_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overlap Triangle Pair Count"
+        },
+        "minimum_distance_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Distance M"
+        },
+        "penetration_depth_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Penetration Depth M"
+        },
+        "sampled_point_count": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Sampled Point Count",
+          "type": "integer"
+        },
+        "bounded_sample_limit": {
+          "maximum": 8192,
+          "minimum": 1,
+          "title": "Bounded Sample Limit",
+          "type": "integer"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        }
+      },
+      "required": [
+        "subject_id",
+        "reference_id",
+        "status",
+        "backend",
+        "bounded_sample_limit"
+      ],
+      "title": "BVHNarrowObservation",
+      "type": "object"
+    },
+    "BroadPhasePair": {
+      "additionalProperties": false,
+      "description": "Record deterministic AABB overlap or separation for one semantic pair.",
+      "properties": {
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "overlap_candidate",
+            "separated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "axis_gap_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Axis Gap M",
+          "type": "array"
+        },
+        "overlap_extent_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Overlap Extent M",
+          "type": "array"
+        }
+      },
+      "required": [
+        "subject_id",
+        "reference_id",
+        "status",
+        "axis_gap_m",
+        "overlap_extent_m"
+      ],
+      "title": "BroadPhasePair",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize companion assembly evidence without claiming mechanical truth.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/AssemblyProvenance"
+    },
+    "request": {
+      "$ref": "#/$defs/AssemblyArtifact"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "broad_pairs": {
+      "items": {
+        "$ref": "#/$defs/BroadPhasePair"
+      },
+      "title": "Broad Pairs",
+      "type": "array"
+    },
+    "narrow_observations": {
+      "items": {
+        "$ref": "#/$defs/BVHNarrowObservation"
+      },
+      "title": "Narrow Observations",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/AssemblyFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "hard_failures": {
+      "minimum": 0,
+      "title": "Hard Failures",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "unscorable": {
+      "minimum": 0,
+      "title": "Unscorable",
+      "type": "integer"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "report_id",
+    "provenance",
+    "request",
+    "status",
+    "ok",
+    "broad_pairs",
+    "narrow_observations",
+    "findings",
+    "hard_failures",
+    "warnings",
+    "unscorable",
+    "limitations"
+  ],
+  "title": "AssemblyCompanionReport",
+  "type": "object"
+}

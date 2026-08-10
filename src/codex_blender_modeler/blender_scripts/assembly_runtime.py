@@ -28,10 +28,14 @@ def canonical_json(value: Any) -> str:
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
-def load_assembly_contract(job_root: Path) -> dict[str, Any]:
-    """Load the optional raw ModelingPlan assembly contract and its exact hash."""
+def load_assembly_contract(
+    job_root: Path,
+    *,
+    modeling_plan_path: Path | None = None,
+) -> dict[str, Any]:
+    """Load the selected raw ModelingPlan assembly contract and its exact hash."""
 
-    path = job_root / "analysis" / "modeling_plan.json"
+    path = modeling_plan_path or (job_root / "analysis" / "modeling_plan.json")
     if not path.is_file():
         return {
             "declared": False,

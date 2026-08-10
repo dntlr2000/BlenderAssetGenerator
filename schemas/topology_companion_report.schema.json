@@ -1,0 +1,369 @@
+{
+  "$defs": {
+    "TopologyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one topology evidence artifact to a portable path and digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "blend",
+            "topology_inventory",
+            "uv_report",
+            "tangent_report",
+            "lod_report",
+            "roundtrip_report",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "TopologyArtifact",
+      "type": "object"
+    },
+    "TopologyCheckPolicy": {
+      "additionalProperties": false,
+      "description": "Classify one profile check as a hard failure or warning.",
+      "properties": {
+        "check": {
+          "enum": [
+            "non_finite",
+            "degenerate_face",
+            "self_intersection",
+            "winding",
+            "flipped_normal",
+            "loose_geometry",
+            "open_boundary",
+            "triangle_aspect",
+            "ngon_limit",
+            "uv0",
+            "uv_overlap",
+            "island_padding",
+            "texel_density",
+            "tangent",
+            "subdivision_pinching",
+            "lod_silhouette_error",
+            "clean_import_normal_preservation",
+            "clean_import_material_preservation"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "failure_severity": {
+          "enum": [
+            "hard_failure",
+            "warning"
+          ],
+          "title": "Failure Severity",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "failure_severity",
+        "rationale"
+      ],
+      "title": "TopologyCheckPolicy",
+      "type": "object"
+    },
+    "TopologyCheckResult": {
+      "additionalProperties": false,
+      "description": "Apply one profile severity while retaining evidence availability.",
+      "properties": {
+        "check": {
+          "enum": [
+            "non_finite",
+            "degenerate_face",
+            "self_intersection",
+            "winding",
+            "flipped_normal",
+            "loose_geometry",
+            "open_boundary",
+            "triangle_aspect",
+            "ngon_limit",
+            "uv0",
+            "uv_overlap",
+            "island_padding",
+            "texel_density",
+            "tangent",
+            "subdivision_pinching",
+            "lod_silhouette_error",
+            "clean_import_normal_preservation",
+            "clean_import_material_preservation"
+          ],
+          "title": "Check",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "passed",
+            "hard_failure",
+            "warning",
+            "unscorable",
+            "not_applicable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "profile_failure_severity": {
+          "enum": [
+            "hard_failure",
+            "warning"
+          ],
+          "title": "Profile Failure Severity",
+          "type": "string"
+        },
+        "measured_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Value"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TopologyArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check",
+        "outcome",
+        "profile_failure_severity",
+        "message"
+      ],
+      "title": "TopologyCheckResult",
+      "type": "object"
+    },
+    "TopologyProfile": {
+      "additionalProperties": false,
+      "description": "Define one of the six immutable topology acceptance profiles.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "name": {
+          "enum": [
+            "static_prop_closed",
+            "static_prop_open",
+            "game_ready_lowpoly",
+            "highpoly_bake_source",
+            "modular_architecture",
+            "terrain"
+          ],
+          "title": "Name",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/TopologyCheckPolicy"
+          },
+          "maxItems": 18,
+          "minItems": 18,
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "checks"
+      ],
+      "title": "TopologyProfile",
+      "type": "object"
+    },
+    "TopologyProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze job, workflow, dispatch, versions, and exact inspection inputs.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "project_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Project Version",
+          "type": "string"
+        },
+        "topology_contract_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Topology Contract Version",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/TopologyArtifact"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "project_version",
+        "inputs"
+      ],
+      "title": "TopologyProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize profile evaluation while preserving unavailable evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "provenance": {
+      "$ref": "#/$defs/TopologyProvenance"
+    },
+    "profile": {
+      "$ref": "#/$defs/TopologyProfile"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed",
+        "unscorable"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/TopologyCheckResult"
+      },
+      "maxItems": 18,
+      "minItems": 18,
+      "title": "Results",
+      "type": "array"
+    },
+    "hard_failures": {
+      "minimum": 0,
+      "title": "Hard Failures",
+      "type": "integer"
+    },
+    "warnings": {
+      "minimum": 0,
+      "title": "Warnings",
+      "type": "integer"
+    },
+    "unscorable": {
+      "minimum": 0,
+      "title": "Unscorable",
+      "type": "integer"
+    },
+    "notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "report_id",
+    "provenance",
+    "profile",
+    "status",
+    "ok",
+    "results",
+    "hard_failures",
+    "warnings",
+    "unscorable"
+  ],
+  "title": "TopologyCompanionReport",
+  "type": "object"
+}

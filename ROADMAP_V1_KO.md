@@ -26,6 +26,8 @@
 | Stabilization evidence | `0.9.0` | 환경 증거, 읽기 전용 감사, queue, release report |
 | Codex Destination Handoff | `0.9.0` | package-bound 조립·재질 계약과 안전한 목적지 import prompt |
 | External Static Asset Intake | `0.9.0` | 수동 제작 static source의 inspection, exact 승인, normalized authoring derivative와 V0.7 연결 |
+| Autonomous Quality / Integrated Quality | `0.1.0` | 새 standard 정적 소품을 위한 opt-in supervisor와 네 축 companion quality evidence |
+| SceneSpec V03 structural derivative | `0.3.0` | canonical `0.2.0`을 바꾸지 않는 opt-in derived 구조 형상 계약 |
 
 현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
 
@@ -59,6 +61,8 @@ V0.8  Short-Prompt Automation + Job Orchestration
   ↓
 V0.9  Stabilization + Codex Destination Handoff
   ↓
+AQ 0.1  Optional Autonomous Quality overlay (프로젝트 버전 불변)
+  ↓
 V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 ```
 
@@ -73,6 +77,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.7 | V0.7.4 최적화 사전 검토·승인 및 Blender 5 통합 검증 | portable asset `0.7.0` |
 | V0.8 | 구현 및 로컬 계약 검증 완료 | workflow orchestration `0.8.0`, 프로젝트 `0.8.0` |
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
+| AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
@@ -422,6 +427,78 @@ V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. �
 
 V0.9 queue는 의도적으로 `max_concurrency=1`이다. 테스트하지 않은 Blender, 운영체제 또는 엔진을 지원한다고 표시하지 않습니다.
 
+## 11A. Autonomous Quality Extension 0.1.0 — 선택적 병렬 확장
+
+**상태: 프로젝트 `0.9.0` 위의 opt-in 확장. V1.0 승격 근거로 자동 해석하지 않습니다.**
+
+AQ는 기존 단계나 실행 정책을 교체하지 않습니다. 새 `concept`,
+`primary_object_only`, 명시적 target의 정적 소품에 `autonomous_static_prop_v1`을 선택하면
+새 `standard` V0.8 workflow/V0.9 production dispatch 위에서만 supervisor가 동작합니다.
+기존 `standard`와 `background_exterior`의 승인, retry, package와 terminal 의미는 그대로
+유지합니다.
+
+```text
+exact request/reference/target
+→ RootAuthorization + immutable profile/budget
+→ local Reference Evidence
+→ workflow-owned initial/structural/parametric/material candidates
+→ exact single-use PolicyAuthorization
+→ Integrated Quality four-axis gate
+   ├─ accepted → V0.7 portable GLB + fresh clean import → quality_passed
+   └─ non-pass/unscorable/bounded stop → review-only bundle → review_required
+```
+
+구현된 범위:
+
+- 최대 3개의 local foreground mask 후보와 perspective/orthographic camera hypothesis
+- SceneSpec `0.3.0`의 loft, sweep, boolean tree, multi-loop extrusion과 whitelisted GN 구조
+  materializer
+- 기존 V0.6 direct score를 바꾸지 않는 reference/structure/material/production 네 축 IQ
+- hard gate, unavailable=`unscorable`, meaningful gain, Pareto/lexicographic 최소 변경 선택
+- immutable budget, duplicate/oscillation/plateau/repeated-failure 종료와 best-known 보존
+- V0.5 workflow-owned material candidate와 strict host promotion
+- 기본 최대 2회의 material round, first-use authorization 저장 후 reload/full validation
+- final IQ/package/roundtrip 또는 review bundle을 재검증하는 terminal verifier
+- immutable package-ID 충돌 또는 format-only roundtrip failure만 대상으로 하는 기본 1회
+  derived package repair
+- deterministic host 및 선택적 Blender benchmark
+- Windows 장경로 package/handoff 재귀 digest parity와 변조 fail-closed
+
+`preauthorized_profile`은 사용자가 미래 artifact를 승인했다는 뜻이 아닙니다. 최초 요청과
+profile에 결속된 routine gate를 policy engine이 exact artifact마다 다시 검증하는 기계
+권한입니다. InteriorScope, interior-QA camera plan, destination import plan,
+reference/content scope/target 변경, budget 확대, external provider, engine-specific write와
+임의 코드는 계속 자동화할 수 없습니다.
+
+SceneSpec V03 public plan/apply는 explicit exact plan hash를 사용하지만 canonical migration이
+아닙니다. `structural_migrations/<migration-id>/`에 derived copy와 receipt만 게시하고 기존
+`analysis/scene_spec.json`은 `0.2.0`으로 유지합니다. AQ structural assignment는 선택적으로
+full V03 candidate를 candidate-owned mesh/receipt/`.blend`로 materialize하고 기존 build가 읽는
+path-backed V02 candidate로 compile할 수 있지만, exact promotion 전 canonical은 바뀌지
+않으며 legacy job도 자동 migration하지 않습니다.
+
+품질 통과 package는 raw PBR channel, relative dependency와 fresh clean-import roundtrip을
+요구합니다. package repair도 새 passed roundtrip 없이는 acceptance를 만들지 않습니다.
+품질 미달 review bundle은 사람이 확인할 best-known 산출물이지만
+`production_ready=false`, `destination_handoff_eligible=false`이고 production package 또는
+Destination Handoff 입력이 아닙니다.
+
+현재 비목표와 제한:
+
+- arbitrary reference 전반에서 품질 향상을 보장하는 일반화 benchmark
+- interior, measured asset, environment용 active autonomy profile
+- rig, animation, gameplay 또는 destination engine 자동 import
+- generated target나 external ML provider를 자동 승인 근거로 사용
+- SceneSpec V03 derived copy의 canonical 승격
+- V1.0 또는 cross-platform/runtime parity 주장
+
+2026-08-10 Windows 11/Python 3.14.6/Blender 5.0.1에서 전체 pytest, Ruff, 실제 AQ Blender
+package/review terminal, benchmark와 chained V0.7~V0.9 gate가 통과했습니다. 이 판정은
+`autonomous_static_prop_v1`의 명시된 범위에만 적용됩니다. 기준선 결과나 contract fixture,
+이 검증만으로 일반 release-ready, 임의 reference의 before/after 품질 향상, cross-platform
+또는 destination runtime parity를 주장하지 않습니다. exact 결과는
+`VERIFICATION_AUTONOMOUS_QUALITY_KO.md`를 따릅니다.
+
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
 **상태: 승격 중단. 재개 시 제품 범위와 아래 완료 기준을 다시 검토하기 전에는 V1.0으로 표시하지 않습니다.**
@@ -649,4 +726,4 @@ VERIFICATION_Vxx_KO.md
 → 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
 ```
 
-현재 공개 기능의 최상위는 프로젝트, Stabilization과 Destination Handoff contract `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. V0.9 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

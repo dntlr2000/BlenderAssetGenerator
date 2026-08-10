@@ -1,0 +1,2178 @@
+{
+  "$defs": {
+    "ArrayGenerator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayGenerator",
+      "type": "object"
+    },
+    "ArrayModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayModifier",
+      "type": "object"
+    },
+    "BevelModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "bevel",
+          "default": "bevel",
+          "title": "Kind",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "segments": {
+          "default": 2,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "limit_method": {
+          "default": "ANGLE",
+          "enum": [
+            "NONE",
+            "ANGLE",
+            "WEIGHT",
+            "VGROUP"
+          ],
+          "title": "Limit Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "width"
+      ],
+      "title": "BevelModifier",
+      "type": "object"
+    },
+    "BooleanModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "boolean",
+          "default": "boolean",
+          "title": "Kind",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "UNION",
+            "DIFFERENCE",
+            "INTERSECT"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "solver": {
+          "default": "EXACT",
+          "enum": [
+            "EXACT",
+            "FAST"
+          ],
+          "title": "Solver",
+          "type": "string"
+        },
+        "hide_target": {
+          "default": true,
+          "title": "Hide Target",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation",
+        "target_id"
+      ],
+      "title": "BooleanModifier",
+      "type": "object"
+    },
+    "BooleanOperand": {
+      "additionalProperties": false,
+      "description": "Declare one whitelisted mesh operand with a stable tree-local identity.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "geometry": {
+          "discriminator": {
+            "mapping": {
+              "loft": "#/$defs/LoftGeometry",
+              "multi_loop_extrude": "#/$defs/MultiLoopExtrudeGeometry",
+              "primitive": "#/$defs/PrimitiveGeometry",
+              "profile_extrude": "#/$defs/ProfileExtrudeGeometry",
+              "revolve": "#/$defs/RevolveGeometry",
+              "sweep": "#/$defs/SweepGeometry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PrimitiveGeometry"
+            },
+            {
+              "$ref": "#/$defs/ProfileExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/RevolveGeometry"
+            },
+            {
+              "$ref": "#/$defs/LoftGeometry"
+            },
+            {
+              "$ref": "#/$defs/SweepGeometry"
+            },
+            {
+              "$ref": "#/$defs/MultiLoopExtrudeGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSpec"
+        }
+      },
+      "required": [
+        "id",
+        "geometry"
+      ],
+      "title": "BooleanOperand",
+      "type": "object"
+    },
+    "BooleanOperation": {
+      "additionalProperties": false,
+      "description": "Combine two previously declared nodes in a topologically ordered Boolean tree.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "UNION",
+            "DIFFERENCE",
+            "INTERSECT"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "left_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Left Id",
+          "type": "string"
+        },
+        "right_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Right Id",
+          "type": "string"
+        },
+        "solver": {
+          "const": "EXACT",
+          "default": "EXACT",
+          "title": "Solver",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "operation",
+        "left_id",
+        "right_id"
+      ],
+      "title": "BooleanOperation",
+      "type": "object"
+    },
+    "BooleanTreeGeometry": {
+      "additionalProperties": false,
+      "description": "Evaluate a bounded declarative binary Boolean tree without arbitrary code.",
+      "properties": {
+        "kind": {
+          "const": "boolean_tree",
+          "default": "boolean_tree",
+          "title": "Kind",
+          "type": "string"
+        },
+        "operands": {
+          "items": {
+            "$ref": "#/$defs/BooleanOperand"
+          },
+          "maxItems": 32,
+          "minItems": 2,
+          "title": "Operands",
+          "type": "array"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/BooleanOperation"
+          },
+          "maxItems": 31,
+          "minItems": 1,
+          "title": "Operations",
+          "type": "array"
+        },
+        "root_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Root Id",
+          "type": "string"
+        },
+        "fail_on_non_manifold": {
+          "default": true,
+          "title": "Fail On Non Manifold",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operands",
+        "operations",
+        "root_id"
+      ],
+      "title": "BooleanTreeGeometry",
+      "type": "object"
+    },
+    "CameraSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "projection": {
+          "enum": [
+            "PERSP",
+            "ORTHO"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "location": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "target": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target",
+          "type": "array"
+        },
+        "focal_length_mm": {
+          "exclusiveMinimum": 0,
+          "title": "Focal Length Mm",
+          "type": "number"
+        },
+        "ortho_scale": {
+          "exclusiveMinimum": 0,
+          "title": "Ortho Scale",
+          "type": "number"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projection",
+        "location",
+        "target",
+        "focal_length_mm",
+        "ortho_scale",
+        "resolution"
+      ],
+      "title": "CameraSpec",
+      "type": "object"
+    },
+    "CoordinateSystem": {
+      "additionalProperties": false,
+      "properties": {
+        "handedness": {
+          "const": "RIGHT",
+          "default": "RIGHT",
+          "title": "Handedness",
+          "type": "string"
+        },
+        "up": {
+          "const": "+Z",
+          "default": "+Z",
+          "title": "Up",
+          "type": "string"
+        },
+        "forward": {
+          "const": "-Y",
+          "default": "-Y",
+          "title": "Forward",
+          "type": "string"
+        }
+      },
+      "title": "CoordinateSystem",
+      "type": "object"
+    },
+    "CurveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "curve",
+          "default": "curve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "spline_type": {
+          "default": "POLY",
+          "enum": [
+            "POLY",
+            "NURBS"
+          ],
+          "title": "Spline Type",
+          "type": "string"
+        },
+        "cyclic": {
+          "default": false,
+          "title": "Cyclic",
+          "type": "boolean"
+        },
+        "bevel_depth": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "title": "Bevel Depth",
+          "type": "number"
+        },
+        "bevel_resolution": {
+          "default": 3,
+          "maximum": 12,
+          "minimum": 0,
+          "title": "Bevel Resolution",
+          "type": "integer"
+        },
+        "resolution_u": {
+          "default": 12,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Resolution U",
+          "type": "integer"
+        },
+        "convert_to_mesh": {
+          "default": true,
+          "title": "Convert To Mesh",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "CurveGeometry",
+      "type": "object"
+    },
+    "CustomMeshGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "custom_mesh",
+          "default": "custom_mesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "vertices": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 3,
+                "minItems": 3,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vertices"
+        },
+        "faces": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Faces"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "format": {
+          "const": "mesh_json",
+          "default": "mesh_json",
+          "title": "Format",
+          "type": "string"
+        },
+        "recalculate_normals": {
+          "default": true,
+          "title": "Recalculate Normals",
+          "type": "boolean"
+        }
+      },
+      "title": "CustomMeshGeometry",
+      "type": "object"
+    },
+    "DecimateModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decimate",
+          "default": "decimate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ratio": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ratio"
+      ],
+      "title": "DecimateModifier",
+      "type": "object"
+    },
+    "EdgeReference": {
+      "additionalProperties": false,
+      "description": "Address one compiled mesh edge by its canonical ordered vertex pair.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "vertices"
+      ],
+      "title": "EdgeReference",
+      "type": "object"
+    },
+    "EvidenceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_id",
+        "bbox_norm",
+        "status",
+        "confidence"
+      ],
+      "title": "EvidenceSpec",
+      "type": "object"
+    },
+    "FaceGroup": {
+      "additionalProperties": false,
+      "description": "Assign a stable group name to deterministic compiled polygon indices.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "face_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Face Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "face_indices"
+      ],
+      "title": "FaceGroup",
+      "type": "object"
+    },
+    "GeometryIntent": {
+      "additionalProperties": false,
+      "description": "Preserve face, edge, shading, topology, subdivision, and LOD intent.",
+      "properties": {
+        "face_groups": {
+          "items": {
+            "$ref": "#/$defs/FaceGroup"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "sharp_edges": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Sharp Edges",
+          "type": "array"
+        },
+        "crease_edges": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Crease Edges",
+          "type": "array"
+        },
+        "bevel_weights": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Bevel Weights",
+          "type": "array"
+        },
+        "uv_seams": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Uv Seams",
+          "type": "array"
+        },
+        "smoothing_policy": {
+          "$ref": "#/$defs/SmoothingPolicy"
+        },
+        "topology_policy": {
+          "default": "static_prop_closed",
+          "enum": [
+            "static_prop_closed",
+            "static_prop_open",
+            "game_ready_lowpoly",
+            "highpoly_bake_source",
+            "modular_architecture",
+            "terrain"
+          ],
+          "title": "Topology Policy",
+          "type": "string"
+        },
+        "subdivision_intent": {
+          "$ref": "#/$defs/SubdivisionIntent"
+        },
+        "lod_intent": {
+          "$ref": "#/$defs/LODIntent"
+        }
+      },
+      "title": "GeometryIntent",
+      "type": "object"
+    },
+    "GeometryNodesTemplateGeometry": {
+      "additionalProperties": false,
+      "description": "Instantiate one fully whitelisted Geometry Nodes template with bounded inputs.",
+      "properties": {
+        "kind": {
+          "const": "geometry_nodes_template",
+          "default": "geometry_nodes_template",
+          "title": "Kind",
+          "type": "string"
+        },
+        "template_id": {
+          "const": "linear_instance_v1",
+          "default": "linear_instance_v1",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "count": {
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "spacing": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Spacing",
+          "type": "array"
+        },
+        "instance_dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Instance Dimensions",
+          "type": "array"
+        },
+        "realize_instances": {
+          "const": true,
+          "default": true,
+          "title": "Realize Instances",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "count",
+        "spacing",
+        "instance_dimensions"
+      ],
+      "title": "GeometryNodesTemplateGeometry",
+      "type": "object"
+    },
+    "LODIntent": {
+      "additionalProperties": false,
+      "description": "Carry advisory semantic LOD policy into later V0.7 review.",
+      "properties": {
+        "preserve_silhouette": {
+          "default": true,
+          "title": "Preserve Silhouette",
+          "type": "boolean"
+        },
+        "protected_face_groups": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Protected Face Groups",
+          "type": "array"
+        },
+        "minimum_triangle_ratio": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Triangle Ratio",
+          "type": "number"
+        }
+      },
+      "title": "LODIntent",
+      "type": "object"
+    },
+    "LoftGeometry": {
+      "additionalProperties": false,
+      "description": "Connect two or more open or closed sections with stable correspondence.",
+      "properties": {
+        "kind": {
+          "const": "loft",
+          "default": "loft",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/LoftSection"
+          },
+          "maxItems": 64,
+          "minItems": 2,
+          "title": "Sections",
+          "type": "array"
+        },
+        "resample_count": {
+          "anyOf": [
+            {
+              "maximum": 512,
+              "minimum": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resample Count"
+        },
+        "cap_policy": {
+          "default": "ends",
+          "enum": [
+            "none",
+            "ends"
+          ],
+          "title": "Cap Policy",
+          "type": "string"
+        },
+        "correspondence_policy": {
+          "default": "minimum_twist",
+          "enum": [
+            "index",
+            "minimum_twist"
+          ],
+          "title": "Correspondence Policy",
+          "type": "string"
+        },
+        "twist_offsets": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Twist Offsets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sections"
+      ],
+      "title": "LoftGeometry",
+      "type": "object"
+    },
+    "LoftSection": {
+      "additionalProperties": false,
+      "description": "Declare one ordered 3D section in a deterministic loft recipe.",
+      "properties": {
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 512,
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "closed": {
+          "title": "Closed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "points",
+        "closed"
+      ],
+      "title": "LoftSection",
+      "type": "object"
+    },
+    "MaterialSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "shader": {
+          "default": "principled",
+          "enum": [
+            "principled",
+            "water",
+            "glass",
+            "emissive",
+            "cloud"
+          ],
+          "title": "Shader",
+          "type": "string"
+        },
+        "base_color": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "roughness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "metallic": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "emission_strength": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "base_color",
+        "roughness",
+        "metallic"
+      ],
+      "title": "MaterialSpec",
+      "type": "object"
+    },
+    "MirrorModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "mirror",
+          "default": "mirror",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "merge": {
+          "default": true,
+          "title": "Merge",
+          "type": "boolean"
+        },
+        "merge_threshold": {
+          "default": 0.001,
+          "minimum": 0,
+          "title": "Merge Threshold",
+          "type": "number"
+        }
+      },
+      "title": "MirrorModifier",
+      "type": "object"
+    },
+    "MultiLoopExtrudeGeometry": {
+      "additionalProperties": false,
+      "description": "Extrude one outer profile and optional hole loops along a principal axis.",
+      "properties": {
+        "kind": {
+          "const": "multi_loop_extrude",
+          "default": "multi_loop_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "outer_loop": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 2048,
+          "minItems": 3,
+          "title": "Outer Loop",
+          "type": "array"
+        },
+        "hole_loops": {
+          "items": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "maxItems": 64,
+          "title": "Hole Loops",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outer_loop",
+        "depth"
+      ],
+      "title": "MultiLoopExtrudeGeometry",
+      "type": "object"
+    },
+    "NormalTransferModifier": {
+      "additionalProperties": false,
+      "description": "Transfer split normals only across a bounded source-facing boundary ring.",
+      "properties": {
+        "kind": {
+          "const": "normal_transfer",
+          "default": "normal_transfer",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "max_distance": {
+          "default": 0.08,
+          "exclusiveMinimum": 0,
+          "title": "Max Distance",
+          "type": "number"
+        },
+        "boundary_axis": {
+          "default": "X",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Boundary Axis",
+          "type": "string"
+        },
+        "boundary_side": {
+          "default": "MIN",
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Boundary Side",
+          "type": "string"
+        },
+        "boundary_width": {
+          "default": 0.12,
+          "exclusiveMinimum": 0,
+          "title": "Boundary Width",
+          "type": "number"
+        },
+        "mix_factor": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Mix Factor",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "title": "NormalTransferModifier",
+      "type": "object"
+    },
+    "ObjectSpecV03": {
+      "additionalProperties": false,
+      "description": "Extend a SceneSpec object with structural recipes and explicit geometry intent.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "geometry": {
+          "discriminator": {
+            "mapping": {
+              "boolean_tree": "#/$defs/BooleanTreeGeometry",
+              "curve": "#/$defs/CurveGeometry",
+              "custom_mesh": "#/$defs/CustomMeshGeometry",
+              "geometry_nodes_template": "#/$defs/GeometryNodesTemplateGeometry",
+              "loft": "#/$defs/LoftGeometry",
+              "multi_loop_extrude": "#/$defs/MultiLoopExtrudeGeometry",
+              "primitive": "#/$defs/PrimitiveGeometry",
+              "profile_extrude": "#/$defs/ProfileExtrudeGeometry",
+              "revolve": "#/$defs/RevolveGeometry",
+              "sweep": "#/$defs/SweepGeometry",
+              "terrain": "#/$defs/TerrainGeometry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PrimitiveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CustomMeshGeometry"
+            },
+            {
+              "$ref": "#/$defs/ProfileExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/RevolveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CurveGeometry"
+            },
+            {
+              "$ref": "#/$defs/TerrainGeometry"
+            },
+            {
+              "$ref": "#/$defs/LoftGeometry"
+            },
+            {
+              "$ref": "#/$defs/SweepGeometry"
+            },
+            {
+              "$ref": "#/$defs/BooleanTreeGeometry"
+            },
+            {
+              "$ref": "#/$defs/MultiLoopExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/GeometryNodesTemplateGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "geometry_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/GeometryIntent"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSpec"
+        },
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "modifiers": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "array": "#/$defs/ArrayModifier",
+                "bevel": "#/$defs/BevelModifier",
+                "boolean": "#/$defs/BooleanModifier",
+                "decimate": "#/$defs/DecimateModifier",
+                "mirror": "#/$defs/MirrorModifier",
+                "normal_transfer": "#/$defs/NormalTransferModifier",
+                "remesh": "#/$defs/RemeshModifier",
+                "solidify": "#/$defs/SolidifyModifier",
+                "subdivision": "#/$defs/SubdivisionModifier"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BevelModifier"
+              },
+              {
+                "$ref": "#/$defs/MirrorModifier"
+              },
+              {
+                "$ref": "#/$defs/SubdivisionModifier"
+              },
+              {
+                "$ref": "#/$defs/SolidifyModifier"
+              },
+              {
+                "$ref": "#/$defs/ArrayModifier"
+              },
+              {
+                "$ref": "#/$defs/DecimateModifier"
+              },
+              {
+                "$ref": "#/$defs/RemeshModifier"
+              },
+              {
+                "$ref": "#/$defs/BooleanModifier"
+              },
+              {
+                "$ref": "#/$defs/NormalTransferModifier"
+              }
+            ]
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "generator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArrayGenerator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "shade_smooth": {
+          "default": false,
+          "title": "Shade Smooth",
+          "type": "boolean"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSpec"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "editable": {
+          "additionalProperties": true,
+          "title": "Editable",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "geometry",
+        "material_id"
+      ],
+      "title": "ObjectSpecV03",
+      "type": "object"
+    },
+    "PrimitiveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "primitive",
+          "default": "primitive",
+          "title": "Kind",
+          "type": "string"
+        },
+        "primitive": {
+          "enum": [
+            "cube",
+            "cylinder",
+            "sphere",
+            "cone",
+            "torus"
+          ],
+          "title": "Primitive",
+          "type": "string"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "segments": {
+          "default": 32,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "ring_segments": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 3,
+          "title": "Ring Segments",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "primitive",
+        "dimensions"
+      ],
+      "title": "PrimitiveGeometry",
+      "type": "object"
+    },
+    "ProfileExtrudeGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "profile_extrude",
+          "default": "profile_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Profile",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Y",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile",
+        "depth"
+      ],
+      "title": "ProfileExtrudeGeometry",
+      "type": "object"
+    },
+    "RemeshModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "remesh",
+          "default": "remesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "voxel_size": {
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        },
+        "smooth": {
+          "default": false,
+          "title": "Smooth",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "voxel_size"
+      ],
+      "title": "RemeshModifier",
+      "type": "object"
+    },
+    "RevolveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "revolve",
+          "default": "revolve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "description": "Pairs of [radius, height]",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "angle_deg": {
+          "default": 360.0,
+          "exclusiveMinimum": 0,
+          "maximum": 360,
+          "title": "Angle Deg",
+          "type": "number"
+        },
+        "segments": {
+          "default": 48,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "cap_ends": {
+          "default": true,
+          "title": "Cap Ends",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "RevolveGeometry",
+      "type": "object"
+    },
+    "SmoothingPolicy": {
+      "additionalProperties": false,
+      "description": "Describe deterministic flat, angle-based, or weighted hard-surface shading.",
+      "properties": {
+        "mode": {
+          "default": "legacy",
+          "enum": [
+            "legacy",
+            "flat",
+            "smooth_by_angle",
+            "weighted_normals"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "angle_degrees": {
+          "default": 30.0,
+          "exclusiveMaximum": 180,
+          "exclusiveMinimum": 0,
+          "title": "Angle Degrees",
+          "type": "number"
+        },
+        "keep_sharp": {
+          "default": true,
+          "title": "Keep Sharp",
+          "type": "boolean"
+        }
+      },
+      "title": "SmoothingPolicy",
+      "type": "object"
+    },
+    "SolidifyModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "solidify",
+          "default": "solidify",
+          "title": "Kind",
+          "type": "string"
+        },
+        "thickness": {
+          "title": "Thickness",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "required": [
+        "thickness"
+      ],
+      "title": "SolidifyModifier",
+      "type": "object"
+    },
+    "SourceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "reference",
+            "front",
+            "right",
+            "top",
+            "blueprint",
+            "cad"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "immutable": {
+          "default": true,
+          "title": "Immutable",
+          "type": "boolean"
+        },
+        "scale_anchors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scale Anchors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "kind"
+      ],
+      "title": "SourceSpec",
+      "type": "object"
+    },
+    "SubdivisionIntent": {
+      "additionalProperties": false,
+      "description": "Record bounded subdivision intent without silently adding unsupported topology.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "levels": {
+          "default": 0,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "boundary_smoothing": {
+          "default": "preserve_corners",
+          "enum": [
+            "preserve_corners",
+            "smooth_all"
+          ],
+          "title": "Boundary Smoothing",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionIntent",
+      "type": "object"
+    },
+    "SubdivisionModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "subdivision",
+          "default": "subdivision",
+          "title": "Kind",
+          "type": "string"
+        },
+        "levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "render_levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Render Levels",
+          "type": "integer"
+        },
+        "subdivision_type": {
+          "default": "CATMULL_CLARK",
+          "enum": [
+            "CATMULL_CLARK",
+            "SIMPLE"
+          ],
+          "title": "Subdivision Type",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionModifier",
+      "type": "object"
+    },
+    "SweepGeometry": {
+      "additionalProperties": false,
+      "description": "Sweep one 2D profile along a 3D path using a stable transported frame.",
+      "properties": {
+        "kind": {
+          "const": "sweep",
+          "default": "sweep",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 256,
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "profile_closed": {
+          "default": true,
+          "title": "Profile Closed",
+          "type": "boolean"
+        },
+        "path": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 1024,
+          "minItems": 2,
+          "title": "Path",
+          "type": "array"
+        },
+        "path_closed": {
+          "default": false,
+          "title": "Path Closed",
+          "type": "boolean"
+        },
+        "scales": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Scales",
+          "type": "array"
+        },
+        "twist_degrees": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Twist Degrees",
+          "type": "array"
+        },
+        "cap_policy": {
+          "default": "ends",
+          "enum": [
+            "none",
+            "ends"
+          ],
+          "title": "Cap Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile",
+        "path"
+      ],
+      "title": "SweepGeometry",
+      "type": "object"
+    },
+    "TerrainGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "terrain",
+          "default": "terrain",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "height_grid",
+            "heightmap"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "size": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Size",
+          "type": "array"
+        },
+        "heights": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heights"
+        },
+        "heightmap_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heightmap Path"
+        },
+        "resolution": {
+          "default": [
+            128,
+            128
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "skirt_depth": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Skirt Depth",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mode",
+        "size"
+      ],
+      "title": "TerrainGeometry",
+      "type": "object"
+    },
+    "TransformSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "scale": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        }
+      },
+      "title": "TransformSpec",
+      "type": "object"
+    },
+    "WeightedEdge": {
+      "additionalProperties": false,
+      "description": "Attach one normalized crease or bevel weight to a canonical edge.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "vertices",
+        "weight"
+      ],
+      "title": "WeightedEdge",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Provide a parallel opt-in SceneSpec without changing the legacy 0.2 contract.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "mode": {
+      "enum": [
+        "concept",
+        "measured"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "units": {
+      "const": "METERS",
+      "default": "METERS",
+      "title": "Units",
+      "type": "string"
+    },
+    "coordinate_system": {
+      "$ref": "#/$defs/CoordinateSystem"
+    },
+    "nominal_scene_size": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "number"
+        }
+      ],
+      "title": "Nominal Scene Size",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/SourceSpec"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "materials": {
+      "items": {
+        "$ref": "#/$defs/MaterialSpec"
+      },
+      "title": "Materials",
+      "type": "array"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ObjectSpecV03"
+      },
+      "title": "Objects",
+      "type": "array"
+    },
+    "camera": {
+      "$ref": "#/$defs/CameraSpec"
+    },
+    "assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Assumptions",
+      "type": "array"
+    },
+    "revision_notes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Revision Notes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "mode",
+    "nominal_scene_size",
+    "sources",
+    "materials",
+    "objects",
+    "camera"
+  ],
+  "title": "SceneSpecV03",
+  "type": "object"
+}

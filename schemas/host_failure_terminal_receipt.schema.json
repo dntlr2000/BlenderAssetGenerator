@@ -1,0 +1,239 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "description": "Count consumed actions without changing the authorized budget.",
+      "properties": {
+        "initial_candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "total_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Actions",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one non-retryable failure to a fail-closed terminal recommendation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "terminal_failure_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Terminal Failure Id",
+      "type": "string"
+    },
+    "operation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "failed",
+      "default": "failed",
+      "title": "Status",
+      "type": "string"
+    },
+    "reason": {
+      "enum": [
+        "quality_target_reached",
+        "plateau",
+        "duplicate_candidate_state",
+        "oscillation_detected",
+        "no_eligible_candidates",
+        "structural_budget_exhausted",
+        "parametric_budget_exhausted",
+        "material_budget_exhausted",
+        "package_repair_budget_exhausted",
+        "global_budget_exhausted",
+        "repeated_failure",
+        "structural_regression",
+        "constraint_regression",
+        "unscorable_evidence",
+        "restricted_scope_required",
+        "stale_or_tampered",
+        "cancelled",
+        "host_failure",
+        "completed_review_bundle"
+      ],
+      "title": "Reason",
+      "type": "string"
+    },
+    "final_failure": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "budget_usage": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "canonical_inputs_unchanged": {
+      "title": "Canonical Inputs Unchanged",
+      "type": "boolean"
+    },
+    "retry_exhausted": {
+      "title": "Retry Exhausted",
+      "type": "boolean"
+    },
+    "canonical_mutation_permitted": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Mutation Permitted",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "terminal_failure_id",
+    "operation_id",
+    "session_id",
+    "reason",
+    "final_failure",
+    "budget_usage",
+    "canonical_inputs_unchanged",
+    "retry_exhausted"
+  ],
+  "title": "HostFailureTerminalReceipt",
+  "type": "object"
+}

@@ -1,0 +1,104 @@
+{
+  "additionalProperties": false,
+  "description": "Prove one derived-only migration application without canonical replacement.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "migration_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Migration Id",
+      "type": "string"
+    },
+    "source_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Source Path",
+      "type": "string"
+    },
+    "source_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source File Sha256",
+      "type": "string"
+    },
+    "source_canonical_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Canonical Sha256",
+      "type": "string"
+    },
+    "migration_plan_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Migration Plan Path",
+      "type": "string"
+    },
+    "migration_plan_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Migration Plan File Sha256",
+      "type": "string"
+    },
+    "candidate_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Candidate Path",
+      "type": "string"
+    },
+    "candidate_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate File Sha256",
+      "type": "string"
+    },
+    "candidate_canonical_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Canonical Sha256",
+      "type": "string"
+    },
+    "derived_scene_spec_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Derived Scene Spec Path",
+      "type": "string"
+    },
+    "derived_scene_spec_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Derived Scene Spec File Sha256",
+      "type": "string"
+    },
+    "canonical_mutation_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Mutation Allowed",
+      "type": "boolean"
+    },
+    "applied": {
+      "const": true,
+      "default": true,
+      "title": "Applied",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "migration_id",
+    "source_path",
+    "source_file_sha256",
+    "source_canonical_sha256",
+    "migration_plan_path",
+    "migration_plan_file_sha256",
+    "candidate_path",
+    "candidate_file_sha256",
+    "candidate_canonical_sha256",
+    "derived_scene_spec_path",
+    "derived_scene_spec_file_sha256",
+    "created_at"
+  ],
+  "title": "SceneSpecV03MigrationReceipt",
+  "type": "object"
+}

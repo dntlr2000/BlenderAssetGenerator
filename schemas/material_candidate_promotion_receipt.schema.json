@@ -1,0 +1,180 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind policy-authorized placement into the current V0.8 authored output only.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Round Id",
+      "type": "string"
+    },
+    "ranking": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "selected_evaluation": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "selected_material_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "policy_authorization": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "production_assignment": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "previous_authored_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "workflow_authored_plan_path": {
+      "title": "Workflow Authored Plan Path",
+      "type": "string"
+    },
+    "workflow_authored_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow Authored Plan Sha256",
+      "type": "string"
+    },
+    "scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scene Spec Sha256",
+      "type": "string"
+    },
+    "workflow_authored_output_updated": {
+      "const": true,
+      "default": true,
+      "title": "Workflow Authored Output Updated",
+      "type": "boolean"
+    },
+    "canonical_material_plan_written": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Material Plan Written",
+      "type": "boolean"
+    },
+    "existing_v08_promotion_remains_authoritative": {
+      "const": true,
+      "default": true,
+      "title": "Existing V08 Promotion Remains Authoritative",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "receipt_id",
+    "session_id",
+    "round_id",
+    "ranking",
+    "selected_evaluation",
+    "selected_material_plan",
+    "policy_authorization",
+    "production_assignment",
+    "previous_authored_plan",
+    "workflow_authored_plan_path",
+    "workflow_authored_plan_sha256",
+    "scene_spec_sha256"
+  ],
+  "title": "MaterialCandidatePromotionReceipt",
+  "type": "object"
+}

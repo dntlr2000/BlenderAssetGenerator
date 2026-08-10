@@ -106,6 +106,68 @@ def _copyfile_long_path_safe(source: Path, target: Path) -> None:
     shutil.copyfile(native_io_path(source), native_io_path(target))
 
 
+def _mkdir_long_path_safe(
+    path: Path,
+    *,
+    parents: bool,
+    exist_ok: bool,
+) -> None:
+    """Create one package directory through a Windows extended-length path."""
+
+    Path(native_io_path(path)).mkdir(parents=parents, exist_ok=exist_ok)
+
+
+def _image_size_long_path_safe(path: Path) -> tuple[int, int]:
+    """Read image dimensions without passing a legacy-length path to Pillow."""
+
+    with open(native_io_path(path), "rb") as handle:
+        with Image.open(handle) as image:
+            return image.size
+
+
+def _iter_package_files_long_path_safe(directory: Path) -> list[Path]:
+    """Enumerate package files deterministically through Windows extended paths."""
+
+    if not os.path.isdir(native_io_path(directory)):
+        raise FileNotFoundError(directory)
+    files: list[Path] = []
+
+    def visit(current: Path) -> None:
+        """Visit one package directory without following links or losing long descendants."""
+
+        with os.scandir(native_io_path(current)) as entries:
+            ordered = sorted(entries, key=lambda entry: entry.name)
+        for entry in ordered:
+            candidate = current / entry.name
+            if entry.is_symlink():
+                raise RuntimeError(f"Portable package contains a symbolic link: {candidate}")
+            if entry.is_dir(follow_symlinks=False):
+                visit(candidate)
+            elif entry.is_file(follow_symlinks=False):
+                files.append(candidate)
+            else:
+                raise RuntimeError(f"Portable package contains an unsupported entry: {candidate}")
+
+    visit(directory)
+    return sorted(
+        files,
+        key=lambda path: path.relative_to(directory).as_posix(),
+    )
+
+
+def _package_file_size_long_path_safe(path: Path) -> int:
+    """Read a staged package file size through its native extended path."""
+
+    return os.path.getsize(native_io_path(path))
+
+
+def _read_package_bytes_long_path_safe(path: Path) -> bytes:
+    """Read package audit bytes through the platform-native long-path spelling."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 WINDOWS_ABSOLUTE_PATH_PATTERN = re.compile(
     r"(?i)(?<![a-z0-9_])(?:"
     r"[a-z]:[\\/]+(?:[a-z0-9._ -]+[\\/]+)*[a-z0-9._ -]+"
@@ -132,7 +194,7 @@ BINARY_POSIX_ABSOLUTE_PATH_PATTERN = re.compile(
 
 @dataclass(frozen=True)
 class CanonicalTextureContract:
-    """Bind one canonical TextureManifest to its image and procedural channels."""
+    """Bind one canonical TextureManifest and optional raw-channel sidecar."""
 
     material_id: str
     manifest_path: Path
@@ -140,6 +202,120 @@ class CanonicalTextureContract:
     image_channels: dict[str, Path]
     image_channel_hashes: dict[str, str]
     procedural_channels: frozenset[str]
+    raw_sidecar_path: Path | None
+    raw_sidecar_sha256: str | None
+
+
+def _raw_pbr_sidecar_channels(
+    manifest_path: Path,
+    material_id: str,
+) -> tuple[dict[str, Path], dict[str, str], Path | None, str | None]:
+    """Load one sibling raw-PBR sidecar and verify every declared image hash."""
+
+    sidecar_path = manifest_path.parent / "raw_pbr_channels.json"
+    if not sidecar_path.is_file():
+        return {}, {}, None, None
+    try:
+        payload = json.loads(sidecar_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"Raw PBR sidecar is unreadable for {material_id}: {sidecar_path.name}"
+        ) from exc
+    if not isinstance(payload, dict) or payload.get("material_id") != material_id:
+        raise RuntimeError(
+            f"Raw PBR sidecar material ID differs from TextureManifest: {material_id}"
+        )
+    channels = payload.get("channels")
+    if not isinstance(channels, dict):
+        raise RuntimeError(f"Raw PBR sidecar channels are invalid for {material_id}")
+
+    image_channels: dict[str, Path] = {}
+    image_hashes: dict[str, str] = {}
+    sidecar_root = sidecar_path.parent.resolve()
+    for channel, record in sorted(channels.items()):
+        if channel not in COLOR_SPACES:
+            continue
+        legacy_path = record if isinstance(record, str) else None
+        if legacy_path is not None and payload.get("schema_version") != "0.1.0":
+            raise RuntimeError(
+                f"Raw PBR sidecar channel record is invalid: {material_id}.{channel}"
+            )
+        if legacy_path is None and not isinstance(record, dict):
+            raise RuntimeError(
+                f"Raw PBR sidecar channel record is invalid: {material_id}.{channel}"
+            )
+        path_value = legacy_path if legacy_path is not None else record.get("path")
+        sha256_value = None if legacy_path is not None else record.get("sha256")
+        if path_value is None and sha256_value is None:
+            continue
+        if not isinstance(path_value, str) or not path_value or Path(path_value).is_absolute():
+            raise RuntimeError(
+                f"Raw PBR sidecar channel path must be relative: {material_id}.{channel}"
+            )
+        if legacy_path is None and (
+            not isinstance(sha256_value, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", sha256_value)
+        ):
+            raise RuntimeError(
+                f"Raw PBR sidecar channel SHA-256 is invalid: {material_id}.{channel}"
+            )
+        resolved = (sidecar_root / path_value).resolve()
+        try:
+            resolved.relative_to(sidecar_root)
+        except ValueError as exc:
+            raise RuntimeError(
+                f"Raw PBR sidecar channel escaped its source directory: {material_id}.{channel}"
+            ) from exc
+        if legacy_path is not None:
+            sha256_value = _legacy_raw_pbr_channel_sha256(
+                manifest_path,
+                material_id,
+                str(channel),
+                legacy_path,
+                resolved,
+            )
+        if not resolved.is_file() or sha256_file(resolved) != sha256_value:
+            raise RuntimeError(f"Raw PBR sidecar channel hash changed: {material_id}.{channel}")
+        image_channels[str(channel)] = resolved
+        image_hashes[str(channel)] = sha256_value
+    return image_channels, image_hashes, sidecar_path.resolve(), sha256_file(sidecar_path)
+
+
+def _legacy_raw_pbr_channel_sha256(
+    manifest_path: Path,
+    material_id: str,
+    channel: str,
+    path_value: str,
+    resolved: Path,
+) -> str:
+    """Accept legacy string channels only when the TextureManifest owns the same image."""
+
+    try:
+        manifest_payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(
+            f"TextureManifest is unreadable for legacy raw PBR channel: {material_id}.{channel}"
+        ) from exc
+    manifest_channels = (
+        manifest_payload.get("channels") if isinstance(manifest_payload, dict) else None
+    )
+    manifest_record = (
+        manifest_channels.get(channel) if isinstance(manifest_channels, dict) else None
+    )
+    if (
+        not isinstance(manifest_payload, dict)
+        or manifest_payload.get("material_id") != material_id
+        or not isinstance(manifest_record, dict)
+        or manifest_record.get("source") != "image"
+        or manifest_record.get("path") != path_value
+    ):
+        raise RuntimeError(
+            "Legacy raw PBR sidecar string must duplicate one TextureManifest image "
+            f"channel: {material_id}.{channel}"
+        )
+    if not resolved.is_file():
+        raise RuntimeError(f"Raw PBR sidecar channel hash changed: {material_id}.{channel}")
+    return sha256_file(resolved)
 
 
 def _run_for_package(job_id: str, run_id: str | None) -> tuple[Path, str, Path]:
@@ -209,9 +385,7 @@ def _load_run_manifests(
         or cost.source != plan.source
         or not cost.ok
     ):
-        raise RuntimeError(
-            f"Asset cost report is inconsistent with its plan: {cost.report_id}"
-        )
+        raise RuntimeError(f"Asset cost report is inconsistent with its plan: {cost.report_id}")
     return (*core_manifests, cost)
 
 
@@ -245,6 +419,110 @@ def _verify_hashed_artifact(
     return path
 
 
+def _optimization_authorization_paths(run_root: Path) -> dict[str, Path]:
+    """Select exactly one complete user-approval or policy-authorization evidence set."""
+
+    common = {
+        "review_plan": run_root / "review_plan.json",
+        "optimization_review": run_root / "optimization_review.json",
+    }
+    if not all(path.is_file() for path in common.values()):
+        raise RuntimeError("Optimization review and approval evidence is incomplete")
+    user_approval = run_root / "optimization_approval.json"
+    policy_authorization = run_root / "optimization_policy_authorization.json"
+    if user_approval.is_file() and policy_authorization.is_file():
+        raise RuntimeError(
+            "Optimization run mixes user approval and policy authorization evidence"
+        )
+    if not user_approval.is_file() and not policy_authorization.is_file():
+        raise RuntimeError("Optimization review and approval evidence is incomplete")
+    selected = dict(common)
+    if user_approval.is_file():
+        selected["optimization_approval"] = user_approval
+    else:
+        selected["optimization_policy_authorization"] = policy_authorization
+    return selected
+
+
+def _verify_optimization_authorization_evidence(
+    root: Path,
+    run_root: Path,
+    plan: OptimizationPlan,
+) -> dict[str, Path]:
+    """Validate one exclusive exact authorization path against the completed V0.7 run."""
+
+    paths = _optimization_authorization_paths(run_root)
+    reviewed_plan = load_model(paths["review_plan"], OptimizationPlan)
+    review = load_model(paths["optimization_review"], OptimizationReview)
+    review_plan_sha256 = sha256_file(paths["review_plan"])
+    common_mismatch = (
+        reviewed_plan.status != "draft"
+        or reviewed_plan.plan_id != plan.plan_id
+        or reviewed_plan.source != plan.source
+        or reviewed_plan.profile_artifact != plan.profile_artifact
+        or reviewed_plan.preflight_report != plan.preflight_report
+        or reviewed_plan.directives != plan.directives
+        or review.job_id != plan.job_id
+        or review.run_id != run_root.name
+        or review.profile_id != plan.profile_id
+        or review.profile_artifact != plan.profile_artifact
+        or review.preflight_report != plan.preflight_report
+        or review.source != plan.source
+        or review.plan_sha256 != review_plan_sha256
+    )
+    if common_mismatch:
+        raise RuntimeError("Optimization review evidence does not match the completed run")
+
+    user_path = paths.get("optimization_approval")
+    if user_path is not None:
+        approval = load_model(user_path, OptimizationApproval)
+        if (
+            approval.job_id != plan.job_id
+            or approval.run_id != run_root.name
+            or approval.profile_id != plan.profile_id
+            or approval.plan_sha256 != review_plan_sha256
+            or approval.review_sha256 != sha256_file(paths["optimization_review"])
+            or approval.profile_sha256 != plan.profile_artifact.sha256
+            or approval.preflight_sha256 != plan.preflight_report.sha256
+            or approval.source_fingerprint != plan.source.source_fingerprint
+            or not approval.used
+            or approval.used_at is None
+            or plan.approved_at != approval.approved_at
+        ):
+            raise RuntimeError(
+                "Optimization review approval does not match the completed run"
+            )
+        return paths
+
+    from ..autonomy.authorization import validate_policy_authorization
+    from ..autonomy.models import PolicyAuthorization
+
+    policy_path = paths["optimization_policy_authorization"]
+    authorization = PolicyAuthorization.model_validate_json(
+        policy_path.read_text(encoding="utf-8")
+    )
+    validate_policy_authorization(
+        root,
+        authorization,
+        expected_job_id=plan.job_id,
+        expected_workflow_id=authorization.workflow_id,
+        expected_step_id=authorization.workflow_step_id,
+        expected_gate_kind="optimization_plan",
+        expected_input_fingerprint=authorization.workflow_input_fingerprint,
+    )
+    expected_target = paths["review_plan"].resolve().relative_to(root.resolve()).as_posix()
+    if (
+        authorization.target_artifact.path != expected_target
+        or authorization.target_artifact.sha256 != review_plan_sha256
+        or authorization.consumed_at is None
+        or plan.approved_at != authorization.consumed_at
+    ):
+        raise RuntimeError(
+            "Optimization policy authorization does not match the completed run"
+        )
+    return paths
+
+
 def _verify_run_artifacts(
     root: Path,
     run_root: Path,
@@ -270,36 +548,7 @@ def _verify_run_artifacts(
     if preflight_path != (run_root / "mesh_preflight_report.json").resolve():
         raise RuntimeError("OptimizationPlan references an unexpected preflight report path")
 
-    approval_paths = {
-        "review_plan": run_root / "review_plan.json",
-        "review": run_root / "optimization_review.json",
-        "approval": run_root / "optimization_approval.json",
-    }
-    existing_approval_paths = {
-        name for name, path in approval_paths.items() if path.is_file()
-    }
-    if existing_approval_paths and existing_approval_paths != set(approval_paths):
-        raise RuntimeError("Optimization review and approval evidence is incomplete")
-    if existing_approval_paths:
-        reviewed_plan = load_model(approval_paths["review_plan"], OptimizationPlan)
-        review = load_model(approval_paths["review"], OptimizationReview)
-        approval = load_model(approval_paths["approval"], OptimizationApproval)
-        if (
-            reviewed_plan.status != "draft"
-            or reviewed_plan.plan_id != plan.plan_id
-            or reviewed_plan.source != plan.source
-            or reviewed_plan.profile_artifact != plan.profile_artifact
-            or reviewed_plan.preflight_report != plan.preflight_report
-            or reviewed_plan.directives != plan.directives
-            or review.plan_sha256 != sha256_file(approval_paths["review_plan"])
-            or approval.plan_sha256 != review.plan_sha256
-            or approval.review_sha256 != sha256_file(approval_paths["review"])
-            or approval.profile_sha256 != plan.profile_artifact.sha256
-            or approval.preflight_sha256 != plan.preflight_report.sha256
-            or approval.source_fingerprint != plan.source.source_fingerprint
-            or not approval.used
-        ):
-            raise RuntimeError("Optimization review approval does not match the completed run")
+    _verify_optimization_authorization_evidence(root, run_root, plan)
 
     verified_paths: set[Path] = set()
     for artifact in plan.output_manifests:
@@ -352,7 +601,7 @@ def _snapshot_package_metadata(
     """Copy immutable optimization and optional material-conversion receipts."""
 
     metadata_root = staging_root / "metadata"
-    metadata_root.mkdir(parents=True, exist_ok=False)
+    _mkdir_long_path_safe(metadata_root, parents=True, exist_ok=False)
     sources = {
         "asset_profile": profile_path(root, profile.profile_id),
         "optimization_plan": run_root / "optimization_plan.json",
@@ -363,15 +612,7 @@ def _snapshot_package_metadata(
         "uv_manifest": run_root / "uv_manifest.json",
         "optimized_asset_evidence": run_root / "optimized_asset_evidence.json",
     }
-    optional_approval_sources = {
-        "review_plan": run_root / "review_plan.json",
-        "optimization_review": run_root / "optimization_review.json",
-        "optimization_approval": run_root / "optimization_approval.json",
-    }
-    if any(path.is_file() for path in optional_approval_sources.values()):
-        if not all(path.is_file() for path in optional_approval_sources.values()):
-            raise RuntimeError("Optimization review and approval snapshot set is incomplete")
-        sources.update(optional_approval_sources)
+    sources.update(_optimization_authorization_paths(run_root))
     cost_report = run_root / "asset_cost_report.json"
     if cost_report.is_file():
         sources["asset_cost_report"] = cost_report
@@ -427,8 +668,7 @@ def _snapshot_package_metadata(
             "sha256": material_conversion.manifest.portable_blend.sha256,
         }
         normalized["outputs"] = [
-            output.model_dump(mode="json")
-            for output in material_conversion.manifest.outputs
+            output.model_dump(mode="json") for output in material_conversion.manifest.outputs
         ]
         normalized["texture_root"] = job_relative(
             root,
@@ -443,7 +683,7 @@ def _snapshot_package_metadata(
 def _canonical_texture_contracts(
     root: Path,
 ) -> tuple[dict[str, CanonicalTextureContract], set[str], str | None]:
-    """Load canonical manifests and require baking for every manifest-associated material."""
+    """Load canonical manifests plus verified sibling raw-PBR sidecar channels."""
 
     plan_path = root / "analysis" / "material_plan.json"
     if not plan_path.is_file():
@@ -463,14 +703,9 @@ def _canonical_texture_contracts(
             if recipe.bake_required:
                 required.add(item.material_id)
         recipe_manifest = recipe.texture_manifest if recipe is not None else None
-        if (
-            item.texture_manifest
-            and recipe_manifest
-            and item.texture_manifest != recipe_manifest
-        ):
+        if item.texture_manifest and recipe_manifest and item.texture_manifest != recipe_manifest:
             raise RuntimeError(
-                "MaterialPlan and ShaderRecipe TextureManifest paths differ for "
-                f"{item.material_id}"
+                f"MaterialPlan and ShaderRecipe TextureManifest paths differ for {item.material_id}"
             )
         manifest_value = item.texture_manifest or recipe_manifest
         if not manifest_value:
@@ -481,9 +716,7 @@ def _canonical_texture_contracts(
             root,
         )
         if manifest is None or manifest_path is None:
-            raise RuntimeError(
-                f"TextureManifest could not be loaded for {item.material_id}"
-            )
+            raise RuntimeError(f"TextureManifest could not be loaded for {item.material_id}")
         image_channels: dict[str, Path] = {}
         image_hashes: dict[str, str] = {}
         procedural_channels: set[str] = set()
@@ -494,6 +727,23 @@ def _canonical_texture_contracts(
             resolved = Path(str(record["resolved_path"])).expanduser().resolve()
             image_channels[str(channel)] = resolved
             image_hashes[str(channel)] = sha256_file(resolved)
+        (
+            sidecar_channels,
+            sidecar_hashes,
+            sidecar_path,
+            sidecar_sha256,
+        ) = _raw_pbr_sidecar_channels(manifest_path, item.material_id)
+        for channel, resolved in sidecar_channels.items():
+            if channel in image_channels and (
+                image_channels[channel] != resolved
+                or image_hashes[channel] != sidecar_hashes[channel]
+            ):
+                raise RuntimeError(
+                    "TextureManifest and raw PBR sidecar channel provenance differ for "
+                    f"{item.material_id}.{channel}"
+                )
+            image_channels.setdefault(channel, resolved)
+            image_hashes.setdefault(channel, sidecar_hashes[channel])
         contracts[item.material_id] = CanonicalTextureContract(
             material_id=item.material_id,
             manifest_path=manifest_path.resolve(),
@@ -501,6 +751,8 @@ def _canonical_texture_contracts(
             image_channels=image_channels,
             image_channel_hashes=image_hashes,
             procedural_channels=frozenset(procedural_channels),
+            raw_sidecar_path=sidecar_path,
+            raw_sidecar_sha256=sidecar_sha256,
         )
     return contracts, required, plan.job_id
 
@@ -515,17 +767,13 @@ def _verify_current_bake_provenance(
 
     expected = {
         "source_scene_spec_sha256": current_build["scene_spec_sha256"],
-        "source_geometry_payloads_sha256": current_build[
-            "geometry_payloads_sha256"
-        ],
+        "source_geometry_payloads_sha256": current_build["geometry_payloads_sha256"],
         "source_camera_fingerprint": current_build["camera_fingerprint"],
         "source_material_plan_sha256": current_build["material_plan_sha256"],
         "source_shader_recipe": material_source["shader_recipe_path"],
         "source_shader_recipe_sha256": material_source["shader_recipe_sha256"],
         "source_texture_manifest": material_source["texture_manifest_path"],
-        "source_texture_manifest_sha256": material_source[
-            "texture_manifest_sha256"
-        ],
+        "source_texture_manifest_sha256": material_source["texture_manifest_sha256"],
         "source_texture_channels_sha256": {
             channel: record["sha256"]
             for channel, record in material_source["texture_channels"].items()
@@ -661,8 +909,7 @@ def _raw_channel_texture(
 ) -> PackedTexture:
     """Create a canonical raw-channel receipt for one byte-preserved image."""
 
-    with Image.open(output_path) as image:
-        width, height = image.size
+    width, height = _image_size_long_path_safe(output_path)
     scalar = channel in {
         "roughness",
         "metallic",
@@ -709,8 +956,7 @@ def _canonical_image_texture(
 ) -> PackedTexture:
     """Record one byte-preserved canonical TextureManifest image channel."""
 
-    with Image.open(output_path) as image:
-        width, height = image.size
+    width, height = _image_size_long_path_safe(output_path)
     scalar = channel in {
         "roughness",
         "metallic",
@@ -752,24 +998,20 @@ def _copy_canonical_image_channels(
     final_root: Path,
     contracts: dict[str, CanonicalTextureContract],
 ) -> list[PackedTexture]:
-    """Copy every canonical TextureManifest image channel without byte conversion."""
+    """Copy canonical manifest/sidecar images and preserve raw sidecar metadata."""
 
     textures: list[PackedTexture] = []
     for material_id, contract in sorted(contracts.items()):
-        component = (
-            f"{safe_artifact_name(material_id)}-"
-            f"{contract.manifest_sha256[:8]}"
-        )
+        component = f"{safe_artifact_name(material_id)}-{contract.manifest_sha256[:8]}"
         output_root = staging_root / "textures" / "canonical" / component
-        output_root.mkdir(parents=True, exist_ok=False)
+        _mkdir_long_path_safe(output_root, parents=True, exist_ok=False)
         for channel, source_path in sorted(contract.image_channels.items()):
             target = output_root / f"{channel}{source_path.suffix.lower()}"
             _copyfile_long_path_safe(source_path, target)
             expected = contract.image_channel_hashes[channel]
             if sha256_file(target) != expected:
                 raise RuntimeError(
-                    "Canonical TextureManifest channel copy hash mismatch: "
-                    f"{material_id}.{channel}"
+                    f"Canonical TextureManifest channel copy hash mismatch: {material_id}.{channel}"
                 )
             textures.append(
                 _canonical_image_texture(
@@ -782,6 +1024,11 @@ def _copy_canonical_image_channels(
                     target,
                 )
             )
+        if contract.raw_sidecar_path is not None:
+            sidecar_target = output_root / "raw_pbr_channels.json"
+            _copyfile_long_path_safe(contract.raw_sidecar_path, sidecar_target)
+            if sha256_file(sidecar_target) != contract.raw_sidecar_sha256:
+                raise RuntimeError(f"Raw PBR sidecar copy hash mismatch: {material_id}")
     return textures
 
 
@@ -796,11 +1043,10 @@ def _copy_raw_bakes(
     textures: list[PackedTexture] = []
     for manifest in manifests:
         component = (
-            f"{safe_artifact_name(manifest.material_id)}-"
-            f"{manifest.source_material_fingerprint[:8]}"
+            f"{safe_artifact_name(manifest.material_id)}-{manifest.source_material_fingerprint[:8]}"
         )
         output_root = staging_root / "textures" / component / "raw"
-        output_root.mkdir(parents=True, exist_ok=False)
+        _mkdir_long_path_safe(output_root, parents=True, exist_ok=False)
         for output in manifest.outputs:
             if output.channel not in COLOR_SPACES:
                 continue
@@ -835,8 +1081,7 @@ def _gltf_packed_textures(
     textures: list[PackedTexture] = []
     for manifest in manifests:
         component = (
-            f"{safe_artifact_name(manifest.material_id)}-"
-            f"{manifest.source_material_fingerprint[:8]}"
+            f"{safe_artifact_name(manifest.material_id)}-{manifest.source_material_fingerprint[:8]}"
         )
         channels = {
             output.channel: output.path
@@ -850,9 +1095,7 @@ def _gltf_packed_textures(
                 "portable_gltf requires separate occlusion, roughness, or metallic "
                 "provenance before deriving a new ORM texture"
             )
-        pack_channels = {
-            channel: path for channel, path in channels.items() if channel != "orm"
-        }
+        pack_channels = {channel: path for channel, path in channels.items() if channel != "orm"}
         packed_resolution = _bounded_resolution(
             int(manifest.resolution[0]),
             int(manifest.resolution[1]),
@@ -866,8 +1109,7 @@ def _gltf_packed_textures(
             orm_defaults={"occlusion": 1.0, "roughness": 0.5, "metallic": 0.0},
             orm_resolution=packed_resolution,
             allow_orm_resample=(
-                packed_resolution
-                != (int(manifest.resolution[0]), int(manifest.resolution[1]))
+                packed_resolution != (int(manifest.resolution[0]), int(manifest.resolution[1]))
             ),
             # The outer package transaction already owns atomic publication. Writing
             # directly here avoids a second deeply nested temp path on Windows.
@@ -937,8 +1179,7 @@ def _gltf_packed_textures(
                     source=source_record,
                 )
             )
-        with Image.open(result.orm_path) as orm_image:
-            orm_width, orm_height = orm_image.size
+        orm_width, orm_height = _image_size_long_path_safe(result.orm_path)
         textures.append(
             PackedTexture(
                 texture_id=f"texture.orm.{manifest.material_id}",
@@ -977,9 +1218,7 @@ def _conversion_source_artifact(
         f"portable conversion {output.channel} channel",
     )
     if not source_path.is_file() or sha256_file(source_path) != output.sha256:
-        raise RuntimeError(
-            f"Portable conversion channel changed: {output.channel}"
-        )
+        raise RuntimeError(f"Portable conversion channel changed: {output.channel}")
     return HashedArtifact(
         id=f"texture.source.conversion.{conversion_id}.{output.channel}",
         kind="other",
@@ -999,23 +1238,15 @@ def _conversion_raw_texture(
     """Create one receipt for a byte-preserved global portable atlas channel."""
 
     if sha256_file(copied_path) != output.sha256:
-        raise RuntimeError(
-            f"Portable atlas copy hash mismatch: {output.channel}"
-        )
-    with Image.open(copied_path) as image:
-        width, height = image.size
+        raise RuntimeError(f"Portable atlas copy hash mismatch: {output.channel}")
+    width, height = _image_size_long_path_safe(copied_path)
     scalar = output.channel in {"roughness", "metallic"}
     return PackedTexture(
-        texture_id=(
-            f"texture.conversion.{conversion.conversion_id}.{output.channel}"
-        ),
+        texture_id=(f"texture.conversion.{conversion.conversion_id}.{output.channel}"),
         material_ids=output.material_ids,
         packing="raw_channels",
         output=HashedArtifact(
-            id=(
-                f"texture.output.conversion.{conversion.conversion_id}."
-                f"{output.channel}"
-            ),
+            id=(f"texture.output.conversion.{conversion.conversion_id}.{output.channel}"),
             kind="packed_texture",
             path=_future_path(root, final_root, staging_root, copied_path),
             sha256=output.sha256,
@@ -1046,7 +1277,7 @@ def _copy_conversion_raw_channels(
     """Copy all five global portable atlas channels without byte conversion."""
 
     output_root = staging_root / "textures" / "portable_atlas" / "raw"
-    output_root.mkdir(parents=True, exist_ok=False)
+    _mkdir_long_path_safe(output_root, parents=True, exist_ok=False)
     textures: list[PackedTexture] = []
     for output in conversion.manifest.outputs:
         source = resolve_inside(
@@ -1143,8 +1374,7 @@ def _gltf_conversion_textures(
                 source=source,
             )
         )
-    with Image.open(result.orm_path) as orm_image:
-        orm_width, orm_height = orm_image.size
+    orm_width, orm_height = _image_size_long_path_safe(result.orm_path)
     textures.append(
         PackedTexture(
             texture_id=f"texture.orm.{conversion.conversion_id}",
@@ -1257,9 +1487,7 @@ def _texture_manifest(
         created_at=now,
         completed_at=now,
         notes=(
-            [
-                "No ShaderRecipe or TextureManifest requires portable texture outputs."
-            ]
+            ["No ShaderRecipe or TextureManifest requires portable texture outputs."]
             if not required_material_ids
             else [
                 "Canonical TextureManifest image channels and fresh portable bake outputs "
@@ -1322,7 +1550,7 @@ def _package_file(
 ) -> PackageFile:
     """Create one immutable package file receipt using its future final path."""
 
-    size = path.stat().st_size
+    size = _package_file_size_long_path_safe(path)
     if size <= 0:
         raise RuntimeError(f"Portable package contains an empty file: {path}")
     suffix = path.suffix.lower()
@@ -1367,9 +1595,7 @@ def _absolute_path_audit_payloads(path: Path, data: bytes) -> list[tuple[str, st
     return payloads
 
 
-def _embedded_absolute_path_findings(
-    paths: list[Path], package_root: Path
-) -> list[str]:
+def _embedded_absolute_path_findings(paths: list[Path], package_root: Path) -> list[str]:
     """Find absolute-path markers in portable text and primary binary containers."""
 
     findings: set[str] = set()
@@ -1377,7 +1603,7 @@ def _embedded_absolute_path_findings(
     for path in paths:
         if path.suffix.lower() not in ABSOLUTE_PATH_AUDIT_SUFFIXES:
             continue
-        data = path.read_bytes()
+        data = _read_package_bytes_long_path_safe(path)
         decoded = _absolute_path_audit_payloads(path, data)
         try:
             label = path.resolve().relative_to(resolved_root).as_posix()
@@ -1424,18 +1650,16 @@ def _verify_package_receipts(
             raise RuntimeError(
                 f"Package receipt escapes its immutable package root: {receipt.id}"
             ) from exc
-        if not path.is_file():
+        if not os.path.isfile(native_io_path(path)):
             raise RuntimeError(f"Package receipt is missing: {receipt.id}")
-        if path.stat().st_size != receipt.byte_size:
+        if _package_file_size_long_path_safe(path) != receipt.byte_size:
             raise RuntimeError(f"Package receipt size changed: {receipt.id}")
         if sha256_file(path) != receipt.sha256:
             raise RuntimeError(f"Package receipt SHA-256 changed: {receipt.id}")
         verified[receipt.id] = path
 
     actual_files: set[Path] = set()
-    for candidate in package_root.rglob("*"):
-        if not candidate.is_file():
-            continue
+    for candidate in _iter_package_files_long_path_safe(package_root):
         resolved = candidate.resolve()
         try:
             resolved.relative_to(resolved_root)
@@ -1451,8 +1675,7 @@ def _verify_package_receipts(
     if untracked:
         raise RuntimeError(f"Portable package contains untracked files: {untracked}")
     unexpected_receipts = sorted(
-        path.relative_to(resolved_root).as_posix()
-        for path in tracked_files - actual_files
+        path.relative_to(resolved_root).as_posix() for path in tracked_files - actual_files
     )
     if unexpected_receipts:
         raise RuntimeError(f"Portable package receipts have no files: {unexpected_receipts}")
@@ -1510,9 +1733,9 @@ def package_asset(
     final_root = resolve_inside(profile_root, chosen_package_id, "portable package")
     if final_root.exists():
         raise FileExistsError(f"Portable package already exists: {final_root}")
-    profile_root.mkdir(parents=True, exist_ok=True)
+    _mkdir_long_path_safe(profile_root, parents=True, exist_ok=True)
     staging_root = profile_root / f".{chosen_package_id}.{uuid4().hex}.tmp"
-    staging_root.mkdir(parents=False, exist_ok=False)
+    _mkdir_long_path_safe(staging_root, parents=False, exist_ok=False)
     try:
         extension = profile.primary_format
         primary = staging_root / _primary_asset_filename(extension)
@@ -1587,14 +1810,10 @@ def package_asset(
         )
         texture_path = staging_root / "texture_pack_manifest.json"
         write_model(texture_path, texture_manifest)
-        staged_files = sorted(path for path in staging_root.rglob("*") if path.is_file())
-        absolute_path_findings = _embedded_absolute_path_findings(
-            staged_files, staging_root
-        )
+        staged_files = _iter_package_files_long_path_safe(staging_root)
+        absolute_path_findings = _embedded_absolute_path_findings(staged_files, staging_root)
         if absolute_path_findings:
-            affected = sorted(
-                {finding.split(":", 1)[0] for finding in absolute_path_findings}
-            )
+            affected = sorted({finding.split(":", 1)[0] for finding in absolute_path_findings})
             raise RuntimeError(
                 "Portable package contains embedded absolute-path markers "
                 f"({len(absolute_path_findings)}) in: {affected}"
@@ -1674,9 +1893,7 @@ def package_asset(
                     staging_root,
                     snapshots["material_conversion_manifest"],
                 ),
-                sha256=sha256_file(
-                    snapshots["material_conversion_manifest"]
-                ),
+                sha256=sha256_file(snapshots["material_conversion_manifest"]),
             )
             if material_conversion is not None
             else None
@@ -1685,9 +1902,7 @@ def package_asset(
             {
                 loss
                 for entry in (
-                    material_conversion.manifest.entries
-                    if material_conversion is not None
-                    else []
+                    material_conversion.manifest.entries if material_conversion is not None else []
                 )
                 for loss in entry.losses
             }
@@ -1696,9 +1911,7 @@ def package_asset(
             {
                 warning
                 for entry in (
-                    material_conversion.manifest.entries
-                    if material_conversion is not None
-                    else []
+                    material_conversion.manifest.entries if material_conversion is not None else []
                 )
                 for warning in entry.warnings
             }
@@ -1939,25 +2152,15 @@ def _build_roundtrip_report(
                 ),
             )
         )
-    expected_semantic = sorted(
-        set(package.semantic_ids) if profile_id != "obj_legacy" else set()
-    )
+    expected_semantic = sorted(set(package.semantic_ids) if profile_id != "obj_legacy" else set())
     observed_semantic = sorted(
-        {
-            str(record.get("semantic_id"))
-            for record in imported_objects
-            if record.get("semantic_id")
-        }
+        {str(record.get("semantic_id")) for record in imported_objects if record.get("semantic_id")}
     )
     if profile_id == "obj_legacy":
         observed_semantic = []
     expected_materials = sorted(set(package.material_ids))
     observed_materials = sorted(
-        {
-            str(value)
-            for record in imported_objects
-            for value in record.get("material_ids", [])
-        }
+        {str(value) for record in imported_objects for value in record.get("material_ids", [])}
     )
     semantic_coverage = (
         len(set(expected_semantic) & set(observed_semantic)) / len(expected_semantic)
@@ -2066,25 +2269,21 @@ def validate_asset_package(
         [*verified_receipts.values(), manifest_path], package_root
     )
     if absolute_path_findings:
-        affected = sorted(
-            {finding.split(":", 1)[0] for finding in absolute_path_findings}
-        )
+        affected = sorted({finding.split(":", 1)[0] for finding in absolute_path_findings})
         raise RuntimeError(
             "Portable package contains embedded absolute-path markers "
             f"({len(absolute_path_findings)}) in: {affected}"
         )
-    primary_receipt = next(
-        item for item in package.files if item.id == package.primary_file_id
-    )
+    primary_receipt = next(item for item in package.files if item.id == package.primary_file_id)
     primary = verified_receipts[primary_receipt.id]
     run_root = run_directory(root, package.run_id)
     validation_parent = run_root / "roundtrip"
     validation_root = validation_parent / package.package_id
     if validation_root.exists():
         raise FileExistsError(f"Round-trip validation already exists: {validation_root}")
-    validation_parent.mkdir(parents=True, exist_ok=True)
+    _mkdir_long_path_safe(validation_parent, parents=True, exist_ok=True)
     staging_root = validation_parent / f".{package.package_id}.{uuid4().hex}.tmp"
-    staging_root.mkdir(parents=False, exist_ok=False)
+    _mkdir_long_path_safe(staging_root, parents=False, exist_ok=False)
     raw_export = package_root / "export_evidence.json"
     raw_output = staging_root / "roundtrip_evidence.json"
     try:

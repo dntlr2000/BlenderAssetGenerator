@@ -3,11 +3,15 @@ from __future__ import annotations
 import ast
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
 
 import pytest
+
+from codex_blender_modeler.config import executable_exists, get_settings
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_ROOT = ROOT / "src" / "codex_blender_modeler" / "blender_scripts"
@@ -119,6 +123,67 @@ def test_sha256_file_uses_lowercase_contract(tmp_path: Path) -> None:
     assert len(digest) == 64
     assert digest == digest.lower()
     assert set(digest) <= set("0123456789abcdef")
+
+
+def test_portable_json_io_supports_windows_extended_paths(tmp_path: Path) -> None:
+    """Write, read, and hash deterministic Blender evidence beyond legacy MAX_PATH."""
+
+    common = load_common()
+    directory = tmp_path
+    for index in range(8):
+        directory /= f"quality-companion-output-{index:02d}-0123456789abcdef"
+    output = directory / "assembly_topology_report.json"
+    if os.name == "nt":
+        assert len(os.path.abspath(output)) > 260
+    payload = {"kind": "quality_companion_evidence", "ok": True}
+
+    common.write_json(output, payload)
+
+    assert os.path.isfile(common.native_io_path(output))
+    assert common.read_json_object(output) == payload
+    assert len(common.sha256_file(output)) == 64
+
+
+@pytest.mark.skipif(
+    os.getenv("CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE") != "1",
+    reason="Set CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE=1 for Blender 5 evidence.",
+)
+def test_blender_runtime_writes_portable_json_to_extended_path(tmp_path: Path) -> None:
+    """Run the fixed long-path JSON probe through Blender's bundled Python."""
+
+    settings = get_settings()
+    if not executable_exists(settings.blender_bin):
+        pytest.skip(f"Blender executable not found: {settings.blender_bin}")
+    directory = tmp_path
+    for index in range(8):
+        directory /= f"blender-quality-output-{index:02d}-0123456789abcdef"
+    output = directory / "assembly_topology_report.json"
+    if os.name == "nt":
+        assert len(os.path.abspath(output)) > 260
+    script = ROOT / "tests" / "blender_scripts" / "probe_portable_json_long_path.py"
+    result = subprocess.run(
+        [
+            settings.blender_bin,
+            "--factory-startup",
+            "--background",
+            "--python-exit-code",
+            "1",
+            "--python",
+            str(script),
+            "--",
+            "--output",
+            str(output),
+        ],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        text=True,
+        capture_output=True,
+        timeout=settings.blender_timeout,
+        check=False,
+    )
+    assert result.returncode == 0, f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}"
+    common = load_common()
+    assert common.read_json_object(output)["ok"] is True
 
 
 def test_portable_path_rejects_root_escape(tmp_path: Path) -> None:

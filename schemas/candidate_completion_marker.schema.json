@@ -1,0 +1,198 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind controller-authored candidate outputs to one exact immutable assignment.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "completion_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Completion Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "candidate_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Candidate Id",
+      "type": "string"
+    },
+    "assignment": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "authoring_prompt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Authoring Prompt Sha256",
+      "type": "string"
+    },
+    "modeling_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "camera_hypothesis": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "scene_spec_candidate": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "scene_spec_v03_candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "compiled_scene_spec_candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "structural_recipes": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "title": "Structural Recipes",
+      "type": "array"
+    },
+    "structural_mesh_payloads": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "title": "Structural Mesh Payloads",
+      "type": "array"
+    },
+    "structural_materialization_receipts": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "title": "Structural Materialization Receipts",
+      "type": "array"
+    },
+    "completed_by": {
+      "const": "controller",
+      "default": "controller",
+      "title": "Completed By",
+      "type": "string"
+    },
+    "canonical_written": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Written",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "completion_id",
+    "session_id",
+    "candidate_id",
+    "assignment",
+    "authoring_prompt_sha256",
+    "modeling_plan",
+    "camera_hypothesis",
+    "scene_spec_candidate"
+  ],
+  "title": "CandidateCompletionMarker",
+  "type": "object"
+}

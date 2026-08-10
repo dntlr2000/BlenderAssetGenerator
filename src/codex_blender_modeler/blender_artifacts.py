@@ -4,6 +4,8 @@ import hashlib
 import json
 import os
 import re
+import stat
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
@@ -89,6 +91,64 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def deterministic_directory_files(directory: Path) -> list[Path]:
+    """Enumerate regular files deterministically with long-path and link safety."""
+
+    root = Path(os.path.abspath(os.fspath(directory)))
+    root_native = native_io_path(root)
+    if not os.path.isdir(root_native):
+        raise FileNotFoundError(root)
+    root_metadata = os.lstat(root_native)
+    root_attributes = getattr(root_metadata, "st_file_attributes", 0)
+    if os.path.islink(root_native) or bool(
+        root_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    ):
+        raise ValueError("artifact directory contains a symlink or junction")
+
+    pending = [root]
+    files: list[Path] = []
+    while pending:
+        current = pending.pop()
+        with os.scandir(native_io_path(current)) as iterator:
+            entries = list(iterator)
+        for entry in entries:
+            member = current / entry.name
+            metadata = entry.stat(follow_symlinks=False)
+            attributes = getattr(metadata, "st_file_attributes", 0)
+            if entry.is_symlink() or bool(
+                attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+            ):
+                raise ValueError("artifact directory contains a symlink or junction")
+            if stat.S_ISDIR(metadata.st_mode):
+                pending.append(member)
+            elif stat.S_ISREG(metadata.st_mode):
+                files.append(member)
+            else:
+                raise ValueError(
+                    f"artifact directory contains an unsupported entry: {entry.name}"
+                )
+    return sorted(files, key=lambda item: item.relative_to(root).as_posix())
+
+
+def sha256_directory(
+    directory: Path,
+    *,
+    files: Iterable[Path] | None = None,
+) -> str:
+    """Hash an exact deterministic directory inventory and every member digest."""
+
+    root = Path(os.path.abspath(os.fspath(directory)))
+    selected = list(files) if files is not None else deterministic_directory_files(root)
+    records = [
+        {
+            "path": item.relative_to(root).as_posix(),
+            "sha256": sha256_file(item),
+        }
+        for item in sorted(selected, key=lambda item: item.relative_to(root).as_posix())
+    ]
+    return stable_json_digest(records)
 
 
 def stable_json_digest(value: Any) -> str:

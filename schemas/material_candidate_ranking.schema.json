@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Select one exact material candidate without claiming unavailable visual quality.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "ranking_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Ranking Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "round_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Round Id",
+      "type": "string"
+    },
+    "round_input": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "candidate_evaluations": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Candidate Evaluations",
+      "type": "array"
+    },
+    "selected_evaluation": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "selected_material_plan": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "material_quality_status": {
+      "enum": [
+        "passed",
+        "warning",
+        "unscorable",
+        "failed"
+      ],
+      "title": "Material Quality Status",
+      "type": "string"
+    },
+    "selection_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Selection Reasons",
+      "type": "array"
+    },
+    "visual_comparison_performed": {
+      "const": false,
+      "default": false,
+      "title": "Visual Comparison Performed",
+      "type": "boolean"
+    },
+    "canonical_written": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Written",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "ranking_id",
+    "session_id",
+    "round_id",
+    "round_input",
+    "candidate_evaluations",
+    "selected_evaluation",
+    "selected_material_plan",
+    "material_quality_status",
+    "selection_reasons"
+  ],
+  "title": "MaterialCandidateRanking",
+  "type": "object"
+}

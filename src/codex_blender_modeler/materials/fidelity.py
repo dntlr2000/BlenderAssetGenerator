@@ -499,12 +499,19 @@ def evaluate_material_fidelity(
     root: Path,
     *,
     thresholds: MaterialFidelityThresholds | None = None,
+    plan_path: Path | None = None,
 ) -> MaterialFidelityReport:
-    """Evaluate one job without mutating its canonical material or geometry evidence."""
+    """Evaluate one canonical or explicitly supplied plan without mutating authoring data."""
 
     root = root.resolve()
     limits = thresholds or MaterialFidelityThresholds()
-    plan_path = root / "analysis" / "material_plan.json"
+    plan_path = (plan_path or root / "analysis" / "material_plan.json").resolve()
+    try:
+        plan_path.relative_to(root)
+    except ValueError as exc:
+        raise ValueError("Material fidelity plan_path must stay inside the job root") from exc
+    if not plan_path.is_file():
+        raise FileNotFoundError(plan_path)
     scene_path = root / "analysis" / "scene_spec.json"
     modeling_path = root / "analysis" / "modeling_plan.json"
     plan = load_material_plan(plan_path)

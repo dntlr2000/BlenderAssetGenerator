@@ -1,0 +1,493 @@
+{
+  "$defs": {
+    "AutonomyArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained artifact to its repository-relative path and exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "AutonomyArtifact",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "description": "Count consumed actions without changing the authorized budget.",
+      "properties": {
+        "initial_candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "total_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Actions",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    },
+    "StateFingerprint": {
+      "additionalProperties": false,
+      "description": "Bind all canonical and metric inputs used for duplicate/cycle detection.",
+      "properties": {
+        "modeling_plan_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Modeling Plan Sha256"
+        },
+        "scene_spec_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Scene Spec Sha256",
+          "type": "string"
+        },
+        "material_plan_or_graph_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Plan Or Graph Sha256"
+        },
+        "camera_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Fingerprint",
+          "type": "string"
+        },
+        "normalized_metric_vector_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Normalized Metric Vector Sha256",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "canonical_source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Canonical Source Fingerprint",
+          "type": "string"
+        },
+        "change_direction": {
+          "anyOf": [
+            {
+              "maxLength": 256,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Direction"
+        }
+      },
+      "required": [
+        "scene_spec_sha256",
+        "camera_fingerprint",
+        "normalized_metric_vector_sha256",
+        "build_fingerprint",
+        "canonical_source_fingerprint"
+      ],
+      "title": "StateFingerprint",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Project immutable autonomy evidence into one reconstructable current state.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AutonomyArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "profile": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "budget": {
+      "$ref": "#/$defs/AutonomyArtifact"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "running",
+        "waiting_for_controller",
+        "completed",
+        "blocked",
+        "cancelled",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "reference_evidence",
+        "initial_candidates",
+        "structural_authoring",
+        "parametric_convergence",
+        "material_authoring",
+        "integrated_quality",
+        "production_repair",
+        "optimization",
+        "package",
+        "review_bundle",
+        "terminal"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "next_action": {
+      "enum": [
+        "collect_reference_evidence",
+        "author_initial_candidate",
+        "evaluate_candidate",
+        "promote_best_candidate",
+        "advance_production",
+        "await_controller_output",
+        "run_structural_round",
+        "run_parametric_iteration",
+        "run_material_round",
+        "run_integrated_quality",
+        "authorize_routine_gate",
+        "run_optimization",
+        "build_package",
+        "build_review_bundle",
+        "terminalize",
+        "none"
+      ],
+      "title": "Next Action",
+      "type": "string"
+    },
+    "action_sequence": {
+      "minimum": 0,
+      "title": "Action Sequence",
+      "type": "integer"
+    },
+    "budget_usage": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "best_known_candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "current_candidate_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Current Candidate Id"
+    },
+    "current_round_index": {
+      "default": 0,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Current Round Index",
+      "type": "integer"
+    },
+    "current_round_candidate_index": {
+      "default": 0,
+      "maximum": 4,
+      "minimum": 0,
+      "title": "Current Round Candidate Index",
+      "type": "integer"
+    },
+    "round_baseline_candidate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "last_quality_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AutonomyArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "plateau_count": {
+      "default": 0,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Plateau Count",
+      "type": "integer"
+    },
+    "state_history": {
+      "items": {
+        "$ref": "#/$defs/StateFingerprint"
+      },
+      "title": "State History",
+      "type": "array"
+    },
+    "receipt_chain_head_before_state_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receipt Chain Head Before State Sha256"
+    },
+    "pending_terminal_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "quality_target_reached",
+            "plateau",
+            "duplicate_candidate_state",
+            "oscillation_detected",
+            "no_eligible_candidates",
+            "structural_budget_exhausted",
+            "parametric_budget_exhausted",
+            "material_budget_exhausted",
+            "package_repair_budget_exhausted",
+            "global_budget_exhausted",
+            "repeated_failure",
+            "structural_regression",
+            "constraint_regression",
+            "unscorable_evidence",
+            "restricted_scope_required",
+            "stale_or_tampered",
+            "cancelled",
+            "host_failure",
+            "completed_review_bundle"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pending Terminal Reason"
+    },
+    "terminal_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "quality_target_reached",
+            "plateau",
+            "duplicate_candidate_state",
+            "oscillation_detected",
+            "no_eligible_candidates",
+            "structural_budget_exhausted",
+            "parametric_budget_exhausted",
+            "material_budget_exhausted",
+            "package_repair_budget_exhausted",
+            "global_budget_exhausted",
+            "repeated_failure",
+            "structural_regression",
+            "constraint_regression",
+            "unscorable_evidence",
+            "restricted_scope_required",
+            "stale_or_tampered",
+            "cancelled",
+            "host_failure",
+            "completed_review_bundle"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Terminal Reason"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "producer_version",
+    "provenance",
+    "created_at",
+    "session_id",
+    "root_authorization",
+    "profile",
+    "budget",
+    "status",
+    "phase",
+    "next_action",
+    "action_sequence",
+    "budget_usage",
+    "observed_at"
+  ],
+  "title": "AutonomyState",
+  "type": "object"
+}

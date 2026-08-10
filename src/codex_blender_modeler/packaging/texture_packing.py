@@ -14,6 +14,8 @@ from uuid import uuid4
 
 from PIL import Image
 
+from ..workspace import native_io_path
+
 PORTABLE_PBR_CHANNELS = frozenset(
     {
         "base_color",
@@ -60,7 +62,7 @@ def _sha256_file(path: Path) -> str:
     """Hash a file without loading the entire payload into memory."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -118,14 +120,15 @@ def _load_source_images(
     root = source_root.expanduser().resolve()
     for channel in sorted(channels):
         path = _resolve_inside(root, channels[channel], f"Source channel {channel}")
-        if not path.is_file():
+        if not os.path.isfile(native_io_path(path)):
             raise TexturePackingError(f"Source channel {channel} does not exist: {path}")
         try:
-            with Image.open(path) as image:
-                image.load()
-                size = [int(image.width), int(image.height)]
-                mode = image.mode
-                image_format = image.format or path.suffix.removeprefix(".").upper()
+            with open(native_io_path(path), "rb") as handle:
+                with Image.open(handle) as image:
+                    image.load()
+                    size = [int(image.width), int(image.height)]
+                    mode = image.mode
+                    image_format = image.format or path.suffix.removeprefix(".").upper()
         except (OSError, ValueError) as exc:
             raise TexturePackingError(
                 f"Source channel {channel} is not a readable image: {path}"
@@ -155,8 +158,9 @@ def _orm_resolution(
         path = sources.get(channel)
         if path is None:
             continue
-        with Image.open(path) as image:
-            discovered.add((image.width, image.height))
+        with open(native_io_path(path), "rb") as handle:
+            with Image.open(handle) as image:
+                discovered.add((image.width, image.height))
     if len(discovered) > 1 and not (allow_resample and requested is not None):
         raise TexturePackingError("ORM source channels must have identical resolutions")
     source_resolution = next(iter(discovered), None)
@@ -191,9 +195,10 @@ def _orm_planes(
     for channel in ORM_CHANNELS:
         path = sources.get(channel)
         if path is not None:
-            with Image.open(path) as image:
-                plane = image.convert("L")
-                plane.load()
+            with open(native_io_path(path), "rb") as handle:
+                with Image.open(handle) as image:
+                    plane = image.convert("L")
+                    plane.load()
             source_resolution = plane.size
             if source_resolution != resolution:
                 if not allow_resample:
@@ -231,16 +236,15 @@ def _orm_planes(
 def _save_deterministic_png(image: Image.Image, path: Path) -> None:
     """Write a PNG without variable metadata using fixed encoder settings."""
 
-    image.save(path, format="PNG", optimize=False, compress_level=9)
+    with open(native_io_path(path), "wb") as handle:
+        image.save(handle, format="PNG", optimize=False, compress_level=9)
 
 
 def _write_evidence(path: Path, payload: Mapping[str, Any]) -> None:
     """Write low-level pack evidence inside the uncommitted staging directory."""
 
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    with open(native_io_path(path), "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
 
 
 def build_portable_texture_package(
@@ -267,7 +271,7 @@ def build_portable_texture_package(
     destination = _resolve_inside(resolved_package_root, output_dir, "Texture package output")
     if destination == resolved_package_root:
         raise TexturePackingError("Texture package output must be below package_root")
-    if destination.exists():
+    if os.path.exists(native_io_path(destination)):
         raise FileExistsError(f"Texture package already exists: {destination}")
 
     requested_resolution = _validate_resolution(orm_resolution)
@@ -288,7 +292,7 @@ def build_portable_texture_package(
         allow_orm_resample,
     )
 
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(destination.parent), exist_ok=True)
     staging = (
         destination.parent / f".{destination.name}.{uuid4().hex}.tmp"
         if atomic_commit
@@ -297,14 +301,14 @@ def build_portable_texture_package(
     raw_dir = staging / "raw"
     packed_dir = staging / "packed"
     try:
-        raw_dir.mkdir(parents=True)
-        packed_dir.mkdir(parents=True)
+        os.makedirs(native_io_path(raw_dir), exist_ok=False)
+        os.makedirs(native_io_path(packed_dir), exist_ok=False)
         raw_records: dict[str, dict[str, Any]] = {}
         for channel in sorted(resolved_channels):
             source = resolved_channels[channel]
             suffix = source.suffix.lower() or ".bin"
             target = raw_dir / f"{channel}{suffix}"
-            shutil.copyfile(source, target)
+            shutil.copyfile(native_io_path(source), native_io_path(target))
             copied_sha256 = _sha256_file(target)
             source_record = source_records[channel]
             if copied_sha256 != source_record["source_sha256"]:
@@ -374,9 +378,9 @@ def build_portable_texture_package(
         evidence_path = staging / "texture_pack_evidence.json"
         _write_evidence(evidence_path, evidence)
         if atomic_commit:
-            os.replace(staging, destination)
+            os.replace(native_io_path(staging), native_io_path(destination))
     except Exception:
-        shutil.rmtree(staging, ignore_errors=True)
+        shutil.rmtree(native_io_path(staging), ignore_errors=True)
         raise
 
     committed_evidence = destination / "texture_pack_evidence.json"

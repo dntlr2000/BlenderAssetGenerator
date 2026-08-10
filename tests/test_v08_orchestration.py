@@ -14,6 +14,7 @@ from PIL import Image
 import codex_blender_modeler.orchestration.locks as orchestration_locks
 import codex_blender_modeler.orchestration.service as orchestration_service
 import codex_blender_modeler.qa.multiview_sanity as multiview_sanity
+from codex_blender_modeler.autonomy.service import _policy_gate_exact_output_path
 from codex_blender_modeler.optimization.service import initialize_asset_profile
 from codex_blender_modeler.orchestration.locks import (
     acquire_workflow_lock,
@@ -23,6 +24,7 @@ from codex_blender_modeler.orchestration.locks import (
 from codex_blender_modeler.orchestration.models import (
     WorkflowAttempt,
     WorkflowLock,
+    WorkflowPlan,
     WorkflowStep,
 )
 from codex_blender_modeler.orchestration.service import (
@@ -3391,6 +3393,32 @@ def test_explicit_unity_target_stops_at_engine_neutral_package(
     assert portable_ids.index("portable.report") < portable_ids.index(
         "portable.final_approval"
     )
+    workflow = WorkflowPlan.model_validate(plan)
+    exact_output = _policy_gate_exact_output_path(
+        workspace / "portable_asset",
+        workflow,
+        boundary_step_id="portable.final_approval",
+        gate_kind="final_package_acknowledgement",
+    )
+    planned_manifest = next(
+        output["path"]
+        for output in next(
+            item for item in plan["steps"] if item["step_id"] == "portable.report"
+        )["outputs"]
+        if output["artifact_id"] == "portable.report.manifest"
+    )
+    assert exact_output == (
+        "portable.report.manifest",
+        workspace / "portable_asset" / planned_manifest,
+    )
+    assert "/artifacts/pdf/" in planned_manifest
+    with pytest.raises(ValueError, match="not a prerequisite"):
+        _policy_gate_exact_output_path(
+            workspace / "portable_asset",
+            workflow,
+            boundary_step_id="portable.roundtrip",
+            gate_kind="final_package_acknowledgement",
+        )
     adapters = destination_adapters()
     unity = next(
         item for item in adapters["adapters"] if item["destination"] == "unity"

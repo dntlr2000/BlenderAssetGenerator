@@ -1,0 +1,1041 @@
+{
+  "$defs": {
+    "BooleanOperand": {
+      "additionalProperties": false,
+      "description": "Declare one whitelisted mesh operand with a stable tree-local identity.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "geometry": {
+          "discriminator": {
+            "mapping": {
+              "loft": "#/$defs/LoftGeometry",
+              "multi_loop_extrude": "#/$defs/MultiLoopExtrudeGeometry",
+              "primitive": "#/$defs/PrimitiveGeometry",
+              "profile_extrude": "#/$defs/ProfileExtrudeGeometry",
+              "revolve": "#/$defs/RevolveGeometry",
+              "sweep": "#/$defs/SweepGeometry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PrimitiveGeometry"
+            },
+            {
+              "$ref": "#/$defs/ProfileExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/RevolveGeometry"
+            },
+            {
+              "$ref": "#/$defs/LoftGeometry"
+            },
+            {
+              "$ref": "#/$defs/SweepGeometry"
+            },
+            {
+              "$ref": "#/$defs/MultiLoopExtrudeGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSpec"
+        }
+      },
+      "required": [
+        "id",
+        "geometry"
+      ],
+      "title": "BooleanOperand",
+      "type": "object"
+    },
+    "BooleanOperation": {
+      "additionalProperties": false,
+      "description": "Combine two previously declared nodes in a topologically ordered Boolean tree.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "UNION",
+            "DIFFERENCE",
+            "INTERSECT"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "left_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Left Id",
+          "type": "string"
+        },
+        "right_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Right Id",
+          "type": "string"
+        },
+        "solver": {
+          "const": "EXACT",
+          "default": "EXACT",
+          "title": "Solver",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "operation",
+        "left_id",
+        "right_id"
+      ],
+      "title": "BooleanOperation",
+      "type": "object"
+    },
+    "BooleanTreeGeometry": {
+      "additionalProperties": false,
+      "description": "Evaluate a bounded declarative binary Boolean tree without arbitrary code.",
+      "properties": {
+        "kind": {
+          "const": "boolean_tree",
+          "default": "boolean_tree",
+          "title": "Kind",
+          "type": "string"
+        },
+        "operands": {
+          "items": {
+            "$ref": "#/$defs/BooleanOperand"
+          },
+          "maxItems": 32,
+          "minItems": 2,
+          "title": "Operands",
+          "type": "array"
+        },
+        "operations": {
+          "items": {
+            "$ref": "#/$defs/BooleanOperation"
+          },
+          "maxItems": 31,
+          "minItems": 1,
+          "title": "Operations",
+          "type": "array"
+        },
+        "root_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Root Id",
+          "type": "string"
+        },
+        "fail_on_non_manifold": {
+          "default": true,
+          "title": "Fail On Non Manifold",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operands",
+        "operations",
+        "root_id"
+      ],
+      "title": "BooleanTreeGeometry",
+      "type": "object"
+    },
+    "EdgeReference": {
+      "additionalProperties": false,
+      "description": "Address one compiled mesh edge by its canonical ordered vertex pair.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "vertices"
+      ],
+      "title": "EdgeReference",
+      "type": "object"
+    },
+    "FaceGroup": {
+      "additionalProperties": false,
+      "description": "Assign a stable group name to deterministic compiled polygon indices.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "face_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Face Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "face_indices"
+      ],
+      "title": "FaceGroup",
+      "type": "object"
+    },
+    "GeometryIntent": {
+      "additionalProperties": false,
+      "description": "Preserve face, edge, shading, topology, subdivision, and LOD intent.",
+      "properties": {
+        "face_groups": {
+          "items": {
+            "$ref": "#/$defs/FaceGroup"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "sharp_edges": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Sharp Edges",
+          "type": "array"
+        },
+        "crease_edges": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Crease Edges",
+          "type": "array"
+        },
+        "bevel_weights": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdge"
+          },
+          "title": "Bevel Weights",
+          "type": "array"
+        },
+        "uv_seams": {
+          "items": {
+            "$ref": "#/$defs/EdgeReference"
+          },
+          "title": "Uv Seams",
+          "type": "array"
+        },
+        "smoothing_policy": {
+          "$ref": "#/$defs/SmoothingPolicy"
+        },
+        "topology_policy": {
+          "default": "static_prop_closed",
+          "enum": [
+            "static_prop_closed",
+            "static_prop_open",
+            "game_ready_lowpoly",
+            "highpoly_bake_source",
+            "modular_architecture",
+            "terrain"
+          ],
+          "title": "Topology Policy",
+          "type": "string"
+        },
+        "subdivision_intent": {
+          "$ref": "#/$defs/SubdivisionIntent"
+        },
+        "lod_intent": {
+          "$ref": "#/$defs/LODIntent"
+        }
+      },
+      "title": "GeometryIntent",
+      "type": "object"
+    },
+    "GeometryNodesTemplateGeometry": {
+      "additionalProperties": false,
+      "description": "Instantiate one fully whitelisted Geometry Nodes template with bounded inputs.",
+      "properties": {
+        "kind": {
+          "const": "geometry_nodes_template",
+          "default": "geometry_nodes_template",
+          "title": "Kind",
+          "type": "string"
+        },
+        "template_id": {
+          "const": "linear_instance_v1",
+          "default": "linear_instance_v1",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "count": {
+          "maximum": 1024,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "spacing": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Spacing",
+          "type": "array"
+        },
+        "instance_dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Instance Dimensions",
+          "type": "array"
+        },
+        "realize_instances": {
+          "const": true,
+          "default": true,
+          "title": "Realize Instances",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "count",
+        "spacing",
+        "instance_dimensions"
+      ],
+      "title": "GeometryNodesTemplateGeometry",
+      "type": "object"
+    },
+    "LODIntent": {
+      "additionalProperties": false,
+      "description": "Carry advisory semantic LOD policy into later V0.7 review.",
+      "properties": {
+        "preserve_silhouette": {
+          "default": true,
+          "title": "Preserve Silhouette",
+          "type": "boolean"
+        },
+        "protected_face_groups": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Protected Face Groups",
+          "type": "array"
+        },
+        "minimum_triangle_ratio": {
+          "default": 0.25,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Triangle Ratio",
+          "type": "number"
+        }
+      },
+      "title": "LODIntent",
+      "type": "object"
+    },
+    "LoftGeometry": {
+      "additionalProperties": false,
+      "description": "Connect two or more open or closed sections with stable correspondence.",
+      "properties": {
+        "kind": {
+          "const": "loft",
+          "default": "loft",
+          "title": "Kind",
+          "type": "string"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/LoftSection"
+          },
+          "maxItems": 64,
+          "minItems": 2,
+          "title": "Sections",
+          "type": "array"
+        },
+        "resample_count": {
+          "anyOf": [
+            {
+              "maximum": 512,
+              "minimum": 2,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resample Count"
+        },
+        "cap_policy": {
+          "default": "ends",
+          "enum": [
+            "none",
+            "ends"
+          ],
+          "title": "Cap Policy",
+          "type": "string"
+        },
+        "correspondence_policy": {
+          "default": "minimum_twist",
+          "enum": [
+            "index",
+            "minimum_twist"
+          ],
+          "title": "Correspondence Policy",
+          "type": "string"
+        },
+        "twist_offsets": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Twist Offsets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sections"
+      ],
+      "title": "LoftGeometry",
+      "type": "object"
+    },
+    "LoftSection": {
+      "additionalProperties": false,
+      "description": "Declare one ordered 3D section in a deterministic loft recipe.",
+      "properties": {
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 512,
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "closed": {
+          "title": "Closed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "points",
+        "closed"
+      ],
+      "title": "LoftSection",
+      "type": "object"
+    },
+    "MultiLoopExtrudeGeometry": {
+      "additionalProperties": false,
+      "description": "Extrude one outer profile and optional hole loops along a principal axis.",
+      "properties": {
+        "kind": {
+          "const": "multi_loop_extrude",
+          "default": "multi_loop_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "outer_loop": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 2048,
+          "minItems": 3,
+          "title": "Outer Loop",
+          "type": "array"
+        },
+        "hole_loops": {
+          "items": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "maxItems": 64,
+          "title": "Hole Loops",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "outer_loop",
+        "depth"
+      ],
+      "title": "MultiLoopExtrudeGeometry",
+      "type": "object"
+    },
+    "PrimitiveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "primitive",
+          "default": "primitive",
+          "title": "Kind",
+          "type": "string"
+        },
+        "primitive": {
+          "enum": [
+            "cube",
+            "cylinder",
+            "sphere",
+            "cone",
+            "torus"
+          ],
+          "title": "Primitive",
+          "type": "string"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "segments": {
+          "default": 32,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "ring_segments": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 3,
+          "title": "Ring Segments",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "primitive",
+        "dimensions"
+      ],
+      "title": "PrimitiveGeometry",
+      "type": "object"
+    },
+    "ProfileExtrudeGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "profile_extrude",
+          "default": "profile_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Profile",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Y",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile",
+        "depth"
+      ],
+      "title": "ProfileExtrudeGeometry",
+      "type": "object"
+    },
+    "RevolveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "revolve",
+          "default": "revolve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "description": "Pairs of [radius, height]",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "angle_deg": {
+          "default": 360.0,
+          "exclusiveMinimum": 0,
+          "maximum": 360,
+          "title": "Angle Deg",
+          "type": "number"
+        },
+        "segments": {
+          "default": 48,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "cap_ends": {
+          "default": true,
+          "title": "Cap Ends",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "RevolveGeometry",
+      "type": "object"
+    },
+    "SmoothingPolicy": {
+      "additionalProperties": false,
+      "description": "Describe deterministic flat, angle-based, or weighted hard-surface shading.",
+      "properties": {
+        "mode": {
+          "default": "legacy",
+          "enum": [
+            "legacy",
+            "flat",
+            "smooth_by_angle",
+            "weighted_normals"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "angle_degrees": {
+          "default": 30.0,
+          "exclusiveMaximum": 180,
+          "exclusiveMinimum": 0,
+          "title": "Angle Degrees",
+          "type": "number"
+        },
+        "keep_sharp": {
+          "default": true,
+          "title": "Keep Sharp",
+          "type": "boolean"
+        }
+      },
+      "title": "SmoothingPolicy",
+      "type": "object"
+    },
+    "SubdivisionIntent": {
+      "additionalProperties": false,
+      "description": "Record bounded subdivision intent without silently adding unsupported topology.",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "levels": {
+          "default": 0,
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "boundary_smoothing": {
+          "default": "preserve_corners",
+          "enum": [
+            "preserve_corners",
+            "smooth_all"
+          ],
+          "title": "Boundary Smoothing",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionIntent",
+      "type": "object"
+    },
+    "SweepGeometry": {
+      "additionalProperties": false,
+      "description": "Sweep one 2D profile along a 3D path using a stable transported frame.",
+      "properties": {
+        "kind": {
+          "const": "sweep",
+          "default": "sweep",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 256,
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "profile_closed": {
+          "default": true,
+          "title": "Profile Closed",
+          "type": "boolean"
+        },
+        "path": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 1024,
+          "minItems": 2,
+          "title": "Path",
+          "type": "array"
+        },
+        "path_closed": {
+          "default": false,
+          "title": "Path Closed",
+          "type": "boolean"
+        },
+        "scales": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Scales",
+          "type": "array"
+        },
+        "twist_degrees": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Twist Degrees",
+          "type": "array"
+        },
+        "cap_policy": {
+          "default": "ends",
+          "enum": [
+            "none",
+            "ends"
+          ],
+          "title": "Cap Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile",
+        "path"
+      ],
+      "title": "SweepGeometry",
+      "type": "object"
+    },
+    "TransformSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "scale": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        }
+      },
+      "title": "TransformSpec",
+      "type": "object"
+    },
+    "WeightedEdge": {
+      "additionalProperties": false,
+      "description": "Attach one normalized crease or bevel weight to a canonical edge.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "vertices",
+        "weight"
+      ],
+      "title": "WeightedEdge",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one opt-in structural recipe and intent before isolated materialization.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "semantic_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Semantic Id",
+      "type": "string"
+    },
+    "geometry": {
+      "discriminator": {
+        "mapping": {
+          "boolean_tree": "#/$defs/BooleanTreeGeometry",
+          "geometry_nodes_template": "#/$defs/GeometryNodesTemplateGeometry",
+          "loft": "#/$defs/LoftGeometry",
+          "multi_loop_extrude": "#/$defs/MultiLoopExtrudeGeometry",
+          "sweep": "#/$defs/SweepGeometry"
+        },
+        "propertyName": "kind"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LoftGeometry"
+        },
+        {
+          "$ref": "#/$defs/SweepGeometry"
+        },
+        {
+          "$ref": "#/$defs/BooleanTreeGeometry"
+        },
+        {
+          "$ref": "#/$defs/MultiLoopExtrudeGeometry"
+        },
+        {
+          "$ref": "#/$defs/GeometryNodesTemplateGeometry"
+        }
+      ],
+      "title": "Geometry"
+    },
+    "geometry_intent": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GeometryIntent"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "semantic_id",
+    "geometry"
+  ],
+  "title": "StructuralGeometryCandidate",
+  "type": "object"
+}

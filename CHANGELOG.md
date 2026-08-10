@@ -1,5 +1,58 @@
 # Changelog
 
+## Unreleased — Autonomous Quality Extension 0.1.0
+
+- Added an explicit opt-in `autonomous_static_prop_v1` supervisor over newly created `standard`
+  production workflows without changing the default `standard` or `background_exterior` policies
+  and without changing the project version from `0.9.0`.
+- Added strict `0.1.0` RootAuthorization, single-use machine PolicyAuthorization, immutable budget,
+  state/transition/terminal, candidate, Integrated Quality, review-bundle, package-repair, reference,
+  material-graph, structural-geometry, assembly, and topology companion contracts and checked-in
+  Schemas. `preauthorized_profile` is policy authority, never synthesized user approval.
+- Added local Reference Evidence with bounded foreground-mask candidates and perspective/orthographic
+  camera hypotheses, plus deterministic fallback when OpenCV is unavailable. Hypotheses remain
+  advisory and never mutate the canonical camera by themselves.
+- Added parallel SceneSpec V03 `0.3.0` structural recipes for loft, sweep, multi-loop extrusion,
+  boolean trees, and one whitelisted Geometry Nodes template. Public plan/apply CLI and MCP surfaces
+  create exact-hash derived copies and receipts only; canonical SceneSpec `0.2.0` and legacy jobs are
+  not automatically migrated. AQ structural assignments may additionally carry a full V03 candidate,
+  materialize all structural objects into candidate-owned mesh/receipt/`.blend` evidence, and compile
+  one path-backed V02 candidate for the existing build path before any canonical promotion.
+- Added four-axis Integrated Quality companion evidence for reference alignment, structural
+  integrity, material fidelity, and production readiness while preserving the existing V0.6 direct
+  score. Hard gates, unavailable evidence, Pareto/lexicographic ranking, minimum gain, bounded
+  budgets, duplicate/oscillation/plateau detection, and best-known candidate preservation prevent a
+  single score or unbounded loop from authorizing promotion.
+- Hardened candidate evaluation so build, inventory, validation, effective SceneSpec, assembly,
+  topology, and quality provenance are candidate-owned. Eight named candidate hard gates feed the
+  same hard-gate/Pareto/minimum-gain ranker, while unavailable material or production evidence stays
+  unscorable.
+- Hardened first-use PolicyAuthorization by persisting, reloading, and fully revalidating exact
+  root/profile/budget/target/dependency/predecessor/single-use/hash identity before any authorized
+  side effect. The active profile keeps two bounded material rounds and routes cycle, plateau,
+  repeated failure, or budget exhaustion to review instead of extending authority.
+- Added exact terminal verification for IQ JSON/PDF/manifest provenance and mutually exclusive
+  package/roundtrip versus review-bundle evidence. Quality-pass completion requires an immutable
+  portable GLB and fresh passed clean-import roundtrip; quality non-pass creates a non-production,
+  non-handoff-eligible review bundle.
+- Added one bounded derived package-repair runtime for an immutable package-ID collision or an exact
+  format-only roundtrip failure. It uses a fresh `-aqrNN` package ID and accepts only a fresh passed
+  clean import; material, bounds, dependency, Blender, unknown, stale, and tampered failures remain
+  fail-closed.
+- Unified Windows long-path package and Destination Handoff directory hashing so generation and
+  V0.9 postflight enumerate the same package-relative recursive file set while real missing, added,
+  escaped, stale, or tampered files remain fail-closed.
+- Added deterministic host/optional Blender benchmarks, AQ CLI/MCP surfaces, isolated gate scripts,
+  migration/start/architecture/test/verification documentation, and explicit legacy V0.7–V0.9
+  regression coverage. These fixtures validate contracts and materialization, not generalized
+  reference reconstruction quality or destination-runtime parity.
+- Verified on 2026-08-10 with Windows 11, Python 3.14.6, and Blender 5.0.1/Python 3.11.13 EEVEE:
+  full pytest `1145 passed, 20 skipped, 8 warnings`, Ruff/doctor/GLB-FBX-OBJ compatibility passed,
+  the AQ focused gate reported `195 passed, 2 skipped`, the actual Blender AQ bundle reported
+  `14 passed`, the 8-case benchmark passed including three Blender structural cases, and the chained
+  V0.7/V0.8/V0.9 gates completed. This verifies `autonomous_static_prop_v1` only and is not an
+  arbitrary-reference before/after quality claim.
+
 ## 0.9.0
 
 - Added explicit `desktop_in_session` execution for Asset Production Dispatcher and Delegated
