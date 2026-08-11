@@ -1,0 +1,54 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v08-f3830cf3-handoff",
+  "pdf_path": "codex_handoff/handoff_report.pdf",
+  "pdf_sha256": "be8c424b1812e18d5573806e0919308bec39d9bdce3ab8c0d46f438e37a544a8",
+  "source_fingerprint": "0abcdc82f359a365fd7e0655ab7cb75b324eaf8ec06b197f18ff00158ca3ff89",
+  "sources": [
+    {
+      "file_id": "handoff-manifest-e898f9ecd4db4917",
+      "kind": "handoff_manifest",
+      "path": "codex_handoff/handoff_manifest.json",
+      "sha256": "1c8ef0cc605c93079fc6bc4171ac59aa52002a45d3fcf7ff6a8b6e671a83d67a",
+      "byte_size": 23136,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "destination-context-42d2fe58df8fdd51",
+      "kind": "destination_context",
+      "path": "codex_handoff/destination_context.json",
+      "sha256": "a1d2598ce99f017c0481e683a4f1fd5e225e4b5bf85748041cd10db24d0843ae",
+      "byte_size": 3736,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "assembly-manifest-c26aeb9114f37c15",
+      "kind": "assembly_manifest",
+      "path": "codex_handoff/assembly_manifest.json",
+      "sha256": "6a09a3097fac8b21e8725ead48184f647d6863c64b99f531cb74ef327d63ba36",
+      "byte_size": 5276,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "material-mapping-a18a8a2462196b6f",
+      "kind": "material_mapping",
+      "path": "codex_handoff/material_mapping.json",
+      "sha256": "9b3c2093a9f62d477a696d985f4a517650f668c24d0eab27e7ed68a4945bb3e7",
+      "byte_size": 5120,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-checklist-7c08261c1e490e1a",
+      "kind": "import_checklist",
+      "path": "codex_handoff/import_checklist.json",
+      "sha256": "7527103f61f848ef06b1e8a6773b5d0254581c4261156a3aa25376e041135b1b",
+      "byte_size": 3457,
+      "media_type": "application/json"
+    }
+  ],
+  "generated_at": "2026-08-10T06:58:06.929173Z",
+  "warnings": [
+    "PDF is derived; machine-readable JSON remains authoritative.",
+    "Destination runtime parity is not verified by this report."
+  ]
+}

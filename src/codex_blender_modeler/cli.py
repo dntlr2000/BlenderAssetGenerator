@@ -39,6 +39,15 @@ from .auto_revision.candidate_review_service import (
 )
 from .autonomy.planner import plan_autonomous_static_prop
 from .autonomy.profiles import get_autonomy_profile_status
+from .autonomy_v2 import (
+    advance_autonomy_v2,
+    autonomy_v2_profile_status,
+    cancel_autonomy_v2,
+    delivery_profile_catalog,
+    get_autonomy_v2_status,
+    plan_autonomous_static_prop_v2,
+    run_autonomy_v2,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -110,6 +119,7 @@ from .production import (
     get_asset_production_dispatch_status,
     record_delegated_production_step,
 )
+from .production.controller_executor import controller_capability_catalog
 from .qa import (
     ExistingFileQATargetProvider,
     get_job_semantic_reference_mask_status,
@@ -1777,6 +1787,153 @@ def autonomy_profile_status_command(
     console.print_json(
         json.dumps(get_autonomy_profile_status(profile_id), ensure_ascii=False)
     )
+
+
+@app.command("autonomy-v2-profile-status")
+def autonomy_v2_profile_status_command() -> None:
+    """Report the parallel AQ v2 activation state without enabling it."""
+
+    console.print_json(json.dumps(autonomy_v2_profile_status(), ensure_ascii=False))
+
+
+@app.command("autonomy-v2-delivery-profiles")
+def autonomy_v2_delivery_profiles_command() -> None:
+    """List exact review, GLB, and FBX delivery mappings for AQ v2."""
+
+    console.print_json(json.dumps(delivery_profile_catalog(), ensure_ascii=False))
+
+
+@app.command("autonomy-v2-plan")
+def autonomy_v2_plan_command(
+    request: str,
+    reference_path: Annotated[str, typer.Option("--reference")],
+    target_subject: Annotated[str, typer.Option("--target-subject")],
+    deliveries: Annotated[
+        str,
+        typer.Option(
+            "--deliveries",
+            help="Comma-separated: review_only,portable_gltf,portable_fbx",
+        ),
+    ] = "portable_gltf",
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    controller_execution_mode: Annotated[
+        str, typer.Option("--controller-mode")
+    ] = "desktop_in_session",
+    destination_hint: Annotated[
+        str, typer.Option("--destination-hint")
+    ] = "engine_neutral",
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Plan the disabled-by-default AQ v2 overlay only after explicit experimental opt-in."""
+
+    requested = [item.strip() for item in deliveries.split(",") if item.strip()]
+    result = plan_autonomous_static_prop_v2(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=requested,  # type: ignore[arg-type]
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-status")
+def autonomy_v2_status_command(job_id: str, session_id: str) -> None:
+    """Reconstruct one experimental v2 session without advancing it."""
+
+    console.print_json(
+        json.dumps(get_autonomy_v2_status(job_id, session_id), ensure_ascii=False)
+    )
+
+
+def _load_quality_submission_payload(path: Path | None) -> dict[str, object] | None:
+    """Read one strict AQ v2 quality-submission object for a CLI host action."""
+
+    if path is None:
+        return None
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("AQ v2 quality submission JSON must contain one object")
+    return payload
+
+
+@app.command("autonomy-v2-advance")
+def autonomy_v2_advance_command(
+    job_id: str,
+    session_id: str,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Advance at most one experimental AQ v2 host action and stop at safe boundaries."""
+
+    result = advance_autonomy_v2(
+        job_id,
+        session_id,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-run")
+def autonomy_v2_run_command(
+    job_id: str,
+    session_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions")] = 8,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Run a bounded AQ v2 action loop that stops at input, controller, and approvals."""
+
+    result = run_autonomy_v2(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-cancel")
+def autonomy_v2_cancel_command(
+    job_id: str,
+    session_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Cancel future v2 actions while preserving immutable session evidence."""
+
+    console.print_json(
+        json.dumps(
+            cancel_autonomy_v2(job_id, session_id, reason=reason),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("controller-executor-status")
+def controller_executor_status_command() -> None:
+    """Report exact controller adapter and phase-profile availability."""
+
+    console.print_json(json.dumps(controller_capability_catalog(), ensure_ascii=False))
 
 
 @app.command("scene-spec-v03-migration-plan")

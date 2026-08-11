@@ -1,0 +1,372 @@
+{
+  "schema_version": "0.7.0",
+  "package_id": "v08-f3830cf3-package",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de"
+    },
+    "source_fingerprint": "92d47a0a8c48a6ecbf84f30c3e84297c700a12c020f15afda4f29fd11345fd21",
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+      }
+    ]
+  },
+  "optimization_plan": {
+    "id": "plan.v08-f3830cf3",
+    "kind": "optimization_plan",
+    "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_plan.json",
+    "sha256": "7f3af0a6460c7cafa51f62bc8a216c1384c13bb4e114665400e221b405cb9132"
+  },
+  "material_conversion": {
+    "id": "manifest.material.conversion.v08-f3830cf3-materials",
+    "kind": "portable_material_conversion_manifest",
+    "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_manifest.json",
+    "sha256": "bffc9650eee842b37cfc3e12da1979893c841e7be25b0da7d7e4a492ad537524"
+  },
+  "source_manifests": [
+    {
+      "id": "manifest.lod.v08-f3830cf3",
+      "kind": "lod_manifest",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/lod_manifest.json",
+      "sha256": "47ed1ba5fc9bdc930efba542bab5816ab64280a449ffaa3c2ca75369dfaeeab3"
+    },
+    {
+      "id": "manifest.collision.v08-f3830cf3",
+      "kind": "collision_manifest",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/collision_manifest.json",
+      "sha256": "8249434de44565b072e36edd5f434c41e6afa09826616c99a1051a152e39ee05"
+    },
+    {
+      "id": "manifest.uv.v08-f3830cf3",
+      "kind": "uv_manifest",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/uv_manifest.json",
+      "sha256": "dcf2b0142fd618b7923844b763b28a4087c549383cfda5b65429bfab6c3df6f3"
+    },
+    {
+      "id": "manifest.texture_pack.v08-f3830cf3",
+      "kind": "texture_pack_manifest",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/texture_pack_manifest.json",
+      "sha256": "ba47e0d084b6937c22d7305dc09d08fefb6bd393e8bd2d1c9416aad8382cde68"
+    },
+    {
+      "id": "report.asset_cost.v08-f3830cf3",
+      "kind": "asset_cost_report",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/asset_cost_report.json",
+      "sha256": "57c22755c9c9584e31bdeb541f6bebdd9b3de4893e1db54b163749614f8af555"
+    }
+  ],
+  "status": "complete",
+  "package_root": "exports/packages/portable_gltf/v08-f3830cf3-package",
+  "files": [
+    {
+      "id": "package.primary",
+      "kind": "primary_asset",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/asset.glb",
+      "sha256": "7e2c658f920291e4cd37a799281dbabbbe076981e6f2f1734d6f12a7ac2f6cd3",
+      "byte_size": 338712,
+      "media_type": "model/gltf-binary"
+    },
+    {
+      "id": "package.file.0002",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/export_evidence.json",
+      "sha256": "bea4ecd303842fc5ab4da377621754897547314579c24b1899de4d6e1b43c65b",
+      "byte_size": 22769,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0003",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/asset_cost_report.json",
+      "sha256": "57c22755c9c9584e31bdeb541f6bebdd9b3de4893e1db54b163749614f8af555",
+      "byte_size": 4559,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0004",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/asset_profile.json",
+      "sha256": "d68b4749787cab757c7331b95508e57fcac5e5d482351b32686397133602d73b",
+      "byte_size": 1930,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0005",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/collision_manifest.json",
+      "sha256": "8249434de44565b072e36edd5f434c41e6afa09826616c99a1051a152e39ee05",
+      "byte_size": 2377,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0006",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/delivery_mapping.json",
+      "sha256": "cddc9047994c1159886181dba15d19f9a89734ff8a8f590df882c9455a0aad62",
+      "byte_size": 1423,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0007",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/execution_plan.json",
+      "sha256": "8f8388d6ded5c7254921bbcc560b3011a2718ae0179be10e5a59fed0ccc4940a",
+      "byte_size": 2730,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0008",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/lod_manifest.json",
+      "sha256": "47ed1ba5fc9bdc930efba542bab5816ab64280a449ffaa3c2ca75369dfaeeab3",
+      "byte_size": 4303,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0009",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_evidence.json",
+      "sha256": "b178336f66e1f5a033d316b85a65534fecc032a351003f9b4697a321812bf845",
+      "byte_size": 16035,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0010",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_manifest.json",
+      "sha256": "bffc9650eee842b37cfc3e12da1979893c841e7be25b0da7d7e4a492ad537524",
+      "byte_size": 11638,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0011",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_plan.json",
+      "sha256": "37bb964dc8e59c3498e335829bd3f8a1b0fb2669bc32943b4170952dd2f89ad8",
+      "byte_size": 4070,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0012",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/mesh_preflight_report.json",
+      "sha256": "158048395a0652a6b7326721f8b4d3d7853c2432a242e41770c1e7bd603a59c5",
+      "byte_size": 3044,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0013",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_plan.json",
+      "sha256": "7f3af0a6460c7cafa51f62bc8a216c1384c13bb4e114665400e221b405cb9132",
+      "byte_size": 4478,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0014",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_policy_authorization.json",
+      "sha256": "cbe9db41c72d3b4184e1d0f718d07706af0e81612d892152e0826bb1569d6b93",
+      "byte_size": 4054,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0015",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_review.json",
+      "sha256": "313cf78dea57e6f04a911b24dcb0e7ac21f2bb4b59b8b65258fdceb6fa9ca20a",
+      "byte_size": 5604,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0016",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimized_asset_evidence.json",
+      "sha256": "0b73d641193f70361984a169a010b5392059d715daa975284907a662cd4eecfe",
+      "byte_size": 21941,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0017",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/review_plan.json",
+      "sha256": "0cbac426379ff01423388908a7c8d0111c55f7dcc184bb648557d6fc78c9e41c",
+      "byte_size": 2578,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0018",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/metadata/uv_manifest.json",
+      "sha256": "dcf2b0142fd618b7923844b763b28a4087c549383cfda5b65429bfab6c3df6f3",
+      "byte_size": 2706,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0019",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/texture_pack_manifest.json",
+      "sha256": "ba47e0d084b6937c22d7305dc09d08fefb6bd393e8bd2d1c9416aad8382cde68",
+      "byte_size": 17469,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0020",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/base_color.png",
+      "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6",
+      "byte_size": 568,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0021",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/emission.png",
+      "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c",
+      "byte_size": 270,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0022",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/height.png",
+      "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0023",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/metallic.png",
+      "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0024",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/normal.png",
+      "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c",
+      "byte_size": 564,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0025",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/opacity.png",
+      "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0026",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/roughness.png",
+      "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0027",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/packed/gltf_orm.png",
+      "sha256": "855aedf08827fa7c577a065a846b69620b71166fad1f3a50d906cfe822b45359",
+      "byte_size": 25486,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0028",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+      "byte_size": 77269,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0029",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/emission.png",
+      "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+      "byte_size": 55162,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0030",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+      "byte_size": 74768,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0031",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/normal.png",
+      "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+      "byte_size": 64474,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0032",
+      "kind": "texture",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+      "byte_size": 77842,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0033",
+      "kind": "metadata",
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/texture_pack_evidence.json",
+      "sha256": "feff104abdbfe395bec6fc2560e28467cbe3769071b8aa53271f3732d47f3298",
+      "byte_size": 4895,
+      "media_type": "application/json"
+    }
+  ],
+  "primary_file_id": "package.primary",
+  "semantic_ids": [
+    "product.body"
+  ],
+  "material_ids": [
+    "mat.product.blue"
+  ],
+  "absolute_path_count": 0,
+  "missing_dependency_count": 0,
+  "created_at": "2026-08-10T06:56:59.738354Z",
+  "completed_at": "2026-08-10T06:56:59.738354Z",
+  "canonical_unchanged": true,
+  "known_losses": [
+    "Height/displacement is represented only through the baked tangent-space normal channel.",
+    "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+    "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+  ],
+  "warnings": [],
+  "errors": []
+}

@@ -1,0 +1,109 @@
+{
+  "additionalProperties": false,
+  "description": "Prove one exact-plan application published only a derived v2 payload copy.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "migration_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Migration Id",
+      "type": "string"
+    },
+    "plan_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Plan Path",
+      "type": "string"
+    },
+    "plan_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan File Sha256",
+      "type": "string"
+    },
+    "source_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Source Path",
+      "type": "string"
+    },
+    "source_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source File Sha256",
+      "type": "string"
+    },
+    "candidate_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Candidate Path",
+      "type": "string"
+    },
+    "candidate_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate File Sha256",
+      "type": "string"
+    },
+    "derived_payload_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Derived Payload Path",
+      "type": "string"
+    },
+    "derived_payload_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Derived Payload File Sha256",
+      "type": "string"
+    },
+    "evidence_status": {
+      "enum": [
+        "exact_available_evidence",
+        "candidate_supplied_gaps"
+      ],
+      "title": "Evidence Status",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "canonical_mutation_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Mutation Allowed",
+      "type": "boolean"
+    },
+    "applied": {
+      "const": true,
+      "default": true,
+      "title": "Applied",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "migration_id",
+    "plan_path",
+    "plan_file_sha256",
+    "source_path",
+    "source_file_sha256",
+    "candidate_path",
+    "candidate_file_sha256",
+    "derived_payload_path",
+    "derived_payload_file_sha256",
+    "evidence_status",
+    "limitations",
+    "created_at"
+  ],
+  "title": "MeshPayloadV02MigrationReceipt",
+  "type": "object"
+}

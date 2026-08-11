@@ -1,0 +1,604 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v08-f3830cf3-handoff",
+  "job_id": "aq_full_box",
+  "profile_id": "portable_gltf",
+  "package_id": "v08-f3830cf3-package",
+  "run_id": "v08-f3830cf3",
+  "package_manifest": {
+    "file_id": "package-manifest-cd844f51dfda7eb6",
+    "kind": "package_manifest",
+    "path": "package/package_manifest.json",
+    "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b",
+    "byte_size": 15381,
+    "media_type": "application/json"
+  },
+  "roundtrip_validation": {
+    "file_id": "roundtrip-validation-a54b4f44b9d9ffe0",
+    "kind": "roundtrip_validation",
+    "path": "evidence/roundtrip_validation.json",
+    "sha256": "4ae8bc9f0680f3a77b3e0b886e08155c5251f6bab05cf653b3798a6e8d5a1925",
+    "byte_size": 3690,
+    "media_type": "application/json"
+  },
+  "primary_model": {
+    "file_id": "primary-model-ee22f811bbe4b43e",
+    "kind": "primary_model",
+    "path": "package/asset.glb",
+    "sha256": "7e2c658f920291e4cd37a799281dbabbbe076981e6f2f1734d6f12a7ac2f6cd3",
+    "byte_size": 338712,
+    "media_type": "model/gltf-binary"
+  },
+  "textures": [
+    {
+      "file_id": "texture-b22363f7fd5fc994",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/base_color.png",
+      "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6",
+      "byte_size": 568,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-70632596a3e608de",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/emission.png",
+      "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c",
+      "byte_size": 270,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-d0f60855a7ce958d",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/height.png",
+      "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-c7281fcd4e197e83",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/metallic.png",
+      "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-61cc562e6c279e47",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/normal.png",
+      "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c",
+      "byte_size": 564,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-7623968106f1c292",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/opacity.png",
+      "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-4af9b5d303978c48",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/roughness.png",
+      "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-dfb2f7125191e008",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/packed/gltf_orm.png",
+      "sha256": "855aedf08827fa7c577a065a846b69620b71166fad1f3a50d906cfe822b45359",
+      "byte_size": 25486,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-e3eb211f285a40ee",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+      "byte_size": 77269,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-37aa1e22b642c6be",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/emission.png",
+      "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+      "byte_size": 55162,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-3edb7240003aaa09",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+      "byte_size": 74768,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-93fea77afa99a783",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/normal.png",
+      "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+      "byte_size": 64474,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da5198a5ac86f8c5",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+      "byte_size": 77842,
+      "media_type": "image/png"
+    }
+  ],
+  "semantic_ids": [
+    "product.body"
+  ],
+  "material_ids": [
+    "mat.product.blue"
+  ],
+  "destination_context": {
+    "file_id": "destination-context-42d2fe58df8fdd51",
+    "kind": "destination_context",
+    "path": "codex_handoff/destination_context.json",
+    "sha256": "a1d2598ce99f017c0481e683a4f1fd5e225e4b5bf85748041cd10db24d0843ae",
+    "byte_size": 3736,
+    "media_type": "application/json"
+  },
+  "assembly_manifest": {
+    "file_id": "assembly-manifest-c26aeb9114f37c15",
+    "kind": "assembly_manifest",
+    "path": "codex_handoff/assembly_manifest.json",
+    "sha256": "6a09a3097fac8b21e8725ead48184f647d6863c64b99f531cb74ef327d63ba36",
+    "byte_size": 5276,
+    "media_type": "application/json"
+  },
+  "material_mapping": {
+    "file_id": "material-mapping-a18a8a2462196b6f",
+    "kind": "material_mapping",
+    "path": "codex_handoff/material_mapping.json",
+    "sha256": "9b3c2093a9f62d477a696d985f4a517650f668c24d0eab27e7ed68a4945bb3e7",
+    "byte_size": 5120,
+    "media_type": "application/json"
+  },
+  "import_checklist": {
+    "file_id": "import-checklist-7c08261c1e490e1a",
+    "kind": "import_checklist",
+    "path": "codex_handoff/import_checklist.json",
+    "sha256": "7527103f61f848ef06b1e8a6773b5d0254581c4261156a3aa25376e041135b1b",
+    "byte_size": 3457,
+    "media_type": "application/json"
+  },
+  "import_prompt": {
+    "file_id": "prompt-template-c6923dae2883c1b3",
+    "kind": "prompt_template",
+    "path": "codex_handoff/codex_import_prompt.md",
+    "sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+    "byte_size": 3583,
+    "media_type": "text/markdown"
+  },
+  "known_limitations": {
+    "file_id": "known-limitations-b1292dcfee9aff4f",
+    "kind": "known_limitations",
+    "path": "codex_handoff/known_limitations.md",
+    "sha256": "99db186d914526b4c65cc2dcf963f6876d8e8bf6f324e03a1397d59408853559",
+    "byte_size": 2113,
+    "media_type": "text/markdown"
+  },
+  "import_schemas": [
+    {
+      "file_id": "import-schema-6807f6114c79b047",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_plan.schema.json",
+      "sha256": "7917c5921d27d635d8a42a27f7712485994ff39290d0b5890926cfc239bce445",
+      "byte_size": 3315,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-77f386a2e647c90e",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_receipt.schema.json",
+      "sha256": "cc4b549866d63c8fb0bf3251c27aebf9cb67a760b653fea4f82df2a7ac34732b",
+      "byte_size": 1721,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-2865e6bfc60f37ba",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_validation.schema.json",
+      "sha256": "be00913c699c23a6302a0d3d45bdb5bb53822381493d9301770574f3362fb397",
+      "byte_size": 2855,
+      "media_type": "application/json"
+    }
+  ],
+  "assembly_manifest_sha256": "6a09a3097fac8b21e8725ead48184f647d6863c64b99f531cb74ef327d63ba36",
+  "material_mapping_sha256": "9b3c2093a9f62d477a696d985f4a517650f668c24d0eab27e7ed68a4945bb3e7",
+  "prompt_template_sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+  "lod_present": true,
+  "collider_present": true,
+  "supported_scope": [
+    "static asset import planning",
+    "axis, unit, pivot, and hierarchy reconstruction planning",
+    "portable PBR channel mapping",
+    "LOD and collider reconstruction planning",
+    "user-approved destination import and validation"
+  ],
+  "excluded_scope": [
+    "Unity or Unreal Editor automation",
+    "engine prefab, actor, or runtime material graph creation",
+    "runtime parity claims",
+    "CAD B-Rep",
+    "rigging, skinning, and animation",
+    "gameplay logic",
+    "unapproved destination project changes"
+  ],
+  "core_files": [
+    {
+      "file_id": "package-manifest-cd844f51dfda7eb6",
+      "kind": "package_manifest",
+      "path": "package/package_manifest.json",
+      "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b",
+      "byte_size": 15381,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "primary-model-ee22f811bbe4b43e",
+      "kind": "primary_model",
+      "path": "package/asset.glb",
+      "sha256": "7e2c658f920291e4cd37a799281dbabbbe076981e6f2f1734d6f12a7ac2f6cd3",
+      "byte_size": 338712,
+      "media_type": "model/gltf-binary"
+    },
+    {
+      "file_id": "package-file-6d4c0a8eee5f1ff3",
+      "kind": "package_file",
+      "path": "package/export_evidence.json",
+      "sha256": "bea4ecd303842fc5ab4da377621754897547314579c24b1899de4d6e1b43c65b",
+      "byte_size": 22769,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-a7cea156700d4359",
+      "kind": "package_file",
+      "path": "package/metadata/asset_cost_report.json",
+      "sha256": "57c22755c9c9584e31bdeb541f6bebdd9b3de4893e1db54b163749614f8af555",
+      "byte_size": 4559,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-e459572724ec67f8",
+      "kind": "package_file",
+      "path": "package/metadata/asset_profile.json",
+      "sha256": "d68b4749787cab757c7331b95508e57fcac5e5d482351b32686397133602d73b",
+      "byte_size": 1930,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-9c316250504b4f0b",
+      "kind": "package_file",
+      "path": "package/metadata/collision_manifest.json",
+      "sha256": "8249434de44565b072e36edd5f434c41e6afa09826616c99a1051a152e39ee05",
+      "byte_size": 2377,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-bcf107edb7b90f9a",
+      "kind": "package_file",
+      "path": "package/metadata/delivery_mapping.json",
+      "sha256": "cddc9047994c1159886181dba15d19f9a89734ff8a8f590df882c9455a0aad62",
+      "byte_size": 1423,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-b336441f17c32d69",
+      "kind": "package_file",
+      "path": "package/metadata/execution_plan.json",
+      "sha256": "8f8388d6ded5c7254921bbcc560b3011a2718ae0179be10e5a59fed0ccc4940a",
+      "byte_size": 2730,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-2fcadada0f000dcb",
+      "kind": "package_file",
+      "path": "package/metadata/lod_manifest.json",
+      "sha256": "47ed1ba5fc9bdc930efba542bab5816ab64280a449ffaa3c2ca75369dfaeeab3",
+      "byte_size": 4303,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-58cb67ba62ee2544",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_evidence.json",
+      "sha256": "b178336f66e1f5a033d316b85a65534fecc032a351003f9b4697a321812bf845",
+      "byte_size": 16035,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-36d604f06f6fc8c4",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_manifest.json",
+      "sha256": "bffc9650eee842b37cfc3e12da1979893c841e7be25b0da7d7e4a492ad537524",
+      "byte_size": 11638,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-64a9126deed1065c",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_plan.json",
+      "sha256": "37bb964dc8e59c3498e335829bd3f8a1b0fb2669bc32943b4170952dd2f89ad8",
+      "byte_size": 4070,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-603503b580f43f7b",
+      "kind": "package_file",
+      "path": "package/metadata/mesh_preflight_report.json",
+      "sha256": "158048395a0652a6b7326721f8b4d3d7853c2432a242e41770c1e7bd603a59c5",
+      "byte_size": 3044,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-78d5938f1cb46fe1",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_plan.json",
+      "sha256": "7f3af0a6460c7cafa51f62bc8a216c1384c13bb4e114665400e221b405cb9132",
+      "byte_size": 4478,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-17761f82af4fd916",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_policy_authorization.json",
+      "sha256": "cbe9db41c72d3b4184e1d0f718d07706af0e81612d892152e0826bb1569d6b93",
+      "byte_size": 4054,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-212008b241043b9e",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_review.json",
+      "sha256": "313cf78dea57e6f04a911b24dcb0e7ac21f2bb4b59b8b65258fdceb6fa9ca20a",
+      "byte_size": 5604,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-5aee929113c6907f",
+      "kind": "package_file",
+      "path": "package/metadata/optimized_asset_evidence.json",
+      "sha256": "0b73d641193f70361984a169a010b5392059d715daa975284907a662cd4eecfe",
+      "byte_size": 21941,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-a93d4c642af428b3",
+      "kind": "package_file",
+      "path": "package/metadata/review_plan.json",
+      "sha256": "0cbac426379ff01423388908a7c8d0111c55f7dcc184bb648557d6fc78c9e41c",
+      "byte_size": 2578,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-aae6e4754bf52e60",
+      "kind": "package_file",
+      "path": "package/metadata/uv_manifest.json",
+      "sha256": "dcf2b0142fd618b7923844b763b28a4087c549383cfda5b65429bfab6c3df6f3",
+      "byte_size": 2706,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-f5c968574957c476",
+      "kind": "package_file",
+      "path": "package/texture_pack_manifest.json",
+      "sha256": "ba47e0d084b6937c22d7305dc09d08fefb6bd393e8bd2d1c9416aad8382cde68",
+      "byte_size": 17469,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "texture-b22363f7fd5fc994",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/base_color.png",
+      "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6",
+      "byte_size": 568,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-70632596a3e608de",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/emission.png",
+      "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c",
+      "byte_size": 270,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-d0f60855a7ce958d",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/height.png",
+      "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-c7281fcd4e197e83",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/metallic.png",
+      "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-61cc562e6c279e47",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/normal.png",
+      "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c",
+      "byte_size": 564,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-7623968106f1c292",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/opacity.png",
+      "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248",
+      "byte_size": 369,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-4af9b5d303978c48",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.product.blue-d0410334/roughness.png",
+      "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e",
+      "byte_size": 370,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-dfb2f7125191e008",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/packed/gltf_orm.png",
+      "sha256": "855aedf08827fa7c577a065a846b69620b71166fad1f3a50d906cfe822b45359",
+      "byte_size": 25486,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-e3eb211f285a40ee",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+      "byte_size": 77269,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-37aa1e22b642c6be",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/emission.png",
+      "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+      "byte_size": 55162,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-3edb7240003aaa09",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+      "byte_size": 74768,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-93fea77afa99a783",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/normal.png",
+      "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+      "byte_size": 64474,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da5198a5ac86f8c5",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+      "byte_size": 77842,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "package-file-a693b5ba61a334ba",
+      "kind": "package_file",
+      "path": "package/textures/portable_atlas/texture_pack_evidence.json",
+      "sha256": "feff104abdbfe395bec6fc2560e28467cbe3769071b8aa53271f3732d47f3298",
+      "byte_size": 4895,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "roundtrip-validation-a54b4f44b9d9ffe0",
+      "kind": "roundtrip_validation",
+      "path": "evidence/roundtrip_validation.json",
+      "sha256": "4ae8bc9f0680f3a77b3e0b886e08155c5251f6bab05cf653b3798a6e8d5a1925",
+      "byte_size": 3690,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "roundtrip-evidence-6cda4c367b320879",
+      "kind": "roundtrip_evidence",
+      "path": "evidence/roundtrip_evidence.json",
+      "sha256": "3ae7c138846529566dae2b8ae103825a9eca374d0981cfe7ec76c6ac47f46643",
+      "byte_size": 35979,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "destination-context-42d2fe58df8fdd51",
+      "kind": "destination_context",
+      "path": "codex_handoff/destination_context.json",
+      "sha256": "a1d2598ce99f017c0481e683a4f1fd5e225e4b5bf85748041cd10db24d0843ae",
+      "byte_size": 3736,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "assembly-manifest-c26aeb9114f37c15",
+      "kind": "assembly_manifest",
+      "path": "codex_handoff/assembly_manifest.json",
+      "sha256": "6a09a3097fac8b21e8725ead48184f647d6863c64b99f531cb74ef327d63ba36",
+      "byte_size": 5276,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "material-mapping-a18a8a2462196b6f",
+      "kind": "material_mapping",
+      "path": "codex_handoff/material_mapping.json",
+      "sha256": "9b3c2093a9f62d477a696d985f4a517650f668c24d0eab27e7ed68a4945bb3e7",
+      "byte_size": 5120,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-checklist-7c08261c1e490e1a",
+      "kind": "import_checklist",
+      "path": "codex_handoff/import_checklist.json",
+      "sha256": "7527103f61f848ef06b1e8a6773b5d0254581c4261156a3aa25376e041135b1b",
+      "byte_size": 3457,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "prompt-template-c6923dae2883c1b3",
+      "kind": "prompt_template",
+      "path": "codex_handoff/codex_import_prompt.md",
+      "sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+      "byte_size": 3583,
+      "media_type": "text/markdown"
+    },
+    {
+      "file_id": "known-limitations-b1292dcfee9aff4f",
+      "kind": "known_limitations",
+      "path": "codex_handoff/known_limitations.md",
+      "sha256": "99db186d914526b4c65cc2dcf963f6876d8e8bf6f324e03a1397d59408853559",
+      "byte_size": 2113,
+      "media_type": "text/markdown"
+    },
+    {
+      "file_id": "import-schema-6807f6114c79b047",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_plan.schema.json",
+      "sha256": "7917c5921d27d635d8a42a27f7712485994ff39290d0b5890926cfc239bce445",
+      "byte_size": 3315,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-77f386a2e647c90e",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_receipt.schema.json",
+      "sha256": "cc4b549866d63c8fb0bf3251c27aebf9cb67a760b653fea4f82df2a7ac34732b",
+      "byte_size": 1721,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-2865e6bfc60f37ba",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_validation.schema.json",
+      "sha256": "be00913c699c23a6302a0d3d45bdb5bb53822381493d9301770574f3362fb397",
+      "byte_size": 2855,
+      "media_type": "application/json"
+    }
+  ],
+  "canonical_unchanged": true,
+  "source_package_unchanged": true,
+  "generated_at": "2026-08-10T06:58:06.803412Z"
+}

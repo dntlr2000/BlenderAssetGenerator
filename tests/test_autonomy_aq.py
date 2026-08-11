@@ -83,8 +83,10 @@ def test_only_static_prop_profile_is_active() -> None:
 
     status = get_autonomy_profile_status()
     profiles = {item["profile_id"]: item["status"] for item in status["profiles"]}
+    assert set(status) == {"contract_version", "active_profile_id", "profiles"}
     assert status["active_profile_id"] == "autonomous_static_prop_v1"
     assert profiles["autonomous_static_prop_v1"] == "verified_active"
+    assert "autonomous_static_prop_v2" not in profiles
     assert profiles["autonomous_environment_v1"] == "disabled_experimental"
     assert profiles["autonomous_architecture_v1"] == "disabled_experimental"
     assert profiles["autonomous_measured_asset_v1"] == "disabled_experimental"

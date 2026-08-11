@@ -1,0 +1,108 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v08-f3830cf3-handoff",
+  "items": [
+    {
+      "order": 1,
+      "item_id": "immutable-evidence",
+      "title": "Immutable Evidence",
+      "instruction": "Treat package files and metadata as immutable evidence.",
+      "gate": "pre_plan"
+    },
+    {
+      "order": 2,
+      "item_id": "detect-destination",
+      "title": "Detect Destination",
+      "instruction": "Detect the destination engine, version, and render pipeline.",
+      "gate": "pre_plan"
+    },
+    {
+      "order": 3,
+      "item_id": "avoid-support-claims",
+      "title": "Avoid Support Claims",
+      "instruction": "Do not claim support from detection alone.",
+      "gate": "pre_plan"
+    },
+    {
+      "order": 4,
+      "item_id": "draft-import-plan",
+      "title": "Draft Import Plan",
+      "instruction": "Write import_plan.json before copying or modifying files.",
+      "gate": "plan"
+    },
+    {
+      "order": 5,
+      "item_id": "report-reconstruction",
+      "title": "Report Reconstruction",
+      "instruction": "Report axis, units, pivot, hierarchy, materials, textures, LOD, and colliders.",
+      "gate": "plan"
+    },
+    {
+      "order": 6,
+      "item_id": "map-portable-channels",
+      "title": "Map Portable Channels",
+      "instruction": "Plan destination channel conversions without assuming Blender shader transfer.",
+      "gate": "plan"
+    },
+    {
+      "order": 7,
+      "item_id": "verify-uv0-binding",
+      "title": "Verify Uv0 Binding",
+      "instruction": "Verify required_uv_set imports as TEXCOORD_0 and drives normal-map tangents.",
+      "gate": "plan"
+    },
+    {
+      "order": 8,
+      "item_id": "plan-lod-membership",
+      "title": "Plan Lod Membership",
+      "instruction": "Plan mutually exclusive LOD groups with only each group's LOD0 active by default.",
+      "gate": "plan"
+    },
+    {
+      "order": 9,
+      "item_id": "show-losses",
+      "title": "Show Losses",
+      "instruction": "Show expected files, transformations, and known losses to the user.",
+      "gate": "plan"
+    },
+    {
+      "order": 10,
+      "item_id": "request-approval",
+      "title": "Request Approval",
+      "instruction": "Obtain explicit user approval for the exact import plan.",
+      "gate": "approval"
+    },
+    {
+      "order": 11,
+      "item_id": "apply-approved-plan",
+      "title": "Apply Approved Plan",
+      "instruction": "Modify the destination only after approval and within the plan.",
+      "gate": "apply"
+    },
+    {
+      "order": 12,
+      "item_id": "write-receipt",
+      "title": "Write Receipt",
+      "instruction": "Write import_receipt.json for all destination changes.",
+      "gate": "apply"
+    },
+    {
+      "order": 13,
+      "item_id": "validate-import",
+      "title": "Validate Import",
+      "instruction": "Write import_validation.json and report unresolved dependencies.",
+      "gate": "validate"
+    },
+    {
+      "order": 14,
+      "item_id": "honor-exclusions",
+      "title": "Honor Exclusions",
+      "instruction": "Exclude rigs, animation, gameplay logic, and unapproved advanced shaders.",
+      "gate": "validate"
+    }
+  ],
+  "required_plan_output": "import_plan.json",
+  "required_receipt_output": "import_receipt.json",
+  "required_validation_output": "import_validation.json",
+  "user_approval_required_before_apply": true
+}

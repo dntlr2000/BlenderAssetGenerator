@@ -1,0 +1,3125 @@
+{
+  "atlas": {
+    "atlas_scope": "all_render_lod",
+    "columns": 6,
+    "conversion_phase": "after_optimization_with_canonical_source_frame",
+    "cross_object_overlap_prevented_by_grid": true,
+    "layout": "global_shared",
+    "margin_px": 16,
+    "maximum_overlap_fraction": 0.0,
+    "object_count": 33,
+    "pixel_overlap_measurement": "not_measured",
+    "preserve_existing_uv_sets": true,
+    "required_channels": [
+      "base_color",
+      "roughness",
+      "metallic",
+      "normal",
+      "emission"
+    ],
+    "resolution": 1024,
+    "rows": 6,
+    "tile_strategy": "deterministic_grid",
+    "uv_set": "CBMPortableAtlas"
+  },
+  "conversion_plan_sha256": "70aa86338b54ea4cccfa7bc98adea5b5b92fde876514984e9d97b03943c06c3f",
+  "entries": [
+    {
+      "binding_ids": [
+        "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+        "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+        "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+        "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+        "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+        "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+        "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+        "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+        "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+        "binding.000024.demo.profile.house.LOD0.2062ac1819",
+        "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+        "binding.000026.demo.profile.house.LOD2.85c0177c1c"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "a7f6be2b15901df2252405e1a7579b1ee0ee5d63ff785f79464e79e5b86e3432",
+      "source_material_fingerprint": "9c56fa18171e03f427493d9702df1eb7bf0a1befb69238a82f79ed24ed9edf5c",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.blue",
+        "kind": "shader_recipe",
+        "path": "materials/mat.blue/shader_recipe.json",
+        "sha256": "2ff84948cf486bc9cca2153ab7404e8ad0d708aa772f6257251b87545b02f1eb"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+        "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+        "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+        "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+        "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+        "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "233f8ba79bfde788c5e256fba334849acbe00326564f5221a4a2fa81ce757774",
+      "source_material_fingerprint": "3352fa8cb2edbb45971a86c836d5c504f3071b86b9c26765571d23e1549923ff",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.gray",
+        "kind": "shader_recipe",
+        "path": "materials/mat.gray/shader_recipe.json",
+        "sha256": "1a356581bf1c60cbb18f05c2dbdfc7fb15dab39ff63eaa0465c23d16b5be793a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+        "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+        "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+        "binding.000030.demo.terrain.LOD0.b7198359af",
+        "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+        "binding.000032.demo.terrain.LOD2.4e9891a527"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "cdfc05f4843d3b284b6be395d1f62eee60d69aa152bede23ef556a167318d4d8",
+      "source_material_fingerprint": "55be4d7729732706cffc95282acbb5a70c7e579bd9613aae4ff1bdb31bc6f63b",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.green",
+        "kind": "shader_recipe",
+        "path": "materials/mat.green/shader_recipe.json",
+        "sha256": "1924ba1397517d8a22c60058091376db44b07806e220b181d7be6df613a7e52a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+        "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+        "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+        "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+        "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+        "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+        "binding.000027.demo.revolve.vase.LOD0.9539365862",
+        "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+        "binding.000029.demo.revolve.vase.LOD2.41a3d616d2"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "0fe7fa37fbf3af38fd1a306fa5ea875069bc898e43c510190d92bd3dd7cc7118",
+      "source_material_fingerprint": "62d901547b856823bc10c7d858f6469d2c201afdcd04df59ad94e7d6f7463abe",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.orange",
+        "kind": "shader_recipe",
+        "path": "materials/mat.orange/shader_recipe.json",
+        "sha256": "9a29a78ccd77c8addb1b1ae20bc83a2b5642548daebd88a8f62792f362576e9a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    }
+  ],
+  "job_id": "geometry_showcase",
+  "kind": "portable_material_conversion_evidence",
+  "materials": [
+    {
+      "binding_ids": [
+        "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+        "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+        "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+        "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+        "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+        "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+        "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+        "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+        "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+        "binding.000024.demo.profile.house.LOD0.2062ac1819",
+        "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+        "binding.000026.demo.profile.house.LOD2.85c0177c1c"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "a7f6be2b15901df2252405e1a7579b1ee0ee5d63ff785f79464e79e5b86e3432",
+      "source_material_fingerprint": "9c56fa18171e03f427493d9702df1eb7bf0a1befb69238a82f79ed24ed9edf5c",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.blue",
+        "kind": "shader_recipe",
+        "path": "materials/mat.blue/shader_recipe.json",
+        "sha256": "2ff84948cf486bc9cca2153ab7404e8ad0d708aa772f6257251b87545b02f1eb"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+        "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+        "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+        "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+        "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+        "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "233f8ba79bfde788c5e256fba334849acbe00326564f5221a4a2fa81ce757774",
+      "source_material_fingerprint": "3352fa8cb2edbb45971a86c836d5c504f3071b86b9c26765571d23e1549923ff",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.gray",
+        "kind": "shader_recipe",
+        "path": "materials/mat.gray/shader_recipe.json",
+        "sha256": "1a356581bf1c60cbb18f05c2dbdfc7fb15dab39ff63eaa0465c23d16b5be793a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+        "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+        "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+        "binding.000030.demo.terrain.LOD0.b7198359af",
+        "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+        "binding.000032.demo.terrain.LOD2.4e9891a527"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "cdfc05f4843d3b284b6be395d1f62eee60d69aa152bede23ef556a167318d4d8",
+      "source_material_fingerprint": "55be4d7729732706cffc95282acbb5a70c7e579bd9613aae4ff1bdb31bc6f63b",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.green",
+        "kind": "shader_recipe",
+        "path": "materials/mat.green/shader_recipe.json",
+        "sha256": "1924ba1397517d8a22c60058091376db44b07806e220b181d7be6df613a7e52a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    },
+    {
+      "binding_ids": [
+        "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+        "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+        "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+        "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+        "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+        "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+        "binding.000027.demo.revolve.vase.LOD0.9539365862",
+        "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+        "binding.000029.demo.revolve.vase.LOD2.41a3d616d2"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "0fe7fa37fbf3af38fd1a306fa5ea875069bc898e43c510190d92bd3dd7cc7118",
+      "source_material_fingerprint": "62d901547b856823bc10c7d858f6469d2c201afdcd04df59ad94e7d6f7463abe",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.orange",
+        "kind": "shader_recipe",
+        "path": "materials/mat.orange/shader_recipe.json",
+        "sha256": "9a29a78ccd77c8addb1b1ae20bc83a2b5642548daebd88a8f62792f362576e9a"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    }
+  ],
+  "notes": [
+    "Only derived render and LOD meshes were converted; authoring and collider objects were excluded.",
+    "Absolute staging paths are raw Blender evidence and must be normalized by the host contract.",
+    "Portable image nodes use paths relative to the converted blend for atomic directory promotion."
+  ],
+  "objects": [
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.015625,
+          0.151041667,
+          0.151041667
+        ],
+        "loop_count": 880,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.boolean.block.LOD0.330465b0eb",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.boolean.block__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 248,
+        "polygons_before": 248,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 384,
+        "triangles_before": 384,
+        "vertices_after": 192,
+        "vertices_before": 192
+      },
+      "semantic_id": "demo.boolean.block",
+      "source_object": "demo.boolean.block",
+      "source_uv_set": null,
+      "tile_index": 0
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.015625,
+          0.317708333,
+          0.151041667
+        ],
+        "loop_count": 690,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.boolean.block.LOD1.e77eef238f",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.boolean.block__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 230,
+        "polygons_before": 230,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 230,
+        "triangles_before": 230,
+        "vertices_after": 115,
+        "vertices_before": 115
+      },
+      "semantic_id": "demo.boolean.block",
+      "source_object": "demo.boolean.block",
+      "source_uv_set": null,
+      "tile_index": 1
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.015625,
+          0.484375,
+          0.151041667
+        ],
+        "loop_count": 342,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.boolean.block.LOD2.c04f2e3d99",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.boolean.block__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 114,
+        "polygons_before": 114,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 114,
+        "triangles_before": 114,
+        "vertices_after": 57,
+        "vertices_before": 57
+      },
+      "semantic_id": "demo.boolean.block",
+      "source_object": "demo.boolean.block",
+      "source_uv_set": null,
+      "tile_index": 2
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.515625,
+          0.015625,
+          0.651041667,
+          0.151041667
+        ],
+        "loop_count": 3024,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.curve.pipe.LOD0.d1a65e3517",
+      "lod_level": 0,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.curve_pipe__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 756,
+        "polygons_before": 756,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 1512,
+        "triangles_before": 1512,
+        "vertices_after": 768,
+        "vertices_before": 768
+      },
+      "semantic_id": "demo.curve_pipe",
+      "source_object": "demo.curve_pipe",
+      "source_uv_set": "UVMap",
+      "tile_index": 3
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.682291667,
+          0.015625,
+          0.817708333,
+          0.151041667
+        ],
+        "loop_count": 2718,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.curve.pipe.LOD1.256b977955",
+      "lod_level": 1,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.curve_pipe__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 906,
+        "polygons_before": 906,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 906,
+        "triangles_before": 906,
+        "vertices_after": 465,
+        "vertices_before": 465
+      },
+      "semantic_id": "demo.curve_pipe",
+      "source_object": "demo.curve_pipe",
+      "source_uv_set": "UVMap",
+      "tile_index": 4
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.848958333,
+          0.015625,
+          0.984375,
+          0.151041667
+        ],
+        "loop_count": 1356,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.curve.pipe.LOD2.c44e9e0be9",
+      "lod_level": 2,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.curve_pipe__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 452,
+        "polygons_before": 452,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 452,
+        "triangles_before": 452,
+        "vertices_after": 238,
+        "vertices_before": 238
+      },
+      "semantic_id": "demo.curve_pipe",
+      "source_object": "demo.curve_pipe",
+      "source_uv_set": "UVMap",
+      "tile_index": 5
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.182291667,
+          0.151041667,
+          0.317708333
+        ],
+        "loop_count": 144,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD0.12ad25f9a9",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.custom_pyramid__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 37,
+        "polygons_before": 37,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 70,
+        "triangles_before": 70,
+        "vertices_after": 37,
+        "vertices_before": 37
+      },
+      "semantic_id": "demo.custom_pyramid",
+      "source_object": "demo.custom_pyramid",
+      "source_uv_set": null,
+      "tile_index": 6
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.182291667,
+          0.317708333,
+          0.317708333
+        ],
+        "loop_count": 126,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD1.1a321af744",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.custom_pyramid__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 42,
+        "polygons_before": 42,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 42,
+        "triangles_before": 42,
+        "vertices_after": 23,
+        "vertices_before": 23
+      },
+      "semantic_id": "demo.custom_pyramid",
+      "source_object": "demo.custom_pyramid",
+      "source_uv_set": null,
+      "tile_index": 7
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.182291667,
+          0.484375,
+          0.317708333
+        ],
+        "loop_count": 60,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD2.acabadb9e6",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.custom_pyramid__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 20,
+        "polygons_before": 20,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 20,
+        "triangles_before": 20,
+        "vertices_after": 12,
+        "vertices_before": 12
+      },
+      "semantic_id": "demo.custom_pyramid",
+      "source_object": "demo.custom_pyramid",
+      "source_uv_set": null,
+      "tile_index": 8
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.515625,
+          0.182291667,
+          0.651041667,
+          0.317708333
+        ],
+        "loop_count": 1140,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD0.BATCH0003.38b0f337a6",
+      "lod_level": 0,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "CBM_demo_instance_post__LOD0__BATCH0003",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 340,
+        "polygons_before": 340,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 460,
+        "triangles_before": 460,
+        "vertices_after": 240,
+        "vertices_before": 240
+      },
+      "semantic_id": "demo.instance_post",
+      "source_object": "demo.instance_post__001",
+      "source_uv_set": "UVMap",
+      "tile_index": 9
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.682291667,
+          0.182291667,
+          0.817708333,
+          0.317708333
+        ],
+        "loop_count": 810,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD1.BATCH0001.f67d2b6d9b",
+      "lod_level": 1,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "CBM_demo_instance_post__LOD1__BATCH0001",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 270,
+        "polygons_before": 270,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 270,
+        "triangles_before": 270,
+        "vertices_after": 145,
+        "vertices_before": 145
+      },
+      "semantic_id": "demo.instance_post",
+      "source_object": "demo.instance_post__001",
+      "source_uv_set": "UVMap",
+      "tile_index": 10
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.848958333,
+          0.182291667,
+          0.984375,
+          0.317708333
+        ],
+        "loop_count": 390,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD2.BATCH0002.9787cb8e11",
+      "lod_level": 2,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "CBM_demo_instance_post__LOD2__BATCH0002",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 130,
+        "polygons_before": 130,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 130,
+        "triangles_before": 130,
+        "vertices_after": 75,
+        "vertices_before": 75
+      },
+      "semantic_id": "demo.instance_post",
+      "source_object": "demo.instance_post__001",
+      "source_uv_set": "UVMap",
+      "tile_index": 11
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.348958333,
+          0.151041667,
+          0.484375
+        ],
+        "loop_count": 96,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.array.LOD0.2c9ba53d9d",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.modifier_array__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 24,
+        "polygons_before": 24,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 48,
+        "triangles_before": 48,
+        "vertices_after": 32,
+        "vertices_before": 32
+      },
+      "semantic_id": "demo.modifier_array",
+      "source_object": "demo.modifier_array",
+      "source_uv_set": null,
+      "tile_index": 12
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.348958333,
+          0.317708333,
+          0.484375
+        ],
+        "loop_count": 84,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.array.LOD1.428517834f",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.modifier_array__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 28,
+        "polygons_before": 28,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 28,
+        "triangles_before": 28,
+        "vertices_after": 22,
+        "vertices_before": 22
+      },
+      "semantic_id": "demo.modifier_array",
+      "source_object": "demo.modifier_array",
+      "source_uv_set": null,
+      "tile_index": 13
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.348958333,
+          0.484375,
+          0.484375
+        ],
+        "loop_count": 39,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.array.LOD2.44c5d89dc5",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.modifier_array__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 13,
+        "polygons_before": 13,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 13,
+        "triangles_before": 13,
+        "vertices_after": 15,
+        "vertices_before": 15
+      },
+      "semantic_id": "demo.modifier_array",
+      "source_object": "demo.modifier_array",
+      "source_uv_set": null,
+      "tile_index": 14
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.515625,
+          0.348958333,
+          0.651041667,
+          0.484375
+        ],
+        "loop_count": 40,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD0.4f0879c801",
+      "lod_level": 0,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.modifier_mirror__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 10,
+        "polygons_before": 10,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 20,
+        "triangles_before": 20,
+        "vertices_after": 12,
+        "vertices_before": 12
+      },
+      "semantic_id": "demo.modifier_mirror",
+      "source_object": "demo.modifier_mirror",
+      "source_uv_set": "UVMap",
+      "tile_index": 15
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.682291667,
+          0.348958333,
+          0.817708333,
+          0.484375
+        ],
+        "loop_count": 36,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD1.aeaf64c9c9",
+      "lod_level": 1,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.modifier_mirror__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 12,
+        "polygons_before": 12,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 12,
+        "triangles_before": 12,
+        "vertices_after": 8,
+        "vertices_before": 8
+      },
+      "semantic_id": "demo.modifier_mirror",
+      "source_object": "demo.modifier_mirror",
+      "source_uv_set": "UVMap",
+      "tile_index": 16
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.848958333,
+          0.348958333,
+          0.984375,
+          0.484375
+        ],
+        "loop_count": 18,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD2.40a4bfe80e",
+      "lod_level": 2,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.modifier_mirror__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 6,
+        "polygons_before": 6,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 6,
+        "triangles_before": 6,
+        "vertices_after": 5,
+        "vertices_before": 5
+      },
+      "semantic_id": "demo.modifier_mirror",
+      "source_object": "demo.modifier_mirror",
+      "source_uv_set": "UVMap",
+      "tile_index": 17
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.515625,
+          0.151041667,
+          0.651041667
+        ],
+        "loop_count": 2136,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD0.50c3722893",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.modifier_remesh__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 534,
+        "polygons_before": 534,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 1068,
+        "triangles_before": 1068,
+        "vertices_after": 536,
+        "vertices_before": 536
+      },
+      "semantic_id": "demo.modifier_remesh",
+      "source_object": "demo.modifier_remesh",
+      "source_uv_set": null,
+      "tile_index": 18
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.515625,
+          0.317708333,
+          0.651041667
+        ],
+        "loop_count": 1920,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD1.eb748dc2b5",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.modifier_remesh__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 640,
+        "polygons_before": 640,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 640,
+        "triangles_before": 640,
+        "vertices_after": 322,
+        "vertices_before": 322
+      },
+      "semantic_id": "demo.modifier_remesh",
+      "source_object": "demo.modifier_remesh",
+      "source_uv_set": null,
+      "tile_index": 19
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.515625,
+          0.484375,
+          0.651041667
+        ],
+        "loop_count": 960,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD2.e8ca91527d",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.gray",
+      "name": "demo.modifier_remesh__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 320,
+        "polygons_before": 320,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 320,
+        "triangles_before": 320,
+        "vertices_after": 162,
+        "vertices_before": 162
+      },
+      "semantic_id": "demo.modifier_remesh",
+      "source_object": "demo.modifier_remesh",
+      "source_uv_set": null,
+      "tile_index": 20
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.515625,
+          0.515625,
+          0.651041667,
+          0.651041667
+        ],
+        "loop_count": 24,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD0.57ad84fa80",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.modifier_solidify__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 6,
+        "polygons_before": 6,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 12,
+        "triangles_before": 12,
+        "vertices_after": 8,
+        "vertices_before": 8
+      },
+      "semantic_id": "demo.modifier_solidify",
+      "source_object": "demo.modifier_solidify",
+      "source_uv_set": null,
+      "tile_index": 21
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.682291667,
+          0.515625,
+          0.817708333,
+          0.651041667
+        ],
+        "loop_count": 18,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD1.d2a8839fe7",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.modifier_solidify__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 6,
+        "polygons_before": 6,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 6,
+        "triangles_before": 6,
+        "vertices_after": 5,
+        "vertices_before": 5
+      },
+      "semantic_id": "demo.modifier_solidify",
+      "source_object": "demo.modifier_solidify",
+      "source_uv_set": null,
+      "tile_index": 22
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.848958333,
+          0.515625,
+          0.984375,
+          0.651041667
+        ],
+        "loop_count": 3,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD2.0c947b5886",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.modifier_solidify__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 1,
+        "polygons_before": 1,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 1,
+        "triangles_before": 1,
+        "vertices_after": 3,
+        "vertices_before": 3
+      },
+      "semantic_id": "demo.modifier_solidify",
+      "source_object": "demo.modifier_solidify",
+      "source_uv_set": null,
+      "tile_index": 23
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.682291667,
+          0.151041667,
+          0.817708333
+        ],
+        "loop_count": 488,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000024.demo.profile.house.LOD0.2062ac1819",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.profile.house.LOD0.8ce496b6eb",
+      "lod_level": 0,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.profile_house__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 126,
+        "polygons_before": 126,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 236,
+        "triangles_before": 236,
+        "vertices_after": 120,
+        "vertices_before": 120
+      },
+      "semantic_id": "demo.profile_house",
+      "source_object": "demo.profile_house",
+      "source_uv_set": "UVMap",
+      "tile_index": 24
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.682291667,
+          0.317708333,
+          0.817708333
+        ],
+        "loop_count": 420,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.profile.house.LOD1.e5f09cf65e",
+      "lod_level": 1,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.profile_house__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 140,
+        "polygons_before": 140,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 140,
+        "triangles_before": 140,
+        "vertices_after": 72,
+        "vertices_before": 72
+      },
+      "semantic_id": "demo.profile_house",
+      "source_object": "demo.profile_house",
+      "source_uv_set": "UVMap",
+      "tile_index": 25
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.682291667,
+          0.484375,
+          0.817708333
+        ],
+        "loop_count": 210,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000026.demo.profile.house.LOD2.85c0177c1c",
+      "coordinate_bindings": 1,
+      "derived_object_id": "derived.demo.profile.house.LOD2.67b7448f78",
+      "lod_level": 2,
+      "mapping_mode": "uv",
+      "material_id": "mat.blue",
+      "name": "demo.profile_house__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 70,
+        "polygons_before": 70,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 70,
+        "triangles_before": 70,
+        "vertices_after": 37,
+        "vertices_before": 37
+      },
+      "semantic_id": "demo.profile_house",
+      "source_object": "demo.profile_house",
+      "source_uv_set": "UVMap",
+      "tile_index": 26
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.515625,
+          0.682291667,
+          0.651041667,
+          0.817708333
+        ],
+        "loop_count": 4608,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000027.demo.revolve.vase.LOD0.9539365862",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD0.f20c3e65f8",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.revolve_vase__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 192,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 1152,
+        "polygons_before": 1152,
+        "remaining_micro_sliver_face_count": 192,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 2304,
+        "triangles_before": 2304,
+        "vertices_after": 1248,
+        "vertices_before": 1248
+      },
+      "semantic_id": "demo.revolve_vase",
+      "source_object": "demo.revolve_vase",
+      "source_uv_set": null,
+      "tile_index": 27
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.682291667,
+          0.682291667,
+          0.817708333,
+          0.817708333
+        ],
+        "loop_count": 4146,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 192,
+        "unwrap_method": "lightmap_pack_fallback",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD1.2aaa20fe36",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.revolve_vase__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 192,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 1382,
+        "polygons_before": 1382,
+        "remaining_micro_sliver_face_count": 192,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 1382,
+        "triangles_before": 1382,
+        "vertices_after": 787,
+        "vertices_before": 787
+      },
+      "semantic_id": "demo.revolve_vase",
+      "source_object": "demo.revolve_vase",
+      "source_uv_set": null,
+      "tile_index": 28
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.848958333,
+          0.682291667,
+          0.984375,
+          0.817708333
+        ],
+        "loop_count": 2070,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 192,
+        "unwrap_method": "lightmap_pack_fallback",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000029.demo.revolve.vase.LOD2.41a3d616d2",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD2.03da7e57e3",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.orange",
+      "name": "demo.revolve_vase__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 192,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 690,
+        "polygons_before": 690,
+        "remaining_micro_sliver_face_count": 192,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 690,
+        "triangles_before": 690,
+        "vertices_after": 441,
+        "vertices_before": 441
+      },
+      "semantic_id": "demo.revolve_vase",
+      "source_object": "demo.revolve_vase",
+      "source_uv_set": null,
+      "tile_index": 29
+    },
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.015625,
+          0.848958333,
+          0.151041667,
+          0.984375
+        ],
+        "loop_count": 450,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000030.demo.terrain.LOD0.b7198359af",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.terrain.LOD0.38bec7481e",
+      "lod_level": 0,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.terrain__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 120,
+        "polygons_before": 120,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 210,
+        "triangles_before": 210,
+        "vertices_after": 107,
+        "vertices_before": 107
+      },
+      "semantic_id": "demo.terrain",
+      "source_object": "demo.terrain",
+      "source_uv_set": null,
+      "tile_index": 30
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.182291667,
+          0.848958333,
+          0.317708333,
+          0.984375
+        ],
+        "loop_count": 378,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.terrain.LOD1.d077f7e494",
+      "lod_level": 1,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.terrain__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 126,
+        "polygons_before": 126,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 126,
+        "triangles_before": 126,
+        "vertices_after": 65,
+        "vertices_before": 65
+      },
+      "semantic_id": "demo.terrain",
+      "source_object": "demo.terrain",
+      "source_uv_set": null,
+      "tile_index": 31
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.348958333,
+          0.848958333,
+          0.484375,
+          0.984375
+        ],
+        "loop_count": 186,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000032.demo.terrain.LOD2.4e9891a527",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.demo.terrain.LOD2.08807741cb",
+      "lod_level": 2,
+      "mapping_mode": "object",
+      "material_id": "mat.green",
+      "name": "demo.terrain__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 62,
+        "polygons_before": 62,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 62,
+        "triangles_before": 62,
+        "vertices_after": 33,
+        "vertices_before": 33
+      },
+      "semantic_id": "demo.terrain",
+      "source_object": "demo.terrain",
+      "source_uv_set": null,
+      "tile_index": 32
+    }
+  ],
+  "ok": true,
+  "optimized_blend_sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778",
+  "outputs": [
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.base_color",
+      "channel": "base_color",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/base_color.png",
+      "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57",
+      "color_space": "sRGB",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.roughness",
+      "channel": "roughness",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/roughness.png",
+      "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.metallic",
+      "channel": "metallic",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/metallic.png",
+      "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.normal",
+      "channel": "normal",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/normal.png",
+      "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.emission",
+      "channel": "emission",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "color_space": "sRGB",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    }
+  ],
+  "portable_blend": {
+    "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/converted/scene.blend",
+    "sha256": "2f99ad54c893a9b3a779f431e922dfec6987c6237ba588e55e35b4bd8b3ae979"
+  },
+  "profile_id": "portable_gltf",
+  "run_id": "v09-handoff-smoke-run",
+  "runtime": {
+    "blender_version": "5.0.1",
+    "render_device": "CPU",
+    "render_engine": "CYCLES"
+  },
+  "schema_version": "0.7.0",
+  "source": {
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "conversion_plan_path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/conversion_plan.json",
+    "conversion_plan_sha256": "70aa86338b54ea4cccfa7bc98adea5b5b92fde876514984e9d97b03943c06c3f",
+    "optimization_plan_sha256": "265efe03569e9d9fae1eddb542a7cbc44eaf975f9b45970a15b1033f4ec8d78d",
+    "optimized_blend_path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+    "optimized_blend_sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778",
+    "profile_path": "asset_profiles/portable_gltf.json",
+    "profile_sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3"
+  },
+  "texture_root": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures",
+  "tiles": [
+    {
+      "binding_id": "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.boolean.block.LOD0.330465b0eb",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.boolean.block",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.boolean.block.LOD1.e77eef238f",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.boolean.block",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.boolean.block.LOD2.c04f2e3d99",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.boolean.block",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.curve.pipe.LOD0.d1a65e3517",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.curve_pipe",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.651041667,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.515625,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.curve.pipe.LOD1.256b977955",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.curve_pipe",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.817708333,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.682291667,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.curve.pipe.LOD2.c44e9e0be9",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.curve_pipe",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.984375,
+        0.151041667
+      ],
+      "uv_minimum": [
+        0.848958333,
+        0.015625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD0.12ad25f9a9",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.custom_pyramid",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD1.1a321af744",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.custom_pyramid",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.custom.pyramid.LOD2.acabadb9e6",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.custom_pyramid",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD0.BATCH0003.38b0f337a6",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.instance_post",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.651041667,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.515625,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD1.BATCH0001.f67d2b6d9b",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.instance_post",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.817708333,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.682291667,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD2.BATCH0002.9787cb8e11",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.instance_post",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.984375,
+        0.317708333
+      ],
+      "uv_minimum": [
+        0.848958333,
+        0.182291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.array.LOD0.2c9ba53d9d",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_array",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.array.LOD1.428517834f",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_array",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.array.LOD2.44c5d89dc5",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_array",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD0.4f0879c801",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_mirror",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.651041667,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.515625,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD1.aeaf64c9c9",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_mirror",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.817708333,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.682291667,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.mirror.LOD2.40a4bfe80e",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_mirror",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.984375,
+        0.484375
+      ],
+      "uv_minimum": [
+        0.848958333,
+        0.348958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD0.50c3722893",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_remesh",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD1.eb748dc2b5",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_remesh",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.remesh.LOD2.e8ca91527d",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.gray",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_remesh",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD0.57ad84fa80",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_solidify",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.651041667,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.515625,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD1.d2a8839fe7",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_solidify",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.817708333,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.682291667,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.modifier.solidify.LOD2.0c947b5886",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.modifier_solidify",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.984375,
+        0.651041667
+      ],
+      "uv_minimum": [
+        0.848958333,
+        0.515625
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000024.demo.profile.house.LOD0.2062ac1819",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.profile.house.LOD0.8ce496b6eb",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.profile_house",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.profile.house.LOD1.e5f09cf65e",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.profile_house",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000026.demo.profile.house.LOD2.85c0177c1c",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.profile.house.LOD2.67b7448f78",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.profile_house",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000027.demo.revolve.vase.LOD0.9539365862",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD0.f20c3e65f8",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 192,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 192,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.revolve_vase",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.651041667,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.515625,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD1.2aaa20fe36",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 192,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 192,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 192,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.revolve_vase",
+      "unwrap_method": "lightmap_pack_fallback",
+      "uv_maximum": [
+        0.817708333,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.682291667,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000029.demo.revolve.vase.LOD2.41a3d616d2",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.revolve.vase.LOD2.03da7e57e3",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.orange",
+      "micro_sliver_face_count_before": 192,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 192,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 192,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.revolve_vase",
+      "unwrap_method": "lightmap_pack_fallback",
+      "uv_maximum": [
+        0.984375,
+        0.817708333
+      ],
+      "uv_minimum": [
+        0.848958333,
+        0.682291667
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000030.demo.terrain.LOD0.b7198359af",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.terrain.LOD0.38bec7481e",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.terrain",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.151041667,
+        0.984375
+      ],
+      "uv_minimum": [
+        0.015625,
+        0.848958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.terrain.LOD1.d077f7e494",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.terrain",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.317708333,
+        0.984375
+      ],
+      "uv_minimum": [
+        0.182291667,
+        0.848958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000032.demo.terrain.LOD2.4e9891a527",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.demo.terrain.LOD2.08807741cb",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.green",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        1024,
+        1024
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "demo.terrain",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.484375,
+        0.984375
+      ],
+      "uv_minimum": [
+        0.348958333,
+        0.848958333
+      ],
+      "uv_set": "CBMPortableAtlas"
+    }
+  ],
+  "source_evidence_sha256": "c98f76edc3a2fd36b6c77d8cd141f2eb4af5127e0fd1311fe8cbc0f9ba8770b8"
+}

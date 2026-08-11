@@ -1,0 +1,1623 @@
+{
+  "$defs": {
+    "AdvancedPreviewPolicy": {
+      "additionalProperties": false,
+      "description": "Keep neutral-studio evidence distinct from optional reference-matched review.",
+      "properties": {
+        "neutral_studio_required": {
+          "const": true,
+          "default": true,
+          "title": "Neutral Studio Required",
+          "type": "boolean"
+        },
+        "reference_matched_requested": {
+          "default": false,
+          "title": "Reference Matched Requested",
+          "type": "boolean"
+        },
+        "reference_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reference_matched_never_sufficient_alone": {
+          "const": true,
+          "default": true,
+          "title": "Reference Matched Never Sufficient Alone",
+          "type": "boolean"
+        }
+      },
+      "title": "AdvancedPreviewPolicy",
+      "type": "object"
+    },
+    "CrystalPortableInput": {
+      "additionalProperties": false,
+      "description": "Separate Blender master transmission intent from a lossy portable PBR fallback.",
+      "properties": {
+        "ior": {
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Ior",
+          "type": "number"
+        },
+        "transmission": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission",
+          "type": "number"
+        },
+        "roughness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "absorption_tint": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Absorption Tint",
+          "type": "array"
+        },
+        "absorption_distance_m": {
+          "exclusiveMinimum": 0,
+          "title": "Absorption Distance M",
+          "type": "number"
+        },
+        "fresnel_strength": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Fresnel Strength",
+          "type": "number"
+        },
+        "emission_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "thickness_approximation_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thickness Approximation M"
+        },
+        "opacity_approximation": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity Approximation",
+          "type": "number"
+        },
+        "intended_real_world_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Intended Real World Scale M",
+          "type": "number"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        }
+      },
+      "required": [
+        "ior",
+        "transmission",
+        "roughness",
+        "absorption_tint",
+        "absorption_distance_m",
+        "fresnel_strength",
+        "emission_color",
+        "emission_strength",
+        "opacity_approximation",
+        "intended_real_world_scale_m",
+        "uv_identity"
+      ],
+      "title": "CrystalPortableInput",
+      "type": "object"
+    },
+    "EmissivePatternInput": {
+      "additionalProperties": false,
+      "description": "Describe one deterministic emission pattern at a stated physical scale.",
+      "properties": {
+        "pattern": {
+          "enum": [
+            "solid",
+            "stripes",
+            "grid",
+            "cells"
+          ],
+          "title": "Pattern",
+          "type": "string"
+        },
+        "base_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "emission_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "pattern_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Pattern Scale M",
+          "type": "number"
+        },
+        "duty_cycle": {
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Duty Cycle",
+          "type": "number"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "intended_real_world_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Intended Real World Scale M",
+          "type": "number"
+        },
+        "deterministic_seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Deterministic Seed",
+          "type": "integer"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        }
+      },
+      "required": [
+        "pattern",
+        "base_color",
+        "emission_color",
+        "emission_strength",
+        "pattern_scale_m",
+        "duty_cycle",
+        "intended_real_world_scale_m",
+        "deterministic_seed",
+        "uv_identity"
+      ],
+      "title": "EmissivePatternInput",
+      "type": "object"
+    },
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to its exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "ImageEvidence": {
+      "additionalProperties": false,
+      "description": "Describe exact image bytes, interpretation, rights, provenance, and UV ownership.",
+      "properties": {
+        "source_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "opacity",
+            "emission"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "artifact": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "width": {
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 32768,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "color_space": {
+          "enum": [
+            "srgb",
+            "non_color",
+            "linear"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "license_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "License Id",
+          "type": "string"
+        },
+        "rights_status": {
+          "enum": [
+            "user_provided",
+            "project_owned",
+            "licensed",
+            "public_domain",
+            "unknown"
+          ],
+          "title": "Rights Status",
+          "type": "string"
+        },
+        "provenance": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Provenance",
+          "type": "string"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        },
+        "normal_convention": {
+          "anyOf": [
+            {
+              "enum": [
+                "opengl_y_plus",
+                "directx_y_minus"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Convention"
+        }
+      },
+      "required": [
+        "source_id",
+        "channel",
+        "artifact",
+        "width",
+        "height",
+        "color_space",
+        "license_id",
+        "rights_status",
+        "provenance",
+        "uv_identity"
+      ],
+      "title": "ImageEvidence",
+      "type": "object"
+    },
+    "LocalizedDecalInput": {
+      "additionalProperties": false,
+      "description": "Describe an exact image or non-invented text decal with mip-safe placement.",
+      "properties": {
+        "source_kind": {
+          "enum": [
+            "user_image",
+            "text"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ImageEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "text_evidence": {
+          "anyOf": [
+            {
+              "enum": [
+                "exact_user_text",
+                "unknown_text",
+                "inferred_placeholder"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Evidence"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "font": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectLocalFont"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        },
+        "uv_rect": {
+          "$ref": "#/$defs/UVRect"
+        },
+        "clip_mode": {
+          "default": "clip",
+          "enum": [
+            "clip",
+            "clamp"
+          ],
+          "title": "Clip Mode",
+          "type": "string"
+        },
+        "mip_padding_px": {
+          "maximum": 128,
+          "minimum": 2,
+          "title": "Mip Padding Px",
+          "type": "integer"
+        },
+        "base_color": {
+          "default": [
+            1.0,
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "roughness": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "normal_strength": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Normal Strength",
+          "type": "number"
+        },
+        "emission_color": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "default": 0.0,
+          "maximum": 1000,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_kind",
+        "uv_identity",
+        "uv_rect",
+        "mip_padding_px"
+      ],
+      "title": "LocalizedDecalInput",
+      "type": "object"
+    },
+    "PlanarReferencePatchInput": {
+      "additionalProperties": false,
+      "description": "Bind one exact observed planar reference region and its rectification settings.",
+      "properties": {
+        "reference_image": {
+          "$ref": "#/$defs/ImageEvidence"
+        },
+        "source_semantic_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Source Semantic Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "corners_px": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "title": "Corners Px",
+          "type": "array"
+        },
+        "corner_order": {
+          "const": "upper_left_upper_right_lower_right_lower_left",
+          "default": "upper_left_upper_right_lower_right_lower_left",
+          "title": "Corner Order",
+          "type": "string"
+        },
+        "corner_source": {
+          "enum": [
+            "user_confirmed",
+            "advisory_candidate"
+          ],
+          "title": "Corner Source",
+          "type": "string"
+        },
+        "rectification_method": {
+          "const": "perspective_homography_v1",
+          "default": "perspective_homography_v1",
+          "title": "Rectification Method",
+          "type": "string"
+        },
+        "crop_px": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Crop Px"
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cleanup": {
+          "default": "none",
+          "enum": [
+            "none",
+            "alpha_trim"
+          ],
+          "title": "Cleanup",
+          "type": "string"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        },
+        "mip_padding_px": {
+          "maximum": 128,
+          "minimum": 2,
+          "title": "Mip Padding Px",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "reference_image",
+        "source_semantic_id",
+        "evidence_status",
+        "confidence",
+        "corners_px",
+        "corner_source",
+        "uv_identity",
+        "mip_padding_px"
+      ],
+      "title": "PlanarReferencePatchInput",
+      "type": "object"
+    },
+    "ProceduralMetalInput": {
+      "additionalProperties": false,
+      "description": "Describe deterministic metal without unsupported evidence-free scratches.",
+      "properties": {
+        "base_metal": {
+          "enum": [
+            "aluminum",
+            "steel",
+            "iron",
+            "copper",
+            "brass",
+            "custom"
+          ],
+          "title": "Base Metal",
+          "type": "string"
+        },
+        "base_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "roughness_base": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness Base",
+          "type": "number"
+        },
+        "roughness_variation": {
+          "maximum": 0.35,
+          "minimum": 0,
+          "title": "Roughness Variation",
+          "type": "number"
+        },
+        "brushed_direction": {
+          "enum": [
+            "x",
+            "y",
+            "radial",
+            "none"
+          ],
+          "title": "Brushed Direction",
+          "type": "string"
+        },
+        "brush_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Brush Scale M",
+          "type": "number"
+        },
+        "subtle_normal_strength": {
+          "maximum": 0.35,
+          "minimum": 0,
+          "title": "Subtle Normal Strength",
+          "type": "number"
+        },
+        "edge_wear_mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "unsupported_scratches": {
+          "const": false,
+          "default": false,
+          "title": "Unsupported Scratches",
+          "type": "boolean"
+        },
+        "intended_real_world_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Intended Real World Scale M",
+          "type": "number"
+        },
+        "deterministic_seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Deterministic Seed",
+          "type": "integer"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        }
+      },
+      "required": [
+        "base_metal",
+        "base_color",
+        "roughness_base",
+        "roughness_variation",
+        "brushed_direction",
+        "brush_scale_m",
+        "subtle_normal_strength",
+        "intended_real_world_scale_m",
+        "deterministic_seed",
+        "uv_identity"
+      ],
+      "title": "ProceduralMetalInput",
+      "type": "object"
+    },
+    "ProceduralWoodInput": {
+      "additionalProperties": false,
+      "description": "Describe deterministic scale-aware wood grain and portable raw channels.",
+      "properties": {
+        "grain_axis": {
+          "enum": [
+            "x",
+            "y",
+            "z"
+          ],
+          "title": "Grain Axis",
+          "type": "string"
+        },
+        "grain_frequency_m": {
+          "exclusiveMinimum": 0,
+          "title": "Grain Frequency M",
+          "type": "number"
+        },
+        "growth_ring_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Growth Ring Scale M",
+          "type": "number"
+        },
+        "knot_seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Knot Seed",
+          "type": "integer"
+        },
+        "knot_count": {
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Knot Count",
+          "type": "integer"
+        },
+        "earlywood_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Earlywood Color",
+          "type": "array"
+        },
+        "latewood_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Latewood Color",
+          "type": "array"
+        },
+        "earlywood_latewood_contrast": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Earlywood Latewood Contrast",
+          "type": "number"
+        },
+        "roughness_base": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness Base",
+          "type": "number"
+        },
+        "roughness_variation": {
+          "maximum": 0.5,
+          "minimum": 0,
+          "title": "Roughness Variation",
+          "type": "number"
+        },
+        "pore_bump_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Pore Bump Scale M",
+          "type": "number"
+        },
+        "end_grain_mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "finish_coating_amount": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Finish Coating Amount",
+          "type": "number"
+        },
+        "intended_real_world_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Intended Real World Scale M",
+          "type": "number"
+        },
+        "deterministic_seed": {
+          "maximum": 2147483647,
+          "minimum": 0,
+          "title": "Deterministic Seed",
+          "type": "integer"
+        },
+        "mapping": {
+          "enum": [
+            "uv",
+            "triplanar"
+          ],
+          "title": "Mapping",
+          "type": "string"
+        },
+        "uv_identity": {
+          "$ref": "#/$defs/UVIdentity"
+        }
+      },
+      "required": [
+        "grain_axis",
+        "grain_frequency_m",
+        "growth_ring_scale_m",
+        "knot_seed",
+        "knot_count",
+        "earlywood_color",
+        "latewood_color",
+        "earlywood_latewood_contrast",
+        "roughness_base",
+        "roughness_variation",
+        "pore_bump_scale_m",
+        "finish_coating_amount",
+        "intended_real_world_scale_m",
+        "deterministic_seed",
+        "mapping",
+        "uv_identity"
+      ],
+      "title": "ProceduralWoodInput",
+      "type": "object"
+    },
+    "ProjectLocalFont": {
+      "additionalProperties": false,
+      "description": "Bind an exact contained project font used for deterministic text rasterization.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "font_format": {
+          "default": "truetype_opentype",
+          "enum": [
+            "truetype_opentype",
+            "bitmap_json_v1"
+          ],
+          "title": "Font Format",
+          "type": "string"
+        },
+        "face_index": {
+          "default": 0,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Face Index",
+          "type": "integer"
+        },
+        "license_id": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "License Id",
+          "type": "string"
+        },
+        "rights_status": {
+          "enum": [
+            "project_owned",
+            "licensed",
+            "public_domain",
+            "unknown"
+          ],
+          "title": "Rights Status",
+          "type": "string"
+        },
+        "provenance": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Provenance",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact",
+        "license_id",
+        "rights_status",
+        "provenance"
+      ],
+      "title": "ProjectLocalFont",
+      "type": "object"
+    },
+    "ResolutionSelectorInput": {
+      "additionalProperties": false,
+      "description": "Freeze scale-aware inputs used by the bounded texture-resolution selector.",
+      "properties": {
+        "selector_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Selector Id",
+          "type": "string"
+        },
+        "material_family": {
+          "enum": [
+            "uniform_fallback",
+            "user_image_pbr",
+            "signage_decal",
+            "planar_reference_patch",
+            "wood",
+            "metal",
+            "emissive",
+            "crystal"
+          ],
+          "title": "Material Family",
+          "type": "string"
+        },
+        "mapping_kind": {
+          "enum": [
+            "unique",
+            "tileable",
+            "decal",
+            "fallback"
+          ],
+          "title": "Mapping Kind",
+          "type": "string"
+        },
+        "projected_pixel_footprint": {
+          "exclusiveMinimum": 0,
+          "title": "Projected Pixel Footprint",
+          "type": "number"
+        },
+        "target_texel_density_px_m": {
+          "exclusiveMinimum": 0,
+          "title": "Target Texel Density Px M",
+          "type": "number"
+        },
+        "longest_object_dimension_m": {
+          "exclusiveMinimum": 0,
+          "title": "Longest Object Dimension M",
+          "type": "number"
+        },
+        "package_budget_bytes": {
+          "exclusiveMinimum": 0,
+          "title": "Package Budget Bytes",
+          "type": "integer"
+        },
+        "requested_pixels": {
+          "anyOf": [
+            {
+              "maximum": 8192,
+              "minimum": 256,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Pixels"
+        }
+      },
+      "required": [
+        "selector_id",
+        "material_family",
+        "mapping_kind",
+        "projected_pixel_footprint",
+        "target_texel_density_px_m",
+        "longest_object_dimension_m",
+        "package_budget_bytes"
+      ],
+      "title": "ResolutionSelectorInput",
+      "type": "object"
+    },
+    "ScaleContextBinding": {
+      "additionalProperties": false,
+      "description": "Bind and summarize one exact AssetScaleContext 0.1.0 artifact.",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "asset_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "shortest_dimension_m": {
+          "exclusiveMinimum": 0,
+          "title": "Shortest Dimension M",
+          "type": "number"
+        },
+        "longest_dimension_m": {
+          "exclusiveMinimum": 0,
+          "title": "Longest Dimension M",
+          "type": "number"
+        },
+        "target_texel_density_px_m": {
+          "exclusiveMinimum": 0,
+          "title": "Target Texel Density Px M",
+          "type": "number"
+        }
+      },
+      "required": [
+        "artifact",
+        "asset_id",
+        "source_fingerprint",
+        "shortest_dimension_m",
+        "longest_dimension_m",
+        "target_texel_density_px_m"
+      ],
+      "title": "ScaleContextBinding",
+      "type": "object"
+    },
+    "UVIdentity": {
+      "additionalProperties": false,
+      "description": "Bind the current UV identity to an exact stale-detecting evidence artifact.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "semantic_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "uv_set": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "uv_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Uv Fingerprint",
+          "type": "string"
+        },
+        "ordered_polygon_corner_count": {
+          "minimum": 3,
+          "title": "Ordered Polygon Corner Count",
+          "type": "integer"
+        },
+        "texel_density_px_m": {
+          "exclusiveMinimum": 0,
+          "title": "Texel Density Px M",
+          "type": "number"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ExactArtifact"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "uv_set",
+        "uv_fingerprint",
+        "ordered_polygon_corner_count",
+        "texel_density_px_m",
+        "evidence"
+      ],
+      "title": "UVIdentity",
+      "type": "object"
+    },
+    "UVRect": {
+      "additionalProperties": false,
+      "description": "Place one localized decal inside a bounded normalized UV rectangle.",
+      "properties": {
+        "minimum": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Minimum",
+          "type": "array"
+        },
+        "maximum": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Maximum",
+          "type": "array"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum"
+      ],
+      "title": "UVRect",
+      "type": "object"
+    },
+    "UniformFallbackInput": {
+      "additionalProperties": false,
+      "description": "Adopt exact existing uniform V0.5 outputs instead of regenerating their bytes.",
+      "properties": {
+        "mapping": {
+          "$ref": "#/$defs/V05StrategyCompanionMapping"
+        },
+        "existing_channels": {
+          "items": {
+            "$ref": "#/$defs/ImageEvidence"
+          },
+          "minItems": 1,
+          "title": "Existing Channels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "existing_channels"
+      ],
+      "title": "UniformFallbackInput",
+      "type": "object"
+    },
+    "UserImagePBRInput": {
+      "additionalProperties": false,
+      "description": "Bind an exact set of user-supplied PBR channels with one UV identity.",
+      "properties": {
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ImageEvidence"
+          },
+          "maxItems": 8,
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "channels"
+      ],
+      "title": "UserImagePBRInput",
+      "type": "object"
+    },
+    "V05StrategyCompanionMapping": {
+      "additionalProperties": false,
+      "description": "Name the existing V0.5 uniform strategy without changing its bytes or enum.",
+      "properties": {
+        "legacy_strategy": {
+          "const": "portable_pbr_v05",
+          "default": "portable_pbr_v05",
+          "title": "Legacy Strategy",
+          "type": "string"
+        },
+        "companion_strategy": {
+          "const": "uniform_portable_fallback_v1",
+          "default": "uniform_portable_fallback_v1",
+          "title": "Companion Strategy",
+          "type": "string"
+        },
+        "legacy_candidate_enum_unchanged": {
+          "const": true,
+          "default": true,
+          "title": "Legacy Candidate Enum Unchanged",
+          "type": "boolean"
+        },
+        "legacy_uniform_bytes_unchanged": {
+          "const": true,
+          "default": true,
+          "title": "Legacy Uniform Bytes Unchanged",
+          "type": "boolean"
+        }
+      },
+      "title": "V05StrategyCompanionMapping",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one run-owned deterministic authoring request and all canonical inputs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "material_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Material Id",
+      "type": "string"
+    },
+    "strategy": {
+      "enum": [
+        "uniform_portable_fallback_v1",
+        "user_image_pbr_v1",
+        "localized_decal_v1",
+        "planar_reference_patch_v1",
+        "procedural_wood_v1",
+        "procedural_metal_v1",
+        "emissive_pattern_v1",
+        "crystal_portable_approximation_v1"
+      ],
+      "title": "Strategy",
+      "type": "string"
+    },
+    "output_root": {
+      "title": "Output Root",
+      "type": "string"
+    },
+    "source_v05_contracts": {
+      "items": {
+        "$ref": "#/$defs/ExactArtifact"
+      },
+      "minItems": 1,
+      "title": "Source V05 Contracts",
+      "type": "array"
+    },
+    "scale_context": {
+      "$ref": "#/$defs/ScaleContextBinding"
+    },
+    "resolution": {
+      "$ref": "#/$defs/ResolutionSelectorInput"
+    },
+    "high_resolution_authorization": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "preview_policy": {
+      "$ref": "#/$defs/AdvancedPreviewPolicy"
+    },
+    "uniform_fallback": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UniformFallbackInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "user_image_pbr": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/UserImagePBRInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "localized_decal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LocalizedDecalInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "planar_reference_patch": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PlanarReferencePatchInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "procedural_wood": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProceduralWoodInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "procedural_metal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProceduralMetalInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "emissive_pattern": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EmissivePatternInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "crystal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CrystalPortableInput"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "destination_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Authority",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "job_id",
+    "workflow_id",
+    "run_id",
+    "material_id",
+    "strategy",
+    "output_root",
+    "source_v05_contracts",
+    "scale_context",
+    "resolution",
+    "preview_policy",
+    "created_at"
+  ],
+  "title": "MaterialAuthoringRequest",
+  "type": "object"
+}

@@ -1,0 +1,558 @@
+{
+  "$defs": {
+    "BenchmarkStagePlanV02": {
+      "additionalProperties": false,
+      "description": "Describe one bounded synthetic candidate perturbation and modeled execution state.",
+      "properties": {
+        "stage_id": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "Stage Id",
+          "type": "string"
+        },
+        "translation_px": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Translation Px",
+          "type": "array"
+        },
+        "uniform_scale": {
+          "exclusiveMinimum": 0.25,
+          "maximum": 2.0,
+          "title": "Uniform Scale",
+          "type": "number"
+        },
+        "omitted_semantic_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Omitted Semantic Ids",
+          "type": "array"
+        },
+        "semantic_offsets_px": {
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9._-]{0,127}$": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array"
+            }
+          },
+          "title": "Semantic Offsets Px",
+          "type": "object"
+        },
+        "execution": {
+          "$ref": "#/$defs/StageExecutionExpectationV02"
+        }
+      },
+      "required": [
+        "stage_id",
+        "translation_px",
+        "uniform_scale",
+        "execution"
+      ],
+      "title": "BenchmarkStagePlanV02",
+      "type": "object"
+    },
+    "KnownCameraV02": {
+      "additionalProperties": false,
+      "description": "Declare one known synthetic camera shared by reference and candidates.",
+      "properties": {
+        "projection": {
+          "enum": [
+            "orthographic",
+            "perspective"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "location_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location M",
+          "type": "array"
+        },
+        "target_m": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target M",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "focal_length_mm": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Focal Length Mm"
+        },
+        "ortho_scale_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ortho Scale M"
+        },
+        "resolution_px": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution Px",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projection",
+        "location_m",
+        "target_m",
+        "rotation_deg",
+        "resolution_px"
+      ],
+      "title": "KnownCameraV02",
+      "type": "object"
+    },
+    "MetricDirectionExpectationV02": {
+      "additionalProperties": false,
+      "description": "Declare an exact expected metric direction between two named stages.",
+      "properties": {
+        "metric": {
+          "enum": [
+            "silhouette_iou",
+            "contour_boundary_f_score",
+            "contour_chamfer_norm",
+            "mean_semantic_iou",
+            "minimum_critical_semantic_iou"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "from_stage": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "From Stage",
+          "type": "string"
+        },
+        "to_stage": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "To Stage",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "increase",
+            "decrease",
+            "nondecrease",
+            "nonincrease",
+            "equal"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "minimum_absolute_delta": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Absolute Delta",
+          "type": "number"
+        }
+      },
+      "required": [
+        "metric",
+        "from_stage",
+        "to_stage",
+        "direction",
+        "minimum_absolute_delta"
+      ],
+      "title": "MetricDirectionExpectationV02",
+      "type": "object"
+    },
+    "StageExecutionExpectationV02": {
+      "additionalProperties": false,
+      "description": "Record deterministic modeled execution counts without claiming wall-clock timing.",
+      "properties": {
+        "build_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Build Count",
+          "type": "integer"
+        },
+        "render_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Render Count",
+          "type": "integer"
+        },
+        "iteration_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Iteration Count",
+          "type": "integer"
+        },
+        "rollback_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Rollback Count",
+          "type": "integer"
+        },
+        "termination_reason": {
+          "enum": [
+            "initial_evidence_captured",
+            "legacy_policy_stopped",
+            "candidate_ready",
+            "quality_target_reached",
+            "plateau",
+            "budget_exhausted",
+            "host_failure"
+          ],
+          "title": "Termination Reason",
+          "type": "string"
+        },
+        "package_status": {
+          "enum": [
+            "not_run",
+            "planned",
+            "passed",
+            "failed"
+          ],
+          "title": "Package Status",
+          "type": "string"
+        },
+        "package_format": {
+          "enum": [
+            "none",
+            "glb",
+            "fbx",
+            "obj"
+          ],
+          "title": "Package Format",
+          "type": "string"
+        },
+        "roundtrip_status": {
+          "enum": [
+            "not_run",
+            "passed",
+            "failed"
+          ],
+          "title": "Roundtrip Status",
+          "type": "string"
+        },
+        "deterministic_duration_ms": {
+          "maximum": 86400000,
+          "minimum": 0,
+          "title": "Deterministic Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "build_count",
+        "render_count",
+        "iteration_count",
+        "rollback_count",
+        "termination_reason",
+        "package_status",
+        "package_format",
+        "roundtrip_status",
+        "deterministic_duration_ms"
+      ],
+      "title": "StageExecutionExpectationV02",
+      "type": "object"
+    },
+    "SyntheticPrimitiveV02": {
+      "additionalProperties": false,
+      "description": "Describe one bounded deterministic 2D primitive in the known camera view.",
+      "properties": {
+        "primitive_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Primitive Id",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "qa_role": {
+          "enum": [
+            "primary",
+            "supporting",
+            "decorative",
+            "ground_background"
+          ],
+          "title": "Qa Role",
+          "type": "string"
+        },
+        "critical": {
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "shape": {
+          "enum": [
+            "rectangle",
+            "ellipse"
+          ],
+          "title": "Shape",
+          "type": "string"
+        },
+        "bbox_px": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Bbox Px",
+          "type": "array"
+        },
+        "object_id": {
+          "maximum": 255,
+          "minimum": 1,
+          "title": "Object Id",
+          "type": "integer"
+        },
+        "color_rgb": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Color Rgb",
+          "type": "array"
+        }
+      },
+      "required": [
+        "primitive_id",
+        "semantic_id",
+        "qa_role",
+        "critical",
+        "shape",
+        "bbox_px",
+        "object_id",
+        "color_rgb"
+      ],
+      "title": "SyntheticPrimitiveV02",
+      "type": "object"
+    },
+    "SyntheticReferenceRecipeV02": {
+      "additionalProperties": false,
+      "description": "Bind a reference beauty, silhouette, object-ID, and semantic-mask recipe.",
+      "properties": {
+        "background_rgb": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Background Rgb",
+          "type": "array"
+        },
+        "primitives": {
+          "items": {
+            "$ref": "#/$defs/SyntheticPrimitiveV02"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Primitives",
+          "type": "array"
+        }
+      },
+      "required": [
+        "background_rgb",
+        "primitives"
+      ],
+      "title": "SyntheticReferenceRecipeV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Declare one exact synthetic reference-to-asset comparison fixture.",
+  "properties": {
+    "case_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "simple_hard_surface_box",
+        "curved_loft",
+        "swept_handle",
+        "boolean_panel",
+        "ornate_multi_part_prop",
+        "multi_material_prop",
+        "wood_object",
+        "signage_decal_object",
+        "emissive_crystal_prop",
+        "small_static_assembly"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "seed": {
+      "maximum": 2147483647,
+      "minimum": 0,
+      "title": "Seed",
+      "type": "integer"
+    },
+    "contract_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Contract Sha256",
+      "type": "string"
+    },
+    "known_camera": {
+      "$ref": "#/$defs/KnownCameraV02"
+    },
+    "reference_recipe": {
+      "$ref": "#/$defs/SyntheticReferenceRecipeV02"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/BenchmarkStagePlanV02"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "expected_metric_directions": {
+      "items": {
+        "$ref": "#/$defs/MetricDirectionExpectationV02"
+      },
+      "minItems": 1,
+      "title": "Expected Metric Directions",
+      "type": "array"
+    },
+    "blender_smoke_supported": {
+      "default": false,
+      "title": "Blender Smoke Supported",
+      "type": "boolean"
+    },
+    "claim_scope": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Claim Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "case_id",
+    "category",
+    "seed",
+    "contract_sha256",
+    "known_camera",
+    "reference_recipe",
+    "stages",
+    "expected_metric_directions",
+    "claim_scope"
+  ],
+  "title": "BenchmarkCaseV02",
+  "type": "object"
+}

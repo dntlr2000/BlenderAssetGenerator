@@ -1,0 +1,147 @@
+{
+  "schema_version": "0.7.0",
+  "validation_id": "roundtrip.v09-handoff-smoke-package",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "package_id": "v09-handoff-smoke-package",
+  "profile_id": "portable_gltf",
+  "package_manifest": {
+    "id": "package.manifest.v09-handoff-smoke-package",
+    "kind": "package_manifest",
+    "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/package_manifest.json",
+    "sha256": "a267d75b604c7baac480cc2cc54e4f7d74d7793a9dc72adbc719fb770b069843"
+  },
+  "imported_inventory": {
+    "id": "roundtrip.inventory.v09-handoff-smoke-package",
+    "kind": "roundtrip_inventory",
+    "path": "optimization/runs/v09-handoff-smoke-run/roundtrip/v09-handoff-smoke-package/roundtrip_evidence.json",
+    "sha256": "4bdda86e3c97e5f832c4e2b69d5d2c309f142cef5032512e4470145aab886f13"
+  },
+  "status": "passed",
+  "ok": true,
+  "passed": 1,
+  "warnings": 6,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "roundtrip.warning.0001",
+      "category": "axis",
+      "status": "warning",
+      "message": "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0002",
+      "category": "units",
+      "status": "warning",
+      "message": "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0003",
+      "category": "normal",
+      "status": "warning",
+      "message": "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0004",
+      "category": "tangent",
+      "status": "warning",
+      "message": "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0005",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV loop-to-vertex association could not be verified for: CBM_demo_instance_post__LOD0__BATCH0003, CBM_demo_instance_post__LOD1__BATCH0001, CBM_demo_instance_post__LOD2__BATCH0002, demo.boolean.block__LOD0, demo.boolean.block__LOD0__COLLIDER, demo.boolean.block__LOD1, demo.boolean.block__LOD2, demo.curve_pipe__LOD0, demo.curve_pipe__LOD0__COLLIDER, demo.curve_pipe__LOD1, demo.curve_pipe__LOD2, demo.custom_pyramid__LOD0, demo.custom_pyramid__LOD0__COLLIDER, demo.custom_pyramid__LOD1, demo.custom_pyramid__LOD2, demo.instance_post__001__LOD0__COLLIDER, demo.instance_post__002__LOD0__COLLIDER, demo.instance_post__003__LOD0__COLLIDER, demo.instance_post__004__LOD0__COLLIDER, demo.instance_post__LOD0__COLLIDER, demo.modifier_array__LOD0, demo.modifier_array__LOD0__COLLIDER, demo.modifier_array__LOD1, demo.modifier_array__LOD2, demo.modifier_mirror__LOD0, demo.modifier_mirror__LOD0__COLLIDER, demo.modifier_mirror__LOD1, demo.modifier_mirror__LOD2, demo.modifier_remesh__LOD0, demo.modifier_remesh__LOD0__COLLIDER, demo.modifier_remesh__LOD1, demo.modifier_remesh__LOD2, demo.modifier_solidify__LOD0, demo.modifier_solidify__LOD0__COLLIDER, demo.modifier_solidify__LOD1, demo.modifier_solidify__LOD2, demo.profile_house__LOD0, demo.profile_house__LOD0__COLLIDER, demo.profile_house__LOD1, demo.profile_house__LOD2, demo.revolve_vase__LOD0, demo.revolve_vase__LOD0__COLLIDER, demo.revolve_vase__LOD1, demo.revolve_vase__LOD2, demo.terrain__LOD0, demo.terrain__LOD0__COLLIDER, demo.terrain__LOD1, demo.terrain__LOD2",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0006",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV coordinate summary preservation could not be verified for: CBM_demo_instance_post__LOD0__BATCH0003, CBM_demo_instance_post__LOD1__BATCH0001, CBM_demo_instance_post__LOD2__BATCH0002, demo.boolean.block__LOD0, demo.boolean.block__LOD1, demo.boolean.block__LOD2, demo.curve_pipe__LOD0, demo.curve_pipe__LOD1, demo.curve_pipe__LOD2, demo.custom_pyramid__LOD0, demo.custom_pyramid__LOD1, demo.custom_pyramid__LOD2, demo.modifier_array__LOD0, demo.modifier_array__LOD1, demo.modifier_array__LOD2, demo.modifier_mirror__LOD0, demo.modifier_mirror__LOD1, demo.modifier_mirror__LOD2, demo.modifier_remesh__LOD0, demo.modifier_remesh__LOD1, demo.modifier_remesh__LOD2, demo.modifier_solidify__LOD0, demo.modifier_solidify__LOD1, demo.modifier_solidify__LOD2, demo.profile_house__LOD0, demo.profile_house__LOD1, demo.profile_house__LOD2, demo.revolve_vase__LOD0, demo.revolve_vase__LOD1, demo.revolve_vase__LOD2, demo.terrain__LOD0, demo.terrain__LOD1, demo.terrain__LOD2",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.clean_import.completed",
+      "category": "format",
+      "status": "passed",
+      "message": "Blender completed a clean-scene package import.",
+      "target_id": null
+    }
+  ],
+  "bounds": {
+    "source": {
+      "minimum": [
+        -9.4,
+        -4.385553,
+        -1.2
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "imported": {
+      "minimum": [
+        -9.4,
+        -4.385553,
+        -1.2
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "max_abs_error_m": 0.0,
+    "tolerance_m": 0.0001,
+    "passed": true
+  },
+  "expected_semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "observed_semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "semantic_id_coverage": 1.0,
+  "expected_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "observed_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "material_id_coverage": 1.0,
+  "created_at": "2026-08-11T07:49:56.613895Z",
+  "errors": []
+}

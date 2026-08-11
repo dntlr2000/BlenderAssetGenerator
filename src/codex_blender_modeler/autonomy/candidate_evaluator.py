@@ -688,7 +688,7 @@ def _compile_optional_structural_scene(
     legacy_scene: SceneSpec,
     legacy_scene_artifact: AutonomyArtifact,
 ) -> _StructuralCompilation:
-    """Materialize a mirrored SceneSpecV03 and compile its recipes to path-backed v0.2."""
+    """Compile V03 recipes and opt explicit non-legacy intent into MeshPayload 0.2."""
 
     expected_path = candidate_root / "scene_spec_v03.json"
     if assignment.scene_spec_v03_output is None:
@@ -749,6 +749,15 @@ def _compile_optional_structural_scene(
             path: path.resolve().relative_to(job_root.resolve()).as_posix()
             for path in (recipe_path, mesh_path, blend_path, report_path)
         }
+        materialization_options: dict[str, Any] = {}
+        if (
+            item.geometry_intent is not None
+            and item.geometry_intent.smoothing_policy.mode != "legacy"
+        ):
+            materialization_options = {
+                "mesh_payload_version": "0.2.0",
+                "material_id": item.material_id,
+            }
         materialize_structural_candidate(
             job_root=job_root,
             candidate=recipe,
@@ -756,6 +765,7 @@ def _compile_optional_structural_scene(
             mesh_relative_path=relative[mesh_path],
             blend_relative_path=relative[blend_path],
             report_relative_path=relative[report_path],
+            **materialization_options,
         )
         _validate_structural_materialization_report(
             report_path,

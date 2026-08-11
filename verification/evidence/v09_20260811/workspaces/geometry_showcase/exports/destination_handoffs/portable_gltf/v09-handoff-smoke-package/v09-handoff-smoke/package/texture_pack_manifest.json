@@ -1,0 +1,442 @@
+{
+  "schema_version": "0.7.0",
+  "manifest_id": "texture.pack.v09-handoff-smoke-run",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "status": "complete",
+  "packing_required": true,
+  "raw_channels_preserved": true,
+  "textures": [
+    {
+      "texture_id": "texture.canonical.mat.blue.base_color",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.base_color",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/base_color.png",
+        "sha256": "7e31b6652b408a6ca52e05d0f8a8eb651647cb936b2835d5f5482fe99d1d6a88"
+      },
+      "color_space": "sRGB",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "base_color",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.base_color",
+            "kind": "other",
+            "path": "textures/mat.blue/base_color.png",
+            "sha256": "7e31b6652b408a6ca52e05d0f8a8eb651647cb936b2835d5f5482fe99d1d6a88"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.blue.emission",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.emission",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/emission.png",
+        "sha256": "d4270cb3908ae3f796665c14721e6d14728d75ba314b01b5094ee8988359c537"
+      },
+      "color_space": "sRGB",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "emission",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.emission",
+            "kind": "other",
+            "path": "textures/mat.blue/emission.png",
+            "sha256": "d4270cb3908ae3f796665c14721e6d14728d75ba314b01b5094ee8988359c537"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.blue.height",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.height",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/height.png",
+        "sha256": "15fb328b115d3c55941bf1da8149bfea0058e0d7ea2326f3e5e0a4369027b7a8"
+      },
+      "color_space": "Non-Color",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "height",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.height",
+            "kind": "other",
+            "path": "textures/mat.blue/height.png",
+            "sha256": "15fb328b115d3c55941bf1da8149bfea0058e0d7ea2326f3e5e0a4369027b7a8"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.blue.metallic",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.metallic",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/metallic.png",
+        "sha256": "949cccfc8f37d0bba802ccd466ed191aa275193f6a6f4e0756b87388eb6586a2"
+      },
+      "color_space": "Non-Color",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.metallic",
+            "kind": "other",
+            "path": "textures/mat.blue/metallic.png",
+            "sha256": "949cccfc8f37d0bba802ccd466ed191aa275193f6a6f4e0756b87388eb6586a2"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.blue.normal",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.normal",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/normal.png",
+        "sha256": "66280e48bf82bbe1fed98b725e49955e5847f27ca93312c5c7bc58f29c2a7849"
+      },
+      "color_space": "Non-Color",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "normal",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.normal",
+            "kind": "other",
+            "path": "textures/mat.blue/normal.png",
+            "sha256": "66280e48bf82bbe1fed98b725e49955e5847f27ca93312c5c7bc58f29c2a7849"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.blue.roughness",
+      "material_ids": [
+        "mat.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.blue.roughness",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/canonical/mat.blue-8b17bd6e/roughness.png",
+        "sha256": "2b1a6f03121bd20df3b7920f1ac6294ab77205865dada347ec3a649422488e27"
+      },
+      "color_space": "Non-Color",
+      "width": 64,
+      "height": 64,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.canonical.mat.blue.roughness",
+            "kind": "other",
+            "path": "textures/mat.blue/roughness.png",
+            "sha256": "2b1a6f03121bd20df3b7920f1ac6294ab77205865dada347ec3a649422488e27"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v09-handoff-smoke-materials.base_color",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v09-handoff-smoke-materials.base_color",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/raw/base_color.png",
+        "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57"
+      },
+      "color_space": "sRGB",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "base_color",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.base_color",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/base_color.png",
+            "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v09-handoff-smoke-materials.emission",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v09-handoff-smoke-materials.emission",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/raw/emission.png",
+        "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad"
+      },
+      "color_space": "sRGB",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "emission",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.emission",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/emission.png",
+            "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v09-handoff-smoke-materials.metallic",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v09-handoff-smoke-materials.metallic",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/raw/metallic.png",
+        "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1"
+      },
+      "color_space": "Non-Color",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.metallic",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/metallic.png",
+            "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v09-handoff-smoke-materials.normal",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v09-handoff-smoke-materials.normal",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/raw/normal.png",
+        "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db"
+      },
+      "color_space": "Non-Color",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "normal",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.normal",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/normal.png",
+            "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v09-handoff-smoke-materials.roughness",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v09-handoff-smoke-materials.roughness",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/raw/roughness.png",
+        "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8"
+      },
+      "color_space": "Non-Color",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.roughness",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/roughness.png",
+            "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.orm.v09-handoff-smoke-materials",
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "packing": "gltf_orm",
+      "output": {
+        "id": "texture.output.orm.v09-handoff-smoke-materials",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/packed/gltf_orm.png",
+        "sha256": "b8efdd99f5e1e50af0a6e6a0698d8d534b2683b9a5757a5d132bdb152cad3df2"
+      },
+      "color_space": "Non-Color",
+      "width": 1024,
+      "height": 1024,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "occlusion",
+          "source": {
+            "id": "texture.orm.evidence.v09-handoff-smoke-materials",
+            "kind": "other",
+            "path": "exports/packages/portable_gltf/v09-handoff-smoke-package/textures/portable_atlas/texture_pack_evidence.json",
+            "sha256": "616eb12e425e32c4855a82a802f983137a9ece19c4c31c0f5ac7da87aad5b3bc"
+          },
+          "invert": false
+        },
+        {
+          "output_channel": "G",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.roughness",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/roughness.png",
+            "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8"
+          },
+          "invert": false
+        },
+        {
+          "output_channel": "B",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.conversion.v09-handoff-smoke-materials.metallic",
+            "kind": "other",
+            "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/metallic.png",
+            "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1"
+          },
+          "invert": false
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-08-11T07:49:52.356952Z",
+  "completed_at": "2026-08-11T07:49:52.356952Z",
+  "errors": [],
+  "notes": [
+    "Canonical TextureManifest images remain byte-preserved.",
+    "The five portable atlas channels were produced from an explicit hash-bound V0.7.1 derived material conversion.",
+    "glTF ORM, when present, is derived while raw channels remain included."
+  ]
+}

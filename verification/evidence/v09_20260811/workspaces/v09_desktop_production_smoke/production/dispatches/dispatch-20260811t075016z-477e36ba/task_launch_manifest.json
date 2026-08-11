@@ -1,0 +1,57 @@
+{
+  "schema_version": "0.9.0",
+  "launch_id": "launch-20260811t075016z-ab0d83d3",
+  "dispatch_id": "dispatch-20260811t075016z-477e36ba",
+  "controller_id": "controller-20260811t075016z-bd22c13e",
+  "job_id": "v09_desktop_production_smoke",
+  "workflow_id": "wf-20260811t075016z-3e2a40cd",
+  "launch_mode": "desktop_in_session",
+  "launch_status": "ready_in_session",
+  "task_created_by_repository": false,
+  "task_title": "Asset production: v09_desktop_production_smoke",
+  "working_directory": ".",
+  "task_prompt": {
+    "path": "production/dispatches/dispatch-20260811t075016z-477e36ba/codex_task_prompt.md",
+    "sha256": "f9553d2066321c5bdf51c3a3e416e69277381db2c40dc8ee0137aff891bc63d4"
+  },
+  "controller_plan": {
+    "path": "production/dispatches/dispatch-20260811t075016z-477e36ba/controller_plan.json",
+    "sha256": "fe812d8098291ab72269757b9cb82bc3e48ba02085bd898d0b4b6a0150603a09"
+  },
+  "controller_tool_policy": "workflow_contract_only",
+  "controller_mcp_allowlist": [
+    "get_asset_production_dispatch_status",
+    "advance_delegated_production_controller",
+    "record_delegated_production_step"
+  ],
+  "controller_forbidden_mcp_tools": [
+    "approve_workflow_checkpoint",
+    "approve_candidate_review_promotion",
+    "approve_interior_qa_plan",
+    "approve_visual_revision",
+    "approve_visual_convergence",
+    "approve_portable_asset_optimization",
+    "approve_external_static_asset_intake",
+    "generate_destination_handoff",
+    "resume_short_workflow",
+    "requeue_local_workflow",
+    "run_local_workflow_queue"
+  ],
+  "controller_shell_policy": "prompt_guarded_no_attestation",
+  "client_tool_policy_enforcement_required": false,
+  "approval_isolation": "workflow_contract_only",
+  "required_client_capabilities": [
+    "read_repository_files",
+    "call_project_mcp_tools",
+    "delegate_read_only_subagents"
+  ],
+  "limitations": [
+    "The current Codex task acts as controller without a separate task binding.",
+    "No per-task MCP allowlist or shell-policy enforcement is attested.",
+    "Approval isolation is workflow-contract-only and must not be overstated.",
+    "Subagents remain read-only advisers; the controller is the canonical writer.",
+    "Every existing generic and specialized approval boundary remains active.",
+    "Destination metadata is a hint and does not establish runtime parity."
+  ],
+  "prepared_at": "2026-08-11T07:50:16.601384Z"
+}

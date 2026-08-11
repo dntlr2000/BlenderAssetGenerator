@@ -1,0 +1,632 @@
+{
+  "schema_version": "0.1.0",
+  "report_id": "aq-20260810t065207677077z-26250066-final",
+  "job_id": "aq_full_box",
+  "workflow_id": "wf-20260810t065207z-f3830cf3",
+  "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+  "input_sha256": "8fa5ccb506b171a95677c58f7001375e5809842eb513d4a8f8cf3ae97e580d55",
+  "source_fingerprint": "e410eb23d3c098c657665957b8b6c1ce166dc39bbbb35a7eb74ee3b7576ef19d",
+  "gate_profile_id": "autonomous-static-prop-v1",
+  "gate_profile_sha256": "587ca33b868cf21ffaa8d9b18d69936cb91b5443f69d73f83a262938a3d7f201",
+  "provenance": {
+    "job_id": "aq_full_box",
+    "workflow_id": "wf-20260810t065207z-f3830cf3",
+    "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+    "source_fingerprint": "e410eb23d3c098c657665957b8b6c1ce166dc39bbbb35a7eb74ee3b7576ef19d",
+    "input_sha256": "8fa5ccb506b171a95677c58f7001375e5809842eb513d4a8f8cf3ae97e580d55",
+    "artifacts": [
+      {
+        "artifact_id": "assembly",
+        "kind": "assembly-validation",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality_inputs/final/assembly_validation.json",
+        "sha256": "49816e7982d19fb9c385f95c59804f4afb400fbaa919adeb12de13f419cab84a",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "workflow-plan",
+        "kind": "workflow-plan",
+        "relative_path": "workflows/wf-20260810t065207z-f3830cf3/plan.json",
+        "sha256": "eb9edafcd6d1c82c6d0d6687126f795578488ab70904a358c621ab9fe693cae9",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "visual-qa",
+        "kind": "visual-qa",
+        "relative_path": "qa/runs/v08-f3830cf3-qa/visual_qa_report.json",
+        "sha256": "974f3582c67f715e192ae2afdbc5524959f110a3dae791a6497cfc8d76b73545",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "material-contract",
+        "kind": "material-validation",
+        "relative_path": "workflows/wf-20260810t065207z-f3830cf3/artifacts/s/e36229f5cb515837.json",
+        "sha256": "9931e62a442f132db53c90a56cc3a1969f5639cef1b68a773682da9376232db1",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "material-fidelity",
+        "kind": "material-fidelity",
+        "relative_path": "workflows/wf-20260810t065207z-f3830cf3/artifacts/s/19a2e525635614bc.json",
+        "sha256": "df29bba041c9dabf9536cefcae71853d7541d3f7280e2472f8cd997d0253b79f",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "mesh-preflight",
+        "kind": "mesh-preflight",
+        "relative_path": "optimization/runs/v08-f3830cf3/mesh_preflight_report.json",
+        "sha256": "158048395a0652a6b7326721f8b4d3d7853c2432a242e41770c1e7bd603a59c5",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "package-manifest",
+        "kind": "portable-package",
+        "relative_path": "exports/packages/portable_gltf/v08-f3830cf3-package/package_manifest.json",
+        "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "roundtrip",
+        "kind": "clean-import-roundtrip",
+        "relative_path": "optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_validation.json",
+        "sha256": "4ae8bc9f0680f3a77b3e0b886e08155c5251f6bab05cf653b3798a6e8d5a1925",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-01",
+        "kind": "hard-gate-evidence",
+        "relative_path": "analysis/material_plan.json",
+        "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-02",
+        "kind": "hard-gate-evidence",
+        "relative_path": "analysis/modeling_plan.json",
+        "sha256": "a0ee3680216b74182697b27f4d99be8c86072f5843ce4f4f7b4b423882961f23",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-03",
+        "kind": "hard-gate-evidence",
+        "relative_path": "analysis/scene_spec.json",
+        "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-04",
+        "kind": "hard-gate-evidence",
+        "relative_path": "blender/scene.blend",
+        "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-07",
+        "kind": "hard-gate-evidence",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality_inputs/final/companions/assembly_companion_report.json",
+        "sha256": "9c0af5b93dfef442f133b608e9fe071f8b263d79f5794b2c0aaaa009a0c91244",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-08",
+        "kind": "hard-gate-evidence",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality_inputs/final/companions/topology_companion_report.json",
+        "sha256": "065bce47debac7f8cbd2dbdfa0356479d65974100266ed26964878ae92673fb5",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-09",
+        "kind": "hard-gate-evidence",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-10",
+        "kind": "hard-gate-evidence",
+        "relative_path": "reports/scene_inventory.json",
+        "sha256": "55112b27de964b27a811259018ec023e924ee3721ec58a28806e56f08d8552ce",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "hard-gate-11",
+        "kind": "hard-gate-evidence",
+        "relative_path": "reports/validation.json",
+        "sha256": "be0dc4733229be2fa1a54682152ab74d083183d5bd7f728cb6368f96a9675851",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      }
+    ]
+  },
+  "producer": {
+    "name": "autonomy-quality-gate",
+    "version": "0.1.0"
+  },
+  "created_at": "2026-08-10T06:58:55.149889Z",
+  "outcome": "passed",
+  "quality_accepted": true,
+  "legacy_v06_direct_score": 0.862641,
+  "hard_gates": [
+    {
+      "gate_id": "gate.aq.build",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Blender build exists, is non-empty, and is hash-bound."
+    },
+    {
+      "gate_id": "gate.aq.clean_import_roundtrip",
+      "axis": "production_readiness",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "production-current"
+      ],
+      "message": "Exact clean-import round trip passed."
+    },
+    {
+      "gate_id": "gate.aq.evidence_binding",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Integrated Quality provenance and direct inputs are current."
+    },
+    {
+      "gate_id": "gate.aq.finite_transforms",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Canonical and evaluated numeric evidence is finite."
+    },
+    {
+      "gate_id": "gate.aq.inspect",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Scene inspect evidence is structurally valid."
+    },
+    {
+      "gate_id": "gate.aq.package_dependencies",
+      "axis": "production_readiness",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "production-current"
+      ],
+      "message": "Package manifest and every declared dependency are exact and current."
+    },
+    {
+      "gate_id": "gate.aq.provenance",
+      "axis": "material_fidelity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "material-current"
+      ],
+      "message": "All PBR manifests and image channels are hash-bound."
+    },
+    {
+      "gate_id": "gate.aq.required_assembly",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "No required assembly relationship is declared."
+    },
+    {
+      "gate_id": "gate.aq.required_semantics",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "All 1 authored semantic IDs exist in source and inventory."
+    },
+    {
+      "gate_id": "gate.aq.topology_profile",
+      "axis": "production_readiness",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "production-current"
+      ],
+      "message": "Topology profile static_prop_closed has no hard failure; warning-only unavailable checks=2."
+    },
+    {
+      "gate_id": "gate.aq.uv_pbr_dependencies",
+      "axis": "material_fidelity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "material-current"
+      ],
+      "message": "All required UV/PBR dependencies are present."
+    },
+    {
+      "gate_id": "gate.aq.validate",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Scene validation reports ok=true."
+    },
+    {
+      "gate_id": "gate.material_fidelity",
+      "axis": "material_fidelity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "material-current"
+      ],
+      "message": "Material fidelity must pass before terminal acceptance."
+    },
+    {
+      "gate_id": "gate.production_readiness",
+      "axis": "production_readiness",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "production-current"
+      ],
+      "message": "Clean package readiness must pass before terminal acceptance."
+    },
+    {
+      "gate_id": "gate.structural_integrity",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "message": "Structural integrity must pass before terminal acceptance."
+    }
+  ],
+  "axes": [
+    {
+      "axis": "reference_alignment",
+      "required": true,
+      "status": "passed",
+      "score": 0.862641,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "reference.v06_overall_direct_score",
+          "status": "passed",
+          "value": 0.862641,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "reference-current"
+          ],
+          "message": "Copied exactly from VisualQAReport.direct_metrics.overall_direct_score."
+        },
+        {
+          "metric_id": "reference.silhouette_iou",
+          "status": "passed",
+          "value": 0.816325,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "reference-current"
+          ],
+          "message": "Canonical fixed-camera V0.6 silhouette overlap."
+        },
+        {
+          "metric_id": "reference.authoritative_high_finding_count",
+          "status": "passed",
+          "value": 0.0,
+          "unit": "findings",
+          "threshold": 0.0,
+          "direction": "lower_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "reference-current"
+          ],
+          "message": "No high authoritative V0.6 finding is present."
+        }
+      ],
+      "evidence_ids": [
+        "reference-current"
+      ],
+      "limitations": []
+    },
+    {
+      "axis": "structural_integrity",
+      "required": true,
+      "status": "passed",
+      "score": 1.0,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "structural.assembly_0_bounds",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 1.0,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "structural-current"
+          ],
+          "message": "Assembly bounds: passed=3, warnings=0, failed=0."
+        },
+        {
+          "metric_id": "structural.mesh_preflight_pass_ratio",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 1.0,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "structural-current"
+          ],
+          "message": "Mesh preflight: passed=1, warnings=0, failed=0."
+        }
+      ],
+      "evidence_ids": [
+        "structural-current"
+      ],
+      "limitations": []
+    },
+    {
+      "axis": "material_fidelity",
+      "required": true,
+      "status": "passed",
+      "score": 1.0,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "material.contract_pass_ratio",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 0.9,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "material-current"
+          ],
+          "message": "V0.5 contract checks: passed=4, warnings=0, failed=0."
+        },
+        {
+          "metric_id": "material.raster_fidelity_pass_ratio",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 0.9,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "material-current"
+          ],
+          "message": "Raster fidelity findings: passed=1, warnings=0, failed=0."
+        }
+      ],
+      "evidence_ids": [
+        "material-current"
+      ],
+      "limitations": []
+    },
+    {
+      "axis": "production_readiness",
+      "required": true,
+      "status": "passed",
+      "score": 1.0,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "production.mesh_preflight_pass_ratio",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 1.0,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "production-current"
+          ],
+          "message": "V0.7 derived mesh preflight evidence."
+        },
+        {
+          "metric_id": "production.roundtrip_semantic_coverage",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 1.0,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "production-current"
+          ],
+          "message": "Clean-import semantic-ID coverage."
+        },
+        {
+          "metric_id": "production.roundtrip_material_coverage",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "ratio",
+          "threshold": 1.0,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "production-current"
+          ],
+          "message": "Clean-import material-ID coverage."
+        },
+        {
+          "metric_id": "production.roundtrip_bounds",
+          "status": "passed",
+          "value": 1.0,
+          "unit": "boolean",
+          "threshold": 1.0,
+          "direction": "boolean",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "production-current"
+          ],
+          "message": "Clean-import bounds tolerance result."
+        }
+      ],
+      "evidence_ids": [
+        "production-current"
+      ],
+      "limitations": [
+        "Destination-runtime parity remains outside this evidence."
+      ]
+    }
+  ],
+  "evidence_availability": [
+    {
+      "evidence_id": "reference-current",
+      "axis": "reference_alignment",
+      "status": "available",
+      "artifact_id": "visual-qa",
+      "confidence": 1.0,
+      "reason": "Exact canonical V0.6 direct QA is available."
+    },
+    {
+      "evidence_id": "structural-current",
+      "axis": "structural_integrity",
+      "status": "available",
+      "artifact_id": "assembly",
+      "confidence": 1.0,
+      "reason": "Exact current V0.4 assembly validation is available."
+    },
+    {
+      "evidence_id": "material-current",
+      "axis": "material_fidelity",
+      "status": "available",
+      "artifact_id": "material-fidelity",
+      "confidence": 1.0,
+      "reason": "Exact V0.5 contract and raster fidelity reports are available."
+    },
+    {
+      "evidence_id": "production-current",
+      "axis": "production_readiness",
+      "status": "available",
+      "artifact_id": "roundtrip",
+      "confidence": 1.0,
+      "reason": "Exact V0.7 clean-import round trip is available."
+    }
+  ],
+  "blocking_reasons": [],
+  "reentry": [],
+  "notes": [
+    "Quality acceptance is independent from workflow execution completion.",
+    "Destination runtime parity is not evaluated by this engine-neutral report."
+  ]
+}

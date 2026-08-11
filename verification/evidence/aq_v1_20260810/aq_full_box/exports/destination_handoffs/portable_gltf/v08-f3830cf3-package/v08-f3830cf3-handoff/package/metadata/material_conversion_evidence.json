@@ -1,0 +1,464 @@
+{
+  "atlas": {
+    "atlas_scope": "all_render_lod",
+    "columns": 2,
+    "conversion_phase": "after_optimization_with_canonical_source_frame",
+    "cross_object_overlap_prevented_by_grid": true,
+    "layout": "global_shared",
+    "margin_px": 16,
+    "maximum_overlap_fraction": 0.0,
+    "object_count": 3,
+    "pixel_overlap_measurement": "not_measured",
+    "preserve_existing_uv_sets": true,
+    "required_channels": [
+      "base_color",
+      "roughness",
+      "metallic",
+      "normal",
+      "emission"
+    ],
+    "resolution": 2048,
+    "rows": 2,
+    "tile_strategy": "deterministic_grid",
+    "uv_set": "CBMPortableAtlas"
+  },
+  "conversion_plan_sha256": "37bb964dc8e59c3498e335829bd3f8a1b0fb2669bc32943b4170952dd2f89ad8",
+  "entries": [
+    {
+      "binding_ids": [
+        "binding.000000.product.body.LOD0.a0c06f6022",
+        "binding.000001.product.body.LOD1.cbc15b89de",
+        "binding.000002.product.body.LOD2.6d40d35d64"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "mapping_mode": "uv",
+      "material_id": "mat.product.blue",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "0ad2a2e298b390743764b024ac528b631396018810bc7fb7521ccbc90ae263a4",
+      "source_material_fingerprint": "712ef875019e00864b4d5276e5c35451ce6919503338705a1ef467bd850b609e",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.product.blue",
+        "kind": "shader_recipe",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/recipes/material-001.json",
+        "sha256": "8b12a69f37bc558096220bdfed68d5b1723d429ff3c186f55abe1bffdb35ae17"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    }
+  ],
+  "job_id": "aq_full_box",
+  "kind": "portable_material_conversion_evidence",
+  "materials": [
+    {
+      "binding_ids": [
+        "binding.000000.product.body.LOD0.a0c06f6022",
+        "binding.000001.product.body.LOD1.cbc15b89de",
+        "binding.000002.product.body.LOD2.6d40d35d64"
+      ],
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "mapping_mode": "uv",
+      "material_id": "mat.product.blue",
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ],
+      "portable_material_fingerprint": "0ad2a2e298b390743764b024ac528b631396018810bc7fb7521ccbc90ae263a4",
+      "source_material_fingerprint": "712ef875019e00864b4d5276e5c35451ce6919503338705a1ef467bd850b609e",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.product.blue",
+        "kind": "shader_recipe",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/recipes/material-001.json",
+        "sha256": "8b12a69f37bc558096220bdfed68d5b1723d429ff3c186f55abe1bffdb35ae17"
+      },
+      "surface_factors": {
+        "alpha_factor": 1.0,
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "metallic_factor": 1.0,
+        "roughness_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "warnings": []
+    }
+  ],
+  "notes": [
+    "Only derived render and LOD meshes were converted; authoring and collider objects were excluded.",
+    "Absolute staging paths are raw Blender evidence and must be normalized by the host contract.",
+    "Portable image nodes use paths relative to the converted blend for atomic directory promotion."
+  ],
+  "objects": [
+    {
+      "asset_role": "render",
+      "atlas": {
+        "bounds": [
+          0.0078125,
+          0.0078125,
+          0.4921875,
+          0.4921875
+        ],
+        "loop_count": 384,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000000.product.body.LOD0.a0c06f6022",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.product.body.LOD0.c38c9a935e",
+      "lod_level": 0,
+      "mapping_mode": "uv",
+      "material_id": "mat.product.blue",
+      "name": "product.body__LOD0",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 98,
+        "polygons_before": 98,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 188,
+        "triangles_before": 188,
+        "vertices_after": 96,
+        "vertices_before": 96
+      },
+      "semantic_id": "product.body",
+      "source_object": "product.body",
+      "source_uv_set": "UVMap",
+      "tile_index": 0
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.5078125,
+          0.0078125,
+          0.9921875,
+          0.4921875
+        ],
+        "loop_count": 336,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000001.product.body.LOD1.cbc15b89de",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.product.body.LOD1.233935d09b",
+      "lod_level": 1,
+      "mapping_mode": "uv",
+      "material_id": "mat.product.blue",
+      "name": "product.body__LOD1",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 112,
+        "polygons_before": 112,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 112,
+        "triangles_before": 112,
+        "vertices_after": 58,
+        "vertices_before": 58
+      },
+      "semantic_id": "product.body",
+      "source_object": "product.body",
+      "source_uv_set": "UVMap",
+      "tile_index": 1
+    },
+    {
+      "asset_role": "lod",
+      "atlas": {
+        "bounds": [
+          0.0078125,
+          0.5078125,
+          0.4921875,
+          0.9921875
+        ],
+        "loop_count": 168,
+        "remaining_degenerate_face_count": 0,
+        "repaired_degenerate_face_count": 0,
+        "unwrap_method": "smart_project",
+        "uv_set": "CBMPortableAtlas"
+      },
+      "binding_id": "binding.000002.product.body.LOD2.6d40d35d64",
+      "coordinate_bindings": 0,
+      "derived_object_id": "derived.product.body.LOD2.4b9a5ec1d3",
+      "lod_level": 2,
+      "mapping_mode": "uv",
+      "material_id": "mat.product.blue",
+      "name": "product.body__LOD2",
+      "portable_topology": {
+        "bounds_max_abs_delta_m": 0.0,
+        "invalid_face_count_after": 0,
+        "invalid_face_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "invalid_loop_count_before": 0,
+        "micro_sliver_face_count_before": 0,
+        "native_invalid_face_count": 0,
+        "native_invalid_loop_count": 0,
+        "polygons_after": 56,
+        "polygons_before": 56,
+        "remaining_micro_sliver_face_count": 0,
+        "repair_distance_m": 0.0,
+        "repair_method": "none",
+        "triangles_after": 56,
+        "triangles_before": 56,
+        "vertices_after": 30,
+        "vertices_before": 30
+      },
+      "semantic_id": "product.body",
+      "source_object": "product.body",
+      "source_uv_set": "UVMap",
+      "tile_index": 2
+    }
+  ],
+  "ok": true,
+  "optimized_blend_sha256": "6324fa5accb764ff47e8b5d9a4834df06f8faebb070462fc643280a987db4fd3",
+  "outputs": [
+    {
+      "id": "portable.channel.v08-f3830cf3-materials.base_color",
+      "channel": "base_color",
+      "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/base_color.png",
+      "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+      "color_space": "sRGB",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v08-f3830cf3-materials.roughness",
+      "channel": "roughness",
+      "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/roughness.png",
+      "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+      "color_space": "Non-Color",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v08-f3830cf3-materials.metallic",
+      "channel": "metallic",
+      "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/metallic.png",
+      "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+      "color_space": "Non-Color",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v08-f3830cf3-materials.normal",
+      "channel": "normal",
+      "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/normal.png",
+      "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+      "color_space": "Non-Color",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v08-f3830cf3-materials.emission",
+      "channel": "emission",
+      "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/emission.png",
+      "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+      "color_space": "sRGB",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "file_format": "png"
+    }
+  ],
+  "portable_blend": {
+    "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/converted/scene.blend",
+    "sha256": "dba4c70e8bd2d13797ce1ea842c4c9c7b00d7008b9e7c8b326a37e8fa0f56782"
+  },
+  "profile_id": "portable_gltf",
+  "run_id": "v08-f3830cf3",
+  "runtime": {
+    "blender_version": "5.0.1",
+    "render_device": "CPU",
+    "render_engine": "CYCLES"
+  },
+  "schema_version": "0.7.0",
+  "source": {
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "conversion_plan_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/conversion_plan.json",
+    "conversion_plan_sha256": "37bb964dc8e59c3498e335829bd3f8a1b0fb2669bc32943b4170952dd2f89ad8",
+    "optimization_plan_sha256": "8f8388d6ded5c7254921bbcc560b3011a2718ae0179be10e5a59fed0ccc4940a",
+    "optimized_blend_path": "optimization/runs/v08-f3830cf3/optimized/scene.blend",
+    "optimized_blend_sha256": "6324fa5accb764ff47e8b5d9a4834df06f8faebb070462fc643280a987db4fd3",
+    "profile_path": "asset_profiles/portable_gltf.json",
+    "profile_sha256": "d68b4749787cab757c7331b95508e57fcac5e5d482351b32686397133602d73b"
+  },
+  "texture_root": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures",
+  "tiles": [
+    {
+      "binding_id": "binding.000000.product.body.LOD0.a0c06f6022",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.product.body.LOD0.c38c9a935e",
+      "lod_level": 0,
+      "margin_px": 16,
+      "material_id": "mat.product.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "product.body",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.4921875,
+        0.4921875
+      ],
+      "uv_minimum": [
+        0.0078125,
+        0.0078125
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000001.product.body.LOD1.cbc15b89de",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.product.body.LOD1.233935d09b",
+      "lod_level": 1,
+      "margin_px": 16,
+      "material_id": "mat.product.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "product.body",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.9921875,
+        0.4921875
+      ],
+      "uv_minimum": [
+        0.5078125,
+        0.0078125
+      ],
+      "uv_set": "CBMPortableAtlas"
+    },
+    {
+      "binding_id": "binding.000002.product.body.LOD2.6d40d35d64",
+      "bounds_max_abs_delta_m": 0.0,
+      "derived_object_id": "derived.product.body.LOD2.4b9a5ec1d3",
+      "lod_level": 2,
+      "margin_px": 16,
+      "material_id": "mat.product.blue",
+      "micro_sliver_face_count_before": 0,
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "remaining_micro_sliver_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "repaired_uv_degenerate_face_count": 0,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "tangent_invalid_loop_count_after": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_repair_method": "none",
+      "target_id": "product.body",
+      "unwrap_method": "smart_project",
+      "uv_maximum": [
+        0.4921875,
+        0.9921875
+      ],
+      "uv_minimum": [
+        0.0078125,
+        0.5078125
+      ],
+      "uv_set": "CBMPortableAtlas"
+    }
+  ],
+  "source_evidence_sha256": "38a3f160e5cdd0b87f99d3b0cd381d87ed375b954f7f602ae77350911417b540"
+}

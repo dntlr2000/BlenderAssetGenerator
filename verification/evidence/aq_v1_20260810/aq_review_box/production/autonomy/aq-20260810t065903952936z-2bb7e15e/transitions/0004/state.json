@@ -1,0 +1,73 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "state-aq-20260810t065903952936z-2bb7e15e-0004",
+  "job_id": "aq_review_box",
+  "workflow_id": "wf-20260810t065903z-61dc09f5",
+  "dispatch_id": "dispatch-20260810t065903z-7aff80df",
+  "input_sha256": "7bd5d97ffb65ddd34b413a32847d3528ff70a4d422823e723783a7acea9e2221",
+  "source_fingerprint": "e3858402f8acbf7dc86a6beda90c206181d89e16946ad0ef51e951dc1314f3f4",
+  "producer": "codex_blender_modeler.autonomy.planner",
+  "producer_version": "0.1.0",
+  "provenance": [
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/transitions/0003/state.json",
+      "sha256": "7bd5d97ffb65ddd34b413a32847d3528ff70a4d422823e723783a7acea9e2221"
+    }
+  ],
+  "created_at": "2026-08-10T06:59:25.108936Z",
+  "session_id": "aq-20260810t065903952936z-2bb7e15e",
+  "root_authorization": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/root_authorization.json",
+    "sha256": "2eedff477cf5f38ba4720411c85e68daa0e1b89b3392b318ff684e22c1f39822"
+  },
+  "profile": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/profile.json",
+    "sha256": "7bd7e2a3145404db279680edcc514885d6e9bdb8c273401b2c4a38e23b79cb4f"
+  },
+  "budget": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/budget.json",
+    "sha256": "b2bf6bebfb1bd32ebf147efa3f616eff5972fad47af6f6c7143b714f6c0433a6"
+  },
+  "status": "completed",
+  "phase": "terminal",
+  "next_action": "none",
+  "action_sequence": 4,
+  "budget_usage": {
+    "initial_candidates": 1,
+    "structural_rounds": 0,
+    "parametric_convergence_iterations": 0,
+    "material_rounds": 0,
+    "package_repairs": 0,
+    "total_blender_builds": 1,
+    "total_quality_evaluations": 1,
+    "canonical_promotions": 0,
+    "total_actions": 3
+  },
+  "best_known_candidate": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/candidate_evaluation.json",
+    "sha256": "214b96640f703291cb3eca0df62aa3a2ca576485c833c33a64e2aec92e8abd4f"
+  },
+  "current_candidate_id": null,
+  "current_round_index": 0,
+  "current_round_candidate_index": 0,
+  "round_baseline_candidate": null,
+  "last_quality_report": null,
+  "plateau_count": 0,
+  "state_history": [
+    {
+      "modeling_plan_sha256": "902fd2a62dab5c048824dc7ab930cdf954be5823e0197febb74a83362af55ce5",
+      "scene_spec_sha256": "7f81d3d81a85b76738ef01fd13147c9fca75e0e55056172974e2e80042adc255",
+      "material_plan_or_graph_sha256": null,
+      "camera_fingerprint": "6c933c3b8d3b6f4926f32ea8f48e47e71972aafacd5ab9c27c47c4f3e9654a2f",
+      "normalized_metric_vector_sha256": "6595762be7640b8fd296c1830fd6476e255f331673088e97299c67495cee82e3",
+      "build_fingerprint": "543ee2c586a8f2b12e32e07f5ed2c8cc6839d45e9f452b2e78b37c2b7f2c10f6",
+      "canonical_source_fingerprint": "67fa2a79cbc65fa3dce811bf3d3e858303b176b9418def49a0a89754eeeadd0f",
+      "change_direction": "initial"
+    }
+  ],
+  "receipt_chain_head_before_state_sha256": "3097314fc3cd03f48ec33023a9a0f8c31386333a92fe7fca14d1ee6e7e996778",
+  "pending_terminal_reason": null,
+  "terminal_reason": "global_budget_exhausted",
+  "warnings": [],
+  "observed_at": "2026-08-10T06:59:25.108936Z"
+}

@@ -1,0 +1,158 @@
+{
+  "schema_version": "0.7.0",
+  "validation_id": "roundtrip.v07-obj-smoke-package",
+  "job_id": "geometry_showcase",
+  "run_id": "v07-obj-smoke-run",
+  "package_id": "v07-obj-smoke-package",
+  "profile_id": "obj_legacy",
+  "package_manifest": {
+    "id": "package.manifest.v07-obj-smoke-package",
+    "kind": "package_manifest",
+    "path": "exports/packages/obj_legacy/v07-obj-smoke-package/package_manifest.json",
+    "sha256": "07d83f81dcbb5947142ba53f77a34168640b3b6395a7dd31450fb14c9fb53c21"
+  },
+  "imported_inventory": {
+    "id": "roundtrip.inventory.v07-obj-smoke-package",
+    "kind": "roundtrip_inventory",
+    "path": "optimization/runs/v07-obj-smoke-run/roundtrip/v07-obj-smoke-package/roundtrip_evidence.json",
+    "sha256": "dd3aa2c31d744351fbfa2726998cf0881c10d3aa149948b029f5947a0d3db560"
+  },
+  "status": "passed",
+  "ok": true,
+  "passed": 1,
+  "warnings": 11,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "roundtrip.warning.0001",
+      "category": "format",
+      "status": "warning",
+      "message": "OBJ cannot preserve CBM custom semantic properties during round-trip.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0002",
+      "category": "uv",
+      "status": "warning",
+      "message": "OBJ preserves only the active render UV set; additional derived UV layers remain available only in the optimized Blender scene.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0003",
+      "category": "material_id",
+      "status": "warning",
+      "message": "OBJ material semantics are format-limited; raw PBR sidecars remain authoritative for downstream material reconstruction.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0004",
+      "category": "axis",
+      "status": "warning",
+      "message": "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0005",
+      "category": "units",
+      "status": "warning",
+      "message": "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0006",
+      "category": "texture",
+      "status": "warning",
+      "message": "Blender resolved package-local texture references to runtime absolute paths for: base_color.png, emission.png, metallic.png, normal.png, roughness.png",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0007",
+      "category": "object",
+      "status": "warning",
+      "message": "OBJ round-trip uses object names because the format cannot preserve CBM properties.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0008",
+      "category": "normal",
+      "status": "warning",
+      "message": "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0009",
+      "category": "tangent",
+      "status": "warning",
+      "message": "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0010",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV loop-to-vertex association could not be verified for: CBM_demo_instance_post__LOD0__BATCH0001, demo.boolean.block__LOD0, demo.curve_pipe__LOD0, demo.custom_pyramid__LOD0, demo.modifier_array__LOD0, demo.modifier_mirror__LOD0, demo.modifier_remesh__LOD0, demo.modifier_solidify__LOD0, demo.profile_house__LOD0, demo.revolve_vase__LOD0, demo.terrain__LOD0",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0011",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV coordinate summary preservation could not be verified for: CBM_demo_instance_post__LOD0__BATCH0001, demo.boolean.block__LOD0, demo.curve_pipe__LOD0, demo.custom_pyramid__LOD0, demo.modifier_array__LOD0, demo.modifier_mirror__LOD0, demo.modifier_remesh__LOD0, demo.modifier_solidify__LOD0, demo.profile_house__LOD0, demo.revolve_vase__LOD0, demo.terrain__LOD0",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.clean_import.completed",
+      "category": "format",
+      "status": "passed",
+      "message": "Blender completed a clean-scene package import.",
+      "target_id": null
+    }
+  ],
+  "bounds": {
+    "source": {
+      "minimum": [
+        -9.4,
+        -4.379389,
+        -1.2
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "imported": {
+      "minimum": [
+        -9.4,
+        -4.379389,
+        -1.200001
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "max_abs_error_m": 1.000000000139778e-06,
+    "tolerance_m": 0.0001,
+    "passed": true
+  },
+  "expected_semantic_ids": [],
+  "observed_semantic_ids": [],
+  "semantic_id_coverage": 1.0,
+  "expected_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "observed_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "material_id_coverage": 1.0,
+  "created_at": "2026-08-11T05:40:51.541821Z",
+  "errors": []
+}

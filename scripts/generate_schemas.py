@@ -80,6 +80,37 @@ from codex_blender_modeler.autonomy.production_budget import (
     ProductionResourceReceipt,
     ProductionResourceReservation,
 )
+from codex_blender_modeler.autonomy_benchmarks.v02_models import (
+    BenchmarkCaseV02,
+    BenchmarkManifestV02,
+    BenchmarkReportV02,
+    BlenderBenchmarkReceiptV02,
+)
+from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
+    GeometryAuthoringCompletionV2,
+    GeometryCandidateValidationReceiptV2,
+)
+from codex_blender_modeler.autonomy_v2.material_phase_models import (
+    MaterialControllerCompletionV2,
+    MaterialPhaseReceiptV2,
+    MaterialPhaseRollbackReceiptV2,
+    MaterialPromotionIntentV2,
+)
+from codex_blender_modeler.autonomy_v2.models import (
+    AutonomyBudgetV2,
+    AutonomyCancellationV2,
+    AutonomyPlanV2,
+    AutonomyProfileV2,
+    AutonomyStateV2,
+    DeliveryPlan,
+    DeliveryProfile,
+    DeliveryReviewBinding,
+    DeliveryTerminalV2,
+    QualityApprovedSourceFreeze,
+    QualityReviewBundleV2,
+    QualityTerminalV2,
+    RootAuthorizationV2,
+)
 from codex_blender_modeler.background_quality.models import (
     BackgroundFitReport,
     BackgroundQualityReport,
@@ -103,6 +134,11 @@ from codex_blender_modeler.external_intake.models import (
     ExternalAssetManifest,
     ExternalNormalizationReceipt,
 )
+from codex_blender_modeler.handoff.advanced_material_models import (
+    AdvancedMaterialHandoffPlan,
+    AdvancedMaterialHandoffReceipt,
+    AdvancedMaterialHandoffRequest,
+)
 from codex_blender_modeler.handoff.models import (
     AssemblyManifest,
     DestinationContext,
@@ -122,6 +158,12 @@ from codex_blender_modeler.integrated_quality.models import (
     IntegratedQualityReportManifest,
     QualityGateProfile,
 )
+from codex_blender_modeler.integrated_quality.v02_models import (
+    CandidateRankingV02,
+    IntegratedQualityPolicyV02,
+    IntegratedQualityReportV02,
+    ReentryDecisionV02,
+)
 from codex_blender_modeler.interior_qa.models import (
     InteriorQALatest,
     InteriorQAPlan,
@@ -131,7 +173,22 @@ from codex_blender_modeler.interior_qa.models import (
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
 )
+from codex_blender_modeler.material_authoring.models import (
+    AuthoredMaterialManifest,
+    HighResolutionAuthorization,
+    MaterialAuthoringReceipt,
+    MaterialAuthoringRequest,
+)
 from codex_blender_modeler.material_graph.models import MaterialGraphSpec
+from codex_blender_modeler.material_graph.runtime_models import (
+    MaterialGraphCompileReport,
+    MaterialGraphCompileRequest,
+    MaterialGraphDependencyManifest,
+    MaterialPreviewManifest,
+    NormalizedMaterialGraphPlan,
+    NormalizedMaterialNodeInventory,
+    PortableMaterialApproximationReport,
+)
 from codex_blender_modeler.materials.fidelity_models import MaterialFidelityReport
 from codex_blender_modeler.materials.models import (
     MaterialPlan,
@@ -166,6 +223,11 @@ from codex_blender_modeler.packaging.models import (
     ExportPackageManifest,
     RoundTripValidation,
     TexturePackManifest,
+)
+from codex_blender_modeler.production.controller_executor.models import (
+    ControllerExecutionRequest,
+    ControllerResult,
+    PhaseToolProfile,
 )
 from codex_blender_modeler.production.models import (
     AssetProductionDispatchPlan,
@@ -217,6 +279,18 @@ from codex_blender_modeler.stabilization.models import (
     StabilityReportManifest,
     WorkspaceAuditReport,
 )
+from codex_blender_modeler.structural_geometry.geometry_survival_v02 import (
+    GeometryIntentSurvivalReportV02,
+    GeometryStageSnapshotV02,
+)
+from codex_blender_modeler.structural_geometry.mesh_payload_compiler_v02 import (
+    MeshPayloadV02CompileReport,
+)
+from codex_blender_modeler.structural_geometry.mesh_payload_migration_v02 import (
+    MeshPayloadV02MigrationPlan,
+    MeshPayloadV02MigrationReceipt,
+)
+from codex_blender_modeler.structural_geometry.mesh_payload_v02 import MeshPayloadV02
 from codex_blender_modeler.structural_geometry.migration import (
     SceneSpecV03MigrationPlan,
     SceneSpecV03MigrationReceipt,
@@ -405,6 +479,75 @@ SCHEMAS = {
     "package_repair_failure.schema.json": PackageRepairFailure,
     "package_repair_plan.schema.json": PackageRepairPlan,
     "package_repair_receipt.schema.json": PackageRepairReceipt,
+    # AQ 0.2 structural geometry companion roots.
+    "mesh_payload_v02.schema.json": MeshPayloadV02,
+    "mesh_payload_v02_compile_report.schema.json": MeshPayloadV02CompileReport,
+    "mesh_payload_v02_migration_plan.schema.json": MeshPayloadV02MigrationPlan,
+    "mesh_payload_v02_migration_receipt.schema.json": MeshPayloadV02MigrationReceipt,
+    "geometry_stage_snapshot_v02.schema.json": GeometryStageSnapshotV02,
+    "geometry_intent_survival_report.schema.json": GeometryIntentSurvivalReportV02,
+    # Integrated Quality 0.2 remains parallel to the registered 0.1 contracts.
+    "integrated_quality_v02_report.schema.json": IntegratedQualityReportV02,
+    "integrated_quality_v02_policy.schema.json": IntegratedQualityPolicyV02,
+    "integrated_quality_v02_candidate_ranking.schema.json": CandidateRankingV02,
+    "integrated_quality_v02_reentry.schema.json": ReentryDecisionV02,
+    # MaterialGraph runtime evidence consumes, but never replaces, MaterialGraphSpec 0.1.
+    "material_graph_runtime_plan.schema.json": NormalizedMaterialGraphPlan,
+    "material_graph_runtime_dependency_manifest.schema.json": (
+        MaterialGraphDependencyManifest
+    ),
+    "material_graph_runtime_compile_request.schema.json": MaterialGraphCompileRequest,
+    "material_graph_runtime_compile_report.schema.json": MaterialGraphCompileReport,
+    "material_graph_runtime_inventory.schema.json": NormalizedMaterialNodeInventory,
+    "material_graph_runtime_portable_approximation.schema.json": (
+        PortableMaterialApproximationReport
+    ),
+    "material_graph_runtime_preview_manifest.schema.json": MaterialPreviewManifest,
+    # ControllerExecutor is an isolated 0.1 protocol used by AQ 0.2.
+    "controller_executor_phase_tool_profile.schema.json": PhaseToolProfile,
+    "controller_executor_execution_request.schema.json": ControllerExecutionRequest,
+    "controller_executor_result.schema.json": ControllerResult,
+    # Autonomous Quality 0.2 policy and independent delivery evidence.
+    "autonomy_v02_profile.schema.json": AutonomyProfileV2,
+    "autonomy_v02_budget.schema.json": AutonomyBudgetV2,
+    "autonomy_v02_root_authorization.schema.json": RootAuthorizationV2,
+    "autonomy_v02_quality_source_freeze.schema.json": QualityApprovedSourceFreeze,
+    "autonomy_v02_quality_review_bundle.schema.json": QualityReviewBundleV2,
+    "autonomy_v02_delivery_profile.schema.json": DeliveryProfile,
+    "autonomy_v02_delivery_plan.schema.json": DeliveryPlan,
+    "autonomy_v02_delivery_review_binding.schema.json": DeliveryReviewBinding,
+    "autonomy_v02_quality_terminal.schema.json": QualityTerminalV2,
+    "autonomy_v02_delivery_terminal.schema.json": DeliveryTerminalV2,
+    "autonomy_v02_plan.schema.json": AutonomyPlanV2,
+    "autonomy_v02_state.schema.json": AutonomyStateV2,
+    "autonomy_v02_cancellation.schema.json": AutonomyCancellationV2,
+    "autonomy_v02_geometry_authoring_completion.schema.json": (
+        GeometryAuthoringCompletionV2
+    ),
+    "autonomy_v02_geometry_candidate_validation_receipt.schema.json": (
+        GeometryCandidateValidationReceiptV2
+    ),
+    "autonomy_v02_material_controller_completion.schema.json": (
+        MaterialControllerCompletionV2
+    ),
+    "autonomy_v02_material_promotion_intent.schema.json": MaterialPromotionIntentV2,
+    "autonomy_v02_material_phase_receipt.schema.json": MaterialPhaseReceiptV2,
+    "autonomy_v02_material_rollback_receipt.schema.json": (
+        MaterialPhaseRollbackReceiptV2
+    ),
+    # Deterministic AQ 0.2 benchmark contracts and result evidence.
+    "autonomy_benchmark_v02_case.schema.json": BenchmarkCaseV02,
+    "autonomy_benchmark_v02_manifest.schema.json": BenchmarkManifestV02,
+    "autonomy_benchmark_v02_blender_receipt.schema.json": BlenderBenchmarkReceiptV02,
+    "autonomy_benchmark_v02_report.schema.json": BenchmarkReportV02,
+    # Scale-aware local MaterialAuthoring and advisory destination mapping companions.
+    "material_authoring_request.schema.json": MaterialAuthoringRequest,
+    "authored_material_manifest.schema.json": AuthoredMaterialManifest,
+    "material_authoring_receipt.schema.json": MaterialAuthoringReceipt,
+    "material_high_resolution_authorization.schema.json": HighResolutionAuthorization,
+    "advanced_material_handoff_request.schema.json": AdvancedMaterialHandoffRequest,
+    "advanced_material_handoff_plan.schema.json": AdvancedMaterialHandoffPlan,
+    "advanced_material_handoff_receipt.schema.json": AdvancedMaterialHandoffReceipt,
 }
 
 

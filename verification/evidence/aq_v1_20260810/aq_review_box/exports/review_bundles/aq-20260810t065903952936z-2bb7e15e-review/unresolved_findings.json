@@ -1,0 +1,235 @@
+{
+  "schema_version": "0.1.0",
+  "quality_outcome": "unscorable",
+  "blocking_reasons": [],
+  "reentry": [
+    {
+      "recommendation_id": "reentry.gate.aq.clean_import_roundtrip",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.clean_import_roundtrip"
+      ],
+      "message": "Return to v0.7 because gate.aq.clean_import_roundtrip is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.package_dependencies",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.package_dependencies"
+      ],
+      "message": "Return to v0.7 because gate.aq.package_dependencies is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.provenance",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.provenance"
+      ],
+      "message": "Return to v0.5 because gate.aq.provenance is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.uv_pbr_dependencies",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.uv_pbr_dependencies"
+      ],
+      "message": "Return to v0.5 because gate.aq.uv_pbr_dependencies is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.material_fidelity",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "material.raster_fidelity_available"
+      ],
+      "message": "Return to v0.5 because material_fidelity is unscorable; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.production_readiness",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "production.roundtrip_available"
+      ],
+      "message": "Return to v0.7 because production_readiness is unscorable; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.reference_alignment",
+      "stage": "v0.4",
+      "axis": "reference_alignment",
+      "target_ids": [],
+      "reason_codes": [
+        "reference.v06_overall_direct_score",
+        "reference.silhouette_iou",
+        "reference.authoritative_high_finding_count"
+      ],
+      "message": "Return to v0.4 because reference_alignment is failed; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.structural_integrity",
+      "stage": "v0.4",
+      "axis": "structural_integrity",
+      "target_ids": [],
+      "reason_codes": [
+        "structural.available_evidence"
+      ],
+      "message": "Return to v0.4 because structural_integrity is unscorable; do not repair a canonical source from this report automatically."
+    }
+  ],
+  "axes": [
+    {
+      "axis": "reference_alignment",
+      "required": true,
+      "status": "failed",
+      "score": 0.469607,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "reference.v06_overall_direct_score",
+          "status": "failed",
+          "value": 0.469607,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "Copied exactly from VisualQAReport.direct_metrics.overall_direct_score."
+        },
+        {
+          "metric_id": "reference.silhouette_iou",
+          "status": "failed",
+          "value": 0.280217,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "Canonical fixed-camera V0.6 silhouette overlap."
+        },
+        {
+          "metric_id": "reference.authoritative_high_finding_count",
+          "status": "failed",
+          "value": 2.0,
+          "unit": "findings",
+          "threshold": 0.0,
+          "direction": "lower_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "High direct-reference or constraint findings remain: direct.global_silhouette, direct.proportion.product.body"
+        }
+      ],
+      "evidence_ids": [
+        "candidate-reference"
+      ],
+      "limitations": [
+        "High authoritative findings remain unresolved: direct.global_silhouette, direct.proportion.product.body"
+      ]
+    },
+    {
+      "axis": "structural_integrity",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "structural.available_evidence",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-structural"
+          ],
+          "message": "No structural evidence was supplied."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "limitations": [
+        "Structural integrity is unavailable without validation evidence."
+      ]
+    },
+    {
+      "axis": "material_fidelity",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "material.raster_fidelity_available",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-material"
+          ],
+          "message": "Material raster fidelity evidence is unavailable or unscorable."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-material"
+      ],
+      "limitations": [
+        "Material fidelity cannot pass from contract validation without raster evidence."
+      ]
+    },
+    {
+      "axis": "production_readiness",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "production.roundtrip_available",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-production"
+          ],
+          "message": "A clean-import round-trip report was not supplied."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-production"
+      ],
+      "limitations": [
+        "Production readiness cannot pass before clean-import round-trip validation."
+      ]
+    }
+  ]
+}

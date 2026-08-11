@@ -1,0 +1,556 @@
+{
+  "schema_version": "0.7.0",
+  "kind": "portable_delivery_mapping",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "primary_asset": "asset.glb",
+  "objects": [
+    {
+      "export_key": "demo.instance_post|None|render|0",
+      "name": "CBM_demo_instance_post__LOD0__BATCH0003",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.instance_post|None|lod|1",
+      "name": "CBM_demo_instance_post__LOD1__BATCH0001",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.instance_post|None|lod|2",
+      "name": "CBM_demo_instance_post__LOD2__BATCH0002",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.boolean.block|0|render|0",
+      "name": "demo.boolean.block__LOD0",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.boolean.block|0|collider|None",
+      "name": "demo.boolean.block__LOD0__COLLIDER",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.boolean.block|0|lod|1",
+      "name": "demo.boolean.block__LOD1",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.boolean.block|0|lod|2",
+      "name": "demo.boolean.block__LOD2",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.curve_pipe|0|render|0",
+      "name": "demo.curve_pipe__LOD0",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.curve_pipe|0|collider|None",
+      "name": "demo.curve_pipe__LOD0__COLLIDER",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.curve_pipe|0|lod|1",
+      "name": "demo.curve_pipe__LOD1",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.curve_pipe|0|lod|2",
+      "name": "demo.curve_pipe__LOD2",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|render|0",
+      "name": "demo.custom_pyramid__LOD0",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|collider|None",
+      "name": "demo.custom_pyramid__LOD0__COLLIDER",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|lod|1",
+      "name": "demo.custom_pyramid__LOD1",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|lod|2",
+      "name": "demo.custom_pyramid__LOD2",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.instance_post|1|collider|None",
+      "name": "demo.instance_post__001__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 1,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.instance_post|2|collider|None",
+      "name": "demo.instance_post__002__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 2,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.instance_post|3|collider|None",
+      "name": "demo.instance_post__003__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 3,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.instance_post|4|collider|None",
+      "name": "demo.instance_post__004__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 4,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.instance_post|0|collider|None",
+      "name": "demo.instance_post__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.modifier_array|0|render|0",
+      "name": "demo.modifier_array__LOD0",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_array|0|collider|None",
+      "name": "demo.modifier_array__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.modifier_array|0|lod|1",
+      "name": "demo.modifier_array__LOD1",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_array|0|lod|2",
+      "name": "demo.modifier_array__LOD2",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|render|0",
+      "name": "demo.modifier_mirror__LOD0",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|collider|None",
+      "name": "demo.modifier_mirror__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|lod|1",
+      "name": "demo.modifier_mirror__LOD1",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|lod|2",
+      "name": "demo.modifier_mirror__LOD2",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|render|0",
+      "name": "demo.modifier_remesh__LOD0",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|collider|None",
+      "name": "demo.modifier_remesh__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|lod|1",
+      "name": "demo.modifier_remesh__LOD1",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|lod|2",
+      "name": "demo.modifier_remesh__LOD2",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|render|0",
+      "name": "demo.modifier_solidify__LOD0",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|collider|None",
+      "name": "demo.modifier_solidify__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|lod|1",
+      "name": "demo.modifier_solidify__LOD1",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|lod|2",
+      "name": "demo.modifier_solidify__LOD2",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "export_key": "demo.profile_house|0|render|0",
+      "name": "demo.profile_house__LOD0",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.profile_house|0|collider|None",
+      "name": "demo.profile_house__LOD0__COLLIDER",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.profile_house|0|lod|1",
+      "name": "demo.profile_house__LOD1",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.profile_house|0|lod|2",
+      "name": "demo.profile_house__LOD2",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "export_key": "demo.revolve_vase|0|render|0",
+      "name": "demo.revolve_vase__LOD0",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.revolve_vase|0|collider|None",
+      "name": "demo.revolve_vase__LOD0__COLLIDER",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.revolve_vase|0|lod|1",
+      "name": "demo.revolve_vase__LOD1",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.revolve_vase|0|lod|2",
+      "name": "demo.revolve_vase__LOD2",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "export_key": "demo.terrain|0|render|0",
+      "name": "demo.terrain__LOD0",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "export_key": "demo.terrain|0|collider|None",
+      "name": "demo.terrain__LOD0__COLLIDER",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "demo.terrain|0|lod|1",
+      "name": "demo.terrain__LOD1",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "export_key": "demo.terrain|0|lod|2",
+      "name": "demo.terrain__LOD2",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.green"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "blend_path": "artifacts/simple_hard_surface_box/blender/probe.blend",
+  "blend_sha256": "7afa0151b8513a5aafe9d5d6a07fd8dd27a0873126fa8db7226b934490c19aa7",
+  "camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+  "case_contract_file_sha256": "83a6a65896b53ad8efc36549117fa1f1ee2050cdd722f56124ff90521866b79a",
+  "case_contract_path": "artifacts/simple_hard_surface_box/blender/case_contract.json",
+  "case_id": "simple_hard_surface_box",
+  "external_downloads_used": false,
+  "object_count": 2,
+  "render_path": "artifacts/simple_hard_surface_box/blender/probe.png",
+  "render_sha256": "a9e3e567de56be3eb528cad69f7f0fa16d2688d9398009909e9711c37ccd75cb",
+  "schema_version": "0.2.0"
+}

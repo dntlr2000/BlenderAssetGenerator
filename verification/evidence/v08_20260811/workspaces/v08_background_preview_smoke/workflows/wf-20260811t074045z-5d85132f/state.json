@@ -1,0 +1,1017 @@
+{
+  "schema_version": "0.8.0",
+  "workflow_id": "wf-20260811t074045z-5d85132f",
+  "job_id": "v08_background_preview_smoke",
+  "plan_sha256": "c90e29c3a08c10c0291fdef43533d49ee9dc00700fa968457b682437a4086d9c",
+  "request_sha256": "76ba10e39a91ce2999a1c0074fa8bec57271069fd99c88ccf57e257299733898",
+  "reference_content_scope": "full_reference",
+  "target_subject": null,
+  "execution_policy": "background_exterior",
+  "delivery_scope": "preview_only",
+  "status": "planned",
+  "milestone": "created",
+  "current_step_id": "reference.analyze",
+  "steps": [
+    {
+      "step_id": "job.created",
+      "status": "complete",
+      "input_fingerprint": "66871679bd45085235db9096e9d9e7478a912efa1ec90aefc22449fda09c532b",
+      "completion_fingerprint": "bdc14d2549a7ba6314ac07722c4907cc6ff53f12bfb4fd956428ec20741a5744",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "job.metadata",
+          "path": "job.json",
+          "sha256": "291bc69e5c08cf8838071b26df770b89844a580b9041b0bef831a5efca5990b3",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:45.265573Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "reference.analyze",
+      "status": "ready",
+      "input_fingerprint": "7ff09493556168670a7c0094ddcc68c3460200ef84fecf3458a60011a64749b3",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "reference.analysis",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/19b970be36c241f6.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "reference.camera",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/554bce3cb82338bc.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "geometry.modeling_plan",
+      "status": "pending",
+      "input_fingerprint": "4062e8d974e9a70abb29fc4f77335b74046f92e539f4925da3f9d6cf7f81cdbf",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "geometry.modeling_plan.output",
+          "path": "analysis/modeling_plan.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "geometry.background_author",
+      "status": "pending",
+      "input_fingerprint": "a412809c24836f4dfed9c399d3a4c62d89ed83cee4c9868e756d456581031014",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "geometry.background_scene_spec",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/g/initial_scene_spec.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background.fit",
+      "status": "pending",
+      "input_fingerprint": "b57a4ddbd99a7e5bf811788d2c9b6b8c439ae5a5d5efa9e4de593ff25c6d9a62",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background.fit.evidence",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/g/fit",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background.fit.promoted_scene_spec",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/g/promoted_scene_spec.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.build",
+      "status": "pending",
+      "input_fingerprint": "43734d3a149ac289e64c9df67d5e5f20b7c0c242cdb5e9461cee27376ed4f38a",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.blend",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/07cc4fe8280bcc58.blend",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.render",
+      "status": "pending",
+      "input_fingerprint": "ca78ce8ae081195ffd4004ade370de1b6deb4ea4d5e1a3fc0a89b60215d8dc1b",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.preview",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/39fc117b2d983772.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.inspect",
+      "status": "pending",
+      "input_fingerprint": "5b5a845d0eec160fc809aa72a479410d1fab3c68a207181ee6d66ad5d918986e",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.inventory",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/5038ee5da7be5fa7.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.validate",
+      "status": "pending",
+      "input_fingerprint": "09059d36e64a56923d675fed5fff887ebf1278de6f77fcf84a9893439b831445",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.validation",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/ce5e73c727519b1d.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.geometry_multiview",
+      "status": "pending",
+      "input_fingerprint": "38b49e1980243e4387b41804c6dfe3a879118eef9a49f2fc0fa77305339d51de",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.geometry_multiview.plan",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/plan.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.manifest",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/render_manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.report",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/report.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.beauty",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/front/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/front/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.object_id",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/front/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/front/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.beauty",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/right/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/right/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.object_id",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/right/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/right/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.beauty",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/top/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/top/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.object_id",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/top/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/top/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.beauty",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/rear/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/rear/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.object_id",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/rear/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/rear/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.beauty",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/oblique/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/oblique/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.object_id",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/oblique/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/views/oblique/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.geometry_multiview_visual_review",
+      "status": "pending",
+      "input_fingerprint": "c33328c940a232f23f92ad256b338e271e48014313a7f40862005be574603bbf",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.geometry_multiview.visual_review",
+          "path": "qa/assembly_sanity/runs/v08-e516b27fca30-background_geometry-geometry/visual_review.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.report",
+      "status": "pending",
+      "input_fingerprint": "c7e424b681707de5e92134851c22b224b6deb5901cdbeae3a1bc12d7651d61e6",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.report.pdf",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/6761e5d907b0.pdf",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_geometry.report.manifest",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/6761e5d907b0.manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.uv_inventory",
+      "status": "pending",
+      "input_fingerprint": "b4a3589824453bd17e821bde57b74fd66de1a0fd01621cfede26348f7fd2aa6a",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.uv_inventory",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/9ffd427ad0a31dc8.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.scaffold",
+      "status": "pending",
+      "input_fingerprint": "8c1ef195bf9fb6583278edb80140fdffa81735425041dd14d9b882c188afc3da",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.scaffold",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/m/scaffold",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.author",
+      "status": "pending",
+      "input_fingerprint": "00d4e0a6c2a8052471816bebd1a3ece242698b2bcbd9952fb0d158972809f375",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.authored",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/m/authored",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.promote",
+      "status": "pending",
+      "input_fingerprint": "658699da10ddaf630e5f91a0e7bec2561b642437b3b2fcfae40556f4f22170e0",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.promotion_receipt",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/m/promotion.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "material.plan.promoted_snapshot",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/m/promoted.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.contract_validate",
+      "status": "pending",
+      "input_fingerprint": "0fe18450bde89448935c213fb9e98ecdb73d7365f9a0550cbb9e13bc2ea88343",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.contract_report",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/e36229f5cb515837.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.fidelity",
+      "status": "pending",
+      "input_fingerprint": "d2f1877e4babed3bf7a360659b651e086e8e4987fa5686528498b153dd07cebf",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.fidelity_report",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/19a2e525635614bc.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.build",
+      "status": "pending",
+      "input_fingerprint": "f41e7d1191ec42d387e8394a1ac88a4cc98f389465713712f8ca75697c14edfa",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.blend",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/ee33966f1b130b60.blend",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.inspect",
+      "status": "pending",
+      "input_fingerprint": "2a3b464b116d3e61b5c52a395b35ffdc7a7ae895503e224c09008a1ac1f35008",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.runtime_report",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/3439172e6569763b.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.swatches",
+      "status": "pending",
+      "input_fingerprint": "ba870a38643f388340f7dd37494a86edea07480656baf0f3b953ab3a60f25e29",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.swatch_manifest",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/s/0f646346ddf57e4a.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.report",
+      "status": "pending",
+      "input_fingerprint": "e0504e0e8bc9cf06d7b2cacd61a6b387abd561e8cb713ee8d9afc1254341b49d",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.report.pdf",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/b7952af72c9f.pdf",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "material.report.manifest",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/b7952af72c9f.manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.run",
+      "status": "pending",
+      "input_fingerprint": "ee38673998dcadea0580c496b27773839390e71e76104b5357da3572a3437826",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "qa.run.request",
+          "path": "qa/runs/v08-5d85132f-qa/request.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.reference_mask",
+          "path": "qa/runs/v08-5d85132f-qa/reference_mask.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.reference_mask_manifest",
+          "path": "qa/runs/v08-5d85132f-qa/reference_mask_manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.render_pass_manifest",
+          "path": "qa/runs/v08-5d85132f-qa/render_pass_manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.visual_report",
+          "path": "qa/runs/v08-5d85132f-qa/visual_qa_report.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.revision_candidates",
+          "path": "qa/runs/v08-5d85132f-qa/revision_candidates.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.beauty",
+          "path": "qa/runs/v08-5d85132f-qa/passes/beauty.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.silhouette",
+          "path": "qa/runs/v08-5d85132f-qa/passes/silhouette.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.object_id",
+          "path": "qa/runs/v08-5d85132f-qa/passes/object_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.material_id",
+          "path": "qa/runs/v08-5d85132f-qa/passes/material_id.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.normal",
+          "path": "qa/runs/v08-5d85132f-qa/passes/normal.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.depth",
+          "path": "qa/runs/v08-5d85132f-qa/passes/depth.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.run.pass.wireframe",
+          "path": "qa/runs/v08-5d85132f-qa/passes/wireframe.png",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.diagnostics",
+      "status": "pending",
+      "input_fingerprint": "b0c559cf4dd57438422b29e1d016151e87e7dcee46446badcfac53af8e39b434",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "qa.diagnostics.bundle",
+          "path": "qa/runs/v08-5d85132f-qa/diagnostics/camera-geometry-v1/bundle_manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background.eligibility",
+      "status": "pending",
+      "input_fingerprint": "ef5bb448e9497f1099c7f2fc0f69c6563728d958fe6667cef14db20195daa6c4",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background.delivery_eligibility",
+          "path": "reports/background_delivery/wf-20260811t074045z-5d85132f_quality.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.report",
+      "status": "pending",
+      "input_fingerprint": "f1875270826d4140b8d742b1db671a50308b5bacbb11489ed8641a44affa67e2",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "qa.report.pdf",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/640930982b3e.pdf",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "qa.report.manifest",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/640930982b3e.manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_delivery_5d85132f.report",
+      "status": "pending",
+      "input_fingerprint": "08e543726eef862b3fb6ac368581748b3e0345e45a487fb94ac3ec15e32c8171",
+      "completion_fingerprint": null,
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_delivery_5d85132f.report.pdf",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/315bd4a28dfc.pdf",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        },
+        {
+          "artifact_id": "background_delivery_5d85132f.report.manifest",
+          "path": "workflows/wf-20260811t074045z-5d85132f/artifacts/pdf/315bd4a28dfc.manifest.json",
+          "sha256": null,
+          "integrity": "missing",
+          "currency": "unknown",
+          "verification": "unverified",
+          "reason": "Required artifact does not exist."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": null,
+      "error": null,
+      "reason_code": null
+    }
+  ],
+  "next_action": "Resume to execute host tool analyze_reference for step reference.analyze.",
+  "waiting_gate": null,
+  "warnings": [],
+  "reason_code": null,
+  "quality_status": null,
+  "standard_workflow_recommended": null,
+  "quality_report_path": null,
+  "quality_report_sha256": null,
+  "cancelled_reason": null,
+  "created_at": "2026-08-11T07:40:45.303921Z",
+  "updated_at": "2026-08-11T07:40:45.303921Z"
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.9.0",
+  "launch_id": "launch-20260811t075006z-94fe9c6f",
+  "dispatch_id": "dispatch-20260811t075006z-88193860",
+  "controller_id": "controller-20260811t075006z-4049bd26",
+  "job_id": "v09_production_smoke",
+  "workflow_id": "wf-20260811t075006z-f0a0a74a",
+  "launch_mode": "client_mediated",
+  "launch_status": "prepared",
+  "task_created_by_repository": false,
+  "task_title": "Asset production: v09_production_smoke",
+  "working_directory": ".",
+  "task_prompt": {
+    "path": "production/dispatches/dispatch-20260811t075006z-88193860/codex_task_prompt.md",
+    "sha256": "0e52bc40b13e750d44b86de0c638721ad206d05d35061d4d182a2fca6e763f2e"
+  },
+  "controller_plan": {
+    "path": "production/dispatches/dispatch-20260811t075006z-88193860/controller_plan.json",
+    "sha256": "134a1f1ee0408c4f679497db3e21a204a74916a2799b9a6e1f8027897fc13843"
+  },
+  "controller_tool_policy": "allowlist_only",
+  "controller_mcp_allowlist": [
+    "get_asset_production_dispatch_status",
+    "advance_delegated_production_controller",
+    "record_delegated_production_step"
+  ],
+  "controller_forbidden_mcp_tools": [
+    "approve_workflow_checkpoint",
+    "approve_candidate_review_promotion",
+    "approve_interior_qa_plan",
+    "approve_visual_revision",
+    "approve_visual_convergence",
+    "approve_portable_asset_optimization",
+    "approve_external_static_asset_intake",
+    "generate_destination_handoff",
+    "resume_short_workflow",
+    "requeue_local_workflow",
+    "run_local_workflow_queue"
+  ],
+  "controller_shell_policy": "approval_and_retry_commands_denied",
+  "client_tool_policy_enforcement_required": true,
+  "approval_isolation": "enforced_client_profile",
+  "required_client_capabilities": [
+    "read_repository_files",
+    "call_project_mcp_tools",
+    "delegate_read_only_subagents",
+    "create_or_start_codex_task",
+    "resume_codex_task",
+    "enforce_controller_tool_profile"
+  ],
+  "limitations": [
+    "The repository prepared this launch but did not create a Codex task.",
+    "Subagents are read-only advisers; the controller is the only canonical writer.",
+    "Every existing generic and specialized approval boundary remains active.",
+    "Destination metadata is a hint and does not establish runtime parity.",
+    "The supporting client must enforce the launch allowlist and deny approval or retry commands."
+  ],
+  "prepared_at": "2026-08-11T07:50:06.551054Z"
+}

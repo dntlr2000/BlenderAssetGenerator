@@ -1,0 +1,1883 @@
+{
+  "comparisons": [
+    {
+      "actual_name": "CBM_demo_instance_post__LOD0__BATCH0001",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "CBM_demo_instance_post__LOD0__BATCH0001",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.instance_post",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 1140,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 460,
+      "triangles_expected": 460,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.4300000000105895e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.boolean.block__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.boolean.block__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.boolean.block",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 880,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 384,
+      "triangles_expected": 384,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.580000000001025e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.curve_pipe__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "demo.curve_pipe__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.curve_pipe",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 3024,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 1512,
+      "triangles_expected": 1512,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 4.899999999849469e-08,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.custom_pyramid__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "demo.custom_pyramid__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.custom_pyramid",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 144,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 70,
+      "triangles_expected": 70,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 9.299999999962116e-08,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.modifier_array__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.modifier_array__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.modifier_array",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 96,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 48,
+      "triangles_expected": 48,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 5.349999999959554e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.modifier_mirror__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.modifier_mirror__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.modifier_mirror",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 40,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 20,
+      "triangles_expected": 20,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.7900000000292682e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.modifier_remesh__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.modifier_remesh__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.modifier_remesh",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 2136,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 1068,
+      "triangles_expected": 1068,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 9.499999999856845e-08,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.modifier_solidify__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.modifier_solidify__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.modifier_solidify",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 24,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 12,
+      "triangles_expected": 12,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.3199999999990997e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.profile_house__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "demo.profile_house__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.profile_house",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 488,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 236,
+      "triangles_expected": 236,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.2199999999823463e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.revolve_vase__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "demo.revolve_vase__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.revolve_vase",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 4608,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 2304,
+      "triangles_expected": 2304,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.000000006412538e-09,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    },
+    {
+      "actual_name": "demo.terrain__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 1e-06,
+      "expected_name": "demo.terrain__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "no_verified_contract",
+        "status": "not_applicable"
+      },
+      "semantic_id": "demo.terrain",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 450,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "active_render_fallback",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 210,
+      "triangles_expected": 210,
+      "uv_coordinate_readiness": {
+        "layer_count": 1,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": true,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.6400000000388326e-07,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 1,
+      "uv_layer_count_expected": 1
+    }
+  ],
+  "errors": [],
+  "format": "obj",
+  "import_operator": "bpy.ops.wm.obj_import",
+  "imported_objects": [
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          6.225,
+          8.025,
+          2.4
+        ],
+        "min": [
+          5.775,
+          2.775,
+          -1e-06
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        0.45,
+        2.4,
+        5.25
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "name": "CBM_demo_instance_post__LOD0__BATCH0001",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 1140,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 570,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 340,
+        "triangles_estimated": 460,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.984375,
+                0.317708
+              ],
+              "min": [
+                0.765625,
+                0.015625
+              ]
+            },
+            "coordinate_count": 1140,
+            "coordinate_fingerprint": "99b72885d8395b9824297a95fe23d66fd9460a73187289bd37c540330dd45b49",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 1140,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.052112525,
+            "vertex_uv_binding_fingerprint": "91587faa091bc174d60b4a549c7e50df8cbe864ba748af6ba4fd3389687f2cf1"
+          }
+        ],
+        "vertices": 240
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          3.5,
+          7.0,
+          3.0
+        ],
+        "min": [
+          -0.5,
+          3.0,
+          -1e-06
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        4.0,
+        3.0,
+        4.0
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.gray"
+      ],
+      "name": "demo.boolean.block__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 880,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 440,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 248,
+        "triangles_estimated": 384,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.234375,
+                0.317708
+              ],
+              "min": [
+                0.015625,
+                0.015625
+              ]
+            },
+            "coordinate_count": 880,
+            "coordinate_fingerprint": "7b6e15829a0a7a0575f7cc2bb798767953b391873626d4b4dc542e6bddabef41",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 880,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.048667675,
+            "vertex_uv_binding_fingerprint": "e3995b6cf21a645a8064bb09c4c312134f3e142711f8d09e9a64f022816d37e8"
+          }
+        ],
+        "vertices": 192
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          9.127279,
+          -2.82,
+          2.127279
+        ],
+        "min": [
+          4.872721,
+          -3.18,
+          -0.127279
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        4.254558,
+        2.254558,
+        0.36
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "name": "demo.curve_pipe__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 3024,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 24,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 1524,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 756,
+        "triangles_estimated": 1512,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.484375,
+                0.317708
+              ],
+              "min": [
+                0.265625,
+                0.015625
+              ]
+            },
+            "coordinate_count": 3024,
+            "coordinate_fingerprint": "6b922d3aca5f49a29cc7df8569893e510c7acc2089e1cf262f7d3c5a1936e423",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 3024,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.027615938,
+            "vertex_uv_binding_fingerprint": "08eab59aec54a5efb695f56c1d8b91fbb1edfa46c4ce23444f1e523916767b46"
+          }
+        ],
+        "vertices": 768
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          -6.029711,
+          -2.029711,
+          2.359092
+        ],
+        "min": [
+          -7.970289,
+          -3.970289,
+          0.0
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        1.940578,
+        2.359092,
+        1.940578
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.orange"
+      ],
+      "name": "demo.custom_pyramid__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 144,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 72,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 37,
+        "triangles_estimated": 70,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.734375,
+                0.317708
+              ],
+              "min": [
+                0.515625,
+                0.015625
+              ]
+            },
+            "coordinate_count": 144,
+            "coordinate_fingerprint": "1c20321b080b47665c108bc300414affa1ddad4092341990b95192abebf90692",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 144,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.029527109,
+            "vertex_uv_binding_fingerprint": "4619cb8f3f50205066003cf81b2c06c076ca49d723bb50c3c0f875fa5050e9df"
+          }
+        ],
+        "vertices": 37
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          6.425,
+          7.35,
+          2.2
+        ],
+        "min": [
+          3.275,
+          6.65,
+          -1e-06
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        3.15,
+        2.2,
+        0.7
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.orange"
+      ],
+      "name": "demo.modifier_array__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 96,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 48,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 24,
+        "triangles_estimated": 48,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.234375,
+                0.651042
+              ],
+              "min": [
+                0.015625,
+                0.348958
+              ]
+            },
+            "coordinate_count": 96,
+            "coordinate_fingerprint": "800bb3a3d3001419a3a53ea9df66d84ef92271993be9a843567acd820bdd5ae0",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 96,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.058986471,
+            "vertex_uv_binding_fingerprint": "f5a8227b4a2078566d3f5bbcd75676b867a269937cff11e2e54b8826b96602e8"
+          }
+        ],
+        "vertices": 32
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          -6.6,
+          7.5,
+          2.0
+        ],
+        "min": [
+          -9.4,
+          5.5,
+          -1e-06
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        2.8,
+        2.0,
+        2.0
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "name": "demo.modifier_mirror__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 40,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 20,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 10,
+        "triangles_estimated": 20,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.484375,
+                0.651042
+              ],
+              "min": [
+                0.265625,
+                0.348958
+              ]
+            },
+            "coordinate_count": 40,
+            "coordinate_fingerprint": "ced4502533574b3aa326d7e8d27b64205af49ead5ffab260a69fa9beaf1be5cc",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 40,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.058971924,
+            "vertex_uv_binding_fingerprint": "d9c8af56b8e53e62bf6289a8aa5ebd5526f0680ee3d3f504a2cf08a59ebfd6ef"
+          }
+        ],
+        "vertices": 12
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          9.181419,
+          8.181419,
+          2.386842
+        ],
+        "min": [
+          6.818582,
+          5.818582,
+          0.013156
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        2.362837,
+        2.373686,
+        2.362837
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.gray"
+      ],
+      "name": "demo.modifier_remesh__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 2136,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 1068,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 534,
+        "triangles_estimated": 1068,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.734375,
+                0.651042
+              ],
+              "min": [
+                0.515625,
+                0.348958
+              ]
+            },
+            "coordinate_count": 2136,
+            "coordinate_fingerprint": "37b6899d5849f9b5b0f4161433047fd43fb4e73cc08753e7bf479cc1c947a5e6",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 2136,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.054298016,
+            "vertex_uv_binding_fingerprint": "1668dc6bb25c8d5fcaa31208e44ae6edb0169bdcb4c9d2b5b2612954dea58877"
+          }
+        ],
+        "vertices": 536
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          -2.194237,
+          8.0,
+          1.244866
+        ],
+        "min": [
+          -4.805763,
+          6.0,
+          0.875132
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        2.611526,
+        0.369734,
+        2.0
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.green"
+      ],
+      "name": "demo.modifier_solidify__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 24,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 12,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 6,
+        "triangles_estimated": 12,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.984375,
+                0.651042
+              ],
+              "min": [
+                0.765625,
+                0.348958
+              ]
+            },
+            "coordinate_count": 24,
+            "coordinate_fingerprint": "ea39b77b490ffbff6446ecbfc15624c5b4befd24b0f76842a47b3691ba4aa75a",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 24,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.040019413,
+            "vertex_uv_binding_fingerprint": "faae7818466fd3eabfe8f69615f44b817f192866d6ba3399431b1afbbdfeb9a8"
+          }
+        ],
+        "vertices": 8
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          -1.0,
+          -1.8,
+          2.96876
+        ],
+        "min": [
+          -4.0,
+          -4.2,
+          0.0
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        3.0,
+        2.96876,
+        2.4
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "name": "demo.profile_house__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 488,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 244,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 126,
+        "triangles_estimated": 236,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.234375,
+                0.984375
+              ],
+              "min": [
+                0.015625,
+                0.682292
+              ]
+            },
+            "coordinate_count": 488,
+            "coordinate_fingerprint": "ccfee29167cd6d9319cc36769f33afe4eaca380b430176f61dddc8b014a06908",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 488,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.051689934,
+            "vertex_uv_binding_fingerprint": "014e72b29c73682717d80961fa85ff40142bac9c7c37b3870469ed59949ee5f2"
+          }
+        ],
+        "vertices": 120
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          3.879389,
+          -1.620611,
+          3.0
+        ],
+        "min": [
+          1.120611,
+          -4.379389,
+          0.0
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        2.758778,
+        3.0,
+        2.758778
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.orange"
+      ],
+      "name": "demo.revolve_vase__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 4608,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 192,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 2400,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 1152,
+        "triangles_estimated": 2304,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.484375,
+                0.984375
+              ],
+              "min": [
+                0.265625,
+                0.682292
+              ]
+            },
+            "coordinate_count": 4608,
+            "coordinate_fingerprint": "ca98145997b670421e6c679e652a62431cc80f897e07074ef9033c7879f41b57",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 4608,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.04158976,
+            "vertex_uv_binding_fingerprint": "3285de0ae7bdb3a08f9aba6368e560d965cfab8156ecfe50325b3c8308395218"
+          }
+        ],
+        "vertices": 1248
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "authoring",
+      "bbox_world": {
+        "max": [
+          -1.5,
+          8.0,
+          2.4
+        ],
+        "min": [
+          -8.5,
+          2.0,
+          -1.200001
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {},
+      "dimensions": [
+        7.0,
+        3.6,
+        6.0
+      ],
+      "instance_index": null,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "lod_level": null,
+      "material_ids": [
+        "mat.green"
+      ],
+      "name": "demo.terrain__LOD0",
+      "rotation_euler": [
+        1.570796,
+        -0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 450,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "active_render_fallback",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": null,
+      "topology": {
+        "boundary_edge_count": 0,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 225,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": true,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 120,
+        "triangles_estimated": 210,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.734375,
+                0.984375
+              ],
+              "min": [
+                0.515625,
+                0.682292
+              ]
+            },
+            "coordinate_count": 450,
+            "coordinate_fingerprint": "082a2f9db83c676b6979c68944e1463d29e3a4bd2066108a99130dd3f2fd04fe",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 450,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.045290573,
+            "vertex_uv_binding_fingerprint": "90ad3383f67c7263fde6711aa7b0fcd201cea62a037327b653ebc045d7df65bd"
+          }
+        ],
+        "vertices": 107
+      },
+      "type": "MESH"
+    }
+  ],
+  "input": {
+    "expected_manifest_sha256": "e279bb9dd230f7809ce80afb7cd27254b275c6d3359ac42ed3cbdb3f30daede8",
+    "filename": "asset.obj",
+    "sha256": "a00dbcada4165334b70bc4a7ebe100a13f8ddab677c52634f5e230f913d5e57d"
+  },
+  "kind": "roundtrip_validation",
+  "metrics": {
+    "absolute_texture_path_count": 0,
+    "actual_object_count": 11,
+    "expected_object_count": 11,
+    "invalid_normal_object_count": 0,
+    "invalid_texture_path_count": 0,
+    "matched_object_count": 11,
+    "missing_texture_count": 0,
+    "outside_texture_path_count": 0,
+    "package_absolute_texture_path_count": 5,
+    "tangent_unverified_object_count": 0,
+    "uv_unverified_object_count": 11
+  },
+  "ok": true,
+  "readiness": {
+    "coordinate_system": {
+      "axis_file_metadata_verified": false,
+      "declared": {
+        "evidence": "export_operator_configuration",
+        "export_forward_axis": "-Z",
+        "export_up_axis": "+Y",
+        "file_metadata_verified": false,
+        "format": "obj",
+        "source_contract_units": "meters",
+        "source_up_axis": "+Z",
+        "unit_scale_m": 1.0
+      },
+      "mismatches": {},
+      "status": "declared_not_file_inspected",
+      "unit_file_metadata_verified": false
+    },
+    "face_normals": {
+      "custom_normal_equivalence_verified": false,
+      "invalid_objects": [],
+      "status": "ready"
+    },
+    "portable_uv_binding": {
+      "objects": [],
+      "required_uv_channel_index": null,
+      "required_uv_set": null,
+      "status": "not_applicable",
+      "verified_object_count": 0
+    },
+    "tangents": {
+      "preserved_exported_tangents_verified": false,
+      "recomputability_checked": true,
+      "unverified_objects": []
+    },
+    "uv_coordinates": {
+      "loop_association_verified": false,
+      "summary_metrics_checked": true,
+      "unverified_objects": [
+        "CBM_demo_instance_post__LOD0__BATCH0001",
+        "demo.boolean.block__LOD0",
+        "demo.curve_pipe__LOD0",
+        "demo.custom_pyramid__LOD0",
+        "demo.modifier_array__LOD0",
+        "demo.modifier_mirror__LOD0",
+        "demo.modifier_remesh__LOD0",
+        "demo.modifier_solidify__LOD0",
+        "demo.profile_house__LOD0",
+        "demo.revolve_vase__LOD0",
+        "demo.terrain__LOD0"
+      ]
+    }
+  },
+  "runtime": {
+    "blender_version": "5.0.1"
+  },
+  "schema_version": "0.7.0",
+  "source": {
+    "build_fingerprint": "f7c8fe1e68cb436dd1826c70de3f8b6f4a457f65d00c073eaa1809127b520315",
+    "camera_fingerprint": "2997c9a743b7e11344e7e058ba6294c1d894418df3de36ad74fbc984539679ce",
+    "embedded_build_provenance": {
+      "camera_fingerprint": "2997c9a743b7e11344e7e058ba6294c1d894418df3de36ad74fbc984539679ce",
+      "fingerprint": "f7c8fe1e68cb436dd1826c70de3f8b6f4a457f65d00c073eaa1809127b520315",
+      "geometry_payloads_sha256": {},
+      "job_id": "geometry_showcase",
+      "material_plan_path": "analysis/material_plan.json",
+      "material_plan_sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525",
+      "materials": {
+        "mat.blue": {
+          "fingerprint": "ba3e0b53d329076a63dafcf9468fe948525723319dbf495e1c9eea4a7420ef4e",
+          "shader_recipe_path": "materials/mat.blue/shader_recipe.json",
+          "shader_recipe_sha256": "2ff84948cf486bc9cca2153ab7404e8ad0d708aa772f6257251b87545b02f1eb",
+          "texture_channels": {
+            "base_color": {
+              "path": "textures/mat.blue/base_color.png",
+              "sha256": "637c8b7c73bd874d43cc91b09183115804725e984fdc3a63b3742e00b22ecf4a"
+            },
+            "emission": {
+              "path": "textures/mat.blue/emission.png",
+              "sha256": "7659100791b0b0d9d5707576f6d04cdae4e769ae4ba3034169540fe3990efae5"
+            },
+            "height": {
+              "path": "textures/mat.blue/height.png",
+              "sha256": "1f8c42e04d9babcc6a32068e9992935d4ffe93ea0a16ef11bdc3fac213fb7e26"
+            },
+            "metallic": {
+              "path": "textures/mat.blue/metallic.png",
+              "sha256": "d6eb17ad91bb8206c973cfef35aa42cc227508cabfb1e85b8602abfb2c5bcb4b"
+            },
+            "normal": {
+              "path": "textures/mat.blue/normal.png",
+              "sha256": "81275b4c04b0ba438cf80bbfa81750c160a5edb6648e20a8eea83df6bc23117b"
+            },
+            "roughness": {
+              "path": "textures/mat.blue/roughness.png",
+              "sha256": "11f219d1f766d263c9a9f135e5cf70cb4bffd2a2bbd92fc4f92fad4745e57043"
+            }
+          },
+          "texture_manifest_path": "textures/mat.blue/texture_manifest.json",
+          "texture_manifest_sha256": "ba0502b5657a62e1535458d500ff397e45474deec4055da944fb864a4a2c2b44"
+        },
+        "mat.gray": {
+          "fingerprint": "3352fa8cb2edbb45971a86c836d5c504f3071b86b9c26765571d23e1549923ff",
+          "shader_recipe_path": "materials/mat.gray/shader_recipe.json",
+          "shader_recipe_sha256": "1a356581bf1c60cbb18f05c2dbdfc7fb15dab39ff63eaa0465c23d16b5be793a",
+          "texture_channels": {},
+          "texture_manifest_path": null,
+          "texture_manifest_sha256": null
+        },
+        "mat.green": {
+          "fingerprint": "55be4d7729732706cffc95282acbb5a70c7e579bd9613aae4ff1bdb31bc6f63b",
+          "shader_recipe_path": "materials/mat.green/shader_recipe.json",
+          "shader_recipe_sha256": "1924ba1397517d8a22c60058091376db44b07806e220b181d7be6df613a7e52a",
+          "texture_channels": {},
+          "texture_manifest_path": null,
+          "texture_manifest_sha256": null
+        },
+        "mat.orange": {
+          "fingerprint": "62d901547b856823bc10c7d858f6469d2c201afdcd04df59ad94e7d6f7463abe",
+          "shader_recipe_path": "materials/mat.orange/shader_recipe.json",
+          "shader_recipe_sha256": "9a29a78ccd77c8addb1b1ae20bc83a2b5642548daebd88a8f62792f362576e9a",
+          "texture_channels": {},
+          "texture_manifest_path": null,
+          "texture_manifest_sha256": null
+        }
+      },
+      "scene_spec_path": "analysis/scene_spec.json",
+      "scene_spec_sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158",
+      "schema_version": "0.5.0"
+    },
+    "external_asset_manifest_sha256": null,
+    "external_intake_plan_sha256": null,
+    "job_id": "geometry_showcase",
+    "material_build_fingerprint": "f7c8fe1e68cb436dd1826c70de3f8b6f4a457f65d00c073eaa1809127b520315",
+    "material_conversion_plan_sha256": "ba59c5d2cb505e955dc64bdfff7e92e5f5c94543fa6a6123bfd42a7ff4e0ed64",
+    "optimized_blend_sha256": "2a04d15a850dbd0cb83a65b6e1efe117694bad8846e6f468c9e49fdf788c2d1e",
+    "plan_sha256": "e2a5709e7544606644bf09f1c17e558da70a9c292f4a54eeec09f8f353748783",
+    "scene_spec_sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158",
+    "scene_spec_version": "0.2.0",
+    "source_build_fingerprint": "f7c8fe1e68cb436dd1826c70de3f8b6f4a457f65d00c073eaa1809127b520315",
+    "source_external_manifest_sha256": "",
+    "source_kind": "scene_spec",
+    "source_scene_spec_sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+  },
+  "tolerances": {
+    "bounds_m": 0.0001,
+    "triangle_relative": 0.01
+  },
+  "warnings": [
+    "OBJ cannot preserve CBM custom semantic properties during round-trip.",
+    "OBJ preserves only the active render UV set; additional derived UV layers remain available only in the optimized Blender scene.",
+    "OBJ material semantics are format-limited; raw PBR sidecars remain authoritative for downstream material reconstruction.",
+    "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+    "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+    "Blender resolved package-local texture references to runtime absolute paths for: base_color.png, emission.png, metallic.png, normal.png, roughness.png",
+    "OBJ round-trip uses object names because the format cannot preserve CBM properties.",
+    "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+    "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+    "UV loop-to-vertex association could not be verified for: CBM_demo_instance_post__LOD0__BATCH0001, demo.boolean.block__LOD0, demo.curve_pipe__LOD0, demo.custom_pyramid__LOD0, demo.modifier_array__LOD0, demo.modifier_mirror__LOD0, demo.modifier_remesh__LOD0, demo.modifier_solidify__LOD0, demo.profile_house__LOD0, demo.revolve_vase__LOD0, demo.terrain__LOD0",
+    "UV coordinate summary preservation could not be verified for: CBM_demo_instance_post__LOD0__BATCH0001, demo.boolean.block__LOD0, demo.curve_pipe__LOD0, demo.custom_pyramid__LOD0, demo.modifier_array__LOD0, demo.modifier_mirror__LOD0, demo.modifier_remesh__LOD0, demo.modifier_solidify__LOD0, demo.profile_house__LOD0, demo.revolve_vase__LOD0, demo.terrain__LOD0"
+  ]
+}

@@ -1,0 +1,1014 @@
+{
+  "schema_version": "0.7.0",
+  "manifest_id": "lod.v09-handoff-smoke-run",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "status": "complete",
+  "quality_status": "partially_verified",
+  "unverified_checks": [
+    "silhouette_iou"
+  ],
+  "entries": [
+    {
+      "target_id": "demo.boolean.block",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.boolean.block.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 384,
+      "triangle_count": 384,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -0.5,
+          3.0,
+          0.0
+        ],
+        "maximum": [
+          3.5,
+          7.0,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.boolean.block",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.boolean.block.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 384,
+      "triangle_count": 230,
+      "triangle_ratio": 0.5989583333333334,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -0.493245,
+          3.006755,
+          0.0
+        ],
+        "maximum": [
+          3.493245,
+          6.993245,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.boolean.block",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.boolean.block.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 384,
+      "triangle_count": 114,
+      "triangle_ratio": 0.296875,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -0.486907,
+          3.013093,
+          0.0
+        ],
+        "maximum": [
+          3.486907,
+          6.993245,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.curve_pipe",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.curve_pipe.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1512,
+      "triangle_count": 1512,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          4.872721,
+          -3.18,
+          -0.127279
+        ],
+        "maximum": [
+          9.127279,
+          -2.82,
+          2.127279
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.curve_pipe",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.curve_pipe.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1512,
+      "triangle_count": 906,
+      "triangle_ratio": 0.5992063492063492,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          4.872721,
+          -3.180049,
+          -0.127279
+        ],
+        "maximum": [
+          9.127279,
+          -2.819951,
+          2.127279
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.curve_pipe",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.curve_pipe.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1512,
+      "triangle_count": 452,
+      "triangle_ratio": 0.29894179894179895,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          4.872721,
+          -3.180107,
+          -0.126967
+        ],
+        "maximum": [
+          9.127279,
+          -2.819893,
+          2.127279
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.custom_pyramid",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.custom_pyramid.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 70,
+      "triangle_count": 70,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -7.970289,
+          -3.970289,
+          0.0
+        ],
+        "maximum": [
+          -6.029711,
+          -2.029711,
+          2.359092
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.custom_pyramid",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.custom_pyramid.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 70,
+      "triangle_count": 42,
+      "triangle_ratio": 0.6,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -7.973593,
+          -3.973228,
+          0.0
+        ],
+        "maximum": [
+          -6.026772,
+          -2.026772,
+          2.359092
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.custom_pyramid",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.custom_pyramid.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 70,
+      "triangle_count": 20,
+      "triangle_ratio": 0.2857142857142857,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -7.971345,
+          -3.973042,
+          0.016311
+        ],
+        "maximum": [
+          -6.026772,
+          -2.03504,
+          2.357109
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.instance_post",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.instance_post.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 460,
+      "triangle_count": 460,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          5.775,
+          2.775,
+          0.0
+        ],
+        "maximum": [
+          6.225,
+          8.025,
+          2.4
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.instance_post",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.instance_post.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 460,
+      "triangle_count": 270,
+      "triangle_ratio": 0.5869565217391305,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          5.775995,
+          2.775995,
+          0.0
+        ],
+        "maximum": [
+          6.224005,
+          8.024006,
+          2.4
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.instance_post",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.instance_post.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 460,
+      "triangle_count": 130,
+      "triangle_ratio": 0.2826086956521739,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          5.775995,
+          2.775995,
+          0.0
+        ],
+        "maximum": [
+          6.224005,
+          8.024006,
+          2.4
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_array",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.modifier_array.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 48,
+      "triangle_count": 48,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          3.275,
+          6.65,
+          0.0
+        ],
+        "maximum": [
+          6.425,
+          7.35,
+          2.2
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_array",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.modifier_array.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 48,
+      "triangle_count": 28,
+      "triangle_ratio": 0.5833333333333334,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          3.425,
+          6.65,
+          -0.0
+        ],
+        "maximum": [
+          6.425,
+          7.35,
+          2.2
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_array",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.modifier_array.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 48,
+      "triangle_count": 13,
+      "triangle_ratio": 0.2708333333333333,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          3.425,
+          6.65,
+          -0.0
+        ],
+        "maximum": [
+          6.275,
+          7.35,
+          2.2
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_mirror",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.modifier_mirror.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 20,
+      "triangle_count": 20,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -9.4,
+          5.5,
+          0.0
+        ],
+        "maximum": [
+          -6.6,
+          7.5,
+          2.0
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_mirror",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.modifier_mirror.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 20,
+      "triangle_count": 12,
+      "triangle_ratio": 0.6,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -9.4,
+          5.5,
+          0.0
+        ],
+        "maximum": [
+          -6.6,
+          7.5,
+          2.0
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_mirror",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.modifier_mirror.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 20,
+      "triangle_count": 6,
+      "triangle_ratio": 0.3,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -9.4,
+          5.5,
+          0.0
+        ],
+        "maximum": [
+          -6.6,
+          7.5,
+          2.0
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_remesh",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.modifier_remesh.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1068,
+      "triangle_count": 1068,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          6.818582,
+          5.818582,
+          0.013157
+        ],
+        "maximum": [
+          9.181419,
+          8.181419,
+          2.386843
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_remesh",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.modifier_remesh.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1068,
+      "triangle_count": 640,
+      "triangle_ratio": 0.599250936329588,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          6.819956,
+          5.820256,
+          0.015648
+        ],
+        "maximum": [
+          9.179777,
+          8.179751,
+          2.383847
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_remesh",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.modifier_remesh.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 1068,
+      "triangle_count": 320,
+      "triangle_ratio": 0.299625468164794,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          6.821342,
+          5.821231,
+          0.017901
+        ],
+        "maximum": [
+          9.178617,
+          8.178738,
+          2.381474
+        ]
+      },
+      "material_ids": [
+        "mat.gray"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_solidify",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.modifier_solidify.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 12,
+      "triangle_count": 12,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -4.805763,
+          6.0,
+          0.875133
+        ],
+        "maximum": [
+          -2.194237,
+          8.0,
+          1.244867
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_solidify",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.modifier_solidify.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 12,
+      "triangle_count": 6,
+      "triangle_ratio": 0.5,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -4.805763,
+          6.0,
+          0.875133
+        ],
+        "maximum": [
+          -2.2,
+          8.0,
+          1.124867
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "target_id": "demo.modifier_solidify",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.modifier_solidify.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 12,
+      "triangle_count": 1,
+      "triangle_ratio": 0.08333333333333333,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -4.802881,
+          6.0,
+          1.027566
+        ],
+        "maximum": [
+          -2.2,
+          8.0,
+          1.12
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "target_id": "demo.profile_house",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.profile_house.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 236,
+      "triangle_count": 236,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -4.0,
+          -4.2,
+          0.0
+        ],
+        "maximum": [
+          -1.0,
+          -1.8,
+          2.96876
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.profile_house",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.profile_house.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 236,
+      "triangle_count": 140,
+      "triangle_ratio": 0.5932203389830508,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -4.0,
+          -4.2,
+          0.0
+        ],
+        "maximum": [
+          -1.0,
+          -1.8,
+          2.967271
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.profile_house",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.profile_house.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 236,
+      "triangle_count": 70,
+      "triangle_ratio": 0.2966101694915254,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -3.996125,
+          -4.192915,
+          0.008194
+        ],
+        "maximum": [
+          -1.00299,
+          -1.807062,
+          2.967271
+        ]
+      },
+      "material_ids": [
+        "mat.blue"
+      ]
+    },
+    {
+      "target_id": "demo.revolve_vase",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.revolve_vase.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 2304,
+      "triangle_count": 2304,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          1.120611,
+          -4.379389,
+          0.0
+        ],
+        "maximum": [
+          3.879389,
+          -1.620611,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.revolve_vase",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.revolve_vase.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 2304,
+      "triangle_count": 1382,
+      "triangle_ratio": 0.5998263888888888,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          1.120961,
+          -4.379039,
+          0.0
+        ],
+        "maximum": [
+          3.879039,
+          -1.620961,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.revolve_vase",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.revolve_vase.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 2304,
+      "triangle_count": 690,
+      "triangle_ratio": 0.2994791666666667,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          1.114447,
+          -4.385553,
+          0.0
+        ],
+        "maximum": [
+          3.885553,
+          -1.614447,
+          3.0
+        ]
+      },
+      "material_ids": [
+        "mat.orange"
+      ]
+    },
+    {
+      "target_id": "demo.terrain",
+      "level": 0,
+      "mesh": {
+        "id": "lod.demo.terrain.0",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 210,
+      "triangle_count": 210,
+      "triangle_ratio": 1.0,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -8.5,
+          2.0,
+          -1.2
+        ],
+        "maximum": [
+          -1.5,
+          8.0,
+          2.4
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "target_id": "demo.terrain",
+      "level": 1,
+      "mesh": {
+        "id": "lod.demo.terrain.1",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 210,
+      "triangle_count": 126,
+      "triangle_ratio": 0.6,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -8.5,
+          2.0,
+          -1.2
+        ],
+        "maximum": [
+          -1.5,
+          8.0,
+          2.4
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    },
+    {
+      "target_id": "demo.terrain",
+      "level": 2,
+      "mesh": {
+        "id": "lod.demo.terrain.2",
+        "kind": "lod_mesh",
+        "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+        "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+      },
+      "source_triangle_count": 210,
+      "triangle_count": 62,
+      "triangle_ratio": 0.29523809523809524,
+      "silhouette_iou": null,
+      "bounds": {
+        "minimum": [
+          -8.5,
+          2.0,
+          -1.2
+        ],
+        "maximum": [
+          -1.5,
+          8.0,
+          2.405617
+        ]
+      },
+      "material_ids": [
+        "mat.green"
+      ]
+    }
+  ],
+  "created_at": "2026-08-11T07:48:38.287320Z",
+  "completed_at": "2026-08-11T07:48:38.287320Z",
+  "canonical_unchanged": true,
+  "errors": [],
+  "notes": [
+    "LOD0 is an evaluated copy in the run-owned optimized blend.",
+    "Silhouette IoU is unverified for every LOD, including the evaluated LOD0 copy.",
+    "Derived triangle counts do not exceed profile ratio budgets after deterministic per-instance whole-triangle ceiling."
+  ]
+}

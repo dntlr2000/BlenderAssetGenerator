@@ -1,0 +1,484 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    },
+    "BudgetUsageV2": {
+      "additionalProperties": false,
+      "description": "Count consumed AQ v2 work without mutating the immutable budget.",
+      "properties": {
+        "initial_candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Initial Candidates",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_convergence_iterations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Parametric Convergence Iterations",
+          "type": "integer"
+        },
+        "material_rounds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Material Rounds",
+          "type": "integer"
+        },
+        "total_blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Blender Builds",
+          "type": "integer"
+        },
+        "total_quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Quality Evaluations",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "delivery_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Delivery Runs",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "total_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Actions",
+          "type": "integer"
+        }
+      },
+      "title": "BudgetUsageV2",
+      "type": "object"
+    },
+    "DeliveryResult": {
+      "additionalProperties": false,
+      "description": "Record one format-specific result without changing another delivery outcome.",
+      "properties": {
+        "delivery_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Delivery Id",
+          "type": "string"
+        },
+        "profile_id": {
+          "enum": [
+            "review_only",
+            "portable_gltf",
+            "portable_fbx"
+          ],
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "completed",
+            "failed",
+            "review_only"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_freeze_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Freeze Sha256",
+          "type": "string"
+        },
+        "optimization_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "optimization_approval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "package_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "roundtrip_validation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "material_loss_report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "geometry_survival_report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "handoff_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "production_ready": {
+          "title": "Production Ready",
+          "type": "boolean"
+        },
+        "known_losses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Known Losses",
+          "type": "array"
+        },
+        "errors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "delivery_id",
+        "profile_id",
+        "status",
+        "source_freeze_sha256",
+        "production_ready"
+      ],
+      "title": "DeliveryResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Represent one reconstructable v2 projection driven only by immutable events.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "state_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "State Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "phase": {
+      "enum": [
+        "planned",
+        "reference",
+        "authoring",
+        "quality",
+        "delivery",
+        "terminal"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "running",
+        "waiting_for_controller",
+        "quality_approved",
+        "review_required",
+        "delivery_pending",
+        "completed",
+        "partial",
+        "failed",
+        "blocked",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "next_action": {
+      "enum": [
+        "collect_reference",
+        "execute_controller",
+        "validate_candidate",
+        "run_integrated_quality",
+        "freeze_quality_source",
+        "plan_delivery",
+        "await_v07_approval",
+        "run_delivery",
+        "publish_review",
+        "terminalize",
+        "none"
+      ],
+      "title": "Next Action",
+      "type": "string"
+    },
+    "quality_terminal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_freeze": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "delivery_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "delivery_terminal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "delivery_results": {
+      "items": {
+        "$ref": "#/$defs/DeliveryResult"
+      },
+      "title": "Delivery Results",
+      "type": "array"
+    },
+    "budget_usage": {
+      "$ref": "#/$defs/BudgetUsageV2"
+    },
+    "previous_state_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous State Sha256"
+    },
+    "terminal_reason": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Terminal Reason"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "state_id",
+    "plan",
+    "sequence",
+    "phase",
+    "status",
+    "next_action"
+  ],
+  "title": "AutonomyStateV2",
+  "type": "object"
+}

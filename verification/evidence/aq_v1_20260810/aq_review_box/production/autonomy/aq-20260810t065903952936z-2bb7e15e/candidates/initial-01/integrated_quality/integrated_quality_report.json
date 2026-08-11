@@ -1,0 +1,571 @@
+{
+  "schema_version": "0.1.0",
+  "report_id": "quality-initial-01",
+  "job_id": "aq_review_box",
+  "workflow_id": "wf-20260810t065903z-61dc09f5",
+  "dispatch_id": "dispatch-20260810t065903z-7aff80df",
+  "input_sha256": "827acbd2a6cdcae9725a7c4403760d98244835f2ee840e0294aa1d92b28a2dee",
+  "source_fingerprint": "b07d327fccf353b32109892eddf769ed3afb9d1ccb3da02024dcf7ba11679bb0",
+  "gate_profile_id": "autonomous-static-prop-v1",
+  "gate_profile_sha256": "64a00996fce0420bd2c5b4edae84b89f26b95e72d1d2fb2ba62c8b2491869be1",
+  "provenance": {
+    "job_id": "aq_review_box",
+    "workflow_id": "wf-20260810t065903z-61dc09f5",
+    "dispatch_id": "dispatch-20260810t065903z-7aff80df",
+    "source_fingerprint": "b07d327fccf353b32109892eddf769ed3afb9d1ccb3da02024dcf7ba11679bb0",
+    "input_sha256": "827acbd2a6cdcae9725a7c4403760d98244835f2ee840e0294aa1d92b28a2dee",
+    "artifacts": [
+      {
+        "artifact_id": "candidate-v06-qa",
+        "kind": "visual-qa",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/qa/visual_qa_report.json",
+        "sha256": "d0ef1bfc8b00adeb47385f052a52f0830e8c69cd9ca57e51b82d1185c7b0ce90",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-v06-pass-manifest",
+        "kind": "render-pass-manifest",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/qa/render_pass_manifest.json",
+        "sha256": "b2712b942c036143be43f899384f6611776feb42568fa58e3bf26b7f7ffd350b",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-blend",
+        "kind": "blender-build",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/build/scene.blend",
+        "sha256": "543ee2c586a8f2b12e32e07f5ed2c8cc6839d45e9f452b2e78b37c2b7f2c10f6",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-inventory",
+        "kind": "scene-inventory",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/build/scene_inventory.json",
+        "sha256": "1f8bb6a620714eedb6609afe9d82fdb28420d571ca68f26dccfb8dde03820626",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-validation",
+        "kind": "scene-validation",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/build/validation.json",
+        "sha256": "09930f4c51e22fc16b0ae728d2117cc56865366a8fd057f6e54189ac348d8cb3",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-modeling-plan",
+        "kind": "modeling-plan",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/modeling_plan.json",
+        "sha256": "902fd2a62dab5c048824dc7ab930cdf954be5823e0197febb74a83362af55ce5",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-assembly-companion",
+        "kind": "assembly-companion",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/assembly_companion_report.json",
+        "sha256": "62b835ee5b7545190b5539bdeb52ed467fc81692447f4dbe9f631c6bd8f6d6b3",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-topology-companion",
+        "kind": "topology-companion",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/topology_companion_report.json",
+        "sha256": "bbac4c1fbfe246a94f0a117a7e6378327f2b81eba784d5a08000d6937f000554",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      },
+      {
+        "artifact_id": "candidate-scene-spec",
+        "kind": "scene-spec",
+        "relative_path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/scene_spec.json",
+        "sha256": "7f81d3d81a85b76738ef01fd13147c9fca75e0e55056172974e2e80042adc255",
+        "producer": {
+          "name": "autonomy-candidate-evaluator",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:59:05.057417Z"
+      }
+    ]
+  },
+  "producer": {
+    "name": "autonomy-candidate-evaluator",
+    "version": "0.1.0"
+  },
+  "created_at": "2026-08-10T06:59:05.057417Z",
+  "outcome": "unscorable",
+  "quality_accepted": false,
+  "legacy_v06_direct_score": 0.469607,
+  "hard_gates": [
+    {
+      "gate_id": "gate.aq.build",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Blender build exists, is non-empty, and is hash-bound."
+    },
+    {
+      "gate_id": "gate.aq.clean_import_roundtrip",
+      "axis": "production_readiness",
+      "status": "unscorable",
+      "required": false,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-production"
+      ],
+      "message": "Package evidence is unavailable for round trip."
+    },
+    {
+      "gate_id": "gate.aq.evidence_binding",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Integrated Quality provenance and direct inputs are current."
+    },
+    {
+      "gate_id": "gate.aq.finite_transforms",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Canonical and evaluated numeric evidence is finite."
+    },
+    {
+      "gate_id": "gate.aq.inspect",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Scene inspect evidence is structurally valid."
+    },
+    {
+      "gate_id": "gate.aq.package_dependencies",
+      "axis": "production_readiness",
+      "status": "unscorable",
+      "required": false,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-production"
+      ],
+      "message": "package manifest evidence was not supplied."
+    },
+    {
+      "gate_id": "gate.aq.provenance",
+      "axis": "material_fidelity",
+      "status": "unscorable",
+      "required": false,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-material"
+      ],
+      "message": "material plan evidence was not supplied."
+    },
+    {
+      "gate_id": "gate.aq.required_assembly",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "No required assembly relationship is declared."
+    },
+    {
+      "gate_id": "gate.aq.required_semantics",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "All 1 authored semantic IDs exist in source and inventory."
+    },
+    {
+      "gate_id": "gate.aq.topology_profile",
+      "axis": "production_readiness",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-topology"
+      ],
+      "message": "Topology profile static_prop_closed has no hard failure; warning-only unavailable checks=0."
+    },
+    {
+      "gate_id": "gate.aq.uv_pbr_dependencies",
+      "axis": "material_fidelity",
+      "status": "unscorable",
+      "required": false,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-material"
+      ],
+      "message": "material plan evidence was not supplied."
+    },
+    {
+      "gate_id": "gate.aq.validate",
+      "axis": "structural_integrity",
+      "status": "passed",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Scene validation reports ok=true."
+    },
+    {
+      "gate_id": "gate.material_fidelity",
+      "axis": "material_fidelity",
+      "status": "unscorable",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-material"
+      ],
+      "message": "Material fidelity must pass before terminal acceptance. Required evidence is unavailable, so the gate is unscorable rather than failed."
+    },
+    {
+      "gate_id": "gate.production_readiness",
+      "axis": "production_readiness",
+      "status": "unscorable",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-production"
+      ],
+      "message": "Clean package readiness must pass before terminal acceptance. Required evidence is unavailable, so the gate is unscorable rather than failed."
+    },
+    {
+      "gate_id": "gate.structural_integrity",
+      "axis": "structural_integrity",
+      "status": "unscorable",
+      "required": true,
+      "blocking": false,
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "message": "Structural integrity must pass before terminal acceptance. Required evidence is unavailable, so the gate is unscorable rather than failed."
+    }
+  ],
+  "axes": [
+    {
+      "axis": "reference_alignment",
+      "required": true,
+      "status": "failed",
+      "score": 0.469607,
+      "confidence": 1.0,
+      "metrics": [
+        {
+          "metric_id": "reference.v06_overall_direct_score",
+          "status": "failed",
+          "value": 0.469607,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "Copied exactly from VisualQAReport.direct_metrics.overall_direct_score."
+        },
+        {
+          "metric_id": "reference.silhouette_iou",
+          "status": "failed",
+          "value": 0.280217,
+          "unit": "normalized",
+          "threshold": 0.78,
+          "direction": "higher_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "Canonical fixed-camera V0.6 silhouette overlap."
+        },
+        {
+          "metric_id": "reference.authoritative_high_finding_count",
+          "status": "failed",
+          "value": 2.0,
+          "unit": "findings",
+          "threshold": 0.0,
+          "direction": "lower_is_better",
+          "confidence": 1.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-reference"
+          ],
+          "message": "High direct-reference or constraint findings remain: direct.global_silhouette, direct.proportion.product.body"
+        }
+      ],
+      "evidence_ids": [
+        "candidate-reference"
+      ],
+      "limitations": [
+        "High authoritative findings remain unresolved: direct.global_silhouette, direct.proportion.product.body"
+      ]
+    },
+    {
+      "axis": "structural_integrity",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "structural.available_evidence",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-structural"
+          ],
+          "message": "No structural evidence was supplied."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-structural"
+      ],
+      "limitations": [
+        "Structural integrity is unavailable without validation evidence."
+      ]
+    },
+    {
+      "axis": "material_fidelity",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "material.raster_fidelity_available",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-material"
+          ],
+          "message": "Material raster fidelity evidence is unavailable or unscorable."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-material"
+      ],
+      "limitations": [
+        "Material fidelity cannot pass from contract validation without raster evidence."
+      ]
+    },
+    {
+      "axis": "production_readiness",
+      "required": true,
+      "status": "unscorable",
+      "score": null,
+      "confidence": 0.0,
+      "metrics": [
+        {
+          "metric_id": "production.roundtrip_available",
+          "status": "unscorable",
+          "value": null,
+          "unit": null,
+          "threshold": null,
+          "direction": null,
+          "confidence": 0.0,
+          "critical": true,
+          "evidence_ids": [
+            "candidate-production"
+          ],
+          "message": "A clean-import round-trip report was not supplied."
+        }
+      ],
+      "evidence_ids": [
+        "candidate-production"
+      ],
+      "limitations": [
+        "Production readiness cannot pass before clean-import round-trip validation."
+      ]
+    }
+  ],
+  "evidence_availability": [
+    {
+      "evidence_id": "candidate-reference",
+      "axis": "reference_alignment",
+      "status": "available",
+      "artifact_id": "candidate-v06-qa",
+      "confidence": 1.0,
+      "reason": "Exact direct V0.6 candidate QA is available."
+    },
+    {
+      "evidence_id": "candidate-structural",
+      "axis": "structural_integrity",
+      "status": "degraded",
+      "artifact_id": "candidate-assembly-companion",
+      "confidence": 1.0,
+      "reason": "Exact candidate build, semantic, finite, and assembly evidence is bound; the terminal material/package axes remain outside this stage."
+    },
+    {
+      "evidence_id": "candidate-topology",
+      "axis": "production_readiness",
+      "status": "degraded",
+      "artifact_id": "candidate-topology-companion",
+      "confidence": 1.0,
+      "reason": "Candidate-stage geometry topology is available while UV, tangent, export, and clean-import evidence remain intentionally deferred."
+    },
+    {
+      "evidence_id": "candidate-material",
+      "axis": "material_fidelity",
+      "status": "unavailable",
+      "artifact_id": null,
+      "confidence": 0.0,
+      "reason": "Initial structural candidates precede V0.5 material authoring."
+    },
+    {
+      "evidence_id": "candidate-production",
+      "axis": "production_readiness",
+      "status": "unavailable",
+      "artifact_id": null,
+      "confidence": 0.0,
+      "reason": "Initial candidates precede V0.7 package round trip."
+    }
+  ],
+  "blocking_reasons": [],
+  "reentry": [
+    {
+      "recommendation_id": "reentry.gate.aq.clean_import_roundtrip",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.clean_import_roundtrip"
+      ],
+      "message": "Return to v0.7 because gate.aq.clean_import_roundtrip is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.package_dependencies",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.package_dependencies"
+      ],
+      "message": "Return to v0.7 because gate.aq.package_dependencies is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.provenance",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.provenance"
+      ],
+      "message": "Return to v0.5 because gate.aq.provenance is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.gate.aq.uv_pbr_dependencies",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "gate.aq.uv_pbr_dependencies"
+      ],
+      "message": "Return to v0.5 because gate.aq.uv_pbr_dependencies is unscorable; do not mutate canonical evidence from this finding."
+    },
+    {
+      "recommendation_id": "reentry.material_fidelity",
+      "stage": "v0.5",
+      "axis": "material_fidelity",
+      "target_ids": [],
+      "reason_codes": [
+        "material.raster_fidelity_available"
+      ],
+      "message": "Return to v0.5 because material_fidelity is unscorable; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.production_readiness",
+      "stage": "v0.7",
+      "axis": "production_readiness",
+      "target_ids": [],
+      "reason_codes": [
+        "production.roundtrip_available"
+      ],
+      "message": "Return to v0.7 because production_readiness is unscorable; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.reference_alignment",
+      "stage": "v0.4",
+      "axis": "reference_alignment",
+      "target_ids": [],
+      "reason_codes": [
+        "reference.v06_overall_direct_score",
+        "reference.silhouette_iou",
+        "reference.authoritative_high_finding_count"
+      ],
+      "message": "Return to v0.4 because reference_alignment is failed; do not repair a canonical source from this report automatically."
+    },
+    {
+      "recommendation_id": "reentry.structural_integrity",
+      "stage": "v0.4",
+      "axis": "structural_integrity",
+      "target_ids": [],
+      "reason_codes": [
+        "structural.available_evidence"
+      ],
+      "message": "Return to v0.4 because structural_integrity is unscorable; do not repair a canonical source from this report automatically."
+    }
+  ],
+  "notes": [
+    "Candidate-stage promotion requires scorable reference evidence and exact structural hard gates, independently from terminal quality acceptance.",
+    "Material and full production axes remain unscorable until V0.5 and V0.7 evidence."
+  ]
+}

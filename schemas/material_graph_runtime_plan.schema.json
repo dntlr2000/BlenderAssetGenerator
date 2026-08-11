@@ -1,0 +1,310 @@
+{
+  "$defs": {
+    "GraphCompilerPolicy": {
+      "additionalProperties": false,
+      "description": "Bound graph, layer, depth, and texture work below immutable hard limits.",
+      "properties": {
+        "policy_id": {
+          "default": "material_graph_runtime_v1",
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Policy Id",
+          "type": "string"
+        },
+        "maximum_nodes": {
+          "default": 64,
+          "maximum": 128,
+          "minimum": 2,
+          "title": "Maximum Nodes",
+          "type": "integer"
+        },
+        "maximum_layers": {
+          "default": 8,
+          "maximum": 16,
+          "minimum": 0,
+          "title": "Maximum Layers",
+          "type": "integer"
+        },
+        "maximum_depth": {
+          "default": 16,
+          "maximum": 32,
+          "minimum": 1,
+          "title": "Maximum Depth",
+          "type": "integer"
+        },
+        "maximum_textures": {
+          "default": 16,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Maximum Textures",
+          "type": "integer"
+        }
+      },
+      "title": "GraphCompilerPolicy",
+      "type": "object"
+    },
+    "RuntimeInputDefault": {
+      "additionalProperties": false,
+      "description": "Assign one typed semantic socket default without exposing a Blender socket name.",
+      "properties": {
+        "socket_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Socket Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "socket_id",
+        "value"
+      ],
+      "title": "RuntimeInputDefault",
+      "type": "object"
+    },
+    "RuntimeLinkPlan": {
+      "additionalProperties": false,
+      "description": "Connect registry semantic sockets without exposing raw Blender socket identifiers.",
+      "properties": {
+        "link_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Link Id",
+          "type": "string"
+        },
+        "source_node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "source_socket_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Socket Id",
+          "type": "string"
+        },
+        "target_node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Node Id",
+          "type": "string"
+        },
+        "target_socket_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Socket Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "link_id",
+        "source_node_id",
+        "source_socket_id",
+        "target_node_id",
+        "target_socket_id"
+      ],
+      "title": "RuntimeLinkPlan",
+      "type": "object"
+    },
+    "RuntimeNodePlan": {
+      "additionalProperties": false,
+      "description": "Instantiate one registry-backed node template using semantic controls only.",
+      "properties": {
+        "node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "template_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Template Id",
+          "type": "string"
+        },
+        "settings": {
+          "items": {
+            "$ref": "#/$defs/RuntimeSetting"
+          },
+          "title": "Settings",
+          "type": "array"
+        },
+        "input_defaults": {
+          "items": {
+            "$ref": "#/$defs/RuntimeInputDefault"
+          },
+          "title": "Input Defaults",
+          "type": "array"
+        }
+      },
+      "required": [
+        "node_id",
+        "template_id"
+      ],
+      "title": "RuntimeNodePlan",
+      "type": "object"
+    },
+    "RuntimeSetting": {
+      "additionalProperties": false,
+      "description": "Assign one typed semantic setting declared by a registry template.",
+      "properties": {
+        "setting_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Setting Id",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "setting_id",
+        "value"
+      ],
+      "title": "RuntimeSetting",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the deterministic registry plan compiled from one MaterialGraphSpec.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "material_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Material Id",
+      "type": "string"
+    },
+    "graph_spec_path": {
+      "title": "Graph Spec Path",
+      "type": "string"
+    },
+    "graph_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Graph Spec Sha256",
+      "type": "string"
+    },
+    "registry_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registry Sha256",
+      "type": "string"
+    },
+    "policy": {
+      "$ref": "#/$defs/GraphCompilerPolicy"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/RuntimeNodePlan"
+      },
+      "minItems": 2,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "links": {
+      "items": {
+        "$ref": "#/$defs/RuntimeLinkPlan"
+      },
+      "minItems": 1,
+      "title": "Links",
+      "type": "array"
+    },
+    "topological_order": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Topological Order",
+      "type": "array"
+    },
+    "layer_count": {
+      "minimum": 0,
+      "title": "Layer Count",
+      "type": "integer"
+    },
+    "texture_count": {
+      "minimum": 0,
+      "title": "Texture Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "plan_id",
+    "graph_id",
+    "material_id",
+    "graph_spec_path",
+    "graph_spec_sha256",
+    "registry_sha256",
+    "policy",
+    "nodes",
+    "links",
+    "topological_order",
+    "layer_count",
+    "texture_count"
+  ],
+  "title": "NormalizedMaterialGraphPlan",
+  "type": "object"
+}

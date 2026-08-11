@@ -1,0 +1,45 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "terminal-intent-aq-20260810t065903952936z-2bb7e15e",
+  "job_id": "aq_review_box",
+  "workflow_id": "wf-20260810t065903z-61dc09f5",
+  "dispatch_id": "dispatch-20260810t065903z-7aff80df",
+  "input_sha256": "7bd5d97ffb65ddd34b413a32847d3528ff70a4d422823e723783a7acea9e2221",
+  "source_fingerprint": "93eacbecbeb8b0fa210c91a682f6dcaa25fac057f6b90501c3d0cbfd6037b558",
+  "producer": "codex_blender_modeler.autonomy.service",
+  "producer_version": "0.1.0",
+  "provenance": [
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/transitions/0003/state.json",
+      "sha256": "7bd5d97ffb65ddd34b413a32847d3528ff70a4d422823e723783a7acea9e2221"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.json",
+      "sha256": "7e72cbadbd108dd958bfebdda9b47acc1915aa21ba27c371dd08fb9b83d378ed"
+    },
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_manifest.json",
+      "sha256": "b30441e0a0f98ac9584f2e619520d430c8b5d3cef9f8ce239fab83c800ec2df6"
+    }
+  ],
+  "created_at": "2026-08-10T06:59:25.104056Z",
+  "intent_id": "terminal-intent-aq-20260810t065903952936z-2bb7e15e",
+  "session_id": "aq-20260810t065903952936z-2bb7e15e",
+  "status": "review_required",
+  "reason": "global_budget_exhausted",
+  "state_before": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/transitions/0003/state.json",
+    "sha256": "7bd5d97ffb65ddd34b413a32847d3528ff70a4d422823e723783a7acea9e2221"
+  },
+  "integrated_quality_report": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.json",
+    "sha256": "7e72cbadbd108dd958bfebdda9b47acc1915aa21ba27c371dd08fb9b83d378ed"
+  },
+  "package_manifest": null,
+  "roundtrip_validation": null,
+  "review_bundle_manifest": {
+    "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_manifest.json",
+    "sha256": "b30441e0a0f98ac9584f2e619520d430c8b5d3cef9f8ce239fab83c800ec2df6"
+  },
+  "destination_handoff_envelope": null
+}

@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to its exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one exact authored material and an advisory destination-family choice.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "material_authoring_manifest": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_authoring_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "destination_target": {
+      "enum": [
+        "unity_urp",
+        "unity_hdrp"
+      ],
+      "title": "Destination Target",
+      "type": "string"
+    },
+    "destination_hint": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination Hint"
+    },
+    "output_root": {
+      "title": "Output Root",
+      "type": "string"
+    },
+    "destination_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Authority",
+      "type": "boolean"
+    },
+    "engine_execution_authority": {
+      "const": false,
+      "default": false,
+      "title": "Engine Execution Authority",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "plan_id",
+    "job_id",
+    "material_authoring_manifest",
+    "material_authoring_receipt",
+    "destination_target",
+    "output_root",
+    "created_at"
+  ],
+  "title": "AdvancedMaterialHandoffRequest",
+  "type": "object"
+}

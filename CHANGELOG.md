@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased — Autonomous Quality Extension 0.2.0
+
+- Added `autonomous_static_prop_v2` as an additive `0.2.0` overlay without changing project
+  version `0.9.0`, canonical SceneSpec `0.2.0`, AQ v1 behavior, or any legacy evidence. The v2
+  profile remains `disabled_experimental` and cannot be selected as a verified active profile.
+- Added a bounded geometry-controller promotion → material-controller promotion → external
+  Integrated Quality 0.2 submission chain. `needs_revision` or `unscorable` terminates with an exact
+  non-production review bundle, `blocked` terminates without a bundle or freeze, and only a quality
+  pass freezes the exact source before `review_only` or independently exact-approved GLB and FBX
+  delivery.
+- Added ControllerExecutor execution-owned workspaces with exact input snapshots, declared-output
+  collection, request-bound receipts, strict crash adoption, and fail-closed path, symlink, extra,
+  stale, hash-mismatch, and tamper checks. Controllers never receive canonical job-root write
+  authority.
+- Hardened `desktop_in_session` waiting recovery so public advance/run revalidate and adopt only the
+  same immutable request and request-owned workspace. Waiting does not create a duplicate invocation
+  or consume budget twice, while any protected job-inventory, request, result, profile, output, or
+  receipt change fails before adoption.
+- Reconstructed the complete executor lifecycle and exact stored result bytes for both execution-root
+  and adoption recovery. Direct controller and delivery effects now require an active, unexpired,
+  exact plan/profile/budget authorization; AQ v2 timeout terminalizes as nonretryable failure.
+- Added public AQ v2 plan, status, single-step advance, bounded run, and cancel CLI/MCP surfaces.
+  They preserve all specialized approval boundaries and never synthesize V0.7 optimization or
+  destination approval.
+- Hardened state reconstruction with exact predecessor transitions and monotonic budget checks.
+  IQ submission/freeze now recomputes contour and semantic metrics from exact PNG bytes and rebuilds
+  gates, findings, reentry, and outcome before exact report comparison. It then revalidates the current
+  canonical and required geometry/material promotion receipts. Required scored landmark/multi-view
+  evidence without typed host-verifiable inputs has no pass authority, authoritative hard findings
+  block quality pass, and QualityTerminal validation recursively checks its exact IQ, freeze or review
+  bundle, and nested artifacts.
+- Added strict geometry and material candidate validation/promotion, runtime-whitelisted material
+  compilation, IQ 0.2 contour/semantic/landmark/multi-view companion metrics, quality source freeze,
+  review-only terminal evidence, and independent GLB/FBX delivery terminal revalidation.
+- Added selected Blender 5 structural/material fixtures and a synthetic same-freeze dual-delivery
+  fixture that performs independent GLB and FBX optimization, package, and clean-import checks.
+  These fixtures do not establish generalized human reference quality or destination-runtime parity.
+- Verified the latest shared tree with full pytest `1350 passed, 39 skipped, 8 warnings`; the AQ
+  focused gate reported `397 passed, 17 skipped, 8 warnings`; the actual Blender AQ gate reported
+  `30 passed, 6 warnings`; and the V0.7, V0.8, and V0.9 regression gates passed. The Codex App Server or
+  supporting-client closed loop, human reference-quality review, and Unity/Unreal/custom runtime
+  parity remain unverified, so `autonomous_static_prop_v2` stays `disabled_experimental`.
+- Added the AQ 0.2 architecture, getting-started, test-plan, migration, verification,
+  ControllerExecutor, delivery-profile, material-authoring, and quality-benchmark documents.
+
 ## Unreleased — Autonomous Quality Extension 0.1.0
 
 - Added an explicit opt-in `autonomous_static_prop_v1` supervisor over newly created `standard`

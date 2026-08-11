@@ -1,5 +1,10 @@
 # V0.9 로컬 검증 기록
 
+> 이 문서의 `reports/v07_smoke/`, `reports/v08_smoke/`, `reports/v09_smoke/` 경로는 당시
+> 로컬 실행 위치이며 배포 저장소의 영구 의존성이 아니다. 최신 compact snapshot은
+> `verification/evidence/v07_20260811/`, `verification/evidence/v08_20260811/`,
+> `verification/evidence/v09_20260811/`에 있다.
+
 검증 일자: 2026-07-26
 
 프로젝트: `0.9.0`

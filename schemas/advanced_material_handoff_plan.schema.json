@@ -1,0 +1,545 @@
+{
+  "$defs": {
+    "AdvancedMaterialContract": {
+      "additionalProperties": false,
+      "description": "Describe portable material intent and destination feature loss without runtime claims.",
+      "properties": {
+        "material_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "material_family": {
+          "enum": [
+            "uniform_fallback",
+            "user_image_pbr",
+            "signage_decal",
+            "planar_reference_patch",
+            "wood",
+            "metal",
+            "emissive",
+            "crystal"
+          ],
+          "title": "Material Family",
+          "type": "string"
+        },
+        "raw_pbr_channel_mapping": {
+          "items": {
+            "$ref": "#/$defs/RawChannelHandoffMapping"
+          },
+          "title": "Raw Pbr Channel Mapping",
+          "type": "array"
+        },
+        "authoring_shader_features": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Authoring Shader Features",
+          "type": "array"
+        },
+        "portable_approximation": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Portable Approximation",
+          "type": "string"
+        },
+        "required_destination_features": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Required Destination Features",
+          "type": "array"
+        },
+        "unsupported_features": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unsupported Features",
+          "type": "array"
+        },
+        "preferred_shader_family": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Preferred Shader Family",
+          "type": "string"
+        },
+        "approximation_policy": {
+          "enum": [
+            "direct_portable_mapping",
+            "packed_channel_conversion_required",
+            "custom_shader_reconstruction_required"
+          ],
+          "title": "Approximation Policy",
+          "type": "string"
+        },
+        "source_hashes": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Hashes",
+          "type": "array"
+        },
+        "texture_color_spaces": {
+          "additionalProperties": {
+            "enum": [
+              "srgb",
+              "non_color",
+              "linear"
+            ],
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "occlusion",
+              "opacity",
+              "emission"
+            ]
+          },
+          "title": "Texture Color Spaces",
+          "type": "object"
+        },
+        "normal_convention": {
+          "enum": [
+            "opengl_y_plus",
+            "not_present"
+          ],
+          "title": "Normal Convention",
+          "type": "string"
+        },
+        "transparency_mode": {
+          "enum": [
+            "opaque",
+            "alpha_clip",
+            "alpha_blend",
+            "approximate_transmission",
+            "unspecified"
+          ],
+          "title": "Transparency Mode",
+          "type": "string"
+        },
+        "double_sided_intent": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Double Sided Intent"
+        },
+        "emission": {
+          "title": "Emission",
+          "type": "boolean"
+        },
+        "emission_color": {
+          "anyOf": [
+            {
+              "maxItems": 3,
+              "minItems": 3,
+              "prefixItems": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Emission Color"
+        },
+        "emission_strength": {
+          "anyOf": [
+            {
+              "maximum": 1000,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Emission Strength"
+        },
+        "clear_coat": {
+          "title": "Clear Coat",
+          "type": "boolean"
+        },
+        "transmission": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission",
+          "type": "number"
+        },
+        "ior": {
+          "anyOf": [
+            {
+              "maximum": 3,
+              "minimum": 1,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ior"
+        },
+        "thickness_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Thickness M"
+        },
+        "absorption_distance_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Absorption Distance M"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "destination_write_performed": {
+          "const": false,
+          "default": false,
+          "title": "Destination Write Performed",
+          "type": "boolean"
+        },
+        "runtime_parity_verified": {
+          "const": false,
+          "default": false,
+          "title": "Runtime Parity Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "material_id",
+        "material_family",
+        "raw_pbr_channel_mapping",
+        "authoring_shader_features",
+        "portable_approximation",
+        "preferred_shader_family",
+        "approximation_policy",
+        "source_hashes",
+        "texture_color_spaces",
+        "normal_convention",
+        "transparency_mode",
+        "double_sided_intent",
+        "emission",
+        "emission_color",
+        "clear_coat",
+        "transmission",
+        "confidence"
+      ],
+      "title": "AdvancedMaterialContract",
+      "type": "object"
+    },
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to its exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "RawChannelHandoffMapping": {
+      "additionalProperties": false,
+      "description": "Map one exact raw source channel to a destination property or packing rule.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "opacity",
+            "emission"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "source_path": {
+          "title": "Source Path",
+          "type": "string"
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Sha256",
+          "type": "string"
+        },
+        "source_color_space": {
+          "enum": [
+            "srgb",
+            "non_color",
+            "linear"
+          ],
+          "title": "Source Color Space",
+          "type": "string"
+        },
+        "destination_property": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Destination Property",
+          "type": "string"
+        },
+        "conversion": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Conversion",
+          "type": "string"
+        },
+        "destination_color_space": {
+          "enum": [
+            "srgb",
+            "non_color",
+            "linear"
+          ],
+          "title": "Destination Color Space",
+          "type": "string"
+        },
+        "packed_destination_channel": {
+          "anyOf": [
+            {
+              "enum": [
+                "R",
+                "G",
+                "B",
+                "A"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Packed Destination Channel"
+        },
+        "advisory_only": {
+          "const": true,
+          "default": true,
+          "title": "Advisory Only",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "channel",
+        "source_path",
+        "source_sha256",
+        "source_color_space",
+        "destination_property",
+        "conversion",
+        "destination_color_space"
+      ],
+      "title": "RawChannelHandoffMapping",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Provide an advisory Unity-family reconstruction plan without project writes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "destination_target": {
+      "enum": [
+        "unity_urp",
+        "unity_hdrp"
+      ],
+      "title": "Destination Target",
+      "type": "string"
+    },
+    "destination_hint": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination Hint"
+    },
+    "request": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_authoring_manifest": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_authoring_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "contract": {
+      "$ref": "#/$defs/AdvancedMaterialContract"
+    },
+    "operations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Operations",
+      "type": "array"
+    },
+    "known_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Limitations",
+      "type": "array"
+    },
+    "status": {
+      "const": "advisory_plan",
+      "default": "advisory_plan",
+      "title": "Status",
+      "type": "string"
+    },
+    "destination_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Performed",
+      "type": "boolean"
+    },
+    "engine_execution_performed": {
+      "const": false,
+      "default": false,
+      "title": "Engine Execution Performed",
+      "type": "boolean"
+    },
+    "runtime_parity_verified": {
+      "const": false,
+      "default": false,
+      "title": "Runtime Parity Verified",
+      "type": "boolean"
+    },
+    "user_approval_required_before_destination_changes": {
+      "const": true,
+      "default": true,
+      "title": "User Approval Required Before Destination Changes",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "job_id",
+    "destination_target",
+    "request",
+    "material_authoring_manifest",
+    "material_authoring_receipt",
+    "contract",
+    "operations",
+    "created_at"
+  ],
+  "title": "AdvancedMaterialHandoffPlan",
+  "type": "object"
+}

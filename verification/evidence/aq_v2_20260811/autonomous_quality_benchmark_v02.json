@@ -1,0 +1,4281 @@
+{
+  "benchmark_id": "autonomous_quality_reference_v02",
+  "blender_executed_case_count": 2,
+  "blender_requested": true,
+  "case_results": [
+    {
+      "blender_receipt": {
+        "blend_path": "artifacts/simple_hard_surface_box/blender/probe.blend",
+        "blend_sha256": "7afa0151b8513a5aafe9d5d6a07fd8dd27a0873126fa8db7226b934490c19aa7",
+        "camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+        "case_contract_file_sha256": "83a6a65896b53ad8efc36549117fa1f1ee2050cdd722f56124ff90521866b79a",
+        "case_contract_path": "artifacts/simple_hard_surface_box/blender/case_contract.json",
+        "case_id": "simple_hard_surface_box",
+        "external_downloads_used": false,
+        "object_count": 2,
+        "render_path": "artifacts/simple_hard_surface_box/blender/probe.png",
+        "render_sha256": "a9e3e567de56be3eb528cad69f7f0fa16d2688d9398009909e9711c37ccd75cb",
+        "schema_version": "0.2.0"
+      },
+      "blender_status": "passed",
+      "case_contract_sha256": "1ebe2d7570fc9b29100269e95560b4231371006ca6e1ce664c4c93f2a9dd8610",
+      "case_id": "simple_hard_surface_box",
+      "category": "simple_hard_surface_box",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.796,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.20399999999999996,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.458601521357519,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.541398478642481,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.017872840746475382,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.017872840746475382,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.678124478558318,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.32187552144168197,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8177874186550976,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.18221258134490237,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/simple_hard_surface_box/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/simple_hard_surface_box/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "b4cb03008caa0c24a1dda83bf2290e6efaa5225daea9b84b27023c2f40149929",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/simple_hard_surface_box/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "c1315b4f4a927bd53536ce96fab411687fa0bc7fd03b567bce0e05156091c3be",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/simple_hard_surface_box/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "d0f1eb8c67c5b1fe25dc9721d09750a2be0e5832c9697a3472be1179cd00b6ef",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/simple_hard_surface_box/reference/semantic_box__body.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "box.body",
+          "sha256": "e8d356f7736eba1871bb507e10e06a25f450227952225844276b583053b4dafe",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/simple_hard_surface_box/reference/semantic_box__latch.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "box.latch",
+          "sha256": "99bfcb4c75ba16dc152561a11a0bf04049cd03237f7b54c3dc71ad78a16205aa",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "2234014d7b900355f09d792f737000376ce58e35b543e6bbf1744e4f29486a42",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/simple_hard_surface_box/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "61b8b20b16ef83de7b225c201eabc69acab49cd7e1cb5a1997ce5e177bd1e50a",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "8588ccbf89ccc7fd84bb1a1ae76e78b739cdd476597b7e3df056662fab52aa1e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "a6884e8ce0e31cebd15a244bf813abb543170d71d9d4fcb57bbf899ab93e5c4e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/v09_initial/semantic_box__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.body",
+              "sha256": "8588ccbf89ccc7fd84bb1a1ae76e78b739cdd476597b7e3df056662fab52aa1e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/v09_initial/semantic_box__latch.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.latch",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "2019e3afa7fbdd807d164df3d2afdf5b63da6eb10f8c183dd6ce945f1945a3e0",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1101,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.2,
+            "contour_chamfer_norm": 0.045581175246173944,
+            "mean_semantic_iou": 0.28085106382978725,
+            "minimum_critical_semantic_iou": 0.5617021276595745,
+            "missing_semantic_ids": [
+              "box.latch"
+            ],
+            "silhouette_iou": 0.528
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "3c0c6ecd677659da6e4c509330917aeae992f1588a8fca0a4bc7c920d37f5186"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "d283553441ca102261c6088da564952240fd212b699ee6f6fb5f5e23a030f809",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "df467ca144933c3b450a5fe6daa38acfc73e622d570730454ea5b122bb46a3d0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "d826acad1e11f48d259e0e3565b09846e899989225b2d6970d3fbc29b6444992",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v1_initial/semantic_box__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.body",
+              "sha256": "601cc71314be77a11486b617e028cb4fc683286ce48d87f70059aae4513b5c93",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v1_initial/semantic_box__latch.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.latch",
+              "sha256": "ade94b6d8a5b00861b551978da26a8cdb0c8d8e3ee23c57ce57380e42e3124c6",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "cf5a8613e2442f9511a084cf4e6b7d13c9959b7662964bb302bca7d4a91a5580",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1301,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4232558139534883,
+            "contour_chamfer_norm": 0.02760487183088561,
+            "mean_semantic_iou": 0.5118875131717597,
+            "minimum_critical_semantic_iou": 0.7112750263435195,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.6967615309126595
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "f05801cce58c3caba7c2d8e8c19249a7cd9b911ca384155972f8e3e807ad5f8a"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "14315a87e43db3583d2e4ab5f29bb91c3aefea86ae9f3d4c9391c70f50367f9b",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "9cfe96d51f8afd3f992a6a0dcb621449fa1964a7005553d45fcfd55cd5cdd7bc",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "a8a2a9ade73f7e61b0f7d73587e7dd6b29f909d9da2cb0fad217352df208a19b",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_initial/semantic_box__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.body",
+              "sha256": "82afde16fd2156bac2e93a5d300fee0ba4c157c8577fe1b28683820544ed581b",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_initial/semantic_box__latch.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.latch",
+              "sha256": "2105c546ddd3feb9f5c5b03aee9e5914fbe1ed587ed61f47ed61a4cba7fb591d",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "582c45cf96e9ea0c1023a099067a22e75337177f7380291bba2f16d8a133a125",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1001,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.458601521357519,
+            "contour_chamfer_norm": 0.017872840746475382,
+            "mean_semantic_iou": 0.678124478558318,
+            "minimum_critical_semantic_iou": 0.8177874186550976,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.796
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "60336c33d67f74a4ced34009556444530d4e7ae46e75798ca5d7d8267576a55b"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "b4cb03008caa0c24a1dda83bf2290e6efaa5225daea9b84b27023c2f40149929",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "c1315b4f4a927bd53536ce96fab411687fa0bc7fd03b567bce0e05156091c3be",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "d0f1eb8c67c5b1fe25dc9721d09750a2be0e5832c9697a3472be1179cd00b6ef",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_final/semantic_box__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.body",
+              "sha256": "e8d356f7736eba1871bb507e10e06a25f450227952225844276b583053b4dafe",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/simple_hard_surface_box/stages/aq_v2_final/semantic_box__latch.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "box.latch",
+              "sha256": "99bfcb4c75ba16dc152561a11a0bf04049cd03237f7b54c3dc71ad78a16205aa",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "7a011f249a2961319a7c493f5ca9545e2cdc5f773abe5419aa433242cd634ebf",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1901,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "277b5c194d86e202e668d4648842f2e37ccc3e9c34d3d149f2b7e47bff353275"
+        }
+      ]
+    },
+    {
+      "blender_receipt": {
+        "blend_path": "artifacts/curved_loft/blender/probe.blend",
+        "blend_sha256": "5bca4712e27882732f6003d786ef4ccef8a957f935ebd251d676e6d007a9b5b1",
+        "camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+        "case_contract_file_sha256": "fcb0ff729ee5256577b913af11375656b2880fe68292cde072a5e88f9135c334",
+        "case_contract_path": "artifacts/curved_loft/blender/case_contract.json",
+        "case_id": "curved_loft",
+        "external_downloads_used": false,
+        "object_count": 2,
+        "render_path": "artifacts/curved_loft/blender/probe.png",
+        "render_sha256": "afa63409f40a5222fa0cafcd1793367525a82ad2628e51d636fa982131111bfe",
+        "schema_version": "0.2.0"
+      },
+      "blender_status": "passed",
+      "case_contract_sha256": "548dfb2f8d2e4fa20ed27516776aa877a86e3675e6791b9c19e4355fb3b4ac89",
+      "case_id": "curved_loft",
+      "category": "curved_loft",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8037135278514589,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.1962864721485411,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.4830020434701839,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.5169979565298162,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.019942971408491664,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.019942971408491664,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.7301902793236869,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.26980972067631315,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8288016112789527,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.1711983887210473,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/curved_loft/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/curved_loft/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "1d40f7f75aafcd12070d9a8b9aeaacbd9c4013cbc23db651e0ba7d93c6883960",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/curved_loft/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "0d808b9fd344df200652e43bec6452ffd4ea0d7704f582e75faab1ea2babf4b9",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/curved_loft/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "be73dfd83265a3ae3b23d1810703312e9207c174a766c2cfbb956875db82de43",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/curved_loft/reference/semantic_loft__body.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "loft.body",
+          "sha256": "8f1b897ed8c5f56a7ae70e90d785282e8b1f6723748206f5131699de3f22eac9",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/curved_loft/reference/semantic_loft__cap.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "loft.cap",
+          "sha256": "510e22751ade956348062da537517959f0cb93ab16ec9246c768bf1f86ff890b",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "53d67770d7a27437fdddb50057de6ae33de948428b72dcf811c5d4357a723dec",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/curved_loft/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "915eaeff480c50be1d8d234217c6b16e79bc180e3319777c9b7afd0a5e2596cf",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "af508bd77ee0b0527262e9801a84c8eb1d5c9cd676b8f789b58bd39863f2b149",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "a85acc116550f6486264dbacad93fa6b92eef9a8f768df6f4b3ad8c7aaf67cdb",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/v09_initial/semantic_loft__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.body",
+              "sha256": "af508bd77ee0b0527262e9801a84c8eb1d5c9cd676b8f789b58bd39863f2b149",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/v09_initial/semantic_loft__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.cap",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "198f31f2139602f1ece6cac404f249c646cd81c2b3b1b561879bae2301f9c4d9",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1102,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.14070351758793967,
+            "contour_chamfer_norm": 0.05479312426847562,
+            "mean_semantic_iou": 0.27908113391984357,
+            "minimum_critical_semantic_iou": 0.5581622678396871,
+            "missing_semantic_ids": [
+              "loft.cap"
+            ],
+            "silhouette_iou": 0.5146147032772365
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "1ea9b88998ab069173420f61d2b26c219ad615f1705f91a3392e13162571b35f"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/curved_loft/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "de2ad865c387227b40f7313474ec106414e79909fc8769342d981dcf11339162",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "421f9c7d8199a6718c57384e4e95252dc17eee74fd2ddd7dcdec2bafaecd9b0a",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "938072175f1d44bbc778ac5d1503268e61e51f75e7fb2f23b69006085790b162",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v1_initial/semantic_loft__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.body",
+              "sha256": "381b7c04eda0309294382299230c577d9a94b9296596bdfd285db70e1a4a2245",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v1_initial/semantic_loft__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.cap",
+              "sha256": "433d8ae174f74cc87ea70e5195780ad992c5f171303c08de2caa79d7e782a311",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "2b460ec3a2863355d7187f3a740314c0de36dc45606fe65d246643841477f9fe",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1302,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.3637774902975421,
+            "contour_chamfer_norm": 0.030796511384234004,
+            "mean_semantic_iou": 0.6445955426042848,
+            "minimum_critical_semantic_iou": 0.7183098591549296,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7049469964664311
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "c1c84285807d3d42ee3fdfe3dba42e387caa506b934109d7fa9ab96ce4b1b1c4"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/curved_loft/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "3702a2fda965034820145659e63bca263dea09161d1640ae58464e0a36056805",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "720907be10ccf4fe423c9b68ef8e176726024a4c40fbc2aa7597bfef08497677",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "f75b99ff056370011a5c40387d162c6d277eb90f8436f7f702011a5b02e4aa07",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_initial/semantic_loft__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.body",
+              "sha256": "6bb56aaacd92a4925f58ac45d11c9b51b10f654220f27aeba790f4b3b775e9e8",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_initial/semantic_loft__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.cap",
+              "sha256": "64c5054e29601a31f89ee089abc65aba8f28cb6af00ef5be357ee2ac6a2245db",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "6b3802ef0e24737ee4beb038fd6fd79afeeed6336ce17d07270c9364fee5f07a",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1002,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4830020434701839,
+            "contour_chamfer_norm": 0.019942971408491664,
+            "mean_semantic_iou": 0.7301902793236869,
+            "minimum_critical_semantic_iou": 0.8288016112789527,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8037135278514589
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "e61fcee74a4ca8766eb878f2abaa8d68b0ee4770a8f38b4a2c4bc030293af2d6"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/curved_loft/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "1d40f7f75aafcd12070d9a8b9aeaacbd9c4013cbc23db651e0ba7d93c6883960",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "0d808b9fd344df200652e43bec6452ffd4ea0d7704f582e75faab1ea2babf4b9",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "be73dfd83265a3ae3b23d1810703312e9207c174a766c2cfbb956875db82de43",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_final/semantic_loft__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.body",
+              "sha256": "8f1b897ed8c5f56a7ae70e90d785282e8b1f6723748206f5131699de3f22eac9",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/curved_loft/stages/aq_v2_final/semantic_loft__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "loft.cap",
+              "sha256": "510e22751ade956348062da537517959f0cb93ab16ec9246c768bf1f86ff890b",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "ed6ae3e4f77de162f4c9da90b6aaafb1def2f2c17568a62b2ba72113fdf14485",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1902,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "629d27a2ea355e77c17d291825795f5dfb394de0a2f05e7d95644a159ce3dc21"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "1dc0d06abba3c127441a7aa1296b4a2863bb6fdfe20f7db6e79ae344da90c01d",
+      "case_id": "swept_handle",
+      "category": "swept_handle",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8459403192227619,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.15405968077723808,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5557894736842105,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.4442105263157895,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.017625599246132332,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.017625599246132332,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.7704127280507255,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.22958727194927453,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6842105263157895,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.3157894736842105,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/swept_handle/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/swept_handle/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "f1b9d456741c8aff311229cdd60054bbc36bdf83bd3490e5afe59d948d9a5227",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/swept_handle/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "2e4a6d3ca91d4a7a0ba9c7c0c6945f5fce07e53b300f9aa8acdc387fe5f7aeec",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/swept_handle/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "e64e226c88f246adfd95e11b3d8cda4155f02c6f413a02e4e9669e51cbfa0590",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/swept_handle/reference/semantic_handle__arc.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "handle.arc",
+          "sha256": "fd82fa3d18c1a8f2a1058aaedbb6593fa79832276fa7be2b5696ab1a6f1d6bce",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/swept_handle/reference/semantic_handle__grip.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "handle.grip",
+          "sha256": "866ba96557479904b197c314c968680572a0ae30d2497178d51e38b881f31350",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "2303d6eaebf11228ff863519295e916b9088cd17b01694635a9e8e02499dbd01",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/swept_handle/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "9a5f3cd28d5136685388f856e167d75277ab949aca2ec14cd45bffbc02f887e8",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "4cbbac337fa66cb5a5d79d96fa284fba3fcf0ed58a9e418bafaecb59ca98e484",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "9dc3a4d328b582f2d8e01dbb92668842187ed6eb83e737c0e1ac53e7c0c47e2f",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/v09_initial/semantic_handle__arc.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.arc",
+              "sha256": "4cbbac337fa66cb5a5d79d96fa284fba3fcf0ed58a9e418bafaecb59ca98e484",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/v09_initial/semantic_handle__grip.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.grip",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "7dc5aadd20ca42d820b96c8b29dcbd384b1565e74c69d72b7fc1e3e4613c7f49",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1103,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.256271186440678,
+            "contour_chamfer_norm": 0.0536069077402874,
+            "mean_semantic_iou": 0.3032544378698225,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "handle.grip"
+            ],
+            "silhouette_iou": 0.576140350877193
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "c7b82f00b6097048d86049845c9f4e558fdc325ddb17124b8de529a71b746f19"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/swept_handle/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "54b6e8f0ffd8069e64888f7a0c0806f392652c889c344ed80d31b1e23f409eb0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "3a98ec81bba10ffe8c4ac5255a2d68a14029853b0e6fe759cdf1e7f885c51c2f",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "d715b63da4d116bc89dcec7afbbdc175fa734b06f15498af9e79bc25f79dc970",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v1_initial/semantic_handle__arc.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.arc",
+              "sha256": "163dec150e06ae50660abd528a1d4df23f5ddee7883f33dc66994a53330c6b8e",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v1_initial/semantic_handle__grip.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.grip",
+              "sha256": "7211e9a16668d368305c3b5257f8330656918c18f76a9458ebf1d794e78c11c9",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "c90ec26be1ecbdd5e7e6917f2a012df55f064c2c36471580930a40c7e1e60bd9",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1303,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.3785127126744408,
+            "contour_chamfer_norm": 0.028734913017966508,
+            "mean_semantic_iou": 0.6508947885939036,
+            "minimum_critical_semantic_iou": 0.5377777777777778,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7538141470180305
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "839206f59b817f432dbf8f4cbffdedfbb183a0561b2af7115df35d4fd9db1a3a"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/swept_handle/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "50e1e23049f7fb29a8ae9d9280637ac7bdd7c4f743839ee30d2cc8fa972c5561",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "00ea6bfbf6ec4ed742c22de6333c5b12125bfef89ca11a23d24b4a48b8eb4251",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "67e58cde8896768a5086072a3b73f4bc20e25a9ba2f8262e98df73004b4ef90f",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_initial/semantic_handle__arc.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.arc",
+              "sha256": "c91519ee4a5e89a0594a5f3848b007965bcceef068a7a2d83131f95309c05dc6",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_initial/semantic_handle__grip.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.grip",
+              "sha256": "cbb63917215dba712b1864b7a8daafb2710faeddb4bcb939ffa49fc7d859f643",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "872b3309a1042e6615a87b379adc4256ef4a5fcea3029a19d94b4c3db6e13f99",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1003,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.5557894736842105,
+            "contour_chamfer_norm": 0.017625599246132332,
+            "mean_semantic_iou": 0.7704127280507255,
+            "minimum_critical_semantic_iou": 0.6842105263157895,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8459403192227619
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "5494f5894064cf999446b7807c402365a3e7a74c06f435195527533f9f4e9e02"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/swept_handle/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "f1b9d456741c8aff311229cdd60054bbc36bdf83bd3490e5afe59d948d9a5227",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "2e4a6d3ca91d4a7a0ba9c7c0c6945f5fce07e53b300f9aa8acdc387fe5f7aeec",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "e64e226c88f246adfd95e11b3d8cda4155f02c6f413a02e4e9669e51cbfa0590",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_final/semantic_handle__arc.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.arc",
+              "sha256": "fd82fa3d18c1a8f2a1058aaedbb6593fa79832276fa7be2b5696ab1a6f1d6bce",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/swept_handle/stages/aq_v2_final/semantic_handle__grip.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "handle.grip",
+              "sha256": "866ba96557479904b197c314c968680572a0ae30d2497178d51e38b881f31350",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "af2281475658bb8f4e40e5eda4960de52408c07f7a903620005270bfd77cec92",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1903,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "37b3a3ca8caeb92ace32003cddd6d6e5ab13eb19e105b545b99d23c35d89180f"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "fad27bf5a5e8a6d127fdf661ab4793e58bd8cab979d4bb8b5f40e98b80ef8633",
+      "case_id": "boolean_panel",
+      "category": "boolean_panel",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8473767885532592,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.15262321144674085,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5070302513847464,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.49296974861525356,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.015167194965049998,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.015167194965049998,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.7200684847743671,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.27993151522563287,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5927601809954751,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.4072398190045249,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/boolean_panel/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/boolean_panel/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "c66d8baa4b4e888df0e1d2bf53d1a5f704a2cd6654695929f8bae878069880b1",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/boolean_panel/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "52cd7dfd93b52ba788812dad20dc1ae03734a1a50c241640e6de58533d2586cf",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/boolean_panel/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "1091118e453c5411e58202287487f3b416e326524b9f06bd1957f98006ef037a",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/boolean_panel/reference/semantic_panel__body.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "panel.body",
+          "sha256": "52cd7dfd93b52ba788812dad20dc1ae03734a1a50c241640e6de58533d2586cf",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/boolean_panel/reference/semantic_panel__inset.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "panel.inset",
+          "sha256": "0933987e8c7e606bf5dc0b79988c272f58c7862d39d2f82421ccafbfe7315c4a",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "aa835abfa942fb8168629b7d1f1837e8d5e112ba02e6cb20110d07fdbbe177d1",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/boolean_panel/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "34d65e78ddb93d113ef53f40147992922acd75aa36eba9e0cb7846b1c2adfc93",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "812d4deba8b56606d72e34e75a5116432f0946bd4f3cf2dcbc2d1456e2e10426",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "917dff4c12e6fadfa8ff718ee8f0c317b54ee20c09a05fec5ae1c7c9e6c1dd83",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/v09_initial/semantic_panel__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.body",
+              "sha256": "812d4deba8b56606d72e34e75a5116432f0946bd4f3cf2dcbc2d1456e2e10426",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/v09_initial/semantic_panel__inset.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.inset",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "ba092ff626ddbe3425a0dd1125260aa2fe68e29188f04a12b0b28772aee2aff4",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1104,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4672395273899033,
+            "contour_chamfer_norm": 0.04102026680255925,
+            "mean_semantic_iou": 0.30701754385964913,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "panel.inset"
+            ],
+            "silhouette_iou": 0.6140350877192983
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "6fb97de76adfef008d02c13a39d4d020ab95e6c6baf99462131ba030061bb86e"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/boolean_panel/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "f79bd2956aee48f9598845ca4e52e8dd825f0fec68bb0a77481d6971bb76c4a8",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "fc52a50fcdd1123c9989669658488308573a11abac580573bba54f35f9636ef0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "e6d7622a3296dc93f67a6f2b82945fa1965782a6cf224d0f576f5591acd411c7",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v1_initial/semantic_panel__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.body",
+              "sha256": "fc52a50fcdd1123c9989669658488308573a11abac580573bba54f35f9636ef0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v1_initial/semantic_panel__inset.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.inset",
+              "sha256": "92e0f487a8ec1d54467ba1812c93581ed758d0d490da58ad379096519d6d56e3",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "87268a929b6b875a5c8e2321bbfa544c1dc9af08f9107ce678da9f810ce0aad3",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1304,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4988876529477196,
+            "contour_chamfer_norm": 0.025846830448975944,
+            "mean_semantic_iou": 0.5947613954926114,
+            "minimum_critical_semantic_iou": 0.4377880184331797,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7517347725520431
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "246921f38e295c5be02168da3d811b3c91d7d85cfb78ed2acc7555d3fdd7eabe"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/boolean_panel/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "025adffe1a98af19255238b601593dece2a82ac59249f6c0bdcfcc84138b4a46",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "baf2e307a4f5dc2c3cbf6f60ec3f57d96a92e11a13e03420900336c09a91f5d6",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "0c77a365f10fe6610c036433c4cd4ad846b3d879ee66fae1f2ad21634a79a4ac",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_initial/semantic_panel__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.body",
+              "sha256": "baf2e307a4f5dc2c3cbf6f60ec3f57d96a92e11a13e03420900336c09a91f5d6",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_initial/semantic_panel__inset.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.inset",
+              "sha256": "e3a585c2a408fc1120003ea6df715b836019db08fb535781e569bb787f51312f",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "b9c145959c10583725f28ab06dc5bf254756459479e23ce69035227b6fcbf9a1",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1004,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.5070302513847464,
+            "contour_chamfer_norm": 0.015167194965049998,
+            "mean_semantic_iou": 0.7200684847743671,
+            "minimum_critical_semantic_iou": 0.5927601809954751,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8473767885532592
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "0fea25cc28f3747284b1863ff0eb5f3f472261a67cfdd25e302801010ce7d349"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/boolean_panel/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "c66d8baa4b4e888df0e1d2bf53d1a5f704a2cd6654695929f8bae878069880b1",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "52cd7dfd93b52ba788812dad20dc1ae03734a1a50c241640e6de58533d2586cf",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "1091118e453c5411e58202287487f3b416e326524b9f06bd1957f98006ef037a",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_final/semantic_panel__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.body",
+              "sha256": "52cd7dfd93b52ba788812dad20dc1ae03734a1a50c241640e6de58533d2586cf",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/boolean_panel/stages/aq_v2_final/semantic_panel__inset.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "panel.inset",
+              "sha256": "0933987e8c7e606bf5dc0b79988c272f58c7862d39d2f82421ccafbfe7315c4a",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "042a28c481355dcde2daca6c676ffca85df88a417365a4e1a29f32a5db489915",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1904,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "2265bf170c7543645b8cda3047a9486cd1d4f1847b85d687eb7b0abddf3fbbf6"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "1ecb411f3254df26a841baf79c0c8aaf4ad1c1217aaae7de98552d55dcaf3792",
+      "case_id": "ornate_multi_part_prop",
+      "category": "ornate_multi_part_prop",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.809795918367347,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.190204081632653,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5712731229597389,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.42872687704026113,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.017171921160070595,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.017171921160070595,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6772295985292847,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.32277040147071534,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6842105263157895,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.3157894736842105,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/ornate_multi_part_prop/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/ornate_multi_part_prop/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "a5b01bf1ae5a4187a8443e12776eba3a70d536a95c8d033edeebb8d6c8314338",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "2d0f1b4a645139d1197e29607a600d7bb81eb24fd41214491b2bbd320003a07b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "6b6716e923087d363b656f3bc5b75cef60378063d9ea775a149d548960e4c64f",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/semantic_ornate__body.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "ornate.body",
+          "sha256": "1cd45de65448016d370dca4242be9cc55dce897e1ae1f7f2d63da844a911428e",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/semantic_ornate__crown.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "ornate.crown",
+          "sha256": "52942a30d861245dc7b78c5a2fe5221f1bdd6c58bcb6d4f0903554fd47b58602",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/semantic_ornate__left.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "ornate.left",
+          "sha256": "7e9aa1ab3f59f8784de359f69c3962cbec1d62f5853a6b2590727fc99a367408",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/ornate_multi_part_prop/reference/semantic_ornate__right.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "ornate.right",
+          "sha256": "586005e490cf1235d1b877b310c0d0e8d07e5c6f06383267c210e716b00afe88",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "b4375078f778fe819b4bca6e5e11cfe87c2cf3952e19e70468d4c6f8f50ac788",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "ae4c09ac6b07f3203ebbceefc3cda7c9ae81c809ca546124dd3d938cea406119",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "a516efe0eb44f5deab2d5dc23dc9ec146177ec5c43c70768b8de1f6181070a33",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "e74c12d6273bb21d8e80d7214648249ab464d5d7bde53a30871254f6496a877e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/semantic_ornate__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.body",
+              "sha256": "24eaaefbd801cf666b4e85c1ccac4c0ea38623eb720178d07a1c1b9b85cd69a5",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/semantic_ornate__crown.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.crown",
+              "sha256": "96e8e131aace82f1fac356b7833f06da5b199b1711d85d8b2895a2af81a4669d",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/semantic_ornate__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.left",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/v09_initial/semantic_ornate__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.right",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "82c7ea9255fcc5ba335eb0926a41df7d8b522e707a6302e5b4c5ac28809f6cac",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1105,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.20960365853658536,
+            "contour_chamfer_norm": 0.056272408896106144,
+            "mean_semantic_iou": 0.23729078443234522,
+            "minimum_critical_semantic_iou": 0.43103448275862066,
+            "missing_semantic_ids": [
+              "ornate.left",
+              "ornate.right"
+            ],
+            "silhouette_iou": 0.4634946677604594
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "942c34ffa70edcf7bdb686f07455ff4be74d8d6bb31f95bef8eaf66834f5a233"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "822d58d763d6bf9f0169d2c751fa45b20c7176a66a56c97ba55c963dbfe45c90",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "73f3420f95bc75426423cb9148a929739419e115b503ad6c928c3debca502815",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "23977ff798220a91ca3c096fb1eddbfc1b2979b74cfeb734db6afec1efc27ee4",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/semantic_ornate__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.body",
+              "sha256": "7b46dfdf354188c7467215d3c52e26963549af4710bec4b7b9207ee4c0c5627a",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/semantic_ornate__crown.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.crown",
+              "sha256": "b1975f5a4e22f5ebd993892b5375b0f042b6cc0a67f0c133172dd58d8a39e64b",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/semantic_ornate__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.left",
+              "sha256": "cef82235c294dcd17f6ba9b15c898008a57c798c2aacdac65a864f5ce9b3c940",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v1_initial/semantic_ornate__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.right",
+              "sha256": "55aecf51840f582f635b9b6a30ae4f47a11c45071d19fd171731f711d4443e67",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "e7c218a72ab708f525af2cefb3e25adb90062c93e201a6970a0ce65aac87cb86",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1305,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.38163232192114227,
+            "contour_chamfer_norm": 0.027432052895530155,
+            "mean_semantic_iou": 0.5376886338041547,
+            "minimum_critical_semantic_iou": 0.5377777777777778,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7059301380991064
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "a125b8ec8bdf17830a8da7a47292ce8358874150f1d0ad75af8b71ee6ca69ab5"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "095905cc72b25e1becd42a81d715dda4761381e7f0ffb49ce2f898adb722632b",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "03f80735ef5cab053afb1579bb9b1fd6d990ffa29cd7b20992fe4029bd974970",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "d62ccd8cada2423616c1afcba9972d60811cd721c0d56871d9af012d70c85099",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/semantic_ornate__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.body",
+              "sha256": "0245dec1cb240f61fec9c7ce8d9b2a23f99647c4fb3c4891b11b8408d4bb8444",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/semantic_ornate__crown.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.crown",
+              "sha256": "4f6a26c34ef5c6ddc10d80a18e92ed68210106f2f041cedabcd75746b6549b97",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/semantic_ornate__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.left",
+              "sha256": "35c7c036ac826db8d8d0ee57cd3b4fc3f594ca2f8e62cbd089d2f12a59f4f6c5",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_initial/semantic_ornate__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.right",
+              "sha256": "0bc0584a6c8fa21f2e27ea3b3960ff32cc892a244661b92616a62a23b4e32877",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "12ca06c5bcaf236650ce6067884412ada8b01d3baf76d55bebce3f63268de4bf",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1005,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.5712731229597389,
+            "contour_chamfer_norm": 0.017171921160070595,
+            "mean_semantic_iou": 0.6772295985292847,
+            "minimum_critical_semantic_iou": 0.6842105263157895,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.809795918367347
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "2d30615caebed0663a7585708902b57245158e15d67fd3d2fe5c7d72c9da9fc9"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "a5b01bf1ae5a4187a8443e12776eba3a70d536a95c8d033edeebb8d6c8314338",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "2d0f1b4a645139d1197e29607a600d7bb81eb24fd41214491b2bbd320003a07b",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "6b6716e923087d363b656f3bc5b75cef60378063d9ea775a149d548960e4c64f",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/semantic_ornate__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.body",
+              "sha256": "1cd45de65448016d370dca4242be9cc55dce897e1ae1f7f2d63da844a911428e",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/semantic_ornate__crown.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.crown",
+              "sha256": "52942a30d861245dc7b78c5a2fe5221f1bdd6c58bcb6d4f0903554fd47b58602",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/semantic_ornate__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.left",
+              "sha256": "7e9aa1ab3f59f8784de359f69c3962cbec1d62f5853a6b2590727fc99a367408",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/ornate_multi_part_prop/stages/aq_v2_final/semantic_ornate__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "ornate.right",
+              "sha256": "586005e490cf1235d1b877b310c0d0e8d07e5c6f06383267c210e716b00afe88",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "82cc642bed8850df26e7e8622a93c76df9ddf19bdfe02715cd5a7b8cb8f2f241",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1905,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "852f98ac3f361ebe82457dd52aaa7b631f9ef6505aeb2116df71ba1b7b083cb1"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "00b111e82d53d7bf89a916406305640dedfd82c779c9a652fd157969619e794f",
+      "case_id": "multi_material_prop",
+      "category": "multi_material_prop",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8151394422310757,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.1848605577689243,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.4375,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.5625,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.0192749658356545,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.0192749658356545,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.751818584001009,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.24818141599899102,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6453900709219859,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.35460992907801414,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/multi_material_prop/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/multi_material_prop/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "0ab804318b8eae6712e1bbccc235ca08e8e751a18b108bc43767a8aedebe1beb",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/multi_material_prop/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "371c33fba9f8a2df8fa202f1b455a33940fa8f8a930fc4e9170212e985ab2355",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/multi_material_prop/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "82456dbf708475b6f8ff6bba5bbb3ab459830bfa555f225cb018593e56bbbdfa",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/multi_material_prop/reference/semantic_multi__band.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "multi.band",
+          "sha256": "b4ef1a8ca8b27c9780b62b0ad4a4f29456426eda0670c50e7e303675bc131669",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/multi_material_prop/reference/semantic_multi__body.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "multi.body",
+          "sha256": "c8e6fefcd359a21164a894141a98efe2eb843de52eb8fc2620e59ef53603d6ea",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/multi_material_prop/reference/semantic_multi__cap.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "multi.cap",
+          "sha256": "9da10954bc2de4c987ca2ccf3c8abeaea1fdf5dc3d2dba589aa2cac5273f0910",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "4e37c13226f02b826bf25a80019313bf99f7a87ebfb8699377ba9aad41858897",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "cb68d2b0a444615dd66eec5c54d9569bb169f7120046a678967ff92ba11d468e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "3b0bda007d9b86374d59e2f0d0cd7f9229f2ffeaedccd18a3b93ccb302f63fbc",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "74771f022fa937b76fbd9b4365122121e1ce4e6ac52f38d683ab93e227f5600a",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/semantic_multi__band.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.band",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/semantic_multi__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.body",
+              "sha256": "e2786d78f86214f5dd50b5e0c3e3b35bd00fe48f27599b75d5e1cc1e694b14b0",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/v09_initial/semantic_multi__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.cap",
+              "sha256": "858e32b2373ef381ceef783bb0471c5861ea19cae5ee4ba734ed01f97854c2a7",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "4d13182a90eadcd84a79fad03358491deea58a277f51f7e00e894aee6613d947",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1106,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.13898824731732246,
+            "contour_chamfer_norm": 0.05113604148925635,
+            "mean_semantic_iou": 0.35550501395637335,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "multi.band"
+            ],
+            "silhouette_iou": 0.5555555555555556
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "8af3d31323380696e50734465ed02f5b5af9ff9f3d5cc522154de72d18a5dc11"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "e5123390024c26a467a67b91c2fa0e4b986a9f0bba9d6cc40490198c1b01b66d",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "9af2d818a6ad41d492f2665fc5b2f1e7d198fc4c90586c7f614c40a5a6ed873e",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "f65d7a5d4802e55323b76f7b4a178b79c0b7235f0f37df727489c5afd76cc581",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/semantic_multi__band.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.band",
+              "sha256": "b47a39595a8a6827675241aec4ce8ff7b950a4d7a6d2275e370274d4367f4c7a",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/semantic_multi__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.body",
+              "sha256": "ecae0215a82a80a4c7f6c6e76070fe2025952fce0d4de2b70e52ece5b417f5b9",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v1_initial/semantic_multi__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.cap",
+              "sha256": "a7e088d748035be6c9078c53ccadae63d1e3dcbd5f99002a0ffdccb79e611ff8",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "2a6bf63f4b7d76d0d21242706ec2d130e4d3c38844380561dab0166decfb7a3e",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1306,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.1961425302386401,
+            "contour_chamfer_norm": 0.033628192869881376,
+            "mean_semantic_iou": 0.6131846734256373,
+            "minimum_critical_semantic_iou": 0.46153846153846156,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.6952822892498066
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "ce3c3682977f5f30acae3177c07ecedd9a6644fe2f51c8303355264de88ad7e2"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "5233130213da415d37de8e1bdf940efc12a7baf42ff67dd5be7216e0197d86c3",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "5855fa391790d750ef2268a8b10a23239b727ac02cbc52fb37c740eccbadb644",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "7f4e25d19e332bd8d6fcc2a6b4e16c2b41d74e05573d929d54b47bde0f8bbeda",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/semantic_multi__band.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.band",
+              "sha256": "f6331f3de9824aaeb8f92f5d6d713aefa6708157105512fc0cef71d4f7478cec",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/semantic_multi__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.body",
+              "sha256": "76c5b0dcc9976775cc51d2a3ef06840f8febb2c07376306d885647e6c1acc4ca",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_initial/semantic_multi__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.cap",
+              "sha256": "ee51092c22793f06b7edbcee02a0b7a386396bd8173412bc2b77bcd44e0f3029",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "1e2ce90b0709bbe4140d745c369e5306c255270f87d5ad950131cc4642aaf51d",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1006,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4375,
+            "contour_chamfer_norm": 0.0192749658356545,
+            "mean_semantic_iou": 0.751818584001009,
+            "minimum_critical_semantic_iou": 0.6453900709219859,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8151394422310757
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "bd16094d959e246489b383c53d32ef3117914b9ad937bf01646f1fb335089182"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "0ab804318b8eae6712e1bbccc235ca08e8e751a18b108bc43767a8aedebe1beb",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "371c33fba9f8a2df8fa202f1b455a33940fa8f8a930fc4e9170212e985ab2355",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "82456dbf708475b6f8ff6bba5bbb3ab459830bfa555f225cb018593e56bbbdfa",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/semantic_multi__band.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.band",
+              "sha256": "b4ef1a8ca8b27c9780b62b0ad4a4f29456426eda0670c50e7e303675bc131669",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/semantic_multi__body.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.body",
+              "sha256": "c8e6fefcd359a21164a894141a98efe2eb843de52eb8fc2620e59ef53603d6ea",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/multi_material_prop/stages/aq_v2_final/semantic_multi__cap.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "multi.cap",
+              "sha256": "9da10954bc2de4c987ca2ccf3c8abeaea1fdf5dc3d2dba589aa2cac5273f0910",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "d5b758ae5e3d4979315075dae24806774496a82c9f28d905582b10614e9d5411",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1906,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "3ae68d5d8f8f8c46b750be64fd7f40d2851453ec58afba662ef66288da3061e6"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "eb023ec7cee54197f6a957fd7c887480d2023b3a92e21c262134667c5728e3ac",
+      "case_id": "wood_object",
+      "category": "wood_object",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.7281728172817282,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.2718271827182718,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.4757328207592504,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.5242671792407496,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.017291961803237492,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.017291961803237492,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5806847222127065,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.4193152777872935,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.4433497536945813,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.5566502463054187,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/wood_object/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/wood_object/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "893c2775b626609a6f3eff9d6f54ccbe24007fc23bdb947176e9d1e752c57c2d",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/wood_object/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "b3eb65e62b4b777edd4b36fba37b8e234463d8bcb60f225a0635a0919425f2ae",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/wood_object/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "362370bf5a5e6246dee6379d69a2db0a4c238c2708e64afaff6690887afca9cd",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/wood_object/reference/semantic_wood__leg_left.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "wood.leg_left",
+          "sha256": "e53dadcdc403e7fe89e092458469fb38920c42bb1d99be3fd67e9f26385e92f2",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/wood_object/reference/semantic_wood__leg_right.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "wood.leg_right",
+          "sha256": "c04bd01eb0ddea74a03b29f90c5d22eedc573215ddd80c6a56004fcdf2501fc2",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/wood_object/reference/semantic_wood__top.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "wood.top",
+          "sha256": "b7f292a1842df76a423fbdccf467388559e70cd1c7157e1234b3442add89da2b",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "5fd385a7dafda5efa16e836330703d567e0cd179507e868e4818fe2c625c0c3c",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/wood_object/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "6aaeae0239437c5f7a025203783356dd5356ddc74054c582ae7d0f26f61533db",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "06e8a0c84c845057606ca9ed857eb1a89fd9ac4e2e137d099453fe06297dfce6",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "574cd3b474f83916567aa7a4ec5454ccf6e50a105eb214958fecf3ec4cbd1b06",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/v09_initial/semantic_wood__leg_left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_left",
+              "sha256": "158cc10d8da6bca7d18a59a8637d8cd7d280c4adc7e64b093158478463e24522",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/v09_initial/semantic_wood__leg_right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_right",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/v09_initial/semantic_wood__top.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.top",
+              "sha256": "ed207f33e0282ab4e32731a8cbb8baaac6d3a2c272465a1272f943dd293d4270",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "1a36c629833bc7cfc137c9cf5c2faf5a6c17d4c518e5b94378a34d8442f91158",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1107,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.43284132841328415,
+            "contour_chamfer_norm": 0.04281875161652501,
+            "mean_semantic_iou": 0.21152952115295212,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "wood.leg_right"
+            ],
+            "silhouette_iou": 0.4242152466367713
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "0dfa20bfd03b47ced9da9af7ab199f7d0002d0eb69d4d6372f4c9a88e7053d34"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "a8ced7ca6d3bbde91c8e04d06383b2db0aa5a746121ff38ab550e6d8ec6651ef",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "ee563f3254b8b66df4b39d7617011dad12afa0440e3643ecfbffd79163a98ff3",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "a37edd18a8c2fc2eeb5757e8768ec57e253c8b802b328054312e66842bf759b0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/semantic_wood__leg_left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_left",
+              "sha256": "7abb5b882a7baab637b322be550a45a859b2c6cb793ff1ea6c5e68c600b153dd",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/semantic_wood__leg_right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_right",
+              "sha256": "1e6eb9bdf93996886cf8c0d6fb20aec599f49a27a8f3507b634cfd70121d8d43",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v1_initial/semantic_wood__top.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.top",
+              "sha256": "3b61d08008ad096038421b37eb9cc86c53c58496e93287f09b32f924ac6c7bc2",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "00a304add391d46f8dc58a1730733f6ac27aa7d4b33671fa94bb0a0b2c219006",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1307,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.37072701011073667,
+            "contour_chamfer_norm": 0.025290976921296743,
+            "mean_semantic_iou": 0.4367822698411024,
+            "minimum_critical_semantic_iou": 0.20168067226890757,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.5979557069846678
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "9d5a077c2ecb5a42cdeb2713d8e5981d3c5b2ae52eaa6eda324be2d9e4bf7eb6"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "1394e153b090b4988b6de39ed943038114c9b1d35cbb0726bbc5667f913c1200",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "7fd5d9b7f62fb7338569ff3b632954f141e9306ad79a956fb0f874a61c1ce4ca",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "07e338eaa6a8611b26e8ad76d49e69dc144142c6f91a78ee76863a6405df0f27",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/semantic_wood__leg_left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_left",
+              "sha256": "3216301b87d936f60680bafd6ad68bf771e27f36b007b1098646bdb5279d21c8",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/semantic_wood__leg_right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_right",
+              "sha256": "c0a63baaf4e044a1b5659ce9c51b5a2ae53c01d2e32e46d55c39db91d8e0dfd7",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_initial/semantic_wood__top.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.top",
+              "sha256": "311c75fbeaa3e7b7126ac16cb9641e5f299d09c41272a66c723908c98b52cbb9",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "752872ab39e5c8be7cbae9f9262df222b01ad2b4fd78df4f5cc488c6bc894f6c",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1007,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4757328207592504,
+            "contour_chamfer_norm": 0.017291961803237492,
+            "mean_semantic_iou": 0.5806847222127065,
+            "minimum_critical_semantic_iou": 0.4433497536945813,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7281728172817282
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "efdda0a46b3858a70a1aed545b9c1ab96aca0214b8b661635fb0a6e42fa417c9"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/wood_object/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "893c2775b626609a6f3eff9d6f54ccbe24007fc23bdb947176e9d1e752c57c2d",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "b3eb65e62b4b777edd4b36fba37b8e234463d8bcb60f225a0635a0919425f2ae",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "362370bf5a5e6246dee6379d69a2db0a4c238c2708e64afaff6690887afca9cd",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_final/semantic_wood__leg_left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_left",
+              "sha256": "e53dadcdc403e7fe89e092458469fb38920c42bb1d99be3fd67e9f26385e92f2",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_final/semantic_wood__leg_right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.leg_right",
+              "sha256": "c04bd01eb0ddea74a03b29f90c5d22eedc573215ddd80c6a56004fcdf2501fc2",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/wood_object/stages/aq_v2_final/semantic_wood__top.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "wood.top",
+              "sha256": "b7f292a1842df76a423fbdccf467388559e70cd1c7157e1234b3442add89da2b",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "1f41229d474020ffc5ca566faaa2aed351ce6da5403629453b198b1f5f8c0f63",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1907,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "4f5ec2e33fedc77a5c60ab06066a596ca33f5a6ebc93af54dc62c6ca6c0974ee"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "0cad6d78a0b252be583a547b1fe04cabb416f22b39d35938a267148af79cc8ae",
+      "case_id": "signage_decal_object",
+      "category": "signage_decal_object",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8291700241740532,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.17082997582594683,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6043337088330792,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.39566629116692076,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.01432285234904234,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.01432285234904234,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6899651272863956,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.3100348727136044,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6796116504854369,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.3203883495145631,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/signage_decal_object/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/signage_decal_object/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "78d4ad02ccbda718ceb23da71e5ff36a2b64df0c91c7aa6b56959e66cf8ffd1f",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/signage_decal_object/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "e138c294f84291db6a3771faab30543ad55d21712eae64c2181bfe4393031499",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/signage_decal_object/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "9a2211889d6932f2c5e778185dbfdbcc8f2e32b4272b9f4636c42df72dfc3128",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/signage_decal_object/reference/semantic_sign__board.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "sign.board",
+          "sha256": "32678cdb88054391dbf0756f70e0d0a1d4d1eb18a717daa4e4559cd7a33dcb73",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/signage_decal_object/reference/semantic_sign__decal.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "sign.decal",
+          "sha256": "2fc0dd6fb3b8eed6ff1f13d0252be191723bdb60b8b5de87f4d37058f45bd5c4",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/signage_decal_object/reference/semantic_sign__pole.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "sign.pole",
+          "sha256": "c10543597aa294d5a34891267a3a3d8d127d8dcb3f0360e4547950fd6955c889",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "ad7ae6d1b7a1fb592bb2ada8ccb4b50c347415e0db669fc4a29d9910459409c7",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "4c658f12b8fcaaa17a45ce04a7226008e4e2723d1321fabb35cfac7c64868911",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "c587bd35cc76a09ef84394765c7be03ff13c3ff262d919b93c9e679728278748",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "ad0f8d186150561d8e9f7aaaf268d4e54a4e5eed2ea9990325008a1678511151",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/semantic_sign__board.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.board",
+              "sha256": "e46c61f5b49f7868d7a7c097319a24dc8477250067eb836720bb4bc2ffab588a",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/semantic_sign__decal.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.decal",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/v09_initial/semantic_sign__pole.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.pole",
+              "sha256": "184a3e465151c238e26c40f5059abff7fcea8bce4bc239d09153af5b28827d46",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "4292b05eff385364dec160f90e8f00f2151ceb02e972fd1200d66f3d18821c49",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1108,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.47860492379835873,
+            "contour_chamfer_norm": 0.03722589847310797,
+            "mean_semantic_iou": 0.2391152288988079,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "sign.decal"
+            ],
+            "silhouette_iou": 0.5580464371497198
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "3463c4ab3e393d95ae76bf31939b2adeff57f330345feb5bb6d539668f54289c"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "013ce0aa4cdd36b89c9825a15f53cfe5eb07b1586f1c66a62308f7dc13fa610d",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "4d30f6313792b6a956d9a2e03f36d8a1af1503c62e41156cc7232d92234d7cca",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "dcee1c5d68884cdb98941fcb4c13caddf7a445ac03305481ddaa913557f65ab0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/semantic_sign__board.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.board",
+              "sha256": "ba53fc0625e0e6fbce2344081a344c029ff055a6512c531d2dd6544ea267da27",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/semantic_sign__decal.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.decal",
+              "sha256": "f05f4144b72f2a99018b7a47504990c0e67324f51ec3f6d3e5da59313a7bca46",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v1_initial/semantic_sign__pole.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.pole",
+              "sha256": "573251d000c9a10daea04d3569fedd313d17376f53739df60b044b6f68411bc0",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "58269e3d9a315518b24bb2c41e4f90e104d9fb643717e9f960db95a2185feb81",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1308,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.4281360597719229,
+            "contour_chamfer_norm": 0.02430038762696062,
+            "mean_semantic_iou": 0.5273344434712716,
+            "minimum_critical_semantic_iou": 0.49137931034482757,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7197758206565252
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "d0fbcb074a459ced54c4076bf1177320ea66385392c50746dc27d12e831f2f96"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "be6c4dc7c012062a508355127f1fce65797c892450b468961b49f169cfe46273",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "943fefb595498411aa170454e2df0c09db1c7f8131ff5429e4ace97183ddf94f",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "12729e4853a1737596a4a4b81e9996e33b7ee45b0a52732634d01af54e27cbab",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/semantic_sign__board.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.board",
+              "sha256": "d5137d6ac8e52451f5d2c6a45dc8068f86a9d35209f9a02ca0b6c7c33261b8a6",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/semantic_sign__decal.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.decal",
+              "sha256": "4b53d2f58044c5ed765313eb3def2e377d5e954869fc2de9fe31eb8dad230265",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_initial/semantic_sign__pole.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.pole",
+              "sha256": "bdc706afbb64e199465478db037cef060494e1036ee163f8854da19697fb8eb6",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "fb1bc03a9756978b670da0482d0f886c0d54c3dc0898ee4aadfa79fc2323c908",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1008,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.6043337088330792,
+            "contour_chamfer_norm": 0.01432285234904234,
+            "mean_semantic_iou": 0.6899651272863956,
+            "minimum_critical_semantic_iou": 0.6796116504854369,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8291700241740532
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "ec91cfa950acf1580bc61017b9d01c1d70973125d347afb39733496f73d1c897"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "78d4ad02ccbda718ceb23da71e5ff36a2b64df0c91c7aa6b56959e66cf8ffd1f",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "e138c294f84291db6a3771faab30543ad55d21712eae64c2181bfe4393031499",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "9a2211889d6932f2c5e778185dbfdbcc8f2e32b4272b9f4636c42df72dfc3128",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/semantic_sign__board.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.board",
+              "sha256": "32678cdb88054391dbf0756f70e0d0a1d4d1eb18a717daa4e4559cd7a33dcb73",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/semantic_sign__decal.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.decal",
+              "sha256": "2fc0dd6fb3b8eed6ff1f13d0252be191723bdb60b8b5de87f4d37058f45bd5c4",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/signage_decal_object/stages/aq_v2_final/semantic_sign__pole.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "sign.pole",
+              "sha256": "c10543597aa294d5a34891267a3a3d8d127d8dcb3f0360e4547950fd6955c889",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "dc55d87379a3eaf429344c0d9484de108c7e786f107e33b144fb775c79318f50",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1908,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "0fa91fcf18ad9417a75fa370b6ce6af6cf8174541684b862887e1c70bc9fe2c1"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "9cb988e89f780e9d2a8112259aa5dd6731f22dc3feb63ff18df27ea699a78369",
+      "case_id": "emissive_crystal_prop",
+      "category": "emissive_crystal_prop",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.8166666666666667,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.18333333333333335,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.3996311097448509,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.6003688902551492,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.019242408924608007,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.019242408924608007,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.6633867979481898,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.3366132020518102,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5979381443298969,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.4020618556701031,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/emissive_crystal_prop/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/emissive_crystal_prop/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "d60ecec6a224a2d2d1e9a37727d0f937f73ed869ec436fffa06a1dc642a5c6c0",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "6c45eed066e185d6baa60b5483574d626bd3cee925d11132970b782906877455",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "0171fa46a61bab2e1df2694615903c0580776bfa3685aab8d02796ebb5f441f6",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/semantic_crystal__base.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "crystal.base",
+          "sha256": "8651f2aef2e20b14e2e4a474cd92545db5d606b5e9c6920900db1e9e401fd972",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/semantic_crystal__core.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "crystal.core",
+          "sha256": "76b80098155acf26ef03b068bb2b87242f667eb8d2d60e094316383632009831",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/semantic_crystal__left.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "crystal.left",
+          "sha256": "dfe6ec526f54becc422c41043aa032334585bdd998e3df3288ad91fc4fc3e986",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/emissive_crystal_prop/reference/semantic_crystal__right.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "crystal.right",
+          "sha256": "bf0c3357a1ce1e5df1f98fe675c9d4482c08a2a551ad933bae6fe9e3aa628880",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "ba284b1e68c71d8d672c61c5eede0bb48ca178d7974bb0ad0cfc36026b7756a3",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "e14493a765813c6c0dde74c0ea2ba6260ae4742fcd706c6151cb5ed0c59874b9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "f712bce2a5bac3c5287dafe794a967554edd1c2c3db51899c3a87a40a52ef177",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "6a54dda439c2cc989ce277d388a9cd77d50db8c3084f34060b724b4511ec5891",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/semantic_crystal__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.base",
+              "sha256": "3cd57c239b10fd6b5e4e92bf8d6175544c2fda16c83f5c18b789293706568cfb",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/semantic_crystal__core.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.core",
+              "sha256": "56b8b063deea7e1babc4fe70217759ac39062f40656b69b89c9ef42f5bec17fa",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/semantic_crystal__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.left",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/v09_initial/semantic_crystal__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.right",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "1cb0fbf1a365b601c2e5bd4ae79c91d6676401545b76e28b3db3a89b41b505ce",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1109,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.13879518072289157,
+            "contour_chamfer_norm": 0.06794139264506714,
+            "mean_semantic_iou": 0.15204678362573099,
+            "minimum_critical_semantic_iou": 0.15789473684210525,
+            "missing_semantic_ids": [
+              "crystal.left",
+              "crystal.right"
+            ],
+            "silhouette_iou": 0.4114503816793893
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "ce9bfbf4ade3d0023fec3d1169967ae1358267c53e0ec83b7152bd54028be5cc"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "e900754b7b11cd00e988322c35f4694d42e9509aebfa1429fcab0ebe0b577671",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "3828c2ebd18623e5a5442b5d6997882a9fb32a48a3585384e74938565bcc920c",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "c19f2eb95ab184619e32ab41cf6f415e03efc4e2ad1c5b17f4a61c59abb46756",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/semantic_crystal__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.base",
+              "sha256": "f51b14048ab48a3764af5caa3451ddb27e60f4d0e7d9516348031ab18f5b02e0",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/semantic_crystal__core.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.core",
+              "sha256": "dc172c7ca72e7005c5c5b8feb47c16b0339ddfdb3652261f0d39210f9aeca35b",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/semantic_crystal__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.left",
+              "sha256": "9443b2dd146517adabce9c99178c6c9fe4f6674a0fced0a52df9798048c51c24",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v1_initial/semantic_crystal__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.right",
+              "sha256": "6b7c609ffeea2ec9aec87594965bb6473b0b2da80d552365117887b7d5fe845b",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "e22991120c5f2bb3825608f7924ed6e7b173c98e376f7d62180780f5b3c6f7b2",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1309,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.32488880293947014,
+            "contour_chamfer_norm": 0.031798416480480804,
+            "mean_semantic_iou": 0.5128026428904773,
+            "minimum_critical_semantic_iou": 0.3951219512195122,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.7177177177177178
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "31fee66ebbb527917286345e22cfcd5e27555cb31021793568778e97df629bc2"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "3a4595c3db27230afc97d5aa1e3cf93bc98ba675d72e1972fcb4e6de8e3ff18f",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "1b9abca19e95cf3d32879626e72a3c2bdf63a5c7fbb3d8674b4c1680e3ff6558",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "babb12c7506fdb6624ef5bb6ef906707a7132c8ed838855cdf66e153d47d5c6d",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/semantic_crystal__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.base",
+              "sha256": "026b35808405ce6b3f5e56edbbf1df01f2bca5d6c7daa46834ee492e2a31eddb",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/semantic_crystal__core.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.core",
+              "sha256": "0e4153d63f49c066cdc817327cff4bc1530727c3e0adeb7c103244e7effd5eb0",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/semantic_crystal__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.left",
+              "sha256": "dd00dceaf332919a84b6f435186efe1e6648f62a55cc9e5c1598a8b453da1a02",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_initial/semantic_crystal__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.right",
+              "sha256": "a3a7ee582979cd6fd0b7d18caae241dd138d5466affa09ae4957095c557acf09",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "e8fa61e2056216443209442e5d4d617d39655986534cc5e047d91ff95dfe484b",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1009,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.3996311097448509,
+            "contour_chamfer_norm": 0.019242408924608007,
+            "mean_semantic_iou": 0.6633867979481898,
+            "minimum_critical_semantic_iou": 0.5979381443298969,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.8166666666666667
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "6c59af89b0ca742ba0f6bf1d678cf6723b7024f4b5617936367fe7489a7b24b9"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "d60ecec6a224a2d2d1e9a37727d0f937f73ed869ec436fffa06a1dc642a5c6c0",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "6c45eed066e185d6baa60b5483574d626bd3cee925d11132970b782906877455",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "0171fa46a61bab2e1df2694615903c0580776bfa3685aab8d02796ebb5f441f6",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/semantic_crystal__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.base",
+              "sha256": "8651f2aef2e20b14e2e4a474cd92545db5d606b5e9c6920900db1e9e401fd972",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/semantic_crystal__core.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.core",
+              "sha256": "76b80098155acf26ef03b068bb2b87242f667eb8d2d60e094316383632009831",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/semantic_crystal__left.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.left",
+              "sha256": "dfe6ec526f54becc422c41043aa032334585bdd998e3df3288ad91fc4fc3e986",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/emissive_crystal_prop/stages/aq_v2_final/semantic_crystal__right.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "crystal.right",
+              "sha256": "bf0c3357a1ce1e5df1f98fe675c9d4482c08a2a551ad933bae6fe9e3aa628880",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "97ec5f2e70daaf01ae143900a03f56528ce7b04b552cdf2dfd4bbf15a9f22597",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1909,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "1cd25054f899e0cbfaee07dd9b50217fc61267667eed34da86c2f9a3d99a31aa"
+        }
+      ]
+    },
+    {
+      "blender_receipt": null,
+      "blender_status": "not_applicable",
+      "case_contract_sha256": "444b96e8dbc229ef8b24122067bce00744cc2e5497b1adeb104422eaf6e47a7b",
+      "case_id": "small_static_assembly",
+      "category": "small_static_assembly",
+      "error": null,
+      "human_review_status": "not_reviewed",
+      "known_camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+      "metric_direction_results": [
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.708498023715415,
+          "matched": true,
+          "metric": "silhouette_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.29150197628458496,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.3970964987190435,
+          "matched": true,
+          "metric": "contour_boundary_f_score",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.6029035012809565,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "decrease",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.019323930322889902,
+          "matched": true,
+          "metric": "contour_chamfer_norm",
+          "minimum_absolute_delta": 0.005,
+          "observed_delta": -0.019323930322889902,
+          "to_stage": "aq_v2_final",
+          "to_value": 0.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.5977368224552829,
+          "matched": true,
+          "metric": "mean_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.4022631775447171,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        },
+        {
+          "expected_direction": "increase",
+          "from_stage": "aq_v2_initial",
+          "from_value": 0.32,
+          "matched": true,
+          "metric": "minimum_critical_semantic_iou",
+          "minimum_absolute_delta": 0.02,
+          "observed_delta": 0.6799999999999999,
+          "to_stage": "aq_v2_final",
+          "to_value": 1.0
+        }
+      ],
+      "ok": true,
+      "reference_artifacts": [
+        {
+          "byte_size": 277,
+          "path": "artifacts/small_static_assembly/reference/known_camera.json",
+          "role": "reference.known_camera",
+          "semantic_id": null,
+          "sha256": "89b658000743de37ad6e3b5445ed6c8f5ad9655fbc9212056acb1f2d805b692b",
+          "stage_id": null
+        },
+        {
+          "byte_size": 12301,
+          "path": "artifacts/small_static_assembly/reference/beauty.ppm",
+          "role": "reference.beauty",
+          "semantic_id": null,
+          "sha256": "ef6fc6552d0e9636253d460a174c10b673383c578be05523eb6f9deeadbfba30",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/small_static_assembly/reference/silhouette.pgm",
+          "role": "reference.silhouette",
+          "semantic_id": null,
+          "sha256": "57b92962327d6e510c38065a3ee75c6c1796fb963667bfc53e5135740e220671",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/small_static_assembly/reference/object_id.pgm",
+          "role": "reference.object_id",
+          "semantic_id": null,
+          "sha256": "e2821749ef281beacbd26fea891f00b4e5295b65f4d1ef665c1de72d1a3a21ab",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/small_static_assembly/reference/semantic_assembly__arm.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "assembly.arm",
+          "sha256": "41402d0a5c890b3251418f8199ca4f01c24352f31532cdf817e8692ef16f5626",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/small_static_assembly/reference/semantic_assembly__base.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "assembly.base",
+          "sha256": "a9fe809b0686a11252087dfda8f3acb01ee60d7bbbaea264298732c008e702ff",
+          "stage_id": null
+        },
+        {
+          "byte_size": 4109,
+          "path": "artifacts/small_static_assembly/reference/semantic_assembly__hub.pgm",
+          "role": "reference.semantic_mask",
+          "semantic_id": "assembly.hub",
+          "sha256": "33273550a2d29d79a9317b4ec0e98415957f75ce6adc91a22f05c7c4d2ec8b1b",
+          "stage_id": null
+        }
+      ],
+      "reference_fingerprint_sha256": "febaf1608ba5cf51a295a03c179c66c8a736ae987ae05999e7ae68c17961b16c",
+      "stage_results": [
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "e59d4327cf4c6efc9a754b77026553bd4c260138322a53c052fe6078fc3269c7",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "236fadc644075e84c07d0cbdb58171bd6f6c399220cd262995ac85496b917a2e",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "128900dc5d5fa58b8cbe75a5f9ed1ff027c7dff37a2bde0eb624f8ce26cbe0d3",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/semantic_assembly__arm.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.arm",
+              "sha256": "3db2fca03e6a810872bd3b10250e830fadbf388db957b79ee41ae59f003392a9",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/semantic_assembly__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.base",
+              "sha256": "a60a2bec72a54388b6fd98a1a4bffe0b99fe6aa2da767932d7acf012b398bbd7",
+              "stage_id": "v09_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/v09_initial/semantic_assembly__hub.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.hub",
+              "sha256": "92804f87a7f7afd4e9933eb4049773a61deedd0245e7c9d0b54719319eef565d",
+              "stage_id": "v09_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "d7cdd8a49f9bc515fd551b2fb9fbc49107fcfbdc93df3eaf95b9e6302a93beb0",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1110,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "initial_evidence_captured"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.14688828759180517,
+            "contour_chamfer_norm": 0.05165927372512571,
+            "mean_semantic_iou": 0.23527207388608065,
+            "minimum_critical_semantic_iou": 0.0,
+            "missing_semantic_ids": [
+              "assembly.arm"
+            ],
+            "silhouette_iou": 0.3855072463768116
+          },
+          "stage_id": "v09_initial",
+          "stage_plan_sha256": "982f114d062fe4a6e721a93ae4eb245750ebd8fe99556bb53abec8d798933a0d"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "06372ca333ae41973560242c079ef7e5d0d71e3a570da5c1ec8ba0a53ebf0bd6",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "b3d3105383cd7e6dc01a703fc734552388b7e8108ec595bfed3d6274c9da1dd7",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "c859e55ad3e87c196ecfcb173f58457351254989854f58e12268386d9ce6ae77",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/semantic_assembly__arm.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.arm",
+              "sha256": "0c300abb61b63c107cc592f1899d9c8d4364d0b99d57a4a326c1ab3c4c5a8798",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/semantic_assembly__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.base",
+              "sha256": "0e5d5480697db0bcd9616f4ea3fdd5d161385740359d37a607d27090cd0cd2a5",
+              "stage_id": "aq_v1_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v1_initial/semantic_assembly__hub.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.hub",
+              "sha256": "26737d4e26c5e86d208ed1bd4066ceac11a060679244a5a69793bfcb35f39df1",
+              "stage_id": "aq_v1_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "a078e0fd281076f4dd92b4d8ada72778a6ae1f1848a75a2a388dac65e6a9abac",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1310,
+            "iteration_count": 1,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "legacy_policy_stopped"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.2631135098667566,
+            "contour_chamfer_norm": 0.031145108607865006,
+            "mean_semantic_iou": 0.42738866827840893,
+            "minimum_critical_semantic_iou": 0.1927710843373494,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.556497175141243
+          },
+          "stage_id": "aq_v1_initial",
+          "stage_plan_sha256": "d5b84f64c1755acd7e08208c80821f6dc30b6976aa9c1a03a3c3f8e171658f3f"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "e0150f30bf0c7485b6e28f0dbaf2a41e53e55cfd11f8adc4a29819e7fa4b75ee",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "97dcc48805f89c08613e9dabedea1f98ff0e97771da53e8f6e8e4e245ae3ba75",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "036ccdd1c9f45f1eb4b2c06feecf762ac4976240b8c29680e7ed736e934e3ceb",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/semantic_assembly__arm.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.arm",
+              "sha256": "5ee46c4ec3aac97bfb07562936c6368e3d68ec90f0ff4a8c8f1c64d86780c11c",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/semantic_assembly__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.base",
+              "sha256": "394ed1b59be5ae80f97cb9bc02f1a9deac0718ca7997c68942bd15584b6de854",
+              "stage_id": "aq_v2_initial"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_initial/semantic_assembly__hub.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.hub",
+              "sha256": "d29b41ee9c60943646ed48a658af37f63f69d82195f0fa2c98b778c6455dc60a",
+              "stage_id": "aq_v2_initial"
+            }
+          ],
+          "candidate_fingerprint_sha256": "4687e16b59a83c8711b6959fc613936e71d5e4af6733ab491a0febf7630a6efc",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 1,
+            "deterministic_duration_ms": 1010,
+            "iteration_count": 0,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 1,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "candidate_ready"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 0.3970964987190435,
+            "contour_chamfer_norm": 0.019323930322889902,
+            "mean_semantic_iou": 0.5977368224552829,
+            "minimum_critical_semantic_iou": 0.32,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 0.708498023715415
+          },
+          "stage_id": "aq_v2_initial",
+          "stage_plan_sha256": "c7de25cdbb1476c43ce1169d8495ab2b8bc54d276fca825306eba27c07553206"
+        },
+        {
+          "artifacts": [
+            {
+              "byte_size": 12301,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/beauty.ppm",
+              "role": "candidate.beauty",
+              "semantic_id": null,
+              "sha256": "ef6fc6552d0e9636253d460a174c10b673383c578be05523eb6f9deeadbfba30",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/silhouette.pgm",
+              "role": "candidate.silhouette",
+              "semantic_id": null,
+              "sha256": "57b92962327d6e510c38065a3ee75c6c1796fb963667bfc53e5135740e220671",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/object_id.pgm",
+              "role": "candidate.object_id",
+              "semantic_id": null,
+              "sha256": "e2821749ef281beacbd26fea891f00b4e5295b65f4d1ef665c1de72d1a3a21ab",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/semantic_assembly__arm.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.arm",
+              "sha256": "41402d0a5c890b3251418f8199ca4f01c24352f31532cdf817e8692ef16f5626",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/semantic_assembly__base.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.base",
+              "sha256": "a9fe809b0686a11252087dfda8f3acb01ee60d7bbbaea264298732c008e702ff",
+              "stage_id": "aq_v2_final"
+            },
+            {
+              "byte_size": 4109,
+              "path": "artifacts/small_static_assembly/stages/aq_v2_final/semantic_assembly__hub.pgm",
+              "role": "candidate.semantic_mask",
+              "semantic_id": "assembly.hub",
+              "sha256": "33273550a2d29d79a9317b4ec0e98415957f75ce6adc91a22f05c7c4d2ec8b1b",
+              "stage_id": "aq_v2_final"
+            }
+          ],
+          "candidate_fingerprint_sha256": "bdef818ec13c55022b7934cc7add853d1c6e90f12e425c4f40f7a92d888e182e",
+          "duration_basis": "deterministic_fixture_model",
+          "execution": {
+            "build_count": 2,
+            "deterministic_duration_ms": 1910,
+            "iteration_count": 2,
+            "package_format": "none",
+            "package_status": "not_run",
+            "render_count": 2,
+            "rollback_count": 0,
+            "roundtrip_status": "not_run",
+            "termination_reason": "quality_target_reached"
+          },
+          "metrics": {
+            "contour_boundary_f_score": 1.0,
+            "contour_chamfer_norm": 0.0,
+            "mean_semantic_iou": 1.0,
+            "minimum_critical_semantic_iou": 1.0,
+            "missing_semantic_ids": [],
+            "silhouette_iou": 1.0
+          },
+          "stage_id": "aq_v2_final",
+          "stage_plan_sha256": "f884b9530e03bdd8202149c56fa0595f8675e84cda12ad59d3d67957bd547a31"
+        }
+      ]
+    }
+  ],
+  "deterministic_host_evidence": true,
+  "external_downloads_used": false,
+  "failed_case_count": 0,
+  "human_review_status": "not_reviewed",
+  "limitations": [
+    "Synthetic raster fixtures prove deterministic metric direction, not real-reference quality.",
+    "Known cameras and masks are fixture truth only and do not estimate cameras from photographs.",
+    "No external download, generated target, package, destination adapter, or human review is used.",
+    "The duration fields are deterministic fixture-model values, not measured wall-clock performance.",
+    "Package and round-trip fields remain not_run unless a future separately authorized benchmark actually produces and imports a portable package.",
+    "human_review_status=not_reviewed: metric direction success is not human approval, production quality, or destination-runtime parity."
+  ],
+  "manifest_path": "examples/autonomous_quality_benchmarks_v02/manifest.json",
+  "manifest_sha256": "76a6b313d8762546a468ff4524763f042ad4cebfac132656efa1e5dab6c0e1a2",
+  "ok": true,
+  "passed_case_count": 10,
+  "runner_version": "0.2.0",
+  "schema_version": "0.2.0"
+}

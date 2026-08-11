@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "evaluation-initial-01",
+  "job_id": "aq_review_box",
+  "workflow_id": "wf-20260810t065903z-61dc09f5",
+  "dispatch_id": "dispatch-20260810t065903z-7aff80df",
+  "input_sha256": "1765c535c26d1c5bc1a366e6e0f2f4d64f4da73502d7534d8f9c6ee8910b4989",
+  "source_fingerprint": "67fa2a79cbc65fa3dce811bf3d3e858303b176b9418def49a0a89754eeeadd0f",
+  "producer": "codex_blender_modeler.autonomy.candidate_evaluator",
+  "producer_version": "0.1.0",
+  "provenance": [
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/candidate_manifest.json",
+      "sha256": "1765c535c26d1c5bc1a366e6e0f2f4d64f4da73502d7534d8f9c6ee8910b4989"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.json",
+      "sha256": "7e72cbadbd108dd958bfebdda9b47acc1915aa21ba27c371dd08fb9b83d378ed"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/authoring_companion_snapshot.json",
+      "sha256": "ed70775f4e93d6a6890b0422bbb2bcf5c0bebb668cd12a8bfebf781bbe72d705"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/assembly_companion_request.json",
+      "sha256": "6decb2781a7ade7912725ed0a867df31f724d4fcb0e246e434dd3f81efaa61a0"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/assembly_companion_report.json",
+      "sha256": "62b835ee5b7545190b5539bdeb52ed467fc81692447f4dbe9f631c6bd8f6d6b3"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/quality_companions/topology_companion_report.json",
+      "sha256": "bbac4c1fbfe246a94f0a117a7e6378327f2b81eba784d5a08000d6937f000554"
+    }
+  ],
+  "created_at": "2026-08-10T06:59:05.057417Z",
+  "evaluation_id": "evaluation-initial-01",
+  "candidate_id": "initial-01",
+  "candidate_manifest": {
+    "path": "production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/candidate_manifest.json",
+    "sha256": "1765c535c26d1c5bc1a366e6e0f2f4d64f4da73502d7534d8f9c6ee8910b4989"
+  },
+  "baseline_evaluation": null,
+  "scene_spec_v03_candidate": null,
+  "compiled_scene_spec_candidate": null,
+  "structural_recipes": [],
+  "structural_mesh_payloads": [],
+  "structural_materialization_receipts": [],
+  "metrics": {
+    "hard_gate_failures": 0,
+    "critical_regressions": 0,
+    "reference_fidelity": 0.469607,
+    "silhouette_iou": 0.280217,
+    "structural_quality": 1.0,
+    "material_quality": null,
+    "production_quality": null,
+    "change_magnitude": 0.0
+  },
+  "evidence_status": "scored",
+  "minimum_meaningful_gain": 0.01,
+  "eligible_for_promotion": true,
+  "ranking_reasons": [
+    "candidate_reference_structural_v1: candidate reference evidence is failed and remains independently scored.",
+    "All candidate-stage build, semantic, finite, assembly, and topology gates passed.",
+    "Reference fidelity uses exact V0.6 direct evidence.",
+    "Candidate met the minimum meaningful direct-score gain.",
+    "Material and production axes remain unscorable until later phases."
+  ],
+  "regression_findings": []
+}

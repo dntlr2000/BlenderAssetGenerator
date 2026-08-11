@@ -1,5 +1,9 @@
 # V0.8 로컬 검증 기록
 
+> 이 문서의 `reports/v07_smoke/`와 `reports/v08_smoke/` 경로는 당시 로컬 실행 위치이며
+> 배포 저장소의 영구 의존성이 아니다. 최신 compact snapshot은
+> `verification/evidence/v07_20260811/`과 `verification/evidence/v08_20260811/`에 있다.
+
 ## 2026-08-08 standard candidate review 기본 전략 검증
 
 새로 계획하는 `standard` `revise_asset` workflow의 기본 전략을

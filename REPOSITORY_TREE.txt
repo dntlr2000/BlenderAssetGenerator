@@ -17,8 +17,11 @@ BlenderAssetGenerator/
   .codex/runtime_no_opencv/cv2.py
   .env.example
   .gitattributes
+  .github/workflows/blender-smoke.yml
+  .github/workflows/python-ci.yml
   .gitignore
   AGENTS.md
+  ARCHITECTURE_AQ_V02_KO.md
   ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md
   ARCHITECTURE_V04_KO.md
   ARCHITECTURE_V06_KO.md
@@ -27,8 +30,11 @@ BlenderAssetGenerator/
   ARCHITECTURE_V09_KO.md
   BLENDER_5_COMPATIBILITY_KO.md
   CHANGELOG.md
+  CONTROLLER_EXECUTOR_KO.md
+  DELIVERY_PROFILES_KO.md
   EXTERNAL_STATIC_ASSET_INTAKE_KO.md
   FILE_MANIFEST.sha256
+  GETTING_STARTED_AQ_V02_KO.md
   GETTING_STARTED_AUTONOMOUS_KO.md
   GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md
   GETTING_STARTED_KO.md
@@ -38,14 +44,18 @@ BlenderAssetGenerator/
   GETTING_STARTED_V08_KO.md
   GETTING_STARTED_V09_KO.md
   INTERIOR_SCOPE_KO.md
+  MATERIAL_AUTHORING_KO.md
+  MIGRATION_AQ_V02_KO.md
   MIGRATION_AUTONOMOUS_QUALITY_KO.md
   MIGRATION_V2_KO.md
   Makefile
   NEW_REFERENCE_VALIDATION_PROMPTS_KO.md
+  QUALITY_BENCHMARK_KO.md
   README.md
   REPOSITORY_TREE.txt
   ROADMAP_V1_KO.md
   SURFACE_DETAIL_ROUTING_KO.md
+  TEST_PLAN_AQ_V02_KO.md
   TEST_PLAN_AUTONOMOUS_QUALITY_KO.md
   TEST_PLAN_V04_KO.md
   TEST_PLAN_V06_KO.md
@@ -54,6 +64,7 @@ BlenderAssetGenerator/
   TEST_PLAN_V09_KO.md
   UPGRADE_FROM_V02_KO.md
   V074_PRE_OPTIMIZATION_REVIEW_KO.md
+  VERIFICATION_AQ_V02_KO.md
   VERIFICATION_AUTONOMOUS_QUALITY_KO.md
   VERIFICATION_KO.md
   VERIFICATION_V06_KO.md
@@ -62,7 +73,18 @@ BlenderAssetGenerator/
   VERIFICATION_V08_KO.md
   VERIFICATION_V09_KO.md
   cbm.toml
+  docs/agent/README.md
+  docs/agent/approvals_and_authorization.md
+  docs/agent/autonomy_safety.md
+  docs/agent/blender_execution.md
+  docs/agent/evidence_hashing_and_history.md
+  docs/agent/invariant_catalog.md
+  docs/agent/packaging_and_handoff.md
+  docs/agent/source_of_truth.md
+  docs/agent/testing_and_verification.md
+  docs/agent/workflow_reference.md
   examples/autonomous_quality_benchmarks/manifest.json
+  examples/autonomous_quality_benchmarks_v02/manifest.json
   examples/first_reference_test/geometry/city_underside.mesh.json
   examples/first_reference_test/geometry/city_underside_q02.mesh.json
   examples/first_reference_test/geometry/forest_underside.mesh.json
@@ -108,6 +130,9 @@ BlenderAssetGenerator/
   prompts/texture_plan.md
   prompts/visual_qa.md
   pyproject.toml
+  schemas/advanced_material_handoff_plan.schema.json
+  schemas/advanced_material_handoff_receipt.schema.json
+  schemas/advanced_material_handoff_request.schema.json
   schemas/assembly_companion_report.schema.json
   schemas/assembly_companion_request.schema.json
   schemas/assembly_manifest.schema.json
@@ -120,6 +145,11 @@ BlenderAssetGenerator/
   schemas/asset_production_dispatch_request.schema.json
   schemas/asset_profile.schema.json
   schemas/asset_scale_context.schema.json
+  schemas/authored_material_manifest.schema.json
+  schemas/autonomy_benchmark_v02_blender_receipt.schema.json
+  schemas/autonomy_benchmark_v02_case.schema.json
+  schemas/autonomy_benchmark_v02_manifest.schema.json
+  schemas/autonomy_benchmark_v02_report.schema.json
   schemas/autonomy_budget.schema.json
   schemas/autonomy_controller_binding.schema.json
   schemas/autonomy_iteration_receipt.schema.json
@@ -128,6 +158,25 @@ BlenderAssetGenerator/
   schemas/autonomy_state.schema.json
   schemas/autonomy_terminal.schema.json
   schemas/autonomy_terminal_intent.schema.json
+  schemas/autonomy_v02_budget.schema.json
+  schemas/autonomy_v02_cancellation.schema.json
+  schemas/autonomy_v02_delivery_plan.schema.json
+  schemas/autonomy_v02_delivery_profile.schema.json
+  schemas/autonomy_v02_delivery_review_binding.schema.json
+  schemas/autonomy_v02_delivery_terminal.schema.json
+  schemas/autonomy_v02_geometry_authoring_completion.schema.json
+  schemas/autonomy_v02_geometry_candidate_validation_receipt.schema.json
+  schemas/autonomy_v02_material_controller_completion.schema.json
+  schemas/autonomy_v02_material_phase_receipt.schema.json
+  schemas/autonomy_v02_material_promotion_intent.schema.json
+  schemas/autonomy_v02_material_rollback_receipt.schema.json
+  schemas/autonomy_v02_plan.schema.json
+  schemas/autonomy_v02_profile.schema.json
+  schemas/autonomy_v02_quality_review_bundle.schema.json
+  schemas/autonomy_v02_quality_source_freeze.schema.json
+  schemas/autonomy_v02_quality_terminal.schema.json
+  schemas/autonomy_v02_root_authorization.schema.json
+  schemas/autonomy_v02_state.schema.json
   schemas/background_fit_report.schema.json
   schemas/background_quality_report.schema.json
   schemas/background_role_map.schema.json
@@ -150,6 +199,9 @@ BlenderAssetGenerator/
   schemas/collision_manifest.schema.json
   schemas/constraint_solution.schema.json
   schemas/constraints.schema.json
+  schemas/controller_executor_execution_request.schema.json
+  schemas/controller_executor_phase_tool_profile.schema.json
+  schemas/controller_executor_result.schema.json
   schemas/convergence_report.schema.json
   schemas/delegated_production_advance_receipt.schema.json
   schemas/delegated_production_controller_plan.schema.json
@@ -169,7 +221,9 @@ BlenderAssetGenerator/
   schemas/external_asset_intake_validation.schema.json
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
+  schemas/geometry_intent_survival_report.schema.json
   schemas/geometry_multiview_visual_review.schema.json
+  schemas/geometry_stage_snapshot_v02.schema.json
   schemas/handoff_report_manifest.schema.json
   schemas/host_attempt_failure.schema.json
   schemas/host_attempt_intent.schema.json
@@ -178,6 +232,10 @@ BlenderAssetGenerator/
   schemas/import_checklist.schema.json
   schemas/integrated_quality_report.schema.json
   schemas/integrated_quality_report_manifest.schema.json
+  schemas/integrated_quality_v02_candidate_ranking.schema.json
+  schemas/integrated_quality_v02_policy.schema.json
+  schemas/integrated_quality_v02_reentry.schema.json
+  schemas/integrated_quality_v02_report.schema.json
   schemas/intent_routing.schema.json
   schemas/interior_qa_latest.schema.json
   schemas/interior_qa_plan.schema.json
@@ -191,18 +249,32 @@ BlenderAssetGenerator/
   schemas/interior_scope_validation.schema.json
   schemas/local_workflow_queue.schema.json
   schemas/lod_manifest.schema.json
+  schemas/material_authoring_receipt.schema.json
+  schemas/material_authoring_request.schema.json
   schemas/material_candidate_assignment.schema.json
   schemas/material_candidate_completion_marker.schema.json
   schemas/material_candidate_evaluation.schema.json
   schemas/material_candidate_promotion_receipt.schema.json
   schemas/material_candidate_ranking.schema.json
   schemas/material_fidelity_report.schema.json
+  schemas/material_graph_runtime_compile_report.schema.json
+  schemas/material_graph_runtime_compile_request.schema.json
+  schemas/material_graph_runtime_dependency_manifest.schema.json
+  schemas/material_graph_runtime_inventory.schema.json
+  schemas/material_graph_runtime_plan.schema.json
+  schemas/material_graph_runtime_portable_approximation.schema.json
+  schemas/material_graph_runtime_preview_manifest.schema.json
   schemas/material_graph_spec.schema.json
+  schemas/material_high_resolution_authorization.schema.json
   schemas/material_mapping.schema.json
   schemas/material_plan.schema.json
   schemas/material_promotion_receipt.schema.json
   schemas/material_round_input_snapshot.schema.json
   schemas/material_validation.schema.json
+  schemas/mesh_payload_v02.schema.json
+  schemas/mesh_payload_v02_compile_report.schema.json
+  schemas/mesh_payload_v02_migration_plan.schema.json
+  schemas/mesh_payload_v02_migration_receipt.schema.json
   schemas/mesh_preflight_report.schema.json
   schemas/modeling_plan.schema.json
   schemas/optimization_approval.schema.json
@@ -280,7 +352,9 @@ BlenderAssetGenerator/
   schemas/workspace_audit.schema.json
   scripts/bootstrap.ps1
   scripts/bootstrap.sh
+  scripts/check_agent_instructions.py
   scripts/doctor.py
+  scripts/generate_repository_summary.py
   scripts/generate_schemas.py
   scripts/run_advisory_target_smoke.py
   scripts/run_autonomous_quality_gates.ps1
@@ -326,6 +400,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/auto_revision/guard.py
   src/codex_blender_modeler/auto_revision/models.py
   src/codex_blender_modeler/auto_revision/service.py
+  src/codex_blender_modeler/autonomy/AGENTS.md
   src/codex_blender_modeler/autonomy/__init__.py
   src/codex_blender_modeler/autonomy/authorization.py
   src/codex_blender_modeler/autonomy/budget.py
@@ -343,11 +418,30 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy/profiles.py
   src/codex_blender_modeler/autonomy/reporting.py
   src/codex_blender_modeler/autonomy/service.py
+  src/codex_blender_modeler/autonomy/transitions/__init__.py
+  src/codex_blender_modeler/autonomy/transitions/builder.py
   src/codex_blender_modeler/autonomy/worker.py
   src/codex_blender_modeler/autonomy_benchmarks/__init__.py
   src/codex_blender_modeler/autonomy_benchmarks/__main__.py
   src/codex_blender_modeler/autonomy_benchmarks/models.py
   src/codex_blender_modeler/autonomy_benchmarks/runner.py
+  src/codex_blender_modeler/autonomy_benchmarks/v02_cli.py
+  src/codex_blender_modeler/autonomy_benchmarks/v02_models.py
+  src/codex_blender_modeler/autonomy_benchmarks/v02_runner.py
+  src/codex_blender_modeler/autonomy_v2/__init__.py
+  src/codex_blender_modeler/autonomy_v2/candidate_validation_models.py
+  src/codex_blender_modeler/autonomy_v2/candidate_validation_service.py
+  src/codex_blender_modeler/autonomy_v2/controller_bridge.py
+  src/codex_blender_modeler/autonomy_v2/delivery_executor.py
+  src/codex_blender_modeler/autonomy_v2/delivery_service.py
+  src/codex_blender_modeler/autonomy_v2/material_phase_models.py
+  src/codex_blender_modeler/autonomy_v2/material_phase_service.py
+  src/codex_blender_modeler/autonomy_v2/models.py
+  src/codex_blender_modeler/autonomy_v2/planner.py
+  src/codex_blender_modeler/autonomy_v2/profiles.py
+  src/codex_blender_modeler/autonomy_v2/quality_terminal_service.py
+  src/codex_blender_modeler/autonomy_v2/supervisor_service.py
+  src/codex_blender_modeler/autonomy_v2/transitions.py
   src/codex_blender_modeler/background_quality/__init__.py
   src/codex_blender_modeler/background_quality/fit.py
   src/codex_blender_modeler/background_quality/models.py
@@ -360,6 +454,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_artifact_runner.py
   src/codex_blender_modeler/blender_artifacts.py
   src/codex_blender_modeler/blender_runner.py
+  src/codex_blender_modeler/blender_scripts/AGENTS.md
   src/codex_blender_modeler/blender_scripts/artifact_render_common.py
   src/codex_blender_modeler/blender_scripts/assembly/__init__.py
   src/codex_blender_modeler/blender_scripts/assembly/models.py
@@ -384,16 +479,21 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/builders/terrain.py
   src/codex_blender_modeler/blender_scripts/common.py
   src/codex_blender_modeler/blender_scripts/compat.py
+  src/codex_blender_modeler/blender_scripts/compile_material_graph_runtime.py
+  src/codex_blender_modeler/blender_scripts/compile_mesh_payload_v02.py
   src/codex_blender_modeler/blender_scripts/convert_portable_materials.py
   src/codex_blender_modeler/blender_scripts/export_portable_package.py
   src/codex_blender_modeler/blender_scripts/export_scene.py
   src/codex_blender_modeler/blender_scripts/geometry_intent_runtime.py
   src/codex_blender_modeler/blender_scripts/inspect_asset_topology.py
+  src/codex_blender_modeler/blender_scripts/inspect_custom_mesh_v02.py
   src/codex_blender_modeler/blender_scripts/inspect_external_static_asset.py
+  src/codex_blender_modeler/blender_scripts/inspect_geometry_delivery_v02.py
   src/codex_blender_modeler/blender_scripts/inspect_interior_qa_source.py
   src/codex_blender_modeler/blender_scripts/inspect_materials.py
   src/codex_blender_modeler/blender_scripts/inspect_quality_companions.py
   src/codex_blender_modeler/blender_scripts/inspect_scene.py
+  src/codex_blender_modeler/blender_scripts/material_graph_runtime_registry.py
   src/codex_blender_modeler/blender_scripts/materialize_structural_geometry.py
   src/codex_blender_modeler/blender_scripts/modifiers.py
   src/codex_blender_modeler/blender_scripts/normalize_external_static_asset.py
@@ -401,7 +501,10 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/portable_material_conversion_runtime.py
   src/codex_blender_modeler/blender_scripts/prepare_optimized_asset.py
   src/codex_blender_modeler/blender_scripts/probe_autonomous_quality.py
+  src/codex_blender_modeler/blender_scripts/probe_autonomous_quality_v02.py
   src/codex_blender_modeler/blender_scripts/probe_compat.py
+  src/codex_blender_modeler/blender_scripts/probe_geometry_delivery_v02.py
+  src/codex_blender_modeler/blender_scripts/probe_material_authoring_v02.py
   src/codex_blender_modeler/blender_scripts/render_assembly_sanity.py
   src/codex_blender_modeler/blender_scripts/render_camera_diagnostic_probes.py
   src/codex_blender_modeler/blender_scripts/render_fit_diagnostic.py
@@ -429,10 +532,14 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/external_intake/__init__.py
   src/codex_blender_modeler/external_intake/models.py
   src/codex_blender_modeler/external_intake/service.py
+  src/codex_blender_modeler/handoff/AGENTS.md
   src/codex_blender_modeler/handoff/__init__.py
+  src/codex_blender_modeler/handoff/advanced_material_models.py
+  src/codex_blender_modeler/handoff/advanced_material_service.py
   src/codex_blender_modeler/handoff/models.py
   src/codex_blender_modeler/handoff/pdf_report.py
   src/codex_blender_modeler/handoff/service.py
+  src/codex_blender_modeler/integrated_quality/AGENTS.md
   src/codex_blender_modeler/integrated_quality/__init__.py
   src/codex_blender_modeler/integrated_quality/blender_companion_service.py
   src/codex_blender_modeler/integrated_quality/candidate_ranking.py
@@ -446,12 +553,30 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/integrated_quality/reporting.py
   src/codex_blender_modeler/integrated_quality/service.py
   src/codex_blender_modeler/integrated_quality/structural_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_advisory_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_contour_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_dispatch.py
+  src/codex_blender_modeler/integrated_quality/v02_landmark_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_models.py
+  src/codex_blender_modeler/integrated_quality/v02_multiview_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_ranking.py
+  src/codex_blender_modeler/integrated_quality/v02_reentry.py
+  src/codex_blender_modeler/integrated_quality/v02_semantic_metrics.py
+  src/codex_blender_modeler/integrated_quality/v02_service.py
   src/codex_blender_modeler/interior_qa/__init__.py
   src/codex_blender_modeler/interior_qa/models.py
   src/codex_blender_modeler/interior_qa/service.py
+  src/codex_blender_modeler/material_authoring/__init__.py
+  src/codex_blender_modeler/material_authoring/models.py
+  src/codex_blender_modeler/material_authoring/service.py
+  src/codex_blender_modeler/material_graph/AGENTS.md
   src/codex_blender_modeler/material_graph/__init__.py
+  src/codex_blender_modeler/material_graph/compiler_service.py
   src/codex_blender_modeler/material_graph/models.py
+  src/codex_blender_modeler/material_graph/registry.py
+  src/codex_blender_modeler/material_graph/runtime_models.py
   src/codex_blender_modeler/material_manifest.py
+  src/codex_blender_modeler/materials/AGENTS.md
   src/codex_blender_modeler/materials/__init__.py
   src/codex_blender_modeler/materials/fidelity.py
   src/codex_blender_modeler/materials/fidelity_models.py
@@ -472,18 +597,29 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/optimization/profiles.py
   src/codex_blender_modeler/optimization/provenance.py
   src/codex_blender_modeler/optimization/service.py
+  src/codex_blender_modeler/orchestration/AGENTS.md
   src/codex_blender_modeler/orchestration/__init__.py
   src/codex_blender_modeler/orchestration/locks.py
   src/codex_blender_modeler/orchestration/models.py
   src/codex_blender_modeler/orchestration/planner.py
   src/codex_blender_modeler/orchestration/router.py
   src/codex_blender_modeler/orchestration/service.py
+  src/codex_blender_modeler/packaging/AGENTS.md
   src/codex_blender_modeler/packaging/__init__.py
   src/codex_blender_modeler/packaging/material_conversion.py
   src/codex_blender_modeler/packaging/models.py
   src/codex_blender_modeler/packaging/service.py
   src/codex_blender_modeler/packaging/texture_packing.py
+  src/codex_blender_modeler/production/AGENTS.md
   src/codex_blender_modeler/production/__init__.py
+  src/codex_blender_modeler/production/controller_executor/__init__.py
+  src/codex_blender_modeler/production/controller_executor/app_server.py
+  src/codex_blender_modeler/production/controller_executor/desktop.py
+  src/codex_blender_modeler/production/controller_executor/fake.py
+  src/codex_blender_modeler/production/controller_executor/models.py
+  src/codex_blender_modeler/production/controller_executor/profiles.py
+  src/codex_blender_modeler/production/controller_executor/protocol.py
+  src/codex_blender_modeler/production/controller_executor/service.py
   src/codex_blender_modeler/production/models.py
   src/codex_blender_modeler/production/prompting.py
   src/codex_blender_modeler/production/service.py
@@ -523,6 +659,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/reporting/models.py
   src/codex_blender_modeler/reporting/pdf_renderer.py
   src/codex_blender_modeler/reporting/service.py
+  src/codex_blender_modeler/repository_catalog.py
   src/codex_blender_modeler/revision.py
   src/codex_blender_modeler/shader_recipe_runtime.py
   src/codex_blender_modeler/stabilization/__init__.py
@@ -531,11 +668,20 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/stabilization/pdf_report.py
   src/codex_blender_modeler/stabilization/service.py
   src/codex_blender_modeler/structural_geometry/__init__.py
+  src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
+  src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
+  src/codex_blender_modeler/structural_geometry/geometry_survival_v02.py
   src/codex_blender_modeler/structural_geometry/mesh_math.py
+  src/codex_blender_modeler/structural_geometry/mesh_payload_compiler_v02.py
+  src/codex_blender_modeler/structural_geometry/mesh_payload_io_v02.py
+  src/codex_blender_modeler/structural_geometry/mesh_payload_migration_v02.py
+  src/codex_blender_modeler/structural_geometry/mesh_payload_v02.py
   src/codex_blender_modeler/structural_geometry/migration.py
   src/codex_blender_modeler/structural_geometry/migration_service.py
   src/codex_blender_modeler/structural_geometry/models.py
   src/codex_blender_modeler/structural_geometry/service.py
+  src/codex_blender_modeler/structural_geometry/v02.py
+  src/codex_blender_modeler/texturing/AGENTS.md
   src/codex_blender_modeler/texturing/__init__.py
   src/codex_blender_modeler/texturing/manifest.py
   src/codex_blender_modeler/texturing/models.py
@@ -547,14 +693,23 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/workspace.py
   tests/blender_scripts/create_external_static_asset_fixture.py
   tests/blender_scripts/probe_portable_json_long_path.py
+  tests/fixtures/integrated_quality_v02/masks.json
+  tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
+  tests/test_agent_instruction_hierarchy.py
   tests/test_aq_evidence_envelopes.py
+  tests/test_aq_v02_delivery_executor_blender.py
+  tests/test_aq_v02_delivery_geometry_blender.py
+  tests/test_aq_v02_geometry.py
+  tests/test_aq_v02_geometry_blender.py
+  tests/test_aq_v02_schema_registry.py
   tests/test_assembly_consistency.py
   tests/test_assembly_topology_aq.py
   tests/test_auto_revision.py
   tests/test_auto_revision_locking.py
   tests/test_auto_revision_service.py
   tests/test_autonomous_quality_benchmarks.py
+  tests/test_autonomous_quality_benchmarks_v02.py
   tests/test_autonomous_quality_blender_evidence.py
   tests/test_autonomous_quality_public_surface.py
   tests/test_autonomous_quality_schemas.py
@@ -571,6 +726,18 @@ BlenderAssetGenerator/
   tests/test_autonomy_review_bundle_aq.py
   tests/test_autonomy_structural_candidate_reachability.py
   tests/test_autonomy_terminal_verifier_aq.py
+  tests/test_autonomy_v2_candidate_validation.py
+  tests/test_autonomy_v2_candidate_validation_blender.py
+  tests/test_autonomy_v2_contracts.py
+  tests/test_autonomy_v2_controller_bridge.py
+  tests/test_autonomy_v2_delivery_executor.py
+  tests/test_autonomy_v2_delivery_service.py
+  tests/test_autonomy_v2_material_phase.py
+  tests/test_autonomy_v2_planner.py
+  tests/test_autonomy_v2_quality_binding.py
+  tests/test_autonomy_v2_quality_terminal.py
+  tests/test_autonomy_v2_supervisor_delivery.py
+  tests/test_autonomy_v2_supervisor_public.py
   tests/test_autonomy_worker.py
   tests/test_blender_artifact_runner.py
   tests/test_blender_artifacts.py
@@ -581,15 +748,26 @@ BlenderAssetGenerator/
   tests/test_build_provenance.py
   tests/test_candidate_review.py
   tests/test_canonical_scene_spec_writes.py
+  tests/test_ci_workflows.py
   tests/test_constraints.py
+  tests/test_controller_executor_v02.py
   tests/test_external_static_asset_intake.py
   tests/test_feature_config.py
+  tests/test_geometry_intent_v02_reachability.py
   tests/test_geometry_models.py
   tests/test_integrated_quality_aq.py
   tests/test_integrated_quality_hard_gate_evidence.py
+  tests/test_integrated_quality_v02_metrics.py
+  tests/test_integrated_quality_v02_ranking.py
+  tests/test_integrated_quality_v02_schemas.py
+  tests/test_integrated_quality_v02_service.py
   tests/test_interior_qa.py
+  tests/test_material_authoring_blender_v02.py
+  tests/test_material_authoring_schemas_v02.py
+  tests/test_material_authoring_v02.py
   tests/test_material_fidelity.py
   tests/test_material_graph_aq.py
+  tests/test_material_graph_runtime.py
   tests/test_material_manifest.py
   tests/test_material_scaffold.py
   tests/test_migration.py
@@ -612,6 +790,8 @@ BlenderAssetGenerator/
   tests/test_reference_content_scope.py
   tests/test_reference_evidence_aq.py
   tests/test_reference_mask_refinement.py
+  tests/test_repository_catalog.py
+  tests/test_repository_summary_generator.py
   tests/test_revision.py
   tests/test_scene_spec_v03_migration_public.py
   tests/test_scene_validation_modifier_order.py
@@ -662,3 +842,204 @@ BlenderAssetGenerator/
   tests/test_workspace_v04.py
   textures/README.md
   uv.lock
+  verification/evidence/README.md
+  verification/evidence/aq_v1_20260810/README.md
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/assembly_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/codex_import_prompt.md
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/destination_context.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/handoff_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/handoff_report.manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/handoff_report.pdf
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/import_checklist.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/known_limitations.md
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/material_mapping.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/schemas/destination_import_plan.schema.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/schemas/destination_import_receipt.schema.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/schemas/destination_import_validation.schema.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/destination_handoff_validation.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/evidence/roundtrip_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/evidence/roundtrip_validation.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/asset.glb
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/export_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/asset_cost_report.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/asset_profile.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/collision_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/delivery_mapping.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/execution_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/lod_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/material_conversion_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/material_conversion_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/material_conversion_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/mesh_preflight_report.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/optimization_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/optimization_policy_authorization.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/optimization_review.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/optimized_asset_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/review_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/metadata/uv_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/package_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/texture_pack_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/base_color.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/emission.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/height.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/metallic.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/normal.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/opacity.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/canonical/mat.product.blue-d0410334/roughness.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/packed/gltf_orm.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/raw/base_color.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/raw/emission.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/raw/metallic.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/raw/normal.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/raw/roughness.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/package/textures/portable_atlas/texture_pack_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/asset.glb
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/export_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/asset_cost_report.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/asset_profile.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/collision_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/delivery_mapping.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/execution_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/lod_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/material_conversion_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/mesh_preflight_report.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_policy_authorization.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimization_review.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/optimized_asset_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/review_plan.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/metadata/uv_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/package_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/texture_pack_manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/base_color.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/emission.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/height.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/metallic.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/normal.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/opacity.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/roughness.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/packed/gltf_orm.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/base_color.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/emission.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/metallic.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/normal.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/roughness.png
+  verification/evidence/aq_v1_20260810/aq_full_box/exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/texture_pack_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_evidence.json
+  verification/evidence/aq_v1_20260810/aq_full_box/optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_validation.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/candidates/initial-01/candidate_evaluation.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.manifest.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.pdf
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/terminal.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/terminal_intent.json
+  verification/evidence/aq_v1_20260810/aq_full_box/production/autonomy/aq-20260810t065207677077z-26250066/transitions/0053/state.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/best_candidate.blend
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/candidate_comparison.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/integrated_quality_report.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/iteration_history.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/next_manual_actions.md
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/preview.glb
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/renders/01.png
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_manifest.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_receipt.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_report.manifest.json
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_report.pdf
+  verification/evidence/aq_v1_20260810/aq_review_box/exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/unresolved_findings.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/candidate_evaluation.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.manifest.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/candidates/initial-01/integrated_quality/integrated_quality_report.pdf
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/terminal.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/terminal_intent.json
+  verification/evidence/aq_v1_20260810/aq_review_box/production/autonomy/aq-20260810t065903952936z-2bb7e15e/transitions/0004/state.json
+  verification/evidence/aq_v1_20260810/autonomous_quality_benchmark.json
+  verification/evidence/aq_v2_20260811/README.md
+  verification/evidence/aq_v2_20260811/artifacts/curved_loft/blender/receipt.json
+  verification/evidence/aq_v2_20260811/artifacts/simple_hard_surface_box/blender/receipt.json
+  verification/evidence/aq_v2_20260811/autonomous_quality_benchmark.json
+  verification/evidence/aq_v2_20260811/autonomous_quality_benchmark_v02.json
+  verification/evidence/v07_20260811/README.md
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/fbx_interchange/v07-fbx-smoke-package/package_manifest.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/obj_legacy/v07-obj-smoke-package/package_manifest.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/portable_gltf/v07-gltf-smoke-package/package_manifest.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-fbx-smoke-run/roundtrip/v07-fbx-smoke-package/roundtrip_evidence.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-fbx-smoke-run/roundtrip/v07-fbx-smoke-package/roundtrip_validation.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-gltf-smoke-run/roundtrip/v07-gltf-smoke-package/roundtrip_evidence.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-gltf-smoke-run/roundtrip/v07-gltf-smoke-package/roundtrip_validation.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-obj-smoke-run/roundtrip/v07-obj-smoke-package/roundtrip_evidence.json
+  verification/evidence/v07_20260811/workspaces/geometry_showcase/optimization/runs/v07-obj-smoke-run/roundtrip/v07-obj-smoke-package/roundtrip_validation.json
+  verification/evidence/v08_20260811/README.md
+  verification/evidence/v08_20260811/workspaces/geometry_showcase/workflows/wf-20260811t074233z-546017c4/state.json
+  verification/evidence/v08_20260811/workspaces/v08_background_package_smoke/workflows/wf-20260811t074046z-f03f74c6/state.json
+  verification/evidence/v08_20260811/workspaces/v08_background_preview_smoke/workflows/wf-20260811t074045z-5d85132f/state.json
+  verification/evidence/v08_20260811/workspaces/v08_proxy_smoke/workflows/wf-20260811t074040z-bb7555c8/state.json
+  verification/evidence/v08_20260811/workspaces/v8fast/exports/packages/fbx_interchange/v08-50183459-package/package_manifest.json
+  verification/evidence/v08_20260811/workspaces/v8fast/optimization/runs/v08-50183459/roundtrip/v08-50183459-package/roundtrip_evidence.json
+  verification/evidence/v08_20260811/workspaces/v8fast/optimization/runs/v08-50183459/roundtrip/v08-50183459-package/roundtrip_validation.json
+  verification/evidence/v08_20260811/workspaces/v8fast/qa/runs/v08-6c7f187a-qa/render_pass_manifest.json
+  verification/evidence/v08_20260811/workspaces/v8fast/qa/runs/v08-6c7f187a-qa/visual_qa_report.json
+  verification/evidence/v08_20260811/workspaces/v8fast/workflows/wf-20260811t074047z-6c7f187a/state.json
+  verification/evidence/v08_20260811/workspaces/v8fast/workflows/wf-20260811t074146z-50183459/state.json
+  verification/evidence/v09_20260811/README.md
+  verification/evidence/v09_20260811/workspaces/.cbm/queue/receipts/queue-320d18ee00ca4e7d9ef7bb9586b1f9e3/receipt-3c47e781623b464d952698f83dbe2092.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/assembly_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/codex_import_prompt.md
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/destination_context.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/handoff_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/handoff_report.manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/handoff_report.pdf
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/import_checklist.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/known_limitations.md
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/material_mapping.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/schemas/destination_import_plan.schema.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/schemas/destination_import_receipt.schema.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/codex_handoff/schemas/destination_import_validation.schema.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/destination_handoff_validation.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/evidence/roundtrip_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/evidence/roundtrip_validation.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/asset.glb
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/export_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/asset_cost_report.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/asset_profile.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/collision_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/delivery_mapping.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/execution_plan.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/lod_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/material_conversion_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/material_conversion_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/material_conversion_plan.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/mesh_preflight_report.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/optimization_approval.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/optimization_plan.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/optimization_review.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/optimized_asset_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/review_plan.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/metadata/uv_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/package_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/texture_pack_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/base_color.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/emission.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/height.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/metallic.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/normal.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/canonical/mat.blue-8b17bd6e/roughness.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/packed/gltf_orm.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/raw/base_color.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/raw/emission.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/raw/metallic.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/raw/normal.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/raw/roughness.png
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/destination_handoffs/portable_gltf/v09-handoff-smoke-package/v09-handoff-smoke/package/textures/portable_atlas/texture_pack_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/exports/packages/portable_gltf/v09-handoff-smoke-package/package_manifest.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/optimization/runs/v09-handoff-smoke-run/roundtrip/v09-handoff-smoke-package/roundtrip_evidence.json
+  verification/evidence/v09_20260811/workspaces/geometry_showcase/optimization/runs/v09-handoff-smoke-run/roundtrip/v09-handoff-smoke-package/roundtrip_validation.json
+  verification/evidence/v09_20260811/workspaces/v09_desktop_production_smoke/production/dispatches/dispatch-20260811t075016z-477e36ba/task_launch_manifest.json
+  verification/evidence/v09_20260811/workspaces/v09_desktop_production_smoke/workflows/wf-20260811t075016z-3e2a40cd/state.json
+  verification/evidence/v09_20260811/workspaces/v09_production_smoke/production/dispatches/dispatch-20260811t075006z-88193860/task_binding_receipt.json
+  verification/evidence/v09_20260811/workspaces/v09_production_smoke/production/dispatches/dispatch-20260811t075006z-88193860/task_launch_manifest.json
+  verification/evidence/v09_20260811/workspaces/v09_production_smoke/workflows/wf-20260811t075006z-f0a0a74a/state.json
+  verification/evidence/v09_20260811/workspaces/v09_queue_smoke/workflows/wf-20260811t075022z-522f595e/state.json
+  verification/latest_summary.json

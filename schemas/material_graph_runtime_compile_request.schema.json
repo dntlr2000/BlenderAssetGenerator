@@ -1,0 +1,104 @@
+{
+  "additionalProperties": false,
+  "description": "Tell the fixed Blender script which validated run-owned artifacts to compile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "registry_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registry Sha256",
+      "type": "string"
+    },
+    "plan_path": {
+      "title": "Plan Path",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "dependency_manifest_path": {
+      "title": "Dependency Manifest Path",
+      "type": "string"
+    },
+    "dependency_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dependency Manifest Sha256",
+      "type": "string"
+    },
+    "portable_approximation_path": {
+      "title": "Portable Approximation Path",
+      "type": "string"
+    },
+    "neutral_preview_manifest_path": {
+      "title": "Neutral Preview Manifest Path",
+      "type": "string"
+    },
+    "reference_preview_manifest_path": {
+      "title": "Reference Preview Manifest Path",
+      "type": "string"
+    },
+    "output_blend_path": {
+      "title": "Output Blend Path",
+      "type": "string"
+    },
+    "inventory_path": {
+      "title": "Inventory Path",
+      "type": "string"
+    },
+    "report_path": {
+      "title": "Report Path",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "run_id",
+    "registry_sha256",
+    "plan_path",
+    "plan_sha256",
+    "dependency_manifest_path",
+    "dependency_manifest_sha256",
+    "portable_approximation_path",
+    "neutral_preview_manifest_path",
+    "reference_preview_manifest_path",
+    "output_blend_path",
+    "inventory_path",
+    "report_path"
+  ],
+  "title": "MaterialGraphCompileRequest",
+  "type": "object"
+}

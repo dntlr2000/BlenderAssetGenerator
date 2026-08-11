@@ -1,0 +1,229 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze bounded AQ v2 authoring, controller, quality, and delivery allowances.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "budget_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Budget Id",
+      "type": "string"
+    },
+    "initial_candidates": {
+      "default": 3,
+      "maximum": 4,
+      "minimum": 1,
+      "title": "Initial Candidates",
+      "type": "integer"
+    },
+    "structural_rounds": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Structural Rounds",
+      "type": "integer"
+    },
+    "candidates_per_structural_round": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Candidates Per Structural Round",
+      "type": "integer"
+    },
+    "parametric_convergence_iterations": {
+      "default": 3,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Parametric Convergence Iterations",
+      "type": "integer"
+    },
+    "material_rounds": {
+      "default": 2,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Material Rounds",
+      "type": "integer"
+    },
+    "total_blender_builds": {
+      "default": 14,
+      "maximum": 20,
+      "minimum": 1,
+      "title": "Total Blender Builds",
+      "type": "integer"
+    },
+    "total_quality_evaluations": {
+      "default": 10,
+      "maximum": 16,
+      "minimum": 1,
+      "title": "Total Quality Evaluations",
+      "type": "integer"
+    },
+    "controller_invocations": {
+      "default": 16,
+      "maximum": 32,
+      "minimum": 1,
+      "title": "Controller Invocations",
+      "type": "integer"
+    },
+    "delivery_runs": {
+      "default": 2,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Delivery Runs",
+      "type": "integer"
+    },
+    "canonical_promotions": {
+      "default": 5,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Canonical Promotions",
+      "type": "integer"
+    },
+    "package_repairs": {
+      "default": 1,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Package Repairs",
+      "type": "integer"
+    },
+    "global_action_limit": {
+      "default": 72,
+      "maximum": 128,
+      "minimum": 1,
+      "title": "Global Action Limit",
+      "type": "integer"
+    },
+    "repeated_identical_failure_limit": {
+      "const": 1,
+      "default": 1,
+      "title": "Repeated Identical Failure Limit",
+      "type": "integer"
+    },
+    "transient_retry_limit": {
+      "const": 1,
+      "default": 1,
+      "title": "Transient Retry Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "budget_id"
+  ],
+  "title": "AutonomyBudgetV2",
+  "type": "object"
+}

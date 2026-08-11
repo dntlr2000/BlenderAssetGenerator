@@ -1,5 +1,9 @@
 # V0.7.3 로컬 통합 검증 기록
 
+> 이 문서의 `reports/v07_smoke/` 경로는 당시 로컬 실행 위치이며 배포 저장소의 영구
+> 의존성이 아니다. 최신 compact V0.7 snapshot은 `verification/evidence/v07_20260811/`에
+> 있다.
+
 검증일: 2026-07-20  
 프로젝트: `0.7.3`  
 Portable contract: `0.7.0`

@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Preserve immutable verification snapshots byte-for-byte, including small PDFs and JSON receipts.
+verification/evidence/** -text

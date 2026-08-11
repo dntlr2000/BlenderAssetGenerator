@@ -1,0 +1,756 @@
+{
+  "$defs": {
+    "CustomAttributeManifestEntryV02": {
+      "additionalProperties": false,
+      "description": "Store one bounded scalar custom attribute and its exact value fingerprint.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z][A-Za-z0-9_.:-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "domain": {
+          "enum": [
+            "POINT",
+            "EDGE",
+            "FACE",
+            "CORNER",
+            "OBJECT"
+          ],
+          "title": "Domain",
+          "type": "string"
+        },
+        "data_type": {
+          "enum": [
+            "BOOLEAN",
+            "INT",
+            "FLOAT"
+          ],
+          "title": "Data Type",
+          "type": "string"
+        },
+        "value_count": {
+          "minimum": 1,
+          "title": "Value Count",
+          "type": "integer"
+        },
+        "values": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        },
+        "values_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Values Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "domain",
+        "data_type",
+        "value_count",
+        "values",
+        "values_sha256"
+      ],
+      "title": "CustomAttributeManifestEntryV02",
+      "type": "object"
+    },
+    "EdgeReferenceV02": {
+      "additionalProperties": false,
+      "description": "Address one materialized edge by its canonical ordered vertex pair.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "vertices"
+      ],
+      "title": "EdgeReferenceV02",
+      "type": "object"
+    },
+    "FaceGroupV02": {
+      "additionalProperties": false,
+      "description": "Bind a stable face-group ID to ordered materialized polygon indices.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "face_indices": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Face Indices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "face_indices"
+      ],
+      "title": "FaceGroupV02",
+      "type": "object"
+    },
+    "FaceMaterialIntentV02": {
+      "additionalProperties": false,
+      "description": "Bind one source face group to one exact stable material identity.",
+      "properties": {
+        "face_group_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Face Group Id",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "face_group_id",
+        "material_id"
+      ],
+      "title": "FaceMaterialIntentV02",
+      "type": "object"
+    },
+    "MaterialSlotV02": {
+      "additionalProperties": false,
+      "description": "Declare one ordered Blender material slot with a stable portable identity.",
+      "properties": {
+        "slot_index": {
+          "minimum": 0,
+          "title": "Slot Index",
+          "type": "integer"
+        },
+        "material_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "slot_index",
+        "material_id"
+      ],
+      "title": "MaterialSlotV02",
+      "type": "object"
+    },
+    "MeshPayloadFindingV02": {
+      "additionalProperties": false,
+      "description": "Record one deterministic payload materialization finding.",
+      "properties": {
+        "code": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "info",
+            "warning",
+            "error"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "severity",
+        "message"
+      ],
+      "title": "MeshPayloadFindingV02",
+      "type": "object"
+    },
+    "MeshPayloadSourceHashV02": {
+      "additionalProperties": false,
+      "description": "Bind one contained transitive input to its exact file SHA-256.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec_v03",
+            "structural_candidate",
+            "geometry_payload",
+            "material_binding",
+            "source_mesh_payload",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "MeshPayloadSourceHashV02",
+      "type": "object"
+    },
+    "ModifierDispositionV02": {
+      "additionalProperties": false,
+      "description": "Classify one geometry effect as recreated, baked, or explicitly rejected.",
+      "properties": {
+        "effect": {
+          "enum": [
+            "boolean",
+            "geometry_nodes",
+            "weighted_normal",
+            "subdivision",
+            "bevel",
+            "mirror",
+            "solidify",
+            "array",
+            "decimate",
+            "remesh",
+            "normal_transfer",
+            "custom_attribute",
+            "unsupported"
+          ],
+          "title": "Effect",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "recreate_in_compiled_build",
+            "bake_into_mesh",
+            "reject"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "details_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Details Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "effect",
+        "disposition",
+        "source_id",
+        "details_sha256"
+      ],
+      "title": "ModifierDispositionV02",
+      "type": "object"
+    },
+    "SmoothingPolicyV02": {
+      "additionalProperties": false,
+      "description": "Describe the source polygon-smoothing and explicit-sharp precedence policy.",
+      "properties": {
+        "mode": {
+          "enum": [
+            "flat",
+            "smooth",
+            "smooth_by_angle",
+            "weighted_normals"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "angle_degrees": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Angle Degrees"
+        },
+        "keep_explicit_sharp": {
+          "title": "Keep Explicit Sharp",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "angle_degrees",
+        "keep_explicit_sharp"
+      ],
+      "title": "SmoothingPolicyV02",
+      "type": "object"
+    },
+    "SourceGeometryIntentV02": {
+      "additionalProperties": false,
+      "description": "Preserve the exact normalized source intent against materialized mesh state.",
+      "properties": {
+        "source_intent_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Intent Sha256",
+          "type": "string"
+        },
+        "face_groups": {
+          "items": {
+            "$ref": "#/$defs/FaceGroupV02"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "material_assignments": {
+          "items": {
+            "$ref": "#/$defs/FaceMaterialIntentV02"
+          },
+          "title": "Material Assignments",
+          "type": "array"
+        },
+        "sharp_edges": {
+          "items": {
+            "$ref": "#/$defs/EdgeReferenceV02"
+          },
+          "title": "Sharp Edges",
+          "type": "array"
+        },
+        "uv_seams": {
+          "items": {
+            "$ref": "#/$defs/EdgeReferenceV02"
+          },
+          "title": "Uv Seams",
+          "type": "array"
+        },
+        "edge_creases": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdgeV02"
+          },
+          "title": "Edge Creases",
+          "type": "array"
+        },
+        "bevel_weights": {
+          "items": {
+            "$ref": "#/$defs/WeightedEdgeV02"
+          },
+          "title": "Bevel Weights",
+          "type": "array"
+        },
+        "smoothing_policy": {
+          "$ref": "#/$defs/SmoothingPolicyV02"
+        },
+        "topology_profile": {
+          "enum": [
+            "static_prop_closed",
+            "static_prop_open",
+            "game_ready_lowpoly",
+            "highpoly_bake_source",
+            "modular_architecture",
+            "terrain"
+          ],
+          "title": "Topology Profile",
+          "type": "string"
+        },
+        "weighted_normal_intent": {
+          "$ref": "#/$defs/WeightedNormalIntentV02"
+        },
+        "subdivision_intent": {
+          "$ref": "#/$defs/SubdivisionIntentV02"
+        }
+      },
+      "required": [
+        "source_intent_sha256",
+        "face_groups",
+        "material_assignments",
+        "sharp_edges",
+        "uv_seams",
+        "edge_creases",
+        "bevel_weights",
+        "smoothing_policy",
+        "topology_profile",
+        "weighted_normal_intent",
+        "subdivision_intent"
+      ],
+      "title": "SourceGeometryIntentV02",
+      "type": "object"
+    },
+    "SubdivisionIntentV02": {
+      "additionalProperties": false,
+      "description": "Carry one bounded non-destructive subdivision intent into compilation.",
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "levels": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "render_levels": {
+          "maximum": 4,
+          "minimum": 0,
+          "title": "Render Levels",
+          "type": "integer"
+        },
+        "subdivision_type": {
+          "enum": [
+            "CATMULL_CLARK",
+            "SIMPLE"
+          ],
+          "title": "Subdivision Type",
+          "type": "string"
+        },
+        "boundary_smoothing": {
+          "enum": [
+            "ALL",
+            "PRESERVE_CORNERS"
+          ],
+          "title": "Boundary Smoothing",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "recreate_in_compiled_build",
+            "reject"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "levels",
+        "render_levels",
+        "subdivision_type",
+        "boundary_smoothing",
+        "disposition"
+      ],
+      "title": "SubdivisionIntentV02",
+      "type": "object"
+    },
+    "WeightedEdgeV02": {
+      "additionalProperties": false,
+      "description": "Attach one normalized crease or bevel weight to an exact edge.",
+      "properties": {
+        "vertices": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Vertices",
+          "type": "array"
+        },
+        "weight": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "vertices",
+        "weight"
+      ],
+      "title": "WeightedEdgeV02",
+      "type": "object"
+    },
+    "WeightedNormalIntentV02": {
+      "additionalProperties": false,
+      "description": "Carry a bounded weighted-normal modifier intent into the compiled build.",
+      "properties": {
+        "enabled": {
+          "title": "Enabled",
+          "type": "boolean"
+        },
+        "keep_sharp": {
+          "title": "Keep Sharp",
+          "type": "boolean"
+        },
+        "weight_mode": {
+          "enum": [
+            "FACE_AREA",
+            "CORNER_ANGLE",
+            "FACE_AREA_WITH_ANGLE"
+          ],
+          "title": "Weight Mode",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "recreate_in_compiled_build",
+            "reject"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "keep_sharp",
+        "weight_mode",
+        "disposition"
+      ],
+      "title": "WeightedNormalIntentV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Store a strict, hash-bound structural mesh with full loop and intent data.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "semantic_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Semantic Id",
+      "type": "string"
+    },
+    "builder_kind": {
+      "enum": [
+        "loft",
+        "sweep",
+        "boolean_tree",
+        "multi_loop_extrude",
+        "geometry_nodes_template",
+        "custom_mesh",
+        "fixture"
+      ],
+      "title": "Builder Kind",
+      "type": "string"
+    },
+    "vertices": {
+      "items": {
+        "maxItems": 3,
+        "minItems": 3,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "minItems": 3,
+      "title": "Vertices",
+      "type": "array"
+    },
+    "faces": {
+      "items": {
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
+      "minItems": 1,
+      "title": "Faces",
+      "type": "array"
+    },
+    "loop_count": {
+      "minimum": 3,
+      "title": "Loop Count",
+      "type": "integer"
+    },
+    "loop_uvs": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "number"
+          },
+          {
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "minItems": 3,
+      "title": "Loop Uvs",
+      "type": "array"
+    },
+    "material_slots": {
+      "items": {
+        "$ref": "#/$defs/MaterialSlotV02"
+      },
+      "minItems": 1,
+      "title": "Material Slots",
+      "type": "array"
+    },
+    "polygon_material_indices": {
+      "items": {
+        "type": "integer"
+      },
+      "minItems": 1,
+      "title": "Polygon Material Indices",
+      "type": "array"
+    },
+    "sharp_edges": {
+      "items": {
+        "$ref": "#/$defs/EdgeReferenceV02"
+      },
+      "title": "Sharp Edges",
+      "type": "array"
+    },
+    "uv_seams": {
+      "items": {
+        "$ref": "#/$defs/EdgeReferenceV02"
+      },
+      "title": "Uv Seams",
+      "type": "array"
+    },
+    "edge_creases": {
+      "items": {
+        "$ref": "#/$defs/WeightedEdgeV02"
+      },
+      "title": "Edge Creases",
+      "type": "array"
+    },
+    "bevel_weights": {
+      "items": {
+        "$ref": "#/$defs/WeightedEdgeV02"
+      },
+      "title": "Bevel Weights",
+      "type": "array"
+    },
+    "face_groups": {
+      "items": {
+        "$ref": "#/$defs/FaceGroupV02"
+      },
+      "title": "Face Groups",
+      "type": "array"
+    },
+    "smooth_polygon_flags": {
+      "items": {
+        "type": "boolean"
+      },
+      "minItems": 1,
+      "title": "Smooth Polygon Flags",
+      "type": "array"
+    },
+    "smoothing_policy": {
+      "$ref": "#/$defs/SmoothingPolicyV02"
+    },
+    "custom_attribute_manifest": {
+      "items": {
+        "$ref": "#/$defs/CustomAttributeManifestEntryV02"
+      },
+      "title": "Custom Attribute Manifest",
+      "type": "array"
+    },
+    "modifier_materialization_policy": {
+      "items": {
+        "$ref": "#/$defs/ModifierDispositionV02"
+      },
+      "title": "Modifier Materialization Policy",
+      "type": "array"
+    },
+    "weighted_normal_intent": {
+      "$ref": "#/$defs/WeightedNormalIntentV02"
+    },
+    "subdivision_intent": {
+      "$ref": "#/$defs/SubdivisionIntentV02"
+    },
+    "source_geometry_intent": {
+      "$ref": "#/$defs/SourceGeometryIntentV02"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/MeshPayloadFindingV02"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "source_hashes": {
+      "items": {
+        "$ref": "#/$defs/MeshPayloadSourceHashV02"
+      },
+      "minItems": 1,
+      "title": "Source Hashes",
+      "type": "array"
+    },
+    "source_fingerprint_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "semantic_id",
+    "builder_kind",
+    "vertices",
+    "faces",
+    "loop_count",
+    "loop_uvs",
+    "material_slots",
+    "polygon_material_indices",
+    "sharp_edges",
+    "uv_seams",
+    "edge_creases",
+    "bevel_weights",
+    "face_groups",
+    "smooth_polygon_flags",
+    "smoothing_policy",
+    "custom_attribute_manifest",
+    "modifier_materialization_policy",
+    "weighted_normal_intent",
+    "subdivision_intent",
+    "source_geometry_intent",
+    "findings",
+    "source_hashes",
+    "source_fingerprint_sha256"
+  ],
+  "title": "MeshPayloadV02",
+  "type": "object"
+}

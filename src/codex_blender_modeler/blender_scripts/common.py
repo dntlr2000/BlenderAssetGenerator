@@ -583,9 +583,98 @@ def make_material(
 
 
 def _activate(obj: bpy.types.Object) -> None:
+    """Make one object active for deterministic transform and modifier operators."""
+
     bpy.ops.object.select_all(action="DESELECT")
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
+
+
+def _assign_object_materials(
+    obj: bpy.types.Object,
+    spec: dict,
+    materials: dict[str, bpy.types.Material],
+) -> None:
+    """Assign one legacy slot or restore exact v2 slot order and polygon indices."""
+
+    if not hasattr(obj.data, "materials"):
+        return
+    if str(obj.get("cbm_mesh_payload_version", "")) != "0.2.0":
+        obj.data.materials.append(materials[spec["material_id"]])
+        return
+    try:
+        material_ids = json.loads(str(obj["cbm_v02_material_ids"]))
+        polygon_indices = json.loads(
+            str(obj["cbm_v02_polygon_material_indices"])
+        )
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("MeshPayload 0.2 material handoff metadata is invalid") from exc
+    if (
+        not isinstance(material_ids, list)
+        or not material_ids
+        or any(not isinstance(value, str) or not value for value in material_ids)
+        or len(material_ids) != len(set(material_ids))
+    ):
+        raise RuntimeError("MeshPayload 0.2 material ID sequence is invalid")
+    if material_ids[0] != spec["material_id"]:
+        raise RuntimeError(
+            "MeshPayload 0.2 primary material differs from the SceneSpec object"
+        )
+    missing = sorted(set(material_ids) - set(materials))
+    if missing:
+        raise RuntimeError(f"MeshPayload 0.2 references missing materials: {missing}")
+    if not isinstance(polygon_indices, list) or len(polygon_indices) != len(
+        obj.data.polygons
+    ):
+        raise RuntimeError("MeshPayload 0.2 polygon material evidence is incomplete")
+    if len(obj.data.materials) != 0:
+        raise RuntimeError("MeshPayload 0.2 builder unexpectedly preassigned materials")
+    for material_id in material_ids:
+        obj.data.materials.append(materials[material_id])
+    for polygon, material_index in zip(
+        obj.data.polygons,
+        polygon_indices,
+        strict=True,
+    ):
+        if (
+            type(material_index) is not int
+            or material_index < 0
+            or material_index >= len(material_ids)
+        ):
+            raise RuntimeError("MeshPayload 0.2 polygon material index is invalid")
+        polygon.material_index = material_index
+
+
+def _apply_object_smoothing(obj: bpy.types.Object, spec: dict) -> None:
+    """Preserve v2 smoothing intent while retaining legacy shade_smooth behavior."""
+
+    if obj.type != "MESH" or not spec.get("shade_smooth", False):
+        return
+    if str(obj.get("cbm_mesh_payload_version", "")) == "0.2.0":
+        if str(obj.get("cbm_v02_smoothing_mode", "")) == "flat":
+            raise RuntimeError(
+                "SceneSpec shade_smooth conflicts with MeshPayload 0.2 flat intent"
+            )
+        return
+    for polygon in obj.data.polygons:
+        polygon.use_smooth = True
+
+
+def _validate_v02_modifier_compatibility(obj: bpy.types.Object, spec: dict) -> None:
+    """Reject duplicate modifiers already recreated by the exact v2 intent payload."""
+
+    if str(obj.get("cbm_mesh_payload_version", "")) != "0.2.0":
+        return
+    try:
+        recreated = set(json.loads(str(obj["cbm_v02_recreated_effects"])))
+    except (KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("MeshPayload 0.2 modifier handoff metadata is invalid") from exc
+    declared = {str(item["kind"]) for item in spec.get("modifiers", [])}
+    duplicates = sorted(recreated & declared)
+    if duplicates:
+        raise RuntimeError(
+            f"SceneSpec duplicates MeshPayload 0.2 modifier intent: {duplicates}"
+        )
 
 
 def apply_object_spec(
@@ -595,7 +684,7 @@ def apply_object_spec(
     base_dir: Path,
     index: int = 0,
 ) -> bpy.types.Object:
-    """Build one generated instance and attach stable SceneSpec provenance metadata."""
+    """Build one instance and preserve legacy or v2 material and shading semantics."""
 
     generator = spec.get("generator")
     offset = (0.0, 0.0, 0.0)
@@ -625,11 +714,9 @@ def apply_object_spec(
     _activate(obj)
     bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
-    if hasattr(obj.data, "materials"):
-        obj.data.materials.append(materials[spec["material_id"]])
-    if spec.get("shade_smooth", False) and obj.type == "MESH":
-        for polygon in obj.data.polygons:
-            polygon.use_smooth = True
+    _assign_object_materials(obj, spec, materials)
+    _apply_object_smoothing(obj, spec)
+    _validate_v02_modifier_compatibility(obj, spec)
 
     move_to_collection(obj, collection)
     apply_immediate_modifiers(obj, spec.get("modifiers", []))

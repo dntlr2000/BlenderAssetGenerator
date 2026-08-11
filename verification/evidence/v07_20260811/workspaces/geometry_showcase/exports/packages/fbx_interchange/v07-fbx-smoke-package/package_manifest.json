@@ -1,0 +1,404 @@
+{
+  "schema_version": "0.7.0",
+  "package_id": "v07-fbx-smoke-package",
+  "job_id": "geometry_showcase",
+  "run_id": "v07-fbx-smoke-run",
+  "profile_id": "fbx_interchange",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "95b8e807799dd2be534ae639f70d3554038d2611b1ed03ca7c5c9d1d6cba0e13"
+    },
+    "source_fingerprint": "f93fb9b6da701b3731627e419948cd67196aeafe83d44e78f2b16d01cd37f11e",
+    "build_fingerprint": "f7c8fe1e68cb436dd1826c70de3f8b6f4a457f65d00c073eaa1809127b520315",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "ba0502b5657a62e1535458d500ff397e45474deec4055da944fb864a4a2c2b44"
+      }
+    ]
+  },
+  "optimization_plan": {
+    "id": "plan.v07-fbx-smoke-run",
+    "kind": "optimization_plan",
+    "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/optimization_plan.json",
+    "sha256": "9c8b435cd2e751049b60fa4f44a56daeda958aa70561eb53d9c24bad91ed91af"
+  },
+  "material_conversion": {
+    "id": "manifest.material.conversion.v071-fbx-smoke-materials",
+    "kind": "portable_material_conversion_manifest",
+    "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/material_conversion_manifest.json",
+    "sha256": "2c5635dae53953b930b5b899f7b859521c8e6a94aebb2c8cab6e46fed08e0615"
+  },
+  "source_manifests": [
+    {
+      "id": "manifest.lod.v07-fbx-smoke-run",
+      "kind": "lod_manifest",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/lod_manifest.json",
+      "sha256": "a7f2f311723150c963dff1e582264af3a0972df43b7bc33a6279fa5b335035f1"
+    },
+    {
+      "id": "manifest.collision.v07-fbx-smoke-run",
+      "kind": "collision_manifest",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/collision_manifest.json",
+      "sha256": "251fc982c95c60a5fc4b6b14c396e45d780275846b7aff020dd2249820e7681c"
+    },
+    {
+      "id": "manifest.uv.v07-fbx-smoke-run",
+      "kind": "uv_manifest",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/uv_manifest.json",
+      "sha256": "3c618aec87790e5dfe66d464ceb4e3529e014f79bb0e9607e609eb9be552ca38"
+    },
+    {
+      "id": "manifest.texture_pack.v07-fbx-smoke-run",
+      "kind": "texture_pack_manifest",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/texture_pack_manifest.json",
+      "sha256": "9fb51eee6779d56f7953b920dd51e0ddfdfafc26bb6df0e2ab9e94a9205a557e"
+    },
+    {
+      "id": "report.asset_cost.v07-fbx-smoke-run",
+      "kind": "asset_cost_report",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/asset_cost_report.json",
+      "sha256": "0849b1fc51bc420a9ac33a7ba51a8325a7182dd180ad078c9bc75b1e796de167"
+    }
+  ],
+  "status": "complete",
+  "package_root": "exports/packages/fbx_interchange/v07-fbx-smoke-package",
+  "files": [
+    {
+      "id": "package.file.0001",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/base_color.png",
+      "sha256": "9d34a46d6b1348d69287f0516aba6cc01f7d5da8dc23f9909e249d6bd9bb3d1f",
+      "byte_size": 398074,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0002",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "byte_size": 13922,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0003",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/export_evidence.json",
+      "sha256": "4c8a81068fd9b84e20865fa8ed53a53ca155c9b40c2cc7b3f13c1ac9569f68d6",
+      "byte_size": 188477,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0004",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/asset_cost_report.json",
+      "sha256": "0849b1fc51bc420a9ac33a7ba51a8325a7182dd180ad078c9bc75b1e796de167",
+      "byte_size": 10357,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0005",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/asset_profile.json",
+      "sha256": "bbd66e8ca54d5929953d3346fd6cb7956a907a7469391ffc430436753c5ab138",
+      "byte_size": 1948,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0006",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/collision_manifest.json",
+      "sha256": "251fc982c95c60a5fc4b6b14c396e45d780275846b7aff020dd2249820e7681c",
+      "byte_size": 8493,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0007",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/delivery_mapping.json",
+      "sha256": "2e327e5e095d9c982fab12e8d6478b6276caf56e3555a9e343008231d05d3c31",
+      "byte_size": 15337,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0008",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/execution_plan.json",
+      "sha256": "a926fa1d1500905a47c10f3cc8b46ad69d83800fda8ab010767fdd883f73819b",
+      "byte_size": 5712,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0009",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/lod_manifest.json",
+      "sha256": "a7f2f311723150c963dff1e582264af3a0972df43b7bc33a6279fa5b335035f1",
+      "byte_size": 26338,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0010",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/material_conversion_evidence.json",
+      "sha256": "b96a3655220a6dcc86262e902bfd77fe7f76f459b895dd458b44041e9eff93df",
+      "byte_size": 106012,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0011",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/material_conversion_manifest.json",
+      "sha256": "2c5635dae53953b930b5b899f7b859521c8e6a94aebb2c8cab6e46fed08e0615",
+      "byte_size": 48913,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0012",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/material_conversion_plan.json",
+      "sha256": "8aefd4c8d7e4fb2a88fe044e964a6a16cb2b5811820dbcd173abdf67362c6b43",
+      "byte_size": 5873,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0013",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/mesh_preflight_report.json",
+      "sha256": "ad30a1652b077e31fae397f5221394d5433b53d76d3b2d74dcf30b0cf7067646",
+      "byte_size": 10359,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0014",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/optimization_approval.json",
+      "sha256": "b79ec61ff5320ec9acefc855961859670ca0b1b96d9f206fd9984c4ab28be57d",
+      "byte_size": 871,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0015",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/optimization_plan.json",
+      "sha256": "9c8b435cd2e751049b60fa4f44a56daeda958aa70561eb53d9c24bad91ed91af",
+      "byte_size": 7530,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0016",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/optimization_review.json",
+      "sha256": "b4fc9c83168f5fffbb26addfe4cb71198163521e5783bd7ae5c0687a968bd2f4",
+      "byte_size": 5645,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0017",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/optimized_asset_evidence.json",
+      "sha256": "03a5fc0d10eb985da05a29fa472ab78eed4f8847b6d1d52ea66f66b339b144b7",
+      "byte_size": 189439,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0018",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/review_plan.json",
+      "sha256": "4b9cd5eb1e3a8bef1bb8c028f9116dda42636a7888e7460829edb34e7ba247ec",
+      "byte_size": 5601,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0019",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metadata/uv_manifest.json",
+      "sha256": "3c618aec87790e5dfe66d464ceb4e3529e014f79bb0e9607e609eb9be552ca38",
+      "byte_size": 8683,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0020",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/metallic.png",
+      "sha256": "716da00d829df03e6c48b0d8cc78a4541c2cc98b8bda39c37673723cd0560c95",
+      "byte_size": 65591,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.primary",
+      "kind": "primary_asset",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/model.fbx",
+      "sha256": "081151f336670bc753a269626b512f760388bd57a5ab117d0388c06e20d655ce",
+      "byte_size": 1825164,
+      "media_type": "application/octet-stream"
+    },
+    {
+      "id": "package.file.0022",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/normal.png",
+      "sha256": "d071a955467287376360d6d5b7191d87b654ce09df632eaa20c464c25b046371",
+      "byte_size": 459766,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0023",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/roughness.png",
+      "sha256": "6c61dc65a7f0fd7bf425962176b2f646eba0e5038f967bf976693d1db9a95be9",
+      "byte_size": 273145,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0024",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/texture_pack_manifest.json",
+      "sha256": "9fb51eee6779d56f7953b920dd51e0ddfdfafc26bb6df0e2ab9e94a9205a557e",
+      "byte_size": 13958,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0025",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/base_color.png",
+      "sha256": "637c8b7c73bd874d43cc91b09183115804725e984fdc3a63b3742e00b22ecf4a",
+      "byte_size": 12054,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0026",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/emission.png",
+      "sha256": "7659100791b0b0d9d5707576f6d04cdae4e769ae4ba3034169540fe3990efae5",
+      "byte_size": 125,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0027",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/height.png",
+      "sha256": "1f8c42e04d9babcc6a32068e9992935d4ffe93ea0a16ef11bdc3fac213fb7e26",
+      "byte_size": 6955,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0028",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/metallic.png",
+      "sha256": "d6eb17ad91bb8206c973cfef35aa42cc227508cabfb1e85b8602abfb2c5bcb4b",
+      "byte_size": 765,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0029",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/normal.png",
+      "sha256": "81275b4c04b0ba438cf80bbfa81750c160a5edb6648e20a8eea83df6bc23117b",
+      "byte_size": 16445,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0030",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/canonical/mat.blue-ba0502b5/roughness.png",
+      "sha256": "11f219d1f766d263c9a9f135e5cf70cb4bffd2a2bbd92fc4f92fad4745e57043",
+      "byte_size": 4669,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0031",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "9d34a46d6b1348d69287f0516aba6cc01f7d5da8dc23f9909e249d6bd9bb3d1f",
+      "byte_size": 398074,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0032",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/portable_atlas/raw/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "byte_size": 13922,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0033",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "716da00d829df03e6c48b0d8cc78a4541c2cc98b8bda39c37673723cd0560c95",
+      "byte_size": 65591,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0034",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/portable_atlas/raw/normal.png",
+      "sha256": "d071a955467287376360d6d5b7191d87b654ce09df632eaa20c464c25b046371",
+      "byte_size": 459766,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0035",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "6c61dc65a7f0fd7bf425962176b2f646eba0e5038f967bf976693d1db9a95be9",
+      "byte_size": 273145,
+      "media_type": "image/png"
+    }
+  ],
+  "primary_file_id": "package.primary",
+  "semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "absolute_path_count": 0,
+  "missing_dependency_count": 0,
+  "created_at": "2026-08-11T05:40:01.042977Z",
+  "completed_at": "2026-08-11T05:40:01.042977Z",
+  "canonical_unchanged": true,
+  "known_losses": [
+    "Height/displacement is represented only through the baked tangent-space normal channel.",
+    "Object-space appearance was sampled against cbm_source_object before portable UV rewiring.",
+    "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+    "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+  ],
+  "warnings": [
+    "FBX material semantics are format-limited; raw PBR sidecars remain authoritative for downstream material reconstruction."
+  ],
+  "errors": []
+}

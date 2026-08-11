@@ -1,0 +1,116 @@
+{
+  "additionalProperties": false,
+  "description": "Report destination reconstruction results without claiming runtime parity.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "validation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Validation Id",
+      "type": "string"
+    },
+    "import_receipt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Import Receipt Sha256",
+      "type": "string"
+    },
+    "handoff_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Manifest Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "passed",
+        "warning",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "semantic_id_coverage": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Semantic Id Coverage",
+      "type": "number"
+    },
+    "material_id_coverage": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Material Id Coverage",
+      "type": "number"
+    },
+    "bounds_within_tolerance": {
+      "title": "Bounds Within Tolerance",
+      "type": "boolean"
+    },
+    "uv_coordinate_binding_verified": {
+      "default": false,
+      "title": "Uv Coordinate Binding Verified",
+      "type": "boolean"
+    },
+    "lod_renderer_membership_verified": {
+      "default": false,
+      "title": "Lod Renderer Membership Verified",
+      "type": "boolean"
+    },
+    "default_active_lod_verified": {
+      "default": false,
+      "title": "Default Active Lod Verified",
+      "type": "boolean"
+    },
+    "material_render_verified": {
+      "default": false,
+      "title": "Material Render Verified",
+      "type": "boolean"
+    },
+    "missing_dependencies": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing Dependencies",
+      "type": "array"
+    },
+    "runtime_parity_verified": {
+      "const": false,
+      "default": false,
+      "title": "Runtime Parity Verified",
+      "type": "boolean"
+    },
+    "warnings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Warnings",
+      "type": "array"
+    },
+    "errors": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "validation_id",
+    "import_receipt_sha256",
+    "handoff_manifest_sha256",
+    "status",
+    "semantic_id_coverage",
+    "material_id_coverage",
+    "bounds_within_tolerance",
+    "completed_at"
+  ],
+  "title": "DestinationImportValidation",
+  "type": "object"
+}

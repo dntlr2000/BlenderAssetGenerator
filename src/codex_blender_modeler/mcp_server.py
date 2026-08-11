@@ -45,6 +45,19 @@ from .autonomy.planner import (
 from .autonomy.profiles import (
     get_autonomy_profile_status as get_autonomy_profile_status_internal,
 )
+from .autonomy_v2 import (
+    advance_autonomy_v2 as advance_autonomy_v2_internal,
+)
+from .autonomy_v2 import (
+    autonomy_v2_profile_status as autonomy_v2_profile_status_internal,
+)
+from .autonomy_v2 import cancel_autonomy_v2 as cancel_autonomy_v2_internal
+from .autonomy_v2 import delivery_profile_catalog as delivery_profile_catalog_internal
+from .autonomy_v2 import get_autonomy_v2_status as get_autonomy_v2_status_internal
+from .autonomy_v2 import (
+    plan_autonomous_static_prop_v2 as plan_autonomous_static_prop_v2_internal,
+)
+from .autonomy_v2 import run_autonomy_v2 as run_autonomy_v2_internal
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -144,6 +157,7 @@ from .production import (
 from .production import (
     record_delegated_production_step as record_production_step_internal,
 )
+from .production.controller_executor import controller_capability_catalog
 from .qa import (
     ExistingFileQATargetProvider,
     get_job_semantic_reference_mask_status,
@@ -518,8 +532,18 @@ def get_modeling_capabilities() -> dict:
             "underlying_execution_policy": "standard",
             "profiles": get_autonomy_profile_status_internal()["profiles"],
             "verified_active_profile": "autonomous_static_prop_v1",
+            "verified_active_profile_ids": ["autonomous_static_prop_v1"],
+            "parallel_profile_contracts": {
+                "autonomous_static_prop_v1": "0.1.0",
+                "autonomous_static_prop_v2": "0.2.0",
+            },
             "reference_content_scope": "primary_object_only",
             "output_profile": "portable_gltf",
+            "v2_delivery_profiles": [
+                "review_only",
+                "portable_gltf",
+                "portable_fbx",
+            ],
             "policy_authorization": (
                 "routine exact gate authorization; never synthesized user approval"
             ),
@@ -716,6 +740,102 @@ def plan_autonomous_quality(
             include_destination_handoff_envelope
         ),
     )
+
+
+@mcp.tool()
+def get_autonomy_v2_profile_status() -> dict:
+    """Report AQ v2 as disabled until its complete host and Blender gate is recorded."""
+
+    return autonomy_v2_profile_status_internal()
+
+
+@mcp.tool()
+def list_autonomy_v2_delivery_profiles() -> list[dict]:
+    """List review-only, direct GLB, and direct FBX delivery mappings."""
+
+    return delivery_profile_catalog_internal()
+
+
+@mcp.tool()
+def plan_autonomous_quality_v2(
+    request: str,
+    reference_path: str,
+    target_subject: str,
+    requested_delivery_profiles: list[str],
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    destination_hint: str = "engine_neutral",
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Plan AQ v2 only with an explicit experimental opt-in while the profile is disabled."""
+
+    return plan_autonomous_static_prop_v2_internal(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=requested_delivery_profiles,  # type: ignore[arg-type]
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def get_autonomy_v2_state(job_id: str, session_id: str) -> dict:
+    """Reconstruct one experimental AQ v2 session without executing an action."""
+
+    return get_autonomy_v2_status_internal(job_id, session_id)
+
+
+@mcp.tool()
+def advance_autonomous_quality_v2(
+    job_id: str,
+    session_id: str,
+    quality_submission: dict[str, object] | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Advance one AQ v2 host action without crossing controller or approval boundaries."""
+
+    return advance_autonomy_v2_internal(
+        job_id,
+        session_id,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def run_autonomous_quality_v2(
+    job_id: str,
+    session_id: str,
+    max_actions: int = 8,
+    quality_submission: dict[str, object] | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Run bounded AQ v2 host actions and stop immediately at every external boundary."""
+
+    return run_autonomy_v2_internal(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def cancel_autonomous_quality_v2(job_id: str, session_id: str, reason: str) -> dict:
+    """Cancel future AQ v2 actions without deleting any accumulated evidence."""
+
+    return cancel_autonomy_v2_internal(job_id, session_id, reason=reason)
+
+
+@mcp.tool()
+def get_controller_executor_status() -> dict:
+    """Report controller adapter availability and phase-specific authority ceilings."""
+
+    return controller_capability_catalog()
 
 
 @mcp.tool()

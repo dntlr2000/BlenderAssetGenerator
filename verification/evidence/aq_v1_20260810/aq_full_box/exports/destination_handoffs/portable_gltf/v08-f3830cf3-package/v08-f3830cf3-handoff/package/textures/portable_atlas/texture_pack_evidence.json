@@ -1,0 +1,155 @@
+{
+  "color_space_semantics": {
+    "color_channels": [
+      "base_color",
+      "emission"
+    ],
+    "color_channels_space": "sRGB",
+    "data_channels": [
+      "height",
+      "metallic",
+      "normal",
+      "occlusion",
+      "opacity",
+      "roughness"
+    ],
+    "data_channels_space": "Non-Color",
+    "gltf_orm": "Non-Color"
+  },
+  "evidence_version": "0.7.0",
+  "kind": "low_level_texture_pack_evidence",
+  "packed_textures": {
+    "gltf_orm": {
+      "channel_mapping": {
+        "B": "metallic",
+        "G": "roughness",
+        "R": "occlusion"
+      },
+      "color_space": "Non-Color",
+      "format": "PNG",
+      "inputs": {
+        "metallic": {
+          "kind": "image",
+          "output_resolution": [
+            2048,
+            2048
+          ],
+          "resample_filter": null,
+          "resampled": false,
+          "source_resolution": [
+            2048,
+            2048
+          ]
+        },
+        "occlusion": {
+          "encoded_byte": 255,
+          "kind": "constant",
+          "normalized_value": 1.0
+        },
+        "roughness": {
+          "kind": "image",
+          "output_resolution": [
+            2048,
+            2048
+          ],
+          "resample_filter": null,
+          "resampled": false,
+          "source_resolution": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "mode": "RGB",
+      "path": "packed/gltf_orm.png",
+      "resolution": [
+        2048,
+        2048
+      ],
+      "sha256": "855aedf08827fa7c577a065a846b69620b71166fad1f3a50d906cfe822b45359"
+    }
+  },
+  "profile": "gltf_metallic_roughness",
+  "provenance": {
+    "deterministic": true,
+    "engine_specific_packing": false,
+    "generator": "codex_blender_modeler.packaging.texture_packing",
+    "generator_contract_version": "0.7.0",
+    "input_paths_are_source_root_relative": true,
+    "orm_resample_filter": null,
+    "orm_resampling": false,
+    "raw_channels_preserved": true
+  },
+  "raw_channels": {
+    "base_color": {
+      "color_space": "sRGB",
+      "package_path": "raw/base_color.png",
+      "package_sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+      "preserved_byte_for_byte": true,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "source_format": "PNG",
+      "source_mode": "RGB",
+      "source_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/base_color.png",
+      "source_sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c"
+    },
+    "emission": {
+      "color_space": "sRGB",
+      "package_path": "raw/emission.png",
+      "package_sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+      "preserved_byte_for_byte": true,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "source_format": "PNG",
+      "source_mode": "RGB",
+      "source_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/emission.png",
+      "source_sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25"
+    },
+    "metallic": {
+      "color_space": "Non-Color",
+      "package_path": "raw/metallic.png",
+      "package_sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+      "preserved_byte_for_byte": true,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "source_format": "PNG",
+      "source_mode": "RGB",
+      "source_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/metallic.png",
+      "source_sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc"
+    },
+    "normal": {
+      "color_space": "Non-Color",
+      "package_path": "raw/normal.png",
+      "package_sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+      "preserved_byte_for_byte": true,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "source_format": "PNG",
+      "source_mode": "RGB",
+      "source_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/normal.png",
+      "source_sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb"
+    },
+    "roughness": {
+      "color_space": "Non-Color",
+      "package_path": "raw/roughness.png",
+      "package_sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+      "preserved_byte_for_byte": true,
+      "resolution": [
+        2048,
+        2048
+      ],
+      "source_format": "PNG",
+      "source_mode": "RGB",
+      "source_path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/roughness.png",
+      "source_sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9"
+    }
+  }
+}

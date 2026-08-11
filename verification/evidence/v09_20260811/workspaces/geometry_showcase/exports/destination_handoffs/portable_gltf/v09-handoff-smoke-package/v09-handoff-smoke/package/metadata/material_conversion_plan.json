@@ -1,0 +1,166 @@
+{
+  "schema_version": "0.7.0",
+  "plan_id": "material.conversion.plan.v09-handoff-smoke-materials",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "profile_artifact": {
+    "id": "profile.portable_gltf",
+    "kind": "asset_profile",
+    "path": "asset_profiles/portable_gltf.json",
+    "sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3"
+  },
+  "optimization_plan": {
+    "id": "optimization.execution.v09-handoff-smoke-run",
+    "kind": "optimization_plan",
+    "path": "optimization/runs/v09-handoff-smoke-run/execution_plan.json",
+    "sha256": "265efe03569e9d9fae1eddb542a7cbc44eaf975f9b45970a15b1033f4ec8d78d"
+  },
+  "optimized_blend": {
+    "id": "blend.optimized.v09-handoff-smoke-run",
+    "kind": "blend",
+    "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+    "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+  },
+  "uv_manifest": {
+    "id": "uv.manifest.v09-handoff-smoke-run",
+    "kind": "uv_manifest",
+    "path": "optimization/runs/v09-handoff-smoke-run/uv_manifest.json",
+    "sha256": "f02f6370f3ce0c99abd3b7b0bf9ef0bc59f036231696cf970c9b5520fa9d4ce1"
+  },
+  "required_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "atlas_policy": {
+    "layout": "global_shared",
+    "atlas_scope": "all_render_lod",
+    "conversion_phase": "after_optimization_with_canonical_source_frame",
+    "tile_strategy": "deterministic_grid",
+    "uv_set": "CBMPortableAtlas",
+    "resolution": 1024,
+    "margin_px": 16,
+    "maximum_overlap_fraction": 0.0,
+    "preserve_existing_uv_sets": true,
+    "required_channels": [
+      "base_color",
+      "roughness",
+      "metallic",
+      "normal",
+      "emission"
+    ]
+  },
+  "materials": [
+    {
+      "material_id": "mat.blue",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.blue",
+        "kind": "shader_recipe",
+        "path": "materials/mat.blue/shader_recipe.json",
+        "sha256": "2ff84948cf486bc9cca2153ab7404e8ad0d708aa772f6257251b87545b02f1eb"
+      },
+      "source_material_fingerprint": "9c56fa18171e03f427493d9702df1eb7bf0a1befb69238a82f79ed24ed9edf5c",
+      "mapping_mode": "uv",
+      "target_ids": [
+        "demo.curve_pipe",
+        "demo.instance_post",
+        "demo.modifier_mirror",
+        "demo.profile_house"
+      ],
+      "bake_required": true
+    },
+    {
+      "material_id": "mat.gray",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.gray",
+        "kind": "shader_recipe",
+        "path": "materials/mat.gray/shader_recipe.json",
+        "sha256": "1a356581bf1c60cbb18f05c2dbdfc7fb15dab39ff63eaa0465c23d16b5be793a"
+      },
+      "source_material_fingerprint": "3352fa8cb2edbb45971a86c836d5c504f3071b86b9c26765571d23e1549923ff",
+      "mapping_mode": "object",
+      "target_ids": [
+        "demo.boolean.block",
+        "demo.modifier_remesh"
+      ],
+      "bake_required": true
+    },
+    {
+      "material_id": "mat.green",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.green",
+        "kind": "shader_recipe",
+        "path": "materials/mat.green/shader_recipe.json",
+        "sha256": "1924ba1397517d8a22c60058091376db44b07806e220b181d7be6df613a7e52a"
+      },
+      "source_material_fingerprint": "55be4d7729732706cffc95282acbb5a70c7e579bd9613aae4ff1bdb31bc6f63b",
+      "mapping_mode": "object",
+      "target_ids": [
+        "demo.modifier_solidify",
+        "demo.terrain"
+      ],
+      "bake_required": true
+    },
+    {
+      "material_id": "mat.orange",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.orange",
+        "kind": "shader_recipe",
+        "path": "materials/mat.orange/shader_recipe.json",
+        "sha256": "9a29a78ccd77c8addb1b1ae20bc83a2b5642548daebd88a8f62792f362576e9a"
+      },
+      "source_material_fingerprint": "62d901547b856823bc10c7d858f6469d2c201afdcd04df59ad94e7d6f7463abe",
+      "mapping_mode": "object",
+      "target_ids": [
+        "demo.custom_pyramid",
+        "demo.modifier_array",
+        "demo.revolve_vase"
+      ],
+      "bake_required": true
+    }
+  ],
+  "status": "approved",
+  "created_at": "2026-08-11T07:48:40.400614Z",
+  "approved_at": "2026-08-11T07:48:40.400614Z",
+  "canonical_unchanged": true,
+  "notes": [
+    "The explicit command authorizes only run-owned derived material outputs.",
+    "Canonical SceneSpec, geometry, materials, textures, and authoring blend stay read-only."
+  ]
+}

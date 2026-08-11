@@ -64,17 +64,17 @@ uv run cbm blender-compat
 | AQ 통합 gate | exit code 0 |
 | V0.7/V0.8/V0.9 chained regression | passed |
 
-AQ 통합 gate output root:
+AQ 통합 gate portable evidence root:
 
 ```text
-C:/Users/Woosik/AppData/Local/Temp/aqg-final4-20260810
+verification/evidence/aq_v1_20260810
 ```
 
-전체 pytest는 short absolute external basetemp
-`C:/Users/Woosik/AppData/Local/Temp/j8`, focused gate는
-`C:/Users/Woosik/AppData/Local/Temp/q4`, 직접 Blender 묶음은
-`C:/Users/Woosik/AppData/Local/Temp/b4`를 사용했다. 사용자 workspace나 canonical evidence를
-gate 성공용으로 변경하지 않았다.
+원 실행은 격리된 외부 basetemp를 사용했지만 해당 임시 경로를 영구 의존성으로 유지하지
+않는다. benchmark, 성공 package/roundtrip/handoff terminal closure, 비통과 review bundle의
+바이트 동일 snapshot을 위 저장소 상대 경로에 보존했다. raw pytest stdout과 전체 basetemp는
+보존하지 않았으므로 새 설치의 최신 통과 주장은 gate 재실행이 필요하다. 사용자 workspace나
+canonical evidence를 gate 성공용으로 변경하지 않았다.
 
 ## 5. 핵심 계약과 host 검증
 
@@ -126,7 +126,7 @@ canonical `analysis/scene_spec.json`을 승격하지 않는 회귀도 통과했�
 권위 report:
 
 ```text
-C:/Users/Woosik/AppData/Local/Temp/aqg-final4-20260810/autonomous_quality_benchmark.json
+verification/evidence/aq_v1_20260810/autonomous_quality_benchmark.json
 SHA-256: 0946535b3e148ddc159248ef0bc14aac2c3388fce33715dcdfe9056efa0adb39
 ```
 
@@ -148,8 +148,7 @@ before/after 유사도나 예술적 완성도를 측정하지 않는다.
 ```text
 job: aq_full_box
 session: aq-20260810t065207677077z-26250066
-root: C:/Users/Woosik/AppData/Local/Temp/aqg-final4-20260810/pt-blender/
-      test_autonomous_static_prop_re0/workspaces/aq_full_box
+root: verification/evidence/aq_v1_20260810/aq_full_box
 ```
 
 | evidence | workspace-relative path | SHA-256 |
@@ -187,8 +186,7 @@ equivalence와 일부 UV association의 미검증을 숨기지 않는다. passed
 ```text
 job: aq_review_box
 session: aq-20260810t065903952936z-2bb7e15e
-root: C:/Users/Woosik/AppData/Local/Temp/aqg-final4-20260810/pt-blender/
-      test_autonomous_static_prop_pu0/workspaces/aq_review_box
+root: verification/evidence/aq_v1_20260810/aq_review_box
 ```
 
 | evidence | workspace-relative path | SHA-256 |
@@ -207,9 +205,10 @@ evidence와 manual action으로 라우팅되는 경로를 실제 Blender 실행�
 AQ gate 안에서 다음 legacy gate가 모두 통과했다.
 
 ```text
-reports/v07_smoke/20260810T053353764Z-79012
-reports/v08_smoke/053639970-79012
-reports/v09_smoke/20260810T053803695Z-79012
+historical 2026-08-10 raw roots: not distributed
+portable AQ 0.1 execution record: verification/evidence/aq_v1_20260810/README.md
+newest portable legacy regression snapshots: verification/evidence/v07_20260811/,
+  verification/evidence/v08_20260811/, verification/evidence/v09_20260811/
 ```
 
 - V0.7: GLB/FBX/OBJ package와 roundtrip regression

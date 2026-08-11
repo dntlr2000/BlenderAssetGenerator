@@ -1,0 +1,161 @@
+{
+  "schema_version": "0.7.0",
+  "report_id": "cost.v08-f3830cf3",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de"
+    },
+    "source_fingerprint": "92d47a0a8c48a6ecbf84f30c3e84297c700a12c020f15afda4f29fd11345fd21",
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+      }
+    ]
+  },
+  "status": "passed",
+  "ok": true,
+  "quality_status": "partially_verified",
+  "unverified_checks": [
+    "internal_face_classification",
+    "runtime_draw_calls",
+    "destination_engine_instancing"
+  ],
+  "before": {
+    "lod0_render_objects": 1,
+    "lod0_material_slots": 1,
+    "lod0_estimated_draw_calls": 1,
+    "lod0_vertices": 96,
+    "lod0_triangles": 188,
+    "lod_objects": 2,
+    "collider_objects": 1,
+    "collider_triangles": 12,
+    "total_derived_triangles": 368,
+    "unique_materials": 1,
+    "overlap_candidates": 0
+  },
+  "after": {
+    "lod0_render_objects": 1,
+    "lod0_material_slots": 1,
+    "lod0_estimated_draw_calls": 1,
+    "lod0_vertices": 96,
+    "lod0_triangles": 188,
+    "lod_objects": 2,
+    "collider_objects": 1,
+    "collider_triangles": 12,
+    "total_derived_triangles": 368,
+    "unique_materials": 1,
+    "overlap_candidates": 0
+  },
+  "reductions": [
+    {
+      "metric": "lod0_render_objects",
+      "before": 1,
+      "after": 1,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod0_material_slots",
+      "before": 1,
+      "after": 1,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod0_estimated_draw_calls",
+      "before": 1,
+      "after": 1,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod0_vertices",
+      "before": 96,
+      "after": 96,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod0_triangles",
+      "before": 188,
+      "after": 188,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod_objects",
+      "before": 2,
+      "after": 2,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "collider_objects",
+      "before": 1,
+      "after": 1,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "collider_triangles",
+      "before": 12,
+      "after": 12,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "total_derived_triangles",
+      "before": 368,
+      "after": 368,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "overlap_candidates",
+      "before": 0,
+      "after": 0,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    }
+  ],
+  "budgets": [],
+  "consolidation_batches": [],
+  "cleanup_records": [],
+  "instance_groups": [],
+  "overlap_findings_before": [],
+  "overlap_findings_after": [],
+  "created_at": "2026-08-10T06:55:28.516124Z",
+  "canonical_unchanged": true,
+  "notes": [
+    "AABB overlap findings are broad-phase candidates, not proven face intersections.",
+    "Internal and coplanar hidden faces remain unclassified and are not removed.",
+    "Instance groups are advisory until a destination adapter reconstructs them.",
+    "Estimated draw calls are material-slot proxies, not runtime measurements."
+  ]
+}

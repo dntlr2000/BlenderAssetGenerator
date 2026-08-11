@@ -1,0 +1,349 @@
+{
+  "schema_version": "0.7.0",
+  "package_id": "v08-50183459-package",
+  "job_id": "v8fast",
+  "run_id": "v08-50183459",
+  "profile_id": "fbx_interchange",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "7d9af0b1ff7cfd8065926f2d265381d61f3a417e91bd01aa1ca21a544d2293cd"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "7d103fb4e4494c415643b227ba72a9b926995c1166c6f6b20190976dc9a77c88"
+    },
+    "source_fingerprint": "8e73e81fa7637361be34c4281c01a25965f21082fbd7c563a859574a2e4bea4a",
+    "build_fingerprint": "a1c33da31a404e981997299b6623d0215f318b71173fb67d25be02f5afef6f83",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "ead94865166ae5f40b724c2ce3a509cb3d2bb729ee1265f799190e1b9274ba5f"
+    },
+    "texture_manifests": []
+  },
+  "optimization_plan": {
+    "id": "plan.v08-50183459",
+    "kind": "optimization_plan",
+    "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/optimization_plan.json",
+    "sha256": "427c5da6e998d4f6aa801c9501b627db6b3968de7fc244ac74c4148486f8b4a9"
+  },
+  "material_conversion": {
+    "id": "manifest.material.conversion.v08-50183459-materials",
+    "kind": "portable_material_conversion_manifest",
+    "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/material_conversion_manifest.json",
+    "sha256": "8f20e415cfcfbc51603cec44b743253919f669087824e8e72ec1e57cd91f5600"
+  },
+  "source_manifests": [
+    {
+      "id": "manifest.lod.v08-50183459",
+      "kind": "lod_manifest",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/lod_manifest.json",
+      "sha256": "e12ac9f07e8685f7e4a6d8c92f0614aad615dd4664ebec131b80811468e78b57"
+    },
+    {
+      "id": "manifest.collision.v08-50183459",
+      "kind": "collision_manifest",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/collision_manifest.json",
+      "sha256": "a32c3f8ad3c4302cb2f866b5a252ad04040a5648ae519521c44dbfc1b9725b7b"
+    },
+    {
+      "id": "manifest.uv.v08-50183459",
+      "kind": "uv_manifest",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/uv_manifest.json",
+      "sha256": "ec43254df56761d4922ed04b03c7c7a48bf8c64c43e5b6f724e7c1da7eb3340a"
+    },
+    {
+      "id": "manifest.texture_pack.v08-50183459",
+      "kind": "texture_pack_manifest",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/texture_pack_manifest.json",
+      "sha256": "83a60e1ea353027f3e13dd6eca6a14cc4d466dc9b44110a8bf8978245fde1a8e"
+    },
+    {
+      "id": "report.asset_cost.v08-50183459",
+      "kind": "asset_cost_report",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/asset_cost_report.json",
+      "sha256": "9127e77c189bccac6a4679a176fa6bce350f234d949772880b92386b02ddcc8d"
+    }
+  ],
+  "status": "complete",
+  "package_root": "exports/packages/fbx_interchange/v08-50183459-package",
+  "files": [
+    {
+      "id": "package.file.0001",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/base_color.png",
+      "sha256": "5cf62bd6418af41cc870d888f3bad07d237ae9b062d1179254ed3d7de50ed17f",
+      "byte_size": 44782,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0002",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/emission.png",
+      "sha256": "051db79660cf909d63bd480d9eabcf856b2d778f03a8d98efb2528600171c91a",
+      "byte_size": 3620,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0003",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/export_evidence.json",
+      "sha256": "21bba94b066bc1d7499ffacb1777916acd53f7ab1702538e0ef4d9bd91e58611",
+      "byte_size": 187469,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0004",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/asset_cost_report.json",
+      "sha256": "9127e77c189bccac6a4679a176fa6bce350f234d949772880b92386b02ddcc8d",
+      "byte_size": 10085,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0005",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/asset_profile.json",
+      "sha256": "4106d605e7f99a23573c7a4bff639ff01fcb11c4e53d75b37660802a6a28f616",
+      "byte_size": 1930,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0006",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/collision_manifest.json",
+      "sha256": "a32c3f8ad3c4302cb2f866b5a252ad04040a5648ae519521c44dbfc1b9725b7b",
+      "byte_size": 8221,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0007",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/delivery_mapping.json",
+      "sha256": "6446cbbab71e19862a001649b3e886232080bdb5a298609cc517bd247234b6b0",
+      "byte_size": 15321,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0008",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/execution_plan.json",
+      "sha256": "9d65b3fdf196fc4cbba806c1eb227a93e8029f00671bd5bffcd682996cdd4c6f",
+      "byte_size": 6606,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0009",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/lod_manifest.json",
+      "sha256": "e12ac9f07e8685f7e4a6d8c92f0614aad615dd4664ebec131b80811468e78b57",
+      "byte_size": 25901,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0010",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/material_conversion_evidence.json",
+      "sha256": "8e9b5813c61204315011f701720f2cd7e12f940d66bd410d9803f65a4aa6f8c3",
+      "byte_size": 106422,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0011",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/material_conversion_manifest.json",
+      "sha256": "8f20e415cfcfbc51603cec44b743253919f669087824e8e72ec1e57cd91f5600",
+      "byte_size": 48755,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0012",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/material_conversion_plan.json",
+      "sha256": "bfe7ddfdfabc0562b0e9f15cc81e402d2fc7d080eda861ebc1c6119164ad96ed",
+      "byte_size": 5794,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0013",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/mesh_preflight_report.json",
+      "sha256": "1d7462a24bd63a6c88068f5cebb7614814a712cfac60e701d4bc44c21d5645a9",
+      "byte_size": 10072,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0014",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/optimization_approval.json",
+      "sha256": "f0601c72b16856436f2d90503e88df987de275e4f571dcc8a22619977d3d4d6b",
+      "byte_size": 834,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0015",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/optimization_plan.json",
+      "sha256": "427c5da6e998d4f6aa801c9501b627db6b3968de7fc244ac74c4148486f8b4a9",
+      "byte_size": 8354,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0016",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/optimization_review.json",
+      "sha256": "b59d04116d89a49aa5b732a4e3e4ca97ad9707d3b6607bef0e7ad6553ade5f67",
+      "byte_size": 7094,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0017",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/optimized_asset_evidence.json",
+      "sha256": "efb4d0f073cf323db51bb0cc244b379c80070b687ba8cb933a688bef53e36232",
+      "byte_size": 192218,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0018",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/review_plan.json",
+      "sha256": "d1fe75bb03171e68238e2b81acba7d0d39c66b3533250e442b99d559f2a8d3f7",
+      "byte_size": 6495,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0019",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metadata/uv_manifest.json",
+      "sha256": "ec43254df56761d4922ed04b03c7c7a48bf8c64c43e5b6f724e7c1da7eb3340a",
+      "byte_size": 8411,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0020",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/metallic.png",
+      "sha256": "b6df2f6928c7ab038aadec09a98937a2842c6efdb6b99a063c8795054c24fef4",
+      "byte_size": 19486,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.primary",
+      "kind": "primary_asset",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/model.fbx",
+      "sha256": "58561ccce67e1a338e2b7bb083abf14f295138cbb87d49fd6a26f0563e26bffd",
+      "byte_size": 1834396,
+      "media_type": "application/octet-stream"
+    },
+    {
+      "id": "package.file.0022",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/normal.png",
+      "sha256": "77d1ad1089860817406ed58d660272b01bfa86f5223e993dab44b2b401899b39",
+      "byte_size": 44779,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0023",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/roughness.png",
+      "sha256": "892328f7725acc324ab2cf4c88c1613f12252b3304f0dcd907df88259675633b",
+      "byte_size": 38637,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0024",
+      "kind": "metadata",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/texture_pack_manifest.json",
+      "sha256": "83a60e1ea353027f3e13dd6eca6a14cc4d466dc9b44110a8bf8978245fde1a8e",
+      "byte_size": 7562,
+      "media_type": "application/json"
+    },
+    {
+      "id": "package.file.0025",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "5cf62bd6418af41cc870d888f3bad07d237ae9b062d1179254ed3d7de50ed17f",
+      "byte_size": 44782,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0026",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/textures/portable_atlas/raw/emission.png",
+      "sha256": "051db79660cf909d63bd480d9eabcf856b2d778f03a8d98efb2528600171c91a",
+      "byte_size": 3620,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0027",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "b6df2f6928c7ab038aadec09a98937a2842c6efdb6b99a063c8795054c24fef4",
+      "byte_size": 19486,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0028",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/textures/portable_atlas/raw/normal.png",
+      "sha256": "77d1ad1089860817406ed58d660272b01bfa86f5223e993dab44b2b401899b39",
+      "byte_size": 44779,
+      "media_type": "image/png"
+    },
+    {
+      "id": "package.file.0029",
+      "kind": "texture",
+      "path": "exports/packages/fbx_interchange/v08-50183459-package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "892328f7725acc324ab2cf4c88c1613f12252b3304f0dcd907df88259675633b",
+      "byte_size": 38637,
+      "media_type": "image/png"
+    }
+  ],
+  "primary_file_id": "package.primary",
+  "semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "absolute_path_count": 0,
+  "missing_dependency_count": 0,
+  "created_at": "2026-08-11T07:42:25.248867Z",
+  "completed_at": "2026-08-11T07:42:25.248867Z",
+  "canonical_unchanged": true,
+  "known_losses": [
+    "Height/displacement is represented only through the baked tangent-space normal channel.",
+    "Object-space appearance was sampled against cbm_source_object before portable UV rewiring.",
+    "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+    "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+  ],
+  "warnings": [
+    "FBX material semantics are format-limited; raw PBR sidecars remain authoritative for downstream material reconstruction."
+  ],
+  "errors": []
+}

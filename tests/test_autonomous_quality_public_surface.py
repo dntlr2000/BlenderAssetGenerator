@@ -26,6 +26,12 @@ from codex_blender_modeler.qa.models import (
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_COMMANDS = {
     "autonomy-profile-status",
+    "autonomy-v2-profile-status",
+    "autonomy-v2-delivery-profiles",
+    "autonomy-v2-plan",
+    "autonomy-v2-status",
+    "autonomy-v2-cancel",
+    "controller-executor-status",
     "autonomy-plan",
     "autonomy-bind",
     "autonomy-status",
@@ -38,6 +44,12 @@ EXPECTED_COMMANDS = {
 }
 EXPECTED_MCP_TOOLS = {
     "get_autonomy_profile_status",
+    "get_autonomy_v2_profile_status",
+    "list_autonomy_v2_delivery_profiles",
+    "plan_autonomous_quality_v2",
+    "get_autonomy_v2_state",
+    "cancel_autonomous_quality_v2",
+    "get_controller_executor_status",
     "plan_autonomous_quality",
     "bind_autonomy_controller",
     "get_autonomy_state",
@@ -85,6 +97,11 @@ def test_capabilities_expose_only_one_verified_autonomy_profile() -> None:
     """Disclose the standard overlay without presenting future profiles as supported."""
 
     status = get_autonomy_profile_status()
+    assert set(status) == {"contract_version", "active_profile_id", "profiles"}
+    assert all(
+        item["profile_id"] != "autonomous_static_prop_v2"
+        for item in status["profiles"]
+    )
     active = [item for item in status["profiles"] if item["status"] == "verified_active"]
     disabled = [
         item for item in status["profiles"] if item["status"] == "disabled_experimental"
@@ -94,8 +111,25 @@ def test_capabilities_expose_only_one_verified_autonomy_profile() -> None:
     capabilities = mcp_server.get_modeling_capabilities()["autonomous_quality"]
     assert capabilities["underlying_execution_policy"] == "standard"
     assert capabilities["verified_active_profile"] == "autonomous_static_prop_v1"
+    assert capabilities["verified_active_profile_ids"] == [
+        "autonomous_static_prop_v1"
+    ]
     assert capabilities["advance_actions_per_call"] == 1
     assert capabilities["runtime_parity"] is False
+
+
+def test_v2_public_plan_requires_explicit_experimental_opt_in() -> None:
+    """Keep the parallel profile discoverable without silently enabling job creation."""
+
+    cli_help = CliRunner().invoke(app, ["autonomy-v2-plan", "--help"])
+    assert cli_help.exit_code == 0
+    assert "--enable-v2" in cli_help.stdout
+    parameters = inspect.signature(mcp_server.plan_autonomous_quality_v2).parameters
+    assert "experimental_opt_in" in parameters
+    assert parameters["experimental_opt_in"].default is False
+    status = mcp_server.get_autonomy_v2_profile_status()
+    assert status["status"] == "disabled_experimental"
+    assert status["verified_active"] is False
 
 
 def test_integrated_quality_public_runner_keeps_missing_axes_unscorable(

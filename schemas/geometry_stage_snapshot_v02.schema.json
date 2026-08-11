@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "GeometryEvidenceFingerprintV02": {
+      "additionalProperties": false,
+      "description": "Represent one available, unavailable, or inapplicable exact evidence channel.",
+      "properties": {
+        "status": {
+          "enum": [
+            "available",
+            "unavailable",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sha256"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "status",
+        "sha256",
+        "reason"
+      ],
+      "title": "GeometryEvidenceFingerprintV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Capture exact structural state at one candidate, canonical, or delivery stage.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "stage": {
+      "enum": [
+        "structural_materialization",
+        "compiled_candidate",
+        "promoted_canonical",
+        "optimized_lod0",
+        "clean_import_glb",
+        "clean_import_fbx"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "artifact_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Artifact Path",
+      "type": "string"
+    },
+    "artifact_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Artifact Sha256",
+      "type": "string"
+    },
+    "source_fingerprint_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint Sha256",
+      "type": "string"
+    },
+    "build_fingerprint_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint Sha256",
+      "type": "string"
+    },
+    "semantic_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Semantic Id",
+      "type": "string"
+    },
+    "topology_profile": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Topology Profile",
+      "type": "string"
+    },
+    "vertex_count": {
+      "minimum": 0,
+      "title": "Vertex Count",
+      "type": "integer"
+    },
+    "face_count": {
+      "minimum": 0,
+      "title": "Face Count",
+      "type": "integer"
+    },
+    "loop_count": {
+      "minimum": 0,
+      "title": "Loop Count",
+      "type": "integer"
+    },
+    "evaluated_triangle_count": {
+      "minimum": 0,
+      "title": "Evaluated Triangle Count",
+      "type": "integer"
+    },
+    "topology_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "surface_equivalence_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "uv_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "material_slots_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "polygon_material_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "split_normal_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "sharp_edge_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "uv_seam_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "crease_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "bevel_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "smoothing_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "modifier_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    },
+    "custom_attribute_fingerprint": {
+      "$ref": "#/$defs/GeometryEvidenceFingerprintV02"
+    }
+  },
+  "required": [
+    "stage",
+    "artifact_path",
+    "artifact_sha256",
+    "source_fingerprint_sha256",
+    "build_fingerprint_sha256",
+    "semantic_id",
+    "topology_profile",
+    "vertex_count",
+    "face_count",
+    "loop_count",
+    "evaluated_triangle_count",
+    "topology_fingerprint",
+    "surface_equivalence_fingerprint",
+    "uv_fingerprint",
+    "material_slots_fingerprint",
+    "polygon_material_fingerprint",
+    "split_normal_fingerprint",
+    "sharp_edge_fingerprint",
+    "uv_seam_fingerprint",
+    "crease_fingerprint",
+    "bevel_fingerprint",
+    "smoothing_fingerprint",
+    "modifier_fingerprint",
+    "custom_attribute_fingerprint"
+  ],
+  "title": "GeometryStageSnapshotV02",
+  "type": "object"
+}

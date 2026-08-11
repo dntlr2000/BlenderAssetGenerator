@@ -1,0 +1,85 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v09-handoff-smoke",
+  "asset_kind": "static_asset",
+  "profile_id": "portable_gltf",
+  "primary_model": "package/asset.glb",
+  "axis": {
+    "handedness": "right_handed",
+    "source_up_axis": "+Z",
+    "source_forward_axis": "-Y",
+    "interchange_up_axis": "+Y",
+    "interchange_forward_axis": "-Z",
+    "unit": "meters",
+    "unit_scale_m": 1.0,
+    "camera_independent_orientation": true,
+    "file_metadata_verified": false
+  },
+  "pivot_policy": "Preserve each exported object origin first; use the recorded source +Z base plane only when the destination plan explicitly changes placement.",
+  "expected_bounds": {
+    "minimum": [
+      -9.4,
+      -4.385553,
+      -1.2
+    ],
+    "maximum": [
+      9.181419,
+      8.181419,
+      3.0
+    ]
+  },
+  "expected_bounds_space": "source_authoring_z_up",
+  "hierarchy": {
+    "exported_hierarchy": "flat_root",
+    "exported_hierarchy_verified": true,
+    "canonical_semantic_hierarchy": "advisory",
+    "destination_reparenting_requires_approval": true
+  },
+  "pbr": {
+    "base_color": "sRGB surface albedo; alpha may carry opacity only when declared",
+    "normal": "Non-Color tangent-space normal using the OpenGL +Y convention",
+    "metallic": "Non-Color scalar metalness",
+    "roughness": "Non-Color scalar perceptual roughness",
+    "occlusion": "Non-Color ambient occlusion multiplier",
+    "emission": "sRGB emissive color with strength handled separately when available",
+    "opacity": "Non-Color or base-color alpha according to the mapping entry",
+    "gltf_orm": {
+      "R": "occlusion",
+      "G": "roughness",
+      "B": "metallic"
+    }
+  },
+  "lod_and_collider": {
+    "lod_present": true,
+    "lod_levels": [
+      1,
+      2
+    ],
+    "lod_group_count": 11,
+    "default_active_lod": 0,
+    "membership_explicit": true,
+    "switch_policy": "destination_defined_unverified",
+    "collider_present": true,
+    "collider_count": 15
+  },
+  "known_format_losses": [
+    "Height/displacement is represented only through the baked tangent-space normal channel.",
+    "Object-space appearance was sampled against cbm_source_object before portable UV rewiring.",
+    "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+    "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+  ],
+  "unverified_items": [
+    "destination engine, version, and render pipeline",
+    "destination runtime material and shader parity",
+    "destination import axis and unit behavior until import validation",
+    "destination instancing, draw calls, physics, and LOD selection behavior",
+    "interchange file metadata beyond export-operator evidence",
+    "clean-import warning: Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+    "clean-import warning: Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+    "clean-import warning: Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+    "clean-import warning: Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+    "clean-import warning: UV loop-to-vertex association could not be verified for: CBM_demo_instance_post__LOD0__BATCH0003, CBM_demo_instance_post__LOD1__BATCH0001, CBM_demo_instance_post__LOD2__BATCH0002, demo.boolean.block__LOD0, demo.boolean.block__LOD0__COLLIDER, demo.boolean.block__LOD1, demo.boolean.block__LOD2, demo.curve_pipe__LOD0, demo.curve_pipe__LOD0__COLLIDER... [truncated in handoff summary; full warning remains in round-trip evidence; sha256=933f91abb450da811889d96e1301904fe6ec76f895243127a6a918c37c6a34e2]",
+    "clean-import warning: UV coordinate summary preservation could not be verified for: CBM_demo_instance_post__LOD0__BATCH0003, CBM_demo_instance_post__LOD1__BATCH0001, CBM_demo_instance_post__LOD2__BATCH0002, demo.boolean.block__LOD0, demo.boolean.block__LOD1, demo.boolean.block__LOD2, demo.curve_pipe__LOD0, demo.curve_pipe__LOD1, demo.curve_pipe__LOD2, demo.custom_pyra... [truncated in handoff summary; full warning remains in round-trip evidence; sha256=85b7312161fd27ec48de8cdbce851a2289f1507ebf40517d8fcf78860b1baa06]"
+  ],
+  "destination_hint": null
+}

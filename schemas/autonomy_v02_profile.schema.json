@@ -1,0 +1,215 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Snapshot the parallel v2 policy without changing the verified v1 profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2",
+      "default": "autonomous_static_prop_v2",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "disabled_experimental",
+        "verified_active"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "underlying_execution_policy": {
+      "const": "standard",
+      "default": "standard",
+      "title": "Underlying Execution Policy",
+      "type": "string"
+    },
+    "mode": {
+      "const": "concept",
+      "default": "concept",
+      "title": "Mode",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "const": "primary_object_only",
+      "default": "primary_object_only",
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "allowed_asset_kinds": {
+      "items": {
+        "enum": [
+          "static_hard_surface",
+          "static_prop"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Asset Kinds",
+      "type": "array"
+    },
+    "allowed_delivery_profiles": {
+      "items": {
+        "enum": [
+          "review_only",
+          "portable_gltf",
+          "portable_fbx"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Delivery Profiles",
+      "type": "array"
+    },
+    "controller_protocol_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Controller Protocol Version",
+      "type": "string"
+    },
+    "integrated_quality_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Integrated Quality Version",
+      "type": "string"
+    },
+    "prohibited_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Prohibited Capabilities",
+      "type": "array"
+    },
+    "activation_evidence": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "title": "Activation Evidence",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "status",
+    "allowed_asset_kinds",
+    "allowed_delivery_profiles",
+    "prohibited_capabilities"
+  ],
+  "title": "AutonomyProfileV2",
+  "type": "object"
+}

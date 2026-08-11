@@ -1,0 +1,251 @@
+{
+  "schema_version": "0.7.0",
+  "plan_id": "plan.v09-handoff-smoke-run",
+  "job_id": "geometry_showcase",
+  "profile_id": "portable_gltf",
+  "profile_artifact": {
+    "id": "profile.portable_gltf",
+    "kind": "asset_profile",
+    "path": "asset_profiles/portable_gltf.json",
+    "sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3"
+  },
+  "preflight_report": {
+    "id": "preflight.v09-handoff-smoke-run",
+    "kind": "preflight_report",
+    "path": "optimization/runs/v09-handoff-smoke-run/mesh_preflight_report.json",
+    "sha256": "bcdd2678643680fb7b2f8e9277ba4368f287687b2c19ac3da80ab2ed08047729"
+  },
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "source_quality": null,
+  "status": "complete",
+  "directives": [
+    {
+      "target_id": "demo.boolean.block",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.boolean.cutter",
+      "include": false,
+      "lod_levels": [],
+      "collision_strategy": "none",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": [
+        "Excluded from portable render output because the canonical Blender source is hidden from render."
+      ]
+    },
+    {
+      "target_id": "demo.curve_pipe",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.custom_pyramid",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.instance_post",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.modifier_array",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.modifier_mirror",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.modifier_remesh",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.modifier_solidify",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.profile_house",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.revolve_vase",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    },
+    {
+      "target_id": "demo.terrain",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    }
+  ],
+  "approved_at": "2026-08-11T07:48:34.010294Z",
+  "completed_at": "2026-08-11T07:48:38.352011Z",
+  "output_manifests": [
+    {
+      "id": "manifest.lod.v09-handoff-smoke-run",
+      "kind": "lod_manifest",
+      "path": "optimization/runs/v09-handoff-smoke-run/lod_manifest.json",
+      "sha256": "0b9cf167d9ebaf2fe26c524361d7a2557247903c3ed6e77030ce32364e5bb4a7"
+    },
+    {
+      "id": "manifest.collision.v09-handoff-smoke-run",
+      "kind": "collision_manifest",
+      "path": "optimization/runs/v09-handoff-smoke-run/collision_manifest.json",
+      "sha256": "bc59c9c1dfdfae8aa1b0747ad88f40a7c39a4d4a4e63330323e5f24be0cdfac1"
+    },
+    {
+      "id": "manifest.uv.v09-handoff-smoke-run",
+      "kind": "uv_manifest",
+      "path": "optimization/runs/v09-handoff-smoke-run/uv_manifest.json",
+      "sha256": "f02f6370f3ce0c99abd3b7b0bf9ef0bc59f036231696cf970c9b5520fa9d4ce1"
+    },
+    {
+      "id": "manifest.cost.v09-handoff-smoke-run",
+      "kind": "asset_cost_report",
+      "path": "optimization/runs/v09-handoff-smoke-run/asset_cost_report.json",
+      "sha256": "5dfbebbf813e7a6d4b6a9639d7563eb1a31d7fbe5f30915006d4baa11bd5451e"
+    },
+    {
+      "id": "plan.execution.v09-handoff-smoke-run",
+      "kind": "optimization_plan",
+      "path": "optimization/runs/v09-handoff-smoke-run/execution_plan.json",
+      "sha256": "265efe03569e9d9fae1eddb542a7cbc44eaf975f9b45970a15b1033f4ec8d78d"
+    },
+    {
+      "id": "blend.optimized.v09-handoff-smoke-run",
+      "kind": "blend",
+      "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+      "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+    },
+    {
+      "id": "evidence.optimized.v09-handoff-smoke-run",
+      "kind": "other",
+      "path": "optimization/runs/v09-handoff-smoke-run/optimized_asset_evidence.json",
+      "sha256": "a6a76c8048003c81b80c79b2f32de5af518a75a9fee92d6e147f8dc880ccf610"
+    }
+  ],
+  "errors": [],
+  "notes": [
+    "This plan is review-only and does not authorize derived optimization.",
+    "Canonical authoring geometry and material contracts remain read-only.",
+    "Execution is bound to one explicit, hash-matched, single-use user approval."
+  ]
+}

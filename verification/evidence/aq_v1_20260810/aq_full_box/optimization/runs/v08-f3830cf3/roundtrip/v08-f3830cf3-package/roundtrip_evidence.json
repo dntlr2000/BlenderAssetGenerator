@@ -1,0 +1,1076 @@
+{
+  "comparisons": [
+    {
+      "actual_name": "product.body__LOD0",
+      "asset_role": "render",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "product.body__LOD0",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 0,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "checks": {
+          "actual_uv0_active_render": true,
+          "actual_uv0_present": true,
+          "expected_uv0_active_render": true,
+          "expected_uv0_name": true,
+          "file_texture_binding_verified": true,
+          "finite_uv0": true,
+          "tangent_status": true,
+          "tangent_uv0": true,
+          "uv0_area_summary": true,
+          "uv0_bounds_summary": true
+        },
+        "destination_semantic": "TEXCOORD_0",
+        "imported_uv_set": "UVMap",
+        "loop_association_verified": false,
+        "required_uv_channel_index": 0,
+        "required_uv_set": "CBMPortableAtlas",
+        "status": "verified",
+        "tangent_uv_set": "UVMap",
+        "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+      },
+      "semantic_id": "product.body",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 564,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "material_normal_map",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 188,
+      "triangles_expected": 188,
+      "uv_coordinate_readiness": {
+        "layer_count": 3,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 1.0000000000287557e-06,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "CBMPortableAtlas",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 2.9999999984209325e-09,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.001",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "LightmapUV",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 7.000000024071085e-09,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.002",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "UVMap",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 0.0,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 3,
+      "uv_layer_count_expected": 3
+    },
+    {
+      "actual_name": "product.body__LOD0__COLLIDER",
+      "asset_role": "collider",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "product.body__LOD0__COLLIDER",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": null,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "reason": "collider",
+        "status": "not_applicable"
+      },
+      "semantic_id": "product.body",
+      "tangent_readiness": {
+        "reason": "collider",
+        "status": "not_applicable"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 12,
+      "triangles_expected": 12,
+      "uv_coordinate_readiness": {
+        "layer_count": 0,
+        "status": "not_applicable"
+      },
+      "uv_layer_count_actual": 0,
+      "uv_layer_count_expected": 0
+    },
+    {
+      "actual_name": "product.body__LOD1",
+      "asset_role": "lod",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "product.body__LOD1",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 1,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "checks": {
+          "actual_uv0_active_render": true,
+          "actual_uv0_present": true,
+          "expected_uv0_active_render": true,
+          "expected_uv0_name": true,
+          "file_texture_binding_verified": true,
+          "finite_uv0": true,
+          "tangent_status": true,
+          "tangent_uv0": true,
+          "uv0_area_summary": true,
+          "uv0_bounds_summary": true
+        },
+        "destination_semantic": "TEXCOORD_0",
+        "imported_uv_set": "UVMap",
+        "loop_association_verified": false,
+        "required_uv_channel_index": 0,
+        "required_uv_set": "CBMPortableAtlas",
+        "status": "verified",
+        "tangent_uv_set": "UVMap",
+        "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+      },
+      "semantic_id": "product.body",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 336,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "material_normal_map",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 112,
+      "triangles_expected": 112,
+      "uv_coordinate_readiness": {
+        "layer_count": 3,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 1.0000000000287557e-06,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "CBMPortableAtlas",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 9.999999994736442e-10,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.001",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "LightmapUV",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 9.999999717180685e-10,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.002",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "UVMap",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 9.999999717180685e-10,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 3,
+      "uv_layer_count_expected": 3
+    },
+    {
+      "actual_name": "product.body__LOD2",
+      "asset_role": "lod",
+      "bounds_max_abs_error_m": 0.0,
+      "expected_name": "product.body__LOD2",
+      "face_normal_readiness": {
+        "custom_normal_equivalence_verified": false,
+        "invalid_face_count": 0,
+        "status": "ready"
+      },
+      "lod_level": 2,
+      "material_ids_preserved": true,
+      "portable_uv_binding": {
+        "checks": {
+          "actual_uv0_active_render": true,
+          "actual_uv0_present": true,
+          "expected_uv0_active_render": true,
+          "expected_uv0_name": true,
+          "file_texture_binding_verified": true,
+          "finite_uv0": true,
+          "tangent_status": true,
+          "tangent_uv0": true,
+          "uv0_area_summary": true,
+          "uv0_bounds_summary": true
+        },
+        "destination_semantic": "TEXCOORD_0",
+        "imported_uv_set": "UVMap",
+        "loop_association_verified": false,
+        "required_uv_channel_index": 0,
+        "required_uv_set": "CBMPortableAtlas",
+        "status": "verified",
+        "tangent_uv_set": "UVMap",
+        "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+      },
+      "semantic_id": "product.body",
+      "tangent_readiness": {
+        "invalid_loop_count": 0,
+        "loop_count": 168,
+        "preserved_exported_tangents_verified": false,
+        "selection_basis": "material_normal_map",
+        "status": "ready",
+        "uv_set": "UVMap"
+      },
+      "triangle_relative_error": 0.0,
+      "triangles_actual": 56,
+      "triangles_expected": 56,
+      "uv_coordinate_readiness": {
+        "layer_count": 3,
+        "layer_identity_enforced": false,
+        "layers": [
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": true,
+            "expected_name": "CBMPortableAtlas",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 0.0,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.001",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "LightmapUV",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 1.1000000021965661e-08,
+            "vertex_uv_binding_fingerprint_preserved": false
+          },
+          {
+            "active_render_preserved": true,
+            "actual_name": "UVMap.002",
+            "bounds_max_abs_error": 0.0,
+            "coordinate_multiset_fingerprint_preserved": false,
+            "expected_name": "UVMap",
+            "name_preserved": false,
+            "non_finite_coordinate_count": 0,
+            "total_area_abs_error": 2.999999970665357e-09,
+            "vertex_uv_binding_fingerprint_preserved": false
+          }
+        ],
+        "loop_association_verified": false,
+        "status": "unverified",
+        "summary_tolerance": 1e-05
+      },
+      "uv_layer_count_actual": 3,
+      "uv_layer_count_expected": 3
+    }
+  ],
+  "errors": [],
+  "format": "glb",
+  "import_operator": "bpy.ops.import_scene.gltf",
+  "imported_objects": [
+    {
+      "asset_role": "render",
+      "bbox_world": {
+        "max": [
+          1.0,
+          0.4,
+          1.2
+        ],
+        "min": [
+          -1.0,
+          -0.4,
+          0.0
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {
+        "cbm_asset_role": "render",
+        "cbm_id": "product.body",
+        "cbm_instance_index": 0,
+        "cbm_lod_level": 0
+      },
+      "dimensions": [
+        2.0,
+        0.8,
+        1.2
+      ],
+      "instance_index": 0,
+      "location": [
+        0.0,
+        0.0,
+        0.6
+      ],
+      "lod_level": 0,
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "name": "product.body__LOD0",
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 564,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "material_normal_map",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": "product.body",
+      "topology": {
+        "boundary_edge_count": 384,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 474,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 188,
+        "triangles_estimated": 188,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.492188,
+                0.492188
+              ],
+              "min": [
+                0.007812,
+                0.007812
+              ]
+            },
+            "coordinate_count": 564,
+            "coordinate_fingerprint": "ccba048ef975d39b7c0720081c6bb7a7a5d0af2f56fa279b2a11156435e74ba6",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 564,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.172257814,
+            "vertex_uv_binding_fingerprint": "98fc52e03d42d0981746df2d54689d54d4fae60f7144bd06336ad570280b3545"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                1.0,
+                1.0
+              ],
+              "min": [
+                0.0,
+                0.0
+              ]
+            },
+            "coordinate_count": 564,
+            "coordinate_fingerprint": "175d2a33bc4f9f1875a9747f59570095dd44af0de891423303213d2caa6d4957",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 564,
+            "name": "UVMap.001",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.724649564,
+            "vertex_uv_binding_fingerprint": "2912275460b993e72bfa1b0949d3ddb99427b59b7b811c9cbe34d2f5a176b950"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                0.875,
+                1.0
+              ],
+              "min": [
+                0.125,
+                0.0
+              ]
+            },
+            "coordinate_count": 564,
+            "coordinate_fingerprint": "f30804db41d51f48a829428ee70a8df516202093425c0162fcd2cfba9a61ca96",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 564,
+            "name": "UVMap.002",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.381377872,
+            "vertex_uv_binding_fingerprint": "fd672c6e97013e978a5c1174a62c207f5ea8048c4f63f332de1c082ae77ce579"
+          }
+        ],
+        "vertices": 384
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "collider",
+      "bbox_world": {
+        "max": [
+          1.0,
+          0.4,
+          1.2
+        ],
+        "min": [
+          -1.0,
+          -0.4,
+          0.0
+        ]
+      },
+      "collider_strategy": "compound",
+      "custom_properties": {
+        "cbm_asset_role": "collider",
+        "cbm_collider_strategy": "compound",
+        "cbm_id": "product.body",
+        "cbm_instance_index": 0
+      },
+      "dimensions": [
+        2.0,
+        0.8,
+        1.2
+      ],
+      "instance_index": 0,
+      "location": [
+        0.0,
+        0.0,
+        0.6
+      ],
+      "lod_level": null,
+      "material_ids": [],
+      "name": "product.body__LOD0__COLLIDER",
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "reason": "collider",
+          "status": "not_applicable"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": "product.body",
+      "topology": {
+        "boundary_edge_count": 24,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 30,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 12,
+        "triangles_estimated": 12,
+        "uv_layers": [],
+        "vertices": 24
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "lod",
+      "bbox_world": {
+        "max": [
+          0.993245,
+          0.393245,
+          1.193245
+        ],
+        "min": [
+          -0.993245,
+          -0.393245,
+          0.0
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {
+        "cbm_asset_role": "lod",
+        "cbm_id": "product.body",
+        "cbm_instance_index": 0,
+        "cbm_lod_level": 1
+      },
+      "dimensions": [
+        1.986491,
+        0.786491,
+        1.193245
+      ],
+      "instance_index": 0,
+      "location": [
+        0.0,
+        0.0,
+        0.6
+      ],
+      "lod_level": 1,
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "name": "product.body__LOD1",
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 336,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "material_normal_map",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": "product.body",
+      "topology": {
+        "boundary_edge_count": 336,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 336,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 112,
+        "triangles_estimated": 112,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.992188,
+                0.492188
+              ],
+              "min": [
+                0.507812,
+                0.007812
+              ]
+            },
+            "coordinate_count": 336,
+            "coordinate_fingerprint": "a66692ac507db965273548515b9cfa240b65ef6647b29acb0e576fea12dc7d72",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 336,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.167008645,
+            "vertex_uv_binding_fingerprint": "bb12c75fdced2a894c53d63b488f52f2e827621eeedc321f4806cb23d7adeebe"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                1.0,
+                1.0
+              ],
+              "min": [
+                0.0,
+                0.0
+              ]
+            },
+            "coordinate_count": 336,
+            "coordinate_fingerprint": "6d9a22c00a230a6a59672ad75820f45b3e3175f82a77cff8fadd32bd5b57d596",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 336,
+            "name": "UVMap.001",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.715418099,
+            "vertex_uv_binding_fingerprint": "3afe32f4aec977e92707c105ffc99e2749da0eb6bdb19f178c6cfa9f4c01fc8d"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                0.871473,
+                1.0
+              ],
+              "min": [
+                0.125,
+                0.0
+              ]
+            },
+            "coordinate_count": 336,
+            "coordinate_fingerprint": "009301477ddcbfb030f9a24f9a19b9cd9219788f02f87230ed247a70c54aa8b4",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 336,
+            "name": "UVMap.002",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.37359225,
+            "vertex_uv_binding_fingerprint": "82fb456e1720109bb3a21aef8feae83d28652612b141949e33df25f85c2c05fe"
+          }
+        ],
+        "vertices": 336
+      },
+      "type": "MESH"
+    },
+    {
+      "asset_role": "lod",
+      "bbox_world": {
+        "max": [
+          0.993245,
+          0.393245,
+          1.187709
+        ],
+        "min": [
+          -0.987122,
+          -0.393245,
+          0.012291
+        ]
+      },
+      "collider_strategy": null,
+      "custom_properties": {
+        "cbm_asset_role": "lod",
+        "cbm_id": "product.body",
+        "cbm_instance_index": 0,
+        "cbm_lod_level": 2
+      },
+      "dimensions": [
+        1.980367,
+        0.786491,
+        1.175418
+      ],
+      "instance_index": 0,
+      "location": [
+        0.0,
+        0.0,
+        0.6
+      ],
+      "lod_level": 2,
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "name": "product.body__LOD2",
+      "rotation_euler": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "runtime_readiness": {
+        "face_normals": {
+          "custom_normal_equivalence_verified": false,
+          "invalid_face_count": 0,
+          "status": "ready"
+        },
+        "tangents": {
+          "invalid_loop_count": 0,
+          "loop_count": 168,
+          "preserved_exported_tangents_verified": false,
+          "selection_basis": "material_normal_map",
+          "status": "ready",
+          "uv_set": "UVMap"
+        }
+      },
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "semantic_id": "product.body",
+      "topology": {
+        "boundary_edge_count": 168,
+        "degenerate_face_count": 0,
+        "degenerate_faces": [],
+        "edges": 168,
+        "invalid_normal_face_count": 0,
+        "invalid_normal_faces": [],
+        "loose_edge_count": 0,
+        "loose_vertex_count": 0,
+        "manifold_closed": false,
+        "matrix_determinant": 1.0,
+        "negative_determinant": false,
+        "non_finite_vertex_count": 0,
+        "non_finite_vertices": [],
+        "overused_edge_count": 0,
+        "polygons": 56,
+        "triangles_estimated": 56,
+        "uv_layers": [
+          {
+            "active_render": true,
+            "coordinate_bounds": {
+              "max": [
+                0.492188,
+                0.992188
+              ],
+              "min": [
+                0.007812,
+                0.507812
+              ]
+            },
+            "coordinate_count": 168,
+            "coordinate_fingerprint": "7f58f76922b4e049dd09e59b615f285a477411b623e3a11babcaac0c2984a369",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 168,
+            "name": "UVMap",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.170948349,
+            "vertex_uv_binding_fingerprint": "bc6130af6462f6fc336f6e18acfaa02bd34a6c44373287d8e3f3bd62c9e1f421"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                1.0,
+                1.0
+              ],
+              "min": [
+                0.0,
+                0.0
+              ]
+            },
+            "coordinate_count": 168,
+            "coordinate_fingerprint": "9500a90c1e4be9c7c43765f11beb31a65ff2f3e1416d1c030095b43c315035e8",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 168,
+            "name": "UVMap.001",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.694346605,
+            "vertex_uv_binding_fingerprint": "4b104a0a5d48b270ca54b9f441f6a8723deb611adca8aa31da41750489aa6c91"
+          },
+          {
+            "active_render": false,
+            "coordinate_bounds": {
+              "max": [
+                0.870919,
+                1.0
+              ],
+              "min": [
+                0.125,
+                0.0
+              ]
+            },
+            "coordinate_count": 168,
+            "coordinate_fingerprint": "3862c46b478c6eb8f8bb469d2a9618690ad6c9b9399d85b464e37d8d20199ed4",
+            "degenerate_face_count": 0,
+            "degenerate_faces": [],
+            "loop_count": 168,
+            "name": "UVMap.002",
+            "non_finite_coordinate_count": 0,
+            "total_face_area": 0.361055086,
+            "vertex_uv_binding_fingerprint": "e98578086e71b0d1ab599042a80916f5d9f3bb043bba2e00b687b07bed274403"
+          }
+        ],
+        "vertices": 168
+      },
+      "type": "MESH"
+    }
+  ],
+  "input": {
+    "expected_manifest_sha256": "bea4ecd303842fc5ab4da377621754897547314579c24b1899de4d6e1b43c65b",
+    "filename": "asset.glb",
+    "sha256": "7e2c658f920291e4cd37a799281dbabbbe076981e6f2f1734d6f12a7ac2f6cd3"
+  },
+  "kind": "roundtrip_validation",
+  "metrics": {
+    "absolute_texture_path_count": 0,
+    "actual_object_count": 4,
+    "expected_object_count": 4,
+    "invalid_normal_object_count": 0,
+    "invalid_texture_path_count": 0,
+    "matched_object_count": 4,
+    "missing_texture_count": 0,
+    "outside_texture_path_count": 0,
+    "package_absolute_texture_path_count": 0,
+    "tangent_unverified_object_count": 0,
+    "uv_unverified_object_count": 3
+  },
+  "ok": true,
+  "readiness": {
+    "coordinate_system": {
+      "axis_file_metadata_verified": false,
+      "declared": {
+        "evidence": "export_operator_configuration",
+        "export_forward_axis": "-Z",
+        "export_up_axis": "+Y",
+        "file_metadata_verified": false,
+        "format": "glb",
+        "source_contract_units": "meters",
+        "source_up_axis": "+Z",
+        "unit_scale_m": 1.0
+      },
+      "mismatches": {},
+      "status": "declared_not_file_inspected",
+      "unit_file_metadata_verified": false
+    },
+    "face_normals": {
+      "custom_normal_equivalence_verified": false,
+      "invalid_objects": [],
+      "status": "ready"
+    },
+    "portable_uv_binding": {
+      "objects": [
+        {
+          "checks": {
+            "actual_uv0_active_render": true,
+            "actual_uv0_present": true,
+            "expected_uv0_active_render": true,
+            "expected_uv0_name": true,
+            "file_texture_binding_verified": true,
+            "finite_uv0": true,
+            "tangent_status": true,
+            "tangent_uv0": true,
+            "uv0_area_summary": true,
+            "uv0_bounds_summary": true
+          },
+          "destination_semantic": "TEXCOORD_0",
+          "imported_uv_set": "UVMap",
+          "loop_association_verified": false,
+          "object_name": "product.body__LOD0",
+          "required_uv_channel_index": 0,
+          "required_uv_set": "CBMPortableAtlas",
+          "status": "verified",
+          "tangent_uv_set": "UVMap",
+          "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+        },
+        {
+          "checks": {
+            "actual_uv0_active_render": true,
+            "actual_uv0_present": true,
+            "expected_uv0_active_render": true,
+            "expected_uv0_name": true,
+            "file_texture_binding_verified": true,
+            "finite_uv0": true,
+            "tangent_status": true,
+            "tangent_uv0": true,
+            "uv0_area_summary": true,
+            "uv0_bounds_summary": true
+          },
+          "destination_semantic": "TEXCOORD_0",
+          "imported_uv_set": "UVMap",
+          "loop_association_verified": false,
+          "object_name": "product.body__LOD1",
+          "required_uv_channel_index": 0,
+          "required_uv_set": "CBMPortableAtlas",
+          "status": "verified",
+          "tangent_uv_set": "UVMap",
+          "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+        },
+        {
+          "checks": {
+            "actual_uv0_active_render": true,
+            "actual_uv0_present": true,
+            "expected_uv0_active_render": true,
+            "expected_uv0_name": true,
+            "file_texture_binding_verified": true,
+            "finite_uv0": true,
+            "tangent_status": true,
+            "tangent_uv0": true,
+            "uv0_area_summary": true,
+            "uv0_bounds_summary": true
+          },
+          "destination_semantic": "TEXCOORD_0",
+          "imported_uv_set": "UVMap",
+          "loop_association_verified": false,
+          "object_name": "product.body__LOD2",
+          "required_uv_channel_index": 0,
+          "required_uv_set": "CBMPortableAtlas",
+          "status": "verified",
+          "tangent_uv_set": "UVMap",
+          "verification_mode": "glTF_file_texcoord0_plus_imported_uv0_summary"
+        }
+      ],
+      "required_uv_channel_index": 0,
+      "required_uv_set": "CBMPortableAtlas",
+      "status": "verified",
+      "verified_object_count": 3
+    },
+    "tangents": {
+      "preserved_exported_tangents_verified": false,
+      "recomputability_checked": true,
+      "unverified_objects": []
+    },
+    "uv_coordinates": {
+      "loop_association_verified": false,
+      "summary_metrics_checked": true,
+      "unverified_objects": [
+        "product.body__LOD0",
+        "product.body__LOD1",
+        "product.body__LOD2"
+      ]
+    }
+  },
+  "runtime": {
+    "blender_version": "5.0.1"
+  },
+  "schema_version": "0.7.0",
+  "source": {
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "camera_fingerprint": "76bcc8e66fd62f48ba93a7a07dc51782f1e0b7f9056e73dc5f8957ae19a09fd1",
+    "embedded_build_provenance": {
+      "assembly_contracts": {
+        "modeling_plan_path": "analysis/modeling_plan.json",
+        "modeling_plan_sha256": "a0ee3680216b74182697b27f4d99be8c86072f5843ce4f4f7b4b423882961f23",
+        "policy": "spatial_v1",
+        "relationship_ids": [],
+        "root_object_id": "product.body"
+      },
+      "camera_fingerprint": "76bcc8e66fd62f48ba93a7a07dc51782f1e0b7f9056e73dc5f8957ae19a09fd1",
+      "fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+      "geometry_payloads_sha256": {},
+      "job_id": "aq_full_box",
+      "material_plan_path": "analysis/material_plan.json",
+      "material_plan_sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a",
+      "materials": {
+        "mat.product.blue": {
+          "fingerprint": "712ef875019e00864b4d5276e5c35451ce6919503338705a1ef467bd850b609e",
+          "shader_recipe_path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/recipes/material-001.json",
+          "shader_recipe_sha256": "8b12a69f37bc558096220bdfed68d5b1723d429ff3c186f55abe1bffdb35ae17",
+          "texture_channels": {
+            "base_color": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/base_color.png",
+              "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6"
+            },
+            "emission": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/emission.png",
+              "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c"
+            },
+            "height": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/height.png",
+              "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584"
+            },
+            "metallic": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/metallic.png",
+              "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46"
+            },
+            "normal": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/normal.png",
+              "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c"
+            },
+            "opacity": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/opacity.png",
+              "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248"
+            },
+            "roughness": {
+              "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/roughness.png",
+              "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e"
+            }
+          },
+          "texture_manifest_path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+          "texture_manifest_sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+        }
+      },
+      "reference_content_scope": {
+        "reference_content_scope": "primary_object_only",
+        "target_subject": "파란 상자 제품"
+      },
+      "scene_spec_path": "analysis/scene_spec.json",
+      "scene_spec_sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf",
+      "schema_version": "0.5.0"
+    },
+    "external_asset_manifest_sha256": null,
+    "external_intake_plan_sha256": null,
+    "job_id": "aq_full_box",
+    "material_build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "material_conversion_plan_sha256": "37bb964dc8e59c3498e335829bd3f8a1b0fb2669bc32943b4170952dd2f89ad8",
+    "optimized_blend_sha256": "dba4c70e8bd2d13797ce1ea842c4c9c7b00d7008b9e7c8b326a37e8fa0f56782",
+    "plan_sha256": "8f8388d6ded5c7254921bbcc560b3011a2718ae0179be10e5a59fed0ccc4940a",
+    "scene_spec_sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf",
+    "scene_spec_version": "0.2.0",
+    "source_build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "source_external_manifest_sha256": "",
+    "source_kind": "scene_spec",
+    "source_scene_spec_sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+  },
+  "tolerances": {
+    "bounds_m": 0.0001,
+    "triangle_relative": 0.01
+  },
+  "warnings": [
+    "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+    "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+    "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+    "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+    "UV loop-to-vertex association could not be verified for: product.body__LOD0, product.body__LOD0__COLLIDER, product.body__LOD1, product.body__LOD2",
+    "UV coordinate summary preservation could not be verified for: product.body__LOD0, product.body__LOD1, product.body__LOD2"
+  ]
+}

@@ -1,0 +1,103 @@
+{
+  "additionalProperties": false,
+  "description": "Freeze explicit companion thresholds without replacing V0.6 scoring.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "require_contour": {
+      "default": true,
+      "title": "Require Contour",
+      "type": "boolean"
+    },
+    "minimum_boundary_f_score": {
+      "default": 0.8,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Boundary F Score",
+      "type": "number"
+    },
+    "maximum_edge_distance_transform_chamfer_norm": {
+      "default": 0.05,
+      "minimum": 0,
+      "title": "Maximum Edge Distance Transform Chamfer Norm",
+      "type": "number"
+    },
+    "minimum_semantic_iou": {
+      "default": 0.7,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Semantic Iou",
+      "type": "number"
+    },
+    "critical_semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Critical Semantic Ids",
+      "type": "array"
+    },
+    "required_landmark_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Required Landmark Ids",
+      "type": "array"
+    },
+    "maximum_landmark_reprojection_error_norm": {
+      "default": 0.05,
+      "minimum": 0,
+      "title": "Maximum Landmark Reprojection Error Norm",
+      "type": "number"
+    },
+    "require_multiview": {
+      "default": false,
+      "title": "Require Multiview",
+      "type": "boolean"
+    },
+    "minimum_multiview_silhouette_stability": {
+      "default": 0.7,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Multiview Silhouette Stability",
+      "type": "number"
+    },
+    "minimum_multiview_semantic_placement": {
+      "default": 0.7,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Multiview Semantic Placement",
+      "type": "number"
+    },
+    "meaningful_gain_min": {
+      "default": 0.01,
+      "exclusiveMinimum": 0,
+      "maximum": 1,
+      "title": "Meaningful Gain Min",
+      "type": "number"
+    },
+    "lexicographic_metric_priority": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Lexicographic Metric Priority",
+      "type": "array"
+    }
+  },
+  "required": [
+    "profile_id"
+  ],
+  "title": "IntegratedQualityPolicyV02",
+  "type": "object"
+}

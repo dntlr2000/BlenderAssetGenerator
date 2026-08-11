@@ -1,0 +1,49 @@
+{
+  "schema_version": "0.1.0",
+  "report_id": "aq-20260810t065207677077z-26250066-final",
+  "job_id": "aq_full_box",
+  "workflow_id": "wf-20260810t065207z-f3830cf3",
+  "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+  "input_sha256": "95b633227afc043a639f7c7c6c608b8fc140f54da6eebfe977bb858e8c619eb0",
+  "source_fingerprint": "e410eb23d3c098c657665957b8b6c1ce166dc39bbbb35a7eb74ee3b7576ef19d",
+  "json_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.json",
+  "json_sha256": "58cd55c8c9dfcefe576d0021cde36ac617c66f4b61451ff84624adc07c1ad835",
+  "pdf_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.pdf",
+  "pdf_sha256": "17eae6bf757514a3ee3613fbdd33ff0ff8e2d4e3de5047235b0f0f49369705e2",
+  "provenance": {
+    "job_id": "aq_full_box",
+    "workflow_id": "wf-20260810t065207z-f3830cf3",
+    "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+    "source_fingerprint": "e410eb23d3c098c657665957b8b6c1ce166dc39bbbb35a7eb74ee3b7576ef19d",
+    "input_sha256": "95b633227afc043a639f7c7c6c608b8fc140f54da6eebfe977bb858e8c619eb0",
+    "artifacts": [
+      {
+        "artifact_id": "integrated-quality-report-json",
+        "kind": "integrated-quality-report",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.json",
+        "sha256": "58cd55c8c9dfcefe576d0021cde36ac617c66f4b61451ff84624adc07c1ad835",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      },
+      {
+        "artifact_id": "integrated-quality-report-pdf",
+        "kind": "integrated-quality-report-pdf",
+        "relative_path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.pdf",
+        "sha256": "17eae6bf757514a3ee3613fbdd33ff0ff8e2d4e3de5047235b0f0f49369705e2",
+        "producer": {
+          "name": "autonomy-quality-gate",
+          "version": "0.1.0"
+        },
+        "produced_at": "2026-08-10T06:58:55.149889Z"
+      }
+    ]
+  },
+  "producer": {
+    "name": "autonomy-quality-gate",
+    "version": "0.1.0"
+  },
+  "created_at": "2026-08-10T06:58:55.149889Z"
+}

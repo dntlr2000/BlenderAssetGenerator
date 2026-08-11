@@ -1,0 +1,59 @@
+{
+  "schema_version": "0.6.0",
+  "job_id": "v8fast",
+  "run_id": "v08-6c7f187a-qa",
+  "request_sha256": "cfe86beaf813f19207975b04f6f4fb4e08feb7ed9175ac172f2fcff33414d134",
+  "camera_fingerprint": "2997c9a743b7e11344e7e058ba6294c1d894418df3de36ad74fbc984539679ce",
+  "direct_metrics": {
+    "scoring_version": "legacy_bbox_v1",
+    "silhouette_iou": 0.836634,
+    "silhouette_union_fraction": 0.15827,
+    "global_bbox": {
+      "reference_bbox_norm": [
+        0.21875,
+        0.2453125,
+        0.8955078125,
+        0.7828125
+      ],
+      "rendered_bbox_norm": [
+        0.2216796875,
+        0.25,
+        0.89453125,
+        0.778125
+      ],
+      "center_error_norm": 0.000691,
+      "size_error_norm": 0.007182
+    },
+    "semantic_deviations": [],
+    "overall_direct_score": 0.875507
+  },
+  "findings": [
+    {
+      "id": "direct.global_silhouette",
+      "target_ids": [],
+      "issue_type": "silhouette",
+      "severity": "medium",
+      "description": "Rendered global silhouette differs from the reference content mask.",
+      "evidence_sources": [
+        "direct_reference"
+      ],
+      "confidence": 0.9,
+      "metrics": {
+        "silhouette_iou": 0.836634
+      },
+      "suggestion": null
+    }
+  ],
+  "generated_target_status": "not_requested",
+  "surface_detail_summary": {
+    "contract_status": "not_required",
+    "declared_details": 0,
+    "texture_bound_details": 0,
+    "omitted_details": 0,
+    "failed_checks": 0,
+    "geometry_scoring_excluded": true,
+    "report_path": "reports/surface_detail_validation.json",
+    "warnings": []
+  },
+  "warnings": []
+}

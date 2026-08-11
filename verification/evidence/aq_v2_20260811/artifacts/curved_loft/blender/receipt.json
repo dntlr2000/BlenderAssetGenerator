@@ -1,0 +1,13 @@
+{
+  "blend_path": "artifacts/curved_loft/blender/probe.blend",
+  "blend_sha256": "5bca4712e27882732f6003d786ef4ccef8a957f935ebd251d676e6d007a9b5b1",
+  "camera_sha256": "30581952bdd7825c1806afd5e9a0422df2fd1a75d916201799d8020df92f4796",
+  "case_contract_file_sha256": "fcb0ff729ee5256577b913af11375656b2880fe68292cde072a5e88f9135c334",
+  "case_contract_path": "artifacts/curved_loft/blender/case_contract.json",
+  "case_id": "curved_loft",
+  "external_downloads_used": false,
+  "object_count": 2,
+  "render_path": "artifacts/curved_loft/blender/probe.png",
+  "render_sha256": "afa63409f40a5222fa0cafcd1793367525a82ad2628e51d636fa982131111bfe",
+  "schema_version": "0.2.0"
+}

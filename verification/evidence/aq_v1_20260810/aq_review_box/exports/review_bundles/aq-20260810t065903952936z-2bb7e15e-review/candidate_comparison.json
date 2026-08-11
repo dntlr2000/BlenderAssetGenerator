@@ -1,0 +1,21 @@
+{
+  "schema_version": "0.1.0",
+  "best_candidate_id": "initial-01",
+  "candidates": [
+    {
+      "candidate_id": "initial-01",
+      "evaluation_sha256": "214b96640f703291cb3eca0df62aa3a2ca576485c833c33a64e2aec92e8abd4f",
+      "metrics": {
+        "hard_gate_failures": 0,
+        "critical_regressions": 0,
+        "reference_fidelity": 0.469607,
+        "silhouette_iou": 0.280217,
+        "structural_quality": 1.0,
+        "material_quality": null,
+        "production_quality": null,
+        "change_magnitude": 0.0
+      },
+      "selected": true
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.1.0",
+  "transitions": [
+    {
+      "sequence": 1,
+      "action": "collect_reference_evidence",
+      "outcome": "advanced",
+      "receipt_sha256": "353c089fc75ec7f67d9664d8146a30968ef32c785320c7b28fac8ccfd2da7073"
+    },
+    {
+      "sequence": 2,
+      "action": "author_initial_candidate",
+      "outcome": "advanced",
+      "receipt_sha256": "ca96775e70e2493b52aedc34e0d751609aad8428aaf719a7a5429844c20e9a33"
+    },
+    {
+      "sequence": 3,
+      "action": "await_controller_output",
+      "outcome": "advanced",
+      "receipt_sha256": "3097314fc3cd03f48ec33023a9a0f8c31386333a92fe7fca14d1ee6e7e996778"
+    }
+  ]
+}

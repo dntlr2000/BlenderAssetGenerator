@@ -1,0 +1,96 @@
+name: Python CI
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: python-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python:
+    name: Python contracts and drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up project-minimum Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Sync locked dependencies
+        run: uv sync --frozen --extra dev --extra vision
+
+      - name: Check hierarchical agent instructions
+        run: uv run python scripts/check_agent_instructions.py
+
+      - name: Check repository registries and generated projections
+        run: uv run python scripts/generate_repository_summary.py --check
+
+      - name: Run deterministic non-Blender benchmarks
+        run: |
+          uv run pytest -q tests/test_autonomous_quality_benchmarks.py tests/test_autonomous_quality_benchmarks_v02.py
+          uv run python -m codex_blender_modeler.autonomy_benchmarks.v02_cli \
+            --manifest examples/autonomous_quality_benchmarks_v02/manifest.json \
+            --output "${{ runner.temp }}/autonomous_quality_benchmark_v02.json"
+
+      - name: Run schema and public-surface parity
+        run: >-
+          uv run pytest -q
+          tests/test_v06_schemas.py
+          tests/test_v07_schemas.py
+          tests/test_v08_schemas.py
+          tests/test_autonomous_quality_schemas.py
+          tests/test_autonomous_quality_public_surface.py
+          tests/test_aq_v02_schema_registry.py
+          tests/test_integrated_quality_v02_schemas.py
+          tests/test_material_authoring_schemas_v02.py
+
+      - name: Run AQ 0.2 host contracts
+        run: >-
+          uv run pytest -q
+          tests/test_aq_v02_geometry.py
+          tests/test_autonomy_v2_contracts.py
+          tests/test_autonomy_v2_planner.py
+          tests/test_autonomy_v2_controller_bridge.py
+          tests/test_autonomy_v2_candidate_validation.py
+          tests/test_autonomy_v2_candidate_validation_blender.py
+          tests/test_autonomy_v2_delivery_executor.py
+          tests/test_autonomy_v2_delivery_service.py
+          tests/test_autonomy_v2_material_phase.py
+          tests/test_autonomy_v2_quality_binding.py
+          tests/test_autonomy_v2_quality_terminal.py
+          tests/test_autonomy_v2_supervisor_delivery.py
+          tests/test_autonomy_v2_supervisor_public.py
+          tests/test_controller_executor_v02.py
+          tests/test_geometry_intent_v02_reachability.py
+          tests/test_integrated_quality_v02_metrics.py
+          tests/test_integrated_quality_v02_ranking.py
+          tests/test_integrated_quality_v02_service.py
+          tests/test_material_graph_runtime.py
+          tests/test_material_authoring_v02.py
+          tests/test_material_authoring_blender_v02.py
+          tests/test_advanced_material_handoff_v02.py
+          tests/test_repository_catalog.py
+          tests/test_repository_summary_generator.py
+          tests/test_ci_workflows.py
+
+      - name: Run full Python test suite
+        run: uv run pytest
+
+      - name: Run Ruff
+        run: uv run ruff check .

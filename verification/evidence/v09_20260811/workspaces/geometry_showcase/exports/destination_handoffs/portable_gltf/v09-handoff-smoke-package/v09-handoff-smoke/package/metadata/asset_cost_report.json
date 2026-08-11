@@ -1,0 +1,332 @@
+{
+  "schema_version": "0.7.0",
+  "report_id": "cost.v09-handoff-smoke-run",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "status": "passed",
+  "ok": true,
+  "quality_status": "partially_verified",
+  "unverified_checks": [
+    "internal_face_classification",
+    "runtime_draw_calls",
+    "destination_engine_instancing"
+  ],
+  "before": {
+    "lod0_render_objects": 15,
+    "lod0_material_slots": 15,
+    "lod0_estimated_draw_calls": 15,
+    "lod0_vertices": 3300,
+    "lod0_triangles": 6324,
+    "lod_objects": 30,
+    "collider_objects": 15,
+    "collider_triangles": 180,
+    "total_derived_triangles": 12164,
+    "unique_materials": 4,
+    "overlap_candidates": 4
+  },
+  "after": {
+    "lod0_render_objects": 11,
+    "lod0_material_slots": 11,
+    "lod0_estimated_draw_calls": 11,
+    "lod0_vertices": 3300,
+    "lod0_triangles": 6324,
+    "lod_objects": 22,
+    "collider_objects": 15,
+    "collider_triangles": 180,
+    "total_derived_triangles": 12164,
+    "unique_materials": 4,
+    "overlap_candidates": 4
+  },
+  "reductions": [
+    {
+      "metric": "lod0_render_objects",
+      "before": 15,
+      "after": 11,
+      "reduction": 4,
+      "reduction_fraction": 0.26666666666666666
+    },
+    {
+      "metric": "lod0_material_slots",
+      "before": 15,
+      "after": 11,
+      "reduction": 4,
+      "reduction_fraction": 0.26666666666666666
+    },
+    {
+      "metric": "lod0_estimated_draw_calls",
+      "before": 15,
+      "after": 11,
+      "reduction": 4,
+      "reduction_fraction": 0.26666666666666666
+    },
+    {
+      "metric": "lod0_vertices",
+      "before": 3300,
+      "after": 3300,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod0_triangles",
+      "before": 6324,
+      "after": 6324,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "lod_objects",
+      "before": 30,
+      "after": 22,
+      "reduction": 8,
+      "reduction_fraction": 0.26666666666666666
+    },
+    {
+      "metric": "collider_objects",
+      "before": 15,
+      "after": 15,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "collider_triangles",
+      "before": 180,
+      "after": 180,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "total_derived_triangles",
+      "before": 12164,
+      "after": 12164,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    },
+    {
+      "metric": "overlap_candidates",
+      "before": 4,
+      "after": 4,
+      "reduction": 0,
+      "reduction_fraction": 0.0
+    }
+  ],
+  "budgets": [],
+  "consolidation_batches": [
+    {
+      "batch_id": "batch.0001",
+      "semantic_id": "demo.instance_post",
+      "lod_level": 1,
+      "spatial_cell": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "source_objects": [
+        "demo.instance_post__001__LOD1",
+        "demo.instance_post__002__LOD1",
+        "demo.instance_post__003__LOD1",
+        "demo.instance_post__004__LOD1",
+        "demo.instance_post__LOD1"
+      ],
+      "output_object": "CBM_demo_instance_post__LOD1__BATCH0001",
+      "object_count_before": 5,
+      "object_count_after": 1,
+      "triangle_count_before": 270,
+      "triangle_count_after": 270,
+      "material_slots_before": 5,
+      "material_slots_after": 1
+    },
+    {
+      "batch_id": "batch.0002",
+      "semantic_id": "demo.instance_post",
+      "lod_level": 2,
+      "spatial_cell": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "source_objects": [
+        "demo.instance_post__001__LOD2",
+        "demo.instance_post__002__LOD2",
+        "demo.instance_post__003__LOD2",
+        "demo.instance_post__004__LOD2",
+        "demo.instance_post__LOD2"
+      ],
+      "output_object": "CBM_demo_instance_post__LOD2__BATCH0002",
+      "object_count_before": 5,
+      "object_count_after": 1,
+      "triangle_count_before": 130,
+      "triangle_count_after": 130,
+      "material_slots_before": 5,
+      "material_slots_after": 1
+    },
+    {
+      "batch_id": "batch.0003",
+      "semantic_id": "demo.instance_post",
+      "lod_level": 0,
+      "spatial_cell": null,
+      "material_ids": [
+        "mat.blue"
+      ],
+      "source_objects": [
+        "demo.instance_post__001__LOD0",
+        "demo.instance_post__002__LOD0",
+        "demo.instance_post__003__LOD0",
+        "demo.instance_post__004__LOD0",
+        "demo.instance_post__LOD0"
+      ],
+      "output_object": "CBM_demo_instance_post__LOD0__BATCH0003",
+      "object_count_before": 5,
+      "object_count_after": 1,
+      "triangle_count_before": 460,
+      "triangle_count_after": 460,
+      "material_slots_before": 5,
+      "material_slots_after": 1
+    }
+  ],
+  "cleanup_records": [],
+  "instance_groups": [
+    {
+      "group_id": "instance.0007",
+      "mesh_fingerprint": "7384a2f65344d61dd47e1ccd5bff0d81e98dad18621a953da420dccad799e1cc",
+      "objects": [
+        "demo.instance_post__001__LOD0",
+        "demo.instance_post__002__LOD0",
+        "demo.instance_post__003__LOD0",
+        "demo.instance_post__004__LOD0",
+        "demo.instance_post__LOD0"
+      ],
+      "semantic_ids": [
+        "demo.instance_post"
+      ],
+      "material_ids": [
+        "mat.blue"
+      ],
+      "potential_mesh_copies_saved": 4
+    }
+  ],
+  "overlap_findings_before": [
+    {
+      "finding_id": "overlap.before.0001",
+      "left_object": "demo.boolean.block__LOD0",
+      "right_object": "demo.modifier_array__LOD0",
+      "left_semantic_id": "demo.boolean.block",
+      "right_semantic_id": "demo.modifier_array",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 0.173249883,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.before.0002",
+      "left_object": "demo.instance_post__003__LOD0",
+      "right_object": "demo.modifier_array__LOD0",
+      "left_semantic_id": "demo.instance_post",
+      "right_semantic_id": "demo.modifier_array",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 0.173249647,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.before.0003",
+      "left_object": "demo.modifier_mirror__LOD0",
+      "right_object": "demo.terrain__LOD0",
+      "left_semantic_id": "demo.modifier_mirror",
+      "right_semantic_id": "demo.terrain",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 7.600000381,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.before.0004",
+      "left_object": "demo.modifier_solidify__LOD0",
+      "right_object": "demo.terrain__LOD0",
+      "left_semantic_id": "demo.modifier_solidify",
+      "right_semantic_id": "demo.terrain",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 1.931140971,
+      "action": "report_only"
+    }
+  ],
+  "overlap_findings_after": [
+    {
+      "finding_id": "overlap.after.0001",
+      "left_object": "CBM_demo_instance_post__LOD0__BATCH0003",
+      "right_object": "demo.modifier_array__LOD0",
+      "left_semantic_id": "demo.instance_post",
+      "right_semantic_id": "demo.modifier_array",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 0.692999532,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.after.0002",
+      "left_object": "demo.boolean.block__LOD0",
+      "right_object": "demo.modifier_array__LOD0",
+      "left_semantic_id": "demo.boolean.block",
+      "right_semantic_id": "demo.modifier_array",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 0.173249883,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.after.0003",
+      "left_object": "demo.modifier_mirror__LOD0",
+      "right_object": "demo.terrain__LOD0",
+      "left_semantic_id": "demo.modifier_mirror",
+      "right_semantic_id": "demo.terrain",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 7.600000381,
+      "action": "report_only"
+    },
+    {
+      "finding_id": "overlap.after.0004",
+      "left_object": "demo.modifier_solidify__LOD0",
+      "right_object": "demo.terrain__LOD0",
+      "left_semantic_id": "demo.modifier_solidify",
+      "right_semantic_id": "demo.terrain",
+      "classification": "aabb_overlap_candidate",
+      "overlap_volume_m3": 1.931140971,
+      "action": "report_only"
+    }
+  ],
+  "created_at": "2026-08-11T07:48:38.223753Z",
+  "canonical_unchanged": true,
+  "notes": [
+    "AABB overlap findings are broad-phase candidates, not proven face intersections.",
+    "Internal and coplanar hidden faces remain unclassified and are not removed.",
+    "Instance groups are advisory until a destination adapter reconstructs them.",
+    "Estimated draw calls are material-slot proxies, not runtime measurements."
+  ]
+}

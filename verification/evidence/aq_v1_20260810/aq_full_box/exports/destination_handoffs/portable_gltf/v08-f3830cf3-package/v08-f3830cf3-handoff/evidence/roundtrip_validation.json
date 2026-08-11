@@ -1,0 +1,121 @@
+{
+  "schema_version": "0.7.0",
+  "validation_id": "roundtrip.v08-f3830cf3-package",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "package_id": "v08-f3830cf3-package",
+  "profile_id": "portable_gltf",
+  "package_manifest": {
+    "id": "package.manifest.v08-f3830cf3-package",
+    "kind": "package_manifest",
+    "path": "exports/packages/portable_gltf/v08-f3830cf3-package/package_manifest.json",
+    "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b"
+  },
+  "imported_inventory": {
+    "id": "roundtrip.inventory.v08-f3830cf3-package",
+    "kind": "roundtrip_inventory",
+    "path": "optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_evidence.json",
+    "sha256": "3ae7c138846529566dae2b8ae103825a9eca374d0981cfe7ec76c6ac47f46643"
+  },
+  "status": "passed",
+  "ok": true,
+  "passed": 1,
+  "warnings": 6,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "roundtrip.warning.0001",
+      "category": "axis",
+      "status": "warning",
+      "message": "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0002",
+      "category": "units",
+      "status": "warning",
+      "message": "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0003",
+      "category": "normal",
+      "status": "warning",
+      "message": "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0004",
+      "category": "tangent",
+      "status": "warning",
+      "message": "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0005",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV loop-to-vertex association could not be verified for: product.body__LOD0, product.body__LOD0__COLLIDER, product.body__LOD1, product.body__LOD2",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0006",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV coordinate summary preservation could not be verified for: product.body__LOD0, product.body__LOD1, product.body__LOD2",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.clean_import.completed",
+      "category": "format",
+      "status": "passed",
+      "message": "Blender completed a clean-scene package import.",
+      "target_id": null
+    }
+  ],
+  "bounds": {
+    "source": {
+      "minimum": [
+        -1.0,
+        -0.4,
+        0.0
+      ],
+      "maximum": [
+        1.0,
+        0.4,
+        1.2
+      ]
+    },
+    "imported": {
+      "minimum": [
+        -1.0,
+        -0.4,
+        0.0
+      ],
+      "maximum": [
+        1.0,
+        0.4,
+        1.2
+      ]
+    },
+    "max_abs_error_m": 0.0,
+    "tolerance_m": 0.0001,
+    "passed": true
+  },
+  "expected_semantic_ids": [
+    "product.body"
+  ],
+  "observed_semantic_ids": [
+    "product.body"
+  ],
+  "semantic_id_coverage": 1.0,
+  "expected_material_ids": [
+    "mat.product.blue"
+  ],
+  "observed_material_ids": [
+    "mat.product.blue"
+  ],
+  "material_id_coverage": 1.0,
+  "created_at": "2026-08-10T06:57:20.456812Z",
+  "errors": []
+}

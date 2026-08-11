@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.7.0",
+  "manifest_id": "collision.v08-f3830cf3",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de"
+    },
+    "source_fingerprint": "92d47a0a8c48a6ecbf84f30c3e84297c700a12c020f15afda4f29fd11345fd21",
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+      }
+    ]
+  },
+  "strategy": "compound",
+  "status": "complete",
+  "entries": [
+    {
+      "collider_id": "collider.product.body.1",
+      "target_id": "product.body",
+      "strategy": "box",
+      "location": [
+        0.0,
+        0.0,
+        0.6
+      ],
+      "rotation_deg": [
+        0.0,
+        -0.0,
+        0.0
+      ],
+      "dimensions": [
+        2.0,
+        0.8,
+        1.2
+      ],
+      "mesh": null,
+      "hull_count": 1,
+      "triangle_count": 12
+    }
+  ],
+  "created_at": "2026-08-10T06:55:28.520240Z",
+  "completed_at": "2026-08-10T06:55:28.520240Z",
+  "canonical_unchanged": true,
+  "errors": [],
+  "notes": [
+    "Collision proxies are derived and never replace render geometry.",
+    "The compound strategy is represented as one box entry per exported semantic object instance in this V0.7 core."
+  ]
+}

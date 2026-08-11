@@ -1,0 +1,649 @@
+{
+  "$defs": {
+    "BenchmarkArtifactV02": {
+      "additionalProperties": false,
+      "description": "Bind one generated reference or candidate artifact to exact bytes.",
+      "properties": {
+        "role": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "stage_id": {
+          "anyOf": [
+            {
+              "enum": [
+                "v09_initial",
+                "aq_v1_initial",
+                "aq_v2_initial",
+                "aq_v2_final"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stage Id"
+        },
+        "semantic_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Id"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "BenchmarkArtifactV02",
+      "type": "object"
+    },
+    "BenchmarkCaseResultV02": {
+      "additionalProperties": false,
+      "description": "Summarize one exact case while keeping human review explicitly absent.",
+      "properties": {
+        "case_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "simple_hard_surface_box",
+            "curved_loft",
+            "swept_handle",
+            "boolean_panel",
+            "ornate_multi_part_prop",
+            "multi_material_prop",
+            "wood_object",
+            "signage_decal_object",
+            "emissive_crystal_prop",
+            "small_static_assembly"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "case_contract_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Contract Sha256",
+          "type": "string"
+        },
+        "known_camera_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Known Camera Sha256",
+          "type": "string"
+        },
+        "reference_fingerprint_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Fingerprint Sha256",
+          "type": "string"
+        },
+        "reference_artifacts": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkArtifactV02"
+          },
+          "minItems": 4,
+          "title": "Reference Artifacts",
+          "type": "array"
+        },
+        "stage_results": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkStageResultV02"
+          },
+          "title": "Stage Results",
+          "type": "array"
+        },
+        "metric_direction_results": {
+          "items": {
+            "$ref": "#/$defs/MetricDirectionResultV02"
+          },
+          "minItems": 1,
+          "title": "Metric Direction Results",
+          "type": "array"
+        },
+        "blender_status": {
+          "enum": [
+            "not_requested",
+            "not_applicable",
+            "passed",
+            "failed"
+          ],
+          "title": "Blender Status",
+          "type": "string"
+        },
+        "blender_receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlenderBenchmarkReceiptV02"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error"
+        },
+        "human_review_status": {
+          "const": "not_reviewed",
+          "default": "not_reviewed",
+          "title": "Human Review Status",
+          "type": "string"
+        },
+        "ok": {
+          "title": "Ok",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "case_id",
+        "category",
+        "case_contract_sha256",
+        "known_camera_sha256",
+        "reference_fingerprint_sha256",
+        "reference_artifacts",
+        "stage_results",
+        "metric_direction_results",
+        "blender_status",
+        "ok"
+      ],
+      "title": "BenchmarkCaseResultV02",
+      "type": "object"
+    },
+    "BenchmarkMetricSetV02": {
+      "additionalProperties": false,
+      "description": "Store scored comparison values without hiding missing critical semantics.",
+      "properties": {
+        "silhouette_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Silhouette Iou",
+          "type": "number"
+        },
+        "contour_boundary_f_score": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Contour Boundary F Score",
+          "type": "number"
+        },
+        "contour_chamfer_norm": {
+          "minimum": 0,
+          "title": "Contour Chamfer Norm",
+          "type": "number"
+        },
+        "mean_semantic_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Mean Semantic Iou",
+          "type": "number"
+        },
+        "minimum_critical_semantic_iou": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Critical Semantic Iou",
+          "type": "number"
+        },
+        "missing_semantic_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Missing Semantic Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "silhouette_iou",
+        "contour_boundary_f_score",
+        "contour_chamfer_norm",
+        "mean_semantic_iou",
+        "minimum_critical_semantic_iou",
+        "missing_semantic_ids"
+      ],
+      "title": "BenchmarkMetricSetV02",
+      "type": "object"
+    },
+    "BenchmarkStageResultV02": {
+      "additionalProperties": false,
+      "description": "Record one stage's exact artifacts, metrics, and modeled execution outcome.",
+      "properties": {
+        "stage_id": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "Stage Id",
+          "type": "string"
+        },
+        "stage_plan_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Stage Plan Sha256",
+          "type": "string"
+        },
+        "candidate_fingerprint_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Fingerprint Sha256",
+          "type": "string"
+        },
+        "metrics": {
+          "$ref": "#/$defs/BenchmarkMetricSetV02"
+        },
+        "execution": {
+          "$ref": "#/$defs/StageExecutionExpectationV02"
+        },
+        "duration_basis": {
+          "const": "deterministic_fixture_model",
+          "default": "deterministic_fixture_model",
+          "title": "Duration Basis",
+          "type": "string"
+        },
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/BenchmarkArtifactV02"
+          },
+          "minItems": 4,
+          "title": "Artifacts",
+          "type": "array"
+        }
+      },
+      "required": [
+        "stage_id",
+        "stage_plan_sha256",
+        "candidate_fingerprint_sha256",
+        "metrics",
+        "execution",
+        "artifacts"
+      ],
+      "title": "BenchmarkStageResultV02",
+      "type": "object"
+    },
+    "BlenderBenchmarkReceiptV02": {
+      "additionalProperties": false,
+      "description": "Bind one opt-in fixed-script Blender smoke to its exact case and outputs.",
+      "properties": {
+        "schema_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "case_contract_path": {
+          "title": "Case Contract Path",
+          "type": "string"
+        },
+        "case_contract_file_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Case Contract File Sha256",
+          "type": "string"
+        },
+        "blend_path": {
+          "title": "Blend Path",
+          "type": "string"
+        },
+        "blend_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Blend Sha256",
+          "type": "string"
+        },
+        "render_path": {
+          "title": "Render Path",
+          "type": "string"
+        },
+        "render_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Render Sha256",
+          "type": "string"
+        },
+        "object_count": {
+          "minimum": 1,
+          "title": "Object Count",
+          "type": "integer"
+        },
+        "camera_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Sha256",
+          "type": "string"
+        },
+        "external_downloads_used": {
+          "const": false,
+          "default": false,
+          "title": "External Downloads Used",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "case_id",
+        "case_contract_path",
+        "case_contract_file_sha256",
+        "blend_path",
+        "blend_sha256",
+        "render_path",
+        "render_sha256",
+        "object_count",
+        "camera_sha256"
+      ],
+      "title": "BlenderBenchmarkReceiptV02",
+      "type": "object"
+    },
+    "MetricDirectionResultV02": {
+      "additionalProperties": false,
+      "description": "Record one expected and observed deterministic metric movement.",
+      "properties": {
+        "metric": {
+          "enum": [
+            "silhouette_iou",
+            "contour_boundary_f_score",
+            "contour_chamfer_norm",
+            "mean_semantic_iou",
+            "minimum_critical_semantic_iou"
+          ],
+          "title": "Metric",
+          "type": "string"
+        },
+        "from_stage": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "From Stage",
+          "type": "string"
+        },
+        "to_stage": {
+          "enum": [
+            "v09_initial",
+            "aq_v1_initial",
+            "aq_v2_initial",
+            "aq_v2_final"
+          ],
+          "title": "To Stage",
+          "type": "string"
+        },
+        "expected_direction": {
+          "enum": [
+            "increase",
+            "decrease",
+            "nondecrease",
+            "nonincrease",
+            "equal"
+          ],
+          "title": "Expected Direction",
+          "type": "string"
+        },
+        "minimum_absolute_delta": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Absolute Delta",
+          "type": "number"
+        },
+        "from_value": {
+          "minimum": 0,
+          "title": "From Value",
+          "type": "number"
+        },
+        "to_value": {
+          "minimum": 0,
+          "title": "To Value",
+          "type": "number"
+        },
+        "observed_delta": {
+          "title": "Observed Delta",
+          "type": "number"
+        },
+        "matched": {
+          "title": "Matched",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "metric",
+        "from_stage",
+        "to_stage",
+        "expected_direction",
+        "minimum_absolute_delta",
+        "from_value",
+        "to_value",
+        "observed_delta",
+        "matched"
+      ],
+      "title": "MetricDirectionResultV02",
+      "type": "object"
+    },
+    "StageExecutionExpectationV02": {
+      "additionalProperties": false,
+      "description": "Record deterministic modeled execution counts without claiming wall-clock timing.",
+      "properties": {
+        "build_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Build Count",
+          "type": "integer"
+        },
+        "render_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Render Count",
+          "type": "integer"
+        },
+        "iteration_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Iteration Count",
+          "type": "integer"
+        },
+        "rollback_count": {
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Rollback Count",
+          "type": "integer"
+        },
+        "termination_reason": {
+          "enum": [
+            "initial_evidence_captured",
+            "legacy_policy_stopped",
+            "candidate_ready",
+            "quality_target_reached",
+            "plateau",
+            "budget_exhausted",
+            "host_failure"
+          ],
+          "title": "Termination Reason",
+          "type": "string"
+        },
+        "package_status": {
+          "enum": [
+            "not_run",
+            "planned",
+            "passed",
+            "failed"
+          ],
+          "title": "Package Status",
+          "type": "string"
+        },
+        "package_format": {
+          "enum": [
+            "none",
+            "glb",
+            "fbx",
+            "obj"
+          ],
+          "title": "Package Format",
+          "type": "string"
+        },
+        "roundtrip_status": {
+          "enum": [
+            "not_run",
+            "passed",
+            "failed"
+          ],
+          "title": "Roundtrip Status",
+          "type": "string"
+        },
+        "deterministic_duration_ms": {
+          "maximum": 86400000,
+          "minimum": 0,
+          "title": "Deterministic Duration Ms",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "build_count",
+        "render_count",
+        "iteration_count",
+        "rollback_count",
+        "termination_reason",
+        "package_status",
+        "package_format",
+        "roundtrip_status",
+        "deterministic_duration_ms"
+      ],
+      "title": "StageExecutionExpectationV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Summarize a deterministic AQ 0.2 benchmark without claiming human quality.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "benchmark_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Benchmark Id",
+      "type": "string"
+    },
+    "manifest_path": {
+      "title": "Manifest Path",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "runner_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Runner Version",
+      "type": "string"
+    },
+    "external_downloads_used": {
+      "const": false,
+      "default": false,
+      "title": "External Downloads Used",
+      "type": "boolean"
+    },
+    "blender_requested": {
+      "title": "Blender Requested",
+      "type": "boolean"
+    },
+    "blender_executed_case_count": {
+      "minimum": 0,
+      "title": "Blender Executed Case Count",
+      "type": "integer"
+    },
+    "deterministic_host_evidence": {
+      "const": true,
+      "default": true,
+      "title": "Deterministic Host Evidence",
+      "type": "boolean"
+    },
+    "human_review_status": {
+      "const": "not_reviewed",
+      "default": "not_reviewed",
+      "title": "Human Review Status",
+      "type": "string"
+    },
+    "case_results": {
+      "items": {
+        "$ref": "#/$defs/BenchmarkCaseResultV02"
+      },
+      "minItems": 10,
+      "title": "Case Results",
+      "type": "array"
+    },
+    "passed_case_count": {
+      "minimum": 0,
+      "title": "Passed Case Count",
+      "type": "integer"
+    },
+    "failed_case_count": {
+      "minimum": 0,
+      "title": "Failed Case Count",
+      "type": "integer"
+    },
+    "ok": {
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "benchmark_id",
+    "manifest_path",
+    "manifest_sha256",
+    "blender_requested",
+    "blender_executed_case_count",
+    "case_results",
+    "passed_case_count",
+    "failed_case_count",
+    "ok",
+    "limitations"
+  ],
+  "title": "BenchmarkReportV02",
+  "type": "object"
+}

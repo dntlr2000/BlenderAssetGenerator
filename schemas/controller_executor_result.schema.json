@@ -1,0 +1,227 @@
+{
+  "$defs": {
+    "ControllerArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one controller input or output to exact job-contained bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "role": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "role",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ControllerArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record a validated controller outcome without granting canonical authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/ControllerArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "controller_kind": {
+      "enum": [
+        "desktop_in_session",
+        "fake_for_tests",
+        "optional_codex_app_server"
+      ],
+      "title": "Controller Kind",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "waiting_for_output",
+        "timeout",
+        "failed",
+        "rejected",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/ControllerArtifact"
+    },
+    "tool_profile": {
+      "$ref": "#/$defs/ControllerArtifact"
+    },
+    "outputs": {
+      "items": {
+        "$ref": "#/$defs/ControllerArtifact"
+      },
+      "title": "Outputs",
+      "type": "array"
+    },
+    "output_inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Output Inventory Sha256",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "extra_output_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Extra Output Count",
+      "type": "integer"
+    },
+    "partial_output_count": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Partial Output Count",
+      "type": "integer"
+    },
+    "retryable": {
+      "default": false,
+      "title": "Retryable",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "diagnostics": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Diagnostics",
+      "type": "array"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "execution_id",
+    "controller_kind",
+    "status",
+    "request",
+    "tool_profile",
+    "outputs",
+    "output_inventory_sha256",
+    "started_at",
+    "completed_at"
+  ],
+  "title": "ControllerResult",
+  "type": "object"
+}

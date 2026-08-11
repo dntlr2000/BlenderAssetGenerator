@@ -1,0 +1,1019 @@
+{
+  "schema_version": "0.8.0",
+  "workflow_id": "wf-20260811t074047z-6c7f187a",
+  "job_id": "v8fast",
+  "plan_sha256": "b4d3ab64c47dc90fa44e160ce4e826da1189c646dd4a2d23fdd794675de5891d",
+  "request_sha256": "19f7d5966d4fe07661aa7f280248746b989ecbc9f646d564d6b8f9b6dea960ac",
+  "reference_content_scope": "full_reference",
+  "target_subject": null,
+  "execution_policy": "background_exterior",
+  "delivery_scope": "preview_only",
+  "status": "completed",
+  "milestone": "delivered_for_review",
+  "current_step_id": null,
+  "steps": [
+    {
+      "step_id": "job.created",
+      "status": "complete",
+      "input_fingerprint": "2401be058d2790eb06ce3c1988869f526fc48448187a52cb3bfd229582cc78eb",
+      "completion_fingerprint": "57aa020a2a1e10648ae16f041a1db96dc40307656552943b00b5f27c940ef067",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "job.metadata",
+          "path": "job.json",
+          "sha256": "1e0eef1fee7da35d71c58302bd9a07c674f37a01557bf26711b2e3a60b96276e",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:47.906866Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "reference.analyze",
+      "status": "complete",
+      "input_fingerprint": "3d93663b656d4b26c9d17923a40c11a391c2cbb100ec02badbc6bf41c70f2659",
+      "completion_fingerprint": "c3138bcb74f30fe527cf9610602555f97ae6fea305ef7814a3021ffdf5f51e59",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "reference.analysis",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/19b970be36c241f6.json",
+          "sha256": "49c76b82352c06ede81404a3e4635fbd66a392a3022bd94fac65fda14f21f100",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "reference.camera",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/554bce3cb82338bc.json",
+          "sha256": "74966bfe406a9a0f3ee05305eeed072e96d2ed148b47b78d0ecd31edbb198e60",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:48.224323Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "geometry.modeling_plan",
+      "status": "complete",
+      "input_fingerprint": "3e67576432af0f36ac245c059d5fd8cc191aab01bc09b1859cf4fedee87c6273",
+      "completion_fingerprint": "5a9ce343c24ef811636967c56e1abaf7ecf9d2c17d3c953757709da7b2afba7e",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "geometry.modeling_plan.output",
+          "path": "analysis/modeling_plan.json",
+          "sha256": "5de8109d595b43dea19ed0c8b27deffbf309156922c62d4ed788596b737705ee",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:48.355218Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "geometry.background_author",
+      "status": "complete",
+      "input_fingerprint": "2c35d5d287ea12136cb3d3b99d58b7f8a970a52c822fcc1794d9ef25e6cfec30",
+      "completion_fingerprint": "3d3abfa3f3f93b31e4ca92bf33d3b953cc3a7de4ec5de3242c738227c68c5ad7",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "geometry.background_scene_spec",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/g/initial_scene_spec.json",
+          "sha256": "7d9af0b1ff7cfd8065926f2d265381d61f3a417e91bd01aa1ca21a544d2293cd",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:48.561325Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background.fit",
+      "status": "complete",
+      "input_fingerprint": "0b6ff4c1b7df1f9fc1a4517ed8cc6f2126a45b27943ef95ffebbaf30875c6eb5",
+      "completion_fingerprint": "eb1c5fedadfafe177fed354b5e3e6e9fe735cc115f12f4d90d118cbbd06059cb",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background.fit.evidence",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/g/fit",
+          "sha256": "46507843e70e037843c7f507751b9188699bb37280e4a7b1672bf7d78d7faa91",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background.fit.promoted_scene_spec",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/g/promoted_scene_spec.json",
+          "sha256": "7d9af0b1ff7cfd8065926f2d265381d61f3a417e91bd01aa1ca21a544d2293cd",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:52.178180Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.build",
+      "status": "complete",
+      "input_fingerprint": "a4a4da1ad66fa2fa438516edcf8ea6ef5d12702b15b3b64e40dde0c75a312041",
+      "completion_fingerprint": "eeb637a11ed3981c4ec637caf5c08addb7d5e0fa2838a4b73e6687f2984f9d8b",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.blend",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/07cc4fe8280bcc58.blend",
+          "sha256": "c7e1a28347c637154c3e738b81e27f519819050aca6497e65e6fed39e3fd6984",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:53.435566Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.render",
+      "status": "complete",
+      "input_fingerprint": "26e9fe8e069c21a583d6b098aece04c8c6976df132d64eb56eb706b301809ad8",
+      "completion_fingerprint": "97a5c4afb2e583a7ed54a76912fbb6808549e0f0a7777db5e3d3c7a974e704b0",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.preview",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/39fc117b2d983772.png",
+          "sha256": "fddb3b4b2b770b4ba7abab5c9cb21f25d95a94732767a323c1f1e07868de10ea",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:56.085036Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.inspect",
+      "status": "complete",
+      "input_fingerprint": "ca61f0c1e90f3eb967777977c22e33e72166aeb5d993f5026cfa7cc1c7af97a7",
+      "completion_fingerprint": "13e8fbd7fc0d0561c456acf28c85b0cb99a702e70307bb1ec89514f1d8c3746b",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.inventory",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/5038ee5da7be5fa7.json",
+          "sha256": "b9da78a8df3e12bc9e702f2d68b79df7d2f1ea85131780933a38c2968f7b3d69",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:57.830215Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.validate",
+      "status": "complete",
+      "input_fingerprint": "85d2e6e6d80f8e4b29a7386751b0e44a292e956fbd76fff0a9fbc5dd855dcf4e",
+      "completion_fingerprint": "f176e6b794e5ce60d33ae51f6a01f6e12d7d6869ca10db20cbd4ab0ce415a5d6",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.validation",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/ce5e73c727519b1d.json",
+          "sha256": "f935ffd4316239b8ad417d6dd2f0b2b15faa78613c7d1282704c0b71177876cf",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:40:59.420368Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.geometry_multiview",
+      "status": "complete",
+      "input_fingerprint": "7f5cba26cc2f566350a9f37707f7e13524a278a5e8a5d72b1911301b28a0622a",
+      "completion_fingerprint": "0f0f3cdbc23f13b7b739bf9ac2815cdbba1c6a8e1b4dff5e324303d2e4d257f2",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.geometry_multiview.plan",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/plan.json",
+          "sha256": "cd6b0492aa18d62679b2d713ee3cd050cb70dac584f39440f491dd800415c8b1",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.manifest",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/render_manifest.json",
+          "sha256": "999df7d0cfada27a4bb8f667780d7d52038a8e15812d1b61e233be95ed7afc3b",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.report",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/report.json",
+          "sha256": "3643e0dc1af88b7d23589eba7c4d81f0c06fbefdc234b278bc7a6e4e82e1afad",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.beauty",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/front/beauty.png",
+          "sha256": "eba00c8741980c9b8a19d3814ac3257bc61c96f2ed41f54967e7a569ccac5b37",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/front/silhouette.png",
+          "sha256": "36a55551ccd057f7fb3a7d8943e98fbaf36de3ae94031ca4ca7c9b256d441ddd",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.object_id",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/front/object_id.png",
+          "sha256": "bd1458b8380d2148dc0a9f05101a49b2dd602fb80a2751f4a3623fc7df4ac6b7",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.front.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/front/wireframe.png",
+          "sha256": "b9f41c34a8a18da9579bc2fc276bf38f602529e897e9d2dd1c61592dc8d33f53",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.beauty",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/right/beauty.png",
+          "sha256": "0ddf110f77b6af7016690a13dca25646538fb5df830e5809c34ea0232660d0d1",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/right/silhouette.png",
+          "sha256": "0ecb9b3b3a869af5adff5c0f361bf0abea0f4e747795e2fb340d89b4fae7030d",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.object_id",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/right/object_id.png",
+          "sha256": "5afa08243fb159e17976e2e162bee7adcc2823caa1a3cf3c61a3e1660aaf3a2e",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.right.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/right/wireframe.png",
+          "sha256": "27a0c08b2bd3304df4517228ab012ef33ca8f86371926ae124bf9834aa28b0ef",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.beauty",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/top/beauty.png",
+          "sha256": "9f43a06f2268c7b11b01107bba446d99a42443a6f0eec8af938b5209d49e9542",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/top/silhouette.png",
+          "sha256": "1a32257c4fd9ec182fca3dd7f6e91ef51632f4607d67bd8f3ecf914e51565ce4",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.object_id",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/top/object_id.png",
+          "sha256": "b5f3cba362f4079842efcb60675175e53c8b869e80b8fdc66e1836681ace0e90",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.top.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/top/wireframe.png",
+          "sha256": "5fed0e200244ad27af422f76645ccf4ffcd2aaa03b0b74ba1771420d870ea269",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.beauty",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/rear/beauty.png",
+          "sha256": "95f3196ca88e78535a42623d3781a8da3d1621ab51d54008365ab763f9c90db3",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/rear/silhouette.png",
+          "sha256": "1e467909bdeff62d8eb6264497a30cd63578cf7627ae1e75f71e73ccbdb911c8",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.object_id",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/rear/object_id.png",
+          "sha256": "5afa08243fb159e17976e2e162bee7adcc2823caa1a3cf3c61a3e1660aaf3a2e",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.rear.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/rear/wireframe.png",
+          "sha256": "0b8927a1514d2133e4e32e4aa9e4f665c392cbfee17806641b6d97abc1e2d0f5",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.beauty",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/oblique/beauty.png",
+          "sha256": "5eab91619183f85e682b910667379a43e99e7d6b73eec75e173f9046a2de3681",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.silhouette",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/oblique/silhouette.png",
+          "sha256": "148e7d925f92abf4b5612cb7c1fd9362ebbc6573a3d0ac76b370c87e0581115d",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.object_id",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/oblique/object_id.png",
+          "sha256": "50c9673e8b0323a7cde7c7e4617c3d5c97ec31aa13e2da9131200c725f64372b",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.geometry_multiview.oblique.wireframe",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/views/oblique/wireframe.png",
+          "sha256": "a07fcc9c5dd810afe8ba8ecaeb2f45d743f5eb98736edfbf8662c44f2968b45f",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:05.046633Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.geometry_multiview_visual_review",
+      "status": "complete",
+      "input_fingerprint": "f04101a8ab8bcdb94ec997c3db7374100bbcb19d9a0f0aa370c2607c1f92377d",
+      "completion_fingerprint": "4bbc2f7d9edcf03a39a0e5a3ae62cc4c44bdfefb0c4ba76a0705295d2c832c11",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.geometry_multiview.visual_review",
+          "path": "qa/assembly_sanity/runs/v08-1a28a2840ff0-background_geometry-geometry/visual_review.json",
+          "sha256": "fb76f14350971914ec7dfe6f56908cbbb79405fb203e253475187eb1a96c1591",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:05.456561Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_geometry.report",
+      "status": "complete",
+      "input_fingerprint": "de9941ab3555ac20138c7eca3322541a2b72b1f06cf152687620c47764c14de3",
+      "completion_fingerprint": "7215857f9c1a2069138180d155685b530ba252a2bc78693aa53c7b2f8f9a98f9",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_geometry.report.pdf",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/6761e5d907b0.pdf",
+          "sha256": "cf180623a2a8821205c0aaeff2df6d2c3e33b9742aa4d01f6f477a1eb87c0098",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_geometry.report.manifest",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/6761e5d907b0.manifest.json",
+          "sha256": "0bc37919e9e9f3f744bcea5817079e83d68b595988cb2d9f41fd3cab0b2b45ad",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:06.436473Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.uv_inventory",
+      "status": "complete",
+      "input_fingerprint": "66f688a2cf76d55b268ed7a151e32e9285847db7cb680cc924444c559956fd3a",
+      "completion_fingerprint": "0742de688740a2ab849cef52a0eba3a0ec4a4c61be819919934526e9c194c5f1",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.uv_inventory",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/9ffd427ad0a31dc8.json",
+          "sha256": "b9da78a8df3e12bc9e702f2d68b79df7d2f1ea85131780933a38c2968f7b3d69",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:07.769963Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.scaffold",
+      "status": "complete",
+      "input_fingerprint": "b5730110eaefe7a0bd12d49174de445524d75b1d8defa28beaa85ec3207c6f35",
+      "completion_fingerprint": "d442630dfa164d161d0feb6f4e3c48604c4158febdbe1249e8e74fb24ec0964f",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.scaffold",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/m/scaffold",
+          "sha256": "02f78bb0d657b57b2548ea0887b820c2a4b75103c0a3a0964bf6ebfba85a6e7d",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:08.016883Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.author",
+      "status": "complete",
+      "input_fingerprint": "7b147a19af6365d0f6cd56e6a74b4f980e309e567c4967900734f865a0ae9e01",
+      "completion_fingerprint": "494257315050f51e06a1b5b118c9f6a14043e87b1f8a66b731c4682bbaa90a6b",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.authored",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/m/authored",
+          "sha256": "45a1539c494245beb8f8848513a5f18ed76d0f575fb60f45b9d6542d3bd421f8",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:08.456429Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.promote",
+      "status": "complete",
+      "input_fingerprint": "85ef2fdfd53211b5b8ae70b7d3ff8812ebeb52eedcaa828ddb5499e1f2d739b7",
+      "completion_fingerprint": "cda1603c6a13e32e142792847d09539a9bb863163b8904f9ef949ed23f59b9df",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.plan.promotion_receipt",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/m/promotion.json",
+          "sha256": "e77307b199cc96908cb4bed78f171f88536ba6a79210761a83c16a0240a9c7ca",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "material.plan.promoted_snapshot",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/m/promoted.json",
+          "sha256": "ead94865166ae5f40b724c2ce3a509cb3d2bb729ee1265f799190e1b9274ba5f",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:08.917304Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.contract_validate",
+      "status": "complete",
+      "input_fingerprint": "03a01a0b57bd0b8d78fd3789afbba0550ca46014bf0b2ca80ed52794b175cbb9",
+      "completion_fingerprint": "4262ce6d6acfc1be615c5338da43646a009cdf5758701982c9195adca86b3281",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.contract_report",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/e36229f5cb515837.json",
+          "sha256": "abf4086ae7b25c1cf25f0b46ac5d748e16ee9ca7561d183a752fc6e56688c9ea",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:09.141632Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.fidelity",
+      "status": "complete",
+      "input_fingerprint": "c6386fbb730d73bf51e5d585c974886d78e65a1d2b5cc182ee51074dd257786f",
+      "completion_fingerprint": "d42326c4450d21574db16d6d9f84fe49fad8cb445958820c6e205e3b3c9e6cd9",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.fidelity_report",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/19a2e525635614bc.json",
+          "sha256": "85f3186651cea9b112dc2f28bace0696d4a019b96e4ebcbeb6fb26959c6012a3",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:09.434827Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.build",
+      "status": "complete",
+      "input_fingerprint": "10a7323ddc0829a193c4959f2e008617d3f23c84d60252b03c3e688e9bd503f2",
+      "completion_fingerprint": "b8ea2fc4f55a211b1ce1e882dec2c40c3da3eadbd40d8e1a30297a27272d8062",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.blend",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/ee33966f1b130b60.blend",
+          "sha256": "7d103fb4e4494c415643b227ba72a9b926995c1166c6f6b20190976dc9a77c88",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:10.794695Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.inspect",
+      "status": "complete",
+      "input_fingerprint": "046c48c0ac5410bc9a5a57a878e792670200a289230c2da5d311e10231e56b65",
+      "completion_fingerprint": "ed33621c1bdfc5f3c6f6f0cbe2214caa5ff0ff72a1010a5cd9c90d50afb85078",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.runtime_report",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/3439172e6569763b.json",
+          "sha256": "e2e8ce5a94666265cbfc79cc8547b1d6df94eba564b9750bcbfcebeb589b2e15",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:12.236318Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.swatches",
+      "status": "complete",
+      "input_fingerprint": "9a5a7ef21d5a5ab5abb2c95a85391e455f1323479a20106c0699735ca819ce49",
+      "completion_fingerprint": "f03e45fc0661a415e20ddd164e71183d06b65290fccea8d7d76f66021be28855",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.swatch_manifest",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/s/0f646346ddf57e4a.json",
+          "sha256": "39e928860f20f2339064b71f7f08bd3a5ec374b8a2074117d56b70302edd8f40",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:16.974221Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "material.report",
+      "status": "complete",
+      "input_fingerprint": "8ede15514b7b0013e7a9341fad42c7d4b0624c1d5c84753f0cdeae78ac864fea",
+      "completion_fingerprint": "d921b1bad02a6dbaabb536b815d6be270141187139f380dbc95b6947121b2a04",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "material.report.pdf",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/b7952af72c9f.pdf",
+          "sha256": "5188b4a0fb069f67df5ae81971e539b9255b17b0d996b57764c8e7032e255ce0",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "material.report.manifest",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/b7952af72c9f.manifest.json",
+          "sha256": "e8ffbc511c1b7a9d410c1f599ac16539d2fd31ba4a4e64dccde875c845655bd6",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:17.793515Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.run",
+      "status": "complete",
+      "input_fingerprint": "115346ba3638bb90448ad2213c3e0d67430f75ebd5da13d03c54f4afd5cfdfa2",
+      "completion_fingerprint": "5e0e6dea02700e61ae61aa97ff212490f80d316951e537da3927204f8204c6d8",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "qa.run.request",
+          "path": "qa/runs/v08-6c7f187a-qa/request.json",
+          "sha256": "2bba863f7a9ea9f13401c9b14ba36280874589a23c14e78a47bc883843efadc0",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.reference_mask",
+          "path": "qa/runs/v08-6c7f187a-qa/reference_mask.png",
+          "sha256": "644349905aba5947427667fe357717682e70c05c1571546cd6fabafa3c2d04c3",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.reference_mask_manifest",
+          "path": "qa/runs/v08-6c7f187a-qa/reference_mask_manifest.json",
+          "sha256": "aa5768e8e2d880ff8f6f48d5220d5099ed1e371b07394d3151537cefb75dbdce",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.render_pass_manifest",
+          "path": "qa/runs/v08-6c7f187a-qa/render_pass_manifest.json",
+          "sha256": "12800218078c21c4405dbe59934c87ef5feaeadd263d0ddf488ccc8430e41968",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.visual_report",
+          "path": "qa/runs/v08-6c7f187a-qa/visual_qa_report.json",
+          "sha256": "2edde835be5bda0c4fabe68166132a46df0fd46a8cd30e3331643e06d4f633e6",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.revision_candidates",
+          "path": "qa/runs/v08-6c7f187a-qa/revision_candidates.json",
+          "sha256": "78277c06f24ea1a7e79177c9fc3f21110bf14ffaabec4009484941742cfd6ead",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.beauty",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/beauty.png",
+          "sha256": "c99f080bfa359cf5d4ee3631abd413991637e457fd60b3ab74fcee9029071bd7",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.silhouette",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/silhouette.png",
+          "sha256": "1ee3b39bd20ffd01d31fe514945803569dd1231c2916576e32fd226e9e4e54d1",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.object_id",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/object_id.png",
+          "sha256": "c03bde044a4aa47df20a5bfb51ad7eb67fcda4075f7a06bd63ae1a1f69716587",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.material_id",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/material_id.png",
+          "sha256": "7c251c06cfe97cefbbe50d1a70d7c626bced82b93a1f435e1afa22195be42964",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.normal",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/normal.png",
+          "sha256": "fbff3cd53368c24c7d256f6684141ec607cac2ee0339cd1da34e89f1562b9889",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.depth",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/depth.png",
+          "sha256": "1bc569d083fb8b03ef676d338bb58264c5a2cd0f4b92bb0825505148cdcb1bff",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.run.pass.wireframe",
+          "path": "qa/runs/v08-6c7f187a-qa/passes/wireframe.png",
+          "sha256": "609bc45f96ebe46251b8560254294619999d27a5c7744775801c35a19d4885fd",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:23.517977Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.diagnostics",
+      "status": "complete",
+      "input_fingerprint": "c6cf1719489dc48a789b8c449ec385aaaa0c289884717b3113ab7ae2599926a3",
+      "completion_fingerprint": "ab94d2906c39427bd3fcc96580f9c7556c51cdb3011985c5c9f22dc0b7f39d99",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "qa.diagnostics.bundle",
+          "path": "qa/runs/v08-6c7f187a-qa/diagnostics/camera-geometry-v1/bundle_manifest.json",
+          "sha256": "a53c9dae9490956c63a8c29d74a1ae3696e42eec4fe2b9ee3a934eb5689f6a24",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:38.266488Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background.eligibility",
+      "status": "complete",
+      "input_fingerprint": "9a5cfcb80a7784110fa854af9e99e0a5282c6a7e6a310ffacf7e935b1da66078",
+      "completion_fingerprint": "589c38f0f14d579b0f3926b009411f297f6f8436940acf5972e617be8bb9ed33",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background.delivery_eligibility",
+          "path": "reports/background_delivery/wf-20260811t074047z-6c7f187a_quality.json",
+          "sha256": "1d7e2542d343e0e440b1d2018f74037278d3bb49f72407e0b2215f0c93dcd80c",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:38.951383Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "qa.report",
+      "status": "complete",
+      "input_fingerprint": "cd54a77443584b67e1e576f96bfbae36a44f9318f29386bfbc2995195a2c0e4a",
+      "completion_fingerprint": "04a7dd408c4ffff34306f280c948fea49356988f9e2893dd573acf9fe8827b94",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "qa.report.pdf",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/640930982b3e.pdf",
+          "sha256": "43943c615288c2f1a5b7dfdfa55487afd090602b48b584f0cf1d57e71fe523e7",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "qa.report.manifest",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/640930982b3e.manifest.json",
+          "sha256": "cd1739aa9904c6d13d50c93aed5fa82526d3c81ebfb03824b5568f9b8db72706",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:41.804838Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_delivery_6c7f187a.report",
+      "status": "complete",
+      "input_fingerprint": "94448dfd5c43fd5fbe14f1232ff999d000976b69a944f3c3e3616ada58ac7e9d",
+      "completion_fingerprint": "7e24ef4893e03c1ad10f2b9e416235c4cc3789049000fda29b58e777797b8aad",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_delivery_6c7f187a.report.pdf",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/5b6201faa370.pdf",
+          "sha256": "230c9b77ef18eebcb76ceb63ccca2b9a0ae08773470e95db01b5ab4e824c4bfe",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_delivery_6c7f187a.report.manifest",
+          "path": "workflows/wf-20260811t074047z-6c7f187a/artifacts/pdf/5b6201faa370.manifest.json",
+          "sha256": "9acefdebc70d48c6c54132639851ceab6cd14e67acaf158f2e717a4c1132d1bf",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:45.245631Z",
+      "error": null,
+      "reason_code": null
+    }
+  ],
+  "next_action": null,
+  "waiting_gate": null,
+  "warnings": [
+    "Preview execution completed, but quality evidence was unscorable."
+  ],
+  "reason_code": null,
+  "quality_status": "unscorable",
+  "standard_workflow_recommended": true,
+  "quality_report_path": "reports/background_delivery/wf-20260811t074047z-6c7f187a_quality.json",
+  "quality_report_sha256": "1d7e2542d343e0e440b1d2018f74037278d3bb49f72407e0b2215f0c93dcd80c",
+  "cancelled_reason": null,
+  "created_at": "2026-08-11T07:40:47.946763Z",
+  "updated_at": "2026-08-11T07:41:45.948766Z"
+}

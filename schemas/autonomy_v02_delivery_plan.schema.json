@@ -1,0 +1,339 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    },
+    "DeliveryProfile": {
+      "additionalProperties": false,
+      "description": "Map one public AQ v2 delivery name to an existing engine-neutral V0.7 profile.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "profile_id": {
+          "enum": [
+            "review_only",
+            "portable_gltf",
+            "portable_fbx"
+          ],
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "asset_profile_id": {
+          "anyOf": [
+            {
+              "enum": [
+                "portable_gltf",
+                "fbx_interchange"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Asset Profile Id"
+        },
+        "primary_extension": {
+          "anyOf": [
+            {
+              "enum": [
+                ".glb",
+                ".fbx"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Primary Extension"
+        },
+        "direct_from_quality_freeze": {
+          "const": true,
+          "default": true,
+          "title": "Direct From Quality Freeze",
+          "type": "boolean"
+        },
+        "independent_run": {
+          "const": true,
+          "default": true,
+          "title": "Independent Run",
+          "type": "boolean"
+        },
+        "requires_exact_optimization_approval": {
+          "title": "Requires Exact Optimization Approval",
+          "type": "boolean"
+        },
+        "requires_clean_import_roundtrip": {
+          "title": "Requires Clean Import Roundtrip",
+          "type": "boolean"
+        },
+        "destination_runtime_parity": {
+          "const": false,
+          "default": false,
+          "title": "Destination Runtime Parity",
+          "type": "boolean"
+        },
+        "canonical_authoring_mutation": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Authoring Mutation",
+          "type": "boolean"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile_id",
+        "asset_profile_id",
+        "primary_extension",
+        "requires_exact_optimization_approval",
+        "requires_clean_import_roundtrip",
+        "limitations"
+      ],
+      "title": "DeliveryProfile",
+      "type": "object"
+    },
+    "DeliveryRequest": {
+      "additionalProperties": false,
+      "description": "Describe one independent delivery run sourced directly from the same freeze.",
+      "properties": {
+        "delivery_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Delivery Id",
+          "type": "string"
+        },
+        "profile": {
+          "$ref": "#/$defs/DeliveryProfile"
+        },
+        "source_freeze": {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Run Id"
+        },
+        "package_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Package Id"
+        },
+        "status": {
+          "enum": [
+            "review_only",
+            "planned",
+            "awaiting_optimization_approval",
+            "running",
+            "completed",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "known_losses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Known Losses",
+          "type": "array"
+        }
+      },
+      "required": [
+        "delivery_id",
+        "profile",
+        "source_freeze",
+        "status"
+      ],
+      "title": "DeliveryRequest",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind all initially authorized delivery requests to one exact quality freeze.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "source_freeze": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "requests": {
+      "items": {
+        "$ref": "#/$defs/DeliveryRequest"
+      },
+      "minItems": 1,
+      "title": "Requests",
+      "type": "array"
+    },
+    "direct_cross_format_conversion": {
+      "const": false,
+      "default": false,
+      "title": "Direct Cross Format Conversion",
+      "type": "boolean"
+    },
+    "generic_authorization_replaces_v07_approval": {
+      "const": false,
+      "default": false,
+      "title": "Generic Authorization Replaces V07 Approval",
+      "type": "boolean"
+    },
+    "destination_project_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Write",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "plan_id",
+    "root_authorization",
+    "source_freeze",
+    "requests"
+  ],
+  "title": "DeliveryPlan",
+  "type": "object"
+}

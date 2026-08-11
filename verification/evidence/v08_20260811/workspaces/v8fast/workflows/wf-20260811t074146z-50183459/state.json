@@ -1,0 +1,325 @@
+{
+  "schema_version": "0.8.0",
+  "workflow_id": "wf-20260811t074146z-50183459",
+  "job_id": "v8fast",
+  "plan_sha256": "6afc581781cb645e098f249f5de5663696059173285bfdb07a910f16599ee6e3",
+  "request_sha256": "f09af3a1f095e7a6bee9921b631937a0a4928bdcdf3188365be658e007ae48f4",
+  "reference_content_scope": "full_reference",
+  "target_subject": null,
+  "execution_policy": "background_exterior",
+  "delivery_scope": "portable_package",
+  "status": "completed",
+  "milestone": "completed",
+  "current_step_id": null,
+  "steps": [
+    {
+      "step_id": "geometry.prerequisite",
+      "status": "complete",
+      "input_fingerprint": "4206c468b244c8e660017c8a0a953f65b8c98bf616c97aedce46928f800a36bc",
+      "completion_fingerprint": "f5cfd34562cbd77c40cf22b354ded023f5d48be5d011faabaa501a57adcaf2ec",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.background_preview_binding",
+          "path": "reports/background_delivery/wf-20260811t074146z-50183459_preview_binding.json",
+          "sha256": "045b1a96a521b0870f5e1ce663b23b9623c23ea5d998b6a761ade7cd63c763bb",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:48.477100Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.profile",
+      "status": "complete",
+      "input_fingerprint": "d4a9889d5d197fdece74b3d1f3815b047934128f8c068d34b748bb1a573e72f9",
+      "completion_fingerprint": "4be015c573712add2511561aa094677c03a4fd2a8397073538dc4cfaa1b0addd",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.profile.output",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/s/1cdf06ba353005b9.json",
+          "sha256": "4106d605e7f99a23573c7a4bff639ff01fcb11c4e53d75b37660802a6a28f616",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:48.550780Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.preflight",
+      "status": "complete",
+      "input_fingerprint": "759afe68d945514bad5a39c56aa68d46d8cdfc414e4fedb1ae99524d0021d840",
+      "completion_fingerprint": "23dc633749295840e7c47bb983600baf75fb96015f01932eaaeca36037e0ba18",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.preflight.report",
+          "path": "optimization/runs/v08-50183459/mesh_preflight_report.json",
+          "sha256": "1d7462a24bd63a6c88068f5cebb7614814a712cfac60e701d4bc44c21d5645a9",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:50.712154Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.plan",
+      "status": "complete",
+      "input_fingerprint": "cf068def2e01961928a8b222965e731eea53acc1b93c11a549d59cf1e149b0a0",
+      "completion_fingerprint": "edb919990d83b7952d4831051c31a54173e51948c5d230bedcfe64ff68d98013",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.review_plan",
+          "path": "optimization/runs/v08-50183459/review_plan.json",
+          "sha256": "d1fe75bb03171e68238e2b81acba7d0d39c66b3533250e442b99d559f2a8d3f7",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "portable.review",
+          "path": "optimization/runs/v08-50183459/optimization_review.json",
+          "sha256": "b59d04116d89a49aa5b732a4e3e4ca97ad9707d3b6607bef0e7ad6553ade5f67",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:50.830330Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.plan_approval",
+      "status": "complete",
+      "input_fingerprint": "4849afbdb80caf9b95ab573b7e9e138cc55cc6b4454b64a1a4985d1eeed4153c",
+      "completion_fingerprint": "0f6e5cb84ce303c58ca0d2e1dccca8f138616d8dfd8e30903f35dc97a3f90707",
+      "attempt_count": 0,
+      "artifacts": [
+        {
+          "artifact_id": "portable.optimization_approval",
+          "path": "optimization/runs/v08-50183459/optimization_approval.json",
+          "sha256": "f0601c72b16856436f2d90503e88df987de275e4f571dcc8a22619977d3d4d6b",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:31.877430Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.optimize",
+      "status": "complete",
+      "input_fingerprint": "6e620b9ee95c2cea60a1a0e1251c9336331ea94611277a1b0bbaa6422c94df34",
+      "completion_fingerprint": "9207bc390f5ea6aad2fdd55e968047ea8bdc850b0eb29d0fec05fd95a00ae628",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.optimization_plan",
+          "path": "optimization/runs/v08-50183459/optimization_plan.json",
+          "sha256": "427c5da6e998d4f6aa801c9501b627db6b3968de7fc244ac74c4148486f8b4a9",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "portable.optimized_blend",
+          "path": "optimization/runs/v08-50183459/optimized/scene.blend",
+          "sha256": "08986c11d8efff9e36bdb2addc4c807fe6694f400627dbb9fc01c0b89aa0a24a",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "portable.cost_report",
+          "path": "optimization/runs/v08-50183459/asset_cost_report.json",
+          "sha256": "9127e77c189bccac6a4679a176fa6bce350f234d949772880b92386b02ddcc8d",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:41:54.928170Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.material_convert",
+      "status": "complete",
+      "input_fingerprint": "8dc888dc3682ecb90a5419115d0702f1310713fc042c3ac16af0c886cbb898b7",
+      "completion_fingerprint": "a351de791a9b828384aa6cce39234e9e1a3b94b9cdb7a4f021652f6a64f043f4",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.material_conversion",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/s/1d6d0f59bd65825c.json",
+          "sha256": "8f20e415cfcfbc51603cec44b743253919f669087824e8e72ec1e57cd91f5600",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:19.361366Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.package",
+      "status": "complete",
+      "input_fingerprint": "d10769cd69f529237d279f0bab25858f828a508309e25b186fa3ffe26a70d83c",
+      "completion_fingerprint": "d5198e9bb8767e3c8121579bb906fc715498a8bdafbd063c53557d6b0a04a81d",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.package_manifest",
+          "path": "exports/packages/fbx_interchange/v08-50183459-package/package_manifest.json",
+          "sha256": "34ee7eb1495b126b157d9bebcdcc4643f8f287764acaeeb987e404b22cfa5ee1",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:25.277794Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.roundtrip",
+      "status": "complete",
+      "input_fingerprint": "1857234a1a85c8f3c1e526cb746fcbc23b873a63548e0a31c7ae12125fca3acd",
+      "completion_fingerprint": "7fb13a196de7d8087b911aa8bb456cadfa5edfcb93407b5319e5dca6591c3460",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.roundtrip_report",
+          "path": "optimization/runs/v08-50183459/roundtrip/v08-50183459-package/roundtrip_validation.json",
+          "sha256": "01e85589d46ea2f17618e10a71fdca0994e35c87ad67895b11bf219a8f41426a",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:29.027421Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "portable.report",
+      "status": "complete",
+      "input_fingerprint": "15e0e5e94ce10439f2dccf586dff93e9788b0fd21129e621d0813f444bdf15d7",
+      "completion_fingerprint": "710d392a3dec703be66f23ae7b056d34fe0700384fdefa6d572090b18578c64a",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "portable.report.pdf",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/pdf/3dc2b5365c22.pdf",
+          "sha256": "c47aebec18f34e3999f5f524c55ed946acc2d4e965d654523f248d0d8c5f43d0",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "portable.report.manifest",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/pdf/3dc2b5365c22.manifest.json",
+          "sha256": "70fb2e6ab7151e6a7f075520b22e14c11c63a3f696b1ed016d1785578b1bcf3c",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:29.304209Z",
+      "error": null,
+      "reason_code": null
+    },
+    {
+      "step_id": "background_delivery_50183459.report",
+      "status": "complete",
+      "input_fingerprint": "54aaf34f0a42e9b8acef464162fe9a610c616f6dcec8c911fe25b66748f1a509",
+      "completion_fingerprint": "54eada45f1bccf534b405640821c909f530ce9d9211bab9ac786819abba5b286",
+      "attempt_count": 1,
+      "artifacts": [
+        {
+          "artifact_id": "background_delivery_50183459.report.pdf",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/pdf/05d0052d03bf.pdf",
+          "sha256": "b3e7c258bbc2e4fd73e7d0c5dc66f0ac9b56cf0dc5d24da9b48ef73272fd666e",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "unverified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        },
+        {
+          "artifact_id": "background_delivery_50183459.report.manifest",
+          "path": "workflows/wf-20260811t074146z-50183459/artifacts/pdf/05d0052d03bf.manifest.json",
+          "sha256": "863ea33fef0f7197b5ad536113c6b60fd04b014a3beaeabd494649ca8ff53e21",
+          "integrity": "valid",
+          "currency": "current",
+          "verification": "partially_verified",
+          "reason": "Artifact is structurally available for the current state snapshot."
+        }
+      ],
+      "approval_id": null,
+      "started_at": null,
+      "completed_at": "2026-08-11T07:42:31.860825Z",
+      "error": null,
+      "reason_code": null
+    }
+  ],
+  "next_action": null,
+  "waiting_gate": null,
+  "warnings": [],
+  "reason_code": null,
+  "quality_status": null,
+  "standard_workflow_recommended": null,
+  "quality_report_path": null,
+  "quality_report_sha256": null,
+  "cancelled_reason": null,
+  "created_at": "2026-08-11T07:41:47.753066Z",
+  "updated_at": "2026-08-11T07:42:31.909883Z"
+}

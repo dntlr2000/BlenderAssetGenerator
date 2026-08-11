@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.9.0",
+  "receipt_id": "binding-receipt-20260811t075009z-1baf2563",
+  "dispatch_id": "dispatch-20260811t075006z-88193860",
+  "controller_id": "controller-20260811t075006z-4049bd26",
+  "job_id": "v09_production_smoke",
+  "workflow_id": "wf-20260811t075006z-f0a0a74a",
+  "dispatch_plan_sha256": "2d3ac8d6135d1b19ec9e00fa509e022e0164160dd096bc91f730278e830ffff8",
+  "task_binding": {
+    "schema_version": "0.9.0",
+    "binding_id": "binding-20260811t075009z-53572529",
+    "dispatch_id": "dispatch-20260811t075006z-88193860",
+    "controller_id": "controller-20260811t075006z-4049bd26",
+    "job_id": "v09_production_smoke",
+    "workflow_id": "wf-20260811t075006z-f0a0a74a",
+    "launch_manifest_sha256": "a2a54b361a1eea19064ef5c9f0863e91bdaef2af95a702aff34532edca0cf95b",
+    "task_prompt_sha256": "0e52bc40b13e750d44b86de0c638721ad206d05d35061d4d182a2fca6e763f2e",
+    "controller_tool_profile_sha256": "437576f69e6f5a1624183f6afccb5c032e77947cbcb00e36d99501b5370d2822",
+    "client_tool_policy_enforced": true,
+    "external_task_id": "v09-production-smoke-task",
+    "external_host_id": null,
+    "bound_at": "2026-08-11T07:50:09.296125Z"
+  },
+  "launch_manifest_sha256": "a2a54b361a1eea19064ef5c9f0863e91bdaef2af95a702aff34532edca0cf95b",
+  "task_prompt_sha256": "0e52bc40b13e750d44b86de0c638721ad206d05d35061d4d182a2fca6e763f2e",
+  "recorded_at": "2026-08-11T07:50:09.296862Z"
+}

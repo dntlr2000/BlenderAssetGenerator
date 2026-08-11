@@ -1,0 +1,133 @@
+{
+  "additionalProperties": false,
+  "description": "Bind the three controller outputs to the exact immutable authoring request.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "completion_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Completion Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "execution_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Execution Id",
+      "type": "string"
+    },
+    "assignment_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assignment Sha256",
+      "type": "string"
+    },
+    "tool_profile_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tool Profile Sha256",
+      "type": "string"
+    },
+    "immutable_input_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Immutable Input Sha256",
+      "type": "object"
+    },
+    "source_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Scene Spec Sha256",
+      "type": "string"
+    },
+    "source_material_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Material Plan Sha256"
+    },
+    "material_plan_path": {
+      "title": "Material Plan Path",
+      "type": "string"
+    },
+    "material_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Material Plan Sha256",
+      "type": "string"
+    },
+    "material_graph_path": {
+      "title": "Material Graph Path",
+      "type": "string"
+    },
+    "material_graph_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Material Graph Sha256",
+      "type": "string"
+    },
+    "completed_by": {
+      "const": "controller",
+      "default": "controller",
+      "title": "Completed By",
+      "type": "string"
+    },
+    "canonical_written": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Written",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": "supervisor_only",
+      "default": "supervisor_only",
+      "title": "Canonical Write Authority",
+      "type": "string"
+    }
+  },
+  "required": [
+    "completion_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "execution_id",
+    "assignment_sha256",
+    "tool_profile_sha256",
+    "immutable_input_sha256",
+    "source_scene_spec_sha256",
+    "material_plan_path",
+    "material_plan_sha256",
+    "material_graph_path",
+    "material_graph_sha256"
+  ],
+  "title": "MaterialControllerCompletionV2",
+  "type": "object"
+}

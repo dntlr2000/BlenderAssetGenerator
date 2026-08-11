@@ -1,0 +1,1468 @@
+{
+  "schema_version": "0.7.0",
+  "manifest_id": "material.conversion.v09-handoff-smoke-materials",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "0cc1d59d53c9f0105174a748bced459826e526e4c8f7cb3b5b712b22cd15d158"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "c3531a8c20d8f785a3f6f4c3a3b11d44c036c74666d94d2c83729486851fe73f"
+    },
+    "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+    "build_fingerprint": "6ddd6a1ce571c984faa464d033aaf9bc48cf09e75ae85b6a0ff010bef852d0c4",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "9f0ae7b05d140aa0a31b67b1854b469839a07d5b087cdf3582ea193bc596a525"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "textures/mat.blue/texture_manifest.json",
+        "sha256": "8b17bd6e7cb0479a916e522b5801fdd6955fd80e093fa8125df81c5fb9e40097"
+      }
+    ]
+  },
+  "plan_artifact": {
+    "id": "material.conversion.plan.v09-handoff-smoke-materials",
+    "kind": "portable_material_conversion_plan",
+    "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/conversion_plan.json",
+    "sha256": "70aa86338b54ea4cccfa7bc98adea5b5b92fde876514984e9d97b03943c06c3f"
+  },
+  "profile_artifact": {
+    "id": "profile.portable_gltf",
+    "kind": "asset_profile",
+    "path": "asset_profiles/portable_gltf.json",
+    "sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3"
+  },
+  "optimization_plan": {
+    "id": "optimization.execution.v09-handoff-smoke-run",
+    "kind": "optimization_plan",
+    "path": "optimization/runs/v09-handoff-smoke-run/execution_plan.json",
+    "sha256": "265efe03569e9d9fae1eddb542a7cbc44eaf975f9b45970a15b1033f4ec8d78d"
+  },
+  "optimized_blend": {
+    "id": "blend.optimized.v09-handoff-smoke-run",
+    "kind": "blend",
+    "path": "optimization/runs/v09-handoff-smoke-run/optimized/scene.blend",
+    "sha256": "ce6adda33f921ba631e99678915542fe3b192cde6fe757618e3f9226e6858778"
+  },
+  "uv_manifest": {
+    "id": "uv.manifest.v09-handoff-smoke-run",
+    "kind": "uv_manifest",
+    "path": "optimization/runs/v09-handoff-smoke-run/uv_manifest.json",
+    "sha256": "f02f6370f3ce0c99abd3b7b0bf9ef0bc59f036231696cf970c9b5520fa9d4ce1"
+  },
+  "atlas_policy": {
+    "layout": "global_shared",
+    "atlas_scope": "all_render_lod",
+    "conversion_phase": "after_optimization_with_canonical_source_frame",
+    "tile_strategy": "deterministic_grid",
+    "uv_set": "CBMPortableAtlas",
+    "resolution": 1024,
+    "margin_px": 16,
+    "maximum_overlap_fraction": 0.0,
+    "preserve_existing_uv_sets": true,
+    "required_channels": [
+      "base_color",
+      "roughness",
+      "metallic",
+      "normal",
+      "emission"
+    ]
+  },
+  "required_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "converted_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "missing_material_ids": [],
+  "entries": [
+    {
+      "material_id": "mat.blue",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.blue",
+        "kind": "shader_recipe",
+        "path": "materials/mat.blue/shader_recipe.json",
+        "sha256": "2ff84948cf486bc9cca2153ab7404e8ad0d708aa772f6257251b87545b02f1eb"
+      },
+      "source_material_fingerprint": "9c56fa18171e03f427493d9702df1eb7bf0a1befb69238a82f79ed24ed9edf5c",
+      "portable_material_fingerprint": "a7f6be2b15901df2252405e1a7579b1ee0ee5d63ff785f79464e79e5b86e3432",
+      "mapping_mode": "uv",
+      "binding_ids": [
+        "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+        "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+        "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+        "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+        "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+        "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+        "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+        "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+        "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+        "binding.000024.demo.profile.house.LOD0.2062ac1819",
+        "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+        "binding.000026.demo.profile.house.LOD2.85c0177c1c"
+      ],
+      "surface_factors": {
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "roughness_factor": 1.0,
+        "metallic_factor": 1.0,
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "alpha_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "warnings": [],
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ]
+    },
+    {
+      "material_id": "mat.gray",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.gray",
+        "kind": "shader_recipe",
+        "path": "materials/mat.gray/shader_recipe.json",
+        "sha256": "1a356581bf1c60cbb18f05c2dbdfc7fb15dab39ff63eaa0465c23d16b5be793a"
+      },
+      "source_material_fingerprint": "3352fa8cb2edbb45971a86c836d5c504f3071b86b9c26765571d23e1549923ff",
+      "portable_material_fingerprint": "233f8ba79bfde788c5e256fba334849acbe00326564f5221a4a2fa81ce757774",
+      "mapping_mode": "object",
+      "binding_ids": [
+        "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+        "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+        "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+        "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+        "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+        "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00"
+      ],
+      "surface_factors": {
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "roughness_factor": 1.0,
+        "metallic_factor": 1.0,
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "alpha_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "warnings": [],
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ]
+    },
+    {
+      "material_id": "mat.green",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.green",
+        "kind": "shader_recipe",
+        "path": "materials/mat.green/shader_recipe.json",
+        "sha256": "1924ba1397517d8a22c60058091376db44b07806e220b181d7be6df613a7e52a"
+      },
+      "source_material_fingerprint": "55be4d7729732706cffc95282acbb5a70c7e579bd9613aae4ff1bdb31bc6f63b",
+      "portable_material_fingerprint": "cdfc05f4843d3b284b6be395d1f62eee60d69aa152bede23ef556a167318d4d8",
+      "mapping_mode": "object",
+      "binding_ids": [
+        "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+        "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+        "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+        "binding.000030.demo.terrain.LOD0.b7198359af",
+        "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+        "binding.000032.demo.terrain.LOD2.4e9891a527"
+      ],
+      "surface_factors": {
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "roughness_factor": 1.0,
+        "metallic_factor": 1.0,
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "alpha_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "warnings": [],
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ]
+    },
+    {
+      "material_id": "mat.orange",
+      "source_shader_recipe": {
+        "id": "shader.recipe.mat.orange",
+        "kind": "shader_recipe",
+        "path": "materials/mat.orange/shader_recipe.json",
+        "sha256": "9a29a78ccd77c8addb1b1ae20bc83a2b5642548daebd88a8f62792f362576e9a"
+      },
+      "source_material_fingerprint": "62d901547b856823bc10c7d858f6469d2c201afdcd04df59ad94e7d6f7463abe",
+      "portable_material_fingerprint": "0fe7fa37fbf3af38fd1a306fa5ea875069bc898e43c510190d92bd3dd7cc7118",
+      "mapping_mode": "object",
+      "binding_ids": [
+        "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+        "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+        "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+        "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+        "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+        "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+        "binding.000027.demo.revolve.vase.LOD0.9539365862",
+        "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+        "binding.000029.demo.revolve.vase.LOD2.41a3d616d2"
+      ],
+      "surface_factors": {
+        "base_color_factor": [
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ],
+        "roughness_factor": 1.0,
+        "metallic_factor": 1.0,
+        "emission_factor": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "alpha_factor": 1.0,
+        "transmission_factor": 0.0
+      },
+      "losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only.",
+        "Object-space appearance was sampled against cbm_source_object before portable UV rewiring."
+      ],
+      "warnings": [],
+      "notes": [
+        "All derived users share the five global atlas channel files."
+      ]
+    }
+  ],
+  "tiles": [
+    {
+      "binding_id": "binding.000000.demo.boolean.block.LOD0.24b6837e21",
+      "material_id": "mat.gray",
+      "target_id": "demo.boolean.block",
+      "derived_object_id": "derived.demo.boolean.block.LOD0.330465b0eb",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000001.demo.boolean.block.LOD1.3ef0c9b222",
+      "material_id": "mat.gray",
+      "target_id": "demo.boolean.block",
+      "derived_object_id": "derived.demo.boolean.block.LOD1.e77eef238f",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000002.demo.boolean.block.LOD2.4118d67e13",
+      "material_id": "mat.gray",
+      "target_id": "demo.boolean.block",
+      "derived_object_id": "derived.demo.boolean.block.LOD2.c04f2e3d99",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000003.demo.curve.pipe.LOD0.eb41ec40cb",
+      "material_id": "mat.blue",
+      "target_id": "demo.curve_pipe",
+      "derived_object_id": "derived.demo.curve.pipe.LOD0.d1a65e3517",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.515625,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.651041667,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000004.demo.curve.pipe.LOD1.ac566aebc4",
+      "material_id": "mat.blue",
+      "target_id": "demo.curve_pipe",
+      "derived_object_id": "derived.demo.curve.pipe.LOD1.256b977955",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.682291667,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.817708333,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000005.demo.curve.pipe.LOD2.d4014f47e7",
+      "material_id": "mat.blue",
+      "target_id": "demo.curve_pipe",
+      "derived_object_id": "derived.demo.curve.pipe.LOD2.c44e9e0be9",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.848958333,
+        0.015625
+      ],
+      "uv_maximum": [
+        0.984375,
+        0.151041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000006.demo.custom.pyramid.LOD0.ad7df35c60",
+      "material_id": "mat.orange",
+      "target_id": "demo.custom_pyramid",
+      "derived_object_id": "derived.demo.custom.pyramid.LOD0.12ad25f9a9",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000007.demo.custom.pyramid.LOD1.2619005c8d",
+      "material_id": "mat.orange",
+      "target_id": "demo.custom_pyramid",
+      "derived_object_id": "derived.demo.custom.pyramid.LOD1.1a321af744",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000008.demo.custom.pyramid.LOD2.c45fc03e88",
+      "material_id": "mat.orange",
+      "target_id": "demo.custom_pyramid",
+      "derived_object_id": "derived.demo.custom.pyramid.LOD2.acabadb9e6",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000009.CBM.demo.instance.post.LOD0.BATCH0003.044336aeeb",
+      "material_id": "mat.blue",
+      "target_id": "demo.instance_post",
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD0.BATCH0003.38b0f337a6",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.515625,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.651041667,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000010.CBM.demo.instance.post.LOD1.BATCH0001.bf2fca2db8",
+      "material_id": "mat.blue",
+      "target_id": "demo.instance_post",
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD1.BATCH0001.f67d2b6d9b",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.682291667,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.817708333,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000011.CBM.demo.instance.post.LOD2.BATCH0002.bb546ac5f9",
+      "material_id": "mat.blue",
+      "target_id": "demo.instance_post",
+      "derived_object_id": "derived.CBM.demo.instance.post.LOD2.BATCH0002.9787cb8e11",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.848958333,
+        0.182291667
+      ],
+      "uv_maximum": [
+        0.984375,
+        0.317708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000012.demo.modifier.array.LOD0.cc2ea13a7e",
+      "material_id": "mat.orange",
+      "target_id": "demo.modifier_array",
+      "derived_object_id": "derived.demo.modifier.array.LOD0.2c9ba53d9d",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000013.demo.modifier.array.LOD1.86b8f0e577",
+      "material_id": "mat.orange",
+      "target_id": "demo.modifier_array",
+      "derived_object_id": "derived.demo.modifier.array.LOD1.428517834f",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000014.demo.modifier.array.LOD2.41a5b69435",
+      "material_id": "mat.orange",
+      "target_id": "demo.modifier_array",
+      "derived_object_id": "derived.demo.modifier.array.LOD2.44c5d89dc5",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000015.demo.modifier.mirror.LOD0.d8dec95572",
+      "material_id": "mat.blue",
+      "target_id": "demo.modifier_mirror",
+      "derived_object_id": "derived.demo.modifier.mirror.LOD0.4f0879c801",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.515625,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.651041667,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000016.demo.modifier.mirror.LOD1.ed24ac223c",
+      "material_id": "mat.blue",
+      "target_id": "demo.modifier_mirror",
+      "derived_object_id": "derived.demo.modifier.mirror.LOD1.aeaf64c9c9",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.682291667,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.817708333,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000017.demo.modifier.mirror.LOD2.417025f281",
+      "material_id": "mat.blue",
+      "target_id": "demo.modifier_mirror",
+      "derived_object_id": "derived.demo.modifier.mirror.LOD2.40a4bfe80e",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.848958333,
+        0.348958333
+      ],
+      "uv_maximum": [
+        0.984375,
+        0.484375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000018.demo.modifier.remesh.LOD0.9e3673c89b",
+      "material_id": "mat.gray",
+      "target_id": "demo.modifier_remesh",
+      "derived_object_id": "derived.demo.modifier.remesh.LOD0.50c3722893",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000019.demo.modifier.remesh.LOD1.5857b47e98",
+      "material_id": "mat.gray",
+      "target_id": "demo.modifier_remesh",
+      "derived_object_id": "derived.demo.modifier.remesh.LOD1.eb748dc2b5",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000020.demo.modifier.remesh.LOD2.e3f81b5e00",
+      "material_id": "mat.gray",
+      "target_id": "demo.modifier_remesh",
+      "derived_object_id": "derived.demo.modifier.remesh.LOD2.e8ca91527d",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000021.demo.modifier.solidify.LOD0.d32a27130a",
+      "material_id": "mat.green",
+      "target_id": "demo.modifier_solidify",
+      "derived_object_id": "derived.demo.modifier.solidify.LOD0.57ad84fa80",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.515625,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.651041667,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000022.demo.modifier.solidify.LOD1.87049c20fe",
+      "material_id": "mat.green",
+      "target_id": "demo.modifier_solidify",
+      "derived_object_id": "derived.demo.modifier.solidify.LOD1.d2a8839fe7",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.682291667,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.817708333,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000023.demo.modifier.solidify.LOD2.5f76a2fce4",
+      "material_id": "mat.green",
+      "target_id": "demo.modifier_solidify",
+      "derived_object_id": "derived.demo.modifier.solidify.LOD2.0c947b5886",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.848958333,
+        0.515625
+      ],
+      "uv_maximum": [
+        0.984375,
+        0.651041667
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000024.demo.profile.house.LOD0.2062ac1819",
+      "material_id": "mat.blue",
+      "target_id": "demo.profile_house",
+      "derived_object_id": "derived.demo.profile.house.LOD0.8ce496b6eb",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000025.demo.profile.house.LOD1.7f4a3e6044",
+      "material_id": "mat.blue",
+      "target_id": "demo.profile_house",
+      "derived_object_id": "derived.demo.profile.house.LOD1.e5f09cf65e",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000026.demo.profile.house.LOD2.85c0177c1c",
+      "material_id": "mat.blue",
+      "target_id": "demo.profile_house",
+      "derived_object_id": "derived.demo.profile.house.LOD2.67b7448f78",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000027.demo.revolve.vase.LOD0.9539365862",
+      "material_id": "mat.orange",
+      "target_id": "demo.revolve_vase",
+      "derived_object_id": "derived.demo.revolve.vase.LOD0.f20c3e65f8",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.515625,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.651041667,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 192,
+      "remaining_micro_sliver_face_count": 192,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000028.demo.revolve.vase.LOD1.11d200ef74",
+      "material_id": "mat.orange",
+      "target_id": "demo.revolve_vase",
+      "derived_object_id": "derived.demo.revolve.vase.LOD1.2aaa20fe36",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.682291667,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.817708333,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "lightmap_pack_fallback",
+      "repaired_uv_degenerate_face_count": 192,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 192,
+      "remaining_micro_sliver_face_count": 192,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000029.demo.revolve.vase.LOD2.41a3d616d2",
+      "material_id": "mat.orange",
+      "target_id": "demo.revolve_vase",
+      "derived_object_id": "derived.demo.revolve.vase.LOD2.03da7e57e3",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.848958333,
+        0.682291667
+      ],
+      "uv_maximum": [
+        0.984375,
+        0.817708333
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "lightmap_pack_fallback",
+      "repaired_uv_degenerate_face_count": 192,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 192,
+      "remaining_micro_sliver_face_count": 192,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000030.demo.terrain.LOD0.b7198359af",
+      "material_id": "mat.green",
+      "target_id": "demo.terrain",
+      "derived_object_id": "derived.demo.terrain.LOD0.38bec7481e",
+      "lod_level": 0,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.015625,
+        0.848958333
+      ],
+      "uv_maximum": [
+        0.151041667,
+        0.984375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000031.demo.terrain.LOD1.6774dc8bb6",
+      "material_id": "mat.green",
+      "target_id": "demo.terrain",
+      "derived_object_id": "derived.demo.terrain.LOD1.d077f7e494",
+      "lod_level": 1,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.182291667,
+        0.848958333
+      ],
+      "uv_maximum": [
+        0.317708333,
+        0.984375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    },
+    {
+      "binding_id": "binding.000032.demo.terrain.LOD2.4e9891a527",
+      "material_id": "mat.green",
+      "target_id": "demo.terrain",
+      "derived_object_id": "derived.demo.terrain.LOD2.08807741cb",
+      "lod_level": 2,
+      "uv_set": "CBMPortableAtlas",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "margin_px": 16,
+      "uv_minimum": [
+        0.348958333,
+        0.848958333
+      ],
+      "uv_maximum": [
+        0.484375,
+        0.984375
+      ],
+      "overlap_fraction": null,
+      "quality_status": "partially_verified",
+      "unwrap_method": "smart_project",
+      "repaired_uv_degenerate_face_count": 0,
+      "remaining_uv_degenerate_face_count": 0,
+      "tangent_repair_method": "none",
+      "micro_sliver_face_count_before": 0,
+      "remaining_micro_sliver_face_count": 0,
+      "tangent_invalid_loop_count_before": 0,
+      "tangent_invalid_loop_count_after": 0,
+      "bounds_max_abs_delta_m": 0.0
+    }
+  ],
+  "outputs": [
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.base_color",
+      "channel": "base_color",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/base_color.png",
+      "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57",
+      "color_space": "sRGB",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.roughness",
+      "channel": "roughness",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/roughness.png",
+      "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.metallic",
+      "channel": "metallic",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/metallic.png",
+      "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.normal",
+      "channel": "normal",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/normal.png",
+      "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db",
+      "color_space": "Non-Color",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    },
+    {
+      "id": "portable.channel.v09-handoff-smoke-materials.emission",
+      "channel": "emission",
+      "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/textures/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "color_space": "sRGB",
+      "resolution": [
+        1024,
+        1024
+      ],
+      "material_ids": [
+        "mat.blue",
+        "mat.gray",
+        "mat.green",
+        "mat.orange"
+      ],
+      "file_format": "png"
+    }
+  ],
+  "portable_blend": {
+    "id": "blend.portable-materials.v09-handoff-smoke-materials",
+    "kind": "blend",
+    "path": "optimization/material_conversions/v09-handoff-smoke-run/v09-handoff-smoke-materials/converted/scene.blend",
+    "sha256": "2f99ad54c893a9b3a779f431e922dfec6987c6237ba588e55e35b4bd8b3ae979"
+  },
+  "status": "complete",
+  "created_at": "2026-08-11T07:49:47.382173Z",
+  "completed_at": "2026-08-11T07:49:47.382173Z",
+  "canonical_unchanged": true,
+  "errors": [],
+  "notes": [
+    "Cross-object atlas tile bounds are deterministic and non-overlapping.",
+    "Smart-project intra-object island overlap remains explicitly reported by Blender evidence.",
+    "Only derived render and LOD meshes were converted; authoring and collider objects were excluded.",
+    "Absolute staging paths are raw Blender evidence and must be normalized by the host contract.",
+    "Portable image nodes use paths relative to the converted blend for atomic directory promotion."
+  ]
+}

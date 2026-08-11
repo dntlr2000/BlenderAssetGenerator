@@ -1,0 +1,73 @@
+{
+  "additionalProperties": false,
+  "description": "Bind one opt-in fixed-script Blender smoke to its exact case and outputs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "case_contract_path": {
+      "title": "Case Contract Path",
+      "type": "string"
+    },
+    "case_contract_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Case Contract File Sha256",
+      "type": "string"
+    },
+    "blend_path": {
+      "title": "Blend Path",
+      "type": "string"
+    },
+    "blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blend Sha256",
+      "type": "string"
+    },
+    "render_path": {
+      "title": "Render Path",
+      "type": "string"
+    },
+    "render_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Render Sha256",
+      "type": "string"
+    },
+    "object_count": {
+      "minimum": 1,
+      "title": "Object Count",
+      "type": "integer"
+    },
+    "camera_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Sha256",
+      "type": "string"
+    },
+    "external_downloads_used": {
+      "const": false,
+      "default": false,
+      "title": "External Downloads Used",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "case_id",
+    "case_contract_path",
+    "case_contract_file_sha256",
+    "blend_path",
+    "blend_sha256",
+    "render_path",
+    "render_sha256",
+    "object_count",
+    "camera_sha256"
+  ],
+  "title": "BlenderBenchmarkReceiptV02",
+  "type": "object"
+}

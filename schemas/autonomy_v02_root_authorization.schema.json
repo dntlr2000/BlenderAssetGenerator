@@ -1,0 +1,289 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one user request to fixed v2 scope, controller profiles, and deliveries.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "authorization_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "authorization_source": {
+      "const": "initial_user_request",
+      "default": "initial_user_request",
+      "title": "Authorization Source",
+      "type": "string"
+    },
+    "original_request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Original Request Sha256",
+      "type": "string"
+    },
+    "primary_reference": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "profile": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "budget": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "production_launch_or_binding": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "target_subject": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Target Subject",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "const": "primary_object_only",
+      "default": "primary_object_only",
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "authoring_profile": {
+      "const": "standard_static_prop_v2",
+      "default": "standard_static_prop_v2",
+      "title": "Authoring Profile",
+      "type": "string"
+    },
+    "quality_profile": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "phase_tool_profiles": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Phase Tool Profiles",
+      "type": "array"
+    },
+    "allowed_delivery_profiles": {
+      "items": {
+        "enum": [
+          "review_only",
+          "portable_gltf",
+          "portable_fbx"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Delivery Profiles",
+      "type": "array"
+    },
+    "requested_delivery_profiles": {
+      "items": {
+        "enum": [
+          "review_only",
+          "portable_gltf",
+          "portable_fbx"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Requested Delivery Profiles",
+      "type": "array"
+    },
+    "destination_hint": {
+      "default": "engine_neutral",
+      "enum": [
+        "engine_neutral",
+        "unity_urp",
+        "unity_hdrp",
+        "custom_unverified"
+      ],
+      "title": "Destination Hint",
+      "type": "string"
+    },
+    "destination_project_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Write",
+      "type": "boolean"
+    },
+    "synthetic_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Synthetic User Approval",
+      "type": "boolean"
+    },
+    "prohibited_scopes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Prohibited Scopes",
+      "type": "array"
+    },
+    "status": {
+      "default": "active",
+      "enum": [
+        "active",
+        "expired",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "cancelled_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cancelled At"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "authorization_id",
+    "original_request_sha256",
+    "primary_reference",
+    "profile",
+    "budget",
+    "production_launch_or_binding",
+    "target_subject",
+    "quality_profile",
+    "phase_tool_profiles",
+    "allowed_delivery_profiles",
+    "requested_delivery_profiles",
+    "prohibited_scopes"
+  ],
+  "title": "RootAuthorizationV2",
+  "type": "object"
+}

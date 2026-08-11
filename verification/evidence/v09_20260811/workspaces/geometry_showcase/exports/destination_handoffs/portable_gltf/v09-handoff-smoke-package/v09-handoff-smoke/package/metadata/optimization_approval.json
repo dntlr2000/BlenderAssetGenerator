@@ -1,0 +1,18 @@
+{
+  "schema_version": "0.7.0",
+  "approval_id": "approval.v09-handoff-smoke-run",
+  "job_id": "geometry_showcase",
+  "run_id": "v09-handoff-smoke-run",
+  "profile_id": "portable_gltf",
+  "plan_sha256": "726da2286f783bc871ce30483072cd7ec525cba5ad4338ab18d32bd1b65f65db",
+  "review_sha256": "6474b0fe2150dbe71b83e2198e15d0d7618e7190deae04ee0ca802220e6144b2",
+  "profile_sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3",
+  "preflight_sha256": "bcdd2678643680fb7b2f8e9277ba4368f287687b2c19ac3da80ab2ed08047729",
+  "source_fingerprint": "026cd66512a17a906a3a5fdceb31eb507f5ae75f3b522f62509bdc132488943a",
+  "approved_by": "user",
+  "approval_note": "Automated isolated V0.9 handoff integration approval.",
+  "approved_at": "2026-08-11T07:48:34.010294Z",
+  "one_time": true,
+  "used": true,
+  "used_at": "2026-08-11T07:48:35.717634Z"
+}

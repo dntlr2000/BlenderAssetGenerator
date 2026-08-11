@@ -1,0 +1,120 @@
+{
+  "schema_version": "0.7.0",
+  "plan_id": "plan.v08-f3830cf3",
+  "job_id": "aq_full_box",
+  "profile_id": "portable_gltf",
+  "profile_artifact": {
+    "id": "profile.portable_gltf",
+    "kind": "asset_profile",
+    "path": "asset_profiles/portable_gltf.json",
+    "sha256": "d68b4749787cab757c7331b95508e57fcac5e5d482351b32686397133602d73b"
+  },
+  "preflight_report": {
+    "id": "preflight.v08-f3830cf3",
+    "kind": "preflight_report",
+    "path": "optimization/runs/v08-f3830cf3/mesh_preflight_report.json",
+    "sha256": "158048395a0652a6b7326721f8b4d3d7853c2432a242e41770c1e7bd603a59c5"
+  },
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de"
+    },
+    "source_fingerprint": "92d47a0a8c48a6ecbf84f30c3e84297c700a12c020f15afda4f29fd11345fd21",
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+      }
+    ]
+  },
+  "source_quality": null,
+  "status": "complete",
+  "directives": [
+    {
+      "target_id": "product.body",
+      "include": true,
+      "lod_levels": [
+        1,
+        2
+      ],
+      "collision_strategy": "inherit",
+      "preserve_semantic_id": true,
+      "preserve_material_ids": true,
+      "notes": []
+    }
+  ],
+  "approved_at": "2026-08-10T06:55:23.531671Z",
+  "completed_at": "2026-08-10T06:55:28.561773Z",
+  "output_manifests": [
+    {
+      "id": "manifest.lod.v08-f3830cf3",
+      "kind": "lod_manifest",
+      "path": "optimization/runs/v08-f3830cf3/lod_manifest.json",
+      "sha256": "47ed1ba5fc9bdc930efba542bab5816ab64280a449ffaa3c2ca75369dfaeeab3"
+    },
+    {
+      "id": "manifest.collision.v08-f3830cf3",
+      "kind": "collision_manifest",
+      "path": "optimization/runs/v08-f3830cf3/collision_manifest.json",
+      "sha256": "8249434de44565b072e36edd5f434c41e6afa09826616c99a1051a152e39ee05"
+    },
+    {
+      "id": "manifest.uv.v08-f3830cf3",
+      "kind": "uv_manifest",
+      "path": "optimization/runs/v08-f3830cf3/uv_manifest.json",
+      "sha256": "dcf2b0142fd618b7923844b763b28a4087c549383cfda5b65429bfab6c3df6f3"
+    },
+    {
+      "id": "manifest.cost.v08-f3830cf3",
+      "kind": "asset_cost_report",
+      "path": "optimization/runs/v08-f3830cf3/asset_cost_report.json",
+      "sha256": "57c22755c9c9584e31bdeb541f6bebdd9b3de4893e1db54b163749614f8af555"
+    },
+    {
+      "id": "plan.execution.v08-f3830cf3",
+      "kind": "optimization_plan",
+      "path": "optimization/runs/v08-f3830cf3/execution_plan.json",
+      "sha256": "8f8388d6ded5c7254921bbcc560b3011a2718ae0179be10e5a59fed0ccc4940a"
+    },
+    {
+      "id": "blend.optimized.v08-f3830cf3",
+      "kind": "blend",
+      "path": "optimization/runs/v08-f3830cf3/optimized/scene.blend",
+      "sha256": "6324fa5accb764ff47e8b5d9a4834df06f8faebb070462fc643280a987db4fd3"
+    },
+    {
+      "id": "evidence.optimized.v08-f3830cf3",
+      "kind": "other",
+      "path": "optimization/runs/v08-f3830cf3/optimized_asset_evidence.json",
+      "sha256": "0b73d641193f70361984a169a010b5392059d715daa975284907a662cd4eecfe"
+    }
+  ],
+  "errors": [],
+  "notes": [
+    "This plan is review-only and does not authorize derived optimization.",
+    "Canonical authoring geometry and material contracts remain read-only.",
+    "Execution is bound to one exact preauthorized-profile PolicyAuthorization; no user OptimizationApproval was created."
+  ]
+}

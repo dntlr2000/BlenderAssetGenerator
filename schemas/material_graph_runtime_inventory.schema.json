@@ -1,0 +1,144 @@
+{
+  "$defs": {
+    "RuntimeLinkInventory": {
+      "additionalProperties": false,
+      "description": "Record one reopened link using only semantic socket identities.",
+      "properties": {
+        "link_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Link Id",
+          "type": "string"
+        },
+        "source_node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Node Id",
+          "type": "string"
+        },
+        "source_socket_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Socket Id",
+          "type": "string"
+        },
+        "target_node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Node Id",
+          "type": "string"
+        },
+        "target_socket_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Socket Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "link_id",
+        "source_node_id",
+        "source_socket_id",
+        "target_node_id",
+        "target_socket_id"
+      ],
+      "title": "RuntimeLinkInventory",
+      "type": "object"
+    },
+    "RuntimeNodeInventory": {
+      "additionalProperties": false,
+      "description": "Identify one reopened Blender node by stable plan and template identity.",
+      "properties": {
+        "node_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Node Id",
+          "type": "string"
+        },
+        "template_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Template Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_id",
+        "template_id"
+      ],
+      "title": "RuntimeNodeInventory",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe the reopened graph independently from nondeterministic blend bytes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "inventory_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Inventory Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "material_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Material Id",
+      "type": "string"
+    },
+    "registry_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Registry Sha256",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "nodes": {
+      "items": {
+        "$ref": "#/$defs/RuntimeNodeInventory"
+      },
+      "minItems": 2,
+      "title": "Nodes",
+      "type": "array"
+    },
+    "links": {
+      "items": {
+        "$ref": "#/$defs/RuntimeLinkInventory"
+      },
+      "minItems": 1,
+      "title": "Links",
+      "type": "array"
+    },
+    "principled_socket_resolution": {
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9._-]{0,127}$": {
+          "type": "string"
+        }
+      },
+      "title": "Principled Socket Resolution",
+      "type": "object"
+    },
+    "normalized_inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Normalized Inventory Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "inventory_id",
+    "graph_id",
+    "material_id",
+    "registry_sha256",
+    "plan_sha256",
+    "nodes",
+    "links",
+    "normalized_inventory_sha256"
+  ],
+  "title": "NormalizedMaterialNodeInventory",
+  "type": "object"
+}

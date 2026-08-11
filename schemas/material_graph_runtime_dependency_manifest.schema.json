@@ -1,0 +1,107 @@
+{
+  "$defs": {
+    "GraphDependency": {
+      "additionalProperties": false,
+      "description": "Bind one contained compiler input to exact immutable bytes.",
+      "properties": {
+        "dependency_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dependency Id",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "graph_spec",
+            "material_plan",
+            "texture",
+            "mask",
+            "reference",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "color_space": {
+          "anyOf": [
+            {
+              "enum": [
+                "sRGB",
+                "Non-Color"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color Space"
+        }
+      },
+      "required": [
+        "dependency_id",
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "GraphDependency",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Enumerate the complete exact dependency set consumed by one compile plan.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/GraphDependency"
+      },
+      "minItems": 2,
+      "title": "Dependencies",
+      "type": "array"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "job_id",
+    "graph_id",
+    "source_fingerprint",
+    "dependencies"
+  ],
+  "title": "MaterialGraphDependencyManifest",
+  "type": "object"
+}

@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "description": "Authorize exactly one 8192 selection without weakening the normal 4K cap.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "authorization_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "selector_input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Selector Input Sha256",
+      "type": "string"
+    },
+    "authorized_pixels": {
+      "const": 8192,
+      "title": "Authorized Pixels",
+      "type": "integer"
+    },
+    "purpose": {
+      "const": "material_authoring_resolution_above_4096",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "authorized_by": {
+      "const": "user",
+      "title": "Authorized By",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_id",
+    "selector_input_sha256",
+    "authorized_pixels",
+    "purpose",
+    "authorized_by",
+    "created_at"
+  ],
+  "title": "HighResolutionAuthorization",
+  "type": "object"
+}

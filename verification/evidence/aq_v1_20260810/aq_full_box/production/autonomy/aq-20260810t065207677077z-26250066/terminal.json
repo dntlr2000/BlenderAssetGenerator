@@ -1,0 +1,63 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "terminal-aq-20260810t065207677077z-26250066",
+  "job_id": "aq_full_box",
+  "workflow_id": "wf-20260810t065207z-f3830cf3",
+  "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+  "input_sha256": "4a1d379922dcf330052cc10ceda6d24aece0bc5a928d503add976f7f6c419ae7",
+  "source_fingerprint": "c477bc01c6551d09dc2096e841460a53b9d3a640c1dfc37ccfd260cd46e22492",
+  "producer": "codex_blender_modeler.autonomy.service",
+  "producer_version": "0.1.0",
+  "provenance": [
+    {
+      "path": "production/autonomy/aq-20260810t065207677077z-26250066/transitions/0053/state.json",
+      "sha256": "4a1d379922dcf330052cc10ceda6d24aece0bc5a928d503add976f7f6c419ae7"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.json",
+      "sha256": "58cd55c8c9dfcefe576d0021cde36ac617c66f4b61451ff84624adc07c1ad835"
+    },
+    {
+      "path": "exports/packages/portable_gltf/v08-f3830cf3-package/package_manifest.json",
+      "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b"
+    },
+    {
+      "path": "optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_validation.json",
+      "sha256": "4ae8bc9f0680f3a77b3e0b886e08155c5251f6bab05cf653b3798a6e8d5a1925"
+    },
+    {
+      "path": "exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/handoff_manifest.json",
+      "sha256": "1c8ef0cc605c93079fc6bc4171ac59aa52002a45d3fcf7ff6a8b6e671a83d67a"
+    }
+  ],
+  "created_at": "2026-08-10T06:58:57.667783Z",
+  "terminal_id": "terminal-aq-20260810t065207677077z-26250066",
+  "session_id": "aq-20260810t065207677077z-26250066",
+  "status": "quality_passed",
+  "reason": "quality_target_reached",
+  "final_state": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/transitions/0053/state.json",
+    "sha256": "4a1d379922dcf330052cc10ceda6d24aece0bc5a928d503add976f7f6c419ae7"
+  },
+  "best_known_candidate": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/candidates/initial-01/candidate_evaluation.json",
+    "sha256": "7676500070871a85b7ffc07c918c6fc7db7fc44253ec25f3a85d5f4e94ea80cb"
+  },
+  "integrated_quality_report": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/integrated_quality/final/integrated_quality_report.json",
+    "sha256": "58cd55c8c9dfcefe576d0021cde36ac617c66f4b61451ff84624adc07c1ad835"
+  },
+  "package_manifest": {
+    "path": "exports/packages/portable_gltf/v08-f3830cf3-package/package_manifest.json",
+    "sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b"
+  },
+  "roundtrip_validation": {
+    "path": "optimization/runs/v08-f3830cf3/roundtrip/v08-f3830cf3-package/roundtrip_validation.json",
+    "sha256": "4ae8bc9f0680f3a77b3e0b886e08155c5251f6bab05cf653b3798a6e8d5a1925"
+  },
+  "review_bundle_manifest": null,
+  "destination_handoff_envelope": {
+    "path": "exports/destination_handoffs/portable_gltf/v08-f3830cf3-package/v08-f3830cf3-handoff/codex_handoff/handoff_manifest.json",
+    "sha256": "1c8ef0cc605c93079fc6bc4171ac59aa52002a45d3fcf7ff6a8b6e671a83d67a"
+  }
+}

@@ -1,0 +1,1281 @@
+{
+  "$defs": {
+    "AdvisoryMetricV02": {
+      "additionalProperties": false,
+      "description": "Store depth, normal, or generated-target estimates with no pass authority.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "estimated_depth",
+            "estimated_normal",
+            "generated_target"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "authoritative": {
+          "const": false,
+          "default": false,
+          "title": "Authoritative",
+          "type": "boolean"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Value"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "maxLength": 128,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "kind",
+        "status",
+        "confidence"
+      ],
+      "title": "AdvisoryMetricV02",
+      "type": "object"
+    },
+    "ContourMetricsV02": {
+      "additionalProperties": false,
+      "description": "Store exact boundary and distance-transform contour measurements.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "reference_mask_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Mask Sha256"
+        },
+        "candidate_mask_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Candidate Mask Sha256",
+          "type": "string"
+        },
+        "camera_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Sha256",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "title": "Height",
+          "type": "integer"
+        },
+        "reference_boundary_pixels": {
+          "minimum": 0,
+          "title": "Reference Boundary Pixels",
+          "type": "integer"
+        },
+        "candidate_boundary_pixels": {
+          "minimum": 0,
+          "title": "Candidate Boundary Pixels",
+          "type": "integer"
+        },
+        "boundary_tolerance_px": {
+          "minimum": 0,
+          "title": "Boundary Tolerance Px",
+          "type": "number"
+        },
+        "boundary_tolerance_diagonal_fraction": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Boundary Tolerance Diagonal Fraction",
+          "type": "number"
+        },
+        "boundary_precision": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary Precision"
+        },
+        "boundary_recall": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary Recall"
+        },
+        "boundary_f_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Boundary F Score"
+        },
+        "edge_distance_transform_chamfer_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Edge Distance Transform Chamfer Norm"
+        },
+        "distance_transform_method": {
+          "const": "exact_squared_euclidean_v1",
+          "default": "exact_squared_euclidean_v1",
+          "title": "Distance Transform Method",
+          "type": "string"
+        },
+        "normalization_basis": {
+          "const": "image_diagonal",
+          "default": "image_diagonal",
+          "title": "Normalization Basis",
+          "type": "string"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "status",
+        "authority",
+        "evidence_ids",
+        "candidate_mask_sha256",
+        "camera_sha256",
+        "width",
+        "height",
+        "reference_boundary_pixels",
+        "candidate_boundary_pixels",
+        "boundary_tolerance_px",
+        "boundary_tolerance_diagonal_fraction"
+      ],
+      "title": "ContourMetricsV02",
+      "type": "object"
+    },
+    "HardGateResultV02": {
+      "additionalProperties": false,
+      "description": "Record a required gate before advisory or aggregate quality observations.",
+      "properties": {
+        "gate_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Gate Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "blocking": {
+          "title": "Blocking",
+          "type": "boolean"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "finding_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        },
+        "reason_code": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "gate_id",
+        "status",
+        "required",
+        "blocking",
+        "reason_code",
+        "message"
+      ],
+      "title": "HardGateResultV02",
+      "type": "object"
+    },
+    "IntegratedQualityPolicyV02": {
+      "additionalProperties": false,
+      "description": "Freeze explicit companion thresholds without replacing V0.6 scoring.",
+      "properties": {
+        "schema_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "require_contour": {
+          "default": true,
+          "title": "Require Contour",
+          "type": "boolean"
+        },
+        "minimum_boundary_f_score": {
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Boundary F Score",
+          "type": "number"
+        },
+        "maximum_edge_distance_transform_chamfer_norm": {
+          "default": 0.05,
+          "minimum": 0,
+          "title": "Maximum Edge Distance Transform Chamfer Norm",
+          "type": "number"
+        },
+        "minimum_semantic_iou": {
+          "default": 0.7,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Semantic Iou",
+          "type": "number"
+        },
+        "critical_semantic_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Critical Semantic Ids",
+          "type": "array"
+        },
+        "required_landmark_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Required Landmark Ids",
+          "type": "array"
+        },
+        "maximum_landmark_reprojection_error_norm": {
+          "default": 0.05,
+          "minimum": 0,
+          "title": "Maximum Landmark Reprojection Error Norm",
+          "type": "number"
+        },
+        "require_multiview": {
+          "default": false,
+          "title": "Require Multiview",
+          "type": "boolean"
+        },
+        "minimum_multiview_silhouette_stability": {
+          "default": 0.7,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Multiview Silhouette Stability",
+          "type": "number"
+        },
+        "minimum_multiview_semantic_placement": {
+          "default": 0.7,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Multiview Semantic Placement",
+          "type": "number"
+        },
+        "meaningful_gain_min": {
+          "default": 0.01,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Meaningful Gain Min",
+          "type": "number"
+        },
+        "lexicographic_metric_priority": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Lexicographic Metric Priority",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile_id"
+      ],
+      "title": "IntegratedQualityPolicyV02",
+      "type": "object"
+    },
+    "LandmarkMetricV02": {
+      "additionalProperties": false,
+      "description": "Store normalized landmark reprojection error or an explicit unscorable state.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "landmark_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Landmark Id",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Artifact Sha256"
+        },
+        "candidate_artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate Artifact Sha256"
+        },
+        "camera_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Sha256",
+          "type": "string"
+        },
+        "reprojection_error_norm": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reprojection Error Norm"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "landmark_id",
+        "semantic_id",
+        "authority",
+        "status",
+        "camera_sha256",
+        "confidence"
+      ],
+      "title": "LandmarkMetricV02",
+      "type": "object"
+    },
+    "MultiviewMetricV02": {
+      "additionalProperties": false,
+      "description": "Summarize authoritative multi-view consistency without using advisory views as truth.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "observations": {
+          "items": {
+            "$ref": "#/$defs/MultiviewObservationV02"
+          },
+          "title": "Observations",
+          "type": "array"
+        },
+        "authoritative_view_count": {
+          "minimum": 0,
+          "title": "Authoritative View Count",
+          "type": "integer"
+        },
+        "minimum_silhouette_stability": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Silhouette Stability"
+        },
+        "mean_semantic_placement_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mean Semantic Placement Score"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "status",
+        "observations",
+        "authoritative_view_count"
+      ],
+      "title": "MultiviewMetricV02",
+      "type": "object"
+    },
+    "MultiviewObservationV02": {
+      "additionalProperties": false,
+      "description": "Bind one structural companion view and its independent measurements.",
+      "properties": {
+        "view_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "View Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "actual_blender",
+            "generated",
+            "provider",
+            "unavailable"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "camera_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Camera Sha256"
+        },
+        "silhouette_stability": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Silhouette Stability"
+        },
+        "semantic_placement_score": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Placement Score"
+        },
+        "visible_semantic_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Visible Semantic Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "view_id",
+        "origin",
+        "authority"
+      ],
+      "title": "MultiviewObservationV02",
+      "type": "object"
+    },
+    "ProducerIdentityV02": {
+      "additionalProperties": false,
+      "description": "Identify the exact host component that produced one companion report.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ProducerIdentityV02",
+      "type": "object"
+    },
+    "QualityFindingV02": {
+      "additionalProperties": false,
+      "description": "Classify one measured issue for deterministic phase reentry.",
+      "properties": {
+        "finding_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "camera",
+            "contour",
+            "semantic",
+            "local_proportion",
+            "topology",
+            "uv",
+            "normal",
+            "missing_evidence",
+            "restricted_scope"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "warning",
+            "high",
+            "hard"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "authoritative": {
+          "default": true,
+          "title": "Authoritative",
+          "type": "boolean"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "evidence_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "severity",
+        "message"
+      ],
+      "title": "QualityFindingV02",
+      "type": "object"
+    },
+    "ReentryDecisionV02": {
+      "additionalProperties": false,
+      "description": "Route a finding to one machine-readable responsible stage.",
+      "properties": {
+        "schema_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "finding_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "camera",
+            "contour",
+            "semantic",
+            "local_proportion",
+            "topology",
+            "uv",
+            "normal",
+            "missing_evidence",
+            "restricted_scope"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "destination": {
+          "enum": [
+            "v0.4_structural_authoring",
+            "v0.6_parametric_convergence",
+            "v0.7_production_repair",
+            "manual_evidence_review",
+            "restricted_scope_required"
+          ],
+          "title": "Destination",
+          "type": "string"
+        },
+        "automatic_action_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Automatic Action Allowed",
+          "type": "boolean"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "reason_code": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "category",
+        "destination",
+        "reason_code",
+        "message"
+      ],
+      "title": "ReentryDecisionV02",
+      "type": "object"
+    },
+    "SemanticEvidenceBindingV02": {
+      "additionalProperties": false,
+      "description": "Bind semantic masks and restrict authority to registered observed evidence.",
+      "properties": {
+        "evidence_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Evidence Id",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "registered_observed",
+            "observed",
+            "inferred",
+            "generated",
+            "provider",
+            "unavailable"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "artifact_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Path"
+        },
+        "artifact_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Artifact Sha256"
+        },
+        "camera_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Sha256",
+          "type": "string"
+        },
+        "registration_receipt_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Registration Receipt Sha256"
+        }
+      },
+      "required": [
+        "evidence_id",
+        "semantic_id",
+        "origin",
+        "authority",
+        "camera_sha256"
+      ],
+      "title": "SemanticEvidenceBindingV02",
+      "type": "object"
+    },
+    "SemanticMetricV02": {
+      "additionalProperties": false,
+      "description": "Store one per-semantic comparison without averaging away critical missing parts.",
+      "properties": {
+        "metric_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Metric Id",
+          "type": "string"
+        },
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "critical": {
+          "title": "Critical",
+          "type": "boolean"
+        },
+        "authority": {
+          "enum": [
+            "authoritative",
+            "advisory",
+            "unavailable"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "reference_evidence": {
+          "$ref": "#/$defs/SemanticEvidenceBindingV02"
+        },
+        "candidate_evidence_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Candidate Evidence Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "scored",
+            "unscorable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "mask_iou": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Iou"
+        },
+        "missing_candidate": {
+          "default": false,
+          "title": "Missing Candidate",
+          "type": "boolean"
+        },
+        "contour": {
+          "$ref": "#/$defs/ContourMetricsV02"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "metric_id",
+        "semantic_id",
+        "critical",
+        "authority",
+        "reference_evidence",
+        "candidate_evidence_id",
+        "status",
+        "contour"
+      ],
+      "title": "SemanticMetricV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Combine IQ 0.2 companion metrics while preserving the legacy V0.6 score verbatim.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "camera_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Sha256",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "legacy_v06_report_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Legacy V06 Report Sha256"
+    },
+    "legacy_v06_direct_score": {
+      "anyOf": [
+        {
+          "maximum": 1,
+          "minimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Legacy V06 Direct Score"
+    },
+    "policy": {
+      "$ref": "#/$defs/IntegratedQualityPolicyV02"
+    },
+    "contour": {
+      "$ref": "#/$defs/ContourMetricsV02"
+    },
+    "semantics": {
+      "items": {
+        "$ref": "#/$defs/SemanticMetricV02"
+      },
+      "title": "Semantics",
+      "type": "array"
+    },
+    "landmarks": {
+      "items": {
+        "$ref": "#/$defs/LandmarkMetricV02"
+      },
+      "title": "Landmarks",
+      "type": "array"
+    },
+    "multiview": {
+      "$ref": "#/$defs/MultiviewMetricV02"
+    },
+    "advisory_metrics": {
+      "items": {
+        "$ref": "#/$defs/AdvisoryMetricV02"
+      },
+      "title": "Advisory Metrics",
+      "type": "array"
+    },
+    "hard_gates": {
+      "items": {
+        "$ref": "#/$defs/HardGateResultV02"
+      },
+      "title": "Hard Gates",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/QualityFindingV02"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "reentry": {
+      "items": {
+        "$ref": "#/$defs/ReentryDecisionV02"
+      },
+      "title": "Reentry",
+      "type": "array"
+    },
+    "outcome": {
+      "enum": [
+        "passed",
+        "needs_revision",
+        "unscorable",
+        "blocked"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "quality_accepted": {
+      "title": "Quality Accepted",
+      "type": "boolean"
+    },
+    "revision_reasons": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Revision Reasons",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/ProducerIdentityV02"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "source_fingerprint",
+    "camera_sha256",
+    "input_sha256",
+    "policy",
+    "contour",
+    "multiview",
+    "outcome",
+    "quality_accepted",
+    "producer",
+    "created_at"
+  ],
+  "title": "IntegratedQualityReportV02",
+  "type": "object"
+}

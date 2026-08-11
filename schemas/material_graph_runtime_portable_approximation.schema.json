@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "PortableApproximationFinding": {
+      "additionalProperties": false,
+      "description": "Explain one authoring feature that is portable, approximated, or unsupported.",
+      "properties": {
+        "finding_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "feature": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Feature",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "portable",
+            "approximated",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding_id",
+        "feature",
+        "status",
+        "message"
+      ],
+      "title": "PortableApproximationFinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record portable PBR meaning separately from the Blender master graph.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "graph_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Graph Id",
+      "type": "string"
+    },
+    "raw_pbr_channels": {
+      "items": {
+        "enum": [
+          "base_color",
+          "roughness",
+          "metallic",
+          "normal",
+          "height",
+          "occlusion",
+          "emission",
+          "opacity"
+        ],
+        "type": "string"
+      },
+      "title": "Raw Pbr Channels",
+      "type": "array"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/PortableApproximationFinding"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "destination_runtime_parity_verified": {
+      "const": false,
+      "default": false,
+      "title": "Destination Runtime Parity Verified",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "report_id",
+    "graph_id"
+  ],
+  "title": "PortableMaterialApproximationReport",
+  "type": "object"
+}

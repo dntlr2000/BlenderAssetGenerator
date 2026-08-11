@@ -132,6 +132,7 @@ from .production_budget import (
     ProductionResourceReceipt,
     reserve_production_step_resources,
 )
+from .transitions import build_transition_receipt, build_transition_state
 from .worker import autonomy_session_lock, bounded_action_limit
 
 
@@ -564,77 +565,37 @@ def _transition(
         root,
         session_root / "transitions" / f"{before.action_sequence:04d}" / "state.json",
     )
-    state_values = {
-        **before.model_dump(mode="python"),
-        **update,
-        "contract_id": f"state-{before.session_id}-{sequence:04d}",
-        "input_sha256": before_artifact.sha256,
-        "source_fingerprint": canonical_digest(
-            {
-                "before": before_artifact.sha256,
-                "previous_receipt": previous_receipt.sha256 if previous_receipt else None,
-                "action": action,
-                "sequence": sequence,
-            }
-        ),
-        "provenance": [before_artifact],
-        "created_at": now,
-        "action_sequence": sequence,
-        "budget_usage": budget_usage,
-        "receipt_chain_head_before_state_sha256": (
-            previous_receipt.sha256 if previous_receipt else None
-        ),
-        "observed_at": now,
-    }
-    state = AutonomyState.model_validate(state_values)
+    state = build_transition_state(
+        before,
+        before_artifact=before_artifact,
+        previous_receipt=previous_receipt,
+        action=action,
+        sequence=sequence,
+        budget_usage=budget_usage,
+        update=update,
+        observed_at=now,
+    )
     state_bytes = (state.model_dump_json(indent=2) + "\n").encode("utf-8")
     state_relative = (target_dir / "state.json").relative_to(root).as_posix()
     state_artifact = _artifact_from_bytes(root, state_relative, state_bytes)
-    supporting = [
-        artifact
-        for artifact in (
-            candidate_evaluation,
-            policy_authorization,
-            candidate_promotion_receipt,
-            material_promotion_receipt,
-        )
-        if artifact is not None
-    ]
-    supporting.extend(host_attempt_evidence or [])
-    receipt = AutonomyIterationReceipt(
-        contract_id=f"receipt-{before.session_id}-{sequence:04d}",
-        receipt_id=f"receipt-{before.session_id}-{sequence:04d}",
-        job_id=before.job_id,
-        workflow_id=before.workflow_id,
-        dispatch_id=before.dispatch_id,
-        input_sha256=before_artifact.sha256,
-        source_fingerprint=canonical_digest(
-            {
-                "before": before_artifact.sha256,
-                "after": state_artifact.sha256,
-                "previous": previous_receipt.sha256 if previous_receipt else None,
-            }
-        ),
-        producer="codex_blender_modeler.autonomy.service",
-        producer_version="0.1.0",
-        provenance=[before_artifact, state_artifact, *supporting],
-        created_at=now,
-        session_id=before.session_id,
+    receipt = build_transition_receipt(
+        before,
+        state,
+        before_artifact=before_artifact,
+        state_artifact=state_artifact,
+        previous_receipt=previous_receipt,
+        action=action,
         sequence=sequence,
-        previous_receipt_sha256=previous_receipt.sha256 if previous_receipt else None,
-        action=action,  # type: ignore[arg-type]
-        state_before=before_artifact,
-        state_after=state_artifact,
-        budget_before=before.budget_usage,
-        budget_after=budget_usage,
+        budget_usage=budget_usage,
+        created_at=now,
         candidate_evaluation=candidate_evaluation,
         policy_authorization=policy_authorization,
         candidate_promotion_receipt=candidate_promotion_receipt,
         material_promotion_receipt=material_promotion_receipt,
-        host_attempt_evidence=host_attempt_evidence or [],
+        host_attempt_evidence=host_attempt_evidence,
         canonical_changed=canonical_changed,
         rollback_performed=rollback_performed,
-        outcome=outcome,  # type: ignore[arg-type]
+        outcome=outcome,
         failure_fingerprint=failure_fingerprint,
     )
     receipt_bytes = (receipt.model_dump_json(indent=2) + "\n").encode("utf-8")

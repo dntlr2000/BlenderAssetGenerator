@@ -1,0 +1,174 @@
+{
+  "$defs": {
+    "CandidateRankRecordV02": {
+      "additionalProperties": false,
+      "description": "Explain eligibility and deterministic order for one candidate.",
+      "properties": {
+        "candidate_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "rejection_reasons": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Rejection Reasons",
+          "type": "array"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "pareto_front": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pareto Front"
+        },
+        "selected": {
+          "default": false,
+          "title": "Selected",
+          "type": "boolean"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "eligible",
+        "reason"
+      ],
+      "title": "CandidateRankRecordV02",
+      "type": "object"
+    },
+    "ProducerIdentityV02": {
+      "additionalProperties": false,
+      "description": "Identify the exact host component that produced one companion report.",
+      "properties": {
+        "name": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
+      ],
+      "title": "ProducerIdentityV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve eligible Pareto ranking or an explicit no-eligible-candidate result.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "ranking_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Ranking Id",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "policy_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Policy Id",
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "selected",
+        "rejected_no_eligible_candidate"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "selected_candidate_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selected Candidate Id"
+    },
+    "pareto_candidate_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Pareto Candidate Ids",
+      "type": "array"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/CandidateRankRecordV02"
+      },
+      "minItems": 1,
+      "title": "Records",
+      "type": "array"
+    },
+    "producer": {
+      "$ref": "#/$defs/ProducerIdentityV02"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "ranking_id",
+    "source_fingerprint",
+    "policy_id",
+    "outcome",
+    "records",
+    "producer",
+    "created_at"
+  ],
+  "title": "CandidateRankingV02",
+  "type": "object"
+}

@@ -96,3 +96,41 @@ build/
 /.codex_runtime/
 /NVIDIA Corporation/
 /test_artifacts/
+
+# AQ v2 local harness outputs and named pytest basetemps.
+/.aqv2-*/
+/.delivery-executor-*/
+/.mphase*/
+/.p0-*/
+/.p0r*/
+/.p0one/
+/.p0two/
+/.qv2*/
+/.sd[0-9]/
+/.tmp-mg-registry-*/
+
+# Exact short basetemp roots created by AQ v2 Windows test runs.
+/.b2/
+/.c2/
+/.de6/
+/.dg2/
+/.dg3/
+/.dg4/
+/.dg5/
+/.dt5/
+/.dt6/
+/.dx7/
+/.dx8/
+/.e2/
+/.e2eactual/
+/.e3/
+/.e4/
+/.e5/
+/.ehost/
+/.f12/
+/.gall2/
+/.h2/
+/.v1c/
+/.z/
+/.zfull/
+/.zv2/

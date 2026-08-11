@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "description": "Route a finding to one machine-readable responsible stage.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "finding_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "category": {
+      "enum": [
+        "camera",
+        "contour",
+        "semantic",
+        "local_proportion",
+        "topology",
+        "uv",
+        "normal",
+        "missing_evidence",
+        "restricted_scope"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "destination": {
+      "enum": [
+        "v0.4_structural_authoring",
+        "v0.6_parametric_convergence",
+        "v0.7_production_repair",
+        "manual_evidence_review",
+        "restricted_scope_required"
+      ],
+      "title": "Destination",
+      "type": "string"
+    },
+    "automatic_action_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Automatic Action Allowed",
+      "type": "boolean"
+    },
+    "target_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "reason_code": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Reason Code",
+      "type": "string"
+    },
+    "message": {
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "category",
+    "destination",
+    "reason_code",
+    "message"
+  ],
+  "title": "ReentryDecisionV02",
+  "type": "object"
+}

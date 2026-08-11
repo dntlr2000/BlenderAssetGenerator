@@ -1,0 +1,141 @@
+{
+  "additionalProperties": false,
+  "description": "Define the destination-side plan that must exist before project modification.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "handoff_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Handoff Manifest Sha256",
+      "type": "string"
+    },
+    "package_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Manifest Sha256",
+      "type": "string"
+    },
+    "detected_engine": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Detected Engine",
+      "type": "string"
+    },
+    "detected_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Detected Version",
+      "type": "string"
+    },
+    "detected_render_pipeline": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Detected Render Pipeline",
+      "type": "string"
+    },
+    "detection_evidence": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Detection Evidence",
+      "type": "array"
+    },
+    "unit_axis_pivot_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Unit Axis Pivot Plan",
+      "type": "array"
+    },
+    "hierarchy_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Hierarchy Plan",
+      "type": "array"
+    },
+    "material_texture_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Material Texture Plan",
+      "type": "array"
+    },
+    "uv_coordinate_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Uv Coordinate Plan",
+      "type": "array"
+    },
+    "lod_collider_plan": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Lod Collider Plan",
+      "type": "array"
+    },
+    "expected_changes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Expected Changes",
+      "type": "array"
+    },
+    "known_losses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Losses",
+      "type": "array"
+    },
+    "user_approval_required": {
+      "const": true,
+      "default": true,
+      "title": "User Approval Required",
+      "type": "boolean"
+    },
+    "approved": {
+      "const": false,
+      "default": false,
+      "title": "Approved",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "handoff_manifest_sha256",
+    "package_manifest_sha256",
+    "detected_engine",
+    "detected_version",
+    "detected_render_pipeline",
+    "detection_evidence",
+    "unit_axis_pivot_plan",
+    "hierarchy_plan",
+    "material_texture_plan",
+    "uv_coordinate_plan",
+    "lod_collider_plan",
+    "created_at"
+  ],
+  "title": "DestinationImportPlan",
+  "type": "object"
+}

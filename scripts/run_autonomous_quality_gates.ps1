@@ -41,7 +41,11 @@ if (-not $OutputRoot) {
 }
 $OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
+# Keep pytest's nested fixtures short and outside the repository regardless of report location.
+$PytestRoot = Join-Path ([System.IO.Path]::GetTempPath()) "aqp-$PID"
+New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 $BenchmarkReport = Join-Path $OutputRoot "autonomous_quality_benchmark.json"
+$BenchmarkV02Report = Join-Path $OutputRoot "autonomous_quality_benchmark_v02.json"
 
 if ($SkipVision) {
     Invoke-Uv sync --frozen --extra dev
@@ -75,14 +79,44 @@ $FocusedTests = @(
     "tests/test_autonomy_review_bundle_aq.py",
     "tests/test_autonomy_terminal_verifier_aq.py",
     "tests/test_autonomy_worker.py",
-    "tests/test_packaging_long_paths_aq.py"
+    "tests/test_packaging_long_paths_aq.py",
+    "tests/test_aq_v02_geometry.py",
+    "tests/test_aq_v02_delivery_geometry_blender.py",
+    "tests/test_aq_v02_schema_registry.py",
+    "tests/test_autonomy_v2_contracts.py",
+    "tests/test_autonomy_v2_planner.py",
+    "tests/test_autonomy_v2_controller_bridge.py",
+    "tests/test_autonomy_v2_candidate_validation.py",
+    "tests/test_autonomy_v2_candidate_validation_blender.py",
+    "tests/test_autonomy_v2_delivery_executor.py",
+    "tests/test_autonomy_v2_delivery_service.py",
+    "tests/test_autonomy_v2_material_phase.py",
+    "tests/test_autonomy_v2_quality_binding.py",
+    "tests/test_autonomy_v2_quality_terminal.py",
+    "tests/test_autonomy_v2_supervisor_delivery.py",
+    "tests/test_autonomy_v2_supervisor_public.py",
+    "tests/test_controller_executor_v02.py",
+    "tests/test_geometry_intent_v02_reachability.py",
+    "tests/test_integrated_quality_v02_metrics.py",
+    "tests/test_integrated_quality_v02_ranking.py",
+    "tests/test_integrated_quality_v02_service.py",
+    "tests/test_integrated_quality_v02_schemas.py",
+    "tests/test_material_graph_runtime.py",
+    "tests/test_material_authoring_v02.py",
+    "tests/test_material_authoring_schemas_v02.py",
+    "tests/test_material_authoring_blender_v02.py",
+    "tests/test_advanced_material_handoff_v02.py",
+    "tests/test_autonomous_quality_benchmarks_v02.py",
+    "tests/test_repository_catalog.py",
+    "tests/test_repository_summary_generator.py",
+    "tests/test_ci_workflows.py"
 )
-Invoke-Uv run pytest -q --basetemp (Join-Path $OutputRoot "pt-focused") @FocusedTests
+Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "f") @FocusedTests
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 
 if (-not $SkipFullRegression) {
-    Invoke-Uv run pytest --basetemp (Join-Path $OutputRoot "pt-full")
+    Invoke-Uv run pytest --basetemp (Join-Path $PytestRoot "a")
 }
 
 $BenchmarkArguments = @(
@@ -90,27 +124,57 @@ $BenchmarkArguments = @(
     "--manifest", "examples/autonomous_quality_benchmarks/manifest.json",
     "--output", $BenchmarkReport
 )
+$BenchmarkV02Arguments = @(
+    "run", "python", "-m", "codex_blender_modeler.autonomy_benchmarks.v02_cli",
+    "--manifest", "examples/autonomous_quality_benchmarks_v02/manifest.json",
+    "--output", $BenchmarkV02Report
+)
 
 if ($RunBlender) {
     $PreviousGeometrySmoke = $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE
     $PreviousAutonomySmoke = $env:CBM_RUN_AUTONOMY_E2E_SMOKE
     $PreviousQualitySmoke = $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE
     $PreviousPortableLongPathSmoke = $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE
+    $PreviousAQV02GeometrySmoke = $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE
+    $PreviousAQV02DeliveryGeometrySmoke = $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE
+    $PreviousAQV02CandidateValidationSmoke = $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE
+    $PreviousAQV02DeliveryExecutorSmoke = $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E
+    $PreviousGeometryIntentReachabilitySmoke = $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE
+    $PreviousMaterialGraphSmoke = $env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE
+    $PreviousAQV02BenchmarkSmoke = $env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE
+    $PreviousMaterialAuthoringSmoke = $env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE
     try {
         $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AUTONOMY_E2E_SMOKE = "1"
         $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE = "1"
         $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = "1"
+        $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE = "1"
+        $env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE = "1"
         Invoke-Uv run cbm blender-compat
-        Invoke-Uv run pytest -q --basetemp (Join-Path $OutputRoot "pt-blender") `
+        Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "b") `
             tests/test_autonomous_structural_geometry_blender.py `
             tests/test_autonomous_quality_blender_evidence.py::test_blender_scale_assembly_and_topology_evidence `
             tests/test_blender_companion_service.py::test_static_prop_authoring_companions_are_hash_bound_and_read_only `
             tests/test_v07_blender_scripts.py::test_blender_runtime_writes_portable_json_to_extended_path `
             tests/test_autonomy_candidate_blender.py::test_initial_candidate_build_qa_and_policy_promotion `
             tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_reaches_one_terminal_delivery `
-            tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_publishes_review_only_bundle_without_package
+            tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_publishes_review_only_bundle_without_package `
+            tests/test_aq_v02_geometry_blender.py `
+            tests/test_aq_v02_delivery_geometry_blender.py `
+            tests/test_autonomy_v2_candidate_validation_blender.py `
+            tests/test_aq_v02_delivery_executor_blender.py `
+            tests/test_geometry_intent_v02_reachability.py `
+            tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5 `
+            tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke `
+            tests/test_material_authoring_blender_v02.py::test_fixed_material_families_compile_reopen_and_render_in_blender_5
         $BenchmarkArguments += "--run-blender"
+        $BenchmarkV02Arguments += "--run-blender"
     }
     finally {
         if ($null -eq $PreviousGeometrySmoke) {
@@ -139,6 +203,64 @@ if ($RunBlender) {
         else {
             $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE = $PreviousPortableLongPathSmoke
         }
+        if ($null -eq $PreviousAQV02GeometrySmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE = $PreviousAQV02GeometrySmoke
+        }
+        if ($null -eq $PreviousAQV02DeliveryGeometrySmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE = `
+                $PreviousAQV02DeliveryGeometrySmoke
+        }
+        if ($null -eq $PreviousAQV02CandidateValidationSmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE = `
+                $PreviousAQV02CandidateValidationSmoke
+        }
+        if ($null -eq $PreviousAQV02DeliveryExecutorSmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = `
+                $PreviousAQV02DeliveryExecutorSmoke
+        }
+        if ($null -eq $PreviousGeometryIntentReachabilitySmoke) {
+            Remove-Item Env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE = `
+                $PreviousGeometryIntentReachabilitySmoke
+        }
+        if ($null -eq $PreviousMaterialGraphSmoke) {
+            Remove-Item Env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE = $PreviousMaterialGraphSmoke
+        }
+        if ($null -eq $PreviousAQV02BenchmarkSmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE = $PreviousAQV02BenchmarkSmoke
+        }
+        if ($null -eq $PreviousMaterialAuthoringSmoke) {
+            Remove-Item Env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE = $PreviousMaterialAuthoringSmoke
+        }
     }
 
     if (-not $SkipLegacyGates) {
@@ -147,7 +269,8 @@ if ($RunBlender) {
 }
 
 Invoke-Uv @BenchmarkArguments
+Invoke-Uv @BenchmarkV02Arguments
 Invoke-Native -Command "git" -Arguments @("diff", "--check")
 
-Write-Host "Autonomous Quality 0.1.0 gates completed: $OutputRoot" `
+Write-Host "AQ 0.1 gates and AQ 0.2 host/smoke checks completed; v2 remains disabled_experimental: $OutputRoot" `
     -ForegroundColor Green

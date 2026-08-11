@@ -1,0 +1,202 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v08-f3830cf3-handoff",
+  "package_manifest_sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b",
+  "primary_model": "package/asset.glb",
+  "exported_root_policy": "flat_root",
+  "canonical_hierarchy_is_advisory": true,
+  "nodes": [
+    {
+      "export_key": "product.body|0|render|0",
+      "object_name": "product.body__LOD0",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.cc37feb2145ed0b36252",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "product.body|0|collider|None",
+      "object_name": "product.body__LOD0__COLLIDER",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "product.body",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "product.body|0|lod|1",
+      "object_name": "product.body__LOD1",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.cc37feb2145ed0b36252",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "product.body|0|lod|2",
+      "object_name": "product.body__LOD2",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.cc37feb2145ed0b36252",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          0.0,
+          0.0,
+          0.6
+        ],
+        "base_plane_z_m": 0.012291,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    }
+  ],
+  "semantic_ids": [
+    "product.body"
+  ],
+  "material_ids": [
+    "mat.product.blue"
+  ]
+}

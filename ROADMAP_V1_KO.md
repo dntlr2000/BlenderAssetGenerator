@@ -27,6 +27,7 @@
 | Codex Destination Handoff | `0.9.0` | package-bound 조립·재질 계약과 안전한 목적지 import prompt |
 | External Static Asset Intake | `0.9.0` | 수동 제작 static source의 inspection, exact 승인, normalized authoring derivative와 V0.7 연결 |
 | Autonomous Quality / Integrated Quality | `0.1.0` | 새 standard 정적 소품을 위한 opt-in supervisor와 네 축 companion quality evidence |
+| Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` | additive experimental overlay; profile은 `disabled_experimental` |
 | SceneSpec V03 structural derivative | `0.3.0` | canonical `0.2.0`을 바꾸지 않는 opt-in derived 구조 형상 계약 |
 
 현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
@@ -63,6 +64,8 @@ V0.9  Stabilization + Codex Destination Handoff
   ↓
 AQ 0.1  Optional Autonomous Quality overlay (프로젝트 버전 불변)
   ↓
+AQ 0.2  Additive experimental quality/delivery harness (비활성)
+  ↓
 V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 ```
 
@@ -78,6 +81,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.8 | 구현 및 로컬 계약 검증 완료 | workflow orchestration `0.8.0`, 프로젝트 `0.8.0` |
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
+| AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
@@ -499,6 +503,63 @@ package/review terminal, benchmark와 chained V0.7~V0.9 gate가 통과했습니�
 또는 destination runtime parity를 주장하지 않습니다. exact 결과는
 `VERIFICATION_AUTONOMOUS_QUALITY_KO.md`를 따릅니다.
 
+## 11B. Autonomous Quality Extension 0.2 — 비활성 실험 확장
+
+**상태: `autonomous_static_prop_v2`는 `disabled_experimental`입니다. 프로젝트 버전은
+`0.9.0`, canonical SceneSpec은 `0.2.0` 그대로입니다.**
+
+AQ 0.2는 AQ 0.1과 기존 V0.7~V0.9 경로를 바꾸지 않고 geometry·material controller 후보를
+각각 검증·승격한 뒤 외부 Integrated Quality 0.2 제출 경계로 진행합니다. `needs_revision`과
+`unscorable`은 exact review bundle에서 끝나고, `blocked`는 bundle/freeze 없는 blocked terminal로,
+pass는 exact source freeze를 만든 뒤 `review_only` 또는 포맷별 V0.7 plan hash를 사용자가 정확히
+승인한 GLB/FBX delivery로만 이어집니다.
+
+```text
+geometry candidate/promotion
+→ material candidate/promotion
+→ external IQ 0.2 submission
+→ quality_approved freeze, review_required bundle, 또는 blocked terminal
+→ review_only 또는 exact-approved GLB / FBX delivery
+```
+
+ControllerExecutor는 execution-owned workspace, exact input snapshot, declared output와
+request-bound receipt만 교환하며 canonical job root를 controller에 제공하지 않습니다. 공개
+`plan`, `status`, `advance`, bounded `run`, `cancel` CLI/MCP가 추가됐지만 approval 합성,
+임의 코드, destination write 또는 기존 증거 migration 권한을 주지 않습니다.
+
+desktop wait의 resume는 새 execution을 만들지 않고 동일 request/workspace만 대상으로 합니다.
+`advance`/`run`은 exact output이 나타난 뒤 request·result·profile·receipt와 시작 시 protected job
+inventory를 다시 확인하며, 변경·중복·stale replay 또는 budget 재소비는 fail-closed입니다. state
+chain은 모든 predecessor 전이와 monotonic budget을 재구성할 수 있어야 합니다.
+
+execution-root/adoption result recovery는 전체 executor lifecycle과 exact stored result bytes를
+재구성하며, 직접 side effect 전에 active·미만료 RootAuthorization과 exact plan/profile/budget을
+재검증합니다. AQ v2 timeout은 bounded retry 대기가 아니라 nonretryable failed terminal입니다.
+
+IQ 0.2 quality freeze는 제출 당시 값을 신뢰하지 않고 exact global/semantic PNG bytes에서 metric과
+decision을 host가 재계산한 뒤 현재 canonical source와 필수
+`geometry_candidate_validation_receipt`/`material_phase_receipt`에 결속됩니다. typed raw receipt가
+없는 required scored landmark/multi-view는 pass authority가 없고, authoritative hard finding은 pass를 차단하며, nested
+`QualityTerminalV2` 검증은 IQ report, source freeze 또는 review bundle과 내부 artifact hash까지
+재검증합니다.
+
+최신 통합 증거는 전체 pytest `1350 passed, 39 skipped, 8 warnings`, AQ focused gate
+`397 passed, 17 skipped, 8 warnings`, 실제 Blender gate `30 passed, 6 warnings`, 그리고 V0.7/V0.8/V0.9 gate
+통과입니다. 실제 Blender 범위는 선택된 structural/material fixture와 같은 freeze에서 각각
+직접 생성한 synthetic GLB+FBX dual-delivery fixture입니다. 다음 항목이 남아 있으므로 profile을
+활성화하지 않습니다.
+
+- Codex App Server 또는 supporting-client의 end-to-end closed loop 실행·격리 attestation
+- 다양한 실제 reference에 대한 사람의 품질 판정과 장기 benchmark
+- Unity, Unreal 또는 custom destination의 runtime import/material parity
+
+cross-platform release matrix, canonical material preview lifecycle, 원격 CI run과 일반화된
+asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검증 제한입니다.
+
+상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
+[시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
+[검증 기록](VERIFICATION_AQ_V02_KO.md)을 따릅니다.
+
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
 **상태: 승격 중단. 재개 시 제품 범위와 아래 완료 기준을 다시 검토하기 전에는 V1.0으로 표시하지 않습니다.**
@@ -713,6 +774,15 @@ VERIFICATION_Vxx_KO.md
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
 - [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
 - [V0.9 검증 기록](VERIFICATION_V09_KO.md)
+- [Autonomous Quality 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 시작 가이드](GETTING_STARTED_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 테스트 계획](TEST_PLAN_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 마이그레이션 정책](MIGRATION_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 검증 기록](VERIFICATION_AQ_V02_KO.md)
+- [ControllerExecutor 격리 경계](CONTROLLER_EXECUTOR_KO.md)
+- [AQ 0.2 delivery profile](DELIVERY_PROFILES_KO.md)
+- [AQ 0.2 material authoring](MATERIAL_AUTHORING_KO.md)
+- [AQ 0.2 quality benchmark](QUALITY_BENCHMARK_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다. 실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지 import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
 
@@ -726,4 +796,4 @@ VERIFICATION_Vxx_KO.md
 → 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
 ```
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

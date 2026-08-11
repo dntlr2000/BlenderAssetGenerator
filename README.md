@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`은 여기에 더해진 additive experimental overlay이며 profile은 아직 `disabled_experimental`입니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -21,11 +21,14 @@
 | External Static Asset Intake | `0.9.0` |
 | Asset Production Dispatch / Controller | `0.9.0` |
 | Autonomous Quality / Integrated Quality | `0.1.0` opt-in companion |
+| Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` additive overlay; `disabled_experimental` |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
 | AQ post-change 최종 회귀 | 1145 passed, 20 skipped, 8 warnings in 149.21s; Ruff passed |
 | AQ 통합 gate | exit 0; focused 195 passed, 2 skipped; Blender 14 passed |
+| AQ v2 최신 전체 회귀 | 1350 passed, 39 skipped, 8 warnings; profile은 비활성 유지 |
+| AQ v2 통합 gate | focused 397 passed, 17 skipped, 8 warnings; Blender 30 passed, 6 warnings; V0.7/V0.8/V0.9 gates passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -660,6 +663,52 @@ hash에 결속된 derived copy와 receipt만 만들며 canonical SceneSpec `0.2.
 결과는 [AQ 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md), 계약은
 [AQ 아키텍처](ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)를 따릅니다.
 
+## 실험적 Autonomous Quality 0.2
+
+AQ v2 `autonomous_static_prop_v2`는 AQ 0.1이나 V0.9 계약을 교체하지 않는 additive overlay이며
+현재 상태는 **`disabled_experimental`**입니다. 활성 지원을 주장하지 않은 채 다음의 bounded
+production chain을 계약·host gate와 선택된 실제 Blender fixture로 검증합니다.
+
+```text
+geometry controller candidate → strict canonical geometry promotion
+→ material controller candidate → strict canonical material promotion
+→ external Integrated Quality 0.2 submission의 raw-mask host 재계산
+→ quality_approved source freeze, review_required bundle 또는 blocked terminal
+→ review_only 또는 포맷별 exact V0.7 approval
+→ 동일 freeze에서 독립 GLB / FBX package + clean import
+```
+
+ControllerExecutor는 controller에 canonical job root를 넘기지 않고 execution-owned workspace의
+exact input snapshot과 선언된 output만 교환합니다. path escape, symlink, extra output, hash mismatch,
+stale/tampered receipt와 incomplete crash adoption은 fail-closed입니다. 공개 CLI/MCP 표면은
+`plan`, `status`, 한 단계 `advance`, bounded `run`, `cancel`을 제공하지만 사용자 approval을
+합성하거나 범위를 넓히지 않습니다.
+
+`desktop_in_session`이 output을 기다리는 동안에는 `advance`/`run`이 새 요청이나 invocation을
+만들지 않고 동일 request-owned workspace만 재검증해 resume합니다. 시작 시 기록한 protected job
+inventory가 달라지거나 request/result/profile/state chain이 stale이면 adoption 전에 중단하며,
+대기 재호출은 budget을 다시 소비하지 않습니다. 모든 state 전이는 predecessor와 monotonic budget을
+재구성할 수 있어야 합니다.
+
+execution-root/adoption recovery는 executor lifecycle과 저장된 result bytes를 끝까지 재구성하고,
+직접 side effect는 active·미만료 RootAuthorization과 exact plan/profile/budget binding을 다시
+검증합니다. raw executor timeout receipt와 달리 AQ v2 bridge의 timeout은 즉시 nonretryable
+`failed` terminal로 끝납니다.
+
+IQ 0.2는 exact global/semantic PNG bytes에서 contour·semantic metric과 gates/findings/outcome을
+host가 다시 만들고 caller report 전체와 equality를 검사합니다. source freeze는 현재 canonical
+bytes와 필수 `geometry_candidate_validation_receipt`/`material_phase_receipt`에 다시 결속됩니다.
+authoritative hard finding이 하나라도 남으면 quality pass가 될 수 없으며, typed raw receipt가 없는
+required scored landmark/multi-view는 pass authority가 없습니다. `QualityTerminalV2`는 IQ, freeze
+또는 review bundle과 그 nested artifact hash를 끝까지 재검증합니다.
+
+최신 검증은 전체 pytest `1350 passed, 39 skipped, 8 warnings`, AQ focused gate
+`397 passed, 17 skipped, 8 warnings`, 실제 Blender 묶음 `30 passed, 6 warnings`와 V0.7/V0.8/V0.9 gate 통과를
+기록합니다. 실제 Blender 검증은 선택된 structural/material fixture와 동일 frozen source에서
+직접 만든 synthetic GLB+FBX dual-delivery fixture 범위입니다. Codex App Server 또는
+supporting-client가 수행하는 완전한 closed loop, 사람의 reference 품질 판정, Unity/Unreal/custom
+destination runtime parity는 아직 검증되지 않았으므로 profile은 계속 비활성입니다.
+
 ## V0.9 안정화 표면
 
 ```powershell
@@ -785,8 +834,8 @@ uv run cbm doctor
 ```
 
 AQ 구현 전 기준선은 `945 passed, 6 skipped`와 Ruff 통과입니다. 2026-08-10 post-change
-전체 결과는 `1145 passed, 20 skipped, 8 warnings in 149.21s`(1165 collected, short
-external basetemp `C:/Users/Woosik/AppData/Local/Temp/j8`), Ruff `All checks passed`, doctor
+전체 결과는 `1145 passed, 20 skipped, 8 warnings in 149.21s`(1165 collected;
+portable snapshot `verification/evidence/aq_v1_20260810/`), Ruff `All checks passed`, doctor
 OK, Blender 5.0.1 compatibility GLB/FBX/OBJ 통과입니다. AQ gate는 focused
 `195 passed, 2 skipped, 8 warnings in 16.98s`, 실제 Blender 묶음
 `14 passed, 6 warnings in 352.03s`, benchmark `8/8`과
@@ -810,6 +859,16 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [Autonomous Quality 0.1.0 테스트 계획](TEST_PLAN_AUTONOMOUS_QUALITY_KO.md)
 - [Autonomous Quality 0.1.0 마이그레이션 정책](MIGRATION_AUTONOMOUS_QUALITY_KO.md)
 - [Autonomous Quality 0.1.0 검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 시작 가이드](GETTING_STARTED_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 테스트 계획](TEST_PLAN_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 마이그레이션 정책](MIGRATION_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 검증 기록](VERIFICATION_AQ_V02_KO.md)
+- [ControllerExecutor 격리 경계](CONTROLLER_EXECUTOR_KO.md)
+- [AQ 0.2 delivery profile](DELIVERY_PROFILES_KO.md)
+- [AQ 0.2 material authoring](MATERIAL_AUTHORING_KO.md)
+- [AQ 0.2 quality benchmark](QUALITY_BENCHMARK_KO.md)
+- [Portable verification evidence](verification/evidence/README.md)
 - [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
 - [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
@@ -826,3 +885,27 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [변경 기록](CHANGELOG.md)
 
 V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또는 목적 엔진 runtime parity를 의미하지 않습니다. V1.0 승격은 현재 중단되어 있으며, 자동 Unity/Unreal/custom Destination Adapter는 V1.1 이후에 목적지가 확정된 다음 별도로 설계·검증합니다.
+
+<!-- CBM:REPOSITORY_SUMMARY:START -->
+## Generated repository summary
+
+- Catalog schema: 0.1.0
+- Legacy builders: curve, custom_mesh, primitive, profile_extrude, revolve, terrain
+- Structural builders: boolean_tree, curve, custom_mesh, geometry_nodes_template, loft, multi_loop_extrude, primitive, profile_extrude, revolve, sweep, terrain
+- Active autonomy profiles: autonomous_static_prop_v1
+- Experimental profiles: autonomous_static_prop_v2, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
+- Existing delivery outputs: portable_gltf, obj_legacy
+- Experimental delivery roles: portable_fbx, review_only
+- CLI commands: 115
+- CLI registry SHA-256: 1ad4ce99dd8c4f728a8aaebe8400a5fb5f2eb730b1b1d2fd5a4e6f91ba495951
+- MCP server tools: 110
+- MCP server registry SHA-256: 5bb2ef0c7826088ffb8062a32d338187e8193cfa8fe85307d6260b9a7bc22c36
+- Project-enabled MCP tools: 109
+- Project-enabled MCP SHA-256: 701ed2b37569e18cfc9c6cc1f276e50673041182ba5d2d97757a3b7561fe0024
+- Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
+- Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
+- Latest reported test count: 1350
+- Verification summary: verification/latest_summary.json (passed)
+
+Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.
+<!-- CBM:REPOSITORY_SUMMARY:END -->

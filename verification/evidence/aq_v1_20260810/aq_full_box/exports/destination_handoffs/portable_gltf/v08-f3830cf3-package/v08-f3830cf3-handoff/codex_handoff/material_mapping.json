@@ -1,0 +1,137 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v08-f3830cf3-handoff",
+  "package_manifest_sha256": "bde51602fefa67b888c04b7333a3661b44076f35bd957526d662aff55744810b",
+  "pbr_contract": {
+    "base_color": "sRGB surface albedo; alpha may carry opacity only when declared",
+    "normal": "Non-Color tangent-space normal using the OpenGL +Y convention",
+    "metallic": "Non-Color scalar metalness",
+    "roughness": "Non-Color scalar perceptual roughness",
+    "occlusion": "Non-Color ambient occlusion multiplier",
+    "emission": "sRGB emissive color with strength handled separately when available",
+    "opacity": "Non-Color or base-color alpha according to the mapping entry",
+    "gltf_orm": {
+      "R": "occlusion",
+      "G": "roughness",
+      "B": "metallic"
+    }
+  },
+  "materials": [
+    {
+      "material_id": "mat.product.blue",
+      "mapping_mode": "uv",
+      "source_mapping_mode": "uv",
+      "portable_mapping_mode": "uv",
+      "texture_representation": "portable_global_atlas",
+      "texture_coordinate_binding": {
+        "required_uv_set": "CBMPortableAtlas",
+        "required_uv_channel_index": 0,
+        "destination_semantic": "TEXCOORD_0",
+        "tangent_uv_set": "CBMPortableAtlas",
+        "export_evidence_verified": true
+      },
+      "channels": [
+        {
+          "channel": "base_color",
+          "status": "available",
+          "file": {
+            "file_id": "texture-e3eb211f285a40ee",
+            "kind": "texture",
+            "path": "package/textures/portable_atlas/raw/base_color.png",
+            "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c",
+            "byte_size": 77269,
+            "media_type": "image/png"
+          },
+          "component": "RGB",
+          "color_space": "sRGB",
+          "meaning": "surface albedo"
+        },
+        {
+          "channel": "normal",
+          "status": "available",
+          "file": {
+            "file_id": "texture-93fea77afa99a783",
+            "kind": "texture",
+            "path": "package/textures/portable_atlas/raw/normal.png",
+            "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb",
+            "byte_size": 64474,
+            "media_type": "image/png"
+          },
+          "component": "RGB",
+          "color_space": "Non-Color",
+          "meaning": "OpenGL tangent-space normal"
+        },
+        {
+          "channel": "metallic",
+          "status": "available",
+          "file": {
+            "file_id": "texture-3edb7240003aaa09",
+            "kind": "texture",
+            "path": "package/textures/portable_atlas/raw/metallic.png",
+            "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc",
+            "byte_size": 74768,
+            "media_type": "image/png"
+          },
+          "component": "R",
+          "color_space": "Non-Color",
+          "meaning": "scalar metalness"
+        },
+        {
+          "channel": "roughness",
+          "status": "available",
+          "file": {
+            "file_id": "texture-da5198a5ac86f8c5",
+            "kind": "texture",
+            "path": "package/textures/portable_atlas/raw/roughness.png",
+            "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9",
+            "byte_size": 77842,
+            "media_type": "image/png"
+          },
+          "component": "R",
+          "color_space": "Non-Color",
+          "meaning": "scalar perceptual roughness"
+        },
+        {
+          "channel": "occlusion",
+          "status": "unavailable",
+          "file": null,
+          "component": null,
+          "color_space": "Non-Color",
+          "meaning": "ambient occlusion multiplier"
+        },
+        {
+          "channel": "emission",
+          "status": "available",
+          "file": {
+            "file_id": "texture-37aa1e22b642c6be",
+            "kind": "texture",
+            "path": "package/textures/portable_atlas/raw/emission.png",
+            "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25",
+            "byte_size": 55162,
+            "media_type": "image/png"
+          },
+          "component": "RGB",
+          "color_space": "sRGB",
+          "meaning": "emissive color"
+        },
+        {
+          "channel": "opacity",
+          "status": "unavailable",
+          "file": null,
+          "component": null,
+          "color_space": "Non-Color",
+          "meaning": "opacity or declared alpha coverage"
+        }
+      ],
+      "blender_master_shader_baked": true,
+      "known_losses": [
+        "Procedural and master-shader detail is resolution-bounded by the derived atlas bake.",
+        "Height/displacement is represented only through the baked tangent-space normal channel.",
+        "The five-channel contract does not include an opacity texture; alpha is scalar-only."
+      ],
+      "warnings": []
+    }
+  ],
+  "blender_master_shader_transfer": "not_assumed",
+  "destination_channel_conversion_required": true
+}

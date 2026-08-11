@@ -340,15 +340,15 @@ AQ를 전체 검증 완료로 표시하려면 다음이 모두 필요하다.
 
 ```text
 POST_CHANGE_PYTEST_RESULT=1145 passed, 20 skipped, 8 warnings in 149.21s; 1165 collected
-POST_CHANGE_PYTEST_BASETEMP=C:/Users/Woosik/AppData/Local/Temp/j8
+POST_CHANGE_PYTEST_EVIDENCE=verification/evidence/aq_v1_20260810/README.md
 POST_CHANGE_RUFF_RESULT=All checks passed
 POST_CHANGE_DOCTOR_RESULT=Repository/Workspace/Blender/Codex OK
 POST_CHANGE_BLENDER_COMPAT=Blender 5.0.1, Python 3.11.13, EEVEE, GLB/FBX/OBJ passed
-POST_CHANGE_AQ_FOCUSED_GATE=195 passed, 2 skipped, 8 warnings in 16.98s; basetemp C:/Users/Woosik/AppData/Local/Temp/q4
-POST_CHANGE_AQ_BLENDER_GATE=14 passed, 6 warnings in 352.03s; basetemp C:/Users/Woosik/AppData/Local/Temp/b4
+POST_CHANGE_AQ_FOCUSED_GATE=195 passed, 2 skipped, 8 warnings in 16.98s; portable execution record above
+POST_CHANGE_AQ_BLENDER_GATE=14 passed, 6 warnings in 352.03s; portable terminal snapshots above
 POST_CHANGE_AQ_BENCHMARK=8/8 passed; Blender structural 3 cases
 POST_CHANGE_V07_V08_V09_REGRESSION=passed in chained AQ gate
-POST_CHANGE_AQ_GATE=exit 0; C:/Users/Woosik/AppData/Local/Temp/aqg-final4-20260810
+POST_CHANGE_AQ_GATE=exit 0; verification/evidence/aq_v1_20260810/
 ```
 
 이 수치는 arbitrary reference reconstruction의 before/after 품질 향상을 뜻하지 않는다.

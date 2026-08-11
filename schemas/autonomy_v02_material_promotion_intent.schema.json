@@ -1,0 +1,203 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Journal one fully validated material candidate before any canonical write.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "intent_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Intent Id",
+      "type": "string"
+    },
+    "controller_result": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "controller_completion": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "material_plan_candidate": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "material_graph_spec": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "material_validation": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "graph_compile_report": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "source_scene_spec": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "previous_material_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AQV2Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "expected_canonical_material_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Canonical Material Sha256"
+    },
+    "candidate_material_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Material Sha256",
+      "type": "string"
+    },
+    "canonical_scene_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Scene Unchanged",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": "supervisor_only",
+      "default": "supervisor_only",
+      "title": "Canonical Write Authority",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "intent_id",
+    "controller_result",
+    "controller_completion",
+    "material_plan_candidate",
+    "material_graph_spec",
+    "material_validation",
+    "graph_compile_report",
+    "source_scene_spec",
+    "candidate_material_sha256"
+  ],
+  "title": "MaterialPromotionIntentV2",
+  "type": "object"
+}

@@ -1,0 +1,190 @@
+{
+  "$defs": {
+    "GeometrySurvivalCheckV02": {
+      "additionalProperties": false,
+      "description": "Record one exact, equivalent, lost, unavailable, or failed comparison.",
+      "properties": {
+        "check_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "exact",
+            "equivalent",
+            "known_loss",
+            "unscorable",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "source_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Sha256"
+        },
+        "target_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target Sha256"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "source_sha256",
+        "target_sha256",
+        "message"
+      ],
+      "title": "GeometrySurvivalCheckV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one immutable stage transition to explicit geometry-survival checks.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "relation": {
+      "enum": [
+        "materialization_to_candidate",
+        "candidate_to_canonical",
+        "canonical_to_optimized_lod0",
+        "optimized_to_clean_import"
+      ],
+      "title": "Relation",
+      "type": "string"
+    },
+    "source_stage": {
+      "enum": [
+        "structural_materialization",
+        "compiled_candidate",
+        "promoted_canonical",
+        "optimized_lod0",
+        "clean_import_glb",
+        "clean_import_fbx"
+      ],
+      "title": "Source Stage",
+      "type": "string"
+    },
+    "source_snapshot_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Snapshot Sha256",
+      "type": "string"
+    },
+    "target_stage": {
+      "enum": [
+        "structural_materialization",
+        "compiled_candidate",
+        "promoted_canonical",
+        "optimized_lod0",
+        "clean_import_glb",
+        "clean_import_fbx"
+      ],
+      "title": "Target Stage",
+      "type": "string"
+    },
+    "target_snapshot_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Snapshot Sha256",
+      "type": "string"
+    },
+    "package_format": {
+      "anyOf": [
+        {
+          "enum": [
+            "GLB",
+            "FBX"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Package Format"
+    },
+    "checks": {
+      "items": {
+        "$ref": "#/$defs/GeometrySurvivalCheckV02"
+      },
+      "minItems": 1,
+      "title": "Checks",
+      "type": "array"
+    },
+    "overall_status": {
+      "enum": [
+        "exact",
+        "equivalent",
+        "known_loss",
+        "unscorable",
+        "failed"
+      ],
+      "title": "Overall Status",
+      "type": "string"
+    },
+    "known_losses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Losses",
+      "type": "array"
+    },
+    "integration_authority": {
+      "const": "aq_v2_only",
+      "default": "aq_v2_only",
+      "title": "Integration Authority",
+      "type": "string"
+    },
+    "v1_path_mutated": {
+      "const": false,
+      "default": false,
+      "title": "V1 Path Mutated",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "report_id",
+    "relation",
+    "source_stage",
+    "source_snapshot_sha256",
+    "target_stage",
+    "target_snapshot_sha256",
+    "package_format",
+    "checks",
+    "overall_status",
+    "known_losses"
+  ],
+  "title": "GeometryIntentSurvivalReportV02",
+  "type": "object"
+}

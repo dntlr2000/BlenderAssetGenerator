@@ -1,0 +1,179 @@
+{
+  "schema_version": "0.1.0",
+  "benchmark_id": "autonomous_quality_core_v1",
+  "manifest_sha256": "0b2a0f56edd5693853c31685de242d2cb60b8cdc8c27cb39ac0564dcbecf2543",
+  "runner_version": "0.1.0",
+  "blender_requested": true,
+  "blender_executed_case_count": 3,
+  "case_results": [
+    {
+      "case_id": "simple_box",
+      "category": "simple_box",
+      "payload_sha256": "60a9e901ab0393791bb6cc056e439b7b41cd078da41ba653b37a6c21f5b9955f",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "primitive": "cube",
+        "dimension_x_m": 1.0,
+        "dimension_y_m": 2.0,
+        "dimension_z_m": 3.0
+      },
+      "blender_status": "not_applicable",
+      "blender_artifacts": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "tapered_loft",
+      "category": "loft",
+      "payload_sha256": "fa9632a61bb7bb83d909eb587703d4a088bd497d317e6db5f057849599698a98",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "vertex_count": 8,
+        "face_count": 8,
+        "mesh_sha256": "26c0d0a149a929b7820c9709df164d7d6b09d3f5e086be1ab8b2aa2030a7b205"
+      },
+      "blender_status": "passed",
+      "blender_artifacts": {
+        "mesh": "blender/tapered_loft/geometry/materialized.mesh.json",
+        "blend": "blender/tapered_loft/blender/materialized.blend",
+        "report": "blender/tapered_loft/reports/materialization.json",
+        "mesh_sha256": "f05c46f4635fbcb4dd2da5eb70d96877e4976ae5e7cb285b60c0b42192e51cfa"
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "curved_sweep",
+      "category": "sweep",
+      "payload_sha256": "c24f6253475848b185337b43e1f1d5f9f8ba36c5f8bcb86dcfc5eae8c5460ed2",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "vertex_count": 16,
+        "face_count": 16,
+        "mesh_sha256": "b24df35e0f1fe2a27effa631b8703ac2057b1d617242d3c97b2fa14129b898c2"
+      },
+      "blender_status": "passed",
+      "blender_artifacts": {
+        "mesh": "blender/curved_sweep/geometry/materialized.mesh.json",
+        "blend": "blender/curved_sweep/blender/materialized.blend",
+        "report": "blender/curved_sweep/reports/materialization.json",
+        "mesh_sha256": "21cb9ee1dc983259a25d8dc3397fa8708261f1832c93c7fd1d42eb125861a71a"
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "boolean_panel",
+      "category": "boolean_panel",
+      "payload_sha256": "b574f82c0654f1686e5f9894e81a413d3bf27ec400730e3a322e4a96150cd234",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "operand_count": 2,
+        "operation_count": 1,
+        "root_id": "root",
+        "host_mesh_evaluation": "requires_blender_opt_in"
+      },
+      "blender_status": "passed",
+      "blender_artifacts": {
+        "mesh": "blender/boolean_panel/geometry/materialized.mesh.json",
+        "blend": "blender/boolean_panel/blender/materialized.blend",
+        "report": "blender/boolean_panel/reports/materialization.json",
+        "mesh_sha256": "e4dcfdfcda188ca91ca82fe93907334249a92ba0f4e23afa3b9a8af6753e2751"
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "small_assembly",
+      "category": "small_assembly",
+      "payload_sha256": "d0def2e6508f605b8c90fc0923ba4138877a43c968e775f2881629b909aa63c4",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "hard_failures": 0,
+        "warnings": 0,
+        "unscorable": 0,
+        "broad_pair_count": 1,
+        "narrow_observation_count": 1
+      },
+      "blender_status": "not_applicable",
+      "blender_artifacts": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "height_grid_terrain",
+      "category": "terrain",
+      "payload_sha256": "490156519bcfdd7ed9e9b1b203a2edc53b5fd21275ca6543f782af15cc74faa5",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "row_count": 3,
+        "column_count": 3,
+        "vertex_count": 9,
+        "quad_count": 4
+      },
+      "blender_status": "not_applicable",
+      "blender_artifacts": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "clean_material_graph",
+      "category": "material_graph",
+      "payload_sha256": "898c7dd2be62d42ef91f24e40b2c98feec949f59a6fc274f0479b2af719438b8",
+      "expected_outcome": "passed",
+      "observed_outcome": "passed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "material_id": "mat.body",
+        "base_channel_count": 3,
+        "layer_count": 0,
+        "bake_required": false
+      },
+      "blender_status": "not_applicable",
+      "blender_artifacts": {},
+      "error": null,
+      "ok": true
+    },
+    {
+      "case_id": "topology_uv_failure",
+      "category": "topology_uv_failure",
+      "payload_sha256": "786a2f5813cd33710cd1dfbda69dcbdc9f5d344a90ed1332ac0524d194128bdf",
+      "expected_outcome": "failed",
+      "observed_outcome": "failed",
+      "expectation_matched": true,
+      "host_metrics": {
+        "profile": "game_ready_lowpoly",
+        "uv0_outcome": "hard_failure",
+        "hard_failures": 1,
+        "warnings": 0,
+        "unscorable": 0
+      },
+      "blender_status": "not_applicable",
+      "blender_artifacts": {},
+      "error": null,
+      "ok": true
+    }
+  ],
+  "passed_case_count": 8,
+  "failed_case_count": 0,
+  "ok": true,
+  "limitations": [
+    "The suite is a deterministic contract and host-math benchmark, not a reference-image reconstruction benchmark.",
+    "Expected negative fixtures pass the gate only when the observed contract outcome remains failed.",
+    "Blender materialization is opt-in and limited to manifest-declared structural cases.",
+    "Host fixture success validates declared contracts and deterministic math; it does not prove reference-image similarity or production asset quality.",
+    "Optional Blender smoke validates materialization only and does not claim destination-engine parity, topology optimality, or quality improvement."
+  ]
+}

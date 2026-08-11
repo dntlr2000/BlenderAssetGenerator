@@ -1,0 +1,37 @@
+{
+  "schema_version": "0.1.0",
+  "bundle_id": "aq-20260810t065903952936z-2bb7e15e-review",
+  "job_id": "aq_review_box",
+  "pdf": {
+    "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/review_bundle_report.pdf",
+    "sha256": "308589accefb1a972bd2ec51877219b5fab8a428e949bfc8f855a049452a34cc"
+  },
+  "source_fingerprint": "f6ddd2cf14e92461bf217ef7a2d64d03bb31ded6dd8a76a3d133ec8a835af6a4",
+  "sources": [
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/integrated_quality_report.json",
+      "sha256": "7e72cbadbd108dd958bfebdda9b47acc1915aa21ba27c371dd08fb9b83d378ed"
+    },
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/unresolved_findings.json",
+      "sha256": "3f4c60a43a8ed7cfaf8c0c4c7fcefc2c9031c0fe9ec651b321e668e2cc17266d"
+    },
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/iteration_history.json",
+      "sha256": "a17e9e62a7434b288d283771c3401db504bbf7a807d0e76e1e3242c29a88be10"
+    },
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/candidate_comparison.json",
+      "sha256": "06ba4509df73dc5d8dd1e12cdb147d6ab72c59da5b48de8db7a6694e97003340"
+    },
+    {
+      "path": "exports/review_bundles/aq-20260810t065903952936z-2bb7e15e-review/next_manual_actions.md",
+      "sha256": "a2bd91acc24485a528f04c532e92ea75551ada35bb62e11a4edc0dcfa964bf06"
+    }
+  ],
+  "font": "embedded:malgun.ttf",
+  "producer": "codex_blender_modeler.autonomy.review_bundle",
+  "producer_version": "0.1.0",
+  "created_at": "2026-08-10T06:59:24.796429+00:00",
+  "authority_notice": "PDF is derived; machine-readable JSON remains authoritative."
+}

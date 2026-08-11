@@ -1,0 +1,56 @@
+{
+  "schema_version": "0.7.0",
+  "kind": "portable_delivery_mapping",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "profile_id": "portable_gltf",
+  "primary_asset": "asset.glb",
+  "objects": [
+    {
+      "export_key": "product.body|0|render|0",
+      "name": "product.body__LOD0",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "asset_role": "render",
+      "lod_level": 0,
+      "collider": false,
+      "material_ids": [
+        "mat.product.blue"
+      ]
+    },
+    {
+      "export_key": "product.body|0|collider|None",
+      "name": "product.body__LOD0__COLLIDER",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "asset_role": "collider",
+      "lod_level": null,
+      "collider": true,
+      "material_ids": []
+    },
+    {
+      "export_key": "product.body|0|lod|1",
+      "name": "product.body__LOD1",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 1,
+      "collider": false,
+      "material_ids": [
+        "mat.product.blue"
+      ]
+    },
+    {
+      "export_key": "product.body|0|lod|2",
+      "name": "product.body__LOD2",
+      "semantic_id": "product.body",
+      "instance_index": 0,
+      "asset_role": "lod",
+      "lod_level": 2,
+      "collider": false,
+      "material_ids": [
+        "mat.product.blue"
+      ]
+    }
+  ]
+}

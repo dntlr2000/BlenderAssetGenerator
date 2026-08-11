@@ -1,0 +1,601 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v09-handoff-smoke",
+  "job_id": "geometry_showcase",
+  "profile_id": "portable_gltf",
+  "package_id": "v09-handoff-smoke-package",
+  "run_id": "v09-handoff-smoke-run",
+  "package_manifest": {
+    "file_id": "package-manifest-cd844f51dfda7eb6",
+    "kind": "package_manifest",
+    "path": "package/package_manifest.json",
+    "sha256": "a267d75b604c7baac480cc2cc54e4f7d74d7793a9dc72adbc719fb770b069843",
+    "byte_size": 15615,
+    "media_type": "application/json"
+  },
+  "roundtrip_validation": {
+    "file_id": "roundtrip-validation-a54b4f44b9d9ffe0",
+    "kind": "roundtrip_validation",
+    "path": "evidence/roundtrip_validation.json",
+    "sha256": "0f5c2fee855c470713322a84d6f1a55ffcba5cf760a2962d777fe1359b7c0b5a",
+    "byte_size": 6636,
+    "media_type": "application/json"
+  },
+  "primary_model": {
+    "file_id": "primary-model-ee22f811bbe4b43e",
+    "kind": "primary_model",
+    "path": "package/asset.glb",
+    "sha256": "2ba3d6a46ff4974e882187b93354d9728e46f71bc6b99bf0d6b6c43297afbb34",
+    "byte_size": 2316180,
+    "media_type": "model/gltf-binary"
+  },
+  "textures": [
+    {
+      "file_id": "texture-c270a516971ca0dc",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/base_color.png",
+      "sha256": "7e31b6652b408a6ca52e05d0f8a8eb651647cb936b2835d5f5482fe99d1d6a88",
+      "byte_size": 4103,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-d9fcd53fd6730194",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/emission.png",
+      "sha256": "d4270cb3908ae3f796665c14721e6d14728d75ba314b01b5094ee8988359c537",
+      "byte_size": 91,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-937c485ed174df33",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/height.png",
+      "sha256": "15fb328b115d3c55941bf1da8149bfea0058e0d7ea2326f3e5e0a4369027b7a8",
+      "byte_size": 2314,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-75af736489b94592",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/metallic.png",
+      "sha256": "949cccfc8f37d0bba802ccd466ed191aa275193f6a6f4e0756b87388eb6586a2",
+      "byte_size": 465,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-cb082d05c4c720be",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/normal.png",
+      "sha256": "66280e48bf82bbe1fed98b725e49955e5847f27ca93312c5c7bc58f29c2a7849",
+      "byte_size": 6757,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da4c45f6e4772253",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/roughness.png",
+      "sha256": "2b1a6f03121bd20df3b7920f1ac6294ab77205865dada347ec3a649422488e27",
+      "byte_size": 1550,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-dfb2f7125191e008",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/packed/gltf_orm.png",
+      "sha256": "b8efdd99f5e1e50af0a6e6a0698d8d534b2683b9a5757a5d132bdb152cad3df2",
+      "byte_size": 173365,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-e3eb211f285a40ee",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57",
+      "byte_size": 361484,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-37aa1e22b642c6be",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "byte_size": 13922,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-3edb7240003aaa09",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1",
+      "byte_size": 66480,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-93fea77afa99a783",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/normal.png",
+      "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db",
+      "byte_size": 494172,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da5198a5ac86f8c5",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8",
+      "byte_size": 251039,
+      "media_type": "image/png"
+    }
+  ],
+  "semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "destination_context": {
+    "file_id": "destination-context-42d2fe58df8fdd51",
+    "kind": "destination_context",
+    "path": "codex_handoff/destination_context.json",
+    "sha256": "03b3436660f60d9af358abc24042b7ec28ea78de50b10e8af997556d4f5df7d8",
+    "byte_size": 4568,
+    "media_type": "application/json"
+  },
+  "assembly_manifest": {
+    "file_id": "assembly-manifest-c26aeb9114f37c15",
+    "kind": "assembly_manifest",
+    "path": "codex_handoff/assembly_manifest.json",
+    "sha256": "a19ec3c3c245a0f2bbf572023fa51bc718ddfb32268a8bbebd17eac6e67d9715",
+    "byte_size": 59843,
+    "media_type": "application/json"
+  },
+  "material_mapping": {
+    "file_id": "material-mapping-a18a8a2462196b6f",
+    "kind": "material_mapping",
+    "path": "codex_handoff/material_mapping.json",
+    "sha256": "1ab04384dd35c47d06bc13a8671acabe0a5fadc5534f6151a353ed240e55dd39",
+    "byte_size": 18000,
+    "media_type": "application/json"
+  },
+  "import_checklist": {
+    "file_id": "import-checklist-7c08261c1e490e1a",
+    "kind": "import_checklist",
+    "path": "codex_handoff/import_checklist.json",
+    "sha256": "252a39d40f0eebc31a70f7da7ff7462d5654c832f2e3238c6c1a0f503e968561",
+    "byte_size": 3454,
+    "media_type": "application/json"
+  },
+  "import_prompt": {
+    "file_id": "prompt-template-c6923dae2883c1b3",
+    "kind": "prompt_template",
+    "path": "codex_handoff/codex_import_prompt.md",
+    "sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+    "byte_size": 3583,
+    "media_type": "text/markdown"
+  },
+  "known_limitations": {
+    "file_id": "known-limitations-b1292dcfee9aff4f",
+    "kind": "known_limitations",
+    "path": "codex_handoff/known_limitations.md",
+    "sha256": "7ab7377cb9b2341675d4e26b7a57daea0039d350a249655b5ddacf1c7558a52e",
+    "byte_size": 2941,
+    "media_type": "text/markdown"
+  },
+  "import_schemas": [
+    {
+      "file_id": "import-schema-6807f6114c79b047",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_plan.schema.json",
+      "sha256": "7917c5921d27d635d8a42a27f7712485994ff39290d0b5890926cfc239bce445",
+      "byte_size": 3315,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-77f386a2e647c90e",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_receipt.schema.json",
+      "sha256": "cc4b549866d63c8fb0bf3251c27aebf9cb67a760b653fea4f82df2a7ac34732b",
+      "byte_size": 1721,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-2865e6bfc60f37ba",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_validation.schema.json",
+      "sha256": "be00913c699c23a6302a0d3d45bdb5bb53822381493d9301770574f3362fb397",
+      "byte_size": 2855,
+      "media_type": "application/json"
+    }
+  ],
+  "assembly_manifest_sha256": "a19ec3c3c245a0f2bbf572023fa51bc718ddfb32268a8bbebd17eac6e67d9715",
+  "material_mapping_sha256": "1ab04384dd35c47d06bc13a8671acabe0a5fadc5534f6151a353ed240e55dd39",
+  "prompt_template_sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+  "lod_present": true,
+  "collider_present": true,
+  "supported_scope": [
+    "static asset import planning",
+    "axis, unit, pivot, and hierarchy reconstruction planning",
+    "portable PBR channel mapping",
+    "LOD and collider reconstruction planning",
+    "user-approved destination import and validation"
+  ],
+  "excluded_scope": [
+    "Unity or Unreal Editor automation",
+    "engine prefab, actor, or runtime material graph creation",
+    "runtime parity claims",
+    "CAD B-Rep",
+    "rigging, skinning, and animation",
+    "gameplay logic",
+    "unapproved destination project changes"
+  ],
+  "core_files": [
+    {
+      "file_id": "package-manifest-cd844f51dfda7eb6",
+      "kind": "package_manifest",
+      "path": "package/package_manifest.json",
+      "sha256": "a267d75b604c7baac480cc2cc54e4f7d74d7793a9dc72adbc719fb770b069843",
+      "byte_size": 15615,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "primary-model-ee22f811bbe4b43e",
+      "kind": "primary_model",
+      "path": "package/asset.glb",
+      "sha256": "2ba3d6a46ff4974e882187b93354d9728e46f71bc6b99bf0d6b6c43297afbb34",
+      "byte_size": 2316180,
+      "media_type": "model/gltf-binary"
+    },
+    {
+      "file_id": "package-file-6d4c0a8eee5f1ff3",
+      "kind": "package_file",
+      "path": "package/export_evidence.json",
+      "sha256": "c263540ffa742dfef0c3e648e1b53df28211000846ffaf20b9f61c300b25dea9",
+      "byte_size": 198545,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-a7cea156700d4359",
+      "kind": "package_file",
+      "path": "package/metadata/asset_cost_report.json",
+      "sha256": "5dfbebbf813e7a6d4b6a9639d7563eb1a31d7fbe5f30915006d4baa11bd5451e",
+      "byte_size": 10363,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-e459572724ec67f8",
+      "kind": "package_file",
+      "path": "package/metadata/asset_profile.json",
+      "sha256": "856d5ad629dd953223d9ecf7b3755d08b976fe12d9cc7168e86da53df39002a3",
+      "byte_size": 1943,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-9c316250504b4f0b",
+      "kind": "package_file",
+      "path": "package/metadata/collision_manifest.json",
+      "sha256": "bc59c9c1dfdfae8aa1b0747ad88f40a7c39a4d4a4e63330323e5f24be0cdfac1",
+      "byte_size": 8499,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-bcf107edb7b90f9a",
+      "kind": "package_file",
+      "path": "package/metadata/delivery_mapping.json",
+      "sha256": "1b0c6fe90cddbdd4c70cdbe522e7e4c09cec8066980d023a4e32115e8ecd714a",
+      "byte_size": 15339,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-b336441f17c32d69",
+      "kind": "package_file",
+      "path": "package/metadata/execution_plan.json",
+      "sha256": "265efe03569e9d9fae1eddb542a7cbc44eaf975f9b45970a15b1033f4ec8d78d",
+      "byte_size": 5718,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-2fcadada0f000dcb",
+      "kind": "package_file",
+      "path": "package/metadata/lod_manifest.json",
+      "sha256": "0b9cf167d9ebaf2fe26c524361d7a2557247903c3ed6e77030ce32364e5bb4a7",
+      "byte_size": 26476,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-58cb67ba62ee2544",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_evidence.json",
+      "sha256": "02fb7a52d9cfcd62a985ab68d7486e1b6083bf915206c04c2bad142a789c46e8",
+      "byte_size": 106087,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-36d604f06f6fc8c4",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_manifest.json",
+      "sha256": "43b1ab338a13626ab2da5ae57637050b499cba2dfb862e6561242d9179d3e4ce",
+      "byte_size": 49008,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-64a9126deed1065c",
+      "kind": "package_file",
+      "path": "package/metadata/material_conversion_plan.json",
+      "sha256": "70aa86338b54ea4cccfa7bc98adea5b5b92fde876514984e9d97b03943c06c3f",
+      "byte_size": 5898,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-603503b580f43f7b",
+      "kind": "package_file",
+      "path": "package/metadata/mesh_preflight_report.json",
+      "sha256": "bcdd2678643680fb7b2f8e9277ba4368f287687b2c19ac3da80ab2ed08047729",
+      "byte_size": 10373,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-8b91079df4cf8401",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_approval.json",
+      "sha256": "0fef04c3a36111713b38dc0a8c30153b7d5976006d8893a29e04f6fed2496c07",
+      "byte_size": 875,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-78d5938f1cb46fe1",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_plan.json",
+      "sha256": "a27703ce0d13754d536115c4dd0f840d493e69726a67049fe0eadca35c531f20",
+      "byte_size": 7592,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-212008b241043b9e",
+      "kind": "package_file",
+      "path": "package/metadata/optimization_review.json",
+      "sha256": "6474b0fe2150dbe71b83e2198e15d0d7618e7190deae04ee0ca802220e6144b2",
+      "byte_size": 5651,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-5aee929113c6907f",
+      "kind": "package_file",
+      "path": "package/metadata/optimized_asset_evidence.json",
+      "sha256": "a6a76c8048003c81b80c79b2f32de5af518a75a9fee92d6e147f8dc880ccf610",
+      "byte_size": 189439,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-a93d4c642af428b3",
+      "kind": "package_file",
+      "path": "package/metadata/review_plan.json",
+      "sha256": "726da2286f783bc871ce30483072cd7ec525cba5ad4338ab18d32bd1b65f65db",
+      "byte_size": 5607,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-aae6e4754bf52e60",
+      "kind": "package_file",
+      "path": "package/metadata/uv_manifest.json",
+      "sha256": "f02f6370f3ce0c99abd3b7b0bf9ef0bc59f036231696cf970c9b5520fa9d4ce1",
+      "byte_size": 8689,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "package-file-f5c968574957c476",
+      "kind": "package_file",
+      "path": "package/texture_pack_manifest.json",
+      "sha256": "afd511aba118f02e5a292155783abe3b848b370871630f57b8dfafb16722bb43",
+      "byte_size": 16212,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "texture-c270a516971ca0dc",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/base_color.png",
+      "sha256": "7e31b6652b408a6ca52e05d0f8a8eb651647cb936b2835d5f5482fe99d1d6a88",
+      "byte_size": 4103,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-d9fcd53fd6730194",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/emission.png",
+      "sha256": "d4270cb3908ae3f796665c14721e6d14728d75ba314b01b5094ee8988359c537",
+      "byte_size": 91,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-937c485ed174df33",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/height.png",
+      "sha256": "15fb328b115d3c55941bf1da8149bfea0058e0d7ea2326f3e5e0a4369027b7a8",
+      "byte_size": 2314,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-75af736489b94592",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/metallic.png",
+      "sha256": "949cccfc8f37d0bba802ccd466ed191aa275193f6a6f4e0756b87388eb6586a2",
+      "byte_size": 465,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-cb082d05c4c720be",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/normal.png",
+      "sha256": "66280e48bf82bbe1fed98b725e49955e5847f27ca93312c5c7bc58f29c2a7849",
+      "byte_size": 6757,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da4c45f6e4772253",
+      "kind": "texture",
+      "path": "package/textures/canonical/mat.blue-8b17bd6e/roughness.png",
+      "sha256": "2b1a6f03121bd20df3b7920f1ac6294ab77205865dada347ec3a649422488e27",
+      "byte_size": 1550,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-dfb2f7125191e008",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/packed/gltf_orm.png",
+      "sha256": "b8efdd99f5e1e50af0a6e6a0698d8d534b2683b9a5757a5d132bdb152cad3df2",
+      "byte_size": 173365,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-e3eb211f285a40ee",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/base_color.png",
+      "sha256": "eaaa68b1e5aa98440456721877bbda41ab6aa08698181b2cf56e702b0d8e6d57",
+      "byte_size": 361484,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-37aa1e22b642c6be",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/emission.png",
+      "sha256": "6dc277ac7171be615c76ca0ffe7a721b2f0692c07b51120a0e28824da4c685ad",
+      "byte_size": 13922,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-3edb7240003aaa09",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/metallic.png",
+      "sha256": "f5dd87eb95d01fee5ef304bbf070ed5e950c489b8b17b5a95e1f3742aa90a8a1",
+      "byte_size": 66480,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-93fea77afa99a783",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/normal.png",
+      "sha256": "ca2d2cb79c9c2c3d461f226456893a839f23bc0959b1a76009caefb9e5ab37db",
+      "byte_size": 494172,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "texture-da5198a5ac86f8c5",
+      "kind": "texture",
+      "path": "package/textures/portable_atlas/raw/roughness.png",
+      "sha256": "ca8bf886db049844bf09d7993ca4cd11f460417b2b25ebf186a2bab17fa0e6d8",
+      "byte_size": 251039,
+      "media_type": "image/png"
+    },
+    {
+      "file_id": "package-file-a693b5ba61a334ba",
+      "kind": "package_file",
+      "path": "package/textures/portable_atlas/texture_pack_evidence.json",
+      "sha256": "616eb12e425e32c4855a82a802f983137a9ece19c4c31c0f5ac7da87aad5b3bc",
+      "byte_size": 4965,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "roundtrip-validation-a54b4f44b9d9ffe0",
+      "kind": "roundtrip_validation",
+      "path": "evidence/roundtrip_validation.json",
+      "sha256": "0f5c2fee855c470713322a84d6f1a55ffcba5cf760a2962d777fe1359b7c0b5a",
+      "byte_size": 6636,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "roundtrip-evidence-6cda4c367b320879",
+      "kind": "roundtrip_evidence",
+      "path": "evidence/roundtrip_evidence.json",
+      "sha256": "4bdda86e3c97e5f832c4e2b69d5d2c309f142cef5032512e4470145aab886f13",
+      "byte_size": 354359,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "destination-context-42d2fe58df8fdd51",
+      "kind": "destination_context",
+      "path": "codex_handoff/destination_context.json",
+      "sha256": "03b3436660f60d9af358abc24042b7ec28ea78de50b10e8af997556d4f5df7d8",
+      "byte_size": 4568,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "assembly-manifest-c26aeb9114f37c15",
+      "kind": "assembly_manifest",
+      "path": "codex_handoff/assembly_manifest.json",
+      "sha256": "a19ec3c3c245a0f2bbf572023fa51bc718ddfb32268a8bbebd17eac6e67d9715",
+      "byte_size": 59843,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "material-mapping-a18a8a2462196b6f",
+      "kind": "material_mapping",
+      "path": "codex_handoff/material_mapping.json",
+      "sha256": "1ab04384dd35c47d06bc13a8671acabe0a5fadc5534f6151a353ed240e55dd39",
+      "byte_size": 18000,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-checklist-7c08261c1e490e1a",
+      "kind": "import_checklist",
+      "path": "codex_handoff/import_checklist.json",
+      "sha256": "252a39d40f0eebc31a70f7da7ff7462d5654c832f2e3238c6c1a0f503e968561",
+      "byte_size": 3454,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "prompt-template-c6923dae2883c1b3",
+      "kind": "prompt_template",
+      "path": "codex_handoff/codex_import_prompt.md",
+      "sha256": "8636a3b200b84fceaf7cd62d25f5843023e0b890abe8085bc07329ebc0f7469b",
+      "byte_size": 3583,
+      "media_type": "text/markdown"
+    },
+    {
+      "file_id": "known-limitations-b1292dcfee9aff4f",
+      "kind": "known_limitations",
+      "path": "codex_handoff/known_limitations.md",
+      "sha256": "7ab7377cb9b2341675d4e26b7a57daea0039d350a249655b5ddacf1c7558a52e",
+      "byte_size": 2941,
+      "media_type": "text/markdown"
+    },
+    {
+      "file_id": "import-schema-6807f6114c79b047",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_plan.schema.json",
+      "sha256": "7917c5921d27d635d8a42a27f7712485994ff39290d0b5890926cfc239bce445",
+      "byte_size": 3315,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-77f386a2e647c90e",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_receipt.schema.json",
+      "sha256": "cc4b549866d63c8fb0bf3251c27aebf9cb67a760b653fea4f82df2a7ac34732b",
+      "byte_size": 1721,
+      "media_type": "application/json"
+    },
+    {
+      "file_id": "import-schema-2865e6bfc60f37ba",
+      "kind": "import_schema",
+      "path": "codex_handoff/schemas/destination_import_validation.schema.json",
+      "sha256": "be00913c699c23a6302a0d3d45bdb5bb53822381493d9301770574f3362fb397",
+      "byte_size": 2855,
+      "media_type": "application/json"
+    }
+  ],
+  "canonical_unchanged": true,
+  "source_package_unchanged": true,
+  "generated_at": "2026-08-11T07:49:59.787216Z"
+}

@@ -1,0 +1,101 @@
+{
+  "additionalProperties": false,
+  "description": "Map one public AQ v2 delivery name to an existing engine-neutral V0.7 profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "review_only",
+        "portable_gltf",
+        "portable_fbx"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "asset_profile_id": {
+      "anyOf": [
+        {
+          "enum": [
+            "portable_gltf",
+            "fbx_interchange"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Asset Profile Id"
+    },
+    "primary_extension": {
+      "anyOf": [
+        {
+          "enum": [
+            ".glb",
+            ".fbx"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Primary Extension"
+    },
+    "direct_from_quality_freeze": {
+      "const": true,
+      "default": true,
+      "title": "Direct From Quality Freeze",
+      "type": "boolean"
+    },
+    "independent_run": {
+      "const": true,
+      "default": true,
+      "title": "Independent Run",
+      "type": "boolean"
+    },
+    "requires_exact_optimization_approval": {
+      "title": "Requires Exact Optimization Approval",
+      "type": "boolean"
+    },
+    "requires_clean_import_roundtrip": {
+      "title": "Requires Clean Import Roundtrip",
+      "type": "boolean"
+    },
+    "destination_runtime_parity": {
+      "const": false,
+      "default": false,
+      "title": "Destination Runtime Parity",
+      "type": "boolean"
+    },
+    "canonical_authoring_mutation": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Authoring Mutation",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "profile_id",
+    "asset_profile_id",
+    "primary_extension",
+    "requires_exact_optimization_approval",
+    "requires_clean_import_roundtrip",
+    "limitations"
+  ],
+  "title": "DeliveryProfile",
+  "type": "object"
+}

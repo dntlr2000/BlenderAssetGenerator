@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1.0",
+  "contract_id": "policy-portable-plan_approval-0cbac426379f",
+  "job_id": "aq_full_box",
+  "workflow_id": "wf-20260810t065207z-f3830cf3",
+  "dispatch_id": "dispatch-20260810t065207z-9e21a221",
+  "input_sha256": "c2a9d93a891deb29f54a167611b8ef58d923c6429fa62e58f6cd31ec25fa806a",
+  "source_fingerprint": "72e3c9ee8e173af212ddfcba129d8476426107312e5e1e4320b406abcd7efac6",
+  "producer": "codex_blender_modeler.autonomy.authorization",
+  "producer_version": "0.1.0",
+  "provenance": [
+    {
+      "path": "workflows/wf-20260810t065207z-f3830cf3/policy_targets/portable.plan_approval.json",
+      "sha256": "0a1550daf7cb8bde3e4b6fc725c0cb5002d159611111bd7e80c93592fdf5543a"
+    },
+    {
+      "path": "optimization/runs/v08-f3830cf3/review_plan.json",
+      "sha256": "0cbac426379ff01423388908a7c8d0111c55f7dcc184bb648557d6fc78c9e41c"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065207677077z-26250066/root_authorization.json",
+      "sha256": "8898b84f9a3074bd2a3f2e207dbf7114bdd626c0516df80c062765a60c66a1a9"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065207677077z-26250066/profile.json",
+      "sha256": "d8d955635e2430925d74080cdeedff29371a28e0cdfd02137a9f86b34273b30a"
+    },
+    {
+      "path": "production/autonomy/aq-20260810t065207677077z-26250066/budget.json",
+      "sha256": "3dc40d902e428fae692ab96ea9e91817bbba0a6a2253e0bbc93115834e0b2e0f"
+    }
+  ],
+  "created_at": "2026-08-10T06:55:23.531671Z",
+  "authorization_id": "policy-portable-plan_approval-0cbac426379f",
+  "authorization_source": "preauthorized_profile",
+  "decided_by": "autonomy_policy_engine",
+  "root_authorization": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/root_authorization.json",
+    "sha256": "8898b84f9a3074bd2a3f2e207dbf7114bdd626c0516df80c062765a60c66a1a9"
+  },
+  "root_authorization_sha256": "8898b84f9a3074bd2a3f2e207dbf7114bdd626c0516df80c062765a60c66a1a9",
+  "profile": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/profile.json",
+    "sha256": "d8d955635e2430925d74080cdeedff29371a28e0cdfd02137a9f86b34273b30a"
+  },
+  "profile_sha256": "d8d955635e2430925d74080cdeedff29371a28e0cdfd02137a9f86b34273b30a",
+  "budget": {
+    "path": "production/autonomy/aq-20260810t065207677077z-26250066/budget.json",
+    "sha256": "3dc40d902e428fae692ab96ea9e91817bbba0a6a2253e0bbc93115834e0b2e0f"
+  },
+  "workflow_step_id": "portable.plan_approval",
+  "workflow_input_fingerprint": "5861888273076bc46aa93814ee4963a7be16de9c556f565a30e332d4ac9abd0b",
+  "gate_kind": "optimization_plan",
+  "gate_target": {
+    "path": "workflows/wf-20260810t065207z-f3830cf3/policy_targets/portable.plan_approval.json",
+    "sha256": "0a1550daf7cb8bde3e4b6fc725c0cb5002d159611111bd7e80c93592fdf5543a"
+  },
+  "target_artifact": {
+    "path": "optimization/runs/v08-f3830cf3/review_plan.json",
+    "sha256": "0cbac426379ff01423388908a7c8d0111c55f7dcc184bb648557d6fc78c9e41c"
+  },
+  "decision_reasons": [
+    "The exact artifact is inside autonomous_static_prop_v1.",
+    "The gate is listed in both profile and root authorization.",
+    "The immutable budget remains within its hard cap."
+  ],
+  "budget_before": {
+    "initial_candidates": 1,
+    "structural_rounds": 0,
+    "parametric_convergence_iterations": 0,
+    "material_rounds": 2,
+    "package_repairs": 0,
+    "total_blender_builds": 4,
+    "total_quality_evaluations": 4,
+    "canonical_promotions": 1,
+    "total_actions": 43
+  },
+  "budget_after": {
+    "initial_candidates": 1,
+    "structural_rounds": 0,
+    "parametric_convergence_iterations": 0,
+    "material_rounds": 2,
+    "package_repairs": 0,
+    "total_blender_builds": 4,
+    "total_quality_evaluations": 4,
+    "canonical_promotions": 1,
+    "total_actions": 44
+  },
+  "previous_authorization_sha256": "6de454a3b7d6c6cc2aa9aa8845911ca5526491a9d7766cc8b55c169020a0405b",
+  "single_use": true,
+  "consumed": true,
+  "consumed_at": "2026-08-10T06:55:23.531671Z"
+}

@@ -1,0 +1,154 @@
+{
+  "schema_version": "0.7.0",
+  "validation_id": "roundtrip.v07-fbx-smoke-package",
+  "job_id": "geometry_showcase",
+  "run_id": "v07-fbx-smoke-run",
+  "package_id": "v07-fbx-smoke-package",
+  "profile_id": "fbx_interchange",
+  "package_manifest": {
+    "id": "package.manifest.v07-fbx-smoke-package",
+    "kind": "package_manifest",
+    "path": "exports/packages/fbx_interchange/v07-fbx-smoke-package/package_manifest.json",
+    "sha256": "cffd104321114c05a51b61cd6c9219b1d6d5ee351c42bc86e872a3c580e7f477"
+  },
+  "imported_inventory": {
+    "id": "roundtrip.inventory.v07-fbx-smoke-package",
+    "kind": "roundtrip_inventory",
+    "path": "optimization/runs/v07-fbx-smoke-run/roundtrip/v07-fbx-smoke-package/roundtrip_evidence.json",
+    "sha256": "dceb0990f96dc562832e7c7325f436bf9a967272da001a1d5ffebd156bc0e569"
+  },
+  "status": "passed",
+  "ok": true,
+  "passed": 1,
+  "warnings": 7,
+  "failed": 0,
+  "checks": [
+    {
+      "id": "roundtrip.warning.0001",
+      "category": "material_id",
+      "status": "warning",
+      "message": "FBX material semantics are format-limited; raw PBR sidecars remain authoritative for downstream material reconstruction.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0002",
+      "category": "axis",
+      "status": "warning",
+      "message": "Axis conversion is declared by the export operator but file metadata was not independently inspected; imported bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0003",
+      "category": "units",
+      "status": "warning",
+      "message": "Meter units and unit scale are declared by the export operator but file metadata was not independently inspected; imported numeric bounds provide indirect evidence only.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0004",
+      "category": "texture",
+      "status": "warning",
+      "message": "Blender resolved package-local texture references to runtime absolute paths for: CBM_PORTABLE_global_base_color, CBM_PORTABLE_global_emission, CBM_PORTABLE_global_metallic, CBM_PORTABLE_global_normal, CBM_PORTABLE_global_roughness",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0005",
+      "category": "normal",
+      "status": "warning",
+      "message": "Custom split-normal equivalence is not verified; runtime face-normal validity is checked instead.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0006",
+      "category": "tangent",
+      "status": "warning",
+      "message": "Exported tangent vector equivalence is not verified; V0.7 checks only whether a finite basis can be recomputed from the imported UV set.",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.warning.0007",
+      "category": "uv",
+      "status": "warning",
+      "message": "UV loop-to-vertex association could not be verified for: demo.boolean.block__LOD0__COLLIDER, demo.curve_pipe__LOD0__COLLIDER, demo.custom_pyramid__LOD0__COLLIDER, demo.instance_post__001__LOD0__COLLIDER, demo.instance_post__002__LOD0__COLLIDER, demo.instance_post__003__LOD0__COLLIDER, demo.instance_post__004__LOD0__COLLIDER, demo.instance_post__LOD0__COLLIDER, demo.modifier_array__LOD0__COLLIDER, demo.modifier_mirror__LOD0__COLLIDER, demo.modifier_remesh__LOD0__COLLIDER, demo.modifier_solidify__LOD0__COLLIDER, demo.profile_house__LOD0__COLLIDER, demo.revolve_vase__LOD0__COLLIDER, demo.terrain__LOD0__COLLIDER",
+      "target_id": null
+    },
+    {
+      "id": "roundtrip.clean_import.completed",
+      "category": "format",
+      "status": "passed",
+      "message": "Blender completed a clean-scene package import.",
+      "target_id": null
+    }
+  ],
+  "bounds": {
+    "source": {
+      "minimum": [
+        -9.4,
+        -4.385553,
+        -1.2
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "imported": {
+      "minimum": [
+        -9.4,
+        -4.385553,
+        -1.200001
+      ],
+      "maximum": [
+        9.181419,
+        8.181419,
+        3.0
+      ]
+    },
+    "max_abs_error_m": 1.000000000139778e-06,
+    "tolerance_m": 0.0001,
+    "passed": true
+  },
+  "expected_semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "observed_semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "semantic_id_coverage": 1.0,
+  "expected_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "observed_material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ],
+  "material_id_coverage": 1.0,
+  "created_at": "2026-08-11T05:40:06.009919Z",
+  "errors": []
+}

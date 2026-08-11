@@ -1,0 +1,453 @@
+{
+  "schema_version": "0.7.0",
+  "manifest_id": "texture.pack.v08-f3830cf3",
+  "job_id": "aq_full_box",
+  "run_id": "v08-f3830cf3",
+  "profile_id": "portable_gltf",
+  "source": {
+    "source_kind": "scene_spec",
+    "scene_spec": {
+      "id": "source.scene_spec",
+      "kind": "scene_spec",
+      "path": "analysis/scene_spec.json",
+      "sha256": "79728ac39886f6d16cc44faeb3baae503b06442932c6b5faeb690060f0f51faf"
+    },
+    "external_asset_manifest": null,
+    "external_source_artifacts": [],
+    "blend": {
+      "id": "source.blend",
+      "kind": "blend",
+      "path": "blender/scene.blend",
+      "sha256": "f6d8987a229cf473afb1923bd68e214ed19edbd4c7398ccf0ad5f217c3fa22de"
+    },
+    "source_fingerprint": "92d47a0a8c48a6ecbf84f30c3e84297c700a12c020f15afda4f29fd11345fd21",
+    "build_fingerprint": "9f0b8196f0b08e2443a8e0bfcbed1fe2252e15dfa89c935686adccc4470a4e40",
+    "geometry_payloads": [],
+    "material_plan": {
+      "id": "source.material_plan",
+      "kind": "material_plan",
+      "path": "analysis/material_plan.json",
+      "sha256": "6aa431fdedfdbcacf9b5134c453cc509cd714f41e5dafe0e4b5599dec731157a"
+    },
+    "texture_manifests": [
+      {
+        "id": "source.texture_manifest.1",
+        "kind": "texture_manifest",
+        "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/texture_manifest.json",
+        "sha256": "d0410334000f0ec46543b437b4df5436f7ac2818f0c12c88037966d607017e93"
+      }
+    ]
+  },
+  "status": "complete",
+  "packing_required": true,
+  "raw_channels_preserved": true,
+  "textures": [
+    {
+      "texture_id": "texture.canonical.mat.product.blue.base_color",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.base_color",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/base_color.png",
+        "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6"
+      },
+      "color_space": "sRGB",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "base_color",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.base_color",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/base_color.png",
+            "sha256": "86f967c04b704280faa63ffea5b5555eab65c1843ec0afbe89c5d827388bb7b6"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.emission",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.emission",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/emission.png",
+        "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c"
+      },
+      "color_space": "sRGB",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "emission",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.emission",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/emission.png",
+            "sha256": "54e11226d37944f410956e9a2918ad4bb090485f1c9f5d2150172e06b291ff5c"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.height",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.height",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/height.png",
+        "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584"
+      },
+      "color_space": "Non-Color",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "height",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.height",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/height.png",
+            "sha256": "339031a5fa24e56e3b381fa0f1c654a564473603b575d557e455328d885f7584"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.metallic",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.metallic",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/metallic.png",
+        "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46"
+      },
+      "color_space": "Non-Color",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.metallic",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/metallic.png",
+            "sha256": "60bc84eab8a23e8fb24adb11218331589a2cd0edcc8a6174917c360088690f46"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.normal",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.normal",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/normal.png",
+        "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c"
+      },
+      "color_space": "Non-Color",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "normal",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.normal",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/normal.png",
+            "sha256": "7617614592a2c8fb502a2bfaa43d4450b63f84171d6c3b6e2c6871742624644c"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.opacity",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.opacity",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/opacity.png",
+        "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248"
+      },
+      "color_space": "Non-Color",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "opacity",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.opacity",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/opacity.png",
+            "sha256": "7ddf3453a8bb15c66c10871141829dcfdf73d96eb890ea83f6bbc1ebaae8b248"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.canonical.mat.product.blue.roughness",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.canonical.mat.product.blue.roughness",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/canonical/mat.product.blue-d0410334/roughness.png",
+        "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e"
+      },
+      "color_space": "Non-Color",
+      "width": 256,
+      "height": 256,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.canonical.mat.product.blue.roughness",
+            "kind": "other",
+            "path": "production/autonomy/aq-20260810t065207677077z-26250066/mr/r02/c/m02c01/textures/material-001/roughness.png",
+            "sha256": "752322cd4787a9227717b565a173cc249d847ad40a33d759bf20d225c27d8d1e"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v08-f3830cf3-materials.base_color",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v08-f3830cf3-materials.base_color",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/base_color.png",
+        "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c"
+      },
+      "color_space": "sRGB",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "base_color",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.base_color",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/base_color.png",
+            "sha256": "6ae204ef909a46226dd1e123913782919600d310e9d1aba50b05f5cfee90984c"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v08-f3830cf3-materials.emission",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v08-f3830cf3-materials.emission",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/emission.png",
+        "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25"
+      },
+      "color_space": "sRGB",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "emission",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.emission",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/emission.png",
+            "sha256": "863100354a621fb533ccdff403d08fa6b46cb599eedeaf0b5e04a24dc67f7d25"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v08-f3830cf3-materials.metallic",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v08-f3830cf3-materials.metallic",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/metallic.png",
+        "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc"
+      },
+      "color_space": "Non-Color",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.metallic",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/metallic.png",
+            "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v08-f3830cf3-materials.normal",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v08-f3830cf3-materials.normal",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/normal.png",
+        "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb"
+      },
+      "color_space": "Non-Color",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "RGB",
+          "source_channel": "normal",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.normal",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/normal.png",
+            "sha256": "56ff4a5a2ad6eadfa032f0c53503bc257c17139ef6e6abaa3136c2b352f6aecb"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.conversion.v08-f3830cf3-materials.roughness",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "raw_channels",
+      "output": {
+        "id": "texture.output.conversion.v08-f3830cf3-materials.roughness",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/raw/roughness.png",
+        "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9"
+      },
+      "color_space": "Non-Color",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.roughness",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/roughness.png",
+            "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9"
+          },
+          "invert": false
+        }
+      ]
+    },
+    {
+      "texture_id": "texture.orm.v08-f3830cf3-materials",
+      "material_ids": [
+        "mat.product.blue"
+      ],
+      "packing": "gltf_orm",
+      "output": {
+        "id": "texture.output.orm.v08-f3830cf3-materials",
+        "kind": "packed_texture",
+        "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/packed/gltf_orm.png",
+        "sha256": "855aedf08827fa7c577a065a846b69620b71166fad1f3a50d906cfe822b45359"
+      },
+      "color_space": "Non-Color",
+      "width": 2048,
+      "height": 2048,
+      "mappings": [
+        {
+          "output_channel": "R",
+          "source_channel": "occlusion",
+          "source": {
+            "id": "texture.orm.evidence.v08-f3830cf3-materials",
+            "kind": "other",
+            "path": "exports/packages/portable_gltf/v08-f3830cf3-package/textures/portable_atlas/texture_pack_evidence.json",
+            "sha256": "feff104abdbfe395bec6fc2560e28467cbe3769071b8aa53271f3732d47f3298"
+          },
+          "invert": false
+        },
+        {
+          "output_channel": "G",
+          "source_channel": "roughness",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.roughness",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/roughness.png",
+            "sha256": "42beca514688cb9057b90f0c768e8d27cc576aa72de7ccda4e5b26d5f99cd2b9"
+          },
+          "invert": false
+        },
+        {
+          "output_channel": "B",
+          "source_channel": "metallic",
+          "source": {
+            "id": "texture.source.conversion.v08-f3830cf3-materials.metallic",
+            "kind": "other",
+            "path": "optimization/material_conversions/v08-f3830cf3/v08-f3830cf3-materials/textures/metallic.png",
+            "sha256": "b5811b7f1b26dc7ba85a9048b3aa3faec753eb364be348f0908a11d59672c0dc"
+          },
+          "invert": false
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-08-10T06:56:59.605411Z",
+  "completed_at": "2026-08-10T06:56:59.605411Z",
+  "errors": [],
+  "notes": [
+    "Canonical TextureManifest images remain byte-preserved.",
+    "The five portable atlas channels were produced from an explicit hash-bound V0.7.1 derived material conversion.",
+    "glTF ORM, when present, is derived while raw channels remain included."
+  ]
+}

@@ -1,0 +1,2255 @@
+{
+  "schema_version": "0.9.0",
+  "handoff_id": "v09-handoff-smoke",
+  "package_manifest_sha256": "a267d75b604c7baac480cc2cc54e4f7d74d7793a9dc72adbc719fb770b069843",
+  "primary_model": "package/asset.glb",
+  "exported_root_policy": "flat_root",
+  "canonical_hierarchy_is_advisory": true,
+  "nodes": [
+    {
+      "export_key": "demo.instance_post|None|render|0",
+      "object_name": "CBM_demo_instance_post__LOD0__BATCH0003",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.b35b1f88d434dfe0ef04",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "advisory",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|None|lod|1",
+      "object_name": "CBM_demo_instance_post__LOD1__BATCH0001",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.b35b1f88d434dfe0ef04",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "advisory",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|None|lod|2",
+      "object_name": "CBM_demo_instance_post__LOD2__BATCH0002",
+      "semantic_id": "demo.instance_post",
+      "instance_index": null,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.b35b1f88d434dfe0ef04",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "advisory",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.boolean.block|0|render|0",
+      "object_name": "demo.boolean.block__LOD0",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.0d517a851a1caedd87c0",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.boolean.block|0|collider|None",
+      "object_name": "demo.boolean.block__LOD0__COLLIDER",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.boolean.block",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.boolean.block|0|lod|1",
+      "object_name": "demo.boolean.block__LOD1",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.0d517a851a1caedd87c0",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.boolean.block|0|lod|2",
+      "object_name": "demo.boolean.block__LOD2",
+      "semantic_id": "demo.boolean.block",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.0d517a851a1caedd87c0",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          1.5,
+          5.0,
+          1.5
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.curve_pipe|0|render|0",
+      "object_name": "demo.curve_pipe__LOD0",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.d70566d1f8e3285c757b",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": -0.127279,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.curve_pipe|0|collider|None",
+      "object_name": "demo.curve_pipe__LOD0__COLLIDER",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.curve_pipe",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": -0.127279,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.curve_pipe|0|lod|1",
+      "object_name": "demo.curve_pipe__LOD1",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.d70566d1f8e3285c757b",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": -0.127279,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.curve_pipe|0|lod|2",
+      "object_name": "demo.curve_pipe__LOD2",
+      "semantic_id": "demo.curve_pipe",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.d70566d1f8e3285c757b",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": -0.126967,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|render|0",
+      "object_name": "demo.custom_pyramid__LOD0",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.be9431e05673db3190e6",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|collider|None",
+      "object_name": "demo.custom_pyramid__LOD0__COLLIDER",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.custom_pyramid",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|lod|1",
+      "object_name": "demo.custom_pyramid__LOD1",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.be9431e05673db3190e6",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.custom_pyramid|0|lod|2",
+      "object_name": "demo.custom_pyramid__LOD2",
+      "semantic_id": "demo.custom_pyramid",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.be9431e05673db3190e6",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -7.0,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.016311,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|1|collider|None",
+      "object_name": "demo.instance_post__001__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 1,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.instance_post",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          4.2,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|2|collider|None",
+      "object_name": "demo.instance_post__002__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 2,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          5.4,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.instance_post",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          5.4,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|3|collider|None",
+      "object_name": "demo.instance_post__003__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 3,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          6.6,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.instance_post",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          6.6,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|4|collider|None",
+      "object_name": "demo.instance_post__004__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 4,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          7.8,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.instance_post",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          7.8,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.instance_post|0|collider|None",
+      "object_name": "demo.instance_post__LOD0__COLLIDER",
+      "semantic_id": "demo.instance_post",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          6.0,
+          3.0,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.instance_post",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          6.0,
+          3.0,
+          1.2
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_array|0|render|0",
+      "object_name": "demo.modifier_array__LOD0",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.9a3b6672948e4c06b7fe",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_array|0|collider|None",
+      "object_name": "demo.modifier_array__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.modifier_array",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_array|0|lod|1",
+      "object_name": "demo.modifier_array__LOD1",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.9a3b6672948e4c06b7fe",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "base_plane_z_m": -0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_array|0|lod|2",
+      "object_name": "demo.modifier_array__LOD2",
+      "semantic_id": "demo.modifier_array",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.9a3b6672948e4c06b7fe",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          3.5,
+          7.0,
+          1.1
+        ],
+        "base_plane_z_m": -0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|render|0",
+      "object_name": "demo.modifier_mirror__LOD0",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.ac8891696883214c087c",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|collider|None",
+      "object_name": "demo.modifier_mirror__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.modifier_mirror",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|lod|1",
+      "object_name": "demo.modifier_mirror__LOD1",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.ac8891696883214c087c",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_mirror|0|lod|2",
+      "object_name": "demo.modifier_mirror__LOD2",
+      "semantic_id": "demo.modifier_mirror",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.ac8891696883214c087c",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -8.0,
+          6.5,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|render|0",
+      "object_name": "demo.modifier_remesh__LOD0",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.c61024906bd7e201ca98",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "base_plane_z_m": 0.013157,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|collider|None",
+      "object_name": "demo.modifier_remesh__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.modifier_remesh",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "base_plane_z_m": 0.013157,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|lod|1",
+      "object_name": "demo.modifier_remesh__LOD1",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.c61024906bd7e201ca98",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "base_plane_z_m": 0.015648,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_remesh|0|lod|2",
+      "object_name": "demo.modifier_remesh__LOD2",
+      "semantic_id": "demo.modifier_remesh",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.gray"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.c61024906bd7e201ca98",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          8.0,
+          7.0,
+          1.2
+        ],
+        "base_plane_z_m": 0.017901,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|render|0",
+      "object_name": "demo.modifier_solidify__LOD0",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.deaa0c5465e98c4d6108",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "base_plane_z_m": 0.875133,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|collider|None",
+      "object_name": "demo.modifier_solidify__LOD0__COLLIDER",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.modifier_solidify",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "base_plane_z_m": 0.875133,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|lod|1",
+      "object_name": "demo.modifier_solidify__LOD1",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.deaa0c5465e98c4d6108",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "base_plane_z_m": 0.875133,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.modifier_solidify|0|lod|2",
+      "object_name": "demo.modifier_solidify__LOD2",
+      "semantic_id": "demo.modifier_solidify",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.deaa0c5465e98c4d6108",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -3.5,
+          7.0,
+          1.0
+        ],
+        "base_plane_z_m": 1.027566,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.profile_house|0|render|0",
+      "object_name": "demo.profile_house__LOD0",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.c5c3ffc934a8f71a23e6",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.profile_house|0|collider|None",
+      "object_name": "demo.profile_house__LOD0__COLLIDER",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.profile_house",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.profile_house|0|lod|1",
+      "object_name": "demo.profile_house__LOD1",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.c5c3ffc934a8f71a23e6",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.profile_house|0|lod|2",
+      "object_name": "demo.profile_house__LOD2",
+      "semantic_id": "demo.profile_house",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.blue"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.c5c3ffc934a8f71a23e6",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.008194,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.revolve_vase|0|render|0",
+      "object_name": "demo.revolve_vase__LOD0",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.0d4984f93d1fcd668e63",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.revolve_vase|0|collider|None",
+      "object_name": "demo.revolve_vase__LOD0__COLLIDER",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.revolve_vase",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.revolve_vase|0|lod|1",
+      "object_name": "demo.revolve_vase__LOD1",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.0d4984f93d1fcd668e63",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.revolve_vase|0|lod|2",
+      "object_name": "demo.revolve_vase__LOD2",
+      "semantic_id": "demo.revolve_vase",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.orange"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.0d4984f93d1fcd668e63",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          2.5,
+          -3.0,
+          0.0
+        ],
+        "base_plane_z_m": 0.0,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.terrain|0|render|0",
+      "object_name": "demo.terrain__LOD0",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 0,
+      "lod_group_id": "lodgroup.fe4078a8e96bb3a61570",
+      "default_active": true,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "render",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "base_plane_z_m": -1.2,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.terrain|0|collider|None",
+      "object_name": "demo.terrain__LOD0__COLLIDER",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [],
+      "lod_level": null,
+      "lod_group_id": null,
+      "default_active": false,
+      "collider_target_id": "demo.terrain",
+      "render_object": false,
+      "asset_role": "collider",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "base_plane_z_m": -1.2,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.terrain|0|lod|1",
+      "object_name": "demo.terrain__LOD1",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 1,
+      "lod_group_id": "lodgroup.fe4078a8e96bb3a61570",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "base_plane_z_m": -1.2,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    },
+    {
+      "export_key": "demo.terrain|0|lod|2",
+      "object_name": "demo.terrain__LOD2",
+      "semantic_id": "demo.terrain",
+      "instance_index": 0,
+      "parent_export_key": null,
+      "canonical_parent_semantic_id": null,
+      "transform": {
+        "translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "rotation_euler_rad": [
+          0.0,
+          -0.0,
+          0.0
+        ],
+        "scale": [
+          1.0,
+          1.0,
+          1.0
+        ],
+        "space": "source_authoring_world_as_flat_root"
+      },
+      "material_ids": [
+        "mat.green"
+      ],
+      "lod_level": 2,
+      "lod_group_id": "lodgroup.fe4078a8e96bb3a61570",
+      "default_active": false,
+      "collider_target_id": null,
+      "render_object": true,
+      "asset_role": "lod",
+      "source_package_file": "package/asset.glb",
+      "repeated_instance_relation": "explicit_index",
+      "pivot": {
+        "origin_translation_m": [
+          -5.0,
+          5.0,
+          0.0
+        ],
+        "base_plane_z_m": -1.2,
+        "policy": "preserve_exported_object_origin",
+        "verification": "export_evidence"
+      }
+    }
+  ],
+  "semantic_ids": [
+    "demo.boolean.block",
+    "demo.curve_pipe",
+    "demo.custom_pyramid",
+    "demo.instance_post",
+    "demo.modifier_array",
+    "demo.modifier_mirror",
+    "demo.modifier_remesh",
+    "demo.modifier_solidify",
+    "demo.profile_house",
+    "demo.revolve_vase",
+    "demo.terrain"
+  ],
+  "material_ids": [
+    "mat.blue",
+    "mat.gray",
+    "mat.green",
+    "mat.orange"
+  ]
+}
