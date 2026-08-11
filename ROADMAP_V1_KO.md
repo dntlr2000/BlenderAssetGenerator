@@ -28,6 +28,7 @@
 | External Static Asset Intake | `0.9.0` | 수동 제작 static source의 inspection, exact 승인, normalized authoring derivative와 V0.7 연결 |
 | Autonomous Quality / Integrated Quality | `0.1.0` | 새 standard 정적 소품을 위한 opt-in supervisor와 네 축 companion quality evidence |
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` | additive experimental overlay; profile은 `disabled_experimental` |
+| Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1` | current-task image candidate overlay; `disabled_experimental` |
 | SceneSpec V03 structural derivative | `0.3.0` | canonical `0.2.0`을 바꾸지 않는 opt-in derived 구조 형상 계약 |
 
 현재 V0.9 저장소에서 V0.4 형상 작업을 다시 수행하는 것은 프로젝트를 다운그레이드하는 일이 아닙니다. 최신 저장소 안에서 이전 제작 단계를 다시 실행하는 정상적인 반복 작업입니다.
@@ -66,6 +67,8 @@ AQ 0.1  Optional Autonomous Quality overlay (프로젝트 버전 불변)
   ↓
 AQ 0.2  Additive experimental quality/delivery harness (비활성)
   ↓
+ImageGen 0.1  Optional current-Codex texture companion (비활성)
+  ↓
 V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 ```
 
@@ -82,6 +85,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
+| ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
@@ -543,8 +547,8 @@ decision을 host가 재계산한 뒤 현재 canonical source와 필수
 `QualityTerminalV2` 검증은 IQ report, source freeze 또는 review bundle과 내부 artifact hash까지
 재검증합니다.
 
-최신 통합 증거는 전체 pytest `1350 passed, 39 skipped, 8 warnings`, AQ focused gate
-`397 passed, 17 skipped, 8 warnings`, 실제 Blender gate `30 passed, 6 warnings`, 그리고 V0.7/V0.8/V0.9 gate
+최신 통합 증거는 전체 pytest `1438 passed, 44 skipped, 8 warnings`, AQ focused gate
+`485 passed, 22 skipped, 8 warnings`, 실제 Blender gate `34 passed, 6 warnings`, 그리고 V0.7/V0.8/V0.9 gate
 통과입니다. 실제 Blender 범위는 선택된 structural/material fixture와 같은 freeze에서 각각
 직접 생성한 synthetic GLB+FBX dual-delivery fixture입니다. 다음 항목이 남아 있으므로 profile을
 활성화하지 않습니다.
@@ -559,6 +563,55 @@ asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검
 상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
 [시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
 [검증 기록](VERIFICATION_AQ_V02_KO.md)을 따릅니다.
+
+## 11C. Codex Built-in ImageGen Texture Provider 0.1.0 — 비활성 선택 확장
+
+이 companion은 AQ v2의 geometry candidate validation/promotion이 완료된 material 시작점에서 제한된 visual source 후보를
+얻기 위한 별도 overlay다. 기존 `autonomous_static_prop_v2` local-only profile을 바꾸지 않으며
+신규 `autonomous_static_prop_v2_codex_imagegen`도 **`disabled_experimental`** 상태다.
+
+구현 범위:
+
+- current Codex task가 읽는 strict plan/assignment와 immutable generation budget
+- built-in ImageGen만 허용하는 controller-mediated request-owned workspace
+- exact PNG/completion, ControllerResult와 protected source inventory 재검증
+- append-only overlay state와 app-exit 후 same-request resume
+- plan-item capacity fallback과 final controller result를 exact request/result-bound terminal로 종료
+- direct base-color/decal/emission/opacity-source만 허용하는 image evidence
+- deterministic raster hard gates, 모든 후보 보존과 single selection
+- exact local signage text composition
+- selected source-bound local PBR derivation을 위한 MaterialAuthoring `0.2.1`
+- staging receipt 뒤 overlay `adopted` / `controller_promotion_required` 정지
+- fake controller와 actual built-in ImageGen evidence 분리
+- status/plan/run/select/two-mode adopt CLI와 동등 MCP host surface
+
+영구 안전 경계:
+
+- repository-side API key, OpenAI SDK, external HTTP image provider와 API billing 없음
+- repository task spawning, background daemon과 app-exit continuation 없음
+- provider의 canonical MaterialPlan, Blender scene 또는 destination-project 직접 write 없음
+- generated normal/roughness/height/AO를 authoritative channel로 직접 채택하지 않음
+- ImageGen completion/selection이 material promotion, V0.7 approval 또는 package 승인이 아님
+- base AQ 자동 재개와 overlay `completed` claim 없음
+
+현재 활성화하지 않는 이유:
+
+- built-in ImageGen의 일반 prompt/reference 품질과 반복 가능성을 한정된 smoke 밖으로 확대할 수 없음
+- unwanted object/text와 style/background semantic alignment는 local metric에서 `unscorable`
+- 사람 review, generalized material quality와 destination runtime parity가 별도 증거를 요구함
+- fixed fake/Blender fixture와 실제 built-in smoke는 서로 다른 verification scope임
+- actual `MaterialPhaseReceiptV2`와 companion adoption/receipt의 exact controller-input binding이
+  아직 없어 full material promotion, IQ와 package 경로가 미검증임
+
+향후 활성화 검토에는 exact controller capability/smoke evidence, semantic review 정책, 실제 자산
+corpus의 material/Blender/package 검증과 명시적 profile 정책 변경이 필요하다. migration, README 문구
+또는 한 번의 성공으로 `verified_active`를 합성하지 않는다.
+
+상세 내용은 [ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md),
+[시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md),
+[테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md),
+[마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
+[검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)을 따른다.
 
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
@@ -783,6 +836,11 @@ VERIFICATION_Vxx_KO.md
 - [AQ 0.2 delivery profile](DELIVERY_PROFILES_KO.md)
 - [AQ 0.2 material authoring](MATERIAL_AUTHORING_KO.md)
 - [AQ 0.2 quality benchmark](QUALITY_BENCHMARK_KO.md)
+- [Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다. 실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지 import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
 
@@ -796,4 +854,4 @@ VERIFICATION_Vxx_KO.md
 → 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
 ```
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

@@ -49,6 +49,13 @@ from .transitions import (
 )
 
 
+def _read_native_bytes(path: Path) -> bytes:
+    """Read one contained contract through the Windows extended-length path."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 def _controller_artifact(artifact: AQV2Artifact, *, role: str) -> ControllerArtifact:
     """Project one exact AQ v2 artifact into ControllerExecutor's binding shape."""
 
@@ -79,7 +86,7 @@ def _read_aq_model(
     """Rehash and strict-parse one supported AQ v2 session model."""
 
     path = validate_v2_artifact(root, artifact)
-    return model.model_validate_json(path.read_bytes())
+    return model.model_validate_json(_read_native_bytes(path))
 
 
 def _required_authoring_profile(
@@ -135,7 +142,7 @@ def _validate_controller_result_outputs(
 ) -> None:
     """Re-hash stable result bindings and optionally its live execution provenance."""
 
-    result = ControllerResult.model_validate_json(result_path.read_bytes())
+    result = ControllerResult.model_validate_json(_read_native_bytes(result_path))
     artifacts = [result.request, result.tool_profile, *result.outputs]
     if include_execution_provenance:
         artifacts.extend(result.provenance)
@@ -175,7 +182,7 @@ def _state_chain(
     previous: AutonomyStateV2 | None = None
     for expected_sequence, path in enumerate(paths):
         safe_path = ensure_contained_production_path(root, path, must_exist=True)
-        state = AutonomyStateV2.model_validate_json(safe_path.read_bytes())
+        state = AutonomyStateV2.model_validate_json(_read_native_bytes(safe_path))
         if state.sequence != expected_sequence or path.stem != f"{expected_sequence:04d}":
             raise ValueError("AQ v2 state sequence is incomplete or misnamed")
         for provenance in state.provenance:
@@ -208,7 +215,7 @@ def _validate_state_terminal_evidence(
         from .models import QualityApprovedSourceFreeze
 
         freeze = QualityApprovedSourceFreeze.model_validate_json(
-            freeze_path.read_bytes()
+            _read_native_bytes(freeze_path)
         )
         validate_quality_source_freeze(root, freeze)
     if state.quality_terminal is not None:
@@ -450,7 +457,7 @@ def _phase_profile(
     matches: list[tuple[PhaseToolProfile, AQV2Artifact]] = []
     for artifact in plan.phase_tool_profiles:
         path = validate_v2_artifact(root, artifact)
-        profile = PhaseToolProfile.model_validate_json(path.read_bytes())
+        profile = PhaseToolProfile.model_validate_json(_read_native_bytes(path))
         if profile.profile_id == profile_id:
             matches.append((profile, artifact))
     if len(matches) != 1:
@@ -485,7 +492,9 @@ def _write_or_adopt_request(
     """Publish a request once or adopt only an exact crash-interrupted request."""
 
     if os.path.exists(native_io_path(path)):
-        existing = ControllerExecutionRequest.model_validate_json(path.read_bytes())
+        existing = ControllerExecutionRequest.model_validate_json(
+            _read_native_bytes(path)
+        )
         if existing.model_dump(mode="json", exclude={"created_at"}) != request.model_dump(
             mode="json",
             exclude={"created_at"},
@@ -522,7 +531,7 @@ def _pending_controller_request(
         raise ValueError("AQ v2 pending state has no request-bound controller result")
     pending_artifact = state.provenance[-1]
     pending_path = validate_v2_artifact(root, pending_artifact)
-    result = ControllerResult.model_validate_json(pending_path.read_bytes())
+    result = ControllerResult.model_validate_json(_read_native_bytes(pending_path))
     if result.status != "waiting_for_output" or result.controller_kind != "desktop_in_session":
         raise ValueError("AQ v2 pending result is not a resumable desktop execution")
     expected_usage = _consume_controller_budget(previous.budget_usage, budget)
@@ -547,13 +556,15 @@ def _pending_controller_request(
         session_root / "controller_executions" / execution_id / "request.json",
         must_exist=True,
     )
-    request = ControllerExecutionRequest.model_validate_json(request_path.read_bytes())
+    request = ControllerExecutionRequest.model_validate_json(
+        _read_native_bytes(request_path)
+    )
     request_binding = ControllerArtifact(
         artifact_id=request.contract_id,
         role="controller_request",
         path=request_path.relative_to(root).as_posix(),
         sha256=sha256_file(request_path),
-        byte_size=request_path.stat().st_size,
+        byte_size=os.path.getsize(native_io_path(request_path)),
     )
     expected_profile = _controller_artifact(profile_artifact, role="tool_profile")
     identity = (plan.job_id, plan.workflow_id, plan.dispatch_id, plan.session_id)

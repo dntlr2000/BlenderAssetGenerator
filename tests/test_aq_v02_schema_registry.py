@@ -250,7 +250,13 @@ def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
     registered_aq_v02 = {
         name
         for name in registered
-        if name in geometry_names or name.startswith(prefixes)
+        if (
+            name in geometry_names
+            or (
+                name.startswith(prefixes)
+                and not name.startswith("material_authoring_codex_image_")
+            )
+        )
     }
     assert registered_aq_v02 == new_names
 

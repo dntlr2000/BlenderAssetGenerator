@@ -108,6 +108,7 @@ build/
 /.qv2*/
 /.sd[0-9]/
 /.tmp-mg-registry-*/
+/.tmp-codex-*/
 
 # Exact short basetemp roots created by AQ v2 Windows test runs.
 /.b2/

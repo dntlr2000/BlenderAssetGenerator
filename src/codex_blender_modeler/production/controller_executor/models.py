@@ -52,6 +52,7 @@ class PhaseToolProfile(ControllerEvidenceEnvelope):
         "reference_readonly",
         "geometry_authoring",
         "material_authoring",
+        "codex_imagegen",
         "quality_readonly",
         "delivery",
         "handoff_plan",

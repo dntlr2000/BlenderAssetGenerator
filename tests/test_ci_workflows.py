@@ -8,6 +8,16 @@ from typing import Any
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+CODEX_IMAGEGEN_HOST_TESTS = (
+    "tests/test_codex_imagegen_core.py",
+    "tests/test_codex_imagegen_security.py",
+    "tests/test_codex_imagegen_schemas.py",
+    "tests/test_autonomy_v2_codex_image_planner.py",
+    "tests/test_autonomy_v2_codex_image_overlay.py",
+    "tests/test_autonomy_v2_codex_image_phase_service.py",
+    "tests/test_codex_image_material_authoring_v021.py",
+    "tests/test_codex_imagegen_public_surface.py",
+)
 
 
 def _load_workflow(name: str) -> dict[str, Any]:
@@ -53,6 +63,8 @@ def test_python_ci_runs_on_push_pr_and_dispatch_without_blender() -> None:
     assert "test_repository_catalog.py" in commands
     assert "test_controller_executor_v02.py" in commands
     assert "test_material_authoring_v02.py" in commands
+    for test_name in CODEX_IMAGEGEN_HOST_TESTS:
+        assert test_name in commands
     assert "uv run pytest" in commands
     assert "uv run ruff check ." in commands
     assert "blender-compat" not in commands
@@ -91,17 +103,53 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE",
         "CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE",
         "CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE",
+        "CBM_RUN_CODEX_IMAGE_MATERIAL_BLENDER_SMOKE",
     }
     expected_nodes = {
         "tests/test_aq_v02_geometry_blender.py",
         "tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5",
         "tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke",
         "tests/test_material_authoring_blender_v02.py::test_fixed_material_families_compile_reopen_and_render_in_blender_5",
+        "tests/test_codex_image_material_authoring_v021.py::test_fake_core_adoption_compiles_in_blender_5",
     }
     for token in expected_env | expected_nodes:
         assert token in powershell
         assert token in bash
+    for test_name in CODEX_IMAGEGEN_HOST_TESTS:
+        assert test_name in powershell
+        assert test_name in bash
     for token in expected_env:
         assert token not in python_commands
     assert "codex_blender_modeler.autonomy_benchmarks.v02_cli" in powershell
     assert "codex_blender_modeler.autonomy_benchmarks.v02_cli" in bash
+
+
+def test_codex_imagegen_gate_uses_fake_blender_evidence_without_live_provider() -> None:
+    """Keep CI deterministic and prevent fake smoke evidence from becoming an actual claim."""
+
+    paths = (
+        ROOT / "scripts" / "run_autonomous_quality_gates.ps1",
+        ROOT / "scripts" / "run_autonomous_quality_gates.sh",
+        ROOT / ".github" / "workflows" / "python-ci.yml",
+        ROOT / ".github" / "workflows" / "blender-smoke.yml",
+    )
+    wiring = "\n".join(path.read_text(encoding="utf-8") for path in paths)
+    forbidden_live_tokens = {
+        "OPENAI_API_KEY",
+        "client.images.generate",
+        "client.images.edit",
+        "image_gen__imagegen",
+        "$imagegen",
+    }
+    for token in forbidden_live_tokens:
+        assert token not in wiring
+
+    material_test = (
+        ROOT / "tests" / "test_codex_image_material_authoring_v021.py"
+    ).read_text(encoding="utf-8")
+    assert "test_fake_core_adoption_compiles_in_blender_5" in material_test
+    assert 'smoke["fake_completion_verified"] is True' in material_test
+    assert (
+        'smoke["actual_codex_imagegen_execution_verified"] is False'
+        in material_test
+    )

@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "description": "Bind exact user signage text separately from generated background imagery.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.1",
+      "default": "0.2.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "evidence_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Evidence Id",
+      "type": "string"
+    },
+    "text": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Text",
+      "type": "string"
+    },
+    "text_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Text Sha256",
+      "type": "string"
+    },
+    "evidence": {
+      "const": "exact_user_text",
+      "default": "exact_user_text",
+      "title": "Evidence",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evidence_id",
+    "text",
+    "text_sha256",
+    "created_at"
+  ],
+  "title": "ExactSignageTextEvidenceV021",
+  "type": "object"
+}

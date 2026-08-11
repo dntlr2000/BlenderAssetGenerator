@@ -7,6 +7,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from ..analysis.models import ModelingPlan
+from ..blender_artifacts import native_io_path
 from ..material_manifest import load_material_manifest
 from ..validation import load_scene_spec
 from ..workspace import job_dir
@@ -99,10 +100,11 @@ def _manifest_settings(material: dict, root: Path) -> tuple[str, MappingSpec]:
 def _write_atomic(path: Path, content: str) -> None:
     """Atomically replace one generated contract file after its parent exists."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
     temporary = path.parent / f".{path.name}.{uuid4().hex}.tmp"
-    temporary.write_text(content, encoding="utf-8")
-    os.replace(temporary, path)
+    with open(native_io_path(temporary), "w", encoding="utf-8") as handle:
+        handle.write(content)
+    os.replace(native_io_path(temporary), native_io_path(path))
 
 
 def _surface_detail_requirements(root: Path) -> dict[str, list[str]]:

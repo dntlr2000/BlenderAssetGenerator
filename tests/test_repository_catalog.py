@@ -46,6 +46,10 @@ def test_v2_catalog_entries_remain_experimental() -> None:
 
     assert profiles["autonomous_static_prop_v1"].status == "verified_active"
     assert profiles["autonomous_static_prop_v2"].status == "disabled_experimental"
+    assert (
+        profiles["autonomous_static_prop_v2_codex_imagegen"].status
+        == "disabled_experimental"
+    )
     assert deliveries["portable_fbx"].asset_profile_id == "fbx_interchange"
     assert deliveries["portable_fbx"].status == "disabled_experimental"
     assert deliveries["review_only"].production_package is False

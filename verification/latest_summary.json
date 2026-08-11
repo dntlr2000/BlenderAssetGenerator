@@ -2,9 +2,9 @@
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
   "status": "passed",
-  "verified_at": "2026-08-11T09:47:26Z",
-  "test_count": 1350,
-  "skipped_count": 39,
+  "verified_at": "2026-08-11T17:53:57Z",
+  "test_count": 1438,
+  "skipped_count": 44,
   "warning_count": 8,
   "tested_platforms": [
     {
@@ -17,26 +17,37 @@
   ],
   "quality_gates": {
     "autonomous_quality_focused": {
-      "passed": 397,
-      "skipped": 17,
+      "passed": 485,
+      "skipped": 22,
       "warnings": 8,
-      "evidence_root": "verification/evidence/aq_v2_20260811"
+      "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate"
     },
     "autonomous_quality_blender": {
-      "passed": 30,
-      "warnings": 6
+      "passed": 34,
+      "warnings": 6,
+      "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate"
+    },
+    "codex_imagegen_companion": {
+      "host_passed": 86,
+      "host_skipped": 5,
+      "fake_blender_passed": 4,
+      "current_task_builtin_imagegen_observed": true,
+      "repository_contract_actual_execution_verified": false,
+      "human_review_status": "not_reviewed",
+      "material_promotion_status": "controller_promotion_required",
+      "evidence_root": "reports/codex_imagegen_manual_20260811"
     },
     "v07": {
       "status": "passed",
-      "evidence_root": "verification/evidence/v07_20260811"
+      "evidence_root": "reports/v07_smoke/20260811T174519354Z-7176"
     },
     "v08": {
       "status": "passed",
-      "evidence_root": "verification/evidence/v08_20260811"
+      "evidence_root": "reports/v08_smoke/174855132-7176"
     },
     "v09": {
       "status": "passed",
-      "evidence_root": "verification/evidence/v09_20260811"
+      "evidence_root": "reports/v09_smoke/20260811T175034879Z-7176"
     }
   },
   "benchmark_v02": {
@@ -45,12 +56,14 @@
     "blender_case_count": 2,
     "blender_passed": 2,
     "manifest_sha256": "76a6b313d8762546a468ff4524763f042ad4cebfac132656efa1e5dab6c0e1a2",
-    "report_sha256": "7bf51bfb1a16a94537e2cb7db44602df1a82332779e0a91c1581fd53f715b271",
+    "report_sha256": "5eb85007eeb3a5818ecd4f82356f83d6568b49c5bb5bfdb093f9cb7957fca654",
+    "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate",
     "human_review_status": "not_reviewed"
   },
   "profile_status": {
     "autonomous_static_prop_v1": "verified_active",
-    "autonomous_static_prop_v2": "disabled_experimental"
+    "autonomous_static_prop_v2": "disabled_experimental",
+    "autonomous_static_prop_v2_codex_imagegen": "disabled_experimental"
   },
   "ci_status": {
     "local_python_ci_equivalent": "passed",
@@ -58,6 +71,9 @@
     "self_hosted_blender_ci": "not_run"
   },
   "limitations": [
+    "Codex ImageGen material staging stops at controller_promotion_required; canonical material promotion, IQ, and package continuation are not wired or verified.",
+    "The current Codex task used built-in ImageGen for the recorded manual evidence, but repository contract evidence intentionally retains actual_codex_imagegen_execution_verified=false.",
+    "The four-family Blender smoke uses deterministic fake completion and does not verify the actual generated source, general appearance quality, or package parity.",
     "The AQ v2 benchmark is deterministic synthetic evidence and has not received human review.",
     "The DesktopInSession controller adopts exact outputs but does not itself create Codex tasks or model output.",
     "The optional Codex App Server adapter and a fully closed supporting-client loop remain unverified.",

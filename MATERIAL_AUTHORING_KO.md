@@ -1,4 +1,4 @@
-# Material Authoring 0.1 사용·계약 안내
+# Material Authoring 0.1 및 Codex-image 0.2.1 사용·계약 안내
 
 ## 1. 역할과 현재 상태
 
@@ -15,7 +15,8 @@ reference-matched render, family별 고급 master graph, package appearance와 d
 아직 검증하지 않았다. 따라서 생성된 manifest의 기본 status는 `unverified` 또는
 `review_required`이며 `completed`나 일반 Blender parity를 주장하지 않는다.
 
-새 companion용 전용 CLI/MCP 명령은 아직 없다. 기존 공개 V0.5 명령인
+기존 MaterialAuthoring `0.1.0` local service 자체를 직접 노출하는 별도 CLI/MCP 명령은 없다.
+Codex ImageGen overlay의 host lifecycle 표면은 이 service와 분리된다. 기존 공개 V0.5 명령인
 `material-scaffold`, `validate-material-contracts`, `generate-procedural-textures`,
 `bake-materials`, `inspect-materials`, `render-material-swatches`의 의미는 변하지 않는다.
 
@@ -32,6 +33,69 @@ ShaderRecipe, TextureManifest, rebuilt blend/build provenance와 accepted materi
 모두 exact input/source map에 포함돼야 한다. 이전 material candidate나 receipt summary만 가리키는 IQ,
 또는 accepted promotion 뒤 material/shader/texture가 바뀐 IQ는 stale로 거부한다. geometry promotion
 receipt와 GeometryIntent survival도 같은 source closure의 별도 필수 항목이다.
+
+## 1A. Codex-image MaterialAuthoring 0.2.1 companion
+
+Codex Built-in ImageGen overlay에는 기존 `0.1.0`/`0.2.0` local strategy를 바꾸지 않는 별도
+`0.2.1` staging companion이 있다. 입력은 임의 PNG가 아니라 다음 core evidence의 exact chain이다.
+
+- `CodexImageGenerationSelection 0.1.0`
+- selected `CodexGeneratedImageEvidence 0.1.0`
+- selected `CodexImageGenerationQualityReport 0.1.0`
+- `ImageToMaterialAdoption 0.2.0`
+- exact V0.5 MaterialPlan과 선택적 ShaderRecipe/TextureManifest/BakeManifest
+- UV identity, AssetScaleContext와 physical texture density
+
+request, manifest, receipt와 raw channels는
+`material_authoring/codex_imagegen/runs/<run_id>/`에 atomically 게시된다. 기존 run은 overwrite하지
+않으며 모든 output은 `staging_only=true`, `canonical_v05_unchanged=true`,
+`destination_write_performed=false`다. local adapter 자체는 실제 Codex 내장 ImageGen 실행,
+Blender compile 또는 destination parity를 증명하지 않으므로 manifest의
+`actual_codex_imagegen_execution_verified=false`, `blender_compilation_status=not_run`을 유지한다.
+
+공개 Codex-image finalize는 이 receipt를 overlay에 결속한 뒤 `status=adopted`,
+`next_action=controller_promotion_required`에서 멈춘다. actual `MaterialPhaseReceiptV2`와 companion
+adoption/receipt의 exact controller-input binding은 아직 배선되지 않았으므로 base AQ를 자동
+재개하거나 canonical material promotion, IQ 또는 package 완료를 주장하지 않는다.
+
+허용 strategy와 source role은 다음과 같다.
+
+| strategy | 허용 family | generated direct role |
+|---|---|---|
+| `codex_generated_base_color_v1` | `user_image_pbr`, `planar_reference_patch` | `base_color`, `opacity_source` |
+| `codex_generated_decal_v1` | `signage_decal` | `decal_rgb`, `base_color`, `opacity_source` |
+| `codex_generated_emission_v1` | `emissive`, `crystal` | `emission`, `opacity_source` |
+| `codex_generated_procedural_hybrid_v1` | `wood`, `crystal` | `base_color`, `emission` |
+
+generated pixels가 직접 채울 수 있는 material channel은 base color, emission과 embedded opacity뿐이다.
+decal RGB는 exact local text composition을 거쳐 base-color candidate가 된다. normal, roughness,
+metallic, height와 occlusion은 generated pseudo-PBR map으로 받지 않고 selected source SHA-256,
+UV identity와 bounded `codex_image_local_derivation_v1` policy에 결속된 로컬 처리만 허용한다.
+
+hybrid 전략은 bounded low-frequency lighting removal을 먼저 적용한다. local algorithm은 height,
+OpenGL +Y normal, roughness, optional occlusion과 constant metallic을 만들고 각 channel에 algorithm
+ID/version, exact source hash list, parameter digest, size와 color space를 기록한다. material quality는
+decode/dimension, spatial standard deviation, offset-edge RMSE와 선택적 wood grain axis를 검사한다.
+이 검사가 통과해도 generated content의 semantic 정확성이나 사람이 본 appearance를 증명하지 않는다.
+
+signage exact text는 ImageGen background와 분리한다. `exact_user_text`는 inline exact UTF-8 text,
+그 문구와 digest가 일치하는 별도 `ExactSignageTextEvidenceV021 0.2.1`, project-local bitmap-font
+JSON 또는 TTF/OTF artifact가 모두 있어야 rasterize한다. composition의
+`text_evidence_artifact`는 그 exact text JSON을 가리킨다.
+`unknown_text`와 `inferred_placeholder`는 text/font를 가질 수 없고 glyph count 0을 유지한다. OS 또는
+network font를 암묵적으로 선택하지 않으며 missing glyph와 composition rectangle overflow는
+fail-closed다.
+
+host entrypoint는 `author_codex_image_material_candidate(...)`와
+`validate_codex_image_material_candidate(...)`다. validator는 published receipt/request/manifest,
+core selection/adoption chain과 모든 channel hash를 다시 재생한다. fixed Blender probe
+`probe_codex_image_material_v021.py`는 명시적으로 fake completion/adoption으로 분류된 wood,
+signage, emissive와 crystal whitelist compile/reopen/render/rehash 경계를 검사하도록 구성된다. 이
+probe 결과는 `actual_codex_imagegen_execution_verified=false`, `runtime_parity=false`를 유지하고
+package acceptance를 만들지 않는다. 실제 실행 범위는 ImageGen verification 문서에서만 확정한다.
+
+provider assignment, fake/actual 분류와 ControllerExecutor 경계는
+[Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)를 따른다.
 
 ## 2. 불변 조건
 
@@ -249,5 +313,11 @@ completion marker만으로 canonical 성공을 주장하지 않는다.
 - procedural wood/metal의 object-basis 방향 일치와 seam 품질은 Blender evidence가 필요하다.
 - crystal portable maps는 transmission/refraction/volume을 보존하지 않는다.
 - Advanced Material Handoff는 Unity URP/HDRP advisory 계획일 뿐 importer나 adapter가 아니다.
+- Codex-image `0.2.1` local adapter는 실제 built-in ImageGen execution이나 semantic prompt
+  adherence를 검증하지 않으며, fake source와 actual source의 분류를 바꾸지 않는다.
+- Codex-image local raster check에서 unwanted object/text와 style/background alignment는
+  `unscorable`이므로 `candidate_ready`만으로 human review를 주장할 수 없다.
+- Codex-image staging receipt는 `MaterialPhaseReceiptV2`가 아니며, companion adoption/receipt가
+  exact material-controller input으로 배선되기 전에는 base AQ resume이나 `completed`를 만들지 않는다.
 - package, clean import와 destination runtime parity는 각각 V0.7과 검증된 destination adapter의
   별도 evidence가 필요하다.

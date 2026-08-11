@@ -1,0 +1,407 @@
+{
+  "$defs": {
+    "CodexImageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to exact bytes and media semantics.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "CodexImageArtifact",
+      "type": "object"
+    },
+    "CodexImageDimensions": {
+      "additionalProperties": false,
+      "description": "Describe one bounded raster size without assuming a provider-specific API shape.",
+      "properties": {
+        "width": {
+          "maximum": 2048,
+          "minimum": 64,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 2048,
+          "minimum": 64,
+          "title": "Height",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "width",
+        "height"
+      ],
+      "title": "CodexImageDimensions",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one current-task generation request and its exact staging file set.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "assignment_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Assignment Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "plan_item_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Item Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "provider_profile": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "budget": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "base_state": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "target_material_ids": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Material Ids",
+      "type": "array"
+    },
+    "semantic_roles": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Semantic Roles",
+      "type": "array"
+    },
+    "allowed_output_roles": {
+      "items": {
+        "enum": [
+          "base_color",
+          "decal_rgb",
+          "emission",
+          "opacity_source"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Output Roles",
+      "type": "array"
+    },
+    "prompt_template_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Prompt Template Id",
+      "type": "string"
+    },
+    "rendered_prompt_text": {
+      "maxLength": 8000,
+      "minLength": 1,
+      "title": "Rendered Prompt Text",
+      "type": "string"
+    },
+    "prompt_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prompt Sha256",
+      "type": "string"
+    },
+    "exact_text_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Exact Text Sha256"
+    },
+    "exact_text_in_prompt": {
+      "const": false,
+      "default": false,
+      "title": "Exact Text In Prompt",
+      "type": "boolean"
+    },
+    "reference_images": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "title": "Reference Images",
+      "type": "array"
+    },
+    "staging_output_directory": {
+      "title": "Staging Output Directory",
+      "type": "string"
+    },
+    "candidate_output_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "minItems": 1,
+      "title": "Candidate Output Paths",
+      "type": "array"
+    },
+    "completion_file_target": {
+      "title": "Completion File Target",
+      "type": "string"
+    },
+    "candidate_count_upper_bound": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Candidate Count Upper Bound",
+      "type": "integer"
+    },
+    "requested_candidate_count": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Requested Candidate Count",
+      "type": "integer"
+    },
+    "image_size": {
+      "$ref": "#/$defs/CodexImageDimensions"
+    },
+    "quality_level": {
+      "enum": [
+        "low",
+        "medium"
+      ],
+      "title": "Quality Level",
+      "type": "string"
+    },
+    "aspect_ratio": {
+      "enum": [
+        "square",
+        "landscape",
+        "portrait"
+      ],
+      "title": "Aspect Ratio",
+      "type": "string"
+    },
+    "generation_intent": {
+      "enum": [
+        "generated_surface_swatch_v1",
+        "generated_decal_art_v1",
+        "generated_emission_pattern_v1",
+        "reference_guided_texture_patch_v1",
+        "generated_image_procedural_hybrid_v1"
+      ],
+      "title": "Generation Intent",
+      "type": "string"
+    },
+    "forbidden_content_notes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Forbidden Content Notes",
+      "type": "array"
+    },
+    "forbidden_text_notes": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Forbidden Text Notes",
+      "type": "array"
+    },
+    "budget_snapshot_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Budget Snapshot Sha256",
+      "type": "string"
+    },
+    "protected_source_inventory_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protected Source Inventory Sha256",
+      "type": "string"
+    },
+    "assignment_payload_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Assignment Payload Sha256",
+      "type": "string"
+    },
+    "controller_required": {
+      "const": true,
+      "default": true,
+      "title": "Controller Required",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "destination_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "assignment_id",
+    "sequence",
+    "plan_item_id",
+    "plan",
+    "provider_profile",
+    "budget",
+    "base_state",
+    "target_material_ids",
+    "semantic_roles",
+    "allowed_output_roles",
+    "prompt_template_id",
+    "rendered_prompt_text",
+    "prompt_sha256",
+    "staging_output_directory",
+    "candidate_output_paths",
+    "completion_file_target",
+    "image_size",
+    "quality_level",
+    "aspect_ratio",
+    "generation_intent",
+    "forbidden_content_notes",
+    "forbidden_text_notes",
+    "budget_snapshot_sha256",
+    "protected_source_inventory_sha256",
+    "assignment_payload_sha256"
+  ],
+  "title": "CodexImageGenerationAssignment",
+  "type": "object"
+}

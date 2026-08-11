@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`은 여기에 더해진 additive experimental overlay이며 profile은 아직 `disabled_experimental`입니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`과 그 선택적 Codex Built-in ImageGen `0.1.0` companion은 additive experimental overlay이며 두 profile 모두 아직 `disabled_experimental`입니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -22,13 +22,14 @@
 | Asset Production Dispatch / Controller | `0.9.0` |
 | Autonomous Quality / Integrated Quality | `0.1.0` opt-in companion |
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` additive overlay; `disabled_experimental` |
+| Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1`; `disabled_experimental` |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
 | AQ post-change 최종 회귀 | 1145 passed, 20 skipped, 8 warnings in 149.21s; Ruff passed |
 | AQ 통합 gate | exit 0; focused 195 passed, 2 skipped; Blender 14 passed |
-| AQ v2 최신 전체 회귀 | 1350 passed, 39 skipped, 8 warnings; profile은 비활성 유지 |
-| AQ v2 통합 gate | focused 397 passed, 17 skipped, 8 warnings; Blender 30 passed, 6 warnings; V0.7/V0.8/V0.9 gates passed |
+| AQ v2 최신 전체 회귀 | 1438 passed, 44 skipped, 8 warnings; profile은 비활성 유지 |
+| AQ v2 통합 gate | focused 485 passed, 22 skipped, 8 warnings; Blender 34 passed, 6 warnings; V0.7/V0.8/V0.9 gates passed |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -60,6 +61,9 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
 - 새 `standard` production dispatch 위에서만 동작하는 bounded
   `autonomous_static_prop_v1`: reference evidence, 격리 후보 탐색, 네 축 Integrated Quality,
   exact policy authorization, portable GLB 또는 non-production review bundle
+- AQ v2 material 시작점에서만 opt-in하는 `autonomous_static_prop_v2_codex_imagegen`:
+  현재 Codex 작업의 built-in ImageGen assignment, ControllerExecutor 격리, deterministic 후보 선택,
+  exact local text와 source-bound local PBR derivation. API key/SDK/HTTP provider와 daemon은 없음
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -95,6 +99,9 @@ BlenderAssetGenerator/
 │  ├─ material_graph/                whitelist-only material graph companion
 │  ├─ integrated_quality/            AQ 네 축 품질과 hard gates
 │  ├─ autonomy/                      AQ profile, budget, authorization와 supervisor
+│  ├─ autonomy_v2/                   AQ 0.2와 optional ImageGen overlay state
+│  ├─ codex_imagegen/                built-in ImageGen assignment/검증/선택 companion
+│  ├─ material_authoring/            local material 및 Codex-image 0.2.1 candidate
 │  ├─ autonomy_benchmarks/           deterministic AQ benchmark runner
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
 │  ├─ external_intake/               V0.9 external static source contract
@@ -695,6 +702,11 @@ execution-root/adoption recovery는 executor lifecycle과 저장된 result bytes
 검증합니다. raw executor timeout receipt와 달리 AQ v2 bridge의 timeout은 즉시 nonretryable
 `failed` terminal로 끝납니다.
 
+Codex ImageGen assignment가 budget/capacity에서 시작될 수 없으면 controller를 호출하지 않고 해당
+plan item의 exact fallback으로 종료합니다. 최종 controller `timeout|failed|rejected`도 같은 fallback,
+`cancelled`는 cancellation terminal로 끝나며, terminal은 plan item, runtime trigger와 exact
+controller request/result를 결속합니다. `waiting_for_output`만 같은 request의 재개 가능 상태로 남습니다.
+
 IQ 0.2는 exact global/semantic PNG bytes에서 contour·semantic metric과 gates/findings/outcome을
 host가 다시 만들고 caller report 전체와 equality를 검사합니다. source freeze는 현재 canonical
 bytes와 필수 `geometry_candidate_validation_receipt`/`material_phase_receipt`에 다시 결속됩니다.
@@ -702,12 +714,56 @@ authoritative hard finding이 하나라도 남으면 quality pass가 될 수 없
 required scored landmark/multi-view는 pass authority가 없습니다. `QualityTerminalV2`는 IQ, freeze
 또는 review bundle과 그 nested artifact hash를 끝까지 재검증합니다.
 
-최신 검증은 전체 pytest `1350 passed, 39 skipped, 8 warnings`, AQ focused gate
-`397 passed, 17 skipped, 8 warnings`, 실제 Blender 묶음 `30 passed, 6 warnings`와 V0.7/V0.8/V0.9 gate 통과를
+최신 검증은 전체 pytest `1438 passed, 44 skipped, 8 warnings`, AQ focused gate
+`485 passed, 22 skipped, 8 warnings`, 실제 Blender 묶음 `34 passed, 6 warnings`와 V0.7/V0.8/V0.9 gate 통과를
 기록합니다. 실제 Blender 검증은 선택된 structural/material fixture와 동일 frozen source에서
 직접 만든 synthetic GLB+FBX dual-delivery fixture 범위입니다. Codex App Server 또는
 supporting-client가 수행하는 완전한 closed loop, 사람의 reference 품질 판정, Unity/Unreal/custom
 destination runtime parity는 아직 검증되지 않았으므로 profile은 계속 비활성입니다.
+
+## 선택적 Codex Built-in ImageGen Texture Provider 0.1.0
+
+`autonomous_static_prop_v2_codex_imagegen`은 base AQ v2의 local-only 의미를 바꾸지 않는 별도
+controller-mediated companion이다. base geometry promotion이 끝난 material-authoring 시작점에서
+strict assignment를 게시하고, **현재 Codex 작업**이 built-in `$imagegen`으로 만든 PNG만
+request-owned workspace를 통해 받는다.
+
+```text
+AQ v2 geometry promotion
+→ ImageGen assignment + waiting_for_controller
+→ current Codex task built-in ImageGen
+→ exact ControllerResult/completion
+→ local raster quality + deterministic selection
+→ ImageToMaterialAdoption 0.2.0
+→ MaterialAuthoring 0.2.1 staging candidate
+→ status=adopted, next_action=controller_promotion_required
+→ stop (base AQ 자동 재개·canonical promotion 없음)
+```
+
+저장소에는 `OPENAI_API_KEY`, OpenAI SDK, image API client나 HTTP provider가 없다. 새 Codex task를
+만들거나 daemon으로 실행하지도 않으므로 앱이 닫히면 대기 상태에서 멈춘다. resume은 새 generation이
+아니라 같은 assignment/request/workspace와 protected job inventory의 재검증이다. 내장 생성의
+사용량은 별도 API billing이 아니라 현재 Codex 앱 사용량 범위에 속한다.
+
+생성 pixels의 직접 역할은 `base_color`, `decal_rgb`, `emission`, `opacity_source`뿐이다.
+normal/roughness/metallic/height/displacement/AO는 selected source hash와 bounded parameter에 결속된
+local deterministic 처리로만 만든다. exact signage text도 ImageGen prompt에 맡기지 않고 hash-bound
+project-local bitmap font 또는 TTF/OTF로 합성한다.
+
+PNG dimension/detail/alpha/border/seam/emission 같은 local hard gate와 달리 unwanted object/text,
+style/background alignment는 현재 non-hard `unscorable`이다. deterministic selection을 human 또는
+semantic pass로 해석하면 안 된다. fake controller evidence와 실제 built-in ImageGen evidence도
+controller/source kind로 분리된다. 전체 사용법과 정확한 검증 상태는
+[ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md)와
+[ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)을 따른다.
+
+현재 공개 CLI는 `codex-imagegen-status`, `codex-imagegen-plan`, `codex-imagegen-run`,
+`codex-imagegen-select`, `codex-imagegen-adopt`다. `run`은 host-side ImageGen 호출이 아니라
+assignment 게시 또는 동일 ControllerExecutor request의 재검증·재개다. `adopt`도 staging
+adoption/MaterialAuthoring receipt 경계이며 최종 상태는 `adopted` /
+`controller_promotion_required`다. actual `MaterialPhaseReceiptV2`와 companion adoption/receipt의
+exact controller-input binding은 아직 배선되지 않았으므로 base AQ resume, canonical material
+promotion, IQ와 package를 주장하지 않는다.
 
 ## V0.9 안정화 표면
 
@@ -868,6 +924,11 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [AQ 0.2 delivery profile](DELIVERY_PROFILES_KO.md)
 - [AQ 0.2 material authoring](MATERIAL_AUTHORING_KO.md)
 - [AQ 0.2 quality benchmark](QUALITY_BENCHMARK_KO.md)
+- [Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
 - [Portable verification evidence](verification/evidence/README.md)
 - [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
@@ -893,18 +954,18 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Legacy builders: curve, custom_mesh, primitive, profile_extrude, revolve, terrain
 - Structural builders: boolean_tree, curve, custom_mesh, geometry_nodes_template, loft, multi_loop_extrude, primitive, profile_extrude, revolve, sweep, terrain
 - Active autonomy profiles: autonomous_static_prop_v1
-- Experimental profiles: autonomous_static_prop_v2, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
+- Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 115
-- CLI registry SHA-256: 1ad4ce99dd8c4f728a8aaebe8400a5fb5f2eb730b1b1d2fd5a4e6f91ba495951
-- MCP server tools: 110
-- MCP server registry SHA-256: 5bb2ef0c7826088ffb8062a32d338187e8193cfa8fe85307d6260b9a7bc22c36
-- Project-enabled MCP tools: 109
-- Project-enabled MCP SHA-256: 701ed2b37569e18cfc9c6cc1f276e50673041182ba5d2d97757a3b7561fe0024
-- Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
+- CLI commands: 120
+- CLI registry SHA-256: 1006e9ce7c46757bd0c6a6c82da62c62eeb4f6cbacf000047716fea73616842a
+- MCP server tools: 115
+- MCP server registry SHA-256: b3cda0812871ba0cd3b3304adb4462c27be80a5e050ee6d8d8e39b415e265536
+- Project-enabled MCP tools: 114
+- Project-enabled MCP SHA-256: 0382a752ee6f011350bc0edddb8388fa900304d8e3e30dc6d0b5b01322fa472a
+- Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1350
+- Latest reported test count: 1438
 - Verification summary: verification/latest_summary.json (passed)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

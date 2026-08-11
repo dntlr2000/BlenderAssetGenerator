@@ -22,6 +22,8 @@ _PROFILE_TOOLS: dict[str, list[str]] = {
     "reference_readonly": ["get_modeling_capabilities", "get_workflow_state"],
     "geometry_authoring": ["get_workflow_state", "record_delegated_production_step"],
     "material_authoring": ["get_workflow_state", "record_delegated_production_step"],
+    # This names a current-task Codex capability, not a project MCP or network provider.
+    "codex_imagegen": ["imagegen"],
     "quality_readonly": ["get_workflow_state", "get_integrated_quality_status"],
     "delivery": [
         "get_asset_production_dispatch_status",

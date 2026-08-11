@@ -27,6 +27,14 @@ def autonomy_v2_profile_status() -> dict[str, object]:
     }
 
 
+def autonomy_v2_profile_catalog() -> list[dict[str, object]]:
+    """Return base AQ v2 plus its separately disabled Codex ImageGen overlay profile."""
+
+    from .codex_image_overlay import codex_image_overlay_profile_status
+
+    return [autonomy_v2_profile_status(), codex_image_overlay_profile_status()]
+
+
 def delivery_profile(profile_id: str) -> DeliveryProfile:
     """Return one strict public-to-V0.7 delivery mapping without format conversion."""
 

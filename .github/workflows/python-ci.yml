@@ -85,6 +85,14 @@ jobs:
           tests/test_material_authoring_v02.py
           tests/test_material_authoring_blender_v02.py
           tests/test_advanced_material_handoff_v02.py
+          tests/test_codex_imagegen_core.py
+          tests/test_codex_imagegen_security.py
+          tests/test_codex_imagegen_schemas.py
+          tests/test_autonomy_v2_codex_image_planner.py
+          tests/test_autonomy_v2_codex_image_overlay.py
+          tests/test_autonomy_v2_codex_image_phase_service.py
+          tests/test_codex_image_material_authoring_v021.py
+          tests/test_codex_imagegen_public_surface.py
           tests/test_repository_catalog.py
           tests/test_repository_summary_generator.py
           tests/test_ci_workflows.py

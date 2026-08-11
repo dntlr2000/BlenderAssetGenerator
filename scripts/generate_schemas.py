@@ -90,6 +90,9 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
     GeometryAuthoringCompletionV2,
     GeometryCandidateValidationReceiptV2,
 )
+from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
+    AutonomyCodexImageOverlay,
+)
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
@@ -125,6 +128,19 @@ from codex_blender_modeler.blender_scripts.assembly.models import (
 from codex_blender_modeler.blender_scripts.topology.models import (
     TopologyCompanionReport,
     TopologyProfile,
+)
+from codex_blender_modeler.codex_imagegen.models import (
+    CodexBuiltinImageProviderProfile,
+    CodexGeneratedImageEvidence,
+    CodexImageGenerationAssignment,
+    CodexImageGenerationBudget,
+    CodexImageGenerationCandidate,
+    CodexImageGenerationCompletion,
+    CodexImageGenerationPlan,
+    CodexImageGenerationQualityReport,
+    CodexImageGenerationSelection,
+    CodexImageGenerationTerminal,
+    ImageToMaterialAdoption,
 )
 from codex_blender_modeler.constraints.models import ConstraintSet, ConstraintSolution
 from codex_blender_modeler.external_intake.models import (
@@ -172,6 +188,12 @@ from codex_blender_modeler.interior_qa.models import (
     InteriorQAReport,
     InteriorQARevisionCandidates,
     InteriorQASourceInventory,
+)
+from codex_blender_modeler.material_authoring.codex_image_models import (
+    CodexImageAuthoredMaterialManifestV021,
+    CodexImageMaterialAuthoringReceiptV021,
+    CodexImageMaterialAuthoringRequestV021,
+    ExactSignageTextEvidenceV021,
 )
 from codex_blender_modeler.material_authoring.models import (
     AuthoredMaterialManifest,
@@ -535,6 +557,33 @@ SCHEMAS = {
     "autonomy_v02_material_rollback_receipt.schema.json": (
         MaterialPhaseRollbackReceiptV2
     ),
+    # Codex built-in ImageGen is a controller-mediated additive AQ v2 overlay.
+    "codex_builtin_image_provider_profile.schema.json": (
+        CodexBuiltinImageProviderProfile
+    ),
+    "codex_image_generation_budget.schema.json": CodexImageGenerationBudget,
+    "codex_image_generation_plan.schema.json": CodexImageGenerationPlan,
+    "codex_image_generation_assignment.schema.json": CodexImageGenerationAssignment,
+    "codex_image_generation_completion.schema.json": CodexImageGenerationCompletion,
+    "codex_generated_image_evidence.schema.json": CodexGeneratedImageEvidence,
+    "codex_image_generation_candidate.schema.json": CodexImageGenerationCandidate,
+    "codex_image_generation_quality_report.schema.json": (
+        CodexImageGenerationQualityReport
+    ),
+    "codex_image_generation_selection.schema.json": CodexImageGenerationSelection,
+    "codex_image_generation_terminal.schema.json": CodexImageGenerationTerminal,
+    "image_to_material_adoption.schema.json": ImageToMaterialAdoption,
+    "autonomy_codex_image_overlay.schema.json": AutonomyCodexImageOverlay,
+    "material_authoring_codex_image_request_v021.schema.json": (
+        CodexImageMaterialAuthoringRequestV021
+    ),
+    "material_authoring_codex_image_manifest_v021.schema.json": (
+        CodexImageAuthoredMaterialManifestV021
+    ),
+    "material_authoring_codex_image_receipt_v021.schema.json": (
+        CodexImageMaterialAuthoringReceiptV021
+    ),
+    "exact_signage_text_evidence_v021.schema.json": ExactSignageTextEvidenceV021,
     # Deterministic AQ 0.2 benchmark contracts and result evidence.
     "autonomy_benchmark_v02_case.schema.json": BenchmarkCaseV02,
     "autonomy_benchmark_v02_manifest.schema.json": BenchmarkManifestV02,

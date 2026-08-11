@@ -90,6 +90,17 @@ AUTONOMY_PROFILES = (
         notes="AQ 0.2 design target; activation requires completed host and Blender gates.",
     ),
     AutonomyProfileCatalogEntry(
+        profile_id="autonomous_static_prop_v2_codex_imagegen",
+        status="disabled_experimental",
+        contract_version="0.1.0",
+        execution_policy="standard",
+        output_scope="controller-mediated image staging",
+        notes=(
+            "Optional Codex built-in ImageGen companion; base AQ v2 remains local-only "
+            "and the repository cannot spawn a Codex task."
+        ),
+    ),
+    AutonomyProfileCatalogEntry(
         profile_id="autonomous_environment_v1",
         status="disabled_experimental",
         contract_version="0.1.0",
@@ -319,6 +330,25 @@ PHASE_TOOL_PROFILES = (
         network_policy="denied",
         destination_write_policy="denied",
         default_exclusion_reason="Outside validated workflow-owned material evidence.",
+        explicit_exclusion_reasons=_APPROVAL_TOOL_EXCLUSIONS,
+    ),
+    PhaseToolProfile(
+        profile_id="codex_imagegen",
+        status="disabled_experimental",
+        allowed_tools=frozenset(),
+        allowed_file_roles=(
+            "codex_image_assignment",
+            "codex_image_generation_input",
+            "generated_image_staging",
+            "completion_marker",
+        ),
+        canonical_write=False,
+        network_policy="codex_builtin_tool_only",
+        destination_write_policy="denied",
+        default_exclusion_reason=(
+            "Codex built-in ImageGen is controller-mediated and grants no project MCP "
+            "authority."
+        ),
         explicit_exclusion_reasons=_APPROVAL_TOOL_EXCLUSIONS,
     ),
     PhaseToolProfile(
@@ -580,7 +610,7 @@ def validate_repository_catalog(root: Path) -> tuple[str, ...]:
         findings.append("structural builder catalog differs from Blender registry source")
 
     from .autonomy.profiles import profile_registry
-    from .autonomy_v2.profiles import autonomy_v2_profile_status
+    from .autonomy_v2.profiles import autonomy_v2_profile_catalog
 
     runtime_profiles = {
         str(entry["profile_id"]): (
@@ -589,11 +619,11 @@ def validate_repository_catalog(root: Path) -> tuple[str, ...]:
         )
         for entry in profile_registry()
     }
-    v2_profile = autonomy_v2_profile_status()
-    runtime_profiles[str(v2_profile["profile_id"])] = (
-        str(v2_profile["status"]),
-        str(v2_profile["contract_version"]),
-    )
+    for v2_profile in autonomy_v2_profile_catalog():
+        runtime_profiles[str(v2_profile["profile_id"])] = (
+            str(v2_profile["status"]),
+            str(v2_profile["contract_version"]),
+        )
     catalog_profiles = {
         entry.profile_id: (entry.status, entry.contract_version)
         for entry in AUTONOMY_PROFILES

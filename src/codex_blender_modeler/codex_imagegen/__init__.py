@@ -1,0 +1,130 @@
+"""Public Codex ImageGen 0.1.0 companion contracts and host services."""
+
+from .adoption import build_image_to_material_adoption
+from .artifacts import (
+    artifact_for_codex_image,
+    load_codex_image_model,
+    validate_codex_image_artifact,
+    write_immutable_codex_image_model,
+)
+from .assignment import (
+    build_codex_imagegen_assignment,
+    codex_image_source_inventory_sha256,
+    validate_codex_imagegen_assignment_boundary,
+)
+from .budget import (
+    CodexImageGenerationCapacityError,
+    apply_completion_usage,
+    budget_snapshot_sha256,
+    build_default_codex_imagegen_budget,
+    remaining_budget,
+    validate_assignment_capacity,
+)
+from .completion import (
+    build_codex_imagegen_candidate,
+    build_generated_image_evidence,
+    copy_imagegen_png_and_write_completion,
+    validate_codex_imagegen_completion,
+)
+from .fake_controller_backend import FakeCodexImagegenController
+from .models import (
+    CODEX_IMAGEGEN_PROFILE_ID,
+    CODEX_IMAGEGEN_PROVIDER_ID,
+    CODEX_IMAGEGEN_SCHEMA_VERSION,
+    IMAGE_TO_MATERIAL_ADOPTION_SCHEMA_VERSION,
+    CodexBuiltinImageProviderProfile,
+    CodexGeneratedFile,
+    CodexGeneratedImageEvidence,
+    CodexImageArtifact,
+    CodexImageCandidateDecision,
+    CodexImageDimensions,
+    CodexImageGenerationAssignment,
+    CodexImageGenerationBudget,
+    CodexImageGenerationBudgetUsage,
+    CodexImageGenerationCandidate,
+    CodexImageGenerationCompletion,
+    CodexImageGenerationPlan,
+    CodexImageGenerationPlanItem,
+    CodexImageGenerationQualityReport,
+    CodexImageGenerationSelection,
+    CodexImageGenerationTerminal,
+    CodexImageQualityCheck,
+    DerivedChannelEvidence,
+    ImageToMaterialAdoption,
+)
+from .planning import build_codex_imagegen_plan
+from .profile import (
+    build_codex_builtin_image_provider_profile,
+    codex_imagegen_profile_status,
+)
+from .public_service import (
+    adopt_codex_imagegen_completion,
+    adopt_codex_imagegen_material,
+    cancel_codex_imagegen,
+    codex_imagegen_status,
+    plan_codex_imagegen,
+    run_codex_imagegen,
+    validate_codex_imagegen_exact_text_binding,
+)
+from .quality import evaluate_candidate_quality
+from .reporting import build_codex_imagegen_terminal, write_candidate_contact_sheet
+from .selection import select_codex_imagegen_candidate
+
+__all__ = [
+    "CODEX_IMAGEGEN_PROFILE_ID",
+    "CODEX_IMAGEGEN_PROVIDER_ID",
+    "CODEX_IMAGEGEN_SCHEMA_VERSION",
+    "IMAGE_TO_MATERIAL_ADOPTION_SCHEMA_VERSION",
+    "CodexBuiltinImageProviderProfile",
+    "CodexGeneratedFile",
+    "CodexGeneratedImageEvidence",
+    "CodexImageArtifact",
+    "CodexImageCandidateDecision",
+    "CodexImageDimensions",
+    "CodexImageGenerationAssignment",
+    "CodexImageGenerationCapacityError",
+    "CodexImageGenerationBudget",
+    "CodexImageGenerationBudgetUsage",
+    "CodexImageGenerationCandidate",
+    "CodexImageGenerationCompletion",
+    "CodexImageGenerationPlan",
+    "CodexImageGenerationPlanItem",
+    "CodexImageGenerationQualityReport",
+    "CodexImageGenerationSelection",
+    "CodexImageGenerationTerminal",
+    "CodexImageQualityCheck",
+    "DerivedChannelEvidence",
+    "FakeCodexImagegenController",
+    "ImageToMaterialAdoption",
+    "apply_completion_usage",
+    "adopt_codex_imagegen_completion",
+    "adopt_codex_imagegen_material",
+    "artifact_for_codex_image",
+    "budget_snapshot_sha256",
+    "build_codex_builtin_image_provider_profile",
+    "build_codex_imagegen_assignment",
+    "build_codex_imagegen_candidate",
+    "build_codex_imagegen_plan",
+    "build_codex_imagegen_terminal",
+    "build_default_codex_imagegen_budget",
+    "build_generated_image_evidence",
+    "build_image_to_material_adoption",
+    "codex_imagegen_profile_status",
+    "codex_imagegen_status",
+    "codex_image_source_inventory_sha256",
+    "copy_imagegen_png_and_write_completion",
+    "cancel_codex_imagegen",
+    "evaluate_candidate_quality",
+    "load_codex_image_model",
+    "plan_codex_imagegen",
+    "remaining_budget",
+    "run_codex_imagegen",
+    "select_codex_imagegen_candidate",
+    "validate_assignment_capacity",
+    "validate_codex_image_artifact",
+    "validate_codex_imagegen_exact_text_binding",
+    "validate_codex_imagegen_assignment_boundary",
+    "validate_codex_imagegen_completion",
+    "write_candidate_contact_sheet",
+    "write_immutable_codex_image_model",
+]

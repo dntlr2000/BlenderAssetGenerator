@@ -679,13 +679,19 @@ def test_optional_app_server_remains_unavailable_without_official_adapter(
 
 
 def test_phase_profiles_use_only_project_enabled_mcp_tools() -> None:
-    """Every phase allowlist must name an actually enabled project MCP tool."""
+    """Keep MCP phase tools enabled and isolate the one built-in Codex capability."""
 
     with (ROOT / ".codex" / "config.toml").open("rb") as handle:
         enabled = set(tomllib.load(handle)["mcp_servers"]["blender_modeler"]["enabled_tools"])
     catalog = controller_capability_catalog()
-    for profile in catalog["phase_profiles"].values():
-        assert set(profile["allowed_tools"]) <= enabled
+    for profile_id, profile in catalog["phase_profiles"].items():
+        allowed = set(profile["allowed_tools"])
+        if profile_id == "codex_imagegen":
+            assert allowed == {"imagegen"}
+            assert allowed.isdisjoint(enabled)
+            assert profile["network_access"] == "denied"
+        else:
+            assert allowed <= enabled
     controllers = {item["controller_kind"]: item for item in catalog["controllers"]}
     assert controllers["desktop_in_session"]["repository_can_spawn_codex_task"] is False
     assert controllers["optional_codex_app_server"]["status"] == "unavailable"

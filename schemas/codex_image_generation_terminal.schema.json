@@ -1,0 +1,360 @@
+{
+  "$defs": {
+    "CodexImageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to exact bytes and media semantics.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "CodexImageArtifact",
+      "type": "object"
+    },
+    "CodexImageGenerationBudgetUsage": {
+      "additionalProperties": false,
+      "description": "Record reconstructed budget use without mutating the immutable budget contract.",
+      "properties": {
+        "assignments": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Assignments",
+          "type": "integer"
+        },
+        "total_generations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Total Generations",
+          "type": "integer"
+        },
+        "candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "edits_or_refinements": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Edits Or Refinements",
+          "type": "integer"
+        },
+        "elapsed_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Elapsed Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "CodexImageGenerationBudgetUsage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Close one generation plan without implying background execution or PBR completion.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "terminal_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Terminal Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "budget": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "budget_usage": {
+      "$ref": "#/$defs/CodexImageGenerationBudgetUsage"
+    },
+    "plan_item_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Plan Item Id"
+    },
+    "runtime_trigger": {
+      "anyOf": [
+        {
+          "enum": [
+            "assignment_capacity_rejected",
+            "controller_timeout",
+            "controller_failed",
+            "controller_rejected",
+            "controller_cancelled"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Runtime Trigger"
+    },
+    "status": {
+      "enum": [
+        "adopted",
+        "local_procedural_fallback",
+        "review_required",
+        "user_image_required",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "assignment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "controller_request": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "controller_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "completion": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "adoption": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "maxItems": 3,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "quality_reports": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "maxItems": 3,
+      "title": "Quality Reports",
+      "type": "array"
+    },
+    "reason": {
+      "maxLength": 1024,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "codex_controller_required": {
+      "const": true,
+      "default": true,
+      "title": "Codex Controller Required",
+      "type": "boolean"
+    },
+    "autonomous_daemon": {
+      "const": false,
+      "default": false,
+      "title": "Autonomous Daemon",
+      "type": "boolean"
+    },
+    "continuation_after_app_exit": {
+      "const": false,
+      "default": false,
+      "title": "Continuation After App Exit",
+      "type": "boolean"
+    },
+    "canonical_unchanged_by_provider": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged By Provider",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "terminal_id",
+    "plan",
+    "budget",
+    "budget_usage",
+    "status",
+    "reason"
+  ],
+  "title": "CodexImageGenerationTerminal",
+  "type": "object"
+}

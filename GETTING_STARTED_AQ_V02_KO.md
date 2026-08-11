@@ -47,6 +47,7 @@ engine-specific project write는 이 profile의 권한 밖이다. 단일 이미�
 6. `DELIVERY_PROFILES_KO.md` — review/GLB/FBX 전달과 V0.7 승인
 7. `MIGRATION_AQ_V02_KO.md` — 명시적 plan/apply, no auto migration
 8. `VERIFICATION_AQ_V02_KO.md` — 실제 실행 결과와 남은 미검증 항목
+9. `GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md` — 선택적 built-in ImageGen companion
 
 ## 4. 공개 상태 확인
 
@@ -246,6 +247,41 @@ cancelled session을 resume하거나 기존 evidence를 새 profile로 재분류
 재검증은 predecessor hash에서 끝나지 않는다. initial state부터 각 transition의 input/source,
 producer, provenance delta와 budget이 단조롭게 이어지는지 재구성한다. phase state를 끼워 넣거나
 provenance를 교체하거나 budget을 되돌린 chain은 조회와 실행 모두에서 거부된다.
+
+## 9A. 선택적 Codex Built-in ImageGen overlay
+
+`autonomous_static_prop_v2_codex_imagegen`은 기본 AQ v2 실행 모드가 아니라 별도
+`disabled_experimental` companion이다. 기존 `autonomous_static_prop_v2`의 local-only 의미와
+state를 수정하지 않고, geometry promotion 뒤 material-authoring 시작점에서만 sibling overlay를
+사용한다.
+
+계획에는 두 개의 명시적 opt-in이 모두 필요하다.
+
+```text
+codex_imagegen_allowed=true
+allow_disabled_experimental=true
+```
+
+overlay는 현재 Codex task가 읽을 exact assignment와 ControllerExecutionRequest를 게시한다.
+repository가 `OPENAI_API_KEY`, OpenAI SDK나 HTTP image provider를 사용하거나 새 Codex task를
+만들지는 않는다. 앱이 닫히면 `waiting_for_controller`에서 멈추며, 재개는 같은
+assignment/request/workspace와 protected source inventory를 다시 검사하는 동작이다.
+
+직접 generated role은 `base_color`, `decal_rgb`, `emission`, `opacity_source`로 제한된다.
+normal/roughness/metallic/height/AO는 selected source에 결속된 local deterministic MaterialAuthoring
+`0.2.1` 처리로만 만든다. exact signage text도 provider prompt에서 제외하고 project-local font로
+합성한다.
+
+local raster quality는 dimension/detail/alpha/border/seam/emission을 검사하지만 unwanted
+object/text와 style/background semantics는 non-hard `unscorable`이다. fake controller success를 실제
+built-in ImageGen 실행이나 human review로 해석하지 않는다. 전체 workflow와 한계는
+`GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md`와
+`VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md`를 따른다.
+
+현재 ImageGen companion은 MaterialAuthoring `0.2.1` staging receipt 뒤 overlay
+`status=adopted`, `next_action=controller_promotion_required`에서 멈춘다. actual
+`MaterialPhaseReceiptV2`와 companion adoption/receipt의 exact controller-input binding은 아직
+없으므로 base AQ 자동 재개, canonical material promotion, IQ와 package 완료를 주장하지 않는다.
 
 ## 10. 안전한 기본 선택
 

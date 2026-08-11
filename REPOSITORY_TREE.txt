@@ -23,6 +23,7 @@ BlenderAssetGenerator/
   AGENTS.md
   ARCHITECTURE_AQ_V02_KO.md
   ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md
+  ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md
   ARCHITECTURE_V04_KO.md
   ARCHITECTURE_V06_KO.md
   ARCHITECTURE_V07_KO.md
@@ -37,6 +38,7 @@ BlenderAssetGenerator/
   GETTING_STARTED_AQ_V02_KO.md
   GETTING_STARTED_AUTONOMOUS_KO.md
   GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md
+  GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md
   GETTING_STARTED_KO.md
   GETTING_STARTED_V04_KO.md
   GETTING_STARTED_V06_KO.md
@@ -47,6 +49,7 @@ BlenderAssetGenerator/
   MATERIAL_AUTHORING_KO.md
   MIGRATION_AQ_V02_KO.md
   MIGRATION_AUTONOMOUS_QUALITY_KO.md
+  MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md
   MIGRATION_V2_KO.md
   Makefile
   NEW_REFERENCE_VALIDATION_PROMPTS_KO.md
@@ -57,6 +60,7 @@ BlenderAssetGenerator/
   SURFACE_DETAIL_ROUTING_KO.md
   TEST_PLAN_AQ_V02_KO.md
   TEST_PLAN_AUTONOMOUS_QUALITY_KO.md
+  TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md
   TEST_PLAN_V04_KO.md
   TEST_PLAN_V06_KO.md
   TEST_PLAN_V07_KO.md
@@ -66,6 +70,7 @@ BlenderAssetGenerator/
   V074_PRE_OPTIMIZATION_REVIEW_KO.md
   VERIFICATION_AQ_V02_KO.md
   VERIFICATION_AUTONOMOUS_QUALITY_KO.md
+  VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md
   VERIFICATION_KO.md
   VERIFICATION_V06_KO.md
   VERIFICATION_V073_KO.md
@@ -151,6 +156,7 @@ BlenderAssetGenerator/
   schemas/autonomy_benchmark_v02_manifest.schema.json
   schemas/autonomy_benchmark_v02_report.schema.json
   schemas/autonomy_budget.schema.json
+  schemas/autonomy_codex_image_overlay.schema.json
   schemas/autonomy_controller_binding.schema.json
   schemas/autonomy_iteration_receipt.schema.json
   schemas/autonomy_plan.schema.json
@@ -193,6 +199,16 @@ BlenderAssetGenerator/
   schemas/candidate_review_decision.schema.json
   schemas/candidate_review_promotion_receipt.schema.json
   schemas/candidate_review_report_manifest.schema.json
+  schemas/codex_builtin_image_provider_profile.schema.json
+  schemas/codex_generated_image_evidence.schema.json
+  schemas/codex_image_generation_assignment.schema.json
+  schemas/codex_image_generation_budget.schema.json
+  schemas/codex_image_generation_candidate.schema.json
+  schemas/codex_image_generation_completion.schema.json
+  schemas/codex_image_generation_plan.schema.json
+  schemas/codex_image_generation_quality_report.schema.json
+  schemas/codex_image_generation_selection.schema.json
+  schemas/codex_image_generation_terminal.schema.json
   schemas/codex_task_binding.schema.json
   schemas/codex_task_binding_receipt.schema.json
   schemas/codex_task_launch_manifest.schema.json
@@ -215,6 +231,7 @@ BlenderAssetGenerator/
   schemas/destination_import_receipt.schema.json
   schemas/destination_import_validation.schema.json
   schemas/environment_probe.schema.json
+  schemas/exact_signage_text_evidence_v021.schema.json
   schemas/export_package_manifest.schema.json
   schemas/external_asset_intake_approval.schema.json
   schemas/external_asset_intake_plan.schema.json
@@ -229,6 +246,7 @@ BlenderAssetGenerator/
   schemas/host_attempt_intent.schema.json
   schemas/host_failure_terminal_receipt.schema.json
   schemas/human_report_manifest.schema.json
+  schemas/image_to_material_adoption.schema.json
   schemas/import_checklist.schema.json
   schemas/integrated_quality_report.schema.json
   schemas/integrated_quality_report_manifest.schema.json
@@ -249,6 +267,9 @@ BlenderAssetGenerator/
   schemas/interior_scope_validation.schema.json
   schemas/local_workflow_queue.schema.json
   schemas/lod_manifest.schema.json
+  schemas/material_authoring_codex_image_manifest_v021.schema.json
+  schemas/material_authoring_codex_image_receipt_v021.schema.json
+  schemas/material_authoring_codex_image_request_v021.schema.json
   schemas/material_authoring_receipt.schema.json
   schemas/material_authoring_request.schema.json
   schemas/material_candidate_assignment.schema.json
@@ -431,6 +452,9 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/__init__.py
   src/codex_blender_modeler/autonomy_v2/candidate_validation_models.py
   src/codex_blender_modeler/autonomy_v2/candidate_validation_service.py
+  src/codex_blender_modeler/autonomy_v2/codex_image_overlay.py
+  src/codex_blender_modeler/autonomy_v2/codex_image_phase_service.py
+  src/codex_blender_modeler/autonomy_v2/codex_image_planner.py
   src/codex_blender_modeler/autonomy_v2/controller_bridge.py
   src/codex_blender_modeler/autonomy_v2/delivery_executor.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
@@ -502,6 +526,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/prepare_optimized_asset.py
   src/codex_blender_modeler/blender_scripts/probe_autonomous_quality.py
   src/codex_blender_modeler/blender_scripts/probe_autonomous_quality_v02.py
+  src/codex_blender_modeler/blender_scripts/probe_codex_image_material_v021.py
   src/codex_blender_modeler/blender_scripts/probe_compat.py
   src/codex_blender_modeler/blender_scripts/probe_geometry_delivery_v02.py
   src/codex_blender_modeler/blender_scripts/probe_material_authoring_v02.py
@@ -524,6 +549,23 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/validate_scene.py
   src/codex_blender_modeler/build_provenance.py
   src/codex_blender_modeler/cli.py
+  src/codex_blender_modeler/codex_imagegen/AGENTS.md
+  src/codex_blender_modeler/codex_imagegen/__init__.py
+  src/codex_blender_modeler/codex_imagegen/adoption.py
+  src/codex_blender_modeler/codex_imagegen/artifacts.py
+  src/codex_blender_modeler/codex_imagegen/assignment.py
+  src/codex_blender_modeler/codex_imagegen/budget.py
+  src/codex_blender_modeler/codex_imagegen/command_service.py
+  src/codex_blender_modeler/codex_imagegen/completion.py
+  src/codex_blender_modeler/codex_imagegen/controller_bridge.py
+  src/codex_blender_modeler/codex_imagegen/fake_controller_backend.py
+  src/codex_blender_modeler/codex_imagegen/models.py
+  src/codex_blender_modeler/codex_imagegen/planning.py
+  src/codex_blender_modeler/codex_imagegen/profile.py
+  src/codex_blender_modeler/codex_imagegen/public_service.py
+  src/codex_blender_modeler/codex_imagegen/quality.py
+  src/codex_blender_modeler/codex_imagegen/reporting.py
+  src/codex_blender_modeler/codex_imagegen/selection.py
   src/codex_blender_modeler/codex_runner.py
   src/codex_blender_modeler/config.py
   src/codex_blender_modeler/constraints/__init__.py
@@ -567,6 +609,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/interior_qa/models.py
   src/codex_blender_modeler/interior_qa/service.py
   src/codex_blender_modeler/material_authoring/__init__.py
+  src/codex_blender_modeler/material_authoring/codex_image_adapter.py
+  src/codex_blender_modeler/material_authoring/codex_image_models.py
   src/codex_blender_modeler/material_authoring/models.py
   src/codex_blender_modeler/material_authoring/service.py
   src/codex_blender_modeler/material_graph/AGENTS.md
@@ -728,6 +772,9 @@ BlenderAssetGenerator/
   tests/test_autonomy_terminal_verifier_aq.py
   tests/test_autonomy_v2_candidate_validation.py
   tests/test_autonomy_v2_candidate_validation_blender.py
+  tests/test_autonomy_v2_codex_image_overlay.py
+  tests/test_autonomy_v2_codex_image_phase_service.py
+  tests/test_autonomy_v2_codex_image_planner.py
   tests/test_autonomy_v2_contracts.py
   tests/test_autonomy_v2_controller_bridge.py
   tests/test_autonomy_v2_delivery_executor.py
@@ -749,6 +796,11 @@ BlenderAssetGenerator/
   tests/test_candidate_review.py
   tests/test_canonical_scene_spec_writes.py
   tests/test_ci_workflows.py
+  tests/test_codex_image_material_authoring_v021.py
+  tests/test_codex_imagegen_core.py
+  tests/test_codex_imagegen_public_surface.py
+  tests/test_codex_imagegen_schemas.py
+  tests/test_codex_imagegen_security.py
   tests/test_constraints.py
   tests/test_controller_executor_v02.py
   tests/test_external_static_asset_intake.py

@@ -48,12 +48,22 @@ from .autonomy_v2 import (
     plan_autonomous_static_prop_v2,
     run_autonomy_v2,
 )
+from .autonomy_v2.codex_image_planner import (
+    plan_autonomous_static_prop_v2_codex_imagegen,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
     render_job_material_swatches,
 )
 from .blender_runner import run_blender
+from .codex_imagegen.command_service import (
+    adopt_codex_imagegen_material_phase,
+    get_codex_imagegen_public_status,
+    prepare_codex_imagegen_material_adoption,
+    run_codex_imagegen_controller_phase,
+    select_codex_imagegen_phase,
+)
 from .codex_runner import run_codex_json
 from .config import executable_exists, get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
@@ -237,6 +247,26 @@ def _parse_convergence_path_limits(
                 f"--path-limit-json item {index} is not a valid strict ConvergencePathLimit: {exc}"
             ) from exc
     return parsed
+
+
+def _parse_required_csv(value: str, *, option_name: str) -> list[str]:
+    """Split one comma-separated CLI option and reject an empty identifier set."""
+
+    parsed = [item.strip() for item in value.split(",") if item.strip()]
+    if not parsed:
+        raise typer.BadParameter(f"{option_name} must contain at least one value")
+    return parsed
+
+
+def _read_optional_prompt_file(path: Path | None) -> str | None:
+    """Read an optional local prompt file without echoing its contents to CLI output."""
+
+    if path is None:
+        return None
+    prompt = path.read_text(encoding="utf-8").strip()
+    if not prompt:
+        raise typer.BadParameter("prompt-file must contain non-empty UTF-8 text")
+    return prompt
 
 
 @app.command()
@@ -1801,6 +1831,245 @@ def autonomy_v2_delivery_profiles_command() -> None:
     """List exact review, GLB, and FBX delivery mappings for AQ v2."""
 
     console.print_json(json.dumps(delivery_profile_catalog(), ensure_ascii=False))
+
+
+@app.command("codex-imagegen-status")
+def codex_imagegen_status_command(
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    session_id: Annotated[str | None, typer.Option("--session-id")] = None,
+) -> None:
+    """Report static capability or one persisted ImageGen overlay without prompts."""
+
+    console.print_json(
+        json.dumps(
+            get_codex_imagegen_public_status(
+                job_id=job_id,
+                session_id=session_id,
+            ),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("codex-imagegen-plan")
+def codex_imagegen_plan_command(
+    request: str,
+    reference_path: Annotated[str, typer.Option("--reference")],
+    target_subject: Annotated[str, typer.Option("--target-subject")],
+    target_material_ids: Annotated[str, typer.Option("--target-material-ids")],
+    semantic_roles: Annotated[str, typer.Option("--semantic-roles")],
+    prompt_template_id: Annotated[str, typer.Option("--prompt-template-id")],
+    deliveries: Annotated[
+        str,
+        typer.Option(
+            "--deliveries",
+            help="Comma-separated: review_only,portable_gltf,portable_fbx",
+        ),
+    ] = "portable_gltf",
+    allowed_output_roles: Annotated[
+        str,
+        typer.Option(
+            "--output-roles",
+            help="Comma-separated: base_color,decal_rgb,emission,opacity_source",
+        ),
+    ] = "base_color",
+    generation_intent: Annotated[
+        str,
+        typer.Option("--generation-intent"),
+    ] = "generated_surface_swatch_v1",
+    requested_candidate_count: Annotated[
+        int,
+        typer.Option("--candidate-count", min=1, max=3),
+    ] = 1,
+    quality_level: Annotated[str, typer.Option("--quality-level")] = "low",
+    image_width: Annotated[int, typer.Option("--image-width", min=64, max=2048)] = 1024,
+    image_height: Annotated[int, typer.Option("--image-height", min=64, max=2048)] = 1024,
+    aspect_ratio: Annotated[str, typer.Option("--aspect-ratio")] = "square",
+    fallback: Annotated[str, typer.Option("--fallback")] = "local_procedural_fallback",
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    controller_execution_mode: Annotated[
+        str,
+        typer.Option("--controller-mode"),
+    ] = "desktop_in_session",
+    destination_hint: Annotated[
+        str,
+        typer.Option("--destination-hint"),
+    ] = "engine_neutral",
+    enable_v2: Annotated[
+        bool,
+        typer.Option(
+            "--enable-v2/--disable-v2",
+            help="Explicitly opt in to the AQ v2 Codex ImageGen overlay.",
+        ),
+    ] = False,
+    allow_disabled_experimental: Annotated[
+        bool,
+        typer.Option(
+            "--allow-disabled-experimental/--deny-disabled-experimental",
+            help="Explicitly permit planning while the companion profile is disabled.",
+        ),
+    ] = False,
+) -> None:
+    """Plan the disabled ImageGen overlay only after both explicit opt-ins."""
+
+    result = plan_autonomous_static_prop_v2_codex_imagegen(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=_parse_required_csv(
+            deliveries,
+            option_name="deliveries",
+        ),  # type: ignore[arg-type]
+        target_material_ids=_parse_required_csv(
+            target_material_ids,
+            option_name="target-material-ids",
+        ),
+        semantic_roles=_parse_required_csv(
+            semantic_roles,
+            option_name="semantic-roles",
+        ),
+        allowed_output_roles=_parse_required_csv(
+            allowed_output_roles,
+            option_name="output-roles",
+        ),  # type: ignore[arg-type]
+        generation_intent=generation_intent,  # type: ignore[arg-type]
+        prompt_template_id=prompt_template_id,
+        requested_candidate_count=requested_candidate_count,
+        quality_level=quality_level,  # type: ignore[arg-type]
+        image_width=image_width,
+        image_height=image_height,
+        aspect_ratio=aspect_ratio,  # type: ignore[arg-type]
+        fallback=fallback,
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        codex_imagegen_allowed=enable_v2,
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-run")
+def codex_imagegen_run_command(
+    job_id: str,
+    session_id: str,
+    prompt_file: Annotated[
+        Path | None,
+        typer.Option(
+            "--prompt-file",
+            help="UTF-8 prompt file required only when publishing a new assignment.",
+        ),
+    ] = None,
+    plan_item_id: Annotated[
+        str | None,
+        typer.Option("--plan-item-id"),
+    ] = None,
+    exact_text_value: Annotated[
+        str | None,
+        typer.Option(
+            "--exact-text-value",
+            help="Local-composition text guard; never a request for generated text.",
+        ),
+    ] = None,
+    timeout_seconds: Annotated[
+        int,
+        typer.Option("--timeout-seconds", min=1, max=900),
+    ] = 900,
+) -> None:
+    """Publish or resume one waiting desktop assignment without invoking ImageGen."""
+
+    result = run_codex_imagegen_controller_phase(
+        job_id=job_id,
+        session_id=session_id,
+        rendered_prompt_text=_read_optional_prompt_file(prompt_file),
+        plan_item_id=plan_item_id,
+        exact_text_value=exact_text_value,
+        timeout_seconds=timeout_seconds,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-select")
+def codex_imagegen_select_command(job_id: str, session_id: str) -> None:
+    """Evaluate staged candidates locally and select at most one exact candidate."""
+
+    console.print_json(
+        json.dumps(
+            select_codex_imagegen_phase(job_id=job_id, session_id=session_id),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("codex-imagegen-adopt")
+def codex_imagegen_adopt_command(
+    job_id: str,
+    session_id: str,
+    material_request: Annotated[
+        Path | None,
+        typer.Option(
+            "--material-request",
+            help="Contained MaterialAuthoring 0.2.1 request used only to finalize staging.",
+        ),
+    ] = None,
+    material_strategy: Annotated[
+        str | None,
+        typer.Option(
+            "--material-strategy",
+            help="Optional strategy override used only while preparing adoption.",
+        ),
+    ] = None,
+    direct_channels: Annotated[
+        str | None,
+        typer.Option(
+            "--direct-channels",
+            help="Optional comma-separated direct channels used only while preparing adoption.",
+        ),
+    ] = None,
+    exact_text_evidence: Annotated[
+        Path | None,
+        typer.Option(
+            "--exact-text-evidence",
+            help=(
+                "Contained ExactSignageTextEvidence 0.2.1 JSON used only while "
+                "preparing adoption."
+            ),
+        ),
+    ] = None,
+) -> None:
+    """Prepare an adoption contract or finalize one strict local material request."""
+
+    if material_request is not None:
+        if (
+            material_strategy is not None
+            or direct_channels is not None
+            or exact_text_evidence is not None
+        ):
+            raise typer.BadParameter(
+                "material-strategy, direct-channels, and exact-text-evidence "
+                "are prepare-only options"
+            )
+        result = adopt_codex_imagegen_material_phase(
+            job_id=job_id,
+            session_id=session_id,
+            material_request_path=material_request,
+        )
+    else:
+        result = prepare_codex_imagegen_material_adoption(
+            job_id=job_id,
+            session_id=session_id,
+            material_strategy=material_strategy,
+            direct_channels=(
+                None
+                if direct_channels is None
+                else _parse_required_csv(
+                    direct_channels,
+                    option_name="direct-channels",
+                )
+            ),
+            exact_text_evidence_path=exact_text_evidence,
+        )
+    console.print_json(json.dumps(result, ensure_ascii=False))
 
 
 @app.command("autonomy-v2-plan")

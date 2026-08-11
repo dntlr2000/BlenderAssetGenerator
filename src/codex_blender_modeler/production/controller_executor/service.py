@@ -615,6 +615,21 @@ def _protected_job_inventory(
             )
         )
         host_runtime_paths = (*host_runtime_paths, *session_runtime_paths)
+        if session_root.name == "codex_imagegen":
+            # The additive ImageGen overlay appends host states under its own
+            # lock; those paths are lifecycle evidence, never controller output.
+            imagegen_overlay_runtime = tuple(
+                ensure_contained_production_path(root, path, must_exist=False)
+                for path in (
+                    session_root / "overlay" / "states",
+                    session_root / "overlay" / "autonomy.lock",
+                    session_root / "overlay" / ".autonomy.lock.guard",
+                    # This exact host terminal may be published after invocation and
+                    # before crash-replayed overlay state adoption.
+                    session_root / "terminal.json",
+                )
+            )
+            host_runtime_paths = (*host_runtime_paths, *imagegen_overlay_runtime)
     return _job_inventory_excluding(
         root,
         (

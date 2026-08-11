@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased — Codex Built-in ImageGen Texture Provider 0.1.0
+
+- Added the separate `autonomous_static_prop_v2_codex_imagegen` profile as an explicit
+  `disabled_experimental` companion over unchanged AQ v2 local-only behavior. Planning requires both
+  ImageGen opt-in and disabled-profile opt-in; loading or auditing an existing session never enables
+  it implicitly.
+- Added strict `0.1.0` provider, budget, plan, assignment, completion, candidate, generated-image,
+  quality, selection, and terminal evidence; `ImageToMaterialAdoption 0.2.0`; and an append-only AQ v2
+  ImageGen overlay state chain. Exact paths, SHA-256, identity, provenance, protected job inventory,
+  budget, and predecessor bindings fail closed.
+- Added a dedicated ControllerExecutor `codex_imagegen` phase for the current Codex task. It uses an
+  execution-owned workspace, exact input snapshots and declared PNG/completion outputs, then replays
+  the full request/result and receipt lifecycle before adoption. The repository does not create a
+  Codex task or daemon; app exit leaves the same request waiting for an exact resume.
+- Kept the provider credential-free and API-free: no `OPENAI_API_KEY`, OpenAI SDK image client,
+  external HTTP provider, endpoint, or API billing contract is added. Built-in ImageGen remains a
+  Codex-managed controller capability, distinct from repository MCP/network authority.
+- Restricted generated pixels to direct `base_color`, `decal_rgb`, `emission`, or `opacity_source`
+  roles. Added MaterialAuthoring `0.2.1` staging-only requests/manifests/receipts that perform bounded
+  local lighting normalization and source-bound height, OpenGL normal, roughness, optional occlusion,
+  and constant-channel derivation instead of accepting pseudo-PBR maps from ImageGen.
+- Added exact local signage composition using a separate `ExactSignageTextEvidenceV021` artifact and
+  hash-bound project bitmap-font JSON or TTF/OTF evidence. Exact user text is excluded from provider
+  prompts; unknown or inferred text cannot carry or render invented glyphs.
+- Added deterministic PNG dimension/detail/alpha/border/seam/emission checks, wood anisotropy advisory,
+  preserved candidate decisions, and single selection. Semantic unwanted object/text and style or
+  background alignment remain explicitly non-hard `unscorable`; deterministic pass does not claim
+  human review.
+- Added a deterministic fake controller for contract, negative, recovery, material, and Blender
+  fixtures while keeping fake and actual built-in ImageGen controller/source kinds distinct.
+- Bound capacity rejection and final controller timeout/failure/rejection/cancellation to one immutable
+  terminal carrying the exact plan item, runtime trigger, controller request, and controller result.
+  Waiting remains resumable; terminal-write crash recovery reuses canonical bytes and rejects tamper
+  without spending generation budget or invoking the controller again.
+- Added `codex-imagegen-status`, `plan`, `run`, `select`, and `adopt` CLI surfaces with equivalent
+  MCP tools. `run` only publishes or resumes the controller request; two-mode `adopt` first prepares
+  staging adoption and then accepts one contained MaterialAuthoring `0.2.1` request. The final public
+  boundary is overlay `status=adopted`, `next_action=controller_promotion_required`; it does not resume
+  base AQ or claim canonical promotion.
+- Kept full material promotion, IQ, and package continuation disabled until an actual
+  `MaterialPhaseReceiptV2` and exact controller-input binding for the companion adoption/receipt are
+  implemented and verified.
+- Added architecture, getting-started, test-plan, migration, verification, material-authoring, AQ v2,
+  ControllerExecutor, README, and roadmap documentation. Exact executed results remain in
+  `VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md` and do not activate the experimental profile by prose.
+
 ## Unreleased — Autonomous Quality Extension 0.2.0
 
 - Added `autonomous_static_prop_v2` as an additive `0.2.0` overlay without changing project
@@ -37,9 +83,9 @@
 - Added selected Blender 5 structural/material fixtures and a synthetic same-freeze dual-delivery
   fixture that performs independent GLB and FBX optimization, package, and clean-import checks.
   These fixtures do not establish generalized human reference quality or destination-runtime parity.
-- Verified the latest shared tree with full pytest `1350 passed, 39 skipped, 8 warnings`; the AQ
-  focused gate reported `397 passed, 17 skipped, 8 warnings`; the actual Blender AQ gate reported
-  `30 passed, 6 warnings`; and the V0.7, V0.8, and V0.9 regression gates passed. The Codex App Server or
+- Verified the latest shared tree with full pytest `1438 passed, 44 skipped, 8 warnings`; the AQ
+  focused gate reported `485 passed, 22 skipped, 8 warnings`; the actual Blender AQ gate reported
+  `34 passed, 6 warnings`; and the V0.7, V0.8, and V0.9 regression gates passed. The Codex App Server or
   supporting-client closed loop, human reference-quality review, and Unity/Unreal/custom runtime
   parity remain unverified, so `autonomous_static_prop_v2` stays `disabled_experimental`.
 - Added the AQ 0.2 architecture, getting-started, test-plan, migration, verification,

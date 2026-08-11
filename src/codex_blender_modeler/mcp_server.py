@@ -58,12 +58,30 @@ from .autonomy_v2 import (
     plan_autonomous_static_prop_v2 as plan_autonomous_static_prop_v2_internal,
 )
 from .autonomy_v2 import run_autonomy_v2 as run_autonomy_v2_internal
+from .autonomy_v2.codex_image_planner import (
+    plan_autonomous_static_prop_v2_codex_imagegen as plan_codex_imagegen_internal,
+)
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
     render_job_material_swatches,
 )
 from .blender_runner import run_blender
+from .codex_imagegen.command_service import (
+    adopt_codex_imagegen_material_phase as adopt_codex_imagegen_internal,
+)
+from .codex_imagegen.command_service import (
+    get_codex_imagegen_public_status as get_codex_imagegen_status_internal,
+)
+from .codex_imagegen.command_service import (
+    prepare_codex_imagegen_material_adoption as prepare_codex_imagegen_adoption_internal,
+)
+from .codex_imagegen.command_service import (
+    run_codex_imagegen_controller_phase as run_codex_imagegen_internal,
+)
+from .codex_imagegen.command_service import (
+    select_codex_imagegen_phase as select_codex_imagegen_internal,
+)
 from .config import get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
 from .external_intake import (
@@ -754,6 +772,135 @@ def list_autonomy_v2_delivery_profiles() -> list[dict]:
     """List review-only, direct GLB, and direct FBX delivery mappings."""
 
     return delivery_profile_catalog_internal()
+
+
+@mcp.tool()
+def get_codex_imagegen_status(
+    job_id: str | None = None,
+    session_id: str | None = None,
+) -> dict:
+    """Report static capability or one persisted overlay without exposing prompts."""
+
+    return get_codex_imagegen_status_internal(
+        job_id=job_id,
+        session_id=session_id,
+    )
+
+
+@mcp.tool()
+def plan_codex_imagegen(
+    request: str,
+    reference_path: str,
+    target_subject: str,
+    requested_delivery_profiles: list[str],
+    target_material_ids: list[str],
+    semantic_roles: list[str],
+    allowed_output_roles: list[str],
+    generation_intent: str,
+    prompt_template_id: str,
+    requested_candidate_count: int = 1,
+    quality_level: str = "low",
+    image_width: int = 1024,
+    image_height: int = 1024,
+    aspect_ratio: str = "square",
+    fallback: str = "local_procedural_fallback",
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    destination_hint: str = "engine_neutral",
+    enable_v2: bool = False,
+    allow_disabled_experimental: bool = False,
+) -> dict:
+    """Plan the disabled companion only after two explicit false-by-default opt-ins."""
+
+    return plan_codex_imagegen_internal(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=requested_delivery_profiles,  # type: ignore[arg-type]
+        target_material_ids=target_material_ids,
+        semantic_roles=semantic_roles,
+        allowed_output_roles=allowed_output_roles,  # type: ignore[arg-type]
+        generation_intent=generation_intent,  # type: ignore[arg-type]
+        prompt_template_id=prompt_template_id,
+        requested_candidate_count=requested_candidate_count,
+        quality_level=quality_level,  # type: ignore[arg-type]
+        image_width=image_width,
+        image_height=image_height,
+        aspect_ratio=aspect_ratio,  # type: ignore[arg-type]
+        fallback=fallback,
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        codex_imagegen_allowed=enable_v2,
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
+
+
+@mcp.tool()
+def run_codex_imagegen(
+    job_id: str,
+    session_id: str,
+    rendered_prompt_text: str | None = None,
+    plan_item_id: str | None = None,
+    exact_text_value: str | None = None,
+    timeout_seconds: int = 900,
+) -> dict:
+    """Publish or resume one desktop assignment without calling an image service."""
+
+    return run_codex_imagegen_internal(
+        job_id=job_id,
+        session_id=session_id,
+        rendered_prompt_text=rendered_prompt_text,
+        plan_item_id=plan_item_id,
+        exact_text_value=exact_text_value,
+        timeout_seconds=timeout_seconds,
+    )
+
+
+@mcp.tool()
+def select_codex_imagegen(job_id: str, session_id: str) -> dict:
+    """Evaluate staged image evidence locally and select at most one candidate."""
+
+    return select_codex_imagegen_internal(job_id=job_id, session_id=session_id)
+
+
+@mcp.tool()
+def adopt_codex_imagegen(
+    job_id: str,
+    session_id: str,
+    material_request_path: str | None = None,
+    material_strategy: str | None = None,
+    direct_channels: list[str] | None = None,
+    exact_text_evidence_path: str | None = None,
+) -> dict:
+    """Prepare adoption or finalize one contained local-authoring request, never both."""
+
+    if material_request_path is not None:
+        if (
+            material_strategy is not None
+            or direct_channels is not None
+            or exact_text_evidence_path is not None
+        ):
+            raise ValueError(
+                "material_strategy, direct_channels, and exact_text_evidence_path "
+                "are prepare-only inputs"
+            )
+        return adopt_codex_imagegen_internal(
+            job_id=job_id,
+            session_id=session_id,
+            material_request_path=Path(material_request_path),
+        )
+    return prepare_codex_imagegen_adoption_internal(
+        job_id=job_id,
+        session_id=session_id,
+        material_strategy=material_strategy,
+        direct_channels=direct_channels,
+        exact_text_evidence_path=(
+            None
+            if exact_text_evidence_path is None
+            else Path(exact_text_evidence_path)
+        ),
+    )
 
 
 @mcp.tool()

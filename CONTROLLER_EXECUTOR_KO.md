@@ -82,10 +82,13 @@ request는 assignment, immutable inputs, exact tool profile, output root, allowe
 | `delivery` | source freeze/delivery plan | production status/advance | supervisor가 소유한 기존 delivery 경계 |
 | `handoff_plan` | package/roundtrip/material loss | production status 조회 | destination write 없음 |
 | `admin_audit` | session/receipt chain | production status/workspace audit | audit evidence |
+| `codex_imagegen` | ImageGen assignment/plan/profile/budget/base state/reference | Codex built-in `imagegen` | exact PNG 후보와 completion JSON |
 
 phase allowlist, MCP server registry와 project-enabled `.codex/config.toml` allowlist는 서로 다른
-집합이다. controller profile의 tool은 project-enabled tool의 부분집합이어야 하지만, MCP server의
-모든 도구가 controller에 허용되는 것은 아니다.
+집합이다. 일반 controller profile의 MCP tool은 project-enabled tool의 부분집합이어야 하지만,
+MCP server의 모든 도구가 controller에 허용되는 것은 아니다. `codex_imagegen`의 `imagegen`은 현재
+Codex task에 내장된 controller capability이며 project MCP tool이 아니다. 따라서 repository catalog
+projection과 `.codex/config.toml`에 image API나 network tool을 추가하지 않는다.
 
 다음 authority tool은 phase profile에서 금지된다.
 
@@ -118,6 +121,39 @@ assignment/input/profile/output set을 exact rehash한 뒤 completed output만 �
 없으면 같은 waiting state를 반환하며 state sequence, action budget, controller invocation budget을
 증가시키지 않는다. waiting 사이에 canonical ModelingPlan/SceneSpec/blend, material contract 또는
 그 밖의 protected job-root source가 바뀌면 output 유무와 관계없이 stale/tamper로 거부한다.
+
+## 5A. Codex ImageGen 전용 흐름
+
+Codex Built-in ImageGen companion은 일반 geometry/material request와 별도 namespace를 사용한다.
+
+```text
+production/autonomy_v2/<session-id>/codex_imagegen/
+└─ controller_executions/codex-imagegen-<assignment-id>/
+   ├─ phase_tool_profile.json
+   ├─ request.json
+   ├─ result.json                 # waiting snapshot
+   ├─ adoption/result.json        # completed result
+   ├─ controller_workspace/
+   │  ├─ inputs/assignment/
+   │  ├─ inputs/immutable/
+   │  └─ outputs/<assignment-declared leaves>
+   └─ controller_executor_evidence/
+```
+
+전용 request의 immutable roles는 generation plan, provider profile, budget, current base AQ state와
+선택적 reference image다. output은 assignment가 고정한 `candidate-00.png`부터 최대 세 개의 PNG와
+`completion.json`뿐이다. phase profile의 sandbox attestation은
+`repository_path_validation_only`이므로 supporting client의 OS sandbox를 증명한다고 해석하지 않는다.
+
+첫 desktop invocation은 output이 없으면 waiting result를 게시한다. 현재 Codex task가 built-in
+`$imagegen` 결과를 request-owned output에 채운 뒤 동일 controller bridge를 다시 호출하면 executor가
+completed/published receipts와 exact result를 만든다. host overlay는 request와 result를 전체 replay한
+뒤에만 completion을 채택한다.
+
+Codex 앱 종료 뒤 자동 실행, repository task spawn, API key/SDK/HTTP fallback은 없다. resume은
+동일 request/workspace에 한정되고 protected job inventory가 달라지면 실패한다. fake controller는
+동일 protocol을 시험하지만 `fake_for_tests`/`deterministic_fake` evidence로 분리되어 실제 built-in
+실행으로 승격되지 않는다.
 
 ## 6. 출력 격리와 채택
 
@@ -212,6 +248,28 @@ rebuild를 거친 뒤 compare-and-swap promotion한다. controller completion만
 현재 공개 CLI/MCP는 v2 plan/status/advance/run/cancel과 controller capability status를 제공한다.
 `autonomy-v2-advance`는 한 action, `autonomy-v2-run`은 budget 안의 여러 action을 수행한다. 기존
 AQ v1의 `autonomy-run`은 별도 명령이다. v2 `run`에도 repository-side task-spawn command는 없다.
+
+Codex ImageGen companion의 공개 host surface도 assignment 게시, controller 대기/재개, completion
+adoption, quality/selection/material adoption을 조정할 뿐 built-in ImageGen을 repository process에서
+호출하지 않는다. 내장 tool invocation은 현재 Codex task의 단계이며 앱 종료 후 continuation이나
+external API fallback을 제공하지 않는다.
+
+현재 배선된 CLI는 `codex-imagegen-status`, `codex-imagegen-plan`, `codex-imagegen-run`,
+`codex-imagegen-select`, `codex-imagegen-adopt`다. MCP는 `get_codex_imagegen_status`,
+`plan_codex_imagegen`, `run_codex_imagegen`, `select_codex_imagegen`, `adopt_codex_imagegen`이다.
+`codex-imagegen-run`은 신규 assignment를 게시하거나 같은 request-owned workspace를 재검증할 뿐
+내장 ImageGen을 host에서 호출하지 않는다. `adopt`의 첫 호출은 exact selection에서 staging
+adoption contract만 준비하고, contained MaterialAuthoring `0.2.1` request를 받은 두 번째 호출이
+local receipt를 검증한 뒤 overlay `status=adopted`,
+`next_action=controller_promotion_required`에서 멈춘다. base material-authoring을 자동 재개하거나
+overlay `completed`를 만들지 않는다. actual `MaterialPhaseReceiptV2`와 companion
+adoption/receipt의 exact controller-input binding은 아직 배선되지 않았으며, 어느 호출도 canonical
+material을 직접 promotion하지 않는다.
+
+ImageGen의 final `timeout|failed|rejected|cancelled` 결과는 plan item, runtime trigger와 exact
+controller request/result를 가진 terminal로 닫힌다. ControllerExecutor protected inventory에서
+제외되는 것은 host가 strict 재구성하는 exact `codex_imagegen/terminal.json` 한 경로뿐이며,
+controller workspace나 다른 sibling 경로의 외부 쓰기는 계속 거부된다.
 
 따라서 ControllerExecutor와 supervisor 구현만으로 Desktop가 처음부터 output을 생산하는 완전 무인
 제작을 주장할 수 없다. 특히 다음은 계속 별도 caller/사용자/host 경계다.
