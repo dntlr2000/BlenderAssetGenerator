@@ -17,6 +17,14 @@ CODEX_IMAGEGEN_HOST_TESTS = (
     "tests/test_autonomy_v2_codex_image_phase_service.py",
     "tests/test_codex_image_material_authoring_v021.py",
     "tests/test_codex_imagegen_public_surface.py",
+    "tests/test_codex_image_material_loop_contracts.py",
+    "tests/test_codex_image_material_loop_normalization.py",
+    "tests/test_codex_image_material_loop_selection.py",
+    "tests/test_codex_image_material_loop_v05_adapter.py",
+    "tests/test_codex_image_material_preview_service.py",
+    "tests/test_codex_image_material_quality_service.py",
+    "tests/test_codex_image_material_loop_service.py",
+    "tests/test_codex_image_material_loop_public.py",
 )
 
 
@@ -104,6 +112,8 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE",
         "CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE",
         "CBM_RUN_CODEX_IMAGE_MATERIAL_BLENDER_SMOKE",
+        "CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE",
+        "CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E",
     }
     expected_nodes = {
         "tests/test_aq_v02_geometry_blender.py",
@@ -111,6 +121,8 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke",
         "tests/test_material_authoring_blender_v02.py::test_fixed_material_families_compile_reopen_and_render_in_blender_5",
         "tests/test_codex_image_material_authoring_v021.py::test_fake_core_adoption_compiles_in_blender_5",
+        "tests/test_codex_image_material_loop_blender.py",
+        "tests/test_codex_image_material_loop_delivery_blender.py",
     }
     for token in expected_env | expected_nodes:
         assert token in powershell

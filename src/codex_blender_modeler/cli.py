@@ -40,6 +40,10 @@ from .auto_revision.candidate_review_service import (
 from .autonomy.planner import plan_autonomous_static_prop
 from .autonomy.profiles import get_autonomy_profile_status
 from .autonomy_v2 import (
+    AQV2Artifact,
+    AutonomyBudgetV2,
+    AutonomyPlanV2,
+    AutonomyStateV2,
     advance_autonomy_v2,
     autonomy_v2_profile_status,
     cancel_autonomy_v2,
@@ -47,6 +51,21 @@ from .autonomy_v2 import (
     get_autonomy_v2_status,
     plan_autonomous_static_prop_v2,
     run_autonomy_v2,
+)
+from .autonomy_v2.codex_image_material_loop_service import (
+    ExactCodexImageMaterialAdoptionController,
+    execute_codex_image_material_loop_controller,
+    finalize_codex_image_material_loop_promotion,
+    get_codex_image_material_loop_status,
+    promote_codex_image_material_loop,
+    publish_codex_image_material_loop_bridge,
+    publish_codex_image_v05_exact_adoption_preflight,
+)
+from .autonomy_v2.codex_image_material_preview_service import (
+    render_promoted_codex_image_material_preview,
+)
+from .autonomy_v2.codex_image_material_quality_service import (
+    advance_codex_image_material_loop_quality,
 )
 from .autonomy_v2.codex_image_planner import (
     plan_autonomous_static_prop_v2_codex_imagegen,
@@ -56,14 +75,38 @@ from .blender_artifact_runner import (
     inspect_job_materials,
     render_job_material_swatches,
 )
+from .blender_artifacts import native_io_path
 from .blender_runner import run_blender
+from .codex_imagegen.artifacts import (
+    artifact_for_codex_image,
+    ensure_contained_codex_image_path,
+    load_codex_image_model,
+    write_immutable_codex_image_model,
+)
 from .codex_imagegen.command_service import (
     adopt_codex_imagegen_material_phase,
+    adopt_codex_imagegen_native_output_phase,
     get_codex_imagegen_public_status,
     prepare_codex_imagegen_material_adoption,
+    prepare_codex_imagegen_native_output_phase,
     run_codex_imagegen_controller_phase,
     select_codex_imagegen_phase,
 )
+from .codex_imagegen.material_loop_models import (
+    CodexImageSemanticReview,
+    ImageGeneratedMaterialBridgePlan,
+    ImageGenNativeNormalizationPlan,
+    ImageGenNativeNormalizationReceipt,
+    imagegen_native_normalization_receipt_path,
+)
+from .codex_imagegen.material_loop_normalization import (
+    execute_native_image_normalization,
+    validate_native_normalization_receipt,
+)
+from .codex_imagegen.material_loop_semantic import (
+    validate_codex_image_semantic_review,
+)
+from .codex_imagegen.models import CodexImageArtifact
 from .codex_runner import run_codex_json
 from .config import executable_exists, get_settings, load_feature_config
 from .constraints import evaluate_job_constraints, initialize_constraints
@@ -90,6 +133,7 @@ from .interior_qa import (
     plan_job_interior_qa,
     run_job_interior_qa,
 )
+from .material_authoring.codex_image_v05_bridge import CodexImageV05BridgeReceipt
 from .materials import (
     create_material_scaffold,
     load_material_plan,
@@ -129,7 +173,10 @@ from .production import (
     get_asset_production_dispatch_status,
     record_delegated_production_step,
 )
-from .production.controller_executor import controller_capability_catalog
+from .production.controller_executor import (
+    DesktopInSessionController,
+    controller_capability_catalog,
+)
 from .qa import (
     ExistingFileQATargetProvider,
     get_job_semantic_reference_mask_status,
@@ -267,6 +314,243 @@ def _read_optional_prompt_file(path: Path | None) -> str | None:
     if not prompt:
         raise typer.BadParameter("prompt-file must contain non-empty UTF-8 text")
     return prompt
+
+
+def _require_codex_image_material_loop_opt_in(
+    *,
+    enable_v2: bool,
+    enable_imagegen: bool,
+) -> None:
+    """Require both disabled-profile opt-ins before any material-loop mutation."""
+
+    if not enable_v2 or not enable_imagegen:
+        raise typer.BadParameter(
+            "both --enable-v2 and --enable-imagegen are required for this action"
+        )
+
+
+def _read_contained_json_model(
+    job_id: str,
+    path: Path,
+    model_type: type[ImageGeneratedMaterialBridgePlan]
+    | type[ImageGenNativeNormalizationPlan],
+) -> ImageGeneratedMaterialBridgePlan | ImageGenNativeNormalizationPlan:
+    """Strict-parse one job-contained JSON model without accepting linked paths."""
+
+    root = job_dir(job_id)
+    candidate = path if path.is_absolute() else root / path
+    safe = ensure_contained_codex_image_path(root, candidate, must_exist=True)
+    with open(native_io_path(safe), "rb") as handle:
+        model = model_type.model_validate_json(handle.read())
+    if model.job_id != job_id:
+        raise ValueError("material-loop JSON belongs to another job")
+    return model
+
+
+def _load_codex_image_material_promotion_inputs(
+    job_id: str,
+    session_id: str,
+) -> tuple[Path, AutonomyPlanV2, AutonomyBudgetV2, AutonomyStateV2, AQV2Artifact]:
+    """Load the current strict AQ bundle and recover its formal controller result."""
+
+    root = job_dir(job_id)
+    session_root = root / "production" / "autonomy_v2" / session_id
+    plan_path = ensure_contained_codex_image_path(
+        root,
+        session_root / "plan.json",
+        must_exist=True,
+    )
+    with open(native_io_path(plan_path), "rb") as handle:
+        plan = AutonomyPlanV2.model_validate_json(handle.read())
+    base_status = get_autonomy_v2_status(job_id, session_id)
+    budget = AutonomyBudgetV2.model_validate(base_status["budget"])
+    state = AutonomyStateV2.model_validate(base_status["state"])
+    if not state.provenance:
+        raise ValueError("AQ v2 state has no formal controller or material receipt tail")
+    result_artifact = state.provenance[-1]
+    if (
+        state.phase,
+        state.status,
+        state.next_action,
+    ) == ("quality", "running", "run_integrated_quality"):
+        from .autonomy_v2.material_phase_service import (
+            validate_material_phase_receipt_v2,
+        )
+
+        recovered = validate_material_phase_receipt_v2(
+            root,
+            result_artifact,
+            require_current=True,
+        )
+        result_artifact = recovered.controller_result
+    return root, plan, budget, state, result_artifact
+
+
+def _promote_and_finalize_codex_image_material(
+    job_id: str,
+    session_id: str,
+    *,
+    preview_size: int,
+) -> dict[str, object]:
+    """Use existing host authority, fixed preview, and companion finalization in order."""
+
+    root, plan, budget, state, result_artifact = (
+        _load_codex_image_material_promotion_inputs(job_id, session_id)
+    )
+    receipt, receipt_artifact = promote_codex_image_material_loop(
+        root,
+        plan=plan,
+        budget=budget,
+        state=state,
+        result_artifact=result_artifact,
+        allow_disabled_experimental=True,
+    )
+    receipt_path = ensure_contained_codex_image_path(
+        root,
+        root / receipt_artifact.path,
+        must_exist=True,
+    )
+    codex_receipt = artifact_for_codex_image(
+        root,
+        receipt_path,
+        artifact_id=receipt.contract_id,
+        kind="material-phase-receipt",
+        media_type="application/json",
+    )
+    loop_status = get_codex_image_material_loop_status(root, session_id)
+    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(
+        loop_status["bridge_plan"]
+    )
+    preview, preview_artifact = render_promoted_codex_image_material_preview(
+        root,
+        material_phase_receipt=codex_receipt,
+        preview_id=f"material-preview-{session_id}",
+        material_id=bridge_plan.target_material_ids[0],
+        size=preview_size,
+    )
+    finalized = finalize_codex_image_material_loop_promotion(
+        root,
+        material_phase_receipt_artifact=receipt_artifact,
+        neutral_preview_artifact=preview_artifact,
+    )
+    return {
+        "material_phase_receipt": receipt.model_dump(mode="json"),
+        "material_phase_receipt_artifact": receipt_artifact.model_dump(mode="json"),
+        "neutral_preview": preview.model_dump(mode="json"),
+        "neutral_preview_artifact": preview_artifact.model_dump(mode="json"),
+        **finalized,
+    }
+
+
+def _execute_codex_image_native_normalization(
+    job_id: str,
+    plan_path: Path,
+) -> dict[str, object]:
+    """Execute or adopt one deterministic derivative and immutable receipt."""
+
+    root = job_dir(job_id)
+    parsed = _read_contained_json_model(
+        job_id,
+        plan_path,
+        ImageGenNativeNormalizationPlan,
+    )
+    if not isinstance(parsed, ImageGenNativeNormalizationPlan):
+        raise TypeError("native normalization plan dispatch returned another model")
+    plan = parsed
+    candidate = plan_path if plan_path.is_absolute() else root / plan_path
+    safe_plan_path = ensure_contained_codex_image_path(root, candidate, must_exist=True)
+    plan_artifact = artifact_for_codex_image(
+        root,
+        safe_plan_path,
+        artifact_id=plan.contract_id,
+        kind="imagegen-native-normalization-plan",
+        media_type="application/json",
+    )
+    receipt_path = root / imagegen_native_normalization_receipt_path(
+        plan.session_id,
+        plan.contract_id,
+    )
+    if Path(native_io_path(receipt_path)).is_file():
+        receipt_artifact = artifact_for_codex_image(
+            root,
+            receipt_path,
+            artifact_id=f"{plan.contract_id}-receipt",
+            kind="imagegen-native-normalization-receipt",
+            media_type="application/json",
+        )
+        receipt = load_codex_image_model(
+            root,
+            receipt_artifact,
+            ImageGenNativeNormalizationReceipt,
+        )
+        validate_native_normalization_receipt(root, plan, receipt)
+        recovered = True
+    else:
+        receipt = execute_native_image_normalization(
+            root,
+            plan,
+            plan_artifact,
+            receipt_contract_id=f"{plan.contract_id}-receipt",
+        )
+        receipt_artifact = write_immutable_codex_image_model(
+            root,
+            receipt_path,
+            receipt,
+            kind="imagegen-native-normalization-receipt",
+        )
+        recovered = False
+    return {
+        "normalization_receipt": receipt.model_dump(mode="json"),
+        "normalization_receipt_artifact": receipt_artifact.model_dump(mode="json"),
+        "recovered": recovered,
+        "human_reviewed": False,
+    }
+
+
+def _codex_image_material_semantic_status(
+    job_id: str,
+    session_id: str,
+) -> dict[str, object]:
+    """Rehash and report the exact non-human semantic review bound by the bridge."""
+
+    root = job_dir(job_id)
+    loop_status = get_codex_image_material_loop_status(root, session_id)
+    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(
+        loop_status["bridge_plan"]
+    )
+    review = load_codex_image_model(
+        root,
+        bridge_plan.semantic_review,
+        CodexImageSemanticReview,
+    )
+    validate_codex_image_semantic_review(
+        root,
+        review,
+        expected_job_id=bridge_plan.job_id,
+        expected_workflow_id=bridge_plan.workflow_id,
+        expected_dispatch_id=bridge_plan.dispatch_id,
+        expected_candidate_id=bridge_plan.selected_candidate_id,
+        expected_session_id=session_id,
+    )
+    return {
+        "semantic_review": review.model_dump(mode="json"),
+        "outcome": review.outcome,
+        "current": True,
+        "human_reviewed": False,
+    }
+
+
+def _codex_image_material_promotion_artifact(
+    job_id: str,
+    session_id: str,
+) -> CodexImageArtifact:
+    """Extract the exact companion promotion artifact from the current loop state."""
+
+    status = get_codex_image_material_loop_status(job_dir(job_id), session_id)
+    state = status.get("state")
+    if not isinstance(state, dict) or state.get("promotion_receipt") is None:
+        raise ValueError("material-loop state has no finalized promotion receipt")
+    return CodexImageArtifact.model_validate(state["promotion_receipt"])
 
 
 @app.command()
@@ -2069,6 +2353,343 @@ def codex_imagegen_adopt_command(
             ),
             exact_text_evidence_path=exact_text_evidence,
         )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-material-bridge-plan")
+def codex_imagegen_material_bridge_plan_command(
+    job_id: str,
+    bridge_plan: Annotated[Path, typer.Option("--bridge-plan")],
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Publish one strict bridge plan without granting it canonical write authority."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    parsed = _read_contained_json_model(
+        job_id,
+        bridge_plan,
+        ImageGeneratedMaterialBridgePlan,
+    )
+    if not isinstance(parsed, ImageGeneratedMaterialBridgePlan):
+        raise TypeError("material bridge plan dispatch returned another model")
+    result = publish_codex_image_material_loop_bridge(
+        job_dir(job_id),
+        bridge_plan=parsed,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-material-exact-adoption-preflight")
+def codex_imagegen_material_exact_adoption_preflight_command(
+    job_id: str,
+    preflight_id: Annotated[str, typer.Option("--preflight-id")],
+    v05_bridge_receipt: Annotated[Path, typer.Option("--v05-bridge-receipt")],
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Run one actual Blender preflight without creating a ControllerResult or write."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    root = job_dir(job_id)
+    path = v05_bridge_receipt if v05_bridge_receipt.is_absolute() else root / v05_bridge_receipt
+    safe_path = ensure_contained_codex_image_path(root, path, must_exist=True)
+    v05_receipt = CodexImageV05BridgeReceipt.model_validate_json(
+        Path(native_io_path(safe_path)).read_bytes()
+    )
+    receipt_artifact = artifact_for_codex_image(
+        root,
+        safe_path,
+        artifact_id=v05_receipt.receipt_id,
+        kind="codex-image-v05-bridge-receipt",
+        media_type="application/json",
+    )
+    receipt, artifact = publish_codex_image_v05_exact_adoption_preflight(
+        root,
+        preflight_id=preflight_id,
+        v05_bridge_receipt_artifact=receipt_artifact,
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "preflight": receipt.model_dump(mode="json"),
+                "preflight_artifact": artifact.model_dump(mode="json"),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("codex-imagegen-material-bridge-status")
+def codex_imagegen_material_bridge_status_command(
+    job_id: str,
+    session_id: str,
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Report the exact companion and base AQ state without mutating either chain."""
+
+    material_loop = get_codex_image_material_loop_status(
+        job_dir(job_id),
+        session_id,
+    )
+    result = {
+        "profile_status": "disabled_experimental",
+        "current": material_loop["current"],
+        "stale": material_loop["stale"],
+        "unverified": material_loop["unverified"],
+        "opt_in": {
+            "enable_v2": enable_v2,
+            "enable_imagegen": enable_imagegen,
+        },
+        "material_loop": material_loop,
+        "base_aq": get_autonomy_v2_status(job_id, session_id),
+    }
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-material-bridge-run")
+def codex_imagegen_material_bridge_run_command(
+    job_id: str,
+    session_id: str,
+    timeout_seconds: Annotated[
+        int,
+        typer.Option("--timeout-seconds", min=1, max=900),
+    ] = 900,
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Run fixed exact adoption or resume only pre-staged desktop-authored outputs."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    status = get_codex_image_material_loop_status(job_dir(job_id), session_id)
+    controller_input = status.get("controller_input")
+    if not isinstance(controller_input, dict):
+        raise ValueError("material-loop status omitted its strict controller input")
+    execution_mode = controller_input.get("execution_mode")
+    if execution_mode == "exact_adoption":
+        controller = ExactCodexImageMaterialAdoptionController()
+    elif execution_mode == "controller_authored_completion":
+        controller = DesktopInSessionController()
+    else:
+        raise ValueError("material-loop controller input has an unknown execution mode")
+    result = execute_codex_image_material_loop_controller(
+        job_id,
+        session_id,
+        controller=controller,
+        timeout_seconds=timeout_seconds,
+        allow_disabled_experimental=True,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-material-promote")
+def codex_imagegen_material_promote_command(
+    job_id: str,
+    session_id: str,
+    preview_size: Annotated[
+        int,
+        typer.Option("--preview-size", min=64, max=2048),
+    ] = 512,
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Promote only through host authority, then bind one fixed neutral preview."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    result = _promote_and_finalize_codex_image_material(
+        job_id,
+        session_id,
+        preview_size=preview_size,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-material-resume")
+def codex_imagegen_material_resume_command(
+    job_id: str,
+    session_id: str,
+    preview_size: Annotated[
+        int,
+        typer.Option("--preview-size", min=64, max=2048),
+    ] = 512,
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Crash-resume the same idempotent host promotion and preview boundary."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    result = _promote_and_finalize_codex_image_material(
+        job_id,
+        session_id,
+        preview_size=preview_size,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-native-normalize")
+def codex_imagegen_native_normalize_command(
+    job_id: str,
+    normalization_plan: Annotated[
+        Path | None,
+        typer.Option("--normalization-plan"),
+    ] = None,
+    action: Annotated[str, typer.Option("--action")] = "execute",
+    session_id: Annotated[str | None, typer.Option("--session-id")] = None,
+    native_source: Annotated[Path | None, typer.Option("--native-source")] = None,
+    allowed_source_root: Annotated[
+        Path | None,
+        typer.Option("--allowed-source-root"),
+    ] = None,
+    native_output_id: Annotated[str | None, typer.Option("--native-output-id")] = None,
+    adoption_receipt: Annotated[
+        Path | None,
+        typer.Option("--adoption-receipt"),
+    ] = None,
+    receipt_contract_id: Annotated[
+        str | None,
+        typer.Option("--receipt-contract-id"),
+    ] = None,
+    ordinal: Annotated[int, typer.Option("--ordinal", min=0)] = 0,
+    output_role: Annotated[str, typer.Option("--output-role")] = "base_color",
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Adopt native bytes, prepare core input, or execute one normalization plan."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    if action == "adopt":
+        if None in {
+            session_id,
+            native_source,
+            allowed_source_root,
+            native_output_id,
+        }:
+            raise ValueError("native adoption requires session/source/root/output ID")
+        if output_role not in {"base_color", "decal_rgb", "emission", "opacity_source"}:
+            raise ValueError("native output role is not a direct ImageGen role")
+        result = adopt_codex_imagegen_native_output_phase(
+            job_id=job_id,
+            session_id=str(session_id),
+            allowed_source_root=Path(allowed_source_root),
+            native_source_path=Path(native_source),
+            native_output_id=str(native_output_id),
+            ordinal=ordinal,
+            output_role=output_role,  # type: ignore[arg-type]
+            receipt_contract_id=(
+                receipt_contract_id or f"{native_output_id}-native-adoption"
+            ),
+        )
+    elif action == "prepare":
+        if session_id is None or adoption_receipt is None or normalization_plan is None:
+            raise ValueError("native preparation requires session, adoption, and plan")
+        result = prepare_codex_imagegen_native_output_phase(
+            job_id=job_id,
+            session_id=session_id,
+            adoption_receipt_path=adoption_receipt,
+            normalization_plan_path=normalization_plan,
+            receipt_contract_id=(
+                receipt_contract_id or f"{normalization_plan.stem}-receipt"
+            ),
+        )
+    elif action == "execute":
+        if normalization_plan is None:
+            raise ValueError("normalization plan is required for execute")
+        result = _execute_codex_image_native_normalization(job_id, normalization_plan)
+    else:
+        raise ValueError("native normalization action must be adopt, prepare, or execute")
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("codex-imagegen-semantic-review-status")
+def codex_imagegen_semantic_review_status_command(
+    job_id: str,
+    session_id: str,
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Read and validate non-human semantic evidence without creating observations."""
+
+    result = _codex_image_material_semantic_status(job_id, session_id)
+    result["opt_in"] = {
+        "enable_v2": enable_v2,
+        "enable_imagegen": enable_imagegen,
+    }
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-codex-imagegen-continue")
+def autonomy_v2_codex_imagegen_continue_command(
+    job_id: str,
+    session_id: str,
+    quality_submission: Annotated[Path, typer.Option("--quality-submission")],
+    enable_v2: Annotated[bool, typer.Option("--enable-v2/--disable-v2")] = False,
+    enable_imagegen: Annotated[
+        bool,
+        typer.Option("--enable-imagegen/--disable-imagegen"),
+    ] = False,
+) -> None:
+    """Validate the promotion closure before one existing AQ/IQ supervisor action."""
+
+    _require_codex_image_material_loop_opt_in(
+        enable_v2=enable_v2,
+        enable_imagegen=enable_imagegen,
+    )
+    submission = _load_quality_submission_payload(quality_submission)
+    if submission is None:
+        raise ValueError("quality submission is required for ImageGen continuation")
+    result = advance_codex_image_material_loop_quality(
+        job_id,
+        session_id,
+        promotion_receipt_artifact=_codex_image_material_promotion_artifact(
+            job_id,
+            session_id,
+        ),
+        quality_submission=submission,
+        allow_disabled_experimental=True,
+    )
     console.print_json(json.dumps(result, ensure_ascii=False))
 
 

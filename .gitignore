@@ -110,6 +110,19 @@ build/
 /.tmp-mg-registry-*/
 /.tmp-codex-*/
 
+# Codex ImageGen material-loop test, Blender, and recovery scratch roots.
+/.bte*/
+/.btml*/
+/.btnorm*/
+/.btv05*/
+/.ml-root-*/
+/.tft*/
+/.tcr*/
+/.uvcache-crash/
+/.tmp_v05adapter/
+/.test-public-loop-*/
+/pytest-cache-files-*/
+
 # Exact short basetemp roots created by AQ v2 Windows test runs.
 /.b2/
 /.c2/
@@ -135,3 +148,4 @@ build/
 /.z/
 /.zfull/
 /.zv2/
+/.tmp-tests

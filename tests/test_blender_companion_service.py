@@ -321,7 +321,7 @@ def test_static_prop_authoring_companions_are_hash_bound_and_read_only(
     }
     assert {"island_padding", "texel_density"}.issubset(not_applicable)
     assert {path: _sha256(path) for path in before} == before
-    assert len(str(result.snapshot_path.resolve())) > 260
+    assert len(os.path.abspath(os.fspath(result.snapshot_path))) > 260
     assert os.path.isfile(native_io_path(result.snapshot_path))
     assert os.path.isfile(native_io_path(result.assembly_request_path))
     assert os.path.isfile(native_io_path(result.assembly_report_path))

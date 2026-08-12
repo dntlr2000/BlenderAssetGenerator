@@ -1,0 +1,2220 @@
+{
+  "$defs": {
+    "BakePolicy": {
+      "additionalProperties": false,
+      "description": "Declare deterministic portable bake outputs without choosing an engine graph.",
+      "properties": {
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "occlusion",
+              "emission",
+              "opacity"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "resolution": {
+          "default": [
+            1024,
+            1024
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "margin_px": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Margin Px",
+          "type": "integer"
+        },
+        "preserve_raw_channels": {
+          "const": true,
+          "default": true,
+          "title": "Preserve Raw Channels",
+          "type": "boolean"
+        }
+      },
+      "title": "BakePolicy",
+      "type": "object"
+    },
+    "ChannelBinding": {
+      "additionalProperties": false,
+      "description": "Bind one PBR channel to a constant or immutable image source.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "emission",
+            "opacity"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "source_kind": {
+          "enum": [
+            "constant",
+            "image"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "color_space": {
+          "enum": [
+            "sRGB",
+            "Non-Color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "constant": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Constant"
+        },
+        "image": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MaterialGraphArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "physical_scale": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextureScale"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sampling": {
+          "default": "repeat",
+          "enum": [
+            "repeat",
+            "clamp",
+            "clip"
+          ],
+          "title": "Sampling",
+          "type": "string"
+        },
+        "localized_detail": {
+          "default": false,
+          "title": "Localized Detail",
+          "type": "boolean"
+        },
+        "normal_format": {
+          "anyOf": [
+            {
+              "enum": [
+                "OpenGL",
+                "DirectX"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Format"
+        }
+      },
+      "required": [
+        "channel",
+        "source_kind",
+        "color_space"
+      ],
+      "title": "ChannelBinding",
+      "type": "object"
+    },
+    "CodexImageV05BridgeChannel": {
+      "additionalProperties": false,
+      "description": "Bind one 0.2.1 channel to its byte-identical run-owned V0.5 dependency.",
+      "properties": {
+        "channel": {
+          "enum": [
+            "base_color",
+            "roughness",
+            "metallic",
+            "normal",
+            "height",
+            "occlusion",
+            "opacity",
+            "emission"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "provenance_kind": {
+          "enum": [
+            "codex_generated_direct",
+            "local_deterministic_derivation",
+            "local_exact_text_composition",
+            "local_constant"
+          ],
+          "title": "Provenance Kind",
+          "type": "string"
+        },
+        "algorithm_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Algorithm Id",
+          "type": "string"
+        },
+        "algorithm_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Algorithm Version",
+          "type": "string"
+        },
+        "source_sha256": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Source Sha256",
+          "type": "array"
+        },
+        "source": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "adapted": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "width": {
+          "maximum": 4096,
+          "minimum": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "maximum": 4096,
+          "minimum": 1,
+          "title": "Height",
+          "type": "integer"
+        },
+        "color_space": {
+          "enum": [
+            "srgb",
+            "non_color"
+          ],
+          "title": "Color Space",
+          "type": "string"
+        },
+        "normal_convention": {
+          "anyOf": [
+            {
+              "const": "opengl_y_plus",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normal Convention"
+        },
+        "v05_usage": {
+          "enum": [
+            "texture_manifest_and_graph",
+            "material_graph_only"
+          ],
+          "title": "V05 Usage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel",
+        "provenance_kind",
+        "algorithm_id",
+        "algorithm_version",
+        "source_sha256",
+        "source",
+        "adapted",
+        "width",
+        "height",
+        "color_space",
+        "v05_usage"
+      ],
+      "title": "CodexImageV05BridgeChannel",
+      "type": "object"
+    },
+    "CodexImageV05ControllerInput": {
+      "additionalProperties": false,
+      "description": "Alias one exact dependency to an existing material controller input role.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene",
+            "material-baseline",
+            "scale-context"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "artifact": {
+          "$ref": "#/$defs/ExactArtifact"
+        }
+      },
+      "required": [
+        "role",
+        "artifact"
+      ],
+      "title": "CodexImageV05ControllerInput",
+      "type": "object"
+    },
+    "CurvatureMask": {
+      "additionalProperties": false,
+      "description": "Mask by bounded convexity or concavity sampled at a physical radius.",
+      "properties": {
+        "kind": {
+          "const": "curvature",
+          "default": "curvature",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "default": "both",
+          "enum": [
+            "convex",
+            "concave",
+            "both"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "radius_m": {
+          "exclusiveMinimum": 0,
+          "title": "Radius M",
+          "type": "number"
+        },
+        "low": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Low",
+          "type": "number"
+        },
+        "high": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "High",
+          "type": "number"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "radius_m"
+      ],
+      "title": "CurvatureMask",
+      "type": "object"
+    },
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to its exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "ImageMask": {
+      "additionalProperties": false,
+      "description": "Mask a layer by one immutable non-color image.",
+      "properties": {
+        "kind": {
+          "const": "image",
+          "default": "image",
+          "title": "Kind",
+          "type": "string"
+        },
+        "image": {
+          "$ref": "#/$defs/MaterialGraphArtifact"
+        },
+        "channel": {
+          "default": "luminance",
+          "enum": [
+            "R",
+            "G",
+            "B",
+            "A",
+            "luminance"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "color_space": {
+          "const": "Non-Color",
+          "default": "Non-Color",
+          "title": "Color Space",
+          "type": "string"
+        },
+        "sampling": {
+          "default": "clamp",
+          "enum": [
+            "clamp",
+            "clip"
+          ],
+          "title": "Sampling",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "image"
+      ],
+      "title": "ImageMask",
+      "type": "object"
+    },
+    "MappingSpec": {
+      "additionalProperties": false,
+      "description": "Describe deterministic material coordinates and their physical scale.",
+      "properties": {
+        "mode": {
+          "default": "object",
+          "enum": [
+            "uv",
+            "object",
+            "generated",
+            "triplanar"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "real_world_scale_m": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Real World Scale M",
+          "type": "number"
+        },
+        "texel_density_px_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texel Density Px M"
+        }
+      },
+      "title": "MappingSpec",
+      "type": "object"
+    },
+    "MaterialGraphArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained graph input to a portable path and exact digest.",
+      "properties": {
+        "role": {
+          "enum": [
+            "scene_spec",
+            "material_plan",
+            "shader_recipe",
+            "texture",
+            "reference",
+            "mask",
+            "other"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "path",
+        "sha256"
+      ],
+      "title": "MaterialGraphArtifact",
+      "type": "object"
+    },
+    "MaterialGraphLayer": {
+      "additionalProperties": false,
+      "description": "Describe one ordered whitelist-only layer over the stable base material.",
+      "properties": {
+        "layer_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Layer Id",
+          "type": "string"
+        },
+        "order": {
+          "minimum": 0,
+          "title": "Order",
+          "type": "integer"
+        },
+        "material_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "blend_mode": {
+          "enum": [
+            "replace",
+            "mix",
+            "multiply",
+            "add",
+            "screen",
+            "overlay"
+          ],
+          "title": "Blend Mode",
+          "type": "string"
+        },
+        "opacity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Opacity",
+          "type": "number"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelBinding"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "curvature": "#/$defs/CurvatureMask",
+                  "image": "#/$defs/ImageMask",
+                  "position_slope": "#/$defs/PositionSlopeMask",
+                  "semantic_object": "#/$defs/SemanticObjectMask",
+                  "vertex_attribute": "#/$defs/VertexAttributeMask"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ImageMask"
+                },
+                {
+                  "$ref": "#/$defs/VertexAttributeMask"
+                },
+                {
+                  "$ref": "#/$defs/SemanticObjectMask"
+                },
+                {
+                  "$ref": "#/$defs/CurvatureMask"
+                },
+                {
+                  "$ref": "#/$defs/PositionSlopeMask"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask"
+        }
+      },
+      "required": [
+        "layer_id",
+        "order",
+        "material_id",
+        "blend_mode",
+        "channels"
+      ],
+      "title": "MaterialGraphLayer",
+      "type": "object"
+    },
+    "MaterialGraphProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze job, workflow, dispatch, contract, and exact input provenance.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "project_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Project Version",
+          "type": "string"
+        },
+        "material_contract_version": {
+          "const": "0.5.0",
+          "default": "0.5.0",
+          "title": "Material Contract Version",
+          "type": "string"
+        },
+        "graph_contract_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Graph Contract Version",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/MaterialGraphArtifact"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "project_version",
+        "inputs"
+      ],
+      "title": "MaterialGraphProvenance",
+      "type": "object"
+    },
+    "MaterialGraphSpec": {
+      "additionalProperties": false,
+      "description": "Define a stable material base and ordered portable layers without arbitrary nodes.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "graph_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Graph Id",
+          "type": "string"
+        },
+        "provenance": {
+          "$ref": "#/$defs/MaterialGraphProvenance"
+        },
+        "material_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "base_channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelBinding"
+          },
+          "minItems": 1,
+          "title": "Base Channels",
+          "type": "array"
+        },
+        "layers": {
+          "items": {
+            "$ref": "#/$defs/MaterialGraphLayer"
+          },
+          "title": "Layers",
+          "type": "array"
+        },
+        "normal_displacement": {
+          "$ref": "#/$defs/NormalDisplacementPolicy"
+        },
+        "bake": {
+          "$ref": "#/$defs/BakePolicy"
+        },
+        "preview_lighting": {
+          "$ref": "#/$defs/PreviewLightingPolicy"
+        },
+        "graph_policy": {
+          "const": "whitelisted_material_graph_v1",
+          "default": "whitelisted_material_graph_v1",
+          "title": "Graph Policy",
+          "type": "string"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "graph_id",
+        "provenance",
+        "material_id",
+        "base_channels",
+        "preview_lighting"
+      ],
+      "title": "MaterialGraphSpec",
+      "type": "object"
+    },
+    "MaterialPlan": {
+      "additionalProperties": false,
+      "description": "Record the approved material decomposition before authoring shader files.",
+      "properties": {
+        "schema_version": {
+          "const": "0.5.0",
+          "default": "0.5.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "scene_spec_path": {
+          "default": "analysis/scene_spec.json",
+          "title": "Scene Spec Path",
+          "type": "string"
+        },
+        "stage": {
+          "default": "scaffold",
+          "enum": [
+            "scaffold",
+            "authored"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "surface_detail_binding_policy": {
+          "default": "legacy_unbound",
+          "enum": [
+            "legacy_unbound",
+            "spatial_v1"
+          ],
+          "title": "Surface Detail Binding Policy",
+          "type": "string"
+        },
+        "materials": {
+          "items": {
+            "$ref": "#/$defs/MaterialPlanItem"
+          },
+          "title": "Materials",
+          "type": "array"
+        },
+        "global_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Global Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "title": "MaterialPlan",
+      "type": "object"
+    },
+    "MaterialPlanItem": {
+      "additionalProperties": false,
+      "description": "Plan one stable SceneSpec material without changing geometry.",
+      "properties": {
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "shader_family": {
+          "default": "standard_pbr",
+          "enum": [
+            "standard_pbr",
+            "rock",
+            "terrain",
+            "water",
+            "glass",
+            "foliage",
+            "lava",
+            "cloud",
+            "emissive"
+          ],
+          "title": "Shader Family",
+          "type": "string"
+        },
+        "texture_strategy": {
+          "default": "none",
+          "enum": [
+            "none",
+            "procedural",
+            "image",
+            "hybrid"
+          ],
+          "title": "Texture Strategy",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/MappingSpec"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        },
+        "shader_recipe": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shader Recipe"
+        },
+        "export_profiles": {
+          "items": {
+            "enum": [
+              "blender_eevee",
+              "blender_cycles",
+              "gltf_pbr",
+              "unity_urp_lit",
+              "unity_hdrp_lit"
+            ],
+            "type": "string"
+          },
+          "title": "Export Profiles",
+          "type": "array"
+        },
+        "evidence_status": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id",
+        "label"
+      ],
+      "title": "MaterialPlanItem",
+      "type": "object"
+    },
+    "NormalDisplacementPolicy": {
+      "additionalProperties": false,
+      "description": "Separate portable tangent normals from bounded physical displacement.",
+      "properties": {
+        "normal_mode": {
+          "default": "tangent_space",
+          "enum": [
+            "disabled",
+            "tangent_space",
+            "object_space"
+          ],
+          "title": "Normal Mode",
+          "type": "string"
+        },
+        "displacement_mode": {
+          "default": "bump_only",
+          "enum": [
+            "disabled",
+            "bump_only",
+            "true_displacement"
+          ],
+          "title": "Displacement Mode",
+          "type": "string"
+        },
+        "maximum_displacement_m": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Maximum Displacement M",
+          "type": "number"
+        },
+        "require_subdivision": {
+          "default": false,
+          "title": "Require Subdivision",
+          "type": "boolean"
+        }
+      },
+      "title": "NormalDisplacementPolicy",
+      "type": "object"
+    },
+    "PositionSlopeMask": {
+      "additionalProperties": false,
+      "description": "Mask by object-space position or world-space surface slope.",
+      "properties": {
+        "kind": {
+          "const": "position_slope",
+          "default": "position_slope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "position",
+            "slope"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "unit": {
+          "enum": [
+            "meters",
+            "degrees"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "mode",
+        "minimum",
+        "maximum",
+        "unit"
+      ],
+      "title": "PositionSlopeMask",
+      "type": "object"
+    },
+    "PreviewLightingPolicy": {
+      "additionalProperties": false,
+      "description": "Keep neutral material inspection separate from reference-matched comparison.",
+      "properties": {
+        "neutral_profile": {
+          "const": "neutral_studio",
+          "default": "neutral_studio",
+          "title": "Neutral Profile",
+          "type": "string"
+        },
+        "neutral_exposure": {
+          "default": 0.0,
+          "maximum": 10,
+          "minimum": -10,
+          "title": "Neutral Exposure",
+          "type": "number"
+        },
+        "reference_profile": {
+          "const": "reference_matched",
+          "default": "reference_matched",
+          "title": "Reference Profile",
+          "type": "string"
+        },
+        "reference_source": {
+          "$ref": "#/$defs/MaterialGraphArtifact"
+        },
+        "reference_confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Reference Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "reference_source",
+        "reference_confidence"
+      ],
+      "title": "PreviewLightingPolicy",
+      "type": "object"
+    },
+    "SemanticObjectMask": {
+      "additionalProperties": false,
+      "description": "Restrict a layer to stable semantic or object identities.",
+      "properties": {
+        "kind": {
+          "const": "semantic_object",
+          "default": "semantic_object",
+          "title": "Kind",
+          "type": "string"
+        },
+        "semantic_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Semantic Ids",
+          "type": "array"
+        },
+        "object_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Object Ids",
+          "type": "array"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "title": "SemanticObjectMask",
+      "type": "object"
+    },
+    "ShaderLayer": {
+      "additionalProperties": false,
+      "description": "Describe one whitelisted material layer and its optional mask.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "constant",
+            "image",
+            "noise",
+            "gradient",
+            "fresnel",
+            "normal",
+            "bump"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "blend": {
+          "default": "mix",
+          "enum": [
+            "replace",
+            "mix",
+            "multiply",
+            "add",
+            "screen",
+            "overlay"
+          ],
+          "title": "Blend",
+          "type": "string"
+        },
+        "factor": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Factor",
+          "type": "number"
+        },
+        "mask": {
+          "default": "none",
+          "enum": [
+            "none",
+            "height",
+            "slope",
+            "cavity",
+            "noise",
+            "fresnel"
+          ],
+          "title": "Mask",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": true,
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "ShaderLayer",
+      "type": "object"
+    },
+    "ShaderRecipe": {
+      "additionalProperties": false,
+      "description": "Define a whitelisted, Blender-version-neutral shader recipe.",
+      "properties": {
+        "schema_version": {
+          "const": "0.5.0",
+          "default": "0.5.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "family": {
+          "default": "standard_pbr",
+          "enum": [
+            "standard_pbr",
+            "rock",
+            "terrain",
+            "water",
+            "glass",
+            "foliage",
+            "lava",
+            "cloud",
+            "emissive"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "surface": {
+          "$ref": "#/$defs/SurfaceSpec"
+        },
+        "mapping": {
+          "$ref": "#/$defs/MappingSpec"
+        },
+        "layers": {
+          "items": {
+            "$ref": "#/$defs/ShaderLayer"
+          },
+          "title": "Layers",
+          "type": "array"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        },
+        "blender_master": {
+          "default": true,
+          "title": "Blender Master",
+          "type": "boolean"
+        },
+        "bake_required": {
+          "default": false,
+          "title": "Bake Required",
+          "type": "boolean"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "material_id"
+      ],
+      "title": "ShaderRecipe",
+      "type": "object"
+    },
+    "SurfaceDetailBinding": {
+      "additionalProperties": false,
+      "description": "Bind one planned detail to an object, material, UV layout, and bounded placement.",
+      "properties": {
+        "detail_id": {
+          "title": "Detail Id",
+          "type": "string"
+        },
+        "parent_object_id": {
+          "title": "Parent Object Id",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "uv_set": {
+          "const": "UVMap",
+          "default": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "uv_layout_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Uv Layout Sha256",
+          "type": "string"
+        },
+        "placement": {
+          "$ref": "#/$defs/SurfaceDetailPlacement"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "strength": {
+          "default": 1.0,
+          "exclusiveMinimum": 0.0,
+          "maximum": 1.0,
+          "title": "Strength",
+          "type": "number"
+        },
+        "wrap": {
+          "default": "clamp",
+          "enum": [
+            "clip",
+            "clamp"
+          ],
+          "title": "Wrap",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detail_id",
+        "parent_object_id",
+        "material_id",
+        "uv_layout_sha256",
+        "placement",
+        "channels"
+      ],
+      "title": "SurfaceDetailBinding",
+      "type": "object"
+    },
+    "SurfaceDetailPlacement": {
+      "additionalProperties": false,
+      "description": "Locate one non-tiling surface detail inside a stable authored UV layout.",
+      "properties": {
+        "mode": {
+          "enum": [
+            "uv_rect",
+            "mask_image"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "uv_rect": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Rect"
+        },
+        "mask_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Path"
+        },
+        "mask_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mask Sha256"
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "title": "SurfaceDetailPlacement",
+      "type": "object"
+    },
+    "SurfaceSpec": {
+      "additionalProperties": false,
+      "description": "Store portable Principled-style surface parameters by semantic name.",
+      "properties": {
+        "base_color": {
+          "default": [
+            0.8,
+            0.8,
+            0.8,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "metallic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "roughness": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "ior": {
+          "default": 1.45,
+          "maximum": 3.0,
+          "minimum": 1.0,
+          "title": "Ior",
+          "type": "number"
+        },
+        "transmission_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Transmission Weight",
+          "type": "number"
+        },
+        "alpha": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "emission_color": {
+          "default": [
+            0.0,
+            0.0,
+            0.0,
+            1.0
+          ],
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Emission Color",
+          "type": "array"
+        },
+        "emission_strength": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "coat_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Coat Weight",
+          "type": "number"
+        },
+        "subsurface_weight": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Subsurface Weight",
+          "type": "number"
+        },
+        "anisotropic": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Anisotropic",
+          "type": "number"
+        }
+      },
+      "title": "SurfaceSpec",
+      "type": "object"
+    },
+    "TextureChannel": {
+      "additionalProperties": false,
+      "description": "Describe one image or procedural PBR channel.",
+      "properties": {
+        "source": {
+          "enum": [
+            "image",
+            "procedural"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "color_space": {
+          "anyOf": [
+            {
+              "enum": [
+                "sRGB",
+                "Non-Color"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color Space"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        },
+        "strength": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Strength",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "TextureChannel",
+      "type": "object"
+    },
+    "TextureManifest": {
+      "additionalProperties": false,
+      "description": "Define portable texture channels while accepting known v0.4 draft metadata.",
+      "properties": {
+        "schema_version": {
+          "const": "0.5.0",
+          "default": "0.5.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "uv_set": {
+          "default": "Object",
+          "enum": [
+            "UVMap",
+            "Generated",
+            "Object"
+          ],
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "intended_scale_m": {
+          "exclusiveMinimum": 0,
+          "title": "Intended Scale M",
+          "type": "number"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "source_type": {
+          "enum": [
+            "image",
+            "procedural",
+            "hybrid"
+          ],
+          "title": "Source Type",
+          "type": "string"
+        },
+        "channels": {
+          "additionalProperties": {
+            "$ref": "#/$defs/TextureChannel"
+          },
+          "propertyNames": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ]
+          },
+          "title": "Channels",
+          "type": "object"
+        },
+        "surface_detail_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Surface Detail Ids",
+          "type": "array"
+        },
+        "surface_detail_bindings": {
+          "items": {
+            "$ref": "#/$defs/SurfaceDetailBinding"
+          },
+          "title": "Surface Detail Bindings",
+          "type": "array"
+        },
+        "procedural": {
+          "additionalProperties": true,
+          "title": "Procedural",
+          "type": "object"
+        },
+        "shader_recipe": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Shader Recipe"
+        },
+        "provenance": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextureProvenance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "cycles_shader_model": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cycles Shader Model"
+        },
+        "node_graph_summary": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Node Graph Summary"
+        },
+        "color_space_rules": {
+          "anyOf": [
+            {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color Space Rules"
+        },
+        "generation_notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Generation Notes"
+        },
+        "expected_preview_goal": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Preview Goal"
+        }
+      },
+      "required": [
+        "material_id",
+        "intended_scale_m",
+        "resolution",
+        "source_type"
+      ],
+      "title": "TextureManifest",
+      "type": "object"
+    },
+    "TextureProvenance": {
+      "additionalProperties": false,
+      "description": "Record reproducibility and rights metadata for generated texture assets.",
+      "properties": {
+        "provider": {
+          "title": "Provider",
+          "type": "string"
+        },
+        "provider_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Provider Version"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prompt"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "source_hashes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Hashes",
+          "type": "array"
+        },
+        "generated_sha256": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Generated Sha256",
+          "type": "object"
+        },
+        "license": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "License"
+        }
+      },
+      "required": [
+        "provider"
+      ],
+      "title": "TextureProvenance",
+      "type": "object"
+    },
+    "TextureScale": {
+      "additionalProperties": false,
+      "description": "Describe physical texture size without relying on arbitrary node transforms.",
+      "properties": {
+        "width_m": {
+          "exclusiveMinimum": 0,
+          "title": "Width M",
+          "type": "number"
+        },
+        "height_m": {
+          "exclusiveMinimum": 0,
+          "title": "Height M",
+          "type": "number"
+        },
+        "uv_set": {
+          "default": "UVMap",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Uv Set",
+          "type": "string"
+        }
+      },
+      "required": [
+        "width_m",
+        "height_m"
+      ],
+      "title": "TextureScale",
+      "type": "object"
+    },
+    "VertexAttributeMask": {
+      "additionalProperties": false,
+      "description": "Mask a layer by one bounded mesh attribute name.",
+      "properties": {
+        "kind": {
+          "const": "vertex_attribute",
+          "default": "vertex_attribute",
+          "title": "Kind",
+          "type": "string"
+        },
+        "attribute": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Attribute",
+          "type": "string"
+        },
+        "domain": {
+          "default": "POINT",
+          "enum": [
+            "POINT",
+            "CORNER",
+            "FACE"
+          ],
+          "title": "Domain",
+          "type": "string"
+        },
+        "invert": {
+          "default": false,
+          "title": "Invert",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "attribute"
+      ],
+      "title": "VertexAttributeMask",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Hold deterministic controller-copy models without synthesizing a result.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "blueprint_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Blueprint Id",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "const": "codex_blender_modeler.material_authoring.codex_image_v05_bridge",
+      "default": "codex_blender_modeler.material_authoring.codex_image_v05_bridge",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/ExactArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "bridge_run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Bridge Run Id",
+      "type": "string"
+    },
+    "target_material_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Target Material Id",
+      "type": "string"
+    },
+    "run_root": {
+      "title": "Run Root",
+      "type": "string"
+    },
+    "source_authoring_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "source_authoring_request": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "source_authoring_manifest": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "source_scene_spec": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "source_material_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "previous_canonical_material_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "canonical_material_absence_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "baseline_material_plan_snapshot": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "scale_context": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "uv_identity": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "channels": {
+      "items": {
+        "$ref": "#/$defs/CodexImageV05BridgeChannel"
+      },
+      "minItems": 1,
+      "title": "Channels",
+      "type": "array"
+    },
+    "texture_manifest": {
+      "$ref": "#/$defs/TextureManifest"
+    },
+    "texture_manifest_artifact": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "shader_recipe": {
+      "$ref": "#/$defs/ShaderRecipe"
+    },
+    "shader_recipe_artifact": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_plan": {
+      "$ref": "#/$defs/MaterialPlan"
+    },
+    "material_plan_artifact": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_graph": {
+      "$ref": "#/$defs/MaterialGraphSpec"
+    },
+    "material_graph_artifact": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "controller_inputs": {
+      "items": {
+        "$ref": "#/$defs/CodexImageV05ControllerInput"
+      },
+      "minItems": 1,
+      "title": "Controller Inputs",
+      "type": "array"
+    },
+    "expected_output_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Expected Output Sha256",
+      "type": "object"
+    },
+    "blender_compilation_status": {
+      "const": "not_run",
+      "default": "not_run",
+      "title": "Blender Compilation Status",
+      "type": "string"
+    },
+    "neutral_preview_status": {
+      "const": "not_run",
+      "default": "not_run",
+      "title": "Neutral Preview Status",
+      "type": "string"
+    },
+    "reference_preview_status": {
+      "const": "not_run",
+      "default": "not_run",
+      "title": "Reference Preview Status",
+      "type": "string"
+    },
+    "canonical_write_authority": {
+      "const": "supervisor_only",
+      "default": "supervisor_only",
+      "title": "Canonical Write Authority",
+      "type": "string"
+    },
+    "canonical_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Performed",
+      "type": "boolean"
+    },
+    "destination_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Performed",
+      "type": "boolean"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "blueprint_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "provenance",
+    "created_at",
+    "bridge_run_id",
+    "target_material_id",
+    "run_root",
+    "source_authoring_receipt",
+    "source_authoring_request",
+    "source_authoring_manifest",
+    "source_scene_spec",
+    "source_material_plan",
+    "baseline_material_plan_snapshot",
+    "scale_context",
+    "uv_identity",
+    "channels",
+    "texture_manifest",
+    "texture_manifest_artifact",
+    "shader_recipe",
+    "shader_recipe_artifact",
+    "material_plan",
+    "material_plan_artifact",
+    "material_graph",
+    "material_graph_artifact",
+    "controller_inputs",
+    "expected_output_sha256",
+    "limitations"
+  ],
+  "title": "CodexImageV05ControllerBlueprint",
+  "type": "object"
+}

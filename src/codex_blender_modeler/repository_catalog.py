@@ -94,10 +94,11 @@ AUTONOMY_PROFILES = (
         status="disabled_experimental",
         contract_version="0.1.0",
         execution_policy="standard",
-        output_scope="controller-mediated image staging",
+        output_scope="controller-mediated image staging and material-loop companion",
         notes=(
-            "Optional Codex built-in ImageGen companion; base AQ v2 remains local-only "
-            "and the repository cannot spawn a Codex task."
+            "Optional Codex built-in ImageGen companion with host-only material promotion "
+            "and AQ/IQ handoff; base AQ v2 remains local-only and the repository cannot "
+            "spawn a Codex task."
         ),
     ),
     AutonomyProfileCatalogEntry(

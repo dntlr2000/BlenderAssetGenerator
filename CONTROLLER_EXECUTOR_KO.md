@@ -155,6 +155,43 @@ Codex 앱 종료 뒤 자동 실행, repository task spawn, API key/SDK/HTTP fall
 동일 protocol을 시험하지만 `fake_for_tests`/`deterministic_fake` evidence로 분리되어 실제 built-in
 실행으로 승격되지 않는다.
 
+## 5B. Codex ImageGen Material Loop 전용 흐름
+
+core MaterialAuthoring staging 이후에는 별도 `codex_image_material_loop/` state와 material
+ControllerExecutionRequest를 사용한다.
+
+```text
+exact ImageGen + semantic + adoption + MaterialAuthoring/V0.5 closure
+→ exact_adoption이면 actual Blender shadow preflight receipt
+→ ImageGeneratedMaterialBridgePlan / ControllerInput
+→ exact_adoption 또는 controller_authored_completion
+→ material_plan.json + material_graph.json + completion.json
+→ formal ControllerResult와 lifecycle replay
+→ 기존 host material promotion
+→ actual MaterialPhaseReceiptV2 + fixed preview
+→ base AQ resume / IQ boundary
+```
+
+native original에서 시작한 normalization은 exact native-output adoption receipt를 재귀 결속한다.
+`CodexImageNativeCorePreparationReceipt`가 normalized image와 copied core image의 exact byte identity를
+검증하고 completion/candidate/generated-image evidence/quality/selection까지 묶는다. 다중 후보이면
+companion selection receipt가 core selection과 후보별 semantic/ranking evidence를 묶는다. bridge plan,
+controller input과 promotion receipt가 두 artifact를 그대로 유지한다. 필요한 closure가 누락되거나 다른
+candidate/assignment를 가리키면 ControllerExecutionRequest 전에 거부한다.
+
+`exact_adoption`은 expected content hashes와 별도 actual Blender shadow preflight receipt가 있을 때만
+가능하다. preflight는 exact V0.5 candidate bytes를 compile하되 원래 staging-only/
+`blender_compilation_status=not_run` receipt를 바꾸지 않고 ControllerResult/canonical/destination
+write도 만들지 않는다. preflight가 없거나 다른 candidate를 가리키면 request 전에 거부한다.
+`controller_authored_completion`은 현재 Codex task가 request-owned
+workspace의 정확한 세 output만 작성한다. 두 모드 모두 canonical/destination write authority가 없고
+invocation budget은 하나다.
+
+promotion은 ControllerExecutor가 아니라 기존 host
+`validate_and_promote_material_controller_result_v2`가 수행한다. result가 complete여도 material ID,
+graph/dependency, canonical baseline, Blender rebuild와 receipt 검증을 생략하지 않는다. crash resume은
+동일 result/lifecycle 또는 동일 host promotion evidence만 채택한다.
+
 ## 6. 출력 격리와 채택
 
 각 invocation의 기본 namespace는 다음 역할을 가진다.
@@ -254,7 +291,7 @@ adoption, quality/selection/material adoption을 조정할 뿐 built-in ImageGen
 호출하지 않는다. 내장 tool invocation은 현재 Codex task의 단계이며 앱 종료 후 continuation이나
 external API fallback을 제공하지 않는다.
 
-현재 배선된 CLI는 `codex-imagegen-status`, `codex-imagegen-plan`, `codex-imagegen-run`,
+core에 배선된 CLI는 `codex-imagegen-status`, `codex-imagegen-plan`, `codex-imagegen-run`,
 `codex-imagegen-select`, `codex-imagegen-adopt`다. MCP는 `get_codex_imagegen_status`,
 `plan_codex_imagegen`, `run_codex_imagegen`, `select_codex_imagegen`, `adopt_codex_imagegen`이다.
 `codex-imagegen-run`은 신규 assignment를 게시하거나 같은 request-owned workspace를 재검증할 뿐
@@ -262,9 +299,17 @@ external API fallback을 제공하지 않는다.
 adoption contract만 준비하고, contained MaterialAuthoring `0.2.1` request를 받은 두 번째 호출이
 local receipt를 검증한 뒤 overlay `status=adopted`,
 `next_action=controller_promotion_required`에서 멈춘다. base material-authoring을 자동 재개하거나
-overlay `completed`를 만들지 않는다. actual `MaterialPhaseReceiptV2`와 companion
-adoption/receipt의 exact controller-input binding은 아직 배선되지 않았으며, 어느 호출도 canonical
-material을 직접 promotion하지 않는다.
+overlay `completed`를 만들지 않는다.
+
+additive Material Loop는 별도 CLI 9개
+`codex-imagegen-material-bridge-plan`, `codex-imagegen-material-bridge-status`,
+`codex-imagegen-material-bridge-run`, `codex-imagegen-material-promote`,
+`codex-imagegen-material-resume`, `codex-imagegen-native-normalize`,
+`codex-imagegen-semantic-review-status`, `autonomy-v2-codex-imagegen-continue`,
+`codex-imagegen-material-exact-adoption-preflight`와 동등 MCP 9개를
+제공한다. 이 표면이 actual `MaterialPhaseReceiptV2`/IQ 경계를 연결하더라도 canonical write는 host
+material service, base state 전이는 기존 supervisor가 소유한다. semantic status는 evidence를 읽을
+뿐 observation을 작성하지 않고 어느 명령도 user/V0.7 approval을 작성하지 않는다.
 
 ImageGen의 final `timeout|failed|rejected|cancelled` 결과는 plan item, runtime trigger와 exact
 controller request/result를 가진 terminal로 닫힌다. ControllerExecutor protected inventory에서

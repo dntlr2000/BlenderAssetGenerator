@@ -1,5 +1,57 @@
 # Changelog
 
+## Unreleased — Codex ImageGen 0.2 Material Loop Closure
+
+- Added an additive strict material-loop companion without changing project `0.9.0`, canonical
+  SceneSpec `0.2.0`, the existing ImageGen core `0.1.0`, MaterialAuthoring `0.2.1`, or legacy
+  evidence meanings. Both AQ v2 profiles remain `disabled_experimental`.
+- Added native-output adoption that preserves the exact PNG as immutable `original.png`, plus
+  requested-operation-bound deterministic normalization whose receipt recursively binds the exact
+  adoption receipt. Existing core dimension rules remain exact; silent stretching, orphaned native
+  provenance, and post-hoc replacement of an already selected candidate fail closed.
+- Added `CodexImageNativeCorePreparationReceipt 0.1.0` to bind native adoption/original and normalization
+  evidence to core completion, candidate, generated-image evidence, quality, selection, and the copied
+  core image with exact normalized-to-core byte identity. The existing core contracts remain unchanged;
+  native-fed bridge/controller/promotion evidence cannot omit or substitute this receipt.
+- Added current-task, non-human semantic review and companion-only multi-candidate ranking. Every
+  candidate must have exact review/ranking grounds; missing or unresolved evidence yields
+  `review_required`. Precedence is file hard gate, deterministic quality, semantic outcome,
+  material-role suitability, repair cost, then stable candidate ID. The companion selection receipt
+  remains bound through bridge, controller input, and promotion evidence.
+- Added strict V0.5 normalized/bridge evidence, exact canonical-material absence, material bridge
+  plans/controller inputs/bindings, fixed neutral preview, promotion receipts, append-only state and
+  terminal contracts. Full job/workflow/dispatch/session/profile identity and exact input digests are
+  revalidated at each boundary.
+- Connected staging evidence to the existing ControllerExecutor and host material promotion service.
+  `exact_adoption` now requires a separate actual Blender shadow-compile preflight of the exact V0.5
+  candidate bytes while preserving the original staging-only/compile-`not_run` receipt meaning;
+  `controller_authored_completion` accepts only the exact material plan, material graph and completion
+  output set. Neither controller mode receives canonical or destination write authority.
+- Reused the existing host MaterialGraph compile, canonical MaterialPlan compare-and-swap, Blender
+  rebuild/inspect/validate and rollback path to issue an actual `MaterialPhaseReceiptV2`. The original
+  MaterialAuthoring `0.2.1` `not_run` receipt bytes remain immutable.
+- Added exact promotion/state/IQ crash recovery and status fields for controller request/result,
+  delivery progress and remaining companion budget. Material promotion is distinct from IQ pass;
+  the companion uses `quality_approved` only when the exact base AQ quality terminal/freeze passed.
+- Added nine CLI commands and nine equivalent MCP tools for bridge plan/status/run, isolated Blender
+  exact-adoption preflight, host promote/resume, native normalize `adopt|prepare|execute`,
+  semantic-review status and one-step AQ/IQ continuation. The preflight creates no ControllerResult
+  or canonical/destination write. Existing five core ImageGen CLI/MCP surfaces are unchanged.
+- Added actual Blender 5.0.1 fake-family material/IQ fixtures for wood, signage/decal, emissive and
+  crystal. Fake evidence remains explicitly test-only and is not actual ImageGen or generalized
+  material-quality evidence.
+- Reused the preserved historical built-in ImageGen PNG only as a new immutable native input; no
+  fresh ImageGen invocation occurred. Current-task non-human semantic review ended
+  `review_required`, so the actual-source run stopped before canonical promotion and did not claim
+  MaterialPhaseReceipt, IQ, package, or human review.
+- Removed synthesized V0.7 approval from the Material Loop delivery fixture. Fake-family flows stop at
+  `waiting_for_v07_approval`; separate raw GLB/FBX export and Blender clean-import runs are mechanism
+  evidence only, with no package manifest, accepted production result, completed delivery terminal or
+  destination-runtime parity claim.
+- Added Material Loop architecture, getting-started, test-plan, migration and verification documents
+  and reconciled the existing ImageGen, AQ v2, MaterialAuthoring, ControllerExecutor, DeliveryProfile,
+  README and roadmap surfaces. Final full-gate counts remain explicit placeholders until executed.
+
 ## Unreleased — Codex Built-in ImageGen Texture Provider 0.1.0
 
 - Added the separate `autonomous_static_prop_v2_codex_imagegen` profile as an explicit
@@ -39,9 +91,9 @@
   staging adoption and then accepts one contained MaterialAuthoring `0.2.1` request. The final public
   boundary is overlay `status=adopted`, `next_action=controller_promotion_required`; it does not resume
   base AQ or claim canonical promotion.
-- Kept full material promotion, IQ, and package continuation disabled until an actual
-  `MaterialPhaseReceiptV2` and exact controller-input binding for the companion adoption/receipt are
-  implemented and verified.
+- At the core `0.1.0` release boundary, kept full material promotion, IQ, and package continuation
+  outside core `adopt`; the later additive Material Loop section above supplies that exact bridge
+  without rewriting this historical staging boundary.
 - Added architecture, getting-started, test-plan, migration, verification, material-authoring, AQ v2,
   ControllerExecutor, README, and roadmap documentation. Exact executed results remain in
   `VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md` and do not activate the experimental profile by prose.

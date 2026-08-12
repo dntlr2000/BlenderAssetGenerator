@@ -1,63 +1,150 @@
 {
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
-  "status": "passed",
-  "verified_at": "2026-08-11T17:53:57Z",
-  "test_count": 1438,
-  "skipped_count": 44,
+  "status": "reported",
+  "verified_at": "2026-08-12T18:53:31Z",
+  "test_count": 1569,
+  "skipped_count": 56,
   "warning_count": 8,
+  "final_verification": {
+    "status": "passed_with_declared_scope_limits",
+    "pytest_passed": 1569,
+    "pytest_skipped": 56,
+    "pytest_warnings": 8,
+    "ruff_status": "passed"
+  },
+  "historical_full_suite_20260811": {
+    "status": "historical_passed",
+    "verified_at": "2026-08-11T17:53:57Z",
+    "test_count": 1438,
+    "skipped_count": 44,
+    "warning_count": 8
+  },
   "tested_platforms": [
     {
       "platform": "Windows 11 AMD64",
       "host_python": "3.14.6",
       "blender": "5.0.1",
       "blender_python": "3.11.13",
-      "status": "passed"
+      "status": "as_built_subset_reported"
     }
   ],
   "quality_gates": {
     "autonomous_quality_focused": {
+      "status": "historical_passed",
+      "recorded_on": "2026-08-12",
       "passed": 485,
       "skipped": 22,
       "warnings": 8,
-      "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate"
+      "evidence_root": "verification/evidence/aq_v2_20260811",
+      "evidence_scope": "Compact historical benchmark and Blender-receipt snapshot; full pytest stdout and basetemps are not tracked."
     },
     "autonomous_quality_blender": {
+      "status": "historical_passed",
+      "recorded_on": "2026-08-12",
       "passed": 34,
       "warnings": 6,
-      "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate"
+      "evidence_root": "verification/evidence/aq_v2_20260811",
+      "evidence_scope": "Compact historical benchmark and Blender-receipt snapshot; this is not a fresh clean-checkout execution."
     },
     "codex_imagegen_companion": {
-      "host_passed": 86,
-      "host_skipped": 5,
-      "fake_blender_passed": 4,
-      "current_task_builtin_imagegen_observed": true,
+      "status": "as_built_review_boundary_verified",
+      "recorded_on": "2026-08-13",
+      "host_focused": {
+        "passed": 616,
+        "skipped": 24,
+        "warnings": 8,
+        "scope": "Official AQ host/focused list with ImageGen material-loop tests"
+      },
+      "material_loop_security_focused": {
+        "passed": 160,
+        "skipped": 1,
+        "scope": "Core, security, schema, normalization, selection, V0.5 bridge, preview, quality, service, and public parity"
+      },
+      "default_blender_opt_in": {
+        "skipped": 10,
+        "reason": "Blender opt-in environment was unset"
+      },
+      "fake_family_blender_material_loop": {
+        "passed": 4,
+        "elapsed_seconds": 101.63,
+        "blender": "5.0.1",
+        "families": [
+          "wood",
+          "signage_decal",
+          "emissive",
+          "crystal"
+        ]
+      },
+      "unapproved_delivery_mechanism": {
+        "passed": 5,
+        "skipped": 1,
+        "elapsed_seconds": 345.23,
+        "blender": "5.0.1",
+        "formats": [
+          "GLB",
+          "FBX"
+        ],
+        "production_package_created": false,
+        "delivery_terminal_created": false,
+        "optimization_approval_created": false,
+        "policy_authorization_created": false
+      },
+      "review_only_blender": {
+        "passed": 1,
+        "elapsed_seconds": 55.24,
+        "production_package_created": false
+      },
+      "historical_actual_source_review_boundary": {
+        "passed": 1,
+        "elapsed_seconds": 10.96,
+        "outcome": "review_required",
+        "canonical_material_changed": false,
+        "delivery_stop_test_passed": true
+      },
+      "safe_aq_blender_split": {
+        "passed": 42,
+        "skipped": 1,
+        "excluded_synthetic_approval_test": "tests/test_aq_v02_delivery_executor_blender.py"
+      },
+      "benchmark_blender": {
+        "aq_0_1_passed": 8,
+        "aq_0_1_blender_cases": 3,
+        "aq_0_2_passed": 10,
+        "aq_0_2_blender_cases": 2
+      },
+      "historical_manual_builtin_imagegen_observed": true,
       "repository_contract_actual_execution_verified": false,
       "human_review_status": "not_reviewed",
-      "material_promotion_status": "controller_promotion_required",
-      "evidence_root": "reports/codex_imagegen_manual_20260811"
+      "material_promotion_status": "fake_controller_path_verified_actual_source_unverified",
+      "evidence_root": "verification/evidence/imagegen_material_loop_20260813"
     },
     "v07": {
-      "status": "passed",
-      "evidence_root": "reports/v07_smoke/20260811T174519354Z-7176"
+      "status": "historical_passed",
+      "recorded_on": "2026-08-11",
+      "evidence_root": "verification/evidence/v07_20260811"
     },
     "v08": {
-      "status": "passed",
-      "evidence_root": "reports/v08_smoke/174855132-7176"
+      "status": "historical_passed",
+      "recorded_on": "2026-08-11",
+      "evidence_root": "verification/evidence/v08_20260811"
     },
     "v09": {
-      "status": "passed",
-      "evidence_root": "reports/v09_smoke/20260811T175034879Z-7176"
+      "status": "historical_passed",
+      "recorded_on": "2026-08-11",
+      "evidence_root": "verification/evidence/v09_20260811"
     }
   },
   "benchmark_v02": {
+    "status": "historical_passed",
+    "recorded_on": "2026-08-11",
     "case_count": 10,
     "passed": 10,
     "blender_case_count": 2,
     "blender_passed": 2,
     "manifest_sha256": "76a6b313d8762546a468ff4524763f042ad4cebfac132656efa1e5dab6c0e1a2",
     "report_sha256": "5eb85007eeb3a5818ecd4f82356f83d6568b49c5bb5bfdb093f9cb7957fca654",
-    "evidence_root": "reports/codex_imagegen_final_20260812/aq_gate",
+    "evidence_root": "verification/evidence/aq_v2_20260811",
     "human_review_status": "not_reviewed"
   },
   "profile_status": {
@@ -66,20 +153,23 @@
     "autonomous_static_prop_v2_codex_imagegen": "disabled_experimental"
   },
   "ci_status": {
-    "local_python_ci_equivalent": "passed",
+    "local_python_ci_equivalent": "passed_with_blender_and_declared_legacy_gate_exclusion",
     "github_hosted_python_ci": "not_run",
     "self_hosted_blender_ci": "not_run"
   },
   "limitations": [
-    "Codex ImageGen material staging stops at controller_promotion_required; canonical material promotion, IQ, and package continuation are not wired or verified.",
-    "The current Codex task used built-in ImageGen for the recorded manual evidence, but repository contract evidence intentionally retains actual_codex_imagegen_execution_verified=false.",
-    "The four-family Blender smoke uses deterministic fake completion and does not verify the actual generated source, general appearance quality, or package parity.",
+    "The 2026-08-13 ImageGen material-loop Blender runs use deterministic fake controller completions; they do not verify a repository-triggered built-in ImageGen source execution or arbitrary generated-image quality.",
+    "The historical built-in ImageGen PNG was replayed only to a current-task non-human semantic review_required boundary; it was not promoted or packaged.",
+    "The delivery-mechanism run stops at the exact V0.7 review boundary, creates no optimization approval, and verifies raw GLB/FBX export plus clean import only after production package validation rejects the unapproved run.",
+    "No human reviewed or approved the recorded material-loop fixtures, and no production package or delivery terminal was created by the unapproved delivery-mechanism test.",
+    "The tracked 2026-08-13 material-loop evidence is compact bookkeeping; raw pytest stdout, basetemp workspaces, exported binaries, and clean-import workspaces are not committed.",
+    "The current Codex task used built-in ImageGen for earlier manual evidence, but repository contract evidence intentionally retains repository_contract_actual_execution_verified=false.",
     "The AQ v2 benchmark is deterministic synthetic evidence and has not received human review.",
     "The DesktopInSession controller adopts exact outputs but does not itself create Codex tasks or model output.",
     "The optional Codex App Server adapter and a fully closed supporting-client loop remain unverified.",
     "Required scored landmark and multiview evidence cannot authorize pass until typed host-verifiable raw input receipts exist.",
     "The expanded MaterialGraph whitelist does not establish arbitrary graph support or general shader quality.",
-    "Unity and Unreal runtime material or import parity remain unverified; destination plans are advisory only.",
+    "Unity and Unreal runtime material or import parity remain unverified; no destination project was modified or validated.",
     "Selected Blender fixtures do not prove quality improvement for arbitrary user references."
   ]
 }

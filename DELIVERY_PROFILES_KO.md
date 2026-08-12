@@ -78,6 +78,11 @@ authoritative hard finding은 exact required gate의 `failed` outcome에 결속�
 source/input map은 위 canonical authoring artifact와 promotion/survival evidence의 전체 current
 closure를 포함해야 하며, summary field나 과거 receipt로 누락 source를 보완할 수 없다.
 
+Codex ImageGen Material Loop source라면 promotion companion이 결속한 native provenance와
+`CodexImageNativeCorePreparationReceipt`, 다중 후보 selection receipt와 선택적 exact-adoption Blender
+shadow preflight도 같은 current closure에 남아야 한다. freeze나 delivery가 이를 생략해 orphaned
+generated material을 accepted source로 만들 수 없다.
+
 IQ outcome `passed`만 freeze를 만들 수 있다. `needs_revision|unscorable`은
 `review_required` terminal과 exact review bundle으로 끝나고, `blocked`는 bundle/freeze 없는 blocked
 terminal로 끝난다. 어떤 branch도 package-ready로 재분류하지 않는다.
@@ -114,6 +119,11 @@ portable_fbx
 테스트가 사용하는 `approved_by=user` artifact는 exact approval 소비·stale·single-use 규칙을
 검증하기 위한 synthetic fixture다. 사람의 실제 대화형 승인을 받았다고 기록하거나 production
 승인으로 재사용하지 않는다.
+
+Codex ImageGen Material Loop의 네 family delivery fixture는 이 synthetic approval 경로를 사용하지
+않는다. 실제 V0.7 review 생성 뒤 `waiting_for_v07_approval`에서 멈추고 production
+`package_asset`이 approval 부재를 거부하는지 확인한다. 이후 별도 test-only raw exporter와 clean
+import를 실행하더라도 그 결과는 mechanism evidence이며 approval/package/terminal 성공이 아니다.
 
 승인이 없으면 다음을 수행하지 않는다.
 
@@ -267,6 +277,14 @@ host tests에서 확인된 범위:
 - GeometryIntent/material loss/survival과 crash adoption
 - package 없는 `review_only` terminal
 
+Codex ImageGen Material Loop 후속 fixture에서 분리해 확인하는 범위:
+
+- fake four-family material/IQ에서 생성된 quality-approved source로 V0.7 review까지 진행
+- approval 부재에서 `waiting_for_v07_approval` 정지와 production package 호출 거부
+- 별도 mechanism root의 raw GLB/FBX direct export와 fresh Blender clean import
+- mechanism root에 production package manifest/accepted result/completed terminal을 만들지 않음
+- historical actual ImageGen source는 semantic `review_required`여서 delivery 입력이 되지 않음
+
 이번 문서 최종화에서 확인하지 않은 범위:
 
 - 실제 사용자가 대화형으로 승인한 production V0.7 plan
@@ -274,6 +292,8 @@ host tests에서 확인된 범위:
 - Unity/Unreal import/runtime 결과
 - package-bound Destination Handoff의 실제 목적지 재조립
 - Codex Desktop/App Server가 controller output부터 자율 생산하는 실행
+- Codex ImageGen Material Loop에 대한 실제 사용자의 production V0.7 plan-hash 승인과 accepted
+  package
 
 이 미검증 항목이 남아 있으므로 `autonomous_static_prop_v2`와 관련 experimental delivery는
 계속 `disabled_experimental`이다.

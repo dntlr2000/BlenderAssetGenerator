@@ -518,6 +518,17 @@ def _controller_validation_boundary(
         event = "candidate_validated"
         outcome = "geometry_candidate_validated"
     elif profile.profile_id == "material_authoring":
+        from .codex_image_material_loop_service import (
+            validate_codex_image_material_controller_promotion_boundary,
+        )
+
+        validate_codex_image_material_controller_promotion_boundary(
+            root,
+            session_root,
+            plan,
+            state,
+            result_artifact,
+        )
         receipt, evidence = validate_and_promote_material_controller_result_v2(
             root,
             plan,
@@ -949,6 +960,12 @@ def _advance_quality_action(
             "required_contract": "QualitySubmissionV2",
             "state": state.model_dump(mode="json"),
         }
+    _validate_optional_codex_image_material_companion(
+        root=root,
+        session_root=session_root,
+        state=state,
+        submission=submission,
+    )
     validated_submission = _validate_quality_submission(
         root,
         plan,
@@ -1016,7 +1033,7 @@ def _advance_quality_action(
         reason=reason,
     )
     state_artifact = _write_next_state(root, session_root, next_state)
-    return {
+    result: dict[str, object] = {
         "advanced": True,
         "outcome": report.outcome,
         "quality_terminal": terminal_artifact.model_dump(mode="json"),
@@ -1029,6 +1046,162 @@ def _advance_quality_action(
         "state": next_state.model_dump(mode="json"),
         "state_artifact": state_artifact.model_dump(mode="json"),
     }
+    companion = _record_optional_codex_image_material_quality_result(
+        root=root,
+        session_root=session_root,
+        submission=submission,
+        supervisor_result=result,
+    )
+    if companion is not None:
+        result["codex_image_material_loop"] = companion
+    return result
+
+
+def _validate_optional_codex_image_material_companion(
+    *,
+    root: Path,
+    session_root: Path,
+    state: AutonomyStateV2,
+    submission: QualitySubmissionV2,
+) -> None:
+    """Require the exact companion promotion chain when this AQ session has one."""
+
+    loop_root = session_root / "codex_image_material_loop"
+    bridge_path = loop_root / "bridge_plan.json"
+    if not os.path.exists(native_io_path(bridge_path)):
+        return
+    promotion_path = loop_root / "promotion_receipt.json"
+    if not os.path.exists(native_io_path(promotion_path)):
+        raise PermissionError("ImageGen material loop has no completed promotion receipt")
+    from ..codex_imagegen.artifacts import artifact_for_codex_image
+    from .codex_image_material_quality_service import (
+        validate_codex_image_material_quality_boundary,
+    )
+
+    promotion_artifact = artifact_for_codex_image(
+        root,
+        promotion_path,
+        artifact_id=f"image-material-promotion-{state.session_id}",
+        kind="material-promotion-receipt",
+        media_type="application/json",
+    )
+    validate_codex_image_material_quality_boundary(
+        root,
+        session_id=state.session_id,
+        promotion_receipt_artifact=promotion_artifact,
+        quality_submission=submission,
+        state=state,
+    )
+
+
+def _record_optional_codex_image_material_quality_result(
+    *,
+    root: Path,
+    session_root: Path,
+    submission: QualitySubmissionV2,
+    supervisor_result: dict[str, object],
+) -> dict[str, object] | None:
+    """Append the ImageGen companion quality state while the AQ session lock is held."""
+
+    loop_root = session_root / "codex_image_material_loop"
+    bridge_path = loop_root / "bridge_plan.json"
+    if not os.path.exists(native_io_path(bridge_path)):
+        return None
+    promotion_path = loop_root / "promotion_receipt.json"
+    if not os.path.exists(native_io_path(promotion_path)):
+        raise PermissionError("ImageGen material loop has no completed promotion receipt")
+    from ..codex_imagegen.artifacts import artifact_for_codex_image
+    from .codex_image_material_loop_service import (
+        record_codex_image_material_loop_quality_result_locked,
+    )
+
+    promotion_artifact = artifact_for_codex_image(
+        root,
+        promotion_path,
+        artifact_id=f"image-material-promotion-{session_root.name}",
+        kind="material-promotion-receipt",
+        media_type="application/json",
+    )
+    return record_codex_image_material_loop_quality_result_locked(
+        root,
+        session_root.name,
+        promotion_receipt_artifact=promotion_artifact,
+        quality_submission=submission,
+        supervisor_result=supervisor_result,
+    )
+
+
+def _recover_optional_codex_image_material_quality_result(
+    *,
+    root: Path,
+    session_root: Path,
+    state: AutonomyStateV2,
+    state_artifact: AQV2Artifact,
+    submission: QualitySubmissionV2 | None,
+) -> dict[str, object] | None:
+    """Recover a companion terminal after the base AQ quality transition was published."""
+
+    if state.quality_terminal is None or submission is None:
+        return None
+    report = cast(
+        IntegratedQualityReportV02,
+        _read_exact_model(root, submission.integrated_quality_report, IntegratedQualityReportV02),
+    )
+    return _record_optional_codex_image_material_quality_result(
+        root=root,
+        session_root=session_root,
+        submission=submission,
+        supervisor_result={
+            "advanced": False,
+            "outcome": report.outcome,
+            "quality_terminal": state.quality_terminal.model_dump(mode="json"),
+            "state": state.model_dump(mode="json"),
+            "state_artifact": state_artifact.model_dump(mode="json"),
+        },
+    )
+
+
+def _codex_image_material_quality_recovery_required(
+    *, session_root: Path, state: AutonomyStateV2
+) -> bool:
+    """Detect a base quality transition whose companion terminal is still unpublished."""
+
+    loop_root = session_root / "codex_image_material_loop"
+    return (
+        state.quality_terminal is not None
+        and os.path.exists(native_io_path(loop_root / "bridge_plan.json"))
+        and not os.path.exists(native_io_path(loop_root / "terminal.json"))
+    )
+
+
+def _validate_optional_codex_image_material_terminal(
+    *, root: Path, session_root: Path
+) -> None:
+    """Require the recursively valid companion terminal before any delivery mutation."""
+
+    loop_root = session_root / "codex_image_material_loop"
+    if not os.path.exists(native_io_path(loop_root / "bridge_plan.json")):
+        return
+    terminal_path = loop_root / "terminal.json"
+    if not os.path.exists(native_io_path(terminal_path)):
+        raise PermissionError("ImageGen material loop quality terminal is not published")
+    from ..codex_imagegen.artifacts import artifact_for_codex_image
+    from .codex_image_material_loop_service import (
+        validate_codex_image_material_loop_terminal,
+    )
+
+    terminal_artifact = artifact_for_codex_image(
+        root,
+        terminal_path,
+        artifact_id=f"material-loop-terminal-{session_root.name}",
+        kind="material-loop-terminal",
+        media_type="application/json",
+    )
+    validate_codex_image_material_loop_terminal(
+        root,
+        terminal_artifact,
+        require_current=True,
+    )
 
 
 def _validate_delivery_plan(
@@ -1183,6 +1356,11 @@ def _advance_delivery_plan_action(
     allow_disabled_experimental: bool,
 ) -> dict[str, object]:
     """Plan authorized deliveries, create V0.7 reviews, and stop before approval."""
+
+    _validate_optional_codex_image_material_terminal(
+        root=root,
+        session_root=session_root,
+    )
 
     delivery, delivery_artifact = _adopt_or_create_delivery_plan(
         root=root,
@@ -1430,6 +1608,11 @@ def _advance_delivery_action(
 ) -> dict[str, object]:
     """Finish one approved delivery action and hash-chain its terminal state."""
 
+    _validate_optional_codex_image_material_terminal(
+        root=root,
+        session_root=session_root,
+    )
+
     if state.delivery_plan is None:
         raise ValueError("delivery-pending state lacks its exact delivery plan")
     delivery = _validate_delivery_plan(root, plan, state, state.delivery_plan)
@@ -1511,14 +1694,46 @@ def advance_autonomy_v2(
             allow_disabled_experimental=allow_disabled_experimental,
         )
         authorization = _load_authorization(root, plan)
-        if state.next_action == "none" or state.status in _TERMINAL_STATUSES:
+        companion_recovery_required = _codex_image_material_quality_recovery_required(
+            session_root=session_root,
+            state=state,
+        )
+        companion_recovery = _recover_optional_codex_image_material_quality_result(
+            root=root,
+            session_root=session_root,
+            state=state,
+            state_artifact=state_artifact,
+            submission=submission,
+        )
+        if companion_recovery_required and companion_recovery is None:
             return {
+                "advanced": False,
+                "outcome": "waiting_for_integrated_quality_submission_recovery",
+                "next_action": "run_integrated_quality",
+                "required_contract": "QualitySubmissionV2",
+                "state": state.model_dump(mode="json"),
+                "state_artifact": state_artifact.model_dump(mode="json"),
+            }
+        if companion_recovery is not None:
+            return {
+                "advanced": False,
+                "outcome": "material_loop_quality_terminal_recovered",
+                "next_action": state.next_action,
+                "state": state.model_dump(mode="json"),
+                "state_artifact": state_artifact.model_dump(mode="json"),
+                "codex_image_material_loop": companion_recovery,
+            }
+        if state.next_action == "none" or state.status in _TERMINAL_STATUSES:
+            result: dict[str, object] = {
                 "advanced": False,
                 "outcome": "terminal",
                 "next_action": "none",
                 "state": state.model_dump(mode="json"),
                 "state_artifact": state_artifact.model_dump(mode="json"),
             }
+            if companion_recovery is not None:
+                result["codex_image_material_loop"] = companion_recovery
+            return result
         if state.next_action == "collect_reference":
             return _advance_reference_action(
                 root=root,

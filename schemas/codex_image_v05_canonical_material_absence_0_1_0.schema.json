@@ -1,0 +1,170 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to its exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 96,
+          "minLength": 1,
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record exact observation that no canonical MaterialPlan exists for one session.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "absence_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Absence Id",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 64,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "const": "codex_blender_modeler.material_authoring.codex_image_v05_bridge",
+      "default": "codex_blender_modeler.material_authoring.codex_image_v05_bridge",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/ExactArtifact"
+      },
+      "maxItems": 1,
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "source_scene_spec": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "canonical_path": {
+      "const": "analysis/material_plan.json",
+      "default": "analysis/material_plan.json",
+      "title": "Canonical Path",
+      "type": "string"
+    },
+    "observed_absent": {
+      "const": true,
+      "default": true,
+      "title": "Observed Absent",
+      "type": "boolean"
+    },
+    "canonical_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Performed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "absence_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "provenance",
+    "created_at",
+    "source_scene_spec"
+  ],
+  "title": "CodexImageV05CanonicalMaterialAbsence",
+  "type": "object"
+}

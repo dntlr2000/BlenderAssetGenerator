@@ -1,0 +1,333 @@
+{
+  "$defs": {
+    "CodexImageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to exact bytes and media semantics.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "CodexImageArtifact",
+      "type": "object"
+    },
+    "ImageMaterialLoopBudgetUsage": {
+      "additionalProperties": false,
+      "description": "Record monotonic companion operations without changing the base AQ budget.",
+      "properties": {
+        "normalization_runs": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Normalization Runs",
+          "type": "integer"
+        },
+        "semantic_reviews": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Semantic Reviews",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "promotions_consumed": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Promotions Consumed",
+          "type": "integer"
+        }
+      },
+      "title": "ImageMaterialLoopBudgetUsage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record one append-only companion state distinct from the base AQ v2 state.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "state_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "State Id",
+      "type": "string"
+    },
+    "sequence": {
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "previous_state_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous State Sha256"
+    },
+    "status": {
+      "enum": [
+        "controller_promotion_required",
+        "promoting_material",
+        "material_promoted",
+        "waiting_for_quality",
+        "quality_approved",
+        "review_required",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "bridge_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "controller_input": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "promotion_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "material_phase_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "base_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "failure_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "review_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "budget_usage": {
+      "$ref": "#/$defs/ImageMaterialLoopBudgetUsage"
+    },
+    "latest_failure": {
+      "anyOf": [
+        {
+          "maxLength": 2048,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Latest Failure"
+    },
+    "promotion_consumed_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Promotion Consumed Sha256"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "state_id",
+    "sequence",
+    "status",
+    "bridge_plan",
+    "controller_input"
+  ],
+  "title": "CodexImageMaterialLoopState",
+  "type": "object"
+}

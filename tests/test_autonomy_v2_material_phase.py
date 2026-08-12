@@ -945,6 +945,55 @@ def test_material_phase_rolls_back_when_canonical_rebuild_fails(
     assert rollback.restored_build_provenance_snapshot is not None
 
 
+def test_material_phase_rolls_back_when_atomic_replace_raises_after_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Detect a completed canonical replace and still restore the exact baseline."""
+
+    root, plan, budget, state, result, baseline_sha = _fixture(tmp_path, monkeypatch)
+    import codex_blender_modeler.autonomy_v2.material_phase_service as service
+
+    original_replace = service.os.replace
+    injected = False
+
+    def replace_then_fail(source: object, destination: object) -> None:
+        """Raise once after the candidate bytes have reached canonical storage."""
+
+        nonlocal injected
+        original_replace(source, destination)
+        if not injected and ".material_plan." in str(source):
+            injected = True
+            raise OSError("injected post-replace failure")
+
+    monkeypatch.setattr(service.os, "replace", replace_then_fail)
+    with pytest.raises(MaterialPhaseError, match="rollback evidence"):
+        validate_and_promote_material_controller_result_v2(
+            root,
+            plan,
+            budget,
+            state,
+            result,
+        )
+    assert injected
+    assert sha256_file(root / "analysis" / "material_plan.json") == baseline_sha
+    rollback_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "material_phase"
+        / f"{state.sequence:04d}"
+        / "rollback_receipt.json"
+    )
+    assert rollback_path.is_file()
+    rollback = MaterialPhaseRollbackReceiptV2.model_validate_json(
+        rollback_path.read_bytes()
+    )
+    assert rollback.status == "rolled_back"
+    assert rollback.restored_build_provenance_snapshot is not None
+
+
 def test_material_phase_rejects_exhausted_budget_before_host_work(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

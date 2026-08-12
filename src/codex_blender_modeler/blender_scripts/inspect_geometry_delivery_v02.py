@@ -100,6 +100,23 @@ def _vector(values: Any, size: int) -> list[float]:
     return [_round(values[index]) for index in range(size)]
 
 
+def _normal_vector(values: Any) -> list[float]:
+    """Quantize one unit normal within Blender interchange serialization precision."""
+
+    result: list[float] = []
+    for index in range(3):
+        number = float(values[index])
+        if not math.isfinite(number):
+            raise RuntimeError("delivery geometry contains a non-finite normal")
+        # Blender 5 glTF serializes normals at four decimal places and its importer
+        # applies another bounded component quantization. A 1e-3 comparison cell
+        # absorbs that round-trip noise while keeping flips and visible smoothing
+        # changes outside the exact split-normal fingerprint.
+        rounded = round(round(number / 0.001) * 0.001, 3)
+        result.append(0.0 if rounded == 0.0 else rounded)
+    return result
+
+
 def _available(value: object) -> dict[str, object]:
     """Wrap one exact normalized fingerprint as available stage evidence."""
 
@@ -242,7 +259,7 @@ def _triangle_records(obj: bpy.types.Object) -> dict[str, list[object]]:
                 {
                     "position": _vector(position, 3),
                     "uv": _vector(uv_data[loop_index].uv, 2),
-                    "normal": _vector(normal, 3),
+                    "normal": _normal_vector(normal),
                 }
             )
         corners.sort(key=lambda item: json.dumps(item, sort_keys=True))

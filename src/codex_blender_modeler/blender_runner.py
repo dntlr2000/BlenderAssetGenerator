@@ -52,6 +52,8 @@ def run_blender(
         cwd=settings.repo_root,
         stdin=subprocess.DEVNULL,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         capture_output=True,
         timeout=settings.blender_timeout,
         check=False,

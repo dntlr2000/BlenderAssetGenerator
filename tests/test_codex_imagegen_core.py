@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -9,7 +11,14 @@ import pytest
 from PIL import Image
 from pydantic import ValidationError
 
-from codex_blender_modeler.blender_artifacts import stable_json_digest, write_json_atomic
+from codex_blender_modeler.blender_artifacts import (
+    sha256_file,
+    stable_json_digest,
+    write_json_atomic,
+)
+from codex_blender_modeler.codex_imagegen import (
+    native_core_preparation as native_core_service,
+)
 from codex_blender_modeler.codex_imagegen.adoption import (
     build_image_to_material_adoption,
 )
@@ -35,12 +44,30 @@ from codex_blender_modeler.codex_imagegen.completion import (
 from codex_blender_modeler.codex_imagegen.fake_controller_backend import (
     FakeCodexImagegenController,
 )
+from codex_blender_modeler.codex_imagegen.material_loop_models import (
+    MaterialLoopRasterSize,
+    imagegen_native_normalization_output_path,
+    imagegen_native_normalization_plan_path,
+)
+from codex_blender_modeler.codex_imagegen.material_loop_normalization import (
+    plan_native_image_normalization,
+    validate_native_normalization_receipt,
+)
 from codex_blender_modeler.codex_imagegen.models import (
     CodexBuiltinImageProviderProfile,
     CodexImageArtifact,
     CodexImageDimensions,
     CodexImageGenerationBudgetUsage,
     CodexImageGenerationPlanItem,
+)
+from codex_blender_modeler.codex_imagegen.native_core_preparation import (
+    publish_codex_image_native_core_preparation_receipt,
+    validate_codex_image_native_core_preparation_receipt,
+    validate_native_core_preparation_binding,
+)
+from codex_blender_modeler.codex_imagegen.native_output_adoption import (
+    adopt_codex_imagegen_native_output_bytes,
+    validate_codex_image_native_output_adoption,
 )
 from codex_blender_modeler.codex_imagegen.planning import build_codex_imagegen_plan
 from codex_blender_modeler.codex_imagegen.profile import (
@@ -49,6 +76,9 @@ from codex_blender_modeler.codex_imagegen.profile import (
 )
 from codex_blender_modeler.codex_imagegen.public_service import (
     adopt_codex_imagegen_completion,
+    adopt_codex_imagegen_native_output,
+    prepare_codex_imagegen_native_output_for_core_completion,
+    validate_prepared_native_output_for_core_completion,
 )
 from codex_blender_modeler.codex_imagegen.quality import evaluate_candidate_quality
 from codex_blender_modeler.codex_imagegen.selection import (
@@ -63,6 +93,25 @@ from codex_blender_modeler.production.controller_executor import (
 )
 
 NOW = datetime(2026, 8, 11, 12, 0, tzinfo=UTC)
+
+
+def _create_native_directory_link_or_skip(link: Path, target: Path) -> None:
+    """Create one linked native-evidence root or skip unsupported hosts."""
+
+    if os.name == "nt":
+        result = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            pytest.skip(f"directory junction creation is unavailable: {result.stderr}")
+        return
+    try:
+        link.symlink_to(target, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"directory symlink creation is unavailable: {exc}")
 
 
 def _write_artifact(
@@ -395,6 +444,19 @@ def test_full_candidate_quality_selection_and_adoption_chain(tmp_path: Path) -> 
         selection,
         kind="codex-image-generation-selection",
     )
+    assert (
+        validate_native_core_preparation_binding(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            core_completion=completion_artifact,
+            core_candidate=candidate_artifact,
+            core_generated_image_evidence=evidence_artifact,
+            core_quality_report=report_artifact,
+            core_selection=selection_artifact,
+            preparation_receipt=None,
+        )
+        is None
+    )
     adoption = build_image_to_material_adoption(
         contract_id="adoption-contract-1",
         adoption_id="adoption-1",
@@ -421,6 +483,435 @@ def test_full_candidate_quality_selection_and_adoption_chain(tmp_path: Path) -> 
     )
     assert usage.total_generations == 1
     assert usage.candidates == 1
+
+
+def test_native_png_is_preserved_normalized_and_passes_existing_core_selection(
+    tmp_path: Path,
+) -> None:
+    """Adopt 1254px native bytes, normalize to 64px, then reuse core completion."""
+
+    assignment, assignment_artifact, _budget = _build_assignment(tmp_path)
+    native_source = (
+        tmp_path
+        / "production/autonomy_v2/session-1/codex_imagegen/controller-native.png"
+    )
+    native_seed = native_source.with_name("controller-native-seed.png")
+    _write_tileable_png(native_seed, width=64, height=64, mode="RGB")
+    with Image.open(native_seed) as seeded:
+        seeded.resize((1254, 1254), Image.Resampling.NEAREST).save(
+            native_source,
+            format="PNG",
+        )
+    original_bytes = native_source.read_bytes()
+    original_sha256 = sha256_file(native_source)
+    adoption = adopt_codex_imagegen_native_output(
+        job_root=tmp_path,
+        assignment_artifact=assignment_artifact,
+        allowed_source_root=tmp_path,
+        native_source_path=native_source,
+        native_output_id="native-output-1",
+        ordinal=0,
+        output_role="base_color",
+        receipt_contract_id="native-adoption-1",
+        created_at=NOW,
+    )
+    original_path = tmp_path / adoption.original_image.path
+    assert adoption.receipt.native_size == MaterialLoopRasterSize(
+        width=1254,
+        height=1254,
+    )
+    assert adoption.receipt.expected_assignment_size == MaterialLoopRasterSize(
+        width=64,
+        height=64,
+    )
+    assert original_path.read_bytes() == original_bytes
+    assert adoption.original_image.sha256 == original_sha256
+    resumed_adoption = adopt_codex_imagegen_native_output(
+        job_root=tmp_path,
+        assignment_artifact=assignment_artifact,
+        allowed_source_root=tmp_path,
+        native_source_path=native_source.with_name("missing-after-receipt.png"),
+        native_output_id="native-output-1",
+        ordinal=0,
+        output_role="base_color",
+        receipt_contract_id="native-adoption-1",
+        created_at=NOW,
+    )
+    assert resumed_adoption == adoption
+    _write_tileable_png(native_source, width=1254, height=1254, mode="RGBA")
+    with pytest.raises(FileExistsError, match="conflicts"):
+        adopt_codex_imagegen_native_output(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            allowed_source_root=tmp_path,
+            native_source_path=native_source,
+            native_output_id="native-output-1",
+            ordinal=0,
+            output_role="base_color",
+            receipt_contract_id="native-adoption-1",
+            created_at=NOW,
+        )
+
+    plan = plan_native_image_normalization(
+        tmp_path,
+        contract_id="native-normalization-1",
+        job_id=assignment.job_id,
+        workflow_id=assignment.workflow_id,
+        dispatch_id=assignment.dispatch_id,
+        session_id=assignment.session_id,
+        source_image=adoption.original_image,
+        output_path=imagegen_native_normalization_output_path(
+            assignment.session_id,
+            "native-normalization-1",
+        ),
+        target_size=MaterialLoopRasterSize(width=64, height=64),
+        source_color_space="srgb",
+        preferred_operation="contain_pad",
+        created_at=NOW,
+    )
+    plan_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path
+        / imagegen_native_normalization_plan_path(
+            assignment.session_id,
+            plan.contract_id,
+        ),
+        plan,
+        kind="imagegen-native-normalization-plan",
+    )
+    prepared = prepare_codex_imagegen_native_output_for_core_completion(
+        job_root=tmp_path,
+        assignment_artifact=assignment_artifact,
+        adoption_receipt_artifact=adoption.receipt_artifact,
+        plan=plan,
+        plan_artifact=plan_artifact,
+        receipt_contract_id="native-normalization-receipt-1",
+        created_at=NOW,
+    )
+    assert (
+        prepared.receipt.native_output_adoption_receipt
+        == adoption.receipt_artifact
+    )
+    normalized_path = tmp_path / prepared.normalized_image.path
+    with Image.open(normalized_path) as opened:
+        assert opened.size == (64, 64)
+    assert original_path.read_bytes() == original_bytes
+    assert sha256_file(original_path) == original_sha256
+
+    output_paths = tuple(
+        tmp_path / path
+        for path in [
+            *assignment.candidate_output_paths,
+            assignment.completion_file_target,
+        ]
+    )
+    completion = copy_imagegen_png_and_write_completion(
+        controller_workspace_root=tmp_path,
+        allowed_source_root=tmp_path,
+        assignment_path=tmp_path / assignment_artifact.path,
+        assignment_artifact=assignment_artifact,
+        source_png_paths=[normalized_path],
+        allowed_output_paths=output_paths,
+        output_roles=["base_color"],
+        completion_id="native-completion-1",
+        controller_kind="fake_for_tests",
+        controller_executed_at=NOW,
+    )
+    completion_artifact = artifact_for_codex_image(
+        tmp_path,
+        output_paths[-1],
+        artifact_id=completion.contract_id,
+        kind="codex-image-generation-completion",
+        media_type="application/json",
+    )
+    validate_codex_imagegen_completion(
+        job_root=tmp_path,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+    )
+    controller_request = _write_artifact(
+        tmp_path,
+        "production/autonomy_v2/session-1/codex_imagegen/native-request.json",
+        artifact_id="native-request-1",
+        kind="controller-request",
+    )
+    controller_result = _write_artifact(
+        tmp_path,
+        "production/autonomy_v2/session-1/codex_imagegen/native-result.json",
+        artifact_id="native-result-1",
+        kind="controller-result",
+    )
+    candidate = build_codex_imagegen_candidate(
+        contract_id="native-candidate-1",
+        assignment=assignment,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+        controller_request_artifact=controller_request,
+        controller_result_artifact=controller_result,
+        generated_file=completion.generated_files[0],
+        created_at=NOW,
+    )
+    candidate_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path / "production/autonomy_v2/session-1/codex_imagegen/native-candidate.json",
+        candidate,
+        kind="codex-image-generation-candidate",
+    )
+    evidence = build_generated_image_evidence(
+        contract_id="native-evidence-1",
+        candidate=candidate,
+        candidate_artifact=candidate_artifact,
+        created_at=NOW,
+    )
+    evidence_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path / "production/autonomy_v2/session-1/codex_imagegen/native-evidence.json",
+        evidence,
+        kind="codex-generated-image-evidence",
+    )
+    report = evaluate_candidate_quality(
+        job_root=tmp_path,
+        report_id="native-quality-1",
+        assignment=assignment,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+        candidate=candidate,
+        candidate_artifact=candidate_artifact,
+        generated_image_evidence=evidence,
+        generated_image_evidence_artifact=evidence_artifact,
+        created_at=NOW,
+    )
+    report_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path / "production/autonomy_v2/session-1/codex_imagegen/native-quality.json",
+        report,
+        kind="codex-image-generation-quality-report",
+    )
+    selection = select_codex_imagegen_candidate(
+        selection_id="native-selection-1",
+        assignment=assignment,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+        candidates=[(candidate, candidate_artifact)],
+        quality_reports=[(report, report_artifact)],
+        created_at=NOW,
+    )
+    assert report.outcome == "passed"
+    assert selection.outcome == "selected"
+    assert selection.selected_candidate == candidate_artifact
+    assert original_path.read_bytes() == original_bytes
+    selection_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path
+        / "production/autonomy_v2/session-1/codex_imagegen/native-selection.json",
+        selection,
+        kind="codex-image-generation-selection",
+    )
+    with pytest.raises(ValueError, match="origin is orphaned"):
+        validate_native_core_preparation_binding(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            core_completion=completion_artifact,
+            core_candidate=candidate_artifact,
+            core_generated_image_evidence=evidence_artifact,
+            core_quality_report=report_artifact,
+            core_selection=selection_artifact,
+            preparation_receipt=None,
+        )
+    native_core = publish_codex_image_native_core_preparation_receipt(
+        job_root=tmp_path,
+        preparation_id="native-core-preparation-1",
+        assignment_artifact=assignment_artifact,
+        native_output_adoption_receipt=adoption.receipt_artifact,
+        normalization_plan=plan_artifact,
+        normalization_receipt=prepared.receipt_artifact,
+        core_completion=completion_artifact,
+        core_candidate=candidate_artifact,
+        core_generated_image_evidence=evidence_artifact,
+        core_quality_report=report_artifact,
+        core_selection=selection_artifact,
+        created_at=NOW,
+    )
+    validated_preparation = validate_native_core_preparation_binding(
+        job_root=tmp_path,
+        assignment_artifact=assignment_artifact,
+        core_completion=completion_artifact,
+        core_candidate=candidate_artifact,
+        core_generated_image_evidence=evidence_artifact,
+        core_quality_report=report_artifact,
+        core_selection=selection_artifact,
+        preparation_receipt=native_core.receipt_artifact,
+    )
+    assert validated_preparation == native_core.receipt
+    assert native_core.receipt.core_contracts_modified is False
+    assert native_core.receipt.normalized_image.sha256 == (
+        native_core.receipt.core_generated_image.sha256
+    )
+    tampered_preparation_artifact = native_core.receipt_artifact.model_copy(
+        update={"sha256": "f" * 64}
+    )
+    with pytest.raises(ValueError, match="hash changed"):
+        validate_codex_image_native_core_preparation_receipt(
+            tmp_path,
+            tampered_preparation_artifact,
+        )
+
+    wrong_assignment = _write_artifact(
+        tmp_path,
+        "production/autonomy_v2/session-1/codex_imagegen/wrong-assignment.json",
+        artifact_id="wrong-assignment",
+        kind="codex-image-generation-assignment",
+    )
+    with pytest.raises(ValueError, match="another assignment"):
+        prepare_codex_imagegen_native_output_for_core_completion(
+            job_root=tmp_path,
+            assignment_artifact=wrong_assignment,
+            adoption_receipt_artifact=adoption.receipt_artifact,
+            plan=plan,
+            plan_artifact=plan_artifact,
+            receipt_contract_id="wrong-target-receipt",
+            created_at=NOW,
+        )
+    replay_tamper = plan.model_copy(update={"input_sha256": "f" * 64})
+    with pytest.raises(ValueError, match="input digest"):
+        prepare_codex_imagegen_native_output_for_core_completion(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            adoption_receipt_artifact=adoption.receipt_artifact,
+            plan=replay_tamper,
+            plan_artifact=plan_artifact,
+            receipt_contract_id="wrong-replay-receipt",
+            created_at=NOW,
+        )
+    receipt_tamper = prepared.receipt_artifact.model_copy(
+        update={"sha256": "f" * 64}
+    )
+    with pytest.raises(ValueError, match="hash changed"):
+        validate_prepared_native_output_for_core_completion(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            adoption_receipt_artifact=adoption.receipt_artifact,
+            plan=plan,
+            plan_artifact=plan_artifact,
+            receipt_artifact=receipt_tamper,
+        )
+    adoption_tamper = adoption.receipt_artifact.model_copy(
+        update={"sha256": "e" * 64}
+    )
+    with pytest.raises(ValueError, match="hash changed"):
+        validate_prepared_native_output_for_core_completion(
+            job_root=tmp_path,
+            assignment_artifact=assignment_artifact,
+            adoption_receipt_artifact=adoption_tamper,
+            plan=plan,
+            plan_artifact=plan_artifact,
+            receipt_artifact=prepared.receipt_artifact,
+        )
+    orphaned_receipt = prepared.receipt.model_copy(
+        update={
+            "native_output_adoption_receipt": None,
+            "input_sha256": stable_json_digest(
+                {
+                    "plan_sha256": plan_artifact.sha256,
+                    "source_sha256": plan.source_image.sha256,
+                    "output_sha256": prepared.normalized_image.sha256,
+                    "native_output_adoption_receipt_sha256": None,
+                }
+            ),
+        }
+    )
+    with pytest.raises(ValueError, match="native-original normalization"):
+        validate_native_normalization_receipt(tmp_path, plan, orphaned_receipt)
+
+
+def test_native_origin_scan_rejects_linked_normalization_root(tmp_path: Path) -> None:
+    """Reject a linked normalization evidence root instead of treating it as absent."""
+
+    assignment, assignment_artifact, _budget = _build_assignment(tmp_path)
+    image_artifact = _write_artifact(
+        tmp_path,
+        "production/autonomy_v2/session-1/codex_imagegen/generated-placeholder.png",
+        artifact_id="generated-placeholder",
+        kind="codex-generated-image",
+        media_type="image/png",
+    )
+    evidence_parent = (
+        tmp_path
+        / "production"
+        / "autonomy_v2"
+        / assignment.session_id
+        / "codex_imagegen"
+    )
+    evidence_parent.mkdir(parents=True, exist_ok=True)
+    linked_root = evidence_parent / "native_normalizations"
+    linked_target = tmp_path / "linked-native-normalizations"
+    linked_target.mkdir()
+    _create_native_directory_link_or_skip(linked_root, linked_target)
+
+    with pytest.raises(ValueError, match="symlink or junction"):
+        native_core_service._matching_native_normalization_origins(
+            tmp_path,
+            assignment=assignment,
+            assignment_artifact=assignment_artifact,
+            generated_image=image_artifact,
+            ordinal=0,
+            output_role="base_color",
+        )
+
+
+def test_native_original_crash_adoption_and_tamper_rejection(tmp_path: Path) -> None:
+    """Adopt an exact crash-left original and reject conflicting or changed evidence."""
+
+    _assignment, assignment_artifact, _budget = _build_assignment(tmp_path)
+    source = (
+        tmp_path / "production/autonomy_v2/session-1/codex_imagegen/native-crash.png"
+    )
+    _write_tileable_png(source, width=96, height=96, mode="RGBA")
+    first = adopt_codex_imagegen_native_output_bytes(
+        tmp_path,
+        assignment_artifact=assignment_artifact,
+        allowed_source_root=tmp_path,
+        native_source_path=source,
+        native_output_id="native-crash-1",
+        ordinal=0,
+        output_role="base_color",
+        receipt_contract_id="native-crash-receipt-1",
+        created_at=NOW,
+    )
+    resumed = adopt_codex_imagegen_native_output_bytes(
+        tmp_path,
+        assignment_artifact=assignment_artifact,
+        allowed_source_root=tmp_path,
+        native_source_path=source,
+        native_output_id="native-crash-1",
+        ordinal=0,
+        output_role="base_color",
+        receipt_contract_id="native-crash-receipt-1",
+        created_at=NOW,
+    )
+    assert resumed == first
+    validate_codex_image_native_output_adoption(tmp_path, resumed)
+
+    forged = resumed.model_copy(update={"input_sha256": "f" * 64})
+    with pytest.raises(ValueError, match="digest"):
+        validate_codex_image_native_output_adoption(tmp_path, forged)
+    _write_tileable_png(source, width=96, height=96, mode="RGB")
+    with pytest.raises(FileExistsError, match="conflicts"):
+        adopt_codex_imagegen_native_output_bytes(
+            tmp_path,
+            assignment_artifact=assignment_artifact,
+            allowed_source_root=tmp_path,
+            native_source_path=source,
+            native_output_id="native-crash-1",
+            ordinal=0,
+            output_role="base_color",
+            receipt_contract_id="native-crash-receipt-1",
+            created_at=NOW,
+        )
+    original_path = tmp_path / resumed.original_image.path
+    original_path.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="(?:size|hash) changed"):
+        validate_codex_image_native_output_adoption(tmp_path, resumed)
 
 
 @pytest.mark.parametrize(

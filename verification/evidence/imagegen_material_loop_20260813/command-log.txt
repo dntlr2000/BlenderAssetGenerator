@@ -1,0 +1,88 @@
+Codex ImageGen 0.2 material-loop final command ledger
+Recorded: 2026-08-13 KST
+
+This ledger records the exact final-result commands and bounded retry history. It does not claim
+human review, user approval, production package acceptance, destination-engine parity, or a fresh
+built-in ImageGen invocation.
+
+1. Full repository regression
+   Command:
+   uv run --no-cache pytest -q --basetemp E:\cbmfullabsolute20260813b
+   Result: 1569 passed, 56 skipped, 8 warnings in 257.44s
+
+2. Final material-loop security/schema/service/public focus
+   Command:
+   uv run --no-cache pytest -q tests/test_codex_imagegen_core.py tests/test_codex_imagegen_security.py tests/test_codex_imagegen_schemas.py tests/test_codex_image_material_loop_contracts.py tests/test_codex_image_material_loop_normalization.py tests/test_codex_image_material_loop_selection.py tests/test_codex_image_material_loop_v05_adapter.py tests/test_codex_image_material_preview_service.py tests/test_codex_image_material_quality_service.py tests/test_codex_image_material_loop_service.py tests/test_codex_image_material_loop_public.py --basetemp E:\cbmfocussec20260813a
+   Result: 160 passed, 1 skipped in 19.49s
+
+3. Official AQ host/focused list
+   Command:
+   powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_autonomous_quality_gates.ps1 -SkipFullRegression -SkipLegacyGates -OutputRoot reports\codex_imagegen_material_loop_20260813\aq_host_final
+   Result before immutable benchmark collision: 616 passed, 24 skipped, 8 warnings in 102.01s;
+   Ruff passed; cbm doctor passed.
+   Retry reason: the output root already contained immutable benchmark JSON, so the benchmark
+   publisher correctly raised FileExistsError. Existing evidence was not deleted or overwritten.
+
+4. AQ benchmark retry in a new immutable root, with Blender
+   Commands:
+   uv run --no-cache python -m codex_blender_modeler.autonomy_benchmarks --manifest examples/autonomous_quality_benchmarks/manifest.json --output reports\codex_imagegen_material_loop_20260813\aq_benchmarks_blender_final\autonomous_quality_benchmark.json --run-blender
+   uv run --no-cache python -m codex_blender_modeler.autonomy_benchmarks.v02_cli --manifest examples/autonomous_quality_benchmarks_v02/manifest.json --output reports\codex_imagegen_material_loop_20260813\aq_benchmarks_blender_final\autonomous_quality_benchmark_v02.json --run-blender
+   Results: AQ 0.1 = 8 passed, 0 failed, 3 Blender cases;
+   AQ 0.2 = 10 passed, 0 failed, 2 Blender cases.
+   SHA-256: 0946535b3e148ddc159248ef0bc14aac2c3388fce33715dcdfe9056efa0adb39;
+   d3e565cea2307f30401e409b56e175a8ccc4f5b78a2d2fd00831d4fb3ae8d751.
+
+5. Safe AQ Blender split
+   Synthetic-user-approval test intentionally excluded:
+   tests/test_aq_v02_delivery_executor_blender.py
+   Results: group 1 = 13 passed plus one long-path assertion failure; the isolated native-safe
+   assertion retry = 1 passed in 3.24s. Group 2 = 19 passed in 62.37s. Together with the final
+   material-loop and delivery files below, the safe split totals 42 passed, 1 skipped.
+   Failure cause: Path.resolve() could not represent an existing >260-character Windows path.
+   Fix: use lexical os.path.abspath for the length assertion while retaining native_io_path file
+   existence checks. No product validator was weakened.
+
+6. Four-family material loop
+   Command:
+   CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE=1
+   uv run --no-cache pytest -q tests/test_codex_image_material_loop_blender.py --basetemp E:\ml4familyfinal20260813
+   Result: 4 passed in 101.63s
+
+7. Review and unapproved raw delivery mechanism
+   Command:
+   CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E=1
+   uv run --no-cache pytest -q tests/test_codex_image_material_loop_delivery_blender.py --basetemp E:\mldeliveryfinal20260813
+   Result: 5 passed, 1 skipped in 345.23s
+   Standalone review-only retry: 1 passed in 55.24s
+   Boundary: no OptimizationApproval, policy authorization, production package manifest, delivery
+   terminal, or destination write was created by the four fake-family mechanism cases.
+
+8. Historical actual-source review boundary
+   Source:
+   C:\Users\Woosik\.codex\generated_images\019f5f6c-86f9-7432-bd81-c38e61a8c566\exec-e9661e84-0393-4c1c-b50d-c30eaf99adc7.png
+   Source SHA-256: 82ce3d6efc85cef6aa3e166f007f0509c97dc698b378ffd7e7262eb1cc33372f
+   Prompt SHA-256: aa6b6e372ddae92d58845591977878e111f7f1ca2b5fc997024fc03a1cf92b1a
+   Result: current-task non-human semantic review boundary 1 passed in 10.96s;
+   delivery-stop assertion 1 passed in 14.81s.
+   Outcome: review_required; canonical MaterialPlan unchanged; no promotion or package.
+
+9. Static and environment checks
+   uv run --no-cache ruff check . -> passed
+   uv run --no-cache cbm doctor -> passed
+   uv run --no-cache cbm blender-compat -> Blender 5.0.1, Python 3.11.13, GLB/FBX/OBJ passed
+   uv run --no-cache python scripts/generate_schemas.py --check -> passed
+   uv run --no-cache python scripts/check_agent_instructions.py -> passed
+   Instruction inventory: root 7764 bytes, files 12, invariants 192
+   Alternate-index repository summary projection -> passed; real Git index remained unstaged
+   git diff --check -> passed; line-ending notices only
+
+10. Declared not-run boundary
+    V0.7/V0.8/V0.9 chained gate scripts were not run because their legacy opt-in fixtures include
+    synthesized user-approval semantics. Their ordinary non-opt-in host regressions are covered by
+    the full repository pytest result; no fresh chained-gate pass is claimed.
+
+11. Final public/schema/catalog/CI parity
+    Command:
+    uv run --no-cache pytest -q tests/test_ci_workflows.py tests/test_repository_catalog.py tests/test_repository_summary_generator.py tests/test_codex_image_material_loop_public.py tests/test_codex_imagegen_schemas.py --basetemp E:\cbmparityabsolute20260813b --disable-warnings
+    Result: 59 passed in 2.75s; full Ruff passed; alternate-index repository projection current;
+    real Git index empty.

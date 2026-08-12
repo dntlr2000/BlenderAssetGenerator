@@ -4,6 +4,9 @@
 > **`disabled_experimental`**이다. 이 문서는 지원·활성화를 선언하지 않는다. 실제로 실행한
 > 테스트, fake fixture와 Codex 내장 ImageGen 실사용 증거는
 > `VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md`가 권위 원본이다.
+> 기존 core `0.1.0` 위에는 native adoption/normalization, semantic ranking과 AQ material/IQ 연결을
+> 제공하는 additive Material Loop companion이 구현되어 있다. 이 companion도 profile을 활성화하거나
+> 기존 evidence를 migration하지 않는다.
 
 ## 1. 목적
 
@@ -92,50 +95,55 @@ AQ v2 base plan + active root authorization
 → ImageToMaterialAdoption 0.2.0
 → MaterialAuthoring 0.2.1 staging candidate
 → overlay status=adopted, next_action=controller_promotion_required
-→ 정지: base AQ 자동 재개·canonical material promotion 없음
-
-[향후 별도 배선과 검증이 필요한 경계]
-→ actual MaterialPhaseReceiptV2
-→ companion adoption/receipt의 exact controller-input binding
-→ authorized material promotion → IQ 0.2 → V0.7~V0.9 delivery
+→ additive Material Loop bridge/controller input
+→ ControllerExecutor material completion
+→ host-only material promotion + actual MaterialPhaseReceiptV2
+→ neutral preview + base AQ resume
+→ IQ 0.2 quality_approved | review_required | blocked
+→ 기존 review_only 또는 V0.7 exact approval 경계
 ```
 
 ImageGen completion, quality pass와 selection은 서로 다른 증거다. 그 어느 것도 사용자 승인,
-canonical material promotion, package acceptance 또는 Destination Handoff 승인이 아니다. 현재 공개
-실행은 MaterialAuthoring `0.2.1` staging receipt를 결속한 직후 멈추며 overlay `completed` 상태나
-base AQ 재개를 만들지 않는다.
+canonical material promotion, package acceptance 또는 Destination Handoff 승인이 아니다. core
+`adopt`는 MaterialAuthoring `0.2.1` staging receipt에서 계속 멈춘다. 이후 진행은 별도 Material Loop
+bridge가 exact chain을 다시 결속해 기존 host promotion/IQ authority에 위임할 때만 가능하다.
 
 ## 6. 저장 구조와 append-only state
 
 overlay는 base AQ v2 state를 덮어쓰지 않고 다음 run-owned subtree를 사용한다.
 
 ```text
-production/autonomy_v2/<session_id>/codex_imagegen/
-├─ provider-profile.json
-├─ budget.json
-├─ plan.json
-├─ overlay/
-│  └─ states/<sequence>.json
-├─ assignments/<assignment_id>/
-│  ├─ assignment.json
-│  ├─ staging/
-│  │  ├─ candidate-00.png
-│  │  └─ completion.json
-│  ├─ evidence/
-│  │  ├─ candidate-00.json
-│  │  ├─ generated-image-evidence-00.json
-│  │  └─ quality-00.json
-│  ├─ selection.json
-│  └─ adoption.json
-└─ controller_executions/codex-imagegen-<assignment_id>/
-   ├─ phase_tool_profile.json
-   ├─ request.json
-   ├─ result.json                 # waiting snapshot
-   ├─ adoption/result.json        # completed result
-   ├─ controller_workspace/
-   │  ├─ inputs/
-   │  └─ outputs/
-   └─ controller_executor_evidence/
+production/autonomy_v2/<session_id>/
+├─ codex_imagegen/
+│  ├─ provider-profile.json
+│  ├─ budget.json
+│  ├─ plan.json
+│  ├─ overlay/states/<sequence>.json
+│  ├─ assignments/<assignment_id>/
+│  │  ├─ assignment.json
+│  │  ├─ staging/candidate-00.png
+│  │  ├─ staging/completion.json
+│  │  ├─ evidence/
+│  │  ├─ selection.json
+│  │  ├─ companion-selection.json
+│  │  ├─ adoption.json
+│  │  ├─ evidence/native-core-preparation-<ordinal:02d>.json
+│  │  └─ native_outputs/<native_output_id>/{original.png,receipt.json}
+│  ├─ native_normalizations/<normalization_id>/{plan.json,normalized.png,receipt.json}
+│  ├─ material_loop/previews/<preview_id>/
+│  └─ controller_executions/codex-imagegen-<assignment_id>/
+└─ codex_image_material_loop/
+   ├─ bridge_plan.json
+   ├─ controller_input.json
+   ├─ states/<sequence>.json
+   ├─ promotion_receipt.json
+   └─ terminal.json
+
+evidence/image_material_preflights/<identity>/
+├─ receipt.json
+└─ shadow_job/
+   ├─ <exact V0.5 plan/graph/dependencies>
+   └─ compile/<compile report + compiler artifacts>
 ```
 
 실제 후보 수에 따라 `candidate-01.png`, `candidate-02.png`가 추가될 수 있다. overlay state는
@@ -165,10 +173,12 @@ generation 또는 budget을 만들지 않고 **동일한 request-owned workspace
 완료된 result는 ControllerExecutor의 started/invocation/completed/published receipt와 저장된 result
 bytes 전체를 다시 재구성해야 채택된다.
 
-여기서 resume은 ImageGen ControllerExecutor request의 output 채택까지만 뜻한다. MaterialAuthoring
-`0.2.1` receipt가 게시된 뒤에는 overlay가 `status=adopted`,
-`next_action=controller_promotion_required`에서 멈춘다. 이 상태를 `completed`로 바꾸거나 base AQ를
-자동 재개하는 공개 경로는 없다.
+여기서 core `run` resume은 ImageGen ControllerExecutor request의 output 채택까지만 뜻한다.
+MaterialAuthoring `0.2.1` receipt가 게시된 뒤 core overlay는 `status=adopted`,
+`next_action=controller_promotion_required`에서 멈춘다. additive Material Loop의 `bridge-run`,
+`promote`, `resume`, `continue`는 이 상태를 exact input으로 받아 별도 append-only state를 진행한다.
+base AQ 전이는 actual `MaterialPhaseReceiptV2`가 생성된 뒤 기존 transition service를 통해서만
+수행되며 core overlay history를 `completed`로 고쳐 쓰지 않는다.
 
 ## 8. 계약과 버전
 
@@ -189,6 +199,15 @@ Codex ImageGen core는 strict `0.1.0` companion이다.
 `MaterialAuthoring 0.2.1`, AQ overlay state는 `0.1.0`이다. strict 모델은 unknown field,
 coercion, non-finite number를 거부하고 repository-relative POSIX path, exact SHA-256,
 session/workflow/profile/provenance binding을 요구한다. 기존 evidence의 auto migration은 없다.
+
+Material Loop는 native output adoption/normalization, semantic review, candidate ranking/selection
+receipt, V0.5 bridge/normalized companion와 exact-adoption Blender shadow preflight, material
+bridge/controller/promotion/preview/state/terminal을 별도 strict `0.1.0` contract로 추가한다. native
+normalization receipt는 native original의 adoption receipt를 재귀 결속한다.
+`CodexImageNativeCorePreparationReceipt`는 그 chain을 core completion/candidate/quality/selection과
+exact byte identity로 이어 bridge/controller/promotion까지 유지한다. 다중 후보 selection receipt도
+같은 세 경계에 유지된다. `exact_adoption`은 원래 staging-only/compile
+`not_run` 의미를 바꾸지 않으며 별도 actual Blender preflight가 없으면 거부된다.
 
 ## 9. 허용 intent와 direct pixels
 
@@ -258,7 +277,11 @@ bytes와 전체 모델 equality를 재검증한다. 기존 필드가 없는 0.1 
 host가 결정론적으로 검사하는 범위는 PNG decode/dimension, luminance variation, alpha
 extractability, border proxy, opposite-edge seam proxy, emission luminance와 wood gradient
 anisotropy다. hard gate가 통과한 후보 중 하나를 점수·ID 기반 deterministic ordering으로
-선택하며 나머지는 rejected/ineligible evidence로 보존한다.
+선택하며 나머지는 rejected/ineligible evidence로 보존한다. single-candidate core 의미는 유지한다.
+후보가 둘 이상인 Material Loop run은 모든 후보의 current-task semantic review와 exact ranking
+evidence를 요구하며, 누락/unresolved 후보가 있으면 전체를 `review_required`로 둔다. 해소된 후보는
+file hard gate, deterministic quality, semantic outcome, material-role suitability, repair cost, stable
+candidate ID 순서로 비교한다.
 
 현재 로컬 검사만으로는 다음 의미론을 판정할 수 없다.
 
@@ -286,14 +309,22 @@ exact review artifact를 만들지 않았다면 `human_reviewed=false`를 유지
 `execution_scope=codex_built_in`, `source_kind=codex_builtin_generated_image`로 분리된다. fake gate,
 local MaterialAuthoring 또는 Blender smoke가 통과해도 실제 `$imagegen` 실행으로 재분류하지 않는다.
 
-## 14. delivery 경계
+## 14. Material Loop와 delivery 경계
 
-MaterialAuthoring output은 `material_authoring/codex_imagegen/runs/<run_id>/`의 staging-only
-candidate다. 현재 구현은 그 receipt를 overlay에 결속하고 `status=adopted`,
-`next_action=controller_promotion_required`를 반환한 뒤 정지한다. actual
-`MaterialPhaseReceiptV2`와 companion adoption/receipt를 material controller의 exact input으로
-결속하는 배선은 아직 없다. 따라서 authorized material promotion, base AQ 재개, IQ 0.2,
-format별 V0.7 package와 V0.9 handoff는 이 companion 경로에서 모두 미검증이다. 향후 배선이
-추가되더라도 format별 exact approval, immutable package manifest, material-loss와 clean-import
-evidence가 별도로 필요하다. GLB 성공은 FBX 성공을 뜻하지 않으며 destination project는 이
-companion이 수정하지 않는다.
+MaterialAuthoring output은 계속 `material_authoring/codex_imagegen/runs/<run_id>/`의 staging-only
+candidate다. core `adopt`는 그 receipt를 overlay에 결속하고 `status=adopted`,
+`next_action=controller_promotion_required`에서 정지한다.
+
+additive Material Loop는 이 exact chain을 controller input으로 결속하고 기존 host material service를
+통해 actual `MaterialPhaseReceiptV2`, fixed neutral preview, base AQ resume와 IQ 경계까지 진행할 수
+있다. bridge나 controller가 canonical material을 직접 쓰지는 않는다. 현행 terminal은 material
+promotion과 IQ pass를 구분하며 IQ pass에만 `quality_approved`를 사용한다.
+
+delivery는 기존 AQ v2 profile을 재사용한다. `review_only`는 package가 아니고 portable GLB/FBX는
+각각 exact V0.7 plan-hash user approval이 필요하다. 승인 전 상태는
+`waiting_for_v07_approval`이며 raw exporter/clean-import mechanism test를 production package나
+completed terminal로 재분류하지 않는다. GLB 성공은 FBX 성공을 뜻하지 않고 destination project는
+수정하지 않으며 runtime parity는 별도 미검증이다.
+
+Material Loop의 상세 contract와 public 9 CLI/9 MCP는
+[Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)를 따른다.

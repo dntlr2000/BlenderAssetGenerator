@@ -255,13 +255,15 @@ def codex_image_source_inventory_sha256(job_root: Path, session_id: str) -> str:
 def validate_codex_imagegen_assignment_boundary(
     job_root: Path,
     assignment: CodexImageGenerationAssignment,
+    *,
+    require_current_protected_inventory: bool = True,
 ) -> tuple[
     CodexImageGenerationPlan,
     CodexBuiltinImageProviderProfile,
     CodexImageGenerationBudget,
     CodexImageGenerationPlanItem,
 ]:
-    """Rebuild every assignment source binding and protected inventory fail closed."""
+    """Replay exact assignment inputs and optionally require its original job inventory."""
 
     plan = load_codex_image_model(job_root, assignment.plan, CodexImageGenerationPlan)
     provider = load_codex_image_model(
@@ -327,9 +329,11 @@ def validate_codex_imagegen_assignment_boundary(
         raise ValueError("assignment fields differ from its exact plan item")
     if assignment.budget_snapshot_sha256 != budget_snapshot_sha256(budget):
         raise ValueError("assignment immutable budget snapshot differs")
-    protected = codex_image_source_inventory_sha256(job_root, assignment.session_id)
-    if assignment.protected_source_inventory_sha256 != protected:
-        raise ValueError("protected job sources changed after ImageGen assignment")
+    protected = assignment.protected_source_inventory_sha256
+    if require_current_protected_inventory:
+        protected = codex_image_source_inventory_sha256(job_root, assignment.session_id)
+        if assignment.protected_source_inventory_sha256 != protected:
+            raise ValueError("protected job sources changed after ImageGen assignment")
     inputs = {
         "plan": assignment.plan.model_dump(mode="json"),
         "plan_item": plan_item.model_dump(mode="json"),

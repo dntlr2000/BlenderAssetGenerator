@@ -114,6 +114,14 @@ $FocusedTests = @(
     "tests/test_autonomy_v2_codex_image_phase_service.py",
     "tests/test_codex_image_material_authoring_v021.py",
     "tests/test_codex_imagegen_public_surface.py",
+    "tests/test_codex_image_material_loop_contracts.py",
+    "tests/test_codex_image_material_loop_normalization.py",
+    "tests/test_codex_image_material_loop_selection.py",
+    "tests/test_codex_image_material_loop_v05_adapter.py",
+    "tests/test_codex_image_material_preview_service.py",
+    "tests/test_codex_image_material_quality_service.py",
+    "tests/test_codex_image_material_loop_service.py",
+    "tests/test_codex_image_material_loop_public.py",
     "tests/test_autonomous_quality_benchmarks_v02.py",
     "tests/test_repository_catalog.py",
     "tests/test_repository_summary_generator.py",
@@ -146,13 +154,16 @@ if ($RunBlender) {
     $PreviousAQV02GeometrySmoke = $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE
     $PreviousAQV02DeliveryGeometrySmoke = $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE
     $PreviousAQV02CandidateValidationSmoke = $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE
-    $PreviousAQV02DeliveryExecutorSmoke = $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E
     $PreviousGeometryIntentReachabilitySmoke = $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE
     $PreviousMaterialGraphSmoke = $env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE
     $PreviousAQV02BenchmarkSmoke = $env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE
     $PreviousMaterialAuthoringSmoke = $env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE
     $PreviousCodexImageMaterialSmoke = `
         $env:CBM_RUN_CODEX_IMAGE_MATERIAL_BLENDER_SMOKE
+    $PreviousCodexImageMaterialLoopSmoke = `
+        $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE
+    $PreviousCodexImageMaterialLoopDeliverySmoke = `
+        $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E
     try {
         $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AUTONOMY_E2E_SMOKE = "1"
@@ -161,12 +172,13 @@ if ($RunBlender) {
         $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE = "1"
-        $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = "1"
         $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE = "1"
         $env:CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE = "1"
         $env:CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE = "1"
         $env:CBM_RUN_CODEX_IMAGE_MATERIAL_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E = "1"
         Invoke-Uv run cbm blender-compat
         Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "b") `
             tests/test_autonomous_structural_geometry_blender.py `
@@ -179,12 +191,13 @@ if ($RunBlender) {
             tests/test_aq_v02_geometry_blender.py `
             tests/test_aq_v02_delivery_geometry_blender.py `
             tests/test_autonomy_v2_candidate_validation_blender.py `
-            tests/test_aq_v02_delivery_executor_blender.py `
             tests/test_geometry_intent_v02_reachability.py `
             tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5 `
             tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke `
             tests/test_material_authoring_blender_v02.py::test_fixed_material_families_compile_reopen_and_render_in_blender_5 `
-            tests/test_codex_image_material_authoring_v021.py::test_fake_core_adoption_compiles_in_blender_5
+            tests/test_codex_image_material_authoring_v021.py::test_fake_core_adoption_compiles_in_blender_5 `
+            tests/test_codex_image_material_loop_blender.py `
+            tests/test_codex_image_material_loop_delivery_blender.py
         $BenchmarkArguments += "--run-blender"
         $BenchmarkV02Arguments += "--run-blender"
     }
@@ -237,14 +250,6 @@ if ($RunBlender) {
             $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE = `
                 $PreviousAQV02CandidateValidationSmoke
         }
-        if ($null -eq $PreviousAQV02DeliveryExecutorSmoke) {
-            Remove-Item Env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E `
-                -ErrorAction SilentlyContinue
-        }
-        else {
-            $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = `
-                $PreviousAQV02DeliveryExecutorSmoke
-        }
         if ($null -eq $PreviousGeometryIntentReachabilitySmoke) {
             Remove-Item Env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE `
                 -ErrorAction SilentlyContinue
@@ -280,6 +285,22 @@ if ($RunBlender) {
         else {
             $env:CBM_RUN_CODEX_IMAGE_MATERIAL_BLENDER_SMOKE = `
                 $PreviousCodexImageMaterialSmoke
+        }
+        if ($null -eq $PreviousCodexImageMaterialLoopSmoke) {
+            Remove-Item Env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE = `
+                $PreviousCodexImageMaterialLoopSmoke
+        }
+        if ($null -eq $PreviousCodexImageMaterialLoopDeliverySmoke) {
+            Remove-Item Env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E = `
+                $PreviousCodexImageMaterialLoopDeliverySmoke
         }
     }
 

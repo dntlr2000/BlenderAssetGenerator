@@ -178,12 +178,13 @@ def validate_codex_imagegen_completion(
     assignment_artifact: CodexImageArtifact,
     completion_artifact: CodexImageArtifact,
     controller_result_artifact: CodexImageArtifact | None = None,
+    require_current_protected_inventory: bool = True,
 ) -> tuple[
     CodexImageGenerationAssignment,
     CodexImageGenerationCompletion,
     list[Path],
 ]:
-    """Reparse and validate every completion binding before host adoption."""
+    """Replay completion bindings, requiring the assignment-era inventory by default."""
 
     assignment = load_codex_image_model(
         job_root,
@@ -191,7 +192,11 @@ def validate_codex_imagegen_completion(
         CodexImageGenerationAssignment,
     )
     _plan, _provider, budget, _plan_item = (
-        validate_codex_imagegen_assignment_boundary(job_root, assignment)
+        validate_codex_imagegen_assignment_boundary(
+            job_root,
+            assignment,
+            require_current_protected_inventory=require_current_protected_inventory,
+        )
     )
     completion = load_codex_image_model(
         job_root,

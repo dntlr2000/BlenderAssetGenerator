@@ -14,10 +14,12 @@ from jsonschema import Draft202012Validator
 from PIL import Image
 from pydantic import ValidationError
 
+from codex_blender_modeler.blender_artifacts import native_io_path
 from codex_blender_modeler.material_graph.compiler_service import (
     MaterialGraphCompileError,
     MaterialGraphCompilerService,
     _canonical_topological_order,
+    _sha256_file,
 )
 from codex_blender_modeler.material_graph.models import (
     ChannelBinding,
@@ -529,6 +531,45 @@ def test_prepare_compile_rejects_stale_and_escaping_sources(tmp_path: Path) -> N
         service.prepare_compile(graph_spec_path="../outside.json", run_id="run-escape")
 
 
+def test_dependency_resolver_supports_extended_length_paths(tmp_path: Path) -> None:
+    """Resolve one regular dependency beyond MAX_PATH without weakening containment."""
+
+    parts = [f"segment-{index}-{'x' * 40}" for index in range(6)]
+    relative = "/".join(["textures", *parts, "generated-image-evidence.json"])
+    dependency = tmp_path.joinpath(*relative.split("/"))
+    os.makedirs(native_io_path(dependency.parent), exist_ok=True)
+    with open(native_io_path(dependency), "wb") as handle:
+        handle.write(b'{"kind":"generated-image-evidence"}\n')
+    assert len(os.path.abspath(os.fspath(dependency))) > 260
+
+    resolved = MaterialGraphCompilerService(tmp_path)._resolve_contained_file(relative)
+
+    assert resolved == dependency
+    assert _sha256_file(resolved) == hashlib.sha256(
+        b'{"kind":"generated-image-evidence"}\n'
+    ).hexdigest()
+    with open(native_io_path(resolved), "rb") as handle:
+        assert handle.read() == b'{"kind":"generated-image-evidence"}\n'
+
+
+def test_dependency_resolver_still_rejects_link_traversal(tmp_path: Path) -> None:
+    """Keep symlink traversal fail-closed while using lexical long-path containment."""
+
+    outside = tmp_path.parent / f"{tmp_path.name}-outside"
+    outside.mkdir()
+    (outside / "dependency.json").write_text("{}\n", encoding="utf-8")
+    link = tmp_path / "linked"
+    try:
+        os.symlink(outside, link, target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"symlink creation is unavailable: {exc}")
+
+    with pytest.raises(MaterialGraphCompileError, match="symlink"):
+        MaterialGraphCompilerService(tmp_path)._resolve_contained_file(
+            "linked/dependency.json"
+        )
+
+
 def test_runtime_registry_rejects_raw_templates_cycles_and_depth() -> None:
     """Reject raw Blender fields, unknown templates, cycles, and over-depth graphs."""
 
@@ -799,7 +840,7 @@ def test_compile_run_atomically_publishes_without_canonical_mutation(
     assert _sha256(tmp_path / "analysis" / "material_plan.json") == material_before
     assert _sha256(tmp_path / "analysis" / "scene_spec.json") == scene_spec_before
     assert _sha256(tmp_path / "blender" / "scene.blend") == scene_before
-    assert not list((tmp_path / "reports" / "material_graph" / "runs").glob(".*.staging-*"))
+    assert not list((tmp_path / "reports" / "material_graph" / "runs").glob(".g-*"))
     adopted = MaterialGraphCompilerService(tmp_path).validate_compile_run(run_root=bundle.run_root)
     assert adopted == bundle
 

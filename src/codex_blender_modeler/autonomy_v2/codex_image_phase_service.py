@@ -1060,13 +1060,79 @@ def _validate_material_receipt(
     adoption_artifact: CodexImageArtifact,
     receipt_artifact: CodexImageArtifact,
 ) -> None:
-    """Rehash a MaterialAuthoring 0.2.1 staging receipt and its selected evidence."""
+    """Rehash legacy or normalized material staging and its selected evidence."""
 
     from ..material_authoring.codex_image_models import (
         CodexImageAuthoredMaterialManifestV021,
         CodexImageMaterialAuthoringReceiptV021,
         CodexImageMaterialAuthoringRequestV021,
     )
+    from ..material_authoring.codex_image_normalized_adapter import (
+        validate_codex_image_normalized_material_candidate,
+    )
+    from ..material_authoring.codex_image_normalized_models import (
+        CodexImageNormalizedMaterialAuthoringReceiptV010,
+        CodexImageNormalizedMaterialAuthoringRequestV010,
+    )
+
+    if receipt_artifact.kind == "codex-image-normalized-material-authoring-receipt":
+        normalized_receipt = _load_model(
+            root,
+            receipt_artifact,
+            CodexImageNormalizedMaterialAuthoringReceiptV010,
+        )
+        manifest = validate_codex_image_normalized_material_candidate(
+            root,
+            normalized_receipt,
+        )
+        normalized_request = _load_model(
+            root,
+            normalized_receipt.request,
+            CodexImageNormalizedMaterialAuthoringRequestV010,
+        )
+        base_request = _load_model(
+            root,
+            normalized_request.base_request_artifact,
+            CodexImageMaterialAuthoringRequestV021,
+        )
+        validate_codex_image_artifact(
+            root,
+            _codex_artifact(normalized_request.effective_source.artifact),
+        )
+        if base_request != normalized_request.base_request:
+            raise ValueError("embedded 0.2.1 request differs from its exact artifact")
+        for output in normalized_receipt.outputs:
+            validate_codex_image_artifact(root, _codex_artifact(output))
+        if (
+            normalized_receipt.job_id != state.job_id
+            or normalized_receipt.workflow_id != state.workflow_id
+            or normalized_request.job_id != state.job_id
+            or normalized_request.workflow_id != state.workflow_id
+            or normalized_request.run_id != normalized_receipt.run_id
+            or manifest.run_id != normalized_receipt.run_id
+            or manifest.status != "candidate_ready"
+            or manifest.selected_source != base_request.source
+            or manifest.effective_source != normalized_request.effective_source
+            or not _same_artifact(
+                base_request.core_evidence.selection,
+                cast(CodexImageArtifact, state.selection),
+            )
+            or not _same_artifact(
+                base_request.core_evidence.adoption,
+                adoption_artifact,
+            )
+            or not _same_artifact(
+                base_request.core_evidence.selected_quality_report,
+                adoption.quality_report,
+            )
+            or adoption.selected_source_sha256
+            != base_request.source.artifact.sha256
+            or base_request.material_id not in adoption.target_material_ids
+        ):
+            raise ValueError(
+                "normalized material authoring receipt differs from selected core evidence"
+            )
+        return
 
     receipt = _load_model(
         root,

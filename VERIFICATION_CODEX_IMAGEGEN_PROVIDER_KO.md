@@ -1,7 +1,8 @@
 # Codex Built-in ImageGen Texture Provider 0.1.0 검증 기록
 
-> 상태: 구현, 수동 Codex 보조 검증, 전체 회귀, AQ/Blender 및 V0.7~V0.9 gate를 실제로
-> 재실행해 기록했다. profile은 아래 제한 때문에 계속 `disabled_experimental`이다.
+> 상태: 이 문서는 core `0.1.0`의 2026-08-11~12 실행 이력을 보존하고, 2026-08-13 additive
+> Material Loop 경계를 덧붙인다. 과거 수치는 당시 tree의 사실이며 최신 전체 회귀 합계로
+> 재분류하지 않는다. profile은 계속 `disabled_experimental`이다.
 
 ## 1. 검증 범위와 판정 경계
 
@@ -18,9 +19,12 @@
   `continuation_after_app_exit=false`, `repository_can_spawn_codex_task=false`를 보고한다.
 - 생성 픽셀은 staging 후보일 뿐이다. canonical MaterialAuthoring V0.5, destination project,
   portable package 또는 승인 상태를 직접 쓰지 않는다.
-- 최종 public 실행 경계는 MaterialAuthoring `0.2.1` staging receipt 뒤 overlay
-  `status=adopted`, `next_action=controller_promotion_required`다. base AQ 자동 재개, overlay
-  `completed` 또는 canonical promotion을 주장하지 않는다.
+- core `adopt`의 public 실행 경계는 MaterialAuthoring `0.2.1` staging receipt 뒤 overlay
+  `status=adopted`, `next_action=controller_promotion_required`다. 이 core history를 completed 또는
+  canonical promotion으로 재분류하지 않는다.
+- 별도 additive Material Loop는 exact staging chain에서 controller/host promotion, actual
+  `MaterialPhaseReceiptV2`와 IQ 경계까지 연결한다. 이 경로의 실행 결과는
+  `VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`가 권위 원본이다.
 - 관련 설계와 실행 절차는 [아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md),
   [시작 안내](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md),
   [마이그레이션](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
@@ -39,9 +43,9 @@
 | `uv run cbm blender-compat` | Blender `5.0.1`, Python `3.11.13`, EEVEE, GLB/FBX/OBJ smoke passed |
 | `python scripts/check_agent_instructions.py` | root `7764` bytes, files `11`, invariants `192` |
 
-## 3. 최종 재실행 결과
+## 3. 2026-08-12 core `0.1.0` 재실행 이력
 
-| 검증 | 최종 결과 |
+| 검증 | 당시 결과 |
 |---|---|
 | 전체 Ruff/pytest 회귀 | `ruff check .`: passed; `pytest -ra -p no:cacheprovider --basetemp C:\Users\Woosik\AppData\Local\Temp\cbf12z`: `1438 passed, 44 skipped, 8 warnings in 221.75s` |
 | ImageGen host focused/schema/security/negative 회귀 | 8개 전용 파일: `86 passed, 5 skipped in 38.78s`; schema parity 포함 |
@@ -86,6 +90,15 @@
   tangent-space data는 직접 채택하지 않고 local deterministic derivation 또는 constant로 만든다.
 - immutable 기본 budget은 전체 generation 4, 후보 3, refinement 1, assignment당 generation 3이며
   실행 중 자동 확대하지 않는다.
+
+2026-08-13 additive Material Loop는 기존 core CLI/MCP 5개를 유지한 채 별도 CLI 9개/MCP 9개를
+추가한다. native adoption/normalization, non-human semantic/ranking, bridge plan/status/run, isolated
+Blender exact-adoption preflight, host promotion/resume와 AQ/IQ continue 표면이다. preflight는
+ControllerResult/canonical/destination write를 만들지 않으며 어느 표면도 API 호출, semantic
+observation 작성, approval 작성, canonical 직접 write나 destination write를 제공하지 않는다.
+native-derived core selection은 별도 `CodexImageNativeCorePreparationReceipt`가 adoption/original,
+normalization과 기존 core completion/candidate/quality/selection을 exact byte identity로 결속하지만
+core `0.1.0` schema나 과거 evidence를 수정하지 않는다.
 
 profile을 계획하려면 ImageGen overlay opt-in과 `disabled_experimental` 허용을 둘 다 명시해야 한다.
 단순 status 조회나 기존 AQ v2/legacy artifact 로딩은 이를 활성화하지 않는다.
@@ -212,8 +225,8 @@ rasterization으로만 합성한다.
 기존의 정확한 fake wood node smoke는 Blender `5.0.1`에서 `1 passed in 4.12s`였다. 이는
 고정 allowlist probe가 fake completion으로 만든 wood material graph를 compile/reopen하고 normalized
 inventory를 확인한 기록이다. 이후 동일 테스트는 `wood`, `signage_decal`, `emissive`, `crystal`
-4-family parametrization으로 확대되었고 네 family의 fixed fake Blender 실행은 통과했다. 최종 exact
-명령·수치·시간은 3절의 Blender placeholder를 루트 작업이 교체할 때 기록한다.
+4-family parametrization으로 확대되었고 네 family의 fixed fake Blender 실행은 통과했다. 당시 exact
+결과는 3절에 기록한 `4 passed in 12.89s`다. Material Loop 후속 Blender 수치와 혼합하지 않는다.
 
 fake Blender 통과는 다음을 증명하지 않는다.
 
@@ -222,10 +235,26 @@ fake Blender 통과는 다음을 증명하지 않는다.
 - GLB/FBX 등 format별 immutable package manifest, clean-import, material-loss acceptance.
 - Unity/Unreal을 포함한 destination runtime parity 또는 destination-ready 상태.
 
-현재 실제-source manifest의 Blender 상태는 `not_run`, package acceptance는 `not_run`,
-`human_reviewed=false`, destination runtime parity는 `unverified`다. 따라서 profile은 계속
-`disabled_experimental`이며, 이 문서는 활성화·production readiness·human approval을 주장하지 않는다.
+위 5절 historical actual-source manifest의 Blender 상태는 계속 `not_run`, package acceptance는
+`not_run`, `human_reviewed=false`, destination runtime parity는 `unverified`다. 이 immutable
+receipt를 새 companion compile 결과로 소급 수정하지 않는다.
 
-또한 actual `MaterialPhaseReceiptV2`와 companion adoption/receipt를 material controller의 exact
-input으로 결속하는 배선은 아직 구현·검증되지 않았다. 현재 공개 경로는 staging receipt에서
-멈추므로 full material promotion, base AQ resume, IQ 0.2와 V0.7 package도 `unverified`다.
+## 9. 2026-08-13 Material Loop 후속 경계
+
+additive companion은 actual `MaterialPhaseReceiptV2`와 ImageGen/adoption/MaterialAuthoring chain을
+exact controller input으로 결속하는 배선을 구현했다. deterministic fake `wood`,
+`signage_decal`, `emissive`, `crystal` fixture는 실제 Blender 5.0.1 host promotion과 IQ mechanism을
+실행한다. fake 결과는 actual ImageGen이나 일반 품질 증거가 아니다.
+
+5.2의 historical actual PNG는 새 unique native-adoption/normalization run에서 재사용했다. 이는
+fresh ImageGen invocation이 아니다. current-task observation은 `human_reviewed=false`이며 repeat/tile
+판단이 해소되지 않아 `review_required`에서 canonical promotion 전에 멈췄다. 따라서 5.3의 과거
+staging bytes를 actual-source MaterialPhaseReceipt, IQ pass 또는 package로 재분류하지 않는다.
+
+delivery 검증도 approval 경계를 보존한다. fake family는 V0.7 review 뒤
+`waiting_for_v07_approval`에서 멈추며 별도 raw GLB/FBX clean-import는 test-only mechanism evidence다.
+실제 사용자가 승인한 production package, completed delivery terminal 또는 destination parity를
+주장하지 않는다. exact 최신 명령·수치·evidence root와 최종 repository gate placeholder는
+[Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+
+이 제한과 사람 검토 부재 때문에 profile은 계속 `disabled_experimental`이다.

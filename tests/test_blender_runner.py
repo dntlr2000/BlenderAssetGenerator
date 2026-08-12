@@ -10,6 +10,8 @@ from codex_blender_modeler import blender_runner
 def test_blender_runner_isolates_mcp_stdin_and_propagates_python_failures(
     tmp_path: Path, monkeypatch
 ) -> None:
+    """Run Blender with isolated stdin and deterministic UTF-8 log decoding."""
+
     script_dir = tmp_path / "src" / "codex_blender_modeler" / "blender_scripts"
     script_dir.mkdir(parents=True)
     (script_dir / "build_scene.py").write_text("print('ok')", encoding="utf-8")
@@ -41,6 +43,8 @@ def test_blender_runner_isolates_mcp_stdin_and_propagates_python_failures(
     assert captured["kwargs"]["stdin"] is subprocess.DEVNULL
     assert captured["kwargs"]["capture_output"] is True
     assert captured["kwargs"]["check"] is False
+    assert captured["kwargs"]["encoding"] == "utf-8"
+    assert captured["kwargs"]["errors"] == "replace"
 
 
 def test_blender_runner_can_request_factory_startup_for_clean_imports(

@@ -29,6 +29,18 @@ from .completion import (
     build_generated_image_evidence,
     validate_codex_imagegen_completion,
 )
+from .material_loop_models import (
+    CodexImageNativeOutputAdoptionReceipt,
+    ImageGenNativeNormalizationPlan,
+    ImageGenNativeNormalizationReceipt,
+    codex_image_native_output_adoption_receipt_path,
+    imagegen_native_normalization_receipt_path,
+)
+from .material_loop_normalization import (
+    execute_native_image_normalization,
+    validate_native_normalization_plan,
+    validate_native_normalization_receipt,
+)
 from .models import (
     CodexGeneratedImageEvidence,
     CodexImageArtifact,
@@ -41,7 +53,12 @@ from .models import (
     CodexImageGenerationQualityReport,
     CodexImageGenerationSelection,
     DerivedChannelEvidence,
+    DirectOutputRole,
     ImageToMaterialAdoption,
+)
+from .native_output_adoption import (
+    adopt_codex_imagegen_native_output_bytes,
+    validate_codex_image_native_output_adoption,
 )
 from .profile import codex_imagegen_profile_status
 from .reporting import build_codex_imagegen_terminal
@@ -64,6 +81,26 @@ class CompletionAdoptionResult:
     generated_evidence: tuple[
         tuple[CodexGeneratedImageEvidence, CodexImageArtifact], ...
     ]
+
+
+@dataclass(frozen=True)
+class NativeOutputAdoptionResult:
+    """Return an immutable native original and its exact host adoption receipt."""
+
+    receipt: CodexImageNativeOutputAdoptionReceipt
+    receipt_artifact: CodexImageArtifact
+    original_image: CodexImageArtifact
+
+
+@dataclass(frozen=True)
+class NativeOutputPreparationResult:
+    """Return a deterministic core-ready PNG and its exact normalization receipt."""
+
+    receipt: ImageGenNativeNormalizationReceipt
+    receipt_artifact: CodexImageArtifact
+    normalized_image: CodexImageArtifact
+    ordinal: int
+    output_role: DirectOutputRole
 
 
 def codex_imagegen_status() -> dict[str, object]:
@@ -131,6 +168,227 @@ def run_codex_imagegen(
         assignment,
         kind="codex-image-generation-assignment",
     )
+
+
+def adopt_codex_imagegen_native_output(
+    *,
+    job_root: Path,
+    assignment_artifact: CodexImageArtifact,
+    allowed_source_root: Path,
+    native_source_path: Path,
+    native_output_id: str,
+    ordinal: int,
+    output_role: DirectOutputRole,
+    receipt_contract_id: str,
+    created_at: datetime,
+) -> NativeOutputAdoptionResult:
+    """Preserve mismatched native PNG bytes before any core-size validation."""
+
+    assignment = load_codex_image_model(
+        job_root,
+        assignment_artifact,
+        CodexImageGenerationAssignment,
+    )
+    receipt_path = job_root / codex_image_native_output_adoption_receipt_path(
+        assignment.session_id,
+        assignment.assignment_id,
+        native_output_id,
+    )
+    if os.path.exists(native_io_path(receipt_path)):
+        receipt, receipt_artifact = _load_canonical_published_model(
+            job_root,
+            receipt_path,
+            CodexImageNativeOutputAdoptionReceipt,
+            artifact_id=receipt_contract_id,
+            kind="codex-image-native-output-adoption-receipt",
+        )
+        if (
+            receipt.contract_id != receipt_contract_id
+            or receipt.assignment != assignment_artifact
+            or receipt.native_output_id != native_output_id
+            or receipt.ordinal != ordinal
+            or receipt.output_role != output_role
+        ):
+            raise ValueError("existing native output adoption receipt differs")
+        validate_codex_image_native_output_adoption(job_root, receipt)
+        if os.path.exists(native_io_path(native_source_path)):
+            replayed = adopt_codex_imagegen_native_output_bytes(
+                job_root,
+                assignment_artifact=assignment_artifact,
+                allowed_source_root=allowed_source_root,
+                native_source_path=native_source_path,
+                native_output_id=native_output_id,
+                ordinal=ordinal,
+                output_role=output_role,
+                receipt_contract_id=receipt_contract_id,
+                created_at=receipt.created_at,
+            )
+            if replayed != receipt:
+                raise ValueError("existing native output adoption source differs")
+        return NativeOutputAdoptionResult(
+            receipt=receipt,
+            receipt_artifact=receipt_artifact,
+            original_image=receipt.original_image,
+        )
+    receipt = adopt_codex_imagegen_native_output_bytes(
+        job_root,
+        assignment_artifact=assignment_artifact,
+        allowed_source_root=allowed_source_root,
+        native_source_path=native_source_path,
+        native_output_id=native_output_id,
+        ordinal=ordinal,
+        output_role=output_role,
+        receipt_contract_id=receipt_contract_id,
+        created_at=created_at,
+    )
+    receipt_artifact = _write_or_adopt_exact_model(
+        job_root,
+        receipt_path,
+        receipt,
+        kind="codex-image-native-output-adoption-receipt",
+    )
+    validate_codex_image_native_output_adoption(job_root, receipt)
+    return NativeOutputAdoptionResult(
+        receipt=receipt,
+        receipt_artifact=receipt_artifact,
+        original_image=receipt.original_image,
+    )
+
+
+def prepare_codex_imagegen_native_output_for_core_completion(
+    *,
+    job_root: Path,
+    assignment_artifact: CodexImageArtifact,
+    adoption_receipt_artifact: CodexImageArtifact,
+    plan: ImageGenNativeNormalizationPlan,
+    plan_artifact: CodexImageArtifact,
+    receipt_contract_id: str,
+    created_at: datetime,
+) -> NativeOutputPreparationResult:
+    """Normalize an adopted original into a core 0.1 assignment-sized PNG."""
+
+    adoption = load_codex_image_model(
+        job_root,
+        adoption_receipt_artifact,
+        CodexImageNativeOutputAdoptionReceipt,
+    )
+    _validate_native_adoption_receipt_artifact(adoption, adoption_receipt_artifact)
+    validate_codex_image_native_output_adoption(job_root, adoption)
+    if adoption.assignment != assignment_artifact:
+        raise ValueError("native adoption receipt targets another assignment")
+    if plan.source_image != adoption.original_image:
+        raise ValueError("normalization plan source differs from the adopted original")
+    if plan.target_size != adoption.expected_assignment_size:
+        raise ValueError("normalization target differs from the core assignment size")
+    if (
+        plan.job_id,
+        plan.workflow_id,
+        plan.dispatch_id,
+        plan.session_id,
+    ) != (
+        adoption.job_id,
+        adoption.workflow_id,
+        adoption.dispatch_id,
+        adoption.session_id,
+    ):
+        raise ValueError("normalization plan identity differs from native adoption")
+    validate_native_normalization_plan(job_root, plan)
+    if plan.operation == "review_required":
+        raise ValueError("review-required normalization is not core-completion-ready")
+    receipt_path = job_root / imagegen_native_normalization_receipt_path(
+        plan.session_id,
+        plan.contract_id,
+    )
+    if os.path.exists(native_io_path(receipt_path)):
+        receipt, receipt_artifact = _load_canonical_published_model(
+            job_root,
+            receipt_path,
+            ImageGenNativeNormalizationReceipt,
+            artifact_id=receipt_contract_id,
+            kind="imagegen-native-normalization-receipt",
+        )
+        if receipt.contract_id != receipt_contract_id:
+            raise ValueError("existing native normalization receipt differs")
+    else:
+        receipt = execute_native_image_normalization(
+            job_root,
+            plan,
+            plan_artifact,
+            receipt_contract_id=receipt_contract_id,
+            native_output_adoption_receipt=adoption_receipt_artifact,
+            created_at=created_at,
+        )
+        receipt_artifact = _write_or_adopt_exact_model(
+            job_root,
+            receipt_path,
+            receipt,
+            kind="imagegen-native-normalization-receipt",
+        )
+    normalized_image = validate_prepared_native_output_for_core_completion(
+        job_root=job_root,
+        assignment_artifact=assignment_artifact,
+        adoption_receipt_artifact=adoption_receipt_artifact,
+        plan=plan,
+        plan_artifact=plan_artifact,
+        receipt_artifact=receipt_artifact,
+    )
+    return NativeOutputPreparationResult(
+        receipt=receipt,
+        receipt_artifact=receipt_artifact,
+        normalized_image=normalized_image,
+        ordinal=adoption.ordinal,
+        output_role=adoption.output_role,
+    )
+
+
+def validate_prepared_native_output_for_core_completion(
+    *,
+    job_root: Path,
+    assignment_artifact: CodexImageArtifact,
+    adoption_receipt_artifact: CodexImageArtifact,
+    plan: ImageGenNativeNormalizationPlan,
+    plan_artifact: CodexImageArtifact,
+    receipt_artifact: CodexImageArtifact,
+) -> CodexImageArtifact:
+    """Replay the full original-to-normalized chain and return its core-ready PNG."""
+
+    adoption = load_codex_image_model(
+        job_root,
+        adoption_receipt_artifact,
+        CodexImageNativeOutputAdoptionReceipt,
+    )
+    _validate_native_adoption_receipt_artifact(adoption, adoption_receipt_artifact)
+    validate_codex_image_native_output_adoption(job_root, adoption)
+    if adoption.assignment != assignment_artifact:
+        raise ValueError("prepared native output targets another assignment")
+    receipt = load_codex_image_model(
+        job_root,
+        receipt_artifact,
+        ImageGenNativeNormalizationReceipt,
+    )
+    expected_receipt_path = imagegen_native_normalization_receipt_path(
+        plan.session_id,
+        plan.contract_id,
+    )
+    if receipt_artifact.path != expected_receipt_path:
+        raise ValueError("normalization receipt is outside its exact run-owned leaf")
+    if (
+        receipt_artifact.artifact_id != receipt.contract_id
+        or receipt_artifact.kind != "imagegen-native-normalization-receipt"
+    ):
+        raise ValueError("normalization receipt artifact identity is inconsistent")
+    if plan.source_image != adoption.original_image:
+        raise ValueError("prepared normalization source differs from adopted original")
+    if plan.target_size != adoption.expected_assignment_size:
+        raise ValueError("prepared normalization target differs from assignment size")
+    if receipt.plan != plan_artifact:
+        raise ValueError("normalization receipt binds another caller-authored plan")
+    if receipt.native_output_adoption_receipt != adoption_receipt_artifact:
+        raise ValueError("normalization receipt omits its exact native adoption receipt")
+    validate_native_normalization_receipt(job_root, plan, receipt)
+    if receipt.normalized_image is None or receipt.status == "review_required":
+        raise ValueError("normalization receipt has no core-ready PNG")
+    return receipt.normalized_image
 
 
 def adopt_codex_imagegen_completion(
@@ -496,6 +754,25 @@ def _session_root(session_id: str) -> Path:
     """Return the additive, non-canonical ImageGen session directory."""
 
     return Path("production") / "autonomy_v2" / session_id / "codex_imagegen"
+
+
+def _validate_native_adoption_receipt_artifact(
+    receipt: CodexImageNativeOutputAdoptionReceipt,
+    artifact: CodexImageArtifact,
+) -> None:
+    """Require one native adoption receipt at its exact assignment-owned JSON leaf."""
+
+    expected_path = codex_image_native_output_adoption_receipt_path(
+        receipt.session_id,
+        receipt.assignment_id,
+        receipt.native_output_id,
+    )
+    if (
+        artifact.path != expected_path
+        or artifact.artifact_id != receipt.contract_id
+        or artifact.kind != "codex-image-native-output-adoption-receipt"
+    ):
+        raise ValueError("native output adoption receipt artifact identity is inconsistent")
 
 
 def _require_exact_model(

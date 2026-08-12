@@ -129,6 +129,23 @@ from codex_blender_modeler.blender_scripts.topology.models import (
     TopologyCompanionReport,
     TopologyProfile,
 )
+from codex_blender_modeler.codex_imagegen.material_loop_models import (
+    CodexImageCandidateRankingEvidence,
+    CodexImageCompanionSelectionReceipt,
+    CodexImageMaterialLoopState,
+    CodexImageMaterialLoopTerminal,
+    CodexImageNativeCorePreparationReceipt,
+    CodexImageNativeOutputAdoptionReceipt,
+    CodexImageSemanticReview,
+    CodexImageV05ExactAdoptionPreflightReceipt,
+    ImageGeneratedMaterialBridgePlan,
+    ImageGeneratedMaterialControllerBinding,
+    ImageGeneratedMaterialControllerInput,
+    ImageGeneratedMaterialNeutralPreview,
+    ImageGeneratedMaterialPromotionReceipt,
+    ImageGenNativeNormalizationPlan,
+    ImageGenNativeNormalizationReceipt,
+)
 from codex_blender_modeler.codex_imagegen.models import (
     CodexBuiltinImageProviderProfile,
     CodexGeneratedImageEvidence,
@@ -194,6 +211,16 @@ from codex_blender_modeler.material_authoring.codex_image_models import (
     CodexImageMaterialAuthoringReceiptV021,
     CodexImageMaterialAuthoringRequestV021,
     ExactSignageTextEvidenceV021,
+)
+from codex_blender_modeler.material_authoring.codex_image_normalized_models import (
+    CodexImageNormalizedAuthoredMaterialManifestV010,
+    CodexImageNormalizedMaterialAuthoringReceiptV010,
+    CodexImageNormalizedMaterialAuthoringRequestV010,
+)
+from codex_blender_modeler.material_authoring.codex_image_v05_bridge import (
+    CodexImageV05BridgeReceipt,
+    CodexImageV05CanonicalMaterialAbsence,
+    CodexImageV05ControllerBlueprint,
 )
 from codex_blender_modeler.material_authoring.models import (
     AuthoredMaterialManifest,
@@ -584,6 +611,64 @@ SCHEMAS = {
         CodexImageMaterialAuthoringReceiptV021
     ),
     "exact_signage_text_evidence_v021.schema.json": ExactSignageTextEvidenceV021,
+    "material_authoring_codex_image_normalized_request_0_1_0.schema.json": (
+        CodexImageNormalizedMaterialAuthoringRequestV010
+    ),
+    "material_authoring_codex_image_normalized_manifest_0_1_0.schema.json": (
+        CodexImageNormalizedAuthoredMaterialManifestV010
+    ),
+    "material_authoring_codex_image_normalized_receipt_0_1_0.schema.json": (
+        CodexImageNormalizedMaterialAuthoringReceiptV010
+    ),
+    # ImageGen material-loop closure keeps staging, controller, and host authority distinct.
+    "image_generated_material_bridge_plan_0_1_0.schema.json": (
+        ImageGeneratedMaterialBridgePlan
+    ),
+    "image_generated_material_controller_input_0_1_0.schema.json": (
+        ImageGeneratedMaterialControllerInput
+    ),
+    "image_generated_material_controller_binding_0_1_0.schema.json": (
+        ImageGeneratedMaterialControllerBinding
+    ),
+    "image_generated_material_promotion_receipt_0_1_0.schema.json": (
+        ImageGeneratedMaterialPromotionReceipt
+    ),
+    "image_generated_material_neutral_preview_0_1_0.schema.json": (
+        ImageGeneratedMaterialNeutralPreview
+    ),
+    "imagegen_native_normalization_plan_0_1_0.schema.json": (
+        ImageGenNativeNormalizationPlan
+    ),
+    "imagegen_native_normalization_receipt_0_1_0.schema.json": (
+        ImageGenNativeNormalizationReceipt
+    ),
+    "codex_image_semantic_review_0_1_0.schema.json": CodexImageSemanticReview,
+    "codex_image_candidate_ranking_evidence_0_1_0.schema.json": (
+        CodexImageCandidateRankingEvidence
+    ),
+    "codex_image_companion_selection_receipt_0_1_0.schema.json": (
+        CodexImageCompanionSelectionReceipt
+    ),
+    "codex_image_material_loop_terminal_0_1_0.schema.json": (
+        CodexImageMaterialLoopTerminal
+    ),
+    "codex_image_material_loop_state_0_1_0.schema.json": CodexImageMaterialLoopState,
+    "codex_image_native_output_adoption_receipt_0_1_0.schema.json": (
+        CodexImageNativeOutputAdoptionReceipt
+    ),
+    "codex_image_native_core_preparation_receipt_0_1_0.schema.json": (
+        CodexImageNativeCorePreparationReceipt
+    ),
+    "codex_image_v05_exact_adoption_preflight_receipt_0_1_0.schema.json": (
+        CodexImageV05ExactAdoptionPreflightReceipt
+    ),
+    "codex_image_v05_controller_blueprint_0_1_0.schema.json": (
+        CodexImageV05ControllerBlueprint
+    ),
+    "codex_image_v05_bridge_receipt_0_1_0.schema.json": CodexImageV05BridgeReceipt,
+    "codex_image_v05_canonical_material_absence_0_1_0.schema.json": (
+        CodexImageV05CanonicalMaterialAbsence
+    ),
     # Deterministic AQ 0.2 benchmark contracts and result evidence.
     "autonomy_benchmark_v02_case.schema.json": BenchmarkCaseV02,
     "autonomy_benchmark_v02_manifest.schema.json": BenchmarkManifestV02,

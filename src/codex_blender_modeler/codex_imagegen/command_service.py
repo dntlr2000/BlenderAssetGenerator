@@ -35,6 +35,14 @@ from ..material_authoring.codex_image_models import (
     CodexImageMaterialAuthoringRequestV021,
     ExactSignageTextEvidenceV021,
 )
+from ..material_authoring.codex_image_normalized_adapter import (
+    author_codex_image_normalized_material_candidate,
+    validate_codex_image_normalized_material_candidate,
+)
+from ..material_authoring.codex_image_normalized_models import (
+    CodexImageNormalizedMaterialAuthoringReceiptV010,
+    CodexImageNormalizedMaterialAuthoringRequestV010,
+)
 from ..production.controller_executor import DesktopInSessionController
 from ..production.validation import ensure_contained_production_path
 from ..workspace import job_dir
@@ -46,6 +54,21 @@ from .artifacts import (
 from .assignment import build_codex_imagegen_assignment
 from .budget import CodexImageGenerationCapacityError
 from .controller_bridge import execute_codex_imagegen_controller
+from .material_loop_models import (
+    CodexImageCandidateRankingEvidence,
+    CodexImageCompanionSelectionReceipt,
+    CodexImageNativeOutputAdoptionReceipt,
+    CodexImageSemanticReview,
+    ImageGenNativeNormalizationPlan,
+    codex_image_candidate_ranking_evidence_path,
+    codex_image_candidate_semantic_review_path,
+    codex_image_companion_selection_receipt_path,
+)
+from .material_loop_selection import (
+    build_codex_image_companion_selection_receipt,
+    select_codex_imagegen_companion_candidate,
+    validate_codex_imagegen_companion_selection,
+)
 from .models import (
     CodexGeneratedImageEvidence,
     CodexImageArtifact,
@@ -58,12 +81,15 @@ from .models import (
     CodexImageGenerationQualityReport,
     CodexImageGenerationSelection,
     CodexImageGenerationTerminal,
+    DirectOutputRole,
     ImageToMaterialAdoption,
 )
 from .public_service import (
     adopt_codex_imagegen_completion,
     adopt_codex_imagegen_material,
+    adopt_codex_imagegen_native_output,
     codex_imagegen_status,
+    prepare_codex_imagegen_native_output_for_core_completion,
     run_codex_imagegen,
     select_codex_imagegen_candidate,
     validate_codex_imagegen_exact_text_binding,
@@ -72,6 +98,10 @@ from .quality import evaluate_candidate_quality
 from .reporting import build_codex_imagegen_terminal
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
+MaterialAuthoringRequest = (
+    CodexImageMaterialAuthoringRequestV021
+    | CodexImageNormalizedMaterialAuthoringRequestV010
+)
 
 
 def get_codex_imagegen_public_status(
@@ -277,6 +307,125 @@ def run_codex_imagegen_controller_phase(
     }
 
 
+def adopt_codex_imagegen_native_output_phase(
+    *,
+    job_id: str,
+    session_id: str,
+    allowed_source_root: Path,
+    native_source_path: Path,
+    native_output_id: str,
+    ordinal: int,
+    output_role: DirectOutputRole,
+    receipt_contract_id: str,
+) -> dict[str, object]:
+    """Preserve a native controller PNG before assignment-size normalization."""
+
+    root = job_dir(job_id)
+    state, _state_artifact = _overlay_state(root, session_id)
+    if state.assignment is None:
+        raise ValueError("native output adoption requires a current ImageGen assignment")
+    result = adopt_codex_imagegen_native_output(
+        job_root=root,
+        assignment_artifact=state.assignment,
+        allowed_source_root=allowed_source_root,
+        native_source_path=native_source_path,
+        native_output_id=native_output_id,
+        ordinal=ordinal,
+        output_role=output_role,
+        receipt_contract_id=receipt_contract_id,
+        created_at=_monotonic_now(state),
+    )
+    return {
+        "status": "native_output_adopted",
+        "job_id": job_id,
+        "session_id": session_id,
+        "assignment": state.assignment.model_dump(mode="json"),
+        "original_image": result.original_image.model_dump(mode="json"),
+        "adoption_receipt": result.receipt_artifact.model_dump(mode="json"),
+        "native_size": result.receipt.native_size.model_dump(mode="json"),
+        "expected_assignment_size": result.receipt.expected_assignment_size.model_dump(
+            mode="json"
+        ),
+        "next_action": "author_native_normalization_plan",
+    }
+
+
+def prepare_codex_imagegen_native_output_phase(
+    *,
+    job_id: str,
+    session_id: str,
+    adoption_receipt_path: Path,
+    normalization_plan_path: Path,
+    receipt_contract_id: str,
+) -> dict[str, object]:
+    """Replay a caller-authored plan and return one core-completion-ready PNG."""
+
+    root = job_dir(job_id)
+    state, _state_artifact = _overlay_state(root, session_id)
+    if state.assignment is None:
+        raise ValueError("native output preparation requires a current assignment")
+    requested_adoption_path = (
+        adoption_receipt_path
+        if adoption_receipt_path.is_absolute()
+        else root / adoption_receipt_path
+    )
+    safe_adoption_path = ensure_contained_production_path(
+        root,
+        requested_adoption_path,
+        must_exist=True,
+    )
+    adoption = CodexImageNativeOutputAdoptionReceipt.model_validate_json(
+        Path(native_io_path(safe_adoption_path)).read_bytes()
+    )
+    adoption_artifact = artifact_for_codex_image(
+        root,
+        safe_adoption_path,
+        artifact_id=adoption.contract_id,
+        kind="codex-image-native-output-adoption-receipt",
+        media_type="application/json",
+    )
+    requested_plan_path = (
+        normalization_plan_path
+        if normalization_plan_path.is_absolute()
+        else root / normalization_plan_path
+    )
+    safe_plan_path = ensure_contained_production_path(
+        root,
+        requested_plan_path,
+        must_exist=True,
+    )
+    plan = ImageGenNativeNormalizationPlan.model_validate_json(
+        Path(native_io_path(safe_plan_path)).read_bytes()
+    )
+    plan_artifact = artifact_for_codex_image(
+        root,
+        safe_plan_path,
+        artifact_id=plan.contract_id,
+        kind="imagegen-native-normalization-plan",
+        media_type="application/json",
+    )
+    result = prepare_codex_imagegen_native_output_for_core_completion(
+        job_root=root,
+        assignment_artifact=state.assignment,
+        adoption_receipt_artifact=adoption_artifact,
+        plan=plan,
+        plan_artifact=plan_artifact,
+        receipt_contract_id=receipt_contract_id,
+        created_at=_monotonic_now(state, adoption.created_at, plan.created_at),
+    )
+    return {
+        "status": "native_output_prepared",
+        "job_id": job_id,
+        "session_id": session_id,
+        "assignment": state.assignment.model_dump(mode="json"),
+        "normalized_image": result.normalized_image.model_dump(mode="json"),
+        "normalization_receipt": result.receipt_artifact.model_dump(mode="json"),
+        "ordinal": result.ordinal,
+        "output_role": result.output_role,
+        "next_action": "copy_normalized_png_and_write_completion",
+    }
+
+
 def select_codex_imagegen_phase(
     *,
     job_id: str,
@@ -323,15 +472,29 @@ def select_codex_imagegen_phase(
             quality_reports=[artifact for _model, artifact in reports],
             created_at=_monotonic_now(state),
         )
-    selection, selection_artifact = _load_or_build_selection(
-        root=root,
-        assignment=assignment,
-        assignment_artifact=state.assignment,
-        completion_artifact=state.completion,
-        candidates=candidates,
-        reports=reports,
-        created_at=completion.controller_executed_at + timedelta(seconds=3),
-    )
+    companion_receipt_artifact: CodexImageArtifact | None = None
+    if assignment.requested_candidate_count > 1:
+        selection, selection_artifact, _companion, companion_receipt_artifact = (
+            _load_or_build_companion_selection(
+                root=root,
+                assignment=assignment,
+                assignment_artifact=state.assignment,
+                completion_artifact=state.completion,
+                candidates=candidates,
+                reports=reports,
+                created_at=completion.controller_executed_at + timedelta(seconds=3),
+            )
+        )
+    else:
+        selection, selection_artifact = _load_or_build_selection(
+            root=root,
+            assignment=assignment,
+            assignment_artifact=state.assignment,
+            completion_artifact=state.completion,
+            candidates=candidates,
+            reports=reports,
+            created_at=completion.controller_executed_at + timedelta(seconds=3),
+        )
     if state.status == "quality_ready" and selection.outcome == "selected":
         state, _state_artifact = record_codex_image_selection(
             root,
@@ -359,6 +522,11 @@ def select_codex_imagegen_phase(
         "session_id": session_id,
         "selection": selection.model_dump(mode="json"),
         "selection_artifact": selection_artifact.model_dump(mode="json"),
+        "companion_selection_receipt": (
+            companion_receipt_artifact.model_dump(mode="json")
+            if companion_receipt_artifact is not None
+            else None
+        ),
         "next_action": state.next_action,
         "human_reviewed": selection.human_reviewed,
         "semantic_checks_authoritative": False,
@@ -457,13 +625,45 @@ def prepare_codex_imagegen_material_adoption(
     }
 
 
+def _load_material_authoring_request(payload: bytes) -> MaterialAuthoringRequest:
+    """Dispatch only the two exact additive request versions and reject unknown JSON."""
+
+    decoded = json.loads(payload)
+    if not isinstance(decoded, dict):
+        raise ValueError("material authoring request must be a JSON object")
+    schema_version = decoded.get("schema_version")
+    if schema_version == "0.2.1":
+        return CodexImageMaterialAuthoringRequestV021.model_validate_json(payload)
+    if schema_version == "0.1.0" and {
+        "base_request",
+        "base_request_artifact",
+        "normalization_plan",
+        "normalization_receipt",
+        "effective_source",
+    }.issubset(decoded):
+        return CodexImageNormalizedMaterialAuthoringRequestV010.model_validate_json(
+            payload
+        )
+    raise ValueError("unknown material authoring request version or companion shape")
+
+
+def _base_material_authoring_request(
+    request: MaterialAuthoringRequest,
+) -> CodexImageMaterialAuthoringRequestV021:
+    """Return the unchanged selected-source request from either additive surface."""
+
+    if isinstance(request, CodexImageNormalizedMaterialAuthoringRequestV010):
+        return request.base_request
+    return request
+
+
 def adopt_codex_imagegen_material_phase(
     *,
     job_id: str,
     session_id: str,
     material_request_path: Path,
 ) -> dict[str, object]:
-    """Run local MaterialAuthoring 0.2.1 and bind its staging receipt before resume."""
+    """Run legacy or normalized material authoring and bind its staging receipt."""
 
     root = job_dir(job_id)
     state, _state_artifact = _overlay_state(root, session_id)
@@ -472,7 +672,7 @@ def adopt_codex_imagegen_material_phase(
         request_path = root / request_path
     safe_request = ensure_contained_production_path(root, request_path, must_exist=True)
     with open(native_io_path(safe_request), "rb") as handle:
-        request = CodexImageMaterialAuthoringRequestV021.model_validate_json(handle.read())
+        request = _load_material_authoring_request(handle.read())
     if state.status in {"adopted", "completed"}:
         return _resume_or_report_material_adoption(
             root=root,
@@ -482,25 +682,37 @@ def adopt_codex_imagegen_material_phase(
     _selection, selection_artifact, _candidate, _candidate_artifact, _evidence, _evidence_artifact, _report, _report_artifact = (  # noqa: E501
         _selected_evidence_chain(root, state)
     )
+    base_request = _base_material_authoring_request(request)
     adoption_artifact = CodexImageArtifact.model_validate(
-        request.core_evidence.adoption.model_dump(mode="json")
+        base_request.core_evidence.adoption.model_dump(mode="json")
     )
     adoption = load_codex_image_model(root, adoption_artifact, ImageToMaterialAdoption)
     if adoption.selection != selection_artifact:
         raise ValueError("material request adoption differs from current selection")
     receipt_path = root / request.output_root / "receipt.json"
-    if os.path.isfile(native_io_path(receipt_path)):
-        receipt = CodexImageMaterialAuthoringReceiptV021.model_validate_json(
-            Path(native_io_path(receipt_path)).read_bytes()
-        )
+    if isinstance(request, CodexImageNormalizedMaterialAuthoringRequestV010):
+        if os.path.isfile(native_io_path(receipt_path)):
+            receipt = CodexImageNormalizedMaterialAuthoringReceiptV010.model_validate_json(
+                Path(native_io_path(receipt_path)).read_bytes()
+            )
+        else:
+            receipt = author_codex_image_normalized_material_candidate(root, request)
+        manifest = validate_codex_image_normalized_material_candidate(root, receipt)
+        receipt_kind = "codex-image-normalized-material-authoring-receipt"
     else:
-        receipt = author_codex_image_material_candidate(root, request)
-    manifest = validate_codex_image_material_candidate(root, receipt)
+        if os.path.isfile(native_io_path(receipt_path)):
+            receipt = CodexImageMaterialAuthoringReceiptV021.model_validate_json(
+                Path(native_io_path(receipt_path)).read_bytes()
+            )
+        else:
+            receipt = author_codex_image_material_candidate(root, request)
+        manifest = validate_codex_image_material_candidate(root, receipt)
+        receipt_kind = "codex-image-material-authoring-receipt"
     receipt_artifact = artifact_for_codex_image(
         root,
         receipt_path,
         artifact_id=receipt.receipt_id,
-        kind="codex-image-material-authoring-receipt",
+        kind=receipt_kind,
         media_type="application/json",
     )
     terminal_artifact = _adopted_terminal(
@@ -533,7 +745,7 @@ def _resume_or_report_material_adoption(
     *,
     root: Path,
     state: AutonomyCodexImageOverlay,
-    request: CodexImageMaterialAuthoringRequestV021,
+    request: MaterialAuthoringRequest,
 ) -> dict[str, object]:
     """Recover staging evidence without claiming controller promotion or base resume."""
 
@@ -544,20 +756,29 @@ def _resume_or_report_material_adoption(
         or state.assignment is None
     ):
         raise ValueError("adopted overlay is missing required material evidence")
+    base_request = _base_material_authoring_request(request)
     if CodexImageArtifact.model_validate(
-        request.core_evidence.adoption.model_dump(mode="json")
+        base_request.core_evidence.adoption.model_dump(mode="json")
     ) != state.material_adoption:
         raise ValueError("recovery material request binds another adoption")
     receipt_path = root / request.output_root / "receipt.json"
-    receipt = CodexImageMaterialAuthoringReceiptV021.model_validate_json(
-        Path(native_io_path(receipt_path)).read_bytes()
-    )
-    manifest = validate_codex_image_material_candidate(root, receipt)
+    if isinstance(request, CodexImageNormalizedMaterialAuthoringRequestV010):
+        receipt = CodexImageNormalizedMaterialAuthoringReceiptV010.model_validate_json(
+            Path(native_io_path(receipt_path)).read_bytes()
+        )
+        manifest = validate_codex_image_normalized_material_candidate(root, receipt)
+        receipt_kind = "codex-image-normalized-material-authoring-receipt"
+    else:
+        receipt = CodexImageMaterialAuthoringReceiptV021.model_validate_json(
+            Path(native_io_path(receipt_path)).read_bytes()
+        )
+        manifest = validate_codex_image_material_candidate(root, receipt)
+        receipt_kind = "codex-image-material-authoring-receipt"
     receipt_artifact = artifact_for_codex_image(
         root,
         receipt_path,
         artifact_id=receipt.receipt_id,
-        kind="codex-image-material-authoring-receipt",
+        kind=receipt_kind,
         media_type="application/json",
     )
     if receipt_artifact != state.material_authoring_receipt:
@@ -1169,6 +1390,137 @@ def _load_or_build_selection(
         quality_reports=reports,
         created_at=created_at,
     )
+
+
+def _load_or_build_companion_selection(
+    *,
+    root: Path,
+    assignment: CodexImageGenerationAssignment,
+    assignment_artifact: CodexImageArtifact,
+    completion_artifact: CodexImageArtifact,
+    candidates: list[tuple[CodexImageGenerationCandidate, CodexImageArtifact]],
+    reports: list[tuple[CodexImageGenerationQualityReport, CodexImageArtifact]],
+    created_at: datetime,
+) -> tuple[
+    CodexImageGenerationSelection,
+    CodexImageArtifact,
+    CodexImageCompanionSelectionReceipt,
+    CodexImageArtifact,
+]:
+    """Publish multi-candidate core selection only with companion ranking grounds."""
+
+    semantic_reviews, rankings = _load_companion_ranking_inputs(
+        root=root,
+        assignment=assignment,
+        candidates=candidates,
+    )
+    build = select_codex_imagegen_companion_candidate(
+        root,
+        selection_id=f"selection-{assignment.assignment_id}",
+        assignment=assignment,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+        candidates=candidates,
+        quality_reports=reports,
+        semantic_reviews=semantic_reviews,
+        ranking_evidence=rankings,
+        created_at=created_at,
+    )
+    selection_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / assignment.session_id
+        / "codex_imagegen"
+        / "assignments"
+        / assignment.assignment_id
+        / "selection.json"
+    )
+    selection_artifact = _write_or_adopt_model(
+        root,
+        selection_path,
+        build.core_selection,
+        kind="codex-image-generation-selection",
+    )
+    receipt_id = f"companion-selection-{assignment.assignment_id}"
+    receipt = build_codex_image_companion_selection_receipt(
+        receipt_id=receipt_id,
+        assignment=assignment,
+        assignment_artifact=assignment_artifact,
+        completion_artifact=completion_artifact,
+        core_selection_artifact=selection_artifact,
+        build=build,
+        created_at=created_at,
+    )
+    receipt_path = root / codex_image_companion_selection_receipt_path(
+        assignment.session_id,
+        assignment.assignment_id,
+    )
+    receipt_artifact = _write_or_adopt_model(
+        root,
+        receipt_path,
+        receipt,
+        kind="codex-image-companion-selection-receipt",
+    )
+    validate_codex_imagegen_companion_selection(root, receipt)
+    return (
+        build.core_selection,
+        selection_artifact,
+        receipt,
+        receipt_artifact,
+    )
+
+
+def _load_companion_ranking_inputs(
+    *,
+    root: Path,
+    assignment: CodexImageGenerationAssignment,
+    candidates: list[tuple[CodexImageGenerationCandidate, CodexImageArtifact]],
+) -> tuple[
+    list[tuple[CodexImageSemanticReview, CodexImageArtifact]],
+    list[tuple[CodexImageCandidateRankingEvidence, CodexImageArtifact]],
+]:
+    """Load canonical current-task semantic and ranking files without inventing gaps."""
+
+    semantic_reviews: list[tuple[CodexImageSemanticReview, CodexImageArtifact]] = []
+    rankings: list[tuple[CodexImageCandidateRankingEvidence, CodexImageArtifact]] = []
+    for candidate, _candidate_artifact in candidates:
+        ordinal = candidate.generated_file.ordinal
+        semantic_path = root / codex_image_candidate_semantic_review_path(
+            assignment.session_id,
+            assignment.assignment_id,
+            ordinal,
+        )
+        if os.path.isfile(native_io_path(semantic_path)):
+            semantic_payload = Path(native_io_path(semantic_path)).read_bytes()
+            semantic = CodexImageSemanticReview.model_validate_json(semantic_payload)
+            semantic_artifact = artifact_for_codex_image(
+                root,
+                semantic_path,
+                artifact_id=semantic.contract_id,
+                kind="codex-image-semantic-review",
+                media_type="application/json",
+            )
+            semantic_reviews.append((semantic, semantic_artifact))
+        ranking_path = root / codex_image_candidate_ranking_evidence_path(
+            assignment.session_id,
+            assignment.assignment_id,
+            ordinal,
+        )
+        if os.path.isfile(native_io_path(ranking_path)):
+            ranking_payload = Path(native_io_path(ranking_path)).read_bytes()
+            ranking = CodexImageCandidateRankingEvidence.model_validate_json(
+                ranking_payload
+            )
+            ranking_artifact = artifact_for_codex_image(
+                root,
+                ranking_path,
+                artifact_id=ranking.contract_id,
+                kind="codex-image-candidate-ranking-evidence",
+                media_type="application/json",
+            )
+            rankings.append((ranking, ranking_artifact))
+    return semantic_reviews, rankings
 
 
 def _selection_terminal(

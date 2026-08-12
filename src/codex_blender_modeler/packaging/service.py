@@ -6,6 +6,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import struct
 from dataclasses import dataclass
 from pathlib import Path
@@ -166,6 +167,65 @@ def _read_package_bytes_long_path_safe(path: Path) -> bytes:
 
     with open(native_io_path(path), "rb") as handle:
         return handle.read()
+
+
+def _remove_staging_tree_long_path_safe(
+    staging_root: Path,
+    *,
+    expected_parent: Path,
+) -> None:
+    """Best-effort remove one direct staging child without following link-like entries."""
+
+    lexical_parent = Path(os.path.abspath(os.fspath(expected_parent.expanduser())))
+    lexical_staging = Path(os.path.abspath(os.fspath(staging_root.expanduser())))
+    try:
+        relative = lexical_staging.relative_to(lexical_parent)
+    except ValueError as exc:
+        raise ValueError("Package staging cleanup escaped its expected parent") from exc
+    if (
+        relative.parent != Path(".")
+        or not relative.name.startswith(".")
+        or not relative.name.endswith(".tmp")
+    ):
+        raise ValueError("Package staging cleanup requires one direct .*.tmp child")
+
+    parent_metadata = os.lstat(native_io_path(lexical_parent))
+    parent_attributes = getattr(parent_metadata, "st_file_attributes", 0)
+    if stat.S_ISLNK(parent_metadata.st_mode) or bool(
+        parent_attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    ):
+        raise ValueError("Package staging parent cannot be a symlink or junction")
+
+    def remove_entry(path: Path) -> None:
+        """Remove one entry while treating symlinks and junctions as opaque leaves."""
+
+        native = native_io_path(path)
+        metadata = os.lstat(native)
+        attributes = getattr(metadata, "st_file_attributes", 0)
+        if stat.S_ISLNK(metadata.st_mode) or bool(
+            attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+        ):
+            if stat.S_ISDIR(metadata.st_mode):
+                os.rmdir(native)
+            else:
+                os.unlink(native)
+            return
+        if stat.S_ISDIR(metadata.st_mode):
+            with os.scandir(native) as iterator:
+                entries = sorted(iterator, key=lambda entry: entry.name)
+            for entry in entries:
+                remove_entry(path / entry.name)
+            os.rmdir(native)
+            return
+        os.unlink(native)
+
+    try:
+        remove_entry(lexical_staging)
+    except FileNotFoundError:
+        return
+    except OSError:
+        # Preserve the original validation failure just as the former ignore_errors did.
+        return
 
 
 WINDOWS_ABSOLUTE_PATH_PATTERN = re.compile(
@@ -2305,11 +2365,15 @@ def validate_asset_package(
             ],
             factory_startup=True,
         )
-        raw = json.loads(raw_output.read_text(encoding="utf-8"))
+        with open(native_io_path(raw_output), encoding="utf-8") as handle:
+            raw = json.load(handle)
         if not isinstance(raw, dict):
             raise ValueError("Round-trip evidence must contain a JSON object")
     except Exception:
-        shutil.rmtree(staging_root, ignore_errors=True)
+        _remove_staging_tree_long_path_safe(
+            staging_root,
+            expected_parent=validation_parent,
+        )
         raise
     try:
         report = _build_roundtrip_report(
@@ -2325,10 +2389,13 @@ def validate_asset_package(
             raw=raw,
         )
         write_model(staging_root / "roundtrip_validation.json", report)
-        os.replace(staging_root, validation_root)
+        os.replace(native_io_path(staging_root), native_io_path(validation_root))
         return report
     except Exception:
-        shutil.rmtree(staging_root, ignore_errors=True)
+        _remove_staging_tree_long_path_safe(
+            staging_root,
+            expected_parent=validation_parent,
+        )
         raise
 
 

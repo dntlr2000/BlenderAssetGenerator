@@ -21,6 +21,15 @@ from codex_blender_modeler.codex_imagegen.artifacts import (
     artifact_for_codex_image,
     write_immutable_codex_image_model,
 )
+from codex_blender_modeler.codex_imagegen.material_loop_models import (
+    MaterialLoopRasterSize,
+    imagegen_native_normalization_output_path,
+    imagegen_native_normalization_plan_path,
+)
+from codex_blender_modeler.codex_imagegen.material_loop_normalization import (
+    execute_native_image_normalization,
+    plan_native_image_normalization,
+)
 from codex_blender_modeler.codex_imagegen.models import (
     CodexGeneratedFile,
     CodexGeneratedImageEvidence,
@@ -46,6 +55,11 @@ from codex_blender_modeler.material_authoring.codex_image_models import (
     ExactSignageTextEvidenceV021,
     ExactTextCompositionV021,
     LocalImageDerivationPolicyV021,
+)
+from codex_blender_modeler.material_authoring.codex_image_normalized_adapter import (
+    author_codex_image_normalized_material_candidate,
+    build_codex_image_normalized_material_request,
+    validate_codex_image_normalized_material_candidate,
 )
 from codex_blender_modeler.material_authoring.models import (
     ExactArtifact,
@@ -809,6 +823,178 @@ def test_strict_fake_core_adoption_chain_reaches_material_adapter(tmp_path: Path
     assert manifest.status == "candidate_ready"
     assert manifest.actual_codex_imagegen_execution_verified is False
     assert manifest.core_evidence.adoption == request.core_evidence.adoption
+
+
+def test_strict_normalized_derivative_reaches_material_adapter(tmp_path: Path) -> None:
+    """Use the additive companion while legacy 0.2.1 remains source-exact and closed."""
+
+    request = _strict_core_material_request(tmp_path)
+    base_request_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path
+        / "production"
+        / "autonomy_v2"
+        / "session-1"
+        / "base-material-request-v021.json",
+        request,
+        kind="codex-image-material-authoring-request",
+    )
+    selected_source = CodexImageArtifact.model_validate(
+        request.source.artifact.model_dump(mode="python")
+    )
+    normalization = plan_native_image_normalization(
+        tmp_path,
+        contract_id="material-normalization-plan",
+        job_id=request.job_id,
+        workflow_id=request.workflow_id,
+        dispatch_id="dispatch-1",
+        session_id="session-1",
+        source_image=selected_source,
+        output_path=imagegen_native_normalization_output_path(
+            "session-1",
+            "material-normalization-plan",
+        ),
+        target_size=MaterialLoopRasterSize(width=32, height=32),
+        source_color_space="srgb",
+        preferred_operation="contain_pad",
+        created_at=NOW,
+    )
+    normalization_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path
+        / imagegen_native_normalization_plan_path(
+            "session-1",
+            "material-normalization-plan",
+        ),
+        normalization,
+        kind="imagegen-native-normalization-plan",
+    )
+    normalization_receipt = execute_native_image_normalization(
+        tmp_path,
+        normalization,
+        normalization_artifact,
+        receipt_contract_id="material-normalization-receipt",
+        created_at=NOW,
+    )
+    receipt_artifact = write_immutable_codex_image_model(
+        tmp_path,
+        tmp_path
+        / "production"
+        / "autonomy_v2"
+        / "session-1"
+        / "normalization-receipt.json",
+        normalization_receipt,
+        kind="imagegen-native-normalization-receipt",
+    )
+    assert normalization_receipt.normalized_image is not None
+    normalized_source = request.source.model_copy(
+        update={
+            "artifact": ExactArtifact.model_validate(
+                normalization_receipt.normalized_image.model_dump(mode="python")
+            ),
+            "width": 32,
+            "height": 32,
+            "provenance": "deterministic normalized derivative of the selected source",
+        }
+    )
+    normalized_request = build_codex_image_normalized_material_request(
+        tmp_path,
+        contract_id="normalized-material-request",
+        run_id="normalized-core-chain",
+        base_request=request,
+        base_request_artifact=base_request_artifact,
+        normalization_plan=normalization_artifact,
+        normalization_receipt=receipt_artifact,
+        effective_source=normalized_source,
+        created_at=NOW,
+    )
+    from codex_blender_modeler.codex_imagegen.command_service import (
+        _load_material_authoring_request,
+    )
+
+    reloaded_request = _load_material_authoring_request(
+        json.dumps(normalized_request.model_dump(mode="json")).encode("utf-8")
+    )
+    assert reloaded_request == normalized_request
+    receipt = author_codex_image_normalized_material_candidate(
+        tmp_path,
+        normalized_request,
+    )
+    manifest = validate_codex_image_normalized_material_candidate(tmp_path, receipt)
+    assert manifest.status == "candidate_ready"
+    assert manifest.schema_version == "0.1.0"
+    assert manifest.selected_source == request.source
+    assert manifest.effective_source.artifact.sha256 != request.source.artifact.sha256
+    assert all(
+        manifest.effective_source.artifact.sha256 in channel.source_sha256
+        for channel in manifest.channels
+    )
+    with pytest.raises(ValueError, match="differs from its exact artifact"):
+        build_codex_image_normalized_material_request(
+            tmp_path,
+            contract_id="tampered-base-request",
+            run_id="tampered-base-run",
+            base_request=request.model_copy(update={"source": normalized_source}),
+            base_request_artifact=base_request_artifact,
+            normalization_plan=normalization_artifact,
+            normalization_receipt=receipt_artifact,
+            effective_source=normalized_source,
+            created_at=NOW,
+        )
+    with pytest.raises(ValueError, match="differs from normalized derivative"):
+        build_codex_image_normalized_material_request(
+            tmp_path,
+            contract_id="wrong-effective-source",
+            run_id="wrong-effective-run",
+            base_request=request,
+            base_request_artifact=base_request_artifact,
+            normalization_plan=normalization_artifact,
+            normalization_receipt=receipt_artifact,
+            effective_source=request.source,
+            created_at=NOW,
+        )
+    with pytest.raises(ValidationError, match="Extra inputs are not permitted"):
+        CodexImageMaterialAuthoringRequestV021.model_validate(
+            {
+                **request.model_dump(mode="python"),
+                "normalization_receipt": ExactArtifact.model_validate(
+                    receipt_artifact.model_dump(mode="python")
+                ).model_dump(mode="python"),
+            }
+        )
+    source_plan = tmp_path / request.source_v05_contracts[0].path
+    source_plan_bytes = source_plan.read_bytes()
+    snapshot_path = (
+        tmp_path
+        / "material_authoring"
+        / "codex_imagegen"
+        / "v05_bridge"
+        / "runs"
+        / "snapshot-test"
+        / "source"
+        / "baseline_material_plan.json"
+    )
+    snapshot_path.parent.mkdir(parents=True, exist_ok=True)
+    snapshot_path.write_bytes(source_plan_bytes)
+    snapshot = _artifact(
+        tmp_path,
+        snapshot_path,
+        artifact_id="snapshot-test-baseline",
+        kind="v05-material-plan-baseline-snapshot",
+        media_type="application/json",
+    )
+    _write_json(source_plan, {"schema_version": "0.5.0", "promoted": True})
+    with pytest.raises(ValueError, match="material source byte size changed"):
+        validate_codex_image_normalized_material_candidate(tmp_path, receipt)
+    assert (
+        validate_codex_image_normalized_material_candidate(
+            tmp_path,
+            receipt,
+            source_v05_contract_overrides=[snapshot],
+        )
+        == manifest
+    )
+    source_plan.write_bytes(source_plan_bytes)
 
 
 def test_codex_image_material_blender_probe_has_no_dynamic_execution_surface() -> None:

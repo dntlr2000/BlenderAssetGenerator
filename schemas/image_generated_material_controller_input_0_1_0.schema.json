@@ -1,0 +1,453 @@
+{
+  "$defs": {
+    "CodexImageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to exact bytes and media semantics.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "CodexImageArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind an ImageGen staging candidate to one request-owned material execution.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "bridge_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "current_state": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "phase_tool_profile": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "aq_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "aq_profile": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "aq_budget": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "canonical_scene_spec": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "geometry_validation_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "current_build_provenance": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "provider_profile": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "generation_terminal": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "selected_candidate": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "generated_image_evidence": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "quality_report": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "selection": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "companion_selection_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "native_core_preparation_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "semantic_review": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "normalization_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "adoption": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_authoring_request": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_authoring_manifest": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_authoring_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "v05_bridge_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "exact_adoption_preflight": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "v05_controller_inputs": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "V05 Controller Inputs",
+      "type": "array"
+    },
+    "texture_outputs": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Texture Outputs",
+      "type": "array"
+    },
+    "candidate_material_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_graph_spec": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "shader_recipes": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Shader Recipes",
+      "type": "array"
+    },
+    "texture_manifests": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Texture Manifests",
+      "type": "array"
+    },
+    "canonical_material_observation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "previous_material_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "canonical_material_absence_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "immutable_input_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minProperties": 1,
+      "title": "Immutable Input Sha256",
+      "type": "object"
+    },
+    "source_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Scene Spec Sha256",
+      "type": "string"
+    },
+    "source_material_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Material Plan Sha256"
+    },
+    "uv_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Uv Fingerprint",
+      "type": "string"
+    },
+    "target_material_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Material Ids",
+      "type": "array"
+    },
+    "target_semantic_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Semantic Ids",
+      "type": "array"
+    },
+    "execution_mode": {
+      "enum": [
+        "exact_adoption",
+        "controller_authored_completion"
+      ],
+      "title": "Execution Mode",
+      "type": "string"
+    },
+    "output_root": {
+      "title": "Output Root",
+      "type": "string"
+    },
+    "allowed_output_paths": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Allowed Output Paths",
+      "type": "array"
+    },
+    "expected_output_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Expected Output Sha256",
+      "type": "object"
+    },
+    "invocation_budget": {
+      "const": 1,
+      "default": 1,
+      "title": "Invocation Budget",
+      "type": "integer"
+    },
+    "canonical_write_authority": {
+      "const": "material_phase_service_only",
+      "default": "material_phase_service_only",
+      "title": "Canonical Write Authority",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "bridge_plan",
+    "current_state",
+    "phase_tool_profile",
+    "root_authorization",
+    "aq_plan",
+    "aq_profile",
+    "aq_budget",
+    "canonical_scene_spec",
+    "geometry_validation_receipt",
+    "current_build_provenance",
+    "provider_profile",
+    "generation_terminal",
+    "selected_candidate",
+    "generated_image_evidence",
+    "quality_report",
+    "selection",
+    "semantic_review",
+    "normalization_receipt",
+    "adoption",
+    "material_authoring_request",
+    "material_authoring_manifest",
+    "material_authoring_receipt",
+    "v05_bridge_receipt",
+    "v05_controller_inputs",
+    "texture_outputs",
+    "candidate_material_plan",
+    "material_graph_spec",
+    "shader_recipes",
+    "texture_manifests",
+    "immutable_input_sha256",
+    "source_scene_spec_sha256",
+    "uv_fingerprint",
+    "target_material_ids",
+    "target_semantic_ids",
+    "execution_mode",
+    "output_root",
+    "allowed_output_paths"
+  ],
+  "title": "ImageGeneratedMaterialControllerInput",
+  "type": "object"
+}

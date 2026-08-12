@@ -1,0 +1,331 @@
+{
+  "$defs": {
+    "CodexImageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained file to exact bytes and media semantics.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "CodexImageArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Join the ImageGen companion chain to a real host MaterialPhaseReceiptV2.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2_codex_imagegen",
+      "default": "autonomous_static_prop_v2_codex_imagegen",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "provider_id": {
+      "const": "codex_builtin_gpt_image_v1",
+      "default": "codex_builtin_gpt_image_v1",
+      "title": "Provider Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/CodexImageArtifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "immutable": {
+      "const": true,
+      "default": true,
+      "title": "Immutable",
+      "type": "boolean"
+    },
+    "bridge_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "controller_input": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "controller_binding": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "controller_execution_request": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "controller_result": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_phase_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "promoted_base_state": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "generation_terminal": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "selection": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "companion_selection_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "native_core_preparation_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "generated_image_evidence": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "semantic_review": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "normalization_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "adoption": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_authoring_manifest": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_authoring_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "exact_adoption_preflight": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "graph_compile_report": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "material_validation": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "neutral_preview": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "neutral_preview_manifest": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "neutral_preview_image": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "reference_preview_manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reference_preview_image": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "canonical_material_snapshot": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "canonical_scene_snapshot": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "canonical_material_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Material Plan Sha256",
+      "type": "string"
+    },
+    "canonical_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Scene Spec Sha256",
+      "type": "string"
+    },
+    "status": {
+      "const": "promoted",
+      "default": "promoted",
+      "title": "Status",
+      "type": "string"
+    },
+    "material_phase_service_used": {
+      "const": true,
+      "default": true,
+      "title": "Material Phase Service Used",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": "material_phase_service_only",
+      "default": "material_phase_service_only",
+      "title": "Canonical Write Authority",
+      "type": "string"
+    },
+    "duplicate_consumption_prevented": {
+      "const": true,
+      "default": true,
+      "title": "Duplicate Consumption Prevented",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "bridge_plan",
+    "controller_input",
+    "controller_binding",
+    "controller_execution_request",
+    "controller_result",
+    "material_phase_receipt",
+    "promoted_base_state",
+    "generation_terminal",
+    "selection",
+    "generated_image_evidence",
+    "semantic_review",
+    "normalization_receipt",
+    "adoption",
+    "material_authoring_manifest",
+    "material_authoring_receipt",
+    "graph_compile_report",
+    "material_validation",
+    "neutral_preview",
+    "neutral_preview_manifest",
+    "neutral_preview_image",
+    "canonical_material_snapshot",
+    "canonical_scene_snapshot",
+    "canonical_material_plan_sha256",
+    "canonical_scene_spec_sha256"
+  ],
+  "title": "ImageGeneratedMaterialPromotionReceipt",
+  "type": "object"
+}

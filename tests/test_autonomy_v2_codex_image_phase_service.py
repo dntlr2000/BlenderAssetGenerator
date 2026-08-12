@@ -8,10 +8,12 @@ import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from PIL import Image
 
+from codex_blender_modeler.autonomy_v2 import codex_image_phase_service as phase_service
 from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
@@ -257,6 +259,7 @@ def _phase_fixture(
     job_id: str,
     material_boundary: bool,
     image_size: int = 64,
+    candidate_count: int = 1,
     quality_level: str = "low",
     fallback: str = "local_procedural_fallback",
 ) -> _PhaseFixture:
@@ -321,7 +324,7 @@ def _phase_fixture(
         generation_intent="generated_surface_swatch_v1",
         allowed_output_roles=["base_color"],
         prompt_template_id="surface-swatch-v1",
-        requested_candidate_count=1,
+        requested_candidate_count=candidate_count,
         quality_level=quality_level,
         image_size=CodexImageDimensions(width=image_size, height=image_size),
         aspect_ratio="square",
@@ -1831,3 +1834,167 @@ def test_public_command_service_waits_resumes_and_selects_without_host_generatio
     assert status["waiting_assignment_count"] == 0
     assert status["latest_completion"] is not None
     assert status["actual_codex_imagegen_execution_verified"] is False
+
+
+def test_normalized_material_receipt_keeps_base_and_effective_source_roles_distinct(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate a normalized run without treating its base run or derivative as selected."""
+
+    def artifact(name: str, kind: str) -> CodexImageArtifact:
+        """Publish one exact JSON artifact for the isolated receipt-chain fixture."""
+
+        evidence = _write_aq_evidence(
+            tmp_path,
+            tmp_path / "normalized-receipt" / f"{name}.json",
+            artifact_id=name,
+            kind=kind,
+        )
+        return _as_codex_artifact(evidence.model_dump(mode="python"))
+
+    selection = artifact("selection", "codex-image-generation-selection")
+    quality_report = artifact("quality", "codex-image-generation-quality-report")
+    adoption_artifact = artifact("adoption", "codex-image-material-adoption")
+    selected_source = artifact("selected-source", "codex-imagegen-generated-file")
+    effective_source = artifact(
+        "effective-source",
+        "codex-imagegen-normalized-material-source",
+    )
+    base_request_artifact = artifact(
+        "base-request",
+        "codex-image-material-authoring-request",
+    )
+    normalized_request_artifact = artifact(
+        "normalized-request",
+        "codex-image-normalized-material-authoring-request",
+    )
+    normalized_receipt_artifact = artifact(
+        "normalized-receipt",
+        "codex-image-normalized-material-authoring-receipt",
+    )
+    output = artifact("base-color", "codex-image-derived-base-color")
+    base_source = SimpleNamespace(artifact=_material_artifact(selected_source))
+    derivative_source = SimpleNamespace(artifact=_material_artifact(effective_source))
+    base_request = SimpleNamespace(
+        job_id="normalized-job",
+        workflow_id="normalized-workflow",
+        run_id="base-v021-run",
+        material_id="material-main",
+        source=base_source,
+        core_evidence=SimpleNamespace(
+            selection=_material_artifact(selection),
+            adoption=_material_artifact(adoption_artifact),
+            selected_quality_report=_material_artifact(quality_report),
+        ),
+    )
+    normalized_request = SimpleNamespace(
+        job_id="normalized-job",
+        workflow_id="normalized-workflow",
+        run_id="normalized-v010-run",
+        base_request_artifact=base_request_artifact,
+        base_request=base_request,
+        effective_source=derivative_source,
+    )
+    normalized_receipt = SimpleNamespace(
+        job_id="normalized-job",
+        workflow_id="normalized-workflow",
+        run_id="normalized-v010-run",
+        request=normalized_request_artifact,
+        outputs=[_material_artifact(output)],
+    )
+    manifest = SimpleNamespace(
+        run_id="normalized-v010-run",
+        status="candidate_ready",
+        selected_source=base_source,
+        effective_source=derivative_source,
+    )
+    loaded: list[tuple[CodexImageArtifact, str]] = []
+    by_model = {
+        "CodexImageNormalizedMaterialAuthoringReceiptV010": normalized_receipt,
+        "CodexImageNormalizedMaterialAuthoringRequestV010": normalized_request,
+        "CodexImageMaterialAuthoringRequestV021": base_request,
+    }
+
+    def load_exact(
+        _root: Path,
+        exact: CodexImageArtifact,
+        model: type[object],
+    ) -> object:
+        """Record each exact load and return its corresponding strict contract stub."""
+
+        loaded.append((exact, model.__name__))
+        return by_model[model.__name__]
+
+    normalized_validations: list[object] = []
+
+    def validate_normalized(_root: Path, receipt: object) -> object:
+        """Record delegation to the full normalized candidate replay validator."""
+
+        normalized_validations.append(receipt)
+        return manifest
+
+    exact_validations: list[CodexImageArtifact] = []
+
+    def validate_exact(_root: Path, exact: CodexImageArtifact) -> Path:
+        """Record explicit effective-source and output byte validations."""
+
+        exact_validations.append(exact)
+        return tmp_path / exact.path
+
+    from codex_blender_modeler.material_authoring import (
+        codex_image_normalized_adapter,
+    )
+
+    monkeypatch.setattr(phase_service, "_load_model", load_exact)
+    monkeypatch.setattr(
+        codex_image_normalized_adapter,
+        "validate_codex_image_normalized_material_candidate",
+        validate_normalized,
+    )
+    monkeypatch.setattr(
+        phase_service,
+        "validate_codex_image_artifact",
+        validate_exact,
+    )
+    state = SimpleNamespace(
+        job_id="normalized-job",
+        workflow_id="normalized-workflow",
+        selection=selection,
+    )
+    adoption = SimpleNamespace(
+        quality_report=quality_report,
+        selected_source_sha256=selected_source.sha256,
+        target_material_ids=["material-main"],
+    )
+
+    phase_service._validate_material_receipt(
+        tmp_path,
+        state,
+        adoption,
+        adoption_artifact,
+        normalized_receipt_artifact,
+    )
+
+    assert base_request.run_id != normalized_receipt.run_id
+    assert selected_source.sha256 != effective_source.sha256
+    assert normalized_validations == [normalized_receipt]
+    assert [item[1] for item in loaded] == [
+        "CodexImageNormalizedMaterialAuthoringReceiptV010",
+        "CodexImageNormalizedMaterialAuthoringRequestV010",
+        "CodexImageMaterialAuthoringRequestV021",
+    ]
+    assert effective_source in exact_validations
+    assert output in exact_validations
+    with pytest.raises(ValueError, match="differs from selected core evidence"):
+        phase_service._validate_material_receipt(
+            tmp_path,
+            state,
+            SimpleNamespace(
+                quality_report=quality_report,
+                selected_source_sha256=effective_source.sha256,
+                target_material_ids=["material-main"],
+            ),
+            adoption_artifact,
+            normalized_receipt_artifact,
+        )

@@ -11,7 +11,8 @@
 - Blender: `5.0.1`
 - Blender bundled Python: `3.11.13`
 
-이 문서는 현재 공유 working tree에서 실제로 실행한 host, Blender와 legacy gate 결과를 기록한다.
+이 문서의 2~9절은 2026-08-11 shared-tree snapshot에서 실제로 실행한 host, Blender와 legacy gate
+결과를 보존한다. 2026-08-13 additive Codex ImageGen Material Loop 후속 경계는 10A절에 분리한다.
 기존 사용자 workspace, package, canonical evidence와 workflow receipt는 수정하지 않았다. 아래
 synthetic fixture의 성공은 임의 reference 자산의 품질 향상, 사람의 승인, GitHub Actions 실행,
 Unity/Unreal import 또는 runtime parity를 증명하지 않는다.
@@ -252,6 +253,40 @@ controller output, caller-supplied IQ와 specialized approval이 없으면 해�
 `desktop_in_session`은 현재 task가 허용 output을 제공했을 때 exact 검증 후 **채택**하는 모드다.
 repository가 Codex Desktop task를 스스로 생성하거나 App Server를 호출한다는 뜻이 아니다.
 
+## 10A. 2026-08-13 Codex ImageGen Material Loop 후속
+
+base AQ v2의 의미를 바꾸지 않는 additive companion이 다음 경계를 연결한다.
+
+```text
+ImageGen/semantic/MaterialAuthoring staging closure
+→ exact_adoption이면 isolated actual Blender shadow preflight
+→ exact material ControllerExecutionRequest/Result
+→ existing host material promotion
+→ actual MaterialPhaseReceiptV2 + fixed preview
+→ base AQ resume + IQ 0.2 terminal
+```
+
+shadow preflight는 기존 V0.5 staging-only/compile `not_run` receipt를 고치지 않고 exact candidate
+bytes만 별도 compile한다. ControllerResult, canonical material 또는 destination write를 만들지 않으며,
+다중 후보 selection receipt와 native provenance는 bridge/controller/promotion chain에서 계속 exact하게
+결속되어야 한다. native-derived selection은 `CodexImageNativeCorePreparationReceipt`가
+adoption/normalization부터 core completion/candidate/quality/selection까지 exact byte identity를
+보존한다.
+
+fake `wood`, `signage_decal`, `emissive`, `crystal` fixture는 actual Blender 5.0.1 host material/IQ
+mechanism을 실행한다. historical actual built-in PNG는 fresh invocation이 아니라 새 unique native
+run에 재사용했고, current-task non-human semantic review가 `review_required`여서 promotion 전에
+멈췄다. 두 범위를 합치지 않는다.
+
+delivery fixture는 user approval을 합성하지 않는다. V0.7 review 뒤
+`waiting_for_v07_approval`에서 멈추고 production package 호출이 거부되는지 확인한다. 별도 raw
+GLB/FBX clean import는 mechanism evidence이며 accepted package/completed terminal이 아니다. actual
+최종 명령, 합계, evidence root와 진행 중 placeholder는
+`VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`를 따른다.
+
+Material Loop 추가는 2026-08-11 AQ v2 결과를 고쳐 쓰거나 profile을 활성화하지 않는다. human
+review와 destination runtime parity도 수행하지 않았다.
+
 ## 11. 최종 판정
 
 AQ 0.2의 host 계약, 실제 Blender synthetic geometry/material probe, geometry→material→caller-supplied
@@ -262,3 +297,7 @@ IQ→quality terminal→delivery supervisor 흐름, 독립 GLB+FBX clean import�
 supporting-client sandbox는 검증되지 않았다. 따라서 `autonomous_static_prop_v2`의 올바른 상태는
 계속 **`disabled_experimental`**이다. 기존 `autonomous_static_prop_v1`, `standard`,
 `background_exterior`, SceneSpec `0.2.0`과 specialized approval 의미는 변하지 않는다.
+
+2026-08-13 Material Loop 후속도 같은 결론을 바꾸지 않는다. companion profile
+`autonomous_static_prop_v2_codex_imagegen` 역시 `disabled_experimental`이며 actual user approval,
+production package 또는 destination parity를 주장하지 않는다.

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -564,6 +567,65 @@ def test_clean_import_allows_metadata_loss_but_requires_surface_channels(
     )
     assert report.overall_status == "known_loss"
     assert report.known_losses
+
+
+@pytest.mark.parametrize(
+    ("package_format", "target_stage"),
+    [("GLB", "clean_import_glb"), ("FBX", "clean_import_fbx")],
+)
+def test_clean_import_rejects_split_normal_drift(
+    package_format: str,
+    target_stage: str,
+) -> None:
+    """Reject visible normal drift even when clean-import metadata loss is allowed."""
+
+    source = _snapshot("optimized_lod0")
+    target_raw = _snapshot(target_stage).model_dump(mode="json")
+    target_raw["split_normal_fingerprint"] = {
+        "status": "available",
+        "sha256": canonical_json_sha256("gross-normal-drift"),
+        "reason": None,
+    }
+    target = GeometryStageSnapshotV02.model_validate(target_raw)
+    report = compare_geometry_stage_snapshots_v02(
+        report_id=f"survival.clean.{package_format.lower()}.normal-drift",
+        relation="optimized_to_clean_import",
+        source=source,
+        target=target,
+        package_format=package_format,
+    )
+    split_normals = next(
+        item for item in report.checks if item.check_id == "split_normals"
+    )
+    assert split_normals.status == "failed"
+    assert report.overall_status == "failed"
+
+
+def test_delivery_normal_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Absorb serializer noise while preserving visible drift and flipped normals."""
+
+    monkeypatch.setitem(sys.modules, "bpy", types.ModuleType("bpy"))
+    script_path = (
+        Path("src")
+        / "codex_blender_modeler"
+        / "blender_scripts"
+        / "inspect_geometry_delivery_v02.py"
+    ).resolve()
+    spec = importlib.util.spec_from_file_location(
+        "test_inspect_geometry_delivery_v02",
+        script_path,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    baseline = module._normal_vector((0.3, -0.4, 0.8660254))
+    serializer_noise = module._normal_vector((0.3002, -0.4002, 0.8662254))
+    visible_drift = module._normal_vector((0.302, -0.4, 0.8653))
+    flipped = module._normal_vector((-0.3, 0.4, -0.8660254))
+    assert serializer_noise == baseline
+    assert visible_drift != baseline
+    assert flipped != baseline
 
 
 @pytest.mark.parametrize(

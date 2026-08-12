@@ -93,6 +93,14 @@ jobs:
           tests/test_autonomy_v2_codex_image_phase_service.py
           tests/test_codex_image_material_authoring_v021.py
           tests/test_codex_imagegen_public_surface.py
+          tests/test_codex_image_material_loop_contracts.py
+          tests/test_codex_image_material_loop_normalization.py
+          tests/test_codex_image_material_loop_selection.py
+          tests/test_codex_image_material_loop_v05_adapter.py
+          tests/test_codex_image_material_preview_service.py
+          tests/test_codex_image_material_quality_service.py
+          tests/test_codex_image_material_loop_service.py
+          tests/test_codex_image_material_loop_public.py
           tests/test_repository_catalog.py
           tests/test_repository_summary_generator.py
           tests/test_ci_workflows.py

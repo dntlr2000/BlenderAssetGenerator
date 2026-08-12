@@ -34,6 +34,7 @@ adopt-only이고 supporting-client sandbox/App Server 및 사람 검토는 미�
 | MaterialAuthoring 0.1 | 8개 local strategy와 fixed Blender family smoke 통과 | canonical master/preview 상태는 별도이며 일반 재질 품질은 미검증 |
 | ControllerExecutor 0.1 | execution-owned 격리와 fake/desktop adoption 검증 | Desktop는 adopt-only; App Server와 외부 sandbox는 미검증 |
 | DeliveryProfile 0.1 | freeze/review/terminal + 실제 synthetic dual GLB/FBX roundtrip 통과 | 실제 사용자 승인·목적지 runtime은 미검증 |
+| Codex ImageGen Material Loop | additive native/semantic/controller/promotion/IQ bridge 구현 | fake Blender material/IQ와 approval-free delivery mechanism만; profile 비활성 |
 | Python/Blender CI 정의 | workflow 파일과 정적 test 존재 | 실제 GitHub run/self-hosted Blender run은 별도 증거 필요 |
 
 ## 2. 목표와 비목표
@@ -100,6 +101,7 @@ AQ 0.2는 다음 companion contract를 병렬 버전으로 구현한다.
 | DeliveryProfile | `0.1.0` | quality freeze 이후 포맷별 전달 요청 |
 | ControllerExecutor | `0.1.0` | 격리 controller 호출과 결과 검증 |
 | Autonomy | `0.2.0` | v2 assignment, state와 terminal 결속 |
+| Codex ImageGen Material Loop | `0.1.0` | ImageGen staging에서 host material promotion/IQ로 가는 additive exact bridge |
 
 모든 새 loader는 기존 `0.1.0`을 계속 읽는다. legacy evidence가 없다는 이유로 과거 job을
 실패시키지 않는다. 정보가 없는 0.1 payload를 0.2의 완전한 증거로 추정하거나 자동 migration하지
@@ -116,6 +118,11 @@ autonomous_static_prop_v2
   ├─ 현재: disabled_experimental
   ├─ host contract 구현·focused 검증 완료
   └─ 모든 필수 실제 Blender/legacy/delivery gate 통과 후에만: verified_active
+
+autonomous_static_prop_v2_codex_imagegen
+  ├─ 현재: disabled_experimental
+  ├─ base v2 위의 controller-mediated image/material companion
+  └─ core 0.1과 additive Material Loop가 어느 profile도 자동 활성화하지 않음
 ```
 
 v2 profile은 v1을 수정하는 feature flag가 아니다. immutable request, root authorization,
@@ -183,6 +190,12 @@ report의 global/semantic reference·candidate PNG를 exact path/hash/kind로 �
 그 실제 bytes에서 contour·semantic metric을 다시 계산하고 gates, findings,
 `revision_reasons`, reentry와 outcome을 다시 만든 뒤 제출 report 전체와 equality를 검사한다.
 supervisor 자체가 IQ 점수나 사용자 승인을 합성하지 않는다.
+
+선택적 Codex ImageGen 경로는 base geometry promotion 뒤 ImageGen core staging evidence를 만들고,
+additive Material Loop가 exact native/semantic/ranking/adoption/MaterialAuthoring closure를 별도
+material ControllerExecutionRequest에 결속한다. canonical promotion은 같은 기존 host material
+service를 통과하며 actual `MaterialPhaseReceiptV2`가 없으면 IQ로 전진하지 않는다. historical actual
+source의 non-human review가 `review_required`이면 이 flow는 promotion 전에 멈춘다.
 
 PDF, contact sheet, `latest.json`, mutable state projection은 판단 원본이 아니다. strict JSON,
 exact hashes, immutable plan/authorization/promotion/attempt/transition/manifest/receipt chain이
@@ -777,6 +790,17 @@ profile, output inventory, lifecycle receipts와 저장된 exact result bytes를
 side effect 전에는 session의 `RootAuthorizationV2`가 active·미만료이며 exact plan/profile/budget,
 phase profile과 delivery scope에 결속됐는지도 다시 확인한다.
 
+Codex ImageGen Material Loop는 material request에 `exact_adoption`과
+`controller_authored_completion`을 구분한다. exact adoption은 staging-only/compile `not_run` V0.5
+receipt를 변경하지 않고 exact candidate bytes를 isolated shadow에서 실제 Blender compile한 별도
+preflight receipt를 요구한다. 이 preflight는 ControllerResult나 canonical/destination write를 만들지
+않는다. native original의 adoption/normalization provenance는
+`CodexImageNativeCorePreparationReceipt`를 통해 core completion/candidate/quality/selection과 exact byte
+identity로 이어지고, 다중 후보 companion selection receipt와 함께 bridge/controller/promotion에 재귀
+결속된다. completed result 뒤에도 host material validation, compile,
+canonical CAS, Blender rebuild와 actual receipt를 생략하지 않는다. companion state는 material
+promotion과 IQ pass를 구분해 후자에만 `quality_approved`를 사용한다.
+
 ## 18. phase tool profile
 
 기존 전체 MCP 도구 목록과 기존 Codex 사용을 제거하지 않는다. production/controller assignment에
@@ -962,13 +986,19 @@ AQ v2 구현 완료 판정에는 다음 계층이 모두 필요하다.
 Integrated Quality 0.1, SceneSpec V03 derived migration, V0.7 package, V0.8 workflow와 V0.9
 handoff 공개 표면을 유지한다.
 
-현재 신규 CLI는 `autonomy-v2-profile-status`, `autonomy-v2-delivery-profiles`,
+현재 base AQ v2 신규 CLI는 `autonomy-v2-profile-status`, `autonomy-v2-delivery-profiles`,
 `autonomy-v2-plan`, `autonomy-v2-status`, `autonomy-v2-advance`, `autonomy-v2-run`,
 `autonomy-v2-cancel`,
 `controller-executor-status`, `scene-spec-v03-migration-plan`과
 `scene-spec-v03-migration-apply`다. 대응 MCP는 project allowlist에 명시적으로 등록되어 있다.
 material-authoring companion 전용 CLI나 dual-delivery 자동 승인 명령은 없다. `run`은 approval을
 합성하지 않고 exact V0.7 approval이 없으면 정지한다.
+
+Codex ImageGen Material Loop는 기존 core 5개 표면을 보존하고 별도 CLI 9개/MCP 9개를 추가한다:
+bridge plan/status/run, isolated Blender exact-adoption preflight, host promote/resume, native normalize,
+semantic-review status와 one-step AQ/IQ continue다. native normalize는 `adopt|prepare|execute`를
+구분한다. 어느 표면도 semantic observation,
+user approval, arbitrary canonical write나 destination write를 작성하지 않는다.
 어떤 public surface도 exact-hash, allowed-output, single-use와 audit 불변 조건을 우회하지 않는다.
 
 ## 26. 안전성과 최종 제한

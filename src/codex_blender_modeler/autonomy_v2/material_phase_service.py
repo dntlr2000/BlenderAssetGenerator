@@ -797,6 +797,21 @@ def _replace_material_plan_if_current(
         raise MaterialPhaseError("canonical MaterialPlan differs from promoted candidate")
 
 
+def _canonical_material_matches_candidate(
+    root: Path,
+    *,
+    candidate_sha256: str,
+) -> bool:
+    """Detect an atomic candidate replacement even if the writer raised afterward."""
+
+    canonical = ensure_contained_production_path(
+        root,
+        root / "analysis" / "material_plan.json",
+        must_exist=False,
+    )
+    return canonical.is_file() and sha256_file(canonical) == candidate_sha256
+
+
 def _restore_material_plan(
     root: Path,
     previous: AQV2Artifact | None,
@@ -1501,6 +1516,11 @@ def validate_and_promote_material_controller_result_v2(
             ).model_copy(update={"kind": "material_phase_receipt"})
             return receipt, receipt_artifact
         except Exception as failure:
+            if not wrote_candidate:
+                wrote_candidate = _canonical_material_matches_candidate(
+                    job_root,
+                    candidate_sha256=intent.candidate_material_sha256,
+                )
             if not wrote_candidate:
                 raise
             rollback_snapshots: _RebuildSnapshots | None = None

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -12,6 +14,7 @@ from uuid import uuid4
 
 from pydantic import ValidationError
 
+from ..blender_artifacts import native_io_path
 from ..blender_runner import run_blender
 from .models import ChannelBinding, MaterialGraphArtifact, MaterialGraphSpec
 from .registry import (
@@ -86,7 +89,7 @@ def _sha256_file(path: Path) -> str:
     """Hash exact file bytes without interpreting their content."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -95,12 +98,33 @@ def _sha256_file(path: Path) -> str:
 def _write_json_exclusive(path: Path, value: object) -> str:
     """Write one deterministic JSON artifact without replacing prior evidence."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
     payload = value.model_dump(mode="json") if hasattr(value, "model_dump") else value
     content = _canonical_json_bytes(payload) + b"\n"
-    with path.open("xb") as handle:
+    with open(native_io_path(path), "xb") as handle:
         handle.write(content)
     return _sha256_bytes(content)
+
+
+def _is_link_like(path: Path) -> bool:
+    """Detect symlinks and Windows reparse points through extended-length paths."""
+
+    native = native_io_path(path)
+    if os.path.islink(native):
+        return True
+    try:
+        metadata = os.lstat(native)
+    except FileNotFoundError:
+        return False
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+
+
+def _read_text(path: Path) -> str:
+    """Read UTF-8 contract text without the Windows legacy path-length limit."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
 
 
 def _canonical_topological_order(
@@ -151,22 +175,15 @@ class MaterialGraphCompilerService:
         current = self.job_root
         for part in relative_path.split("/"):
             current = current / part
-            if current.is_symlink():
+            if _is_link_like(current):
                 raise MaterialGraphCompileError(
                     f"material graph dependency cannot traverse a symlink: {relative_path}"
                 )
-        try:
-            resolved = candidate.resolve(strict=True)
-            resolved.relative_to(self.job_root)
-        except (FileNotFoundError, ValueError) as exc:
+        if not os.path.isfile(native_io_path(candidate)):
             raise MaterialGraphCompileError(
                 f"material graph dependency is missing or escapes the job: {relative_path}"
-            ) from exc
-        if not resolved.is_file():
-            raise MaterialGraphCompileError(
-                f"material graph dependency is not a regular file: {relative_path}"
             )
-        return resolved
+        return candidate
 
     def _resolve_new_run_root(self, relative_path: str) -> Path:
         """Resolve a normalized unpublished run root below the bound job directory."""
@@ -177,12 +194,12 @@ class MaterialGraphCompilerService:
         if not parts or any(part in {"", ".", ".."} for part in parts):
             raise MaterialGraphCompileError("run root contains an unsafe path segment")
         candidate = self.job_root.joinpath(*parts)
-        parent = candidate.parent.resolve()
-        try:
-            parent.relative_to(self.job_root)
-        except ValueError as exc:
-            raise MaterialGraphCompileError("run root escapes the job directory") from exc
-        if candidate.exists():
+        current = self.job_root
+        for part in parts[:-1]:
+            current = current / part
+            if _is_link_like(current):
+                raise MaterialGraphCompileError("run root cannot traverse a symlink")
+        if os.path.exists(native_io_path(candidate)):
             raise FileExistsError(candidate)
         return candidate
 
@@ -191,7 +208,7 @@ class MaterialGraphCompilerService:
 
         path = self._resolve_contained_file(relative_path)
         try:
-            spec = MaterialGraphSpec.model_validate_json(path.read_text(encoding="utf-8"))
+            spec = MaterialGraphSpec.model_validate_json(_read_text(path))
         except (OSError, ValidationError) as exc:
             raise MaterialGraphCompileError("MaterialGraphSpec 0.1 is invalid") from exc
         return spec, _sha256_file(path)
@@ -705,7 +722,9 @@ class MaterialGraphCompilerService:
             "blender/scene.blend",
         ):
             path = self.job_root.joinpath(*relative.split("/"))
-            result[relative] = _sha256_file(path) if path.is_file() else None
+            result[relative] = (
+                _sha256_file(path) if os.path.isfile(native_io_path(path)) else None
+            )
         return result
 
     def _verify_dependencies_current(self, manifest: MaterialGraphDependencyManifest) -> None:
@@ -722,14 +741,24 @@ class MaterialGraphCompilerService:
         """Re-hash all declared runtime outputs before publishing the staging root."""
 
         for artifact in report.artifacts:
-            candidate = staging.joinpath(*artifact.path.split("/"))
-            try:
-                candidate.resolve(strict=True).relative_to(staging.resolve())
-            except (FileNotFoundError, ValueError) as exc:
+            if (
+                "\\" in artifact.path
+                or artifact.path.startswith("/")
+                or ":" in artifact.path
+                or any(part in {"", ".", ".."} for part in artifact.path.split("/"))
+            ):
                 raise MaterialGraphCompileError(
                     f"compiler report artifact escapes or is missing: {artifact.path}"
-                ) from exc
-            if not candidate.is_file():
+                )
+            candidate = staging.joinpath(*artifact.path.split("/"))
+            current = staging
+            for part in artifact.path.split("/"):
+                current = current / part
+                if _is_link_like(current):
+                    raise MaterialGraphCompileError(
+                        f"compiler report artifact traverses a symlink: {artifact.path}"
+                    )
+            if not os.path.isfile(native_io_path(candidate)):
                 raise MaterialGraphCompileError(
                     f"compiler report artifact is not a file: {artifact.path}"
                 )
@@ -737,7 +766,7 @@ class MaterialGraphCompilerService:
                 raise MaterialGraphCompileError(
                     f"compiler report artifact hash mismatch: {artifact.path}"
                 )
-            if candidate.stat().st_size != artifact.byte_size:
+            if os.path.getsize(native_io_path(candidate)) != artifact.byte_size:
                 raise MaterialGraphCompileError(
                     f"compiler report artifact size mismatch: {artifact.path}"
                 )
@@ -753,7 +782,7 @@ class MaterialGraphCompilerService:
         final_root = report_path.parent
         try:
             report = MaterialGraphCompileReport.model_validate_json(
-                report_path.read_text(encoding="utf-8")
+                _read_text(report_path)
             )
         except (OSError, ValidationError) as exc:
             raise MaterialGraphCompileError(
@@ -766,13 +795,13 @@ class MaterialGraphCompilerService:
             plan_path = final_root.joinpath(*artifacts["normalized_plan"].path.split("/"))
             dependency_path = final_root.joinpath(*artifacts["dependency_manifest"].path.split("/"))
             request = MaterialGraphCompileRequest.model_validate_json(
-                request_path.read_text(encoding="utf-8")
+                _read_text(request_path)
             )
             plan = NormalizedMaterialGraphPlan.model_validate_json(
-                plan_path.read_text(encoding="utf-8")
+                _read_text(plan_path)
             )
             dependencies = MaterialGraphDependencyManifest.model_validate_json(
-                dependency_path.read_text(encoding="utf-8")
+                _read_text(dependency_path)
             )
         except (KeyError, OSError, ValidationError) as exc:
             raise MaterialGraphCompileError(
@@ -830,9 +859,9 @@ class MaterialGraphCompilerService:
             policy=policy,
         )
         before = self._canonical_snapshot()
-        final_root.parent.mkdir(parents=True, exist_ok=True)
-        staging = final_root.parent / f".{run_id}.staging-{uuid4().hex[:12]}"
-        staging.mkdir(parents=False, exist_ok=False)
+        os.makedirs(native_io_path(final_root.parent), exist_ok=True)
+        staging = final_root.parent / f".g-{uuid4().hex[:8]}"
+        os.mkdir(native_io_path(staging))
         try:
             plan_sha = _write_json_exclusive(staging / "normalized_plan.json", prepared.plan)
             dependency_sha = _write_json_exclusive(
@@ -869,7 +898,7 @@ class MaterialGraphCompilerService:
                 "compile_material_graph_runtime.py",
                 [
                     "--job-root",
-                    str(self.job_root),
+                    native_io_path(self.job_root),
                     "--run-root",
                     str(staging),
                     "--request",
@@ -881,7 +910,7 @@ class MaterialGraphCompilerService:
             report_path = staging / request.report_path
             try:
                 report = MaterialGraphCompileReport.model_validate_json(
-                    report_path.read_text(encoding="utf-8")
+                    _read_text(report_path)
                 )
             except (OSError, ValidationError) as exc:
                 raise MaterialGraphCompileError(
@@ -897,8 +926,8 @@ class MaterialGraphCompilerService:
                 raise MaterialGraphCompileError(
                     "canonical material or authoring scene changed during compilation"
                 )
-            staging.rename(final_root)
+            os.rename(native_io_path(staging), native_io_path(final_root))
             return MaterialGraphCompileBundle(run_root=run_root, report=report)
         except Exception:
-            shutil.rmtree(staging, ignore_errors=True)
+            shutil.rmtree(native_io_path(staging), ignore_errors=True)
             raise

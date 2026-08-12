@@ -12,8 +12,9 @@
 2. 현재 열려 있는 Codex 작업이 assignment를 읽는다.
 3. 현재 작업이 Codex 내장 `$imagegen`으로 PNG를 만든다.
 4. host가 exact completion을 검증하고 후보 하나를 선택한다.
-5. 선택된 pixels는 MaterialAuthoring staging candidate로만 이어진다.
-6. staging receipt 뒤 overlay는 `adopted` / `controller_promotion_required`에서 멈춘다.
+5. 선택된 pixels는 MaterialAuthoring staging candidate로 이어진다.
+6. core `adopt`는 staging receipt 뒤 `adopted` / `controller_promotion_required`에서 멈춘다.
+7. 선택한 경우 별도 Material Loop가 exact bridge/controller/host promotion과 IQ 경계를 진행한다.
 
 - API key, OpenAI SDK, 외부 HTTP provider를 사용하지 않는다.
 - 이미지 생성 사용량은 별도 API billing이 아니라 현재 Codex 앱 사용량 범위에 속한다.
@@ -29,7 +30,7 @@
 | 이미지 생성 | 없음 | 현재 Codex task의 built-in `$imagegen` |
 | provider 실행 주체 | 해당 없음 | controller-mediated, repository host 아님 |
 | 앱 종료 | base workflow도 독립 daemon 아님 | generation은 대기하고 자동 계속되지 않음 |
-| material write | 기존 controller-only promotion | staging receipt까지만; promotion 연결은 미배선 |
+| material write | 기존 controller-only promotion | core는 staging-only; additive Material Loop도 기존 host promotion만 사용 |
 | 자동 migration | 없음 | 없음 |
 
 ## 2. 먼저 읽을 문서
@@ -41,6 +42,7 @@
 5. `TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md` — fake/actual/Blender 검증 분리
 6. `MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md` — no auto migration
 7. `VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md` — 실제 실행 결과
+8. `GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md` — staging 이후 bridge/promotion/IQ 사용법
 
 ## 3. 적합한 요청과 부적합한 요청
 
@@ -159,6 +161,27 @@ ImageGen에게 글자를 그리라는 옵션이 아니다.
 - `run_codex_imagegen`
 - `select_codex_imagegen`
 - `adopt_codex_imagegen`
+
+staging 이후 additive Material Loop는 별도 CLI 9개와 동등 MCP 9개를 제공한다.
+native `original.png`에서 normalized core candidate를 준비했다면 별도
+`CodexImageNativeCorePreparationReceipt`가 adoption/normalization과 core
+completion/candidate/quality/selection의 exact byte identity를 결속한다. 이 receipt는 기존 core
+schema를 수정하지 않고 bridge/controller/promotion에서 검증된다.
+
+| CLI | MCP |
+|---|---|
+| `codex-imagegen-material-bridge-plan` | `plan_codex_imagegen_material_bridge` |
+| `codex-imagegen-material-exact-adoption-preflight` | `preflight_codex_imagegen_material_exact_adoption` |
+| `codex-imagegen-material-bridge-status` | `get_codex_imagegen_material_bridge_status` |
+| `codex-imagegen-material-bridge-run` | `run_codex_imagegen_material_bridge` |
+| `codex-imagegen-material-promote` | `promote_codex_imagegen_material` |
+| `codex-imagegen-material-resume` | `resume_codex_imagegen_material` |
+| `codex-imagegen-native-normalize` | `normalize_codex_imagegen_native_output` |
+| `codex-imagegen-semantic-review-status` | `get_codex_imagegen_semantic_review_status` |
+| `autonomy-v2-codex-imagegen-continue` | `continue_autonomy_v2_codex_imagegen` |
+
+이 표면의 exact 순서와 stale/recovery 경계는
+[Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)를 따른다.
 
 MCP `run_codex_imagegen`은 신규 assignment에 `rendered_prompt_text`를 받으며 재개에서는 생략할 수
 있다. status는 prompt를 반환하지 않는다.
@@ -314,9 +337,10 @@ material_authoring/codex_imagegen/runs/<RUN_ID>/
 └─ textures/*.png
 ```
 
-`candidate_ready`도 canonical promotion이나 Blender/destination 검증 완료를 뜻하지 않는다. public
-adoption의 최종 반환은 `status=adopted`, `next_action=controller_promotion_required`이며 overlay
-`completed` 또는 base AQ resume을 주장하지 않는다.
+`candidate_ready`도 canonical promotion이나 Blender/destination 검증 완료를 뜻하지 않는다. core
+adoption의 최종 반환은 `status=adopted`, `next_action=controller_promotion_required`다. 그 다음은
+additive Material Loop가 exact input closure를 새로 만들고 기존 host material phase를 성공시킨
+경우에만 base AQ로 이어진다. staging receipt 자체를 actual MaterialPhaseReceipt로 바꾸지 않는다.
 
 ## 11. 기본 budget
 
@@ -351,7 +375,7 @@ Fake gate가 통과해도 실제 ImageGen 실행이 아니다. 반대로 실제 
 profile이 active가 되거나 일반 품질, human review, PBR completeness가 증명되지 않는다. 검증 문서에서
 두 scope의 prompt, 경로, hash와 결과를 별도로 확인한다.
 
-## 13. delivery 전에 확인할 것
+## 13. Material Loop와 delivery 전에 확인할 것
 
 - actual `MaterialPhaseReceiptV2`와 companion adoption/receipt의 exact controller-input binding
 - material candidate의 exact receipt와 모든 source hash
@@ -361,16 +385,23 @@ profile이 active가 되거나 일반 품질, human review, PBR completeness가 
 - GLB/FBX 각각의 package manifest, material-loss와 clean-import evidence
 - destination-specific import plan과 사용자 승인
 
-ImageGen assignment/completion/selection은 package나 Destination Handoff 승인이 아니다. 이
-companion은 현재 첫 번째 항목의 배선 전에서 멈추므로 full material promotion, IQ와 package는
-검증되지 않았다. Unity, Unreal 또는 다른 destination project도 수정하지 않는다.
+ImageGen assignment/completion/selection은 package나 Destination Handoff 승인이 아니다. additive
+Material Loop는 첫 번째 exact binding과 host promotion/IQ 경계를 구현하지만 V0.7 user approval을
+작성하지 않는다. `review_only`는 package가 아니고 portable flow는 approval 없이
+`waiting_for_v07_approval`에서 멈춘다. raw GLB/FBX clean-import mechanism test도 production package
+acceptance가 아니다. Unity, Unreal 또는 다른 destination project는 수정하지 않는다.
 
 ## 14. 문제가 생겼을 때
 
 - `disabled_experimental`: 두 explicit opt-in을 확인하되 status를 active로 고치지 않는다.
 - `waiting_for_controller`: 현재 Codex 작업과 동일 request-owned workspace인지 확인한다.
-- `controller_promotion_required`: staging 성공 상태다. `completed`로 고치거나 base AQ를 수동
-  재개하지 말고 향후 exact controller binding을 기다린다.
+- `controller_promotion_required`: core staging 성공 상태다. 수동으로 `completed`로 고치거나 base
+  AQ를 전진시키지 말고 Material Loop bridge가 exact controller input을 게시하게 한다.
+- `exact_adoption` 거부: 기존 staging-only/compile `not_run` receipt를 pass로 고치지 말고, exact
+  V0.5 candidate bytes의 별도 `codex-imagegen-material-exact-adoption-preflight`를 실행해 그 receipt를
+  bridge에 결속하거나 `controller_authored_completion`을 선택한다.
+- semantic `review_required`: deterministic score로 덮어쓰지 말고 promotion 전에 멈춘다.
+- `waiting_for_v07_approval`: approval을 합성하지 말고 사용자에게 exact plan hash 검토를 맡긴다.
 - source inventory mismatch: canonical/user evidence를 되돌리지 말고 원인을 확인한 뒤 새 session을
   계획한다.
 - semantic `unscorable`: 자동 pass를 기대하지 말고 사람 검토, user image 또는 local fallback을

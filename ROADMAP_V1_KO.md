@@ -547,7 +547,7 @@ decision을 host가 재계산한 뒤 현재 canonical source와 필수
 `QualityTerminalV2` 검증은 IQ report, source freeze 또는 review bundle과 내부 artifact hash까지
 재검증합니다.
 
-최신 통합 증거는 전체 pytest `1438 passed, 44 skipped, 8 warnings`, AQ focused gate
+2026-08-12 Material Loop 이전 통합 snapshot은 전체 pytest `1438 passed, 44 skipped, 8 warnings`, AQ focused gate
 `485 passed, 22 skipped, 8 warnings`, 실제 Blender gate `34 passed, 6 warnings`, 그리고 V0.7/V0.8/V0.9 gate
 통과입니다. 실제 Blender 범위는 선택된 structural/material fixture와 같은 freeze에서 각각
 직접 생성한 synthetic GLB+FBX dual-delivery fixture입니다. 다음 항목이 남아 있으므로 profile을
@@ -578,12 +578,28 @@ asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검
 - append-only overlay state와 app-exit 후 same-request resume
 - plan-item capacity fallback과 final controller result를 exact request/result-bound terminal로 종료
 - direct base-color/decal/emission/opacity-source만 허용하는 image evidence
-- deterministic raster hard gates, 모든 후보 보존과 single selection
+- deterministic raster hard gates와 single-candidate core selection
 - exact local signage text composition
 - selected source-bound local PBR derivation을 위한 MaterialAuthoring `0.2.1`
-- staging receipt 뒤 overlay `adopted` / `controller_promotion_required` 정지
 - fake controller와 actual built-in ImageGen evidence 분리
 - status/plan/run/select/two-mode adopt CLI와 동등 MCP host surface
+
+2026-08-13 additive Material Loop 구현 범위:
+
+- native PNG immutable adoption, adoption-receipt-bound deterministic normalization과
+  `CodexImageNativeCorePreparationReceipt`의 exact normalized-to-core completion/selection closure
+- current-task `human_reviewed=false` semantic review
+- 모든 후보의 exact ranking evidence를 요구하고 bridge/controller/promotion까지 receipt를 결속하는
+  companion-only multi-candidate precedence
+- V0.5 normalized/bridge evidence와 exact canonical MaterialPlan absence
+- strict bridge plan/controller input/binding과 append-only companion state/terminal
+- V0.5 staging-only/compile-not-run 의미를 보존하는 actual Blender shadow preflight와 preflight 없는
+  `exact_adoption` 거부
+- `controller_authored_completion`의 exact three-file ControllerExecutor lifecycle
+- 기존 host material service의 MaterialGraph compile, canonical CAS, Blender rebuild/rollback
+- actual `MaterialPhaseReceiptV2`, fixed neutral preview, base AQ resume와 IQ `0.2.0` 경계
+- bridge/status/run, exact-adoption-preflight, promote/resume, native-normalize, semantic-status와
+  continue CLI 9개/MCP 9개
 
 영구 안전 경계:
 
@@ -592,7 +608,9 @@ asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검
 - provider의 canonical MaterialPlan, Blender scene 또는 destination-project 직접 write 없음
 - generated normal/roughness/height/AO를 authoritative channel로 직접 채택하지 않음
 - ImageGen completion/selection이 material promotion, V0.7 approval 또는 package 승인이 아님
-- base AQ 자동 재개와 overlay `completed` claim 없음
+- core staging receipt는 base AQ를 자동 재개하지 않음; Material Loop도 actual host receipt 전에는 전진 금지
+- material promotion과 IQ pass는 분리하며 IQ pass에만 `quality_approved` 사용
+- semantic observation, human review, V0.7 approval과 destination parity 합성 없음
 
 현재 활성화하지 않는 이유:
 
@@ -600,8 +618,11 @@ asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검
 - unwanted object/text와 style/background semantic alignment는 local metric에서 `unscorable`
 - 사람 review, generalized material quality와 destination runtime parity가 별도 증거를 요구함
 - fixed fake/Blender fixture와 실제 built-in smoke는 서로 다른 verification scope임
-- actual `MaterialPhaseReceiptV2`와 companion adoption/receipt의 exact controller-input binding이
-  아직 없어 full material promotion, IQ와 package 경로가 미검증임
+- fake four-family host/Blender material-IQ mechanism은 actual ImageGen 품질 증거가 아님
+- historical actual source reuse는 fresh invocation이 아니며 non-human semantic review가
+  `review_required`여서 promotion 전에 멈춤
+- approval 없는 raw GLB/FBX clean import는 production package acceptance가 아님
+- actual user-approved V0.7 production package와 destination runtime은 미검증
 
 향후 활성화 검토에는 exact controller capability/smoke evidence, semantic review 정책, 실제 자산
 corpus의 material/Blender/package 검증과 명시적 profile 정책 변경이 필요하다. migration, README 문구
@@ -611,7 +632,9 @@ corpus의 material/Blender/package 검증과 명시적 profile 정책 변경이 
 [시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md),
 [테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md),
 [마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
-[검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)을 따른다.
+[검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
+[Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)와
+[Material Loop 검증](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
@@ -841,6 +864,11 @@ VERIFICATION_Vxx_KO.md
 - [Codex Built-in ImageGen 테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)
 - [Codex Built-in ImageGen 마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
 - [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex ImageGen Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다. 실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지 import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
 
@@ -854,4 +882,4 @@ VERIFICATION_Vxx_KO.md
 → 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
 ```
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

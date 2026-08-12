@@ -53,10 +53,28 @@ request, manifest, receipt와 raw channels는
 Blender compile 또는 destination parity를 증명하지 않으므로 manifest의
 `actual_codex_imagegen_execution_verified=false`, `blender_compilation_status=not_run`을 유지한다.
 
-공개 Codex-image finalize는 이 receipt를 overlay에 결속한 뒤 `status=adopted`,
-`next_action=controller_promotion_required`에서 멈춘다. actual `MaterialPhaseReceiptV2`와 companion
-adoption/receipt의 exact controller-input binding은 아직 배선되지 않았으므로 base AQ를 자동
-재개하거나 canonical material promotion, IQ 또는 package 완료를 주장하지 않는다.
+공개 Codex-image core finalize는 이 receipt를 overlay에 결속한 뒤 `status=adopted`,
+`next_action=controller_promotion_required`에서 멈춘다. additive Material Loop는 이 exact
+selection/adoption/receipt와 V0.5 dependency를 새 controller input에 결속하고, 기존 host material
+phase service를 통해서만 actual `MaterialPhaseReceiptV2`, fixed neutral preview와 base AQ/IQ 경계로
+진행한다. core receipt 자체를 수정하거나 canonical promotion으로 재분류하지 않는다.
+
+native source 크기가 core assignment와 다르면 `CodexImageNativeOutputAdoptionReceipt`와
+`ImageGenNativeNormalizationPlan/Receipt`가 immutable original과 deterministic derivative를 별도로
+결속한다. native original을 사용한 normalization receipt는 adoption receipt도 직접 결속하며 replay가
+assignment/original/plan/derivative를 재귀 검증한다. normalized bytes는 새 assignment의 candidate로
+처음부터 사용한다. core completion/selection 뒤에는 `CodexImageNativeCorePreparationReceipt`가
+normalized image와 copied core image의 exact byte identity 및 completion/candidate/generated-image
+evidence/quality/selection을 결속한다. MaterialAuthoring
+`0.2.1`의 source를 selection 뒤 post-hoc 교체하지 않는다.
+
+Material Loop의 `exact_adoption`은 원래 staging-only/
+`blender_compilation_status=not_run` receipt를 pass로 재해석하지 않는다. exact candidate
+MaterialPlan/MaterialGraph/dependency bytes를 isolated shadow에서 실제 Blender whitelist compile한
+별도 `CodexImageV05ExactAdoptionPreflightReceipt`가 있어야 하며, 이 preflight는 ControllerResult나
+canonical/destination write를 만들지 않는다. preflight가 없으면 `controller_authored_completion`을
+거친 뒤 host whitelist graph compile, canonical CAS와 Blender rebuild/inspect/validate를 실제로
+통과해야 한다.
 
 허용 strategy와 source role은 다음과 같다.
 
@@ -93,6 +111,11 @@ core selection/adoption chain과 모든 channel hash를 다시 재생한다. fix
 signage, emissive와 crystal whitelist compile/reopen/render/rehash 경계를 검사하도록 구성된다. 이
 probe 결과는 `actual_codex_imagegen_execution_verified=false`, `runtime_parity=false`를 유지하고
 package acceptance를 만들지 않는다. 실제 실행 범위는 ImageGen verification 문서에서만 확정한다.
+
+fake `wood`, `signage_decal`, `emissive`, `crystal` Material Loop fixture는 실제 Blender 5.0.1 host
+promotion과 IQ mechanism을 실행한다. 이는 actual `MaterialPhaseReceiptV2` 경계를 검증하지만 fake
+source를 actual ImageGen으로 바꾸지 않는다. 보존된 historical actual source는 current-task non-human
+semantic review가 `review_required`여서 promotion 전에 멈췄으며 기존 manifest의 `not_run`을 유지한다.
 
 provider assignment, fake/actual 분류와 ControllerExecutor 경계는
 [Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)를 따른다.
@@ -317,7 +340,9 @@ completion marker만으로 canonical 성공을 주장하지 않는다.
   adherence를 검증하지 않으며, fake source와 actual source의 분류를 바꾸지 않는다.
 - Codex-image local raster check에서 unwanted object/text와 style/background alignment는
   `unscorable`이므로 `candidate_ready`만으로 human review를 주장할 수 없다.
-- Codex-image staging receipt는 `MaterialPhaseReceiptV2`가 아니며, companion adoption/receipt가
-  exact material-controller input으로 배선되기 전에는 base AQ resume이나 `completed`를 만들지 않는다.
+- Codex-image staging receipt는 `MaterialPhaseReceiptV2`가 아니다. additive Material Loop는 exact
+  controller binding과 기존 host promotion을 통과한 별도 receipt만 actual
+  `MaterialPhaseReceiptV2`로 사용한다. material promotion과 IQ pass도 각각
+  `material_promoted|waiting_for_quality`와 `quality_approved`로 구분한다.
 - package, clean import와 destination runtime parity는 각각 V0.7과 검증된 destination adapter의
   별도 evidence가 필요하다.
