@@ -138,6 +138,9 @@ def test_provider_rejects_invalid_channels_and_returns_isolated_presets(
         "standardgun_dark_polymer",
         "standardgun_gunmetal",
         "standardgun_gold_accent",
+        "crystalgun_ornate_gold",
+        "crystalgun_dark_leather",
+        "crystalgun_mint_crystal",
         "standardgun_bore_dark",
         "standardgun_simple_red_paint",
         "standardgun_simple_dark_polymer",
@@ -179,6 +182,64 @@ def test_surface_detail_pattern_writes_png_pixels_and_exact_ids(
     base_color = Image.open(result.channel_paths["base_color"])
     assert base_color.format == "PNG"
     assert len(set(base_color.getdata())) > 2
+
+
+@pytest.mark.parametrize(
+    ("detail_pattern", "preset", "channels"),
+    [
+        ("ornate_filigree", "crystalgun_ornate_gold", ("base_color", "emission")),
+        ("grip_filigree", "crystalgun_dark_leather", ("base_color", "roughness")),
+        (
+            "crystal_facet_lines",
+            "crystalgun_mint_crystal",
+            ("base_color", "roughness"),
+        ),
+    ],
+)
+def test_crystalgun_patterns_are_bounded_and_deterministic(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    detail_pattern: str,
+    preset: str,
+    channels: tuple[str, ...],
+) -> None:
+    """Crystal-gun detail presets must stay bounded and reproduce exact channel bytes."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    binding = SurfaceDetailBinding(
+        detail_id=f"detail.{detail_pattern}",
+        parent_object_id="prop.crystalgun.target",
+        material_id="mat.crystalgun.target",
+        uv_layout_sha256="c" * 64,
+        placement=SurfaceDetailPlacement(
+            mode="uv_rect",
+            uv_rect=(0.2, 0.25, 0.8, 0.75),
+        ),
+        channels=list(channels),
+        wrap="clip",
+    )
+    outputs = []
+    for index in range(2):
+        result = generate_procedural_pbr(
+            f"texture_crystalgun_{index}",
+            "mat.crystalgun.target",
+            preset=preset,
+            channels=channels,
+            resolution=(96, 64),
+            seed=41,
+            uv_set="UVMap",
+            surface_detail_ids=(binding.detail_id,),
+            surface_detail_bindings=(binding,),
+            detail_pattern=detail_pattern,
+            output_dir=(
+                tmp_path / f"texture_crystalgun_{index}" / "textures" / "mat.crystalgun.target"
+            ),
+        )
+        outputs.append(result)
+
+    assert outputs[0].channel_sha256 == outputs[1].channel_sha256
+    assert outputs[0].manifest.surface_detail_bindings == [binding]
+    assert outputs[0].manifest.procedural["detail_pattern"] == detail_pattern
 
 
 def test_surface_detail_ids_require_a_rendered_pattern(

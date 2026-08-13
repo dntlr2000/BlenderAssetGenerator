@@ -150,3 +150,6 @@ build/
 /.zfull/
 /.zv2/
 /.tmp-tests
+/tmp_tests_completion_binding_20260814_01
+/tmp_tests_completion_binding_20260814_02
+/tmp_tests_dependency_closure_plan_20260814_01

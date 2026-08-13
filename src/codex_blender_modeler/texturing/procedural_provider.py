@@ -164,6 +164,45 @@ MATERIAL_FAMILY_PRESETS: dict[str, dict[str, Any]] = {
         "emission_high": (0, 0, 0),
         "emission_threshold": 1.0,
     },
+    "crystalgun_ornate_gold": {
+        "base_low": (86, 48, 9),
+        "base_high": (222, 171, 64),
+        "roughness": (0.2, 0.36),
+        "metallic": (0.82, 0.96),
+        "normal_strength": 0.2,
+        "emission_low": (0, 8, 3),
+        "emission_high": (62, 255, 148),
+        "emission_threshold": 0.18,
+        "detail_tone_factor": 0.58,
+        "detail_roughness_value": 76,
+        "detail_relief_mix": 0.0,
+    },
+    "crystalgun_dark_leather": {
+        "base_low": (17, 7, 5),
+        "base_high": (74, 35, 24),
+        "roughness": (0.58, 0.78),
+        "metallic": (0.0, 0.0),
+        "normal_strength": 0.2,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 1.32,
+        "detail_roughness_value": 116,
+        "detail_relief_mix": 0.0,
+    },
+    "crystalgun_mint_crystal": {
+        "base_low": (16, 93, 64),
+        "base_high": (122, 255, 193),
+        "roughness": (0.08, 0.2),
+        "metallic": (0.0, 0.0),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 0.48,
+        "detail_roughness_value": 54,
+        "detail_relief_mix": 0.0,
+    },
     "standardgun_bore_dark": {
         "base_low": (2, 3, 4),
         "base_high": (17, 19, 22),
@@ -374,20 +413,15 @@ def _periodic_noise(resolution: tuple[int, int], seed: int) -> Image.Image:
                 y1 = (y0 + 1) % frequency
                 tx = gx - int(gx)
                 ty = gy - int(gy)
-                top = grid[y0 * frequency + x0] * (1.0 - tx) + grid[
-                    y0 * frequency + x1
-                ] * tx
-                bottom = grid[y1 * frequency + x0] * (1.0 - tx) + grid[
-                    y1 * frequency + x1
-                ] * tx
+                top = grid[y0 * frequency + x0] * (1.0 - tx) + grid[y0 * frequency + x1] * tx
+                bottom = grid[y1 * frequency + x0] * (1.0 - tx) + grid[y1 * frequency + x1] * tx
                 value += (top * (1.0 - ty) + bottom * ty) * weight
             samples.append(value)
 
     minimum = min(samples)
     span = max(samples) - minimum
     pixels = bytes(
-        round((value - minimum) / span * 255.0) if span > 1e-12 else 128
-        for value in samples
+        round((value - minimum) / span * 255.0) if span > 1e-12 else 128 for value in samples
     )
     return Image.frombytes("L", resolution, pixels)
 
@@ -490,6 +524,92 @@ def _detail_relief(
             box = (center - half, height // 8, center + half, height * 7 // 8)
             mark_draw.rectangle(box, fill=235)
             relief_draw.rectangle(box, fill=74)
+    elif detail_pattern == "ornate_filigree":
+        margin_x = max(3, width // 14)
+        margin_y = max(3, height // 10)
+        center_y = height // 2
+        flourish_box = (
+            margin_x,
+            margin_y,
+            width - margin_x - 1,
+            height - margin_y - 1,
+        )
+        mark_draw.arc(flourish_box, 198, 342, fill=255, width=line_width)
+        mark_draw.arc(flourish_box, 18, 162, fill=255, width=line_width)
+        relief_draw.arc(flourish_box, 198, 342, fill=82, width=line_width)
+        relief_draw.arc(flourish_box, 18, 162, fill=82, width=line_width)
+        for direction in (-1, 1):
+            x0 = width // 2
+            x1 = x0 + direction * width * 3 // 10
+            x2 = x0 + direction * width * 2 // 5
+            points = [
+                (x0, center_y),
+                (x1, center_y - height // 5),
+                (x2, center_y),
+                (x1, center_y + height // 5),
+            ]
+            mark_draw.line(points, fill=235, width=line_width, joint="curve")
+            relief_draw.line(points, fill=88, width=line_width, joint="curve")
+        hub_radius = max(2, min(width, height) // 28)
+        hub = (
+            width // 2 - hub_radius,
+            center_y - hub_radius,
+            width // 2 + hub_radius,
+            center_y + hub_radius,
+        )
+        mark_draw.ellipse(hub, outline=255, width=line_width)
+        relief_draw.ellipse(hub, outline=78, width=line_width)
+    elif detail_pattern == "grip_filigree":
+        inset_x = max(3, width // 7)
+        inset_y = max(3, height // 12)
+        centers = (height * 3 // 10, height // 2, height * 7 // 10)
+        for center in centers:
+            diamond = [
+                (width // 2, center - height // 12),
+                (width - inset_x, center),
+                (width // 2, center + height // 12),
+                (inset_x, center),
+                (width // 2, center - height // 12),
+            ]
+            mark_draw.line(diamond, fill=238, width=line_width, joint="curve")
+            relief_draw.line(diamond, fill=90, width=line_width, joint="curve")
+        mark_draw.line(
+            (width // 2, inset_y, width // 2, height - inset_y),
+            fill=214,
+            width=line_width,
+        )
+        relief_draw.line(
+            (width // 2, inset_y, width // 2, height - inset_y),
+            fill=96,
+            width=line_width,
+        )
+    elif detail_pattern == "crystal_facet_lines":
+        inset_x = max(3, width // 12)
+        inset_y = max(3, height // 12)
+        vertices = [
+            (width // 2, inset_y),
+            (width - inset_x, height // 3),
+            (width * 4 // 5, height - inset_y),
+            (width // 5, height - inset_y),
+            (inset_x, height // 3),
+        ]
+        center = (width // 2, height // 2)
+        polygon = [*vertices, vertices[0]]
+        mark_draw.line(polygon, fill=246, width=line_width, joint="curve")
+        relief_draw.line(polygon, fill=86, width=line_width, joint="curve")
+        for vertex in vertices:
+            mark_draw.line((*center, *vertex), fill=228, width=line_width)
+            relief_draw.line((*center, *vertex), fill=94, width=line_width)
+        mark_draw.line(
+            (vertices[4][0], vertices[4][1], vertices[1][0], vertices[1][1]),
+            fill=210,
+            width=line_width,
+        )
+        relief_draw.line(
+            (vertices[4][0], vertices[4][1], vertices[1][0], vertices[1][1]),
+            fill=102,
+            width=line_width,
+        )
     else:
         raise ValueError(f"Unsupported detail_pattern: {detail_pattern!r}")
     return marks, relief
@@ -507,15 +627,11 @@ def _validate_detail_generation_request(request: TextureGenerationRequest) -> No
 
     has_pattern = request.detail_pattern != "none"
     if has_pattern and not request.surface_detail_ids:
-        raise ValueError(
-            "A rendered detail_pattern requires one exact surface_detail_id"
-        )
+        raise ValueError("A rendered detail_pattern requires one exact surface_detail_id")
     if not request.surface_detail_ids:
         return
     if request.uv_set != "UVMap":
-        raise ValueError(
-            "Surface-detail texture generation requires UVMap coordinates"
-        )
+        raise ValueError("Surface-detail texture generation requires UVMap coordinates")
     if len(request.surface_detail_ids) != 1:
         raise ValueError(
             "Generic procedural detail patterns may cover only one exact surface_detail_id; "
@@ -552,9 +668,7 @@ def _spatial_detail_relief(
         box = _uv_rect_pixels(binding.placement.uv_rect, request.resolution)
         local_size = (box[2] - box[0], box[3] - box[1])
         local_marks, local_relief = _detail_relief(local_size, request.detail_pattern)
-        local_marks = local_marks.point(
-            lambda value: round(float(value) * binding.strength)
-        )
+        local_marks = local_marks.point(lambda value: round(float(value) * binding.strength))
         local_neutral = Image.new("L", local_size, 128)
         local_relief = Image.blend(local_neutral, local_relief, binding.strength)
         marks = Image.new("L", request.resolution, 0)
@@ -611,12 +725,8 @@ def _render_channels(
         else set(request.channels)
     )
     empty_marks = Image.new("L", request.resolution, 0)
-    detail_relief_mix = float(
-        preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX)
-    )
-    detail_tone_factor = float(
-        preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR)
-    )
+    detail_relief_mix = float(preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX))
+    detail_tone_factor = float(preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR))
     detail_roughness_value = int(
         preset.get("detail_roughness_value", _DEFAULT_DETAIL_ROUGHNESS_VALUE)
     )
@@ -651,9 +761,7 @@ def _render_channels(
                 if channel in detail_channels
                 else noise
             )
-            rendered[channel] = _normal_map(
-                normal_height, float(preset["normal_strength"])
-            )
+            rendered[channel] = _normal_map(normal_height, float(preset["normal_strength"]))
         elif channel == "height":
             rendered[channel] = (
                 ImageChops.blend(noise, relief, detail_relief_mix)
@@ -726,15 +834,11 @@ class PillowProceduralTextureProvider:
             for name in request.channels
         }
         preset = MATERIAL_FAMILY_PRESETS[request.preset]
-        detail_tone_factor = float(
-            preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR)
-        )
+        detail_tone_factor = float(preset.get("detail_tone_factor", _DEFAULT_DETAIL_TONE_FACTOR))
         detail_roughness_value = int(
             preset.get("detail_roughness_value", _DEFAULT_DETAIL_ROUGHNESS_VALUE)
         )
-        detail_relief_mix = float(
-            preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX)
-        )
+        detail_relief_mix = float(preset.get("detail_relief_mix", _DEFAULT_DETAIL_RELIEF_MIX))
         manifest = TextureManifest(
             material_id=request.material_id,
             uv_set=request.uv_set,

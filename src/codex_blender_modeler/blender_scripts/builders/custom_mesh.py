@@ -23,7 +23,7 @@ def _resolve(path: str, base_dir: Path) -> Path:
     candidate = candidate.resolve()
     if not candidate.is_file():
         raise FileNotFoundError(candidate)
-    return candidate
+    return _material_binding_override_path(path, base_dir, candidate)
 
 
 def _apply_vertex_uvs(mesh: bpy.types.Mesh, raw_uvs: object) -> None:
@@ -99,6 +99,57 @@ def _contained_v02_path(raw_path: str, base_dir: Path) -> Path:
     if not candidate.is_file():
         raise FileNotFoundError(candidate)
     return candidate
+
+
+def _material_binding_override_path(
+    raw_scene_path: str,
+    base_dir: Path,
+    source_path: Path,
+) -> Path:
+    """Resolve one optional exact material-slot derivative without changing source bytes."""
+
+    manifest_path = base_dir / "analysis" / "material_binding_derivative.json"
+    if not manifest_path.is_file():
+        return source_path
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("material binding derivative companion is invalid") from exc
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("schema_version") != "0.1.0"
+        or manifest.get("topology_unchanged") is not True
+        or manifest.get("canonical_geometry_payload_overwrite") is not False
+    ):
+        raise RuntimeError("material binding derivative companion is out of scope")
+    receipt_path = _contained_v02_path(
+        str(manifest.get("source_receipt_path", "")),
+        base_dir,
+    )
+    if _sha256_file(receipt_path) != str(manifest.get("source_receipt_sha256", "")):
+        raise RuntimeError("material binding source receipt is stale")
+    bindings = manifest.get("bindings")
+    if not isinstance(bindings, list):
+        raise RuntimeError("material binding derivative entries are invalid")
+    matches = [
+        item
+        for item in bindings
+        if isinstance(item, dict) and item.get("scene_payload_path") == raw_scene_path
+    ]
+    if not matches:
+        return source_path
+    if len(matches) != 1:
+        raise RuntimeError("material binding source path is duplicated")
+    binding = matches[0]
+    if _sha256_file(source_path) != str(binding.get("source_sha256", "")):
+        raise RuntimeError("material binding source payload is stale")
+    derivative_path = _contained_v02_path(
+        str(binding.get("derivative_path", "")),
+        base_dir,
+    )
+    if _sha256_file(derivative_path) != str(binding.get("derivative_sha256", "")):
+        raise RuntimeError("material binding derivative payload is stale")
+    return derivative_path
 
 
 def _verify_v02_payload(

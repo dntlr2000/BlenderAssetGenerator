@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from .material_manifest import load_material_manifest
@@ -130,10 +130,100 @@ def _texture_channel_hashes(
     return result
 
 
+def _contained_relative_path(root: Path, raw_path: object, label: str) -> Path:
+    """Resolve one normalized job-relative companion path without allowing escape."""
+
+    if not isinstance(raw_path, str) or not raw_path or raw_path != raw_path.replace("\\", "/"):
+        raise BuildProvenanceError(f"{label} path must be normalized job-relative text")
+    parts = PurePosixPath(raw_path).parts
+    unsafe_parts = any(part in {"", ".", ".."} for part in parts)
+    if raw_path.startswith("/") or ":" in raw_path or unsafe_parts:
+        raise BuildProvenanceError(f"{label} path is not contained")
+    candidate = (root / Path(*parts)).resolve()
+    try:
+        candidate.relative_to(root.resolve())
+    except ValueError as exc:
+        raise BuildProvenanceError(f"{label} path escapes the job workspace") from exc
+    return candidate
+
+
+def _material_binding_override_paths(
+    root: Path,
+    scene_spec: dict[str, Any],
+) -> dict[str, Path]:
+    """Validate an optional exact material-slot derivative companion and return overrides."""
+
+    manifest_path = root / "analysis" / "material_binding_derivative.json"
+    if not manifest_path.is_file():
+        return {}
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise BuildProvenanceError("material binding derivative companion is invalid") from exc
+    if not isinstance(payload, dict) or payload.get("schema_version") != "0.1.0":
+        raise BuildProvenanceError("material binding derivative companion version is invalid")
+    if (
+        payload.get("topology_unchanged") is not True
+        or payload.get("canonical_geometry_payload_overwrite") is not False
+    ):
+        raise BuildProvenanceError("material binding derivative companion broadens geometry scope")
+    receipt_path = _contained_relative_path(
+        root,
+        payload.get("source_receipt_path"),
+        "material binding source receipt",
+    )
+    if (
+        not receipt_path.is_file()
+        or sha256_file(receipt_path) != payload.get("source_receipt_sha256")
+    ):
+        raise BuildProvenanceError("material binding source receipt is stale")
+    objects = {
+        item.get("id"): item
+        for item in scene_spec.get("objects", [])
+        if isinstance(item, dict) and isinstance(item.get("id"), str)
+    }
+    bindings = payload.get("bindings")
+    if not isinstance(bindings, list) or not bindings:
+        raise BuildProvenanceError("material binding derivative companion has no bindings")
+    overrides: dict[str, Path] = {}
+    for binding in bindings:
+        if not isinstance(binding, dict):
+            raise BuildProvenanceError("material binding derivative entry is invalid")
+        object_id = binding.get("object_id")
+        scene_path = binding.get("scene_payload_path")
+        item = objects.get(object_id)
+        geometry = item.get("geometry") if isinstance(item, dict) else None
+        if (
+            not isinstance(geometry, dict)
+            or geometry.get("kind") != "custom_mesh"
+            or geometry.get("path") != scene_path
+            or item.get("material_id") != binding.get("material_id")
+        ):
+            raise BuildProvenanceError("material binding entry differs from SceneSpec")
+        source_path = _contained_relative_path(root, scene_path, "material binding source")
+        derivative_path = _contained_relative_path(
+            root,
+            binding.get("derivative_path"),
+            "material binding derivative",
+        )
+        if (
+            not source_path.is_file()
+            or sha256_file(source_path) != binding.get("source_sha256")
+            or not derivative_path.is_file()
+            or sha256_file(derivative_path) != binding.get("derivative_sha256")
+        ):
+            raise BuildProvenanceError("material binding payload hash is stale")
+        if scene_path in overrides:
+            raise BuildProvenanceError("material binding source paths are duplicated")
+        overrides[str(scene_path)] = derivative_path
+    return overrides
+
+
 def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str, str]:
     """Hash every external custom-mesh or terrain-heightmap payload used by SceneSpec."""
 
     payloads: dict[str, str] = {}
+    material_binding_overrides = _material_binding_override_paths(root, scene_spec)
     objects = scene_spec.get("objects", [])
     if not isinstance(objects, list):
         raise BuildProvenanceError("SceneSpec objects must be an array")
@@ -154,8 +244,9 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
             raise BuildProvenanceError(
                 f"Geometry payload path for {item.get('id', '<unknown>')} must be a string"
             )
-        resolved = (root / path_value).expanduser().resolve()
-        relative = _relative_path(root, resolved, "geometry payload")
+        source_resolved = (root / path_value).expanduser().resolve()
+        relative = _relative_path(root, source_resolved, "geometry payload")
+        resolved = material_binding_overrides.get(path_value, source_resolved)
         if not resolved.is_file():
             raise BuildProvenanceError(f"Geometry payload does not exist: {resolved}")
         payloads[relative] = sha256_file(resolved)

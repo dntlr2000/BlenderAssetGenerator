@@ -701,7 +701,7 @@ def _snapshot_exact(
     )
     expected_sha = sha256_file(safe_source)
     expected_size = os.path.getsize(native_io_path(safe_source))
-    if safe_destination.exists():
+    if os.path.exists(native_io_path(safe_destination)):
         artifact = artifact_for_v2(
             root,
             safe_destination,
@@ -713,9 +713,9 @@ def _snapshot_exact(
                 f"existing material snapshot differs: {safe_destination.name}"
             )
         return artifact
-    safe_destination.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(safe_destination.parent), exist_ok=True)
     temporary = safe_destination.parent / f".{safe_destination.name}.{uuid4().hex}.tmp"
-    shutil.copy2(safe_source, temporary)
+    shutil.copy2(native_io_path(safe_source), native_io_path(temporary))
     try:
         if (
             sha256_file(temporary) != expected_sha
@@ -724,7 +724,8 @@ def _snapshot_exact(
             raise MaterialPhaseError("material snapshot copy hash mismatch")
         os.replace(native_io_path(temporary), native_io_path(safe_destination))
     except Exception:
-        temporary.unlink(missing_ok=True)
+        if os.path.exists(native_io_path(temporary)):
+            os.unlink(native_io_path(temporary))
         raise
     return artifact_for_v2(
         root,
