@@ -266,3 +266,33 @@ plan/run을 만든다.
 상세 계약은 [아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md), 테스트 범위는
 [테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md), 실제 결과는
 [검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+
+## 13. Codex에 붙여 넣는 프롬프트
+
+CLI를 직접 조합하지 않고 현재 Codex 작업에 목적과 안전 경계를 전달하려면
+[Material Loop 실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)을 사용한다.
+새 reference부터 전체 제작 단계를 조율할 때는
+[새 레퍼런스 단계별 프롬프트](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)의 1.6과 5A를 사용한다.
+
+저장소 내부 agent-authored step에는
+[`prompts/imagegen_material_loop.md`](prompts/imagegen_material_loop.md)를 사용한다. 이 prompt는
+별도 승인이나 provider 권한을 추가하지 않으며 다음 핵심 경계를 고정한다.
+
+- current Codex task의 built-in ImageGen만 사용
+- native original → normalization → native-core preparation exact closure
+- `human_reviewed=false` semantic review와 다중 후보 precedence
+- actual Blender shadow preflight가 없는 `exact_adoption` 거부
+- 기존 ControllerExecutor와 host material promotion만 사용
+- `material_promoted`, `quality_approved`, V0.7 approval/package/destination 완료 분리
+
+가장 짧은 시작 요청은 다음과 같다.
+
+```text
+<JOB_ID> / <AQ_SESSION_ID>의 current AQ v2 geometry 결과에서
+autonomous_static_prop_v2_codex_imagegen Material Loop를 disabled_experimental opt-in으로 시작해줘.
+현재 Codex 작업의 built-in ImageGen만 사용하고 native 원본을 보존해.
+semantic review는 human_reviewed=false로 기록하고, exact Blender preflight가 없으면
+controller_authored_completion을 사용해. ControllerResult를 직접 쓰지 말고 기존
+ControllerExecutor와 material_phase_service로만 promotion해.
+MaterialPhaseReceiptV2 뒤 IQ 경계에서 멈추고, exact V0.7 승인 없이는 package를 만들지 마.
+```

@@ -48,7 +48,7 @@
     }
   },
   "additionalProperties": false,
-  "description": "Bind the companion controller input to a formal ControllerExecutionRequest.",
+  "description": "Bind one exact failed-promotion retry without reopening its source journal.",
   "properties": {
     "schema_version": {
       "const": "0.1.0",
@@ -134,81 +134,109 @@
       "title": "Immutable",
       "type": "boolean"
     },
-    "bridge_plan": {
-      "$ref": "#/$defs/CodexImageArtifact"
-    },
-    "controller_input": {
-      "$ref": "#/$defs/CodexImageArtifact"
-    },
-    "controller_execution_request": {
-      "$ref": "#/$defs/CodexImageArtifact"
-    },
-    "phase_tool_profile": {
-      "$ref": "#/$defs/CodexImageArtifact"
-    },
-    "execution_id": {
+    "retry_id": {
       "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
-      "title": "Execution Id",
+      "title": "Retry Id",
       "type": "string"
     },
-    "immutable_input_sha256": {
-      "additionalProperties": {
-        "pattern": "^[0-9a-f]{64}$",
-        "type": "string"
-      },
-      "minProperties": 1,
-      "title": "Immutable Input Sha256",
-      "type": "object"
+    "retry_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
     },
-    "allowed_output_paths": {
+    "approval": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_aq_state": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_failed_material_loop_state": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_failed_material_loop_terminal": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_bridge_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_controller_input": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_controller_request": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "source_controller_result": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "corrected_material_plan": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "corrected_material_graph": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "v05_bridge_receipt": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "exact_adoption_preflight": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "canonical_geometry_blend_snapshot": {
+      "$ref": "#/$defs/CodexImageArtifact"
+    },
+    "implementation_snapshots": {
       "items": {
-        "type": "string"
+        "$ref": "#/$defs/CodexImageArtifact"
       },
-      "maxItems": 3,
+      "maxItems": 5,
       "minItems": 3,
-      "title": "Allowed Output Paths",
+      "title": "Implementation Snapshots",
       "type": "array"
     },
-    "expected_output_sha256": {
-      "additionalProperties": {
-        "pattern": "^[0-9a-f]{64}$",
-        "type": "string"
-      },
-      "title": "Expected Output Sha256",
-      "type": "object"
-    },
-    "controller_request_sha256": {
-      "pattern": "^[0-9a-f]{64}$",
-      "title": "Controller Request Sha256",
+    "status": {
+      "const": "prepared",
+      "default": "prepared",
+      "title": "Status",
       "type": "string"
     },
-    "producer_required": {
-      "const": "codex_blender_modeler.production.controller_executor.service",
-      "default": "codex_blender_modeler.production.controller_executor.service",
-      "title": "Producer Required",
-      "type": "string"
+    "reuse_controller_result": {
+      "const": true,
+      "default": true,
+      "title": "Reuse Controller Result",
+      "type": "boolean"
     },
-    "handwritten_result_allowed": {
+    "new_controller_invocation_allowed": {
       "const": false,
       "default": false,
-      "title": "Handwritten Result Allowed",
+      "title": "New Controller Invocation Allowed",
       "type": "boolean"
     },
-    "reused_controller_result": {
+    "geometry_changed": {
+      "const": false,
       "default": false,
-      "title": "Reused Controller Result",
+      "title": "Geometry Changed",
       "type": "boolean"
     },
-    "promotion_retry_receipt": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/CodexImageArtifact"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null
+    "semantic_ids_changed": {
+      "const": false,
+      "default": false,
+      "title": "Semantic Ids Changed",
+      "type": "boolean"
+    },
+    "material_ids_changed": {
+      "const": false,
+      "default": false,
+      "title": "Material Ids Changed",
+      "type": "boolean"
+    },
+    "imagegen_evidence_changed": {
+      "const": false,
+      "default": false,
+      "title": "Imagegen Evidence Changed",
+      "type": "boolean"
+    },
+    "destination_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Performed",
+      "type": "boolean"
     }
   },
   "required": [
@@ -222,15 +250,23 @@
     "producer",
     "provenance",
     "created_at",
-    "bridge_plan",
-    "controller_input",
-    "controller_execution_request",
-    "phase_tool_profile",
-    "execution_id",
-    "immutable_input_sha256",
-    "allowed_output_paths",
-    "controller_request_sha256"
+    "retry_id",
+    "retry_plan",
+    "approval",
+    "source_aq_state",
+    "source_failed_material_loop_state",
+    "source_failed_material_loop_terminal",
+    "source_bridge_plan",
+    "source_controller_input",
+    "source_controller_request",
+    "source_controller_result",
+    "corrected_material_plan",
+    "corrected_material_graph",
+    "v05_bridge_receipt",
+    "exact_adoption_preflight",
+    "canonical_geometry_blend_snapshot",
+    "implementation_snapshots"
   ],
-  "title": "ImageGeneratedMaterialControllerBinding",
+  "title": "ImageMaterialPromotionRetryReceipt",
   "type": "object"
 }

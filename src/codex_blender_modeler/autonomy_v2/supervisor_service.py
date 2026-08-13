@@ -522,7 +522,7 @@ def _controller_validation_boundary(
             validate_codex_image_material_controller_promotion_boundary,
         )
 
-        validate_codex_image_material_controller_promotion_boundary(
+        loop_profile_authorized = validate_codex_image_material_controller_promotion_boundary(
             root,
             session_root,
             plan,
@@ -535,6 +535,9 @@ def _controller_validation_boundary(
             budget,
             state,
             result_artifact,
+            authorized_profile_artifact=(
+                profile_artifact if loop_profile_authorized else None
+            ),
         )
         event = "material_candidate_validated"
         outcome = "material_candidate_validated"

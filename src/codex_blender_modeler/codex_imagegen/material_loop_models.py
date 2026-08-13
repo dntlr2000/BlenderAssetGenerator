@@ -211,9 +211,7 @@ class CodexImageV05ExactAdoptionPreflightReceipt(ImageMaterialLoopEvidence):
             self.material_graph_spec.media_type,
         ):
             raise ValueError("shadow MaterialGraph differs from exact candidate bytes")
-        if len({item.path for item in self.compile_artifacts}) != len(
-            self.compile_artifacts
-        ):
+        if len({item.path for item in self.compile_artifacts}) != len(self.compile_artifacts):
             raise ValueError("exact-adoption compile artifacts must use unique paths")
         compile_prefix = f"{expected_shadow}/{self.compile_run_root.rstrip('/')}/"
         if self.graph_compile_report.path != f"{compile_prefix}compile_report.json":
@@ -256,6 +254,128 @@ class CodexImageV05ExactAdoptionPreflightReceipt(ImageMaterialLoopEvidence):
         return self
 
 
+class ImageMaterialMappingRecoveryReceipt(ImageMaterialLoopEvidence):
+    """Bind one approved append-only mapping repair and exact geometry-blend restore."""
+
+    recovery_id: PortableId
+    repair_plan: CodexImageArtifact
+    approval: CodexImageArtifact
+    source_aq_state: CodexImageArtifact
+    source_failed_material_loop_state: CodexImageArtifact
+    source_rollback_receipt: CodexImageArtifact
+    approved_geometry_blend: CodexImageArtifact
+    displaced_rollback_blend_snapshot: CodexImageArtifact
+    restored_geometry_blend: CodexImageArtifact
+    mapping_overrides: dict[str, Literal["uv"]] = Field(min_length=1)
+    uv_set: Literal["UVMap"] = "UVMap"
+    status: Literal["prepared"] = "prepared"
+    geometry_changed: Literal[False] = False
+    semantic_ids_changed: Literal[False] = False
+    material_ids_changed: Literal[False] = False
+    imagegen_evidence_changed: Literal[False] = False
+    destination_write_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_mapping_recovery(self) -> ImageMaterialMappingRecoveryReceipt:
+        """Require exact source/restore evidence and a stable non-target mapping scope."""
+
+        if self.contract_id != self.recovery_id:
+            raise ValueError("mapping recovery contract_id must equal recovery_id")
+        if self.approved_geometry_blend.sha256 != self.restored_geometry_blend.sha256:
+            raise ValueError("mapping recovery did not restore the approved blend bytes")
+        if self.displaced_rollback_blend_snapshot.sha256 == self.restored_geometry_blend.sha256:
+            raise ValueError("mapping recovery displaced snapshot must differ from the restore")
+        artifacts = [
+            self.repair_plan,
+            self.approval,
+            self.source_aq_state,
+            self.source_failed_material_loop_state,
+            self.source_rollback_receipt,
+            self.approved_geometry_blend,
+            self.displaced_rollback_blend_snapshot,
+            self.restored_geometry_blend,
+        ]
+        _require_exact_provenance(self.provenance, artifacts, "mapping recovery receipt")
+        expected_input = stable_json_digest(
+            {
+                "artifacts": {item.path: item.sha256 for item in artifacts},
+                "mapping_overrides": dict(sorted(self.mapping_overrides.items())),
+                "uv_set": self.uv_set,
+            }
+        )
+        if self.input_sha256 != expected_input:
+            raise ValueError("mapping recovery receipt input digest is inconsistent")
+        if self.source_fingerprint != self.source_failed_material_loop_state.sha256:
+            raise ValueError("mapping recovery source fingerprint changed")
+        return self
+
+
+class ImageMaterialPromotionRetryReceipt(ImageMaterialLoopEvidence):
+    """Bind one exact failed-promotion retry without reopening its source journal."""
+
+    retry_id: PortableId
+    retry_plan: CodexImageArtifact
+    approval: CodexImageArtifact
+    source_aq_state: CodexImageArtifact
+    source_failed_material_loop_state: CodexImageArtifact
+    source_failed_material_loop_terminal: CodexImageArtifact
+    source_bridge_plan: CodexImageArtifact
+    source_controller_input: CodexImageArtifact
+    source_controller_request: CodexImageArtifact
+    source_controller_result: CodexImageArtifact
+    corrected_material_plan: CodexImageArtifact
+    corrected_material_graph: CodexImageArtifact
+    v05_bridge_receipt: CodexImageArtifact
+    exact_adoption_preflight: CodexImageArtifact
+    canonical_geometry_blend_snapshot: CodexImageArtifact
+    implementation_snapshots: list[CodexImageArtifact] = Field(min_length=3, max_length=5)
+    status: Literal["prepared"] = "prepared"
+    reuse_controller_result: Literal[True] = True
+    new_controller_invocation_allowed: Literal[False] = False
+    geometry_changed: Literal[False] = False
+    semantic_ids_changed: Literal[False] = False
+    material_ids_changed: Literal[False] = False
+    imagegen_evidence_changed: Literal[False] = False
+    destination_write_performed: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_promotion_retry(self) -> ImageMaterialPromotionRetryReceipt:
+        """Require an exact approval, failed source terminal, and immutable retry inputs."""
+
+        if self.contract_id != self.retry_id:
+            raise ValueError("promotion retry contract_id must equal retry_id")
+        artifacts = [
+            self.retry_plan,
+            self.approval,
+            self.source_aq_state,
+            self.source_failed_material_loop_state,
+            self.source_failed_material_loop_terminal,
+            self.source_bridge_plan,
+            self.source_controller_input,
+            self.source_controller_request,
+            self.source_controller_result,
+            self.corrected_material_plan,
+            self.corrected_material_graph,
+            self.v05_bridge_receipt,
+            self.exact_adoption_preflight,
+            self.canonical_geometry_blend_snapshot,
+            *self.implementation_snapshots,
+        ]
+        _require_exact_provenance(self.provenance, artifacts, "material promotion retry receipt")
+        expected_input = stable_json_digest(
+            {
+                "artifacts": {item.path: item.sha256 for item in artifacts},
+                "reuse_controller_result": self.reuse_controller_result,
+                "new_controller_invocation_allowed": self.new_controller_invocation_allowed,
+            }
+        )
+        if self.input_sha256 != expected_input:
+            raise ValueError("promotion retry receipt input digest is inconsistent")
+        if self.source_fingerprint != self.source_failed_material_loop_terminal.sha256:
+            raise ValueError("promotion retry source fingerprint changed")
+        return self
+
+
 class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
     """Freeze the exact staging evidence and authority ceiling for one material bridge."""
 
@@ -263,6 +383,14 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
     selected_candidate_id: PortableId
     material_authoring_run_id: PortableId
     material_controller_request_id: PortableId
+    recovery_id: PortableId | None = None
+    mapping_repair_plan: CodexImageArtifact | None = None
+    mapping_repair_approval: CodexImageArtifact | None = None
+    source_failed_material_loop_state: CodexImageArtifact | None = None
+    source_rollback_receipt: CodexImageArtifact | None = None
+    geometry_restore_receipt: CodexImageArtifact | None = None
+    promotion_retry_id: PortableId | None = None
+    promotion_retry_receipt: CodexImageArtifact | None = None
     root_authorization: CodexImageArtifact
     aq_plan: CodexImageArtifact
     aq_profile: CodexImageArtifact
@@ -324,6 +452,22 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
     def validate_bridge_boundary(self) -> ImageGeneratedMaterialBridgePlan:
         """Require exact baselines, scoped IDs, controller outputs, and provenance."""
 
+        recovery_artifacts = (
+            self.mapping_repair_plan,
+            self.mapping_repair_approval,
+            self.source_failed_material_loop_state,
+            self.source_rollback_receipt,
+            self.geometry_restore_receipt,
+        )
+        if (self.recovery_id is None) != (not any(recovery_artifacts)):
+            raise ValueError("material bridge recovery identity and evidence must coexist")
+        if self.recovery_id is not None and not all(recovery_artifacts):
+            raise ValueError("material bridge recovery evidence must be complete")
+        if (self.promotion_retry_id is None) != (self.promotion_retry_receipt is None):
+            raise ValueError("material bridge promotion retry identity and receipt must coexist")
+        if self.promotion_retry_id is not None and self.recovery_id is None:
+            raise ValueError("material promotion retry must retain its mapping recovery identity")
+
         _validate_material_baseline(
             self.previous_material_plan,
             self.canonical_material_absence_evidence,
@@ -351,9 +495,7 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
             self.expected_output_sha256,
             require_expected=self.execution_mode == "exact_adoption",
         )
-        if (self.execution_mode == "exact_adoption") != (
-            self.exact_adoption_preflight is not None
-        ):
+        if (self.execution_mode == "exact_adoption") != (self.exact_adoption_preflight is not None):
             raise ValueError(
                 "exact adoption requires one preflight receipt; authored completion forbids it"
             )
@@ -377,11 +519,7 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
             self.generated_image_evidence,
             self.quality_report,
             self.selection,
-            *(
-                [self.companion_selection_receipt]
-                if self.companion_selection_receipt
-                else []
-            ),
+            *([self.companion_selection_receipt] if self.companion_selection_receipt else []),
             *(
                 [self.native_core_preparation_receipt]
                 if self.native_core_preparation_receipt
@@ -395,20 +533,18 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
             self.material_authoring_receipt,
             self.v05_bridge_receipt,
             *(
-                [self.exact_adoption_preflight]
-                if self.exact_adoption_preflight
+                [item for item in recovery_artifacts if item is not None]
+                if self.recovery_id is not None
                 else []
             ),
+            *([self.promotion_retry_receipt] if self.promotion_retry_receipt else []),
+            *([self.exact_adoption_preflight] if self.exact_adoption_preflight else []),
             *self.texture_outputs,
             self.candidate_material_plan,
             self.material_graph_spec,
             *self.shader_recipes,
             *self.texture_manifests,
-            *(
-                [self.canonical_material_observation]
-                if self.canonical_material_observation
-                else []
-            ),
+            *([self.canonical_material_observation] if self.canonical_material_observation else []),
             *([self.previous_material_plan] if self.previous_material_plan else []),
             *(
                 [self.canonical_material_absence_evidence]
@@ -422,9 +558,7 @@ class ImageGeneratedMaterialBridgePlan(ImageMaterialLoopEvidence):
             "material bridge V0.5 controller inputs",
         )
         _require_exact_provenance(self.provenance, artifacts, "material bridge plan")
-        if self.input_sha256 != stable_json_digest(
-            {item.path: item.sha256 for item in artifacts}
-        ):
+        if self.input_sha256 != stable_json_digest({item.path: item.sha256 for item in artifacts}):
             raise ValueError("material bridge plan input digest is inconsistent")
         return self
 
@@ -501,12 +635,8 @@ class ImageGeneratedMaterialControllerInput(ImageMaterialLoopEvidence):
             self.expected_output_sha256,
             require_expected=self.execution_mode == "exact_adoption",
         )
-        if (self.execution_mode == "exact_adoption") != (
-            self.exact_adoption_preflight is not None
-        ):
-            raise ValueError(
-                "exact-adoption controller input requires its one preflight receipt"
-            )
+        if (self.execution_mode == "exact_adoption") != (self.exact_adoption_preflight is not None):
+            raise ValueError("exact-adoption controller input requires its one preflight receipt")
         _require_unique_artifact_sequence(
             self.v05_controller_inputs,
             "V0.5 controller inputs",
@@ -528,11 +658,7 @@ class ImageGeneratedMaterialControllerInput(ImageMaterialLoopEvidence):
             self.generated_image_evidence,
             self.quality_report,
             self.selection,
-            *(
-                [self.companion_selection_receipt]
-                if self.companion_selection_receipt
-                else []
-            ),
+            *([self.companion_selection_receipt] if self.companion_selection_receipt else []),
             *(
                 [self.native_core_preparation_receipt]
                 if self.native_core_preparation_receipt
@@ -545,21 +671,13 @@ class ImageGeneratedMaterialControllerInput(ImageMaterialLoopEvidence):
             self.material_authoring_manifest,
             self.material_authoring_receipt,
             self.v05_bridge_receipt,
-            *(
-                [self.exact_adoption_preflight]
-                if self.exact_adoption_preflight
-                else []
-            ),
+            *([self.exact_adoption_preflight] if self.exact_adoption_preflight else []),
             *self.texture_outputs,
             self.candidate_material_plan,
             self.material_graph_spec,
             *self.shader_recipes,
             *self.texture_manifests,
-            *(
-                [self.canonical_material_observation]
-                if self.canonical_material_observation
-                else []
-            ),
+            *([self.canonical_material_observation] if self.canonical_material_observation else []),
             *([self.previous_material_plan] if self.previous_material_plan else []),
             *(
                 [self.canonical_material_absence_evidence]
@@ -598,22 +716,25 @@ class ImageGeneratedMaterialControllerBinding(ImageMaterialLoopEvidence):
     allowed_output_paths: list[RelativePath] = Field(min_length=3, max_length=3)
     expected_output_sha256: dict[RelativePath, Sha256] = Field(default_factory=dict)
     controller_request_sha256: Sha256
-    producer_required: Literal[
-        "codex_blender_modeler.production.controller_executor.service"
-    ] = (
+    producer_required: Literal["codex_blender_modeler.production.controller_executor.service"] = (
         "codex_blender_modeler.production.controller_executor.service"
     )
     handwritten_result_allowed: Literal[False] = False
+    reused_controller_result: bool = False
+    promotion_retry_receipt: CodexImageArtifact | None = None
 
     @model_validator(mode="after")
     def validate_controller_binding(self) -> ImageGeneratedMaterialControllerBinding:
         """Require the request digest, immutable inputs, and provenance to agree."""
 
+        if self.reused_controller_result != (self.promotion_retry_receipt is not None):
+            raise ValueError("controller result reuse requires one promotion retry receipt")
         artifacts = [
             self.bridge_plan,
             self.controller_input,
             self.controller_execution_request,
             self.phase_tool_profile,
+            *([self.promotion_retry_receipt] if self.promotion_retry_receipt else []),
         ]
         _require_exact_provenance(self.provenance, artifacts, "material controller binding")
         if self.controller_request_sha256 != self.controller_execution_request.sha256:
@@ -697,11 +818,7 @@ class ImageGeneratedMaterialPromotionReceipt(ImageMaterialLoopEvidence):
             self.promoted_base_state,
             self.generation_terminal,
             self.selection,
-            *(
-                [self.companion_selection_receipt]
-                if self.companion_selection_receipt
-                else []
-            ),
+            *([self.companion_selection_receipt] if self.companion_selection_receipt else []),
             *(
                 [self.native_core_preparation_receipt]
                 if self.native_core_preparation_receipt
@@ -713,11 +830,7 @@ class ImageGeneratedMaterialPromotionReceipt(ImageMaterialLoopEvidence):
             self.adoption,
             self.material_authoring_manifest,
             self.material_authoring_receipt,
-            *(
-                [self.exact_adoption_preflight]
-                if self.exact_adoption_preflight
-                else []
-            ),
+            *([self.exact_adoption_preflight] if self.exact_adoption_preflight else []),
             self.graph_compile_report,
             self.material_validation,
             self.neutral_preview,
@@ -729,17 +842,13 @@ class ImageGeneratedMaterialPromotionReceipt(ImageMaterialLoopEvidence):
             self.canonical_scene_snapshot,
         ]
         _require_exact_provenance(self.provenance, artifacts, "material promotion receipt")
-        if self.input_sha256 != stable_json_digest(
-            {item.path: item.sha256 for item in artifacts}
-        ):
+        if self.input_sha256 != stable_json_digest({item.path: item.sha256 for item in artifacts}):
             raise ValueError("material promotion receipt input digest is inconsistent")
         if self.canonical_material_plan_sha256 != self.canonical_material_snapshot.sha256:
             raise ValueError("promotion canonical MaterialPlan hash is inconsistent")
         if self.canonical_scene_spec_sha256 != self.canonical_scene_snapshot.sha256:
             raise ValueError("promotion canonical SceneSpec hash is inconsistent")
-        if (self.reference_preview_manifest is None) != (
-            self.reference_preview_image is None
-        ):
+        if (self.reference_preview_manifest is None) != (self.reference_preview_image is None):
             raise ValueError("reference preview manifest and image must be present together")
         return self
 
@@ -758,9 +867,7 @@ class ImageGeneratedMaterialNeutralPreview(ImageMaterialLoopEvidence):
     preview_image_path: RelativePath
     preview_image_sha256: Sha256
     preview_image_byte_size: int = Field(gt=0)
-    renderer: Literal["fixed_blender_material_swatch_v1"] = (
-        "fixed_blender_material_swatch_v1"
-    )
+    renderer: Literal["fixed_blender_material_swatch_v1"] = "fixed_blender_material_swatch_v1"
     actual_blender_rendered: Literal[True] = True
     human_reviewed: Literal[False] = False
     reference_matched: Literal[False] = False
@@ -797,9 +904,7 @@ class ImageGeneratedMaterialNeutralPreview(ImageMaterialLoopEvidence):
             raise ValueError("neutral preview source must be the MaterialPhaseReceiptV2")
         expected_input = stable_json_digest(
             {
-                "material_phase_receipt": self.material_phase_receipt.model_dump(
-                    mode="json"
-                ),
+                "material_phase_receipt": self.material_phase_receipt.model_dump(mode="json"),
                 "renderer_script": self.renderer_script.model_dump(mode="json"),
                 "material_id": self.material_id,
                 "size": self.width,
@@ -882,9 +987,9 @@ class CodexImageNativeOutputAdoptionReceipt(ImageMaterialLoopEvidence):
 class CodexImageNativeCorePreparationReceipt(ImageMaterialLoopEvidence):
     """Bind one native original through normalization to selected core 0.1 evidence."""
 
-    producer: Literal[
+    producer: Literal["codex_blender_modeler.codex_imagegen.native_core_preparation"] = (
         "codex_blender_modeler.codex_imagegen.native_core_preparation"
-    ] = "codex_blender_modeler.codex_imagegen.native_core_preparation"
+    )
     preparation_id: PortableId
     assignment_id: PortableId
     candidate_id: PortableId
@@ -1010,9 +1115,7 @@ class ImageGenNativeNormalizationPlan(ImageMaterialLoopEvidence):
     target_aspect_ratio: float = Field(gt=0.0, le=8192.0)
     aspect_ratio_relative_delta: float = Field(ge=0.0, le=8192.0)
     maximum_automatic_aspect_delta: float = Field(default=0.35, ge=0.0, le=1.0)
-    algorithm_id: Literal["pillow_native_normalization_v1"] = (
-        "pillow_native_normalization_v1"
-    )
+    algorithm_id: Literal["pillow_native_normalization_v1"] = "pillow_native_normalization_v1"
     resampling: Literal["lanczos"] = "lanczos"
     output_media_type: Literal["image/png", "source_media_type"]
     source_immutable: Literal[True] = True
@@ -1135,21 +1238,14 @@ class ImageGenNativeNormalizationReceipt(ImageMaterialLoopEvidence):
                 raise ValueError("drop alpha policy cannot retain an alpha channel")
             if self.alpha_policy == "opaque_add" and not self.output_has_alpha:
                 raise ValueError("opaque-add alpha policy requires an output alpha channel")
-            if (
-                self.alpha_policy == "preserve"
-                and self.output_has_alpha != self.source_has_alpha
-            ):
+            if self.alpha_policy == "preserve" and self.output_has_alpha != self.source_has_alpha:
                 raise ValueError("preserve alpha policy changed alpha presence")
             if self.output_icc_profile_sha256 != self.source_icc_profile_sha256:
                 raise ValueError("normalization must preserve the exact ICC profile")
         artifacts = [
             self.plan,
             self.source_image,
-            *(
-                [self.native_output_adoption_receipt]
-                if self.native_output_adoption_receipt
-                else []
-            ),
+            *([self.native_output_adoption_receipt] if self.native_output_adoption_receipt else []),
             *([self.normalized_image] if self.normalized_image else []),
         ]
         _require_exact_provenance(self.provenance, artifacts, "normalization receipt")
@@ -1364,8 +1460,7 @@ class CodexImageCompanionSelectionReceipt(ImageMaterialLoopEvidence):
             decision = selected[0]
             if (
                 self.selected_candidate != decision.candidate
-                or self.selected_quality_report
-                != decision.deterministic_quality_report
+                or self.selected_quality_report != decision.deterministic_quality_report
                 or self.selected_ranking_evidence != decision.ranking_evidence
             ):
                 raise ValueError("companion selected artifacts differ from their decision")
@@ -1404,11 +1499,7 @@ class CodexImageCompanionSelectionReceipt(ImageMaterialLoopEvidence):
             *[item.candidate for item in self.decisions],
             *[item.reviewed_image for item in self.decisions],
             *[item.deterministic_quality_report for item in self.decisions],
-            *[
-                item.semantic_review
-                for item in self.decisions
-                if item.semantic_review is not None
-            ],
+            *[item.semantic_review for item in self.decisions if item.semantic_review is not None],
             *[
                 item.ranking_evidence
                 for item in self.decisions
@@ -1462,12 +1553,16 @@ class CodexImageMaterialLoopTerminal(ImageMaterialLoopEvidence):
                 raise ValueError("promoted terminal requires both promotion receipts")
         elif self.promotion_receipt is not None or self.material_phase_receipt is not None:
             raise ValueError("unpromoted terminal cannot claim promotion evidence")
-        if self.status in {
-            "material_promoted",
-            "waiting_for_quality",
-            "quality_approved",
-            "blocked",
-        } and not self.material_candidate_promoted:
+        if (
+            self.status
+            in {
+                "material_promoted",
+                "waiting_for_quality",
+                "quality_approved",
+                "blocked",
+            }
+            and not self.material_candidate_promoted
+        ):
             raise ValueError("post-promotion companion status requires canonical promotion")
         if self.quality_passed and self.integrated_quality_report is None:
             raise ValueError("quality pass requires an Integrated Quality report")
@@ -1522,9 +1617,7 @@ class CodexImageMaterialLoopTerminal(ImageMaterialLoopEvidence):
             *self.delivery_receipts,
         ]
         _require_exact_provenance(self.provenance, artifacts, "material-loop terminal")
-        if self.input_sha256 != stable_json_digest(
-            {item.path: item.sha256 for item in artifacts}
-        ):
+        if self.input_sha256 != stable_json_digest({item.path: item.sha256 for item in artifacts}):
             raise ValueError("material-loop terminal input digest is inconsistent")
         return self
 
@@ -1544,9 +1637,7 @@ class CodexImageMaterialLoopState(ImageMaterialLoopEvidence):
     base_state: CodexImageArtifact | None = None
     failure_evidence: CodexImageArtifact | None = None
     review_evidence: CodexImageArtifact | None = None
-    budget_usage: ImageMaterialLoopBudgetUsage = Field(
-        default_factory=ImageMaterialLoopBudgetUsage
-    )
+    budget_usage: ImageMaterialLoopBudgetUsage = Field(default_factory=ImageMaterialLoopBudgetUsage)
     latest_failure: str | None = Field(default=None, min_length=1, max_length=2048)
     promotion_consumed_sha256: Sha256 | None = None
 
@@ -1634,9 +1725,7 @@ class CodexImageMaterialLoopState(ImageMaterialLoopEvidence):
             failure_evidence_sha256=(
                 self.failure_evidence.sha256 if self.failure_evidence else None
             ),
-            review_evidence_sha256=(
-                self.review_evidence.sha256 if self.review_evidence else None
-            ),
+            review_evidence_sha256=(self.review_evidence.sha256 if self.review_evidence else None),
             latest_failure=self.latest_failure,
             budget_usage=self.budget_usage,
         )
@@ -1724,9 +1813,7 @@ def candidate_ranking_input_sha256(
             "candidate": candidate.model_dump(mode="json"),
             "candidate_id": candidate_id,
             "reviewed_image": reviewed_image.model_dump(mode="json"),
-            "deterministic_quality_report": deterministic_quality_report.model_dump(
-                mode="json"
-            ),
+            "deterministic_quality_report": deterministic_quality_report.model_dump(mode="json"),
             "semantic_review": semantic_review.model_dump(mode="json"),
             "file_hard_gate_passed": file_hard_gate_passed,
             "deterministic_quality_outcome": deterministic_quality_outcome,
@@ -1769,9 +1856,7 @@ def codex_image_v05_exact_adoption_preflight_root_path(
 ) -> str:
     """Return the isolated immutable root for one pre-controller Blender compile."""
 
-    identity = stable_json_digest(
-        {"session_id": session_id, "preflight_id": preflight_id}
-    )[:20]
+    identity = stable_json_digest({"session_id": session_id, "preflight_id": preflight_id})[:20]
     return f"evidence/image_material_preflights/{identity}"
 
 
@@ -1812,14 +1897,10 @@ def exact_adoption_preflight_input_sha256(
             "shadow_candidate_material_plan": (
                 shadow_candidate_material_plan.model_dump(mode="json")
             ),
-            "shadow_material_graph_spec": shadow_material_graph_spec.model_dump(
-                mode="json"
-            ),
+            "shadow_material_graph_spec": shadow_material_graph_spec.model_dump(mode="json"),
             "compile_run_root": compile_run_root,
             "graph_compile_report": graph_compile_report.model_dump(mode="json"),
-            "compile_artifacts": [
-                item.model_dump(mode="json") for item in compile_artifacts
-            ],
+            "compile_artifacts": [item.model_dump(mode="json") for item in compile_artifacts],
             "material_id": material_id,
             "graph_id": graph_id,
         }
@@ -1868,9 +1949,7 @@ def validate_material_loop_transition(
     """Reject invalid, non-monotonic, cross-session, or duplicate state transitions."""
 
     allowed: dict[str, frozenset[str]] = {
-        "controller_promotion_required": frozenset(
-            {"promoting_material", "failed", "cancelled"}
-        ),
+        "controller_promotion_required": frozenset({"promoting_material", "failed", "cancelled"}),
         "promoting_material": frozenset(
             {"material_promoted", "review_required", "failed", "cancelled"}
         ),
@@ -1939,12 +2018,10 @@ def validate_material_loop_transition(
         if getattr(current.budget_usage, field) < getattr(previous.budget_usage, field):
             raise ValueError("material-loop budget usage must be monotonic")
     controller_delta = (
-        current.budget_usage.controller_invocations
-        - previous.budget_usage.controller_invocations
+        current.budget_usage.controller_invocations - previous.budget_usage.controller_invocations
     )
     promotion_delta = (
-        current.budget_usage.promotions_consumed
-        - previous.budget_usage.promotions_consumed
+        current.budget_usage.promotions_consumed - previous.budget_usage.promotions_consumed
     )
     if controller_delta > 1 or promotion_delta > 1:
         raise ValueError("one material-loop transition cannot consume duplicate authority")
@@ -2315,8 +2392,7 @@ def codex_image_native_core_preparation_input_sha256(
     return stable_json_digest(
         {
             "artifacts": {
-                name: artifact.model_dump(mode="json")
-                for name, artifact in artifacts.items()
+                name: artifact.model_dump(mode="json") for name, artifact in artifacts.items()
             },
             "assignment_id": assignment_id,
             "candidate_id": candidate_id,
@@ -2330,10 +2406,7 @@ def codex_image_native_core_preparation_input_sha256(
 def imagegen_native_normalization_root_path(session_id: str, contract_id: str) -> str:
     """Return the isolated directory owned by one normalization contract."""
 
-    return (
-        f"production/autonomy_v2/{session_id}/codex_imagegen/"
-        f"native_normalizations/{contract_id}"
-    )
+    return f"production/autonomy_v2/{session_id}/codex_imagegen/native_normalizations/{contract_id}"
 
 
 def imagegen_native_normalization_plan_path(session_id: str, contract_id: str) -> str:
@@ -2386,9 +2459,7 @@ def imagegen_native_normalization_plan_input_sha256(
             "source_size": source_size.model_dump(mode="json"),
             "target_size": target_size.model_dump(mode="json"),
             "native_output_policy": native_output_policy,
-            "allowed_native_sizes": [
-                item.model_dump(mode="json") for item in allowed_native_sizes
-            ],
+            "allowed_native_sizes": [item.model_dump(mode="json") for item in allowed_native_sizes],
             "requested_operation": requested_operation,
             "maximum_automatic_aspect_delta": maximum_automatic_aspect_delta,
             "source_color_space": source_color_space,
@@ -2489,9 +2560,7 @@ def _validate_normalization_operation(plan: ImageGenNativeNormalizationPlan) -> 
     )
     if observed != expected:
         raise ValueError("normalization geometry differs from canonical replay")
-    expected_media_type = (
-        "source_media_type" if plan.operation == "pass_through" else "image/png"
-    )
+    expected_media_type = "source_media_type" if plan.operation == "pass_through" else "image/png"
     if plan.output_media_type != expected_media_type:
         raise ValueError("normalization output media type differs from canonical replay")
 
@@ -2515,6 +2584,8 @@ __all__ = [
     "ImageGeneratedMaterialControllerInput",
     "ImageGeneratedMaterialNeutralPreview",
     "ImageGeneratedMaterialPromotionReceipt",
+    "ImageMaterialMappingRecoveryReceipt",
+    "ImageMaterialPromotionRetryReceipt",
     "ImageGenNativeNormalizationPlan",
     "ImageGenNativeNormalizationReceipt",
     "ImageGenPadding",

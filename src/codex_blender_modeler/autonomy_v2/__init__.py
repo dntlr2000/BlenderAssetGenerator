@@ -13,6 +13,7 @@ from .codex_image_material_loop_service import (
     execute_codex_image_material_loop_controller,
     finalize_codex_image_material_loop_promotion,
     get_codex_image_material_loop_status,
+    prepare_codex_image_material_promotion_retry,
     promote_codex_image_material_loop,
     publish_codex_image_material_loop_bridge,
     publish_codex_image_v05_exact_adoption_preflight,
@@ -93,7 +94,7 @@ from .models import (
     QualityTerminalV2,
     RootAuthorizationV2,
 )
-from .planner import plan_autonomous_static_prop_v2
+from .planner import plan_autonomous_static_prop_v2, plan_geometry_repair_session_v2
 from .profiles import (
     autonomy_v2_profile_catalog,
     autonomy_v2_profile_status,
@@ -163,6 +164,7 @@ __all__ = [
     "prepare_v07_delivery_reviews",
     "plan_autonomous_static_prop_v2",
     "plan_autonomous_static_prop_v2_codex_imagegen",
+    "plan_geometry_repair_session_v2",
     "publish_codex_image_assignment",
     "publish_codex_image_material_loop_bridge",
     "publish_codex_image_v05_exact_adoption_preflight",
@@ -190,6 +192,7 @@ __all__ = [
     "validate_geometry_candidate_validation_receipt_v2",
     "validate_and_promote_material_controller_result_v2",
     "promote_codex_image_material_loop",
+    "prepare_codex_image_material_promotion_retry",
     "validate_codex_image_material_promotion_receipt",
     "validate_codex_image_v05_exact_adoption_preflight",
     "validate_codex_image_material_quality_boundary",

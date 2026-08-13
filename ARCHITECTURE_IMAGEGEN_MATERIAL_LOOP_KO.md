@@ -274,4 +274,6 @@ fake family, historical built-in source와 실제 production 승인은 분리한
 - 사람 review와 destination runtime parity는 검증되지 않았다.
 
 따라서 두 experimental profile은 계속 비활성이다. 최종 실행 명령과 결과는 verification 문서에만
-기록한다.
+기록한다. 사용자가 current Codex 작업에 붙여 넣는 prompt는 권위 artifact가 아니며
+[실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)이 이 문서의 opt-in, native provenance,
+host-only promotion, IQ와 approval/package 분리 경계를 그대로 투영한다.

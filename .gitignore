@@ -22,6 +22,7 @@ dist/
 build/
 *.egg-info/
 /workspaces
+/workspace_archive/
 /tmp
 /.tmp
 /.t

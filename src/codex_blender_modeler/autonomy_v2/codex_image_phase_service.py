@@ -6,6 +6,7 @@ only validates exact companion evidence and appends one reconstructable overlay 
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from math import ceil
@@ -21,6 +22,7 @@ from ..blender_artifacts import (
     stable_json_digest,
 )
 from ..codex_imagegen.artifacts import (
+    artifact_for_codex_image,
     load_codex_image_model,
     validate_codex_image_artifact,
     write_immutable_codex_image_model,
@@ -45,6 +47,16 @@ from ..codex_imagegen.models import (
     CodexImageGenerationSelection,
     CodexImageGenerationTerminal,
     ImageToMaterialAdoption,
+)
+from ..material_authoring.codex_image_models import (
+    CodexImageMaterialAuthoringReceiptV021,
+)
+from ..material_authoring.codex_image_normalized_adapter import (
+    validate_codex_image_normalized_material_candidate,
+)
+from ..material_authoring.codex_image_normalized_models import (
+    CodexImageNormalizedMaterialAuthoringReceiptV010,
+    CodexImageNormalizedMaterialAuthoringRequestV010,
 )
 from ..production.controller_executor import (
     CandidateAuthoringController,
@@ -386,6 +398,276 @@ def record_codex_image_material_adoption(
         return successor, _write_successor(root, session_root, successor)
 
 
+def record_codex_image_material_evidence_repair(
+    job_root: Path,
+    session_id: str,
+    *,
+    repair_plan: CodexImageArtifact,
+    approval_request: str,
+    material_authoring_receipt: CodexImageArtifact,
+    created_at: datetime,
+) -> tuple[AutonomyCodexImageOverlay, CodexImageArtifact, CodexImageArtifact]:
+    """Append one exact, user-approved normalized-receipt repair without rewriting history."""
+
+    root, session_root = _locked_roots(job_root, session_id)
+    with autonomy_session_lock(
+        root,
+        _overlay_lock_root(root, session_root),
+        owner_id="aqv2-codex-image-material-evidence-repair",
+    ):
+        chain = _state_chain(root, session_root)
+        state, state_artifact = chain[-1]
+        plan_payload = _load_material_evidence_repair_plan(root, repair_plan)
+        if state.transition_event == "material_evidence_repaired":
+            if len(chain) < 2:
+                raise ValueError("material evidence repair has no source overlay state")
+            source_state, source_state_artifact = chain[-2]
+        else:
+            source_state, source_state_artifact = state, state_artifact
+        _validate_material_evidence_repair_boundary(
+            root,
+            source_state,
+            source_state_artifact,
+            plan_payload,
+            repair_plan,
+            material_authoring_receipt,
+        )
+        expected_approval = _expected_material_evidence_repair_approval(
+            source_state,
+            source_state_artifact,
+            plan_payload,
+            repair_plan,
+        )
+        if approval_request != expected_approval:
+            raise PermissionError("material evidence repair approval text differs")
+        approval_artifact = _publish_material_evidence_repair_approval(
+            root,
+            session_root,
+            plan_id=str(plan_payload["plan_id"]),
+            approval_request=approval_request,
+        )
+        if state.transition_event == "material_evidence_repaired":
+            if (
+                state.material_authoring_receipt != material_authoring_receipt
+                or repair_plan not in state.provenance
+                or approval_artifact not in state.provenance
+            ):
+                raise ValueError("existing material evidence repair differs")
+            return state, state_artifact, approval_artifact
+        successor = transition_codex_image_overlay(
+            state,
+            event="material_evidence_repaired",
+            evidence=[repair_plan, approval_artifact, material_authoring_receipt],
+            material_authoring_receipt=material_authoring_receipt,
+            created_at=created_at,
+        )
+        return (
+            successor,
+            _write_successor(root, session_root, successor),
+            approval_artifact,
+        )
+
+
+def _load_material_evidence_repair_plan(
+    root: Path,
+    artifact: CodexImageArtifact,
+) -> dict[str, object]:
+    """Rehash and parse one proposal-only repair plan with no implicit migration."""
+
+    if artifact.kind != "material-evidence-repair-plan":
+        raise ValueError("material evidence repair plan has the wrong kind")
+    path = validate_codex_image_artifact(root, artifact)
+    payload = json.loads(_read_bytes(path))
+    if not isinstance(payload, dict):
+        raise ValueError("material evidence repair plan must be one JSON object")
+    required = {
+        "plan_id",
+        "status",
+        "job_id",
+        "source_session_id",
+        "profile_id",
+        "profile_status",
+        "reference_sha256",
+        "source_state_sha256",
+        "source_overlay_state_sha256",
+        "current_material_authoring_receipt_sha256",
+        "exact_adoption_preflight_receipt_sha256",
+        "selected_core_image_sha256",
+        "target_material_ids",
+        "target_semantic_ids",
+        "delivery_disabled",
+        "optimization_disabled",
+        "lod_disabled",
+        "collider_disabled",
+        "destination_write_disabled",
+        "canonical_write_authority",
+        "approval_granted",
+    }
+    if not required.issubset(payload):
+        raise ValueError("material evidence repair plan omits required fields")
+    if (
+        payload["status"] != "proposal_only"
+        or payload["approval_granted"] is not False
+        or payload["profile_id"] != "autonomous_static_prop_v2_codex_imagegen"
+        or payload["profile_status"] != "disabled_experimental"
+        or payload["canonical_write_authority"] != "host_material_promotion_service_only"
+        or any(
+            payload[field] is not True
+            for field in (
+                "delivery_disabled",
+                "optimization_disabled",
+                "lod_disabled",
+                "collider_disabled",
+                "destination_write_disabled",
+            )
+        )
+    ):
+        raise PermissionError("material evidence repair plan exceeds its approved scope")
+    return payload
+
+
+def _expected_material_evidence_repair_approval(
+    state: AutonomyCodexImageOverlay,
+    state_artifact: CodexImageArtifact,
+    plan: dict[str, object],
+    plan_artifact: CodexImageArtifact,
+) -> str:
+    """Render the only approval string accepted for one exact repair plan and source state."""
+
+    if state.material_authoring_receipt is None:
+        raise ValueError("material evidence repair source has no material receipt")
+    return (
+        "APPROVE MATERIAL EVIDENCE REPAIR "
+        f"job_id={state.job_id} "
+        f"source_session_id={state.session_id} "
+        f"source_state_sha256={plan['source_state_sha256']} "
+        f"source_overlay_state_sha256={state_artifact.sha256} "
+        f"material_recovery_plan_sha256={plan_artifact.sha256} "
+        "current_material_authoring_receipt_sha256="
+        f"{state.material_authoring_receipt.sha256} "
+        "exact_adoption_preflight_receipt_sha256="
+        f"{plan['exact_adoption_preflight_receipt_sha256']} "
+        "preserve_history=true "
+        "scope=append_only_normalized_material_companion_repair "
+        "delivery_disabled=true optimization_disabled=true lod_disabled=true "
+        "collider_disabled=true destination_write_disabled=true"
+    )
+
+
+def _publish_material_evidence_repair_approval(
+    root: Path,
+    session_root: Path,
+    *,
+    plan_id: str,
+    approval_request: str,
+) -> CodexImageArtifact:
+    """Publish or recover the exact user approval bytes inside the repair run root."""
+
+    if not plan_id or any(
+        character not in "abcdefghijklmnopqrstuvwxyz0123456789-._" for character in plan_id
+    ):
+        raise ValueError("material evidence repair plan_id is not portable")
+    path = ensure_contained_production_path(
+        root,
+        session_root / "codex_imagegen" / "material_evidence_repairs" / plan_id / "approval.txt",
+        must_exist=False,
+    )
+    encoded = approval_request.encode("utf-8")
+    if path.exists():
+        if _read_bytes(path) != encoded:
+            raise ValueError("existing material evidence repair approval differs")
+    else:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("xb") as handle:
+            handle.write(encoded)
+    return artifact_for_codex_image(
+        root,
+        path,
+        artifact_id=f"{plan_id}-approval",
+        kind="material-evidence-repair-approval",
+        media_type="text/plain",
+    )
+
+
+def _validate_material_evidence_repair_boundary(
+    root: Path,
+    state: AutonomyCodexImageOverlay,
+    state_artifact: CodexImageArtifact,
+    plan: dict[str, object],
+    plan_artifact: CodexImageArtifact,
+    normalized_receipt_artifact: CodexImageArtifact,
+) -> None:
+    """Replay the old and new authoring chains and reject widened or stale repair evidence."""
+
+    if (
+        (state.phase, state.status, state.next_action)
+        != ("adoption", "adopted", "controller_promotion_required")
+        or state.material_authoring_receipt is None
+        or state.assignment is None
+        or state.selection is None
+        or plan["job_id"] != state.job_id
+        or plan["source_session_id"] != state.session_id
+        or plan["source_overlay_state_sha256"] != state_artifact.sha256
+        or plan["current_material_authoring_receipt_sha256"]
+        != state.material_authoring_receipt.sha256
+    ):
+        raise PermissionError("material evidence repair source boundary differs")
+    assignment = _load_model(root, state.assignment, CodexImageGenerationAssignment)
+    _validate_current_base_state(root, state.session_id, assignment.base_state)
+    if (
+        plan["source_state_sha256"] != assignment.base_state.sha256
+        or len(assignment.reference_images) != 1
+        or plan["reference_sha256"] != assignment.reference_images[0].sha256
+        or plan["target_material_ids"] != assignment.target_material_ids
+    ):
+        raise ValueError("material evidence repair assignment or reference differs")
+    if state.material_authoring_receipt.kind != "codex-image-material-authoring-receipt":
+        raise ValueError("material evidence repair source receipt is not direct 0.2.1 evidence")
+    old_receipt = _load_model(
+        root,
+        state.material_authoring_receipt,
+        CodexImageMaterialAuthoringReceiptV021,
+    )
+    if normalized_receipt_artifact.kind != "codex-image-normalized-material-authoring-receipt":
+        raise ValueError("material evidence repair target receipt is not normalized")
+    normalized_receipt = _load_model(
+        root,
+        normalized_receipt_artifact,
+        CodexImageNormalizedMaterialAuthoringReceiptV010,
+    )
+    validate_codex_image_normalized_material_candidate(root, normalized_receipt)
+    normalized_request = _load_model(
+        root,
+        normalized_receipt.request,
+        CodexImageNormalizedMaterialAuthoringRequestV010,
+    )
+    if (
+        normalized_request.base_request_artifact.path != old_receipt.request.path
+        or normalized_request.base_request_artifact.sha256 != old_receipt.request.sha256
+        or normalized_request.base_request.source.artifact.sha256
+        != plan["selected_core_image_sha256"]
+        or normalized_request.base_request.material_id not in plan["target_material_ids"]
+        or normalized_request.base_request.uv_identity.semantic_id
+        not in plan["target_semantic_ids"]
+    ):
+        raise ValueError("normalized repair receipt does not extend the exact direct request")
+    preflight_matches = [
+        path
+        for path in (root / "evidence" / "image_material_preflights").glob("*/receipt.json")
+        if artifact_for_codex_image(
+            root,
+            path,
+            artifact_id="repair-preflight-observation",
+            kind="codex-image-v05-exact-adoption-preflight",
+            media_type="application/json",
+        ).sha256
+        == plan["exact_adoption_preflight_receipt_sha256"]
+    ]
+    if len(preflight_matches) != 1:
+        raise ValueError("material evidence repair preflight is missing or ambiguous")
+    validate_codex_image_artifact(root, plan_artifact)
+
+
 def resume_base_material_authoring(
     job_root: Path,
     session_id: str,
@@ -557,9 +839,7 @@ def get_codex_image_phase_status(
             "material_authoring_receipt": _public_optional_artifact(
                 state.material_authoring_receipt
             ),
-            "generation_terminal": _public_optional_artifact(
-                state.generation_terminal
-            ),
+            "generation_terminal": _public_optional_artifact(state.generation_terminal),
             "base_resume_state": _public_optional_artifact(state.base_resume_state),
         },
         "completion_status": completion_status,
@@ -722,8 +1002,7 @@ def _validate_initial_bindings(
         or profile.source_fingerprint
         != stable_json_digest({**profile_inputs, "status": "disabled_experimental"})
         or budget.input_sha256 != stable_json_digest(budget_inputs)
-        or budget.source_fingerprint
-        != stable_json_digest({**budget_inputs, "immutable": True})
+        or budget.source_fingerprint != stable_json_digest({**budget_inputs, "immutable": True})
         or plan.input_sha256 != stable_json_digest(plan_inputs)
         or plan.source_fingerprint
         != stable_json_digest({**plan_inputs, "profile_status": profile.status})
@@ -744,15 +1023,12 @@ def _validate_initial_bindings(
             workflow_id=plan.workflow_id,
             dispatch_id=plan.dispatch_id,
             session_id=plan.session_id,
-            root_authorization_artifact=_aq_from_codex(
-                plan.base_root_authorization
-            ),
+            root_authorization_artifact=_aq_from_codex(plan.base_root_authorization),
             now=plan.created_at,
         )
     )
     if (
-        plan.base_autonomy_plan.path
-        != f"production/autonomy_v2/{plan.session_id}/plan.json"
+        plan.base_autonomy_plan.path != f"production/autonomy_v2/{plan.session_id}/plan.json"
         or plan.base_autonomy_plan.artifact_id != base_plan.contract_id
         or not _same_artifact(
             base_plan.root_authorization,
@@ -793,8 +1069,7 @@ def _validate_assignment_binding(
         raise PermissionError("Codex ImageGen overlay starts only at material authoring")
     if (
         not base_state.provenance
-        or base_state.provenance[-1].kind
-        != "geometry_candidate_validation_receipt"
+        or base_state.provenance[-1].kind != "geometry_candidate_validation_receipt"
     ):
         raise PermissionError("base AQ state has not completed geometry promotion")
 
@@ -811,14 +1086,11 @@ def _validate_raw_controller_lifecycle(
 
     request_path = validate_codex_image_artifact(root, request_artifact)
     result_path = validate_codex_image_artifact(root, result_artifact)
-    request = ControllerExecutionRequest.model_validate_json(
-        _read_bytes(request_path)
-    )
+    request = ControllerExecutionRequest.model_validate_json(_read_bytes(request_path))
     result = ControllerResult.model_validate_json(_read_bytes(result_path))
     _require_identity(state, request, result)
     expected_prefix = (
-        f"production/autonomy_v2/{state.session_id}/codex_imagegen/"
-        "controller_executions/"
+        f"production/autonomy_v2/{state.session_id}/codex_imagegen/controller_executions/"
     )
     if (
         not request_artifact.path.startswith(expected_prefix)
@@ -888,10 +1160,7 @@ def _validate_raw_controller_lifecycle(
         created_at=profile.created_at,
         supporting_client_enforced=False,
     )
-    if (
-        profile != expected_profile
-        or request.tool_profile != result.tool_profile
-    ):
+    if profile != expected_profile or request.tool_profile != result.tool_profile:
         raise PermissionError("controller request lacks the dedicated ImageGen tool profile")
     request_inputs = {
         "assignment": cast(CodexImageArtifact, state.assignment).sha256,
@@ -900,12 +1169,10 @@ def _validate_raw_controller_lifecycle(
         "outputs": expected_outputs,
         "assignment_payload_sha256": assignment.assignment_payload_sha256,
     }
-    if (
-        request.input_sha256 != stable_json_digest(request_inputs)
-        or request.source_fingerprint
-        != stable_json_digest(
-            {**request_inputs, "controller_kind": request.controller_kind}
-        )
+    if request.input_sha256 != stable_json_digest(
+        request_inputs
+    ) or request.source_fingerprint != stable_json_digest(
+        {**request_inputs, "controller_kind": request.controller_kind}
     ):
         raise ValueError("controller request digest differs from the overlay boundary")
     selected_controller = controller
@@ -1125,8 +1392,7 @@ def _validate_material_receipt(
                 base_request.core_evidence.selected_quality_report,
                 adoption.quality_report,
             )
-            or adoption.selected_source_sha256
-            != base_request.source.artifact.sha256
+            or adoption.selected_source_sha256 != base_request.source.artifact.sha256
             or base_request.material_id not in adoption.target_material_ids
         ):
             raise ValueError(
@@ -1229,9 +1495,7 @@ def _validate_terminal_binding(
         raise ValueError("generation terminal differs from current overlay evidence")
     if terminal.runtime_trigger is not None:
         plan = _load_model(root, state.generation_plan, CodexImageGenerationPlan)
-        matching_items = [
-            item for item in plan.items if item.plan_item_id == terminal.plan_item_id
-        ]
+        matching_items = [item for item in plan.items if item.plan_item_id == terminal.plan_item_id]
         if len(matching_items) != 1:
             raise ValueError("generation terminal plan item is not exact")
         plan_item = matching_items[0]
@@ -1294,9 +1558,7 @@ def _validate_controller_terminal_binding(
         "cancelled": "controller_cancelled",
     }
     expected_trigger = trigger_by_status.get(result.status)
-    expected_terminal_status = (
-        "cancelled" if result.status == "cancelled" else plan_item_fallback
-    )
+    expected_terminal_status = "cancelled" if result.status == "cancelled" else plan_item_fallback
     if (
         expected_trigger is None
         or terminal.runtime_trigger != expected_trigger
@@ -1436,6 +1698,8 @@ def _reconstruct_successor(
         kwargs["material_adoption"] = current.material_adoption
         kwargs["material_authoring_receipt"] = current.material_authoring_receipt
         kwargs["generation_terminal"] = current.generation_terminal
+    elif event == "material_evidence_repaired":
+        kwargs["material_authoring_receipt"] = current.material_authoring_receipt
     elif event == "base_material_authoring_resumed":
         kwargs["base_resume_state"] = current.base_resume_state
     elif event in _TERMINAL_EVENTS:
@@ -1526,9 +1790,7 @@ def _core_from_controller(artifact: object) -> CodexImageArtifact:
         raise TypeError("controller artifact must be a strict model")
     payload = artifact.model_dump(mode="json")
     payload["kind"] = payload.pop("role")
-    return CodexImageArtifact.model_validate(
-        {**payload, "media_type": "application/json"}
-    )
+    return CodexImageArtifact.model_validate({**payload, "media_type": "application/json"})
 
 
 def _aq_from_codex(artifact: CodexImageArtifact) -> AQV2Artifact:

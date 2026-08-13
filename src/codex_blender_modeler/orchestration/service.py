@@ -1981,7 +1981,7 @@ def _reconcile_locked(
     *,
     previous: WorkflowState | None,
 ) -> WorkflowState:
-    """Reconstruct workflow state from immutable artifacts, markers, and exact approvals."""
+    """Reconstruct state and preserve its timestamp when authoritative fields are unchanged."""
 
     plan_path = workflow_root / "plan.json"
     request_path = workflow_root / "request.json"
@@ -2129,7 +2129,7 @@ def _reconcile_locked(
                 completion_fingerprint = stable_json_digest(
                     {"input": input_fingerprint, "approval": approval_identity}
                 )
-                completed_at = _utc_now()
+                completed_at = completed_at or _utc_now()
             else:
                 try:
                     policy_authorization = _load_policy_authorization(
@@ -2344,6 +2344,8 @@ def _reconcile_locked(
         created_at=previous.created_at if previous else now,
         updated_at=now,
     )
+    if previous is not None and _same_authoritative_workflow_state(previous, state):
+        return previous
     return state
 
 
@@ -2365,20 +2367,47 @@ def _load_workflow(
     return root, workflow_root, request, plan, previous
 
 
-def _write_state(root: Path, workflow_root: Path, state: WorkflowState) -> None:
-    """Atomically persist state and the job's latest-workflow pointer."""
+def _same_authoritative_workflow_state(
+    previous: WorkflowState,
+    candidate: WorkflowState,
+) -> bool:
+    """Compare every workflow-state field except the derived change timestamp."""
 
-    write_json_atomic(workflow_root / "state.json", state.model_dump(mode="json"))
-    write_json_atomic(
-        root / "workflows" / "latest.json",
-        {
-            "schema_version": "0.8.0",
-            "job_id": state.job_id,
-            "workflow_id": state.workflow_id,
-            "status": state.status,
-            "updated_at": state.updated_at.isoformat(),
-        },
+    return previous.model_dump(mode="json", exclude={"updated_at"}) == (
+        candidate.model_dump(mode="json", exclude={"updated_at"})
     )
+
+
+def _write_state(root: Path, workflow_root: Path, state: WorkflowState) -> None:
+    """Persist changed state and latest-pointer payloads without rewriting exact no-ops."""
+
+    state_path = workflow_root / "state.json"
+    state_payload = state.model_dump(mode="json")
+    state_unchanged = False
+    if state_path.is_file():
+        persisted = WorkflowState.model_validate_json(state_path.read_bytes())
+        state_unchanged = persisted == state
+    if not state_unchanged:
+        write_json_atomic(state_path, state_payload)
+
+    latest_path = root / "workflows" / "latest.json"
+    latest_payload = {
+        "schema_version": "0.8.0",
+        "job_id": state.job_id,
+        "workflow_id": state.workflow_id,
+        "status": state.status,
+        "updated_at": state.updated_at.isoformat(),
+    }
+    latest_unchanged = False
+    if latest_path.is_file():
+        try:
+            latest_unchanged = json.loads(latest_path.read_text(encoding="utf-8")) == (
+                latest_payload
+            )
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError):
+            latest_unchanged = False
+    if not latest_unchanged:
+        write_json_atomic(latest_path, latest_payload)
 
 
 def reconcile_workflow(job_id: str, workflow_id: str) -> WorkflowState:

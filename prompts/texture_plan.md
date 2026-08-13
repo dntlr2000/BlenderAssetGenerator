@@ -14,5 +14,11 @@ For each material:
 - Define tiling/seam requirements and style constraints.
 - Reuse material IDs and avoid creating near-duplicate materials.
 - State which geometry/UV prerequisites must be satisfied before generation.
+- If the source is a Codex ImageGen companion candidate, bind its immutable native adoption,
+  normalization, core preparation, semantic review, and exact selection evidence. Accept direct
+  pixels only for `base_color`, `decal_rgb`, `emission`, or `opacity_source` roles.
+- Derive normal, roughness, metallic, height, displacement, AO, and tangent data locally; never label
+  an ImageGen pseudo-PBR image as an authoritative channel. Compose exact signage text locally from
+  hash-bound font evidence.
 
 Do not alter geometry in this task.

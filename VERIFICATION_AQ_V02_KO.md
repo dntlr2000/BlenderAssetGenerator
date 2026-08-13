@@ -280,9 +280,10 @@ run에 재사용했고, current-task non-human semantic review가 `review_requir
 
 delivery fixture는 user approval을 합성하지 않는다. V0.7 review 뒤
 `waiting_for_v07_approval`에서 멈추고 production package 호출이 거부되는지 확인한다. 별도 raw
-GLB/FBX clean import는 mechanism evidence이며 accepted package/completed terminal이 아니다. actual
-최종 명령, 합계, evidence root와 진행 중 placeholder는
-`VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`를 따른다.
+GLB/FBX clean import는 mechanism evidence이며 accepted package/completed terminal이 아니다. 최종
+Material Loop 명령, 실행 합계, evidence root와 명시적 `not_run` 경계는
+`VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`를 따른다. 사용자가 current task에 붙여 넣는 안전한
+시작·상태·resume 요청은 `IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md`에 고정한다.
 
 Material Loop 추가는 2026-08-11 AQ v2 결과를 고쳐 쓰거나 profile을 활성화하지 않는다. human
 review와 destination runtime parity도 수행하지 않았다.

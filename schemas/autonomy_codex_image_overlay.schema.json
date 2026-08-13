@@ -260,6 +260,7 @@
         "candidate_selected",
         "material_adopted",
         "material_candidate_staged",
+        "material_evidence_repaired",
         "base_material_authoring_resumed",
         "local_procedural_fallback",
         "review_required",

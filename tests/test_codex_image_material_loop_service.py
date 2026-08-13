@@ -69,6 +69,41 @@ def _create_directory_link_or_skip(link: Path, target: Path) -> None:
         pytest.skip(f"directory symlink creation is unavailable: {exc}")
 
 
+def test_loop_root_prefers_one_active_promotion_retry_over_failed_history(
+    tmp_path: Path,
+) -> None:
+    """Select a new retry journal without deleting or reopening its failed source."""
+
+    session_root = tmp_path / "production" / "autonomy_v2" / "session-loop"
+    failed = (
+        session_root
+        / "codex_image_material_loop_recoveries"
+        / "mapping-repair-00"
+    )
+    active = (
+        session_root
+        / "codex_image_material_loop_promotion_retries"
+        / "promotion-retry-00"
+    )
+    for root in (failed, active):
+        _write_json(root / "bridge_plan.json", {"root": root.name})
+    _write_json(failed / "terminal.json", {"status": "failed"})
+
+    assert service._loop_root(tmp_path, "session-loop", must_exist=True) == active
+
+    _write_json(active / "terminal.json", {"status": "failed"})
+    assert service._loop_root(tmp_path, "session-loop", must_exist=True) == active
+
+    newest = (
+        session_root
+        / "codex_image_material_loop_promotion_retries"
+        / "promotion-retry-01"
+    )
+    _write_json(newest / "bridge_plan.json", {"root": newest.name})
+    _write_json(newest / "terminal.json", {"status": "failed"})
+    assert service._loop_root(tmp_path, "session-loop", must_exist=True) == newest
+
+
 def test_exact_adoption_preflight_rejects_linked_output_root_before_write(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -123,6 +158,305 @@ def test_aq_projection_preserves_exact_kind_unless_alias_is_requested(
         service._aq_from_codex(artifact, role="material-baseline").kind
         == "material-baseline"
     )
+
+
+def test_controller_artifact_identity_allows_role_aliases(tmp_path: Path) -> None:
+    """Treat AQ and companion role labels as aliases only when byte identity matches."""
+
+    companion = _artifact(tmp_path, "controller-result").model_copy(
+        update={"kind": "controller-result"}
+    )
+    aq_result = service._aq_from_codex(companion, role="result")
+
+    assert service._same_controller_artifact(aq_result, companion)
+    assert not service._same_controller_artifact(
+        aq_result.model_copy(update={"sha256": "0" * 64}),
+        companion,
+    )
+
+
+def test_promotion_retry_reuses_source_material_phase_profile(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Replay the immutable source profile instead of rebuilding it with retry time."""
+
+    aq_plan_artifact = _artifact(tmp_path, "aq-plan")
+    profile_artifact = _artifact(tmp_path, "material-profile")
+    source_bridge_artifact = _artifact(tmp_path, "source-bridge")
+    base_profile = SimpleNamespace(
+        profile_id="material_authoring",
+        allowed_output_paths=["analysis/material_plan.json"],
+    )
+    aq_plan = SimpleNamespace(phase_tool_profiles=[profile_artifact])
+    source_plan = SimpleNamespace(
+        promotion_retry_id=None,
+        aq_plan=aq_plan_artifact,
+        recovery_id=None,
+        allowed_output_paths=["analysis/material_plan.json"],
+    )
+    retry_plan = SimpleNamespace(
+        promotion_retry_id="promotion-retry-02",
+        recovery_id=None,
+        allowed_output_paths=["analysis/material_plan.json"],
+    )
+    monkeypatch.setattr(
+        service,
+        "_validate_material_promotion_retry_closure",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            source_bridge_plan=source_bridge_artifact
+        ),
+    )
+    monkeypatch.setattr(
+        service,
+        "load_codex_image_model",
+        lambda *_args, **_kwargs: source_plan,
+    )
+    monkeypatch.setattr(
+        service,
+        "_read_model",
+        lambda _root, artifact, _model: (
+            aq_plan if artifact.path == aq_plan_artifact.path else base_profile
+        ),
+    )
+    monkeypatch.setattr(
+        service,
+        "_codex_from_aq",
+        lambda *_args, **_kwargs: profile_artifact,
+    )
+
+    assert service._material_phase_profile(tmp_path, retry_plan) == profile_artifact
+
+
+def test_chained_retry_replays_the_original_controller_assignment(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate a retry source through its reused binding instead of its new wrapper input."""
+
+    retry_receipt_artifact = _artifact(tmp_path, "retry-receipt")
+    source_request_artifact = _artifact(tmp_path, "source-request")
+    source_bridge_artifact = _artifact(tmp_path, "source-bridge")
+    source_input_artifact = _artifact(tmp_path, "source-input")
+    source_binding_path = tmp_path / "inputs" / "controller_binding.json"
+    _write_json(source_binding_path, {"name": "source-binding"})
+    source_binding_artifact = artifact_for_codex_image(
+        tmp_path,
+        source_binding_path,
+        artifact_id="source-binding",
+        kind="material-controller-binding",
+        media_type="application/json",
+    )
+    source_plan = SimpleNamespace(name="source-plan", session_id="source-session")
+    source_input = SimpleNamespace(name="source-input")
+    source_binding = SimpleNamespace(reused_controller_result=False)
+    request = SimpleNamespace(name="request")
+    plan = SimpleNamespace(promotion_retry_receipt=retry_receipt_artifact)
+    binding = SimpleNamespace(
+        reused_controller_result=True,
+        promotion_retry_receipt=retry_receipt_artifact,
+        controller_execution_request=source_request_artifact,
+    )
+    retry = SimpleNamespace(
+        source_controller_request=source_request_artifact,
+        source_bridge_plan=source_bridge_artifact,
+        source_controller_input=source_input_artifact,
+    )
+    observed: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        service,
+        "_validate_material_promotion_retry_closure",
+        lambda *_args, **_kwargs: retry,
+    )
+    monkeypatch.setattr(
+        service,
+        "load_codex_image_model",
+        lambda _root, artifact, _model: (
+            source_plan
+            if artifact == source_bridge_artifact
+            else source_binding
+            if artifact.path == source_binding_artifact.path
+            else source_input
+        ),
+    )
+
+    def capture_source_binding(
+        received_request: object,
+        **kwargs: object,
+    ) -> None:
+        """Capture the exact original source plan, input, and assignment artifact."""
+
+        observed.update({"request": received_request, **kwargs})
+
+    monkeypatch.setattr(
+        service,
+        "_validate_controller_request_binding",
+        capture_source_binding,
+    )
+
+    service._validate_material_controller_binding_request(
+        tmp_path,
+        plan=plan,
+        controller_input=SimpleNamespace(name="retry-wrapper-input"),
+        input_artifact=_artifact(tmp_path, "retry-wrapper-input"),
+        binding=binding,
+        request=request,
+    )
+
+    assert observed == {
+        "request": request,
+        "plan": source_plan,
+        "controller_input": source_input,
+        "input_artifact": source_input_artifact,
+    }
+
+
+def test_promotion_retry_closure_uses_retry_aware_source_binding(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Replay a chained retry source through its binding-aware validator."""
+
+    source_state = _artifact(tmp_path, "source-aq-state")
+    source_loop_state = _artifact(tmp_path, "source-loop-state")
+    source_terminal_artifact = _artifact(tmp_path, "source-terminal")
+    source_bridge_artifact = _artifact(tmp_path, "source-bridge")
+    source_input_artifact = _artifact(tmp_path, "source-input")
+    source_request_artifact = _artifact(tmp_path, "source-request")
+    source_result_artifact = _artifact(tmp_path, "source-result")
+    material_plan_artifact = _artifact(tmp_path, "material-plan")
+    material_graph_artifact = _artifact(tmp_path, "material-graph")
+    v05_artifact = _artifact(tmp_path, "v05-receipt")
+    preflight_artifact = _artifact(tmp_path, "preflight")
+    retry_plan_payload = {
+        "job_id": "fixture-job",
+        "source_session_id": "fixture-session",
+        "source_aq_state_sha256": source_state.sha256,
+        "source_material_loop_state_sha256": source_loop_state.sha256,
+        "source_material_loop_terminal_sha256": source_terminal_artifact.sha256,
+        "source_bridge_plan_sha256": source_bridge_artifact.sha256,
+        "controller_request_sha256": source_request_artifact.sha256,
+        "controller_result_sha256": source_result_artifact.sha256,
+        "corrected_material_plan_sha256": material_plan_artifact.sha256,
+        "corrected_material_graph_sha256": material_graph_artifact.sha256,
+        "v05_bridge_receipt_sha256": v05_artifact.sha256,
+        "exact_adoption_preflight_receipt_sha256": preflight_artifact.sha256,
+        "canonical_geometry_blend_sha256": "a" * 64,
+        "implementation_evidence": {},
+    }
+    retry_plan_path = tmp_path / "reports" / "retry-plan.json"
+    _write_json(retry_plan_path, retry_plan_payload)
+    retry_plan_artifact = artifact_for_codex_image(
+        tmp_path,
+        retry_plan_path,
+        artifact_id="retry-plan",
+        kind="material-promotion-retry-plan",
+        media_type="application/json",
+    )
+    approval_path = tmp_path / "approvals" / "retry-approval.txt"
+    approval_path.parent.mkdir(parents=True)
+    approval_path.write_text(
+        service._expected_material_promotion_retry_approval(
+            retry_plan_payload,
+            retry_plan_artifact.sha256,
+        ),
+        encoding="utf-8",
+    )
+    approval_artifact = artifact_for_codex_image(
+        tmp_path,
+        approval_path,
+        artifact_id="retry-approval",
+        kind="material-promotion-retry-approval",
+        media_type="text/plain",
+    )
+    controller_binding_path = tmp_path / "inputs" / "controller_binding.json"
+    _write_json(controller_binding_path, {"name": "controller-binding"})
+    source_plan = SimpleNamespace(session_id="fixture-session")
+    source_input = SimpleNamespace(name="source-input")
+    source_binding = SimpleNamespace(reused_controller_result=True)
+    request = SimpleNamespace(execution_id="exec-fixture")
+    result = SimpleNamespace(
+        status="completed",
+        execution_id="exec-fixture",
+        request=SimpleNamespace(sha256=source_request_artifact.sha256),
+    )
+    terminal = SimpleNamespace(
+        bridge_plan=source_bridge_artifact,
+        latest_state=source_loop_state,
+        status="failed",
+        material_candidate_promoted=False,
+    )
+    retry = SimpleNamespace(
+        retry_id="retry-fixture",
+        source_aq_state=source_state,
+        provenance=[],
+        retry_plan=retry_plan_artifact,
+        approval=approval_artifact,
+        implementation_snapshots=[],
+        source_failed_material_loop_terminal=source_terminal_artifact,
+        source_failed_material_loop_state=source_loop_state,
+        source_bridge_plan=source_bridge_artifact,
+        source_controller_input=source_input_artifact,
+        source_controller_request=source_request_artifact,
+        source_controller_result=source_result_artifact,
+        corrected_material_plan=material_plan_artifact,
+        corrected_material_graph=material_graph_artifact,
+        v05_bridge_receipt=v05_artifact,
+        exact_adoption_preflight=preflight_artifact,
+    )
+    plan = SimpleNamespace(
+        promotion_retry_id="retry-fixture",
+        promotion_retry_receipt=_artifact(tmp_path, "retry-receipt"),
+        current_state=source_state,
+        candidate_material_plan=material_plan_artifact,
+        material_graph_spec=material_graph_artifact,
+        v05_bridge_receipt=v05_artifact,
+        exact_adoption_preflight=preflight_artifact,
+    )
+    loaded = {
+        plan.promotion_retry_receipt.path: retry,
+        source_bridge_artifact.path: source_plan,
+        source_input_artifact.path: source_input,
+        "inputs/controller_binding.json": source_binding,
+        source_request_artifact.path: request,
+        source_result_artifact.path: result,
+    }
+    observed: dict[str, object] = {}
+
+    monkeypatch.setattr(
+        service,
+        "load_codex_image_model",
+        lambda _root, artifact, _model: loaded[artifact.path],
+    )
+    monkeypatch.setattr(
+        service,
+        "validate_codex_image_material_loop_terminal",
+        lambda *_args, **_kwargs: terminal,
+    )
+
+    def capture_retry_aware_binding(
+        _root: Path,
+        **kwargs: object,
+    ) -> None:
+        """Capture the source bundle selected by retry closure validation."""
+
+        observed.update(kwargs)
+
+    monkeypatch.setattr(
+        service,
+        "_validate_material_controller_binding_request",
+        capture_retry_aware_binding,
+    )
+
+    assert service._validate_material_promotion_retry_closure(tmp_path, plan) == retry
+    assert observed == {
+        "plan": source_plan,
+        "controller_input": source_input,
+        "input_artifact": source_input_artifact,
+        "binding": source_binding,
+        "request": request,
+    }
 
 
 def test_normalized_authoring_boundary_reads_legacy_scope_from_base_request() -> None:

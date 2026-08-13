@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import builtins
 import inspect
+import io
 import tomllib
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from typer.testing import CliRunner
 
 from codex_blender_modeler import autonomy_v2, codex_imagegen, material_authoring, mcp_server
+from codex_blender_modeler import cli as cli_module
 from codex_blender_modeler.cli import app
 from codex_blender_modeler.repository_catalog import PHASE_TOOL_PROFILES
 
@@ -36,6 +40,122 @@ EXPECTED_MCP_TOOLS = {
     "get_codex_imagegen_semantic_review_status",
     "continue_autonomy_v2_codex_imagegen",
 }
+
+
+def test_material_promotion_loader_replays_strict_datetime_models_from_json(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Load strict AQ budget and state from authoritative JSON bytes, not JSON-mode dicts."""
+
+    session_id = "aqv2-material-loader"
+    root_path = Path("Z:/virtual/material-loader-job")
+    session_root = root_path / "production" / "autonomy_v2" / session_id
+    budget_path = session_root / "budget.json"
+    state_path = session_root / "states" / "0004.json"
+
+    budget_artifact = autonomy_v2.AQV2Artifact(
+        artifact_id="budget-aqv2-material-loader",
+        kind="budget",
+        path=budget_path.relative_to(root_path).as_posix(),
+        sha256="0" * 64,
+        byte_size=2,
+    )
+    state_artifact = autonomy_v2.AQV2Artifact(
+        artifact_id="state-aqv2-material-loader-0004",
+        kind="state",
+        path=state_path.relative_to(root_path).as_posix(),
+        sha256="1" * 64,
+        byte_size=2,
+    )
+    result_artifact = autonomy_v2.AQV2Artifact(
+        artifact_id="result-aqv2-material-loader",
+        kind="result",
+        path="controller/result.json",
+        sha256="2" * 64,
+        byte_size=2,
+    )
+    fake_plan = SimpleNamespace(budget=budget_artifact)
+    fake_budget = object()
+    fake_state = SimpleNamespace(
+        provenance=[result_artifact],
+        phase="authoring",
+        status="running",
+        next_action="validate_candidate",
+    )
+
+    class FakePlanModel:
+        """Return the prepared plan only through strict JSON-byte validation."""
+
+        @classmethod
+        def model_validate_json(cls, payload: bytes) -> object:
+            """Confirm the authoritative plan file was read before returning the fixture."""
+
+            assert payload == b"{}"
+            return fake_plan
+
+    class FakeBudgetModel:
+        """Return the prepared budget only through strict JSON-byte validation."""
+
+        @classmethod
+        def model_validate_json(cls, payload: bytes) -> object:
+            """Confirm the authoritative budget file was read before returning the fixture."""
+
+            assert payload == b"{}"
+            return fake_budget
+
+    class FakeStateModel:
+        """Return the prepared state only through strict JSON-byte validation."""
+
+        @classmethod
+        def model_validate_json(cls, payload: bytes) -> object:
+            """Confirm the authoritative state file was read before returning the fixture."""
+
+            assert payload == b"{}"
+            return fake_state
+
+    def fake_open(_path: object, _mode: str) -> io.BytesIO:
+        """Return one immutable JSON-byte stream for each authoritative model read."""
+
+        return io.BytesIO(b"{}")
+
+    monkeypatch.setattr(cli_module, "job_dir", lambda _job_id: root_path)
+    monkeypatch.setattr(
+        cli_module,
+        "ensure_contained_codex_image_path",
+        lambda _root, path, must_exist: path,
+    )
+    monkeypatch.setattr(builtins, "open", fake_open)
+    monkeypatch.setattr(cli_module, "AutonomyPlanV2", FakePlanModel)
+    monkeypatch.setattr(cli_module, "AutonomyBudgetV2", FakeBudgetModel)
+    monkeypatch.setattr(cli_module, "AutonomyStateV2", FakeStateModel)
+    monkeypatch.setattr(
+        cli_module,
+        "get_autonomy_v2_status",
+        lambda *_args: {
+            "budget": {"created_at": "2026-08-13T05:08:47Z"},
+            "state": {"created_at": "2026-08-13T05:08:48Z"},
+            "state_artifact": state_artifact.model_dump(mode="json"),
+        },
+    )
+    monkeypatch.setattr(
+        cli_module,
+        "validate_v2_artifact",
+        lambda root, artifact: root / artifact.path,
+    )
+
+    root, plan, budget, state, result = (
+        cli_module._load_codex_image_material_promotion_inputs(
+            "material-loader-job",
+            session_id,
+        )
+    )
+    assert (root, plan, budget, state, result) == (
+        root_path,
+        fake_plan,
+        fake_budget,
+        fake_state,
+        result_artifact,
+    )
 
 
 def test_material_loop_cli_and_mcp_surfaces_are_additive_and_opt_in() -> None:

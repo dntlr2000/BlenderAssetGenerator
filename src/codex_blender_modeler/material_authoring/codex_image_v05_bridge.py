@@ -100,16 +100,13 @@ _CHANNEL_ORDER = (
     "opacity",
 )
 _SourceReceipt = (
-    CodexImageMaterialAuthoringReceiptV021
-    | CodexImageNormalizedMaterialAuthoringReceiptV010
+    CodexImageMaterialAuthoringReceiptV021 | CodexImageNormalizedMaterialAuthoringReceiptV010
 )
 _SourceManifest = (
-    CodexImageAuthoredMaterialManifestV021
-    | CodexImageNormalizedAuthoredMaterialManifestV010
+    CodexImageAuthoredMaterialManifestV021 | CodexImageNormalizedAuthoredMaterialManifestV010
 )
 _SourceRequest = (
-    CodexImageMaterialAuthoringRequestV021
-    | CodexImageNormalizedMaterialAuthoringRequestV010
+    CodexImageMaterialAuthoringRequestV021 | CodexImageNormalizedMaterialAuthoringRequestV010
 )
 
 __all__ = [
@@ -146,16 +143,12 @@ class CodexImageV05CanonicalMaterialAbsence(MaterialAuthoringStrictModel):
     provider_id: Literal["codex_builtin_gpt_image_v1"] = _PROVIDER_ID
     input_sha256: Sha256
     source_fingerprint: Sha256
-    producer: Literal[
-        "codex_blender_modeler.material_authoring.codex_image_v05_bridge"
-    ] = _PRODUCER
+    producer: Literal["codex_blender_modeler.material_authoring.codex_image_v05_bridge"] = _PRODUCER
     producer_version: Literal["0.1.0"] = SCHEMA_VERSION
     provenance: list[ExactArtifact] = Field(min_length=1, max_length=1)
     created_at: AwareDatetime
     source_scene_spec: ExactArtifact
-    canonical_path: Literal["analysis/material_plan.json"] = (
-        "analysis/material_plan.json"
-    )
+    canonical_path: Literal["analysis/material_plan.json"] = "analysis/material_plan.json"
     observed_absent: Literal[True] = True
     canonical_write_performed: Literal[False] = False
 
@@ -240,6 +233,26 @@ class CodexImageV05BridgeChannel(MaterialAuthoringStrictModel):
         return self
 
 
+class CodexImageV05MappingRecipeOverride(MaterialAuthoringStrictModel):
+    """Bind one deterministic UV-mapping shader derivative to its stable material ID."""
+
+    material_id: str = Field(min_length=1, max_length=128)
+    recipe: ShaderRecipe
+    artifact: ExactArtifact
+
+    @model_validator(mode="after")
+    def validate_mapping_recipe_override(self) -> CodexImageV05MappingRecipeOverride:
+        """Require one UVMap recipe whose exact bytes match the declared artifact."""
+
+        if self.recipe.material_id != self.material_id:
+            raise ValueError("mapping recipe override material identity changed")
+        if self.recipe.mapping.mode != "uv" or self.recipe.mapping.uv_set != "UVMap":
+            raise ValueError("mapping recipe override must use UVMap")
+        if self.artifact.sha256 != _sha256_bytes(_model_bytes(self.recipe)):
+            raise ValueError("mapping recipe override artifact digest changed")
+        return self
+
+
 class CodexImageV05ControllerBlueprint(MaterialAuthoringStrictModel):
     """Hold deterministic controller-copy models without synthesizing a result."""
 
@@ -253,14 +266,14 @@ class CodexImageV05ControllerBlueprint(MaterialAuthoringStrictModel):
     provider_id: Literal["codex_builtin_gpt_image_v1"] = _PROVIDER_ID
     input_sha256: Sha256
     source_fingerprint: Sha256
-    producer: Literal[
-        "codex_blender_modeler.material_authoring.codex_image_v05_bridge"
-    ] = _PRODUCER
+    producer: Literal["codex_blender_modeler.material_authoring.codex_image_v05_bridge"] = _PRODUCER
     producer_version: Literal["0.1.0"] = SCHEMA_VERSION
     provenance: list[ExactArtifact] = Field(min_length=1)
     created_at: AwareDatetime
     bridge_run_id: PortableId
     target_material_id: str = Field(min_length=1, max_length=128)
+    mapping_overrides: dict[str, Literal["uv"]] = Field(default_factory=dict)
+    mapping_recipe_overrides: list[CodexImageV05MappingRecipeOverride] = Field(default_factory=list)
     run_root: RelativePath
     source_authoring_receipt: ExactArtifact
     source_authoring_request: ExactArtifact
@@ -301,6 +314,10 @@ class CodexImageV05ControllerBlueprint(MaterialAuthoringStrictModel):
         input_paths = [item.artifact.path for item in self.controller_inputs]
         if len(input_paths) != len(set(input_paths)):
             raise ValueError("controller bridge inputs must have unique paths")
+        if {item.material_id for item in self.mapping_recipe_overrides} != set(
+            self.mapping_overrides
+        ):
+            raise ValueError("mapping recipe overrides differ from mapping scope")
         _validate_material_plan_observation_snapshot(
             self.source_material_plan,
             self.previous_canonical_material_plan,
@@ -317,14 +334,13 @@ class CodexImageV05ControllerBlueprint(MaterialAuthoringStrictModel):
             provider_id=self.provider_id,
             bridge_run_id=self.bridge_run_id,
             target_material_id=self.target_material_id,
+            mapping_overrides=self.mapping_overrides,
             input_sha256=self.input_sha256,
             source_fingerprint=self.source_fingerprint,
             source_authoring_receipt=self.source_authoring_receipt,
             source_material_plan=self.source_material_plan,
             previous_canonical_material_plan=self.previous_canonical_material_plan,
-            canonical_material_absence_evidence=(
-                self.canonical_material_absence_evidence
-            ),
+            canonical_material_absence_evidence=(self.canonical_material_absence_evidence),
             controller_inputs=self.controller_inputs,
             expected_output_sha256=self.expected_output_sha256,
             provenance=self.provenance,
@@ -333,9 +349,7 @@ class CodexImageV05ControllerBlueprint(MaterialAuthoringStrictModel):
         if self.target_material_id not in material_ids:
             raise ValueError("controller MaterialPlan omits the target material")
         plan_inputs = [
-            item
-            for item in self.material_graph.provenance.inputs
-            if item.role == "material_plan"
+            item for item in self.material_graph.provenance.inputs if item.role == "material_plan"
         ]
         expected_plan_outputs = [
             (path, digest)
@@ -362,14 +376,14 @@ class CodexImageV05BridgeReceipt(MaterialAuthoringStrictModel):
     provider_id: Literal["codex_builtin_gpt_image_v1"] = _PROVIDER_ID
     input_sha256: Sha256
     source_fingerprint: Sha256
-    producer: Literal[
-        "codex_blender_modeler.material_authoring.codex_image_v05_bridge"
-    ] = _PRODUCER
+    producer: Literal["codex_blender_modeler.material_authoring.codex_image_v05_bridge"] = _PRODUCER
     producer_version: Literal["0.1.0"] = SCHEMA_VERSION
     provenance: list[ExactArtifact] = Field(min_length=1)
     created_at: AwareDatetime
     bridge_run_id: PortableId
     target_material_id: str = Field(min_length=1, max_length=128)
+    mapping_overrides: dict[str, Literal["uv"]] = Field(default_factory=dict)
+    mapping_recipe_overrides: list[CodexImageV05MappingRecipeOverride] = Field(default_factory=list)
     material_family: MaterialFamily
     source_authoring_receipt: ExactArtifact
     source_authoring_request: ExactArtifact
@@ -407,6 +421,7 @@ class CodexImageV05BridgeReceipt(MaterialAuthoringStrictModel):
         outputs = [
             self.baseline_material_plan_snapshot,
             *[item.adapted for item in self.channels],
+            *[item.artifact for item in self.mapping_recipe_overrides],
             self.texture_manifest,
             self.shader_recipe,
             self.candidate_material_plan,
@@ -418,6 +433,10 @@ class CodexImageV05BridgeReceipt(MaterialAuthoringStrictModel):
         input_paths = [item.artifact.path for item in self.controller_inputs]
         if len(input_paths) != len(set(input_paths)):
             raise ValueError("published controller input paths must be unique")
+        if {item.material_id for item in self.mapping_recipe_overrides} != set(
+            self.mapping_overrides
+        ):
+            raise ValueError("mapping recipe overrides differ from mapping scope")
         _validate_material_plan_observation_snapshot(
             self.source_material_plan,
             self.previous_canonical_material_plan,
@@ -434,14 +453,13 @@ class CodexImageV05BridgeReceipt(MaterialAuthoringStrictModel):
             provider_id=self.provider_id,
             bridge_run_id=self.bridge_run_id,
             target_material_id=self.target_material_id,
+            mapping_overrides=self.mapping_overrides,
             input_sha256=self.input_sha256,
             source_fingerprint=self.source_fingerprint,
             source_authoring_receipt=self.source_authoring_receipt,
             source_material_plan=self.source_material_plan,
             previous_canonical_material_plan=self.previous_canonical_material_plan,
-            canonical_material_absence_evidence=(
-                self.canonical_material_absence_evidence
-            ),
+            canonical_material_absence_evidence=(self.canonical_material_absence_evidence),
             controller_inputs=self.controller_inputs,
             expected_output_sha256=self.expected_output_sha256,
             provenance=self.provenance,
@@ -488,14 +506,10 @@ def _validate_material_plan_observation_snapshot(
     """Separate the mutable canonical observation from its immutable baseline copy."""
 
     if (previous is None) == (absence is None):
-        raise ValueError(
-            "declare exactly one previous canonical MaterialPlan or absence evidence"
-        )
+        raise ValueError("declare exactly one previous canonical MaterialPlan or absence evidence")
     if source.kind != "v05-material-plan":
         raise ValueError("source MaterialPlan observation has an unexpected kind")
-    expected_snapshot_path = (
-        f"{_BRIDGE_ROOT}/{bridge_run_id}/source/baseline_material_plan.json"
-    )
+    expected_snapshot_path = f"{_BRIDGE_ROOT}/{bridge_run_id}/source/baseline_material_plan.json"
     if (
         snapshot.kind != "v05-material-plan-baseline-snapshot"
         or snapshot.path != expected_snapshot_path
@@ -532,6 +546,7 @@ def _v05_evidence_payload(
     provider_id: str,
     bridge_run_id: str,
     target_material_id: str,
+    mapping_overrides: dict[str, Literal["uv"]] | None = None,
     source_authoring_receipt: ExactArtifact,
     source_material_plan: ExactArtifact,
     previous_canonical_material_plan: ExactArtifact | None,
@@ -541,7 +556,7 @@ def _v05_evidence_payload(
 ) -> dict[str, object]:
     """Build the stable complete input payload shared by blueprint and receipt."""
 
-    return {
+    payload = {
         "job_id": job_id,
         "workflow_id": workflow_id,
         "dispatch_id": dispatch_id,
@@ -565,6 +580,9 @@ def _v05_evidence_payload(
         "controller_inputs": [item.model_dump(mode="json") for item in controller_inputs],
         "expected_output_sha256": dict(sorted(expected_output_sha256.items())),
     }
+    if mapping_overrides:
+        payload["mapping_overrides"] = dict(sorted(mapping_overrides.items()))
+    return payload
 
 
 def _validate_v05_evidence_envelope(
@@ -577,6 +595,7 @@ def _validate_v05_evidence_envelope(
     provider_id: str,
     bridge_run_id: str,
     target_material_id: str,
+    mapping_overrides: dict[str, Literal["uv"]] | None = None,
     input_sha256: str,
     source_fingerprint: str,
     source_authoring_receipt: ExactArtifact,
@@ -599,6 +618,7 @@ def _validate_v05_evidence_envelope(
             provider_id=provider_id,
             bridge_run_id=bridge_run_id,
             target_material_id=target_material_id,
+            mapping_overrides=mapping_overrides,
             source_authoring_receipt=source_authoring_receipt,
             source_material_plan=source_material_plan,
             previous_canonical_material_plan=previous_canonical_material_plan,
@@ -633,9 +653,9 @@ def _validate_v05_evidence_envelope(
     observed = {artifact.path: artifact for artifact in provenance}
     if len(observed) != len(provenance):
         raise ValueError("V0.5 bridge provenance paths must be unique")
-    if {
-        path: _artifact_identity(artifact) for path, artifact in observed.items()
-    } != {path: _artifact_identity(artifact) for path, artifact in expected.items()}:
+    if {path: _artifact_identity(artifact) for path, artifact in observed.items()} != {
+        path: _artifact_identity(artifact) for path, artifact in expected.items()
+    }:
         raise ValueError("V0.5 bridge provenance is incomplete or contains extras")
 
 
@@ -643,13 +663,11 @@ def _model_bytes(value: object) -> bytes:
     """Serialize one strict model using stable human-readable UTF-8 JSON bytes."""
 
     payload = (
-        value.model_dump(mode="json", exclude_none=True)
-        if hasattr(value, "model_dump")
-        else value
+        value.model_dump(mode="json", exclude_none=True) if hasattr(value, "model_dump") else value
     )
-    return (
-        json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
-    ).encode("utf-8")
+    return (json.dumps(payload, indent=2, ensure_ascii=False, allow_nan=False) + "\n").encode(
+        "utf-8"
+    )
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -1178,9 +1196,7 @@ def _surface(
         ior=1.45,
         transmission_weight=1.0 if is_crystal else 0.0,
         alpha=scene_material.base_color[3],
-        emission_color=(
-            scene_material.base_color if is_emissive else (0.0, 0.0, 0.0, 1.0)
-        ),
+        emission_color=(scene_material.base_color if is_emissive else (0.0, 0.0, 0.0, 1.0)),
         emission_strength=request.emission_strength if is_emissive else 0.0,
     )
 
@@ -1352,11 +1368,7 @@ def _texture_manifest(
         {
             request.source.artifact.sha256,
             request.uv_identity.evidence.sha256,
-            *(
-                digest
-                for item in channels
-                for digest in item.source_sha256
-            ),
+            *(digest for item in channels for digest in item.source_sha256),
         }
     )
     return TextureManifest(
@@ -1443,6 +1455,8 @@ def _material_plan(
     *,
     texture_manifest_path: str,
     shader_recipe_path: str,
+    mapping_overrides: dict[str, Literal["uv"]] | None = None,
+    mapping_recipe_overrides: dict[str, CodexImageV05MappingRecipeOverride] | None = None,
 ) -> MaterialPlan:
     """Author the target while preserving every other baseline and SceneSpec identity."""
 
@@ -1478,9 +1492,32 @@ def _material_plan(
                 ],
             }
         )
+    overrides = dict(mapping_overrides or {})
+    recipe_overrides = dict(mapping_recipe_overrides or {})
+    if request.material_id in overrides:
+        raise ValueError("mapping repair cannot override the authored target material")
+    unknown_overrides = set(overrides) - set(baseline_by_id)
+    if unknown_overrides:
+        raise ValueError("mapping repair targets unknown baseline materials")
+    if set(recipe_overrides) != set(overrides):
+        raise ValueError("mapping repair shader derivatives differ from mapping scope")
     materials: list[MaterialPlanItem] = []
     for item in baseline.materials:
-        materials.append(target if item.material_id == request.material_id else item)
+        if item.material_id == request.material_id:
+            materials.append(target)
+        elif item.material_id in overrides:
+            materials.append(
+                item.model_copy(
+                    update={
+                        "mapping": item.mapping.model_copy(
+                            update={"mode": "uv", "uv_set": "UVMap"}
+                        ),
+                        "shader_recipe": recipe_overrides[item.material_id].artifact.path,
+                    }
+                )
+            )
+        else:
+            materials.append(item)
     known = {item.material_id for item in materials}
     for scene_material in scene.materials:
         if scene_material.id == request.material_id and scene_material.id not in known:
@@ -1502,6 +1539,55 @@ def _material_plan(
             "One target material is a run-owned Codex image V0.5 controller candidate.",
         ],
     )
+
+
+def _mapping_recipe_derivatives(
+    root: Path,
+    baseline: MaterialPlan,
+    *,
+    run_root: str,
+    mapping_overrides: dict[str, Literal["uv"]],
+) -> list[CodexImageV05MappingRecipeOverride]:
+    """Derive exact UVMap shader companions for every approved non-target mapping change."""
+
+    baseline_by_id = {item.material_id: item for item in baseline.materials}
+    derivatives: list[CodexImageV05MappingRecipeOverride] = []
+    for material_id in sorted(mapping_overrides):
+        item = baseline_by_id.get(material_id)
+        if item is None or item.shader_recipe is None:
+            raise ValueError("mapping repair material lacks a baseline shader recipe")
+        source_path = ensure_contained_production_path(
+            root,
+            root / item.shader_recipe,
+            must_exist=True,
+        )
+        source = load_shader_recipe(source_path)
+        recipe = source.model_copy(
+            update={
+                "mapping": source.mapping.model_copy(update={"mode": "uv", "uv_set": "UVMap"}),
+                "assumptions": [
+                    *source.assumptions,
+                    "UVMap mapping applied by the exact approved surface-detail repair.",
+                ],
+            }
+        )
+        payload = _model_bytes(recipe)
+        recipe = ShaderRecipe.model_validate_json(payload)
+        artifact = _exact_artifact_for_bytes(
+            path=(f"{run_root}/mapping_recipe_overrides/{material_id}/shader_recipe.json"),
+            payload=payload,
+            kind="v05-mapping-repair-shader-recipe",
+            media_type="application/json",
+            label=f"mapping-recipe-{material_id}",
+        )
+        derivatives.append(
+            CodexImageV05MappingRecipeOverride(
+                material_id=material_id,
+                recipe=recipe,
+                artifact=artifact,
+            )
+        )
+    return derivatives
 
 
 def _artifact_to_graph(artifact: ExactArtifact, role: str) -> MaterialGraphArtifact:
@@ -1554,9 +1640,7 @@ def _graph_bindings(
                 ChannelBinding(
                     channel=cast(Any, name),
                     source_kind="image",
-                    color_space=(
-                        "sRGB" if image.color_space == "srgb" else "Non-Color"
-                    ),
+                    color_space=("sRGB" if image.color_space == "srgb" else "Non-Color"),
                     image=_artifact_to_graph(image.adapted, "texture"),
                     physical_scale=TextureScale(
                         width_m=scale_m,
@@ -1599,9 +1683,7 @@ def _material_graph(
     channel_names = {item.channel for item in channels}
     maximum_displacement = (
         min(
-            request.scale_context.shortest_dimension_m
-            * request.derivation.height_strength
-            * 0.02,
+            request.scale_context.shortest_dimension_m * request.derivation.height_strength * 0.02,
             0.01,
         )
         if "height" in channel_names
@@ -1643,6 +1725,7 @@ def _existing_plan_dependencies(
     baseline: MaterialPlan,
     *,
     excluded_material_id: str,
+    mapping_recipe_overrides: dict[str, CodexImageV05MappingRecipeOverride] | None = None,
 ) -> list[ExactArtifact]:
     """Rehash every preserved non-target recipe, manifest, and image dependency."""
 
@@ -1663,6 +1746,7 @@ def _existing_plan_dependencies(
             raise ValueError(f"preserved material dependency hash conflicts: {artifact.path}")
         artifacts[artifact.path] = artifact
 
+    recipe_overrides = dict(mapping_recipe_overrides or {})
     for item in baseline.materials:
         if item.material_id == excluded_material_id:
             continue
@@ -1672,7 +1756,11 @@ def _existing_plan_dependencies(
                 root, root / item.shader_recipe, must_exist=True
             )
             recipe = load_shader_recipe(recipe_path)
-            add(recipe_path, kind="v05-shader-recipe", label="baseline-recipe")
+            if item.material_id in recipe_overrides:
+                override = recipe_overrides[item.material_id].artifact
+                artifacts[override.path] = override
+            else:
+                add(recipe_path, kind="v05-shader-recipe", label="baseline-recipe")
             manifest_value = manifest_value or recipe.texture_manifest
         if manifest_value is None:
             continue
@@ -1769,10 +1857,7 @@ def _controller_inputs(
     for artifact in dependencies:
         if artifact.path in by_path:
             current = by_path[artifact.path].artifact
-            if (
-                current.sha256 != artifact.sha256
-                or current.byte_size != artifact.byte_size
-            ):
+            if current.sha256 != artifact.sha256 or current.byte_size != artifact.byte_size:
                 raise ValueError(f"controller dependency hash conflicts: {artifact.path}")
             continue
         by_path[artifact.path] = CodexImageV05ControllerInput(
@@ -1800,6 +1885,7 @@ def build_codex_image_v05_controller_blueprint(
     source_scene_spec_artifact: ExactArtifact | None = None,
     baseline_material_plan_snapshot_artifact: ExactArtifact | None = None,
     promoted_material_plan_sha256: str | None = None,
+    mapping_overrides: dict[str, Literal["uv"]] | None = None,
 ) -> CodexImageV05ControllerBlueprint:
     """Build exact-copy V0.5 models around validated legacy or normalized staging."""
 
@@ -1825,18 +1911,21 @@ def build_codex_image_v05_controller_blueprint(
     adoption = _load_core_adoption(root, request)
     if adoption.dispatch_id != validated_dispatch_id:
         raise ValueError("V0.5 bridge dispatch differs from the source adoption")
-    source_authoring_receipt = (
-        source_authoring_receipt_artifact
-        or _source_receipt_artifact(root, source_request)
+    source_authoring_receipt = source_authoring_receipt_artifact or _source_receipt_artifact(
+        root, source_request
     )
-    if (
-        source_authoring_receipt.path
-        != f"{source_request.output_root}/receipt.json"
-    ):
+    if source_authoring_receipt.path != f"{source_request.output_root}/receipt.json":
         raise ValueError("source authoring receipt artifact path differs from its run")
     _validate_exact_artifact(root, source_authoring_receipt)
     run_root = f"{_BRIDGE_ROOT}/{validated_run_id}"
     ensure_contained_production_path(root, root / run_root, must_exist=False)
+    mapping_recipe_overrides = _mapping_recipe_derivatives(
+        root,
+        baseline,
+        run_root=run_root,
+        mapping_overrides=dict(mapping_overrides or {}),
+    )
+    mapping_recipe_by_id = {item.material_id: item for item in mapping_recipe_overrides}
     channels = _channel_records(manifest, run_root)
     channel_names = {item.channel for item in channels}
     limitations = _family_limitations(request, manifest.channels, channel_names)
@@ -1880,6 +1969,8 @@ def build_codex_image_v05_controller_blueprint(
         request,
         texture_manifest_path=texture_path,
         shader_recipe_path=shader_path,
+        mapping_overrides=mapping_overrides,
+        mapping_recipe_overrides=mapping_recipe_by_id,
     )
     plan_bytes = _model_bytes(plan)
     plan = MaterialPlan.model_validate_json(plan_bytes)
@@ -1914,9 +2005,7 @@ def build_codex_image_v05_controller_blueprint(
             scene_artifact=scene_artifact,
             dispatch_id=validated_dispatch_id,
             session_id=adoption.session_id,
-            promoted_material_plan_sha256=(
-                promoted_material_plan_sha256 if promoted else None
-            ),
+            promoted_material_plan_sha256=(promoted_material_plan_sha256 if promoted else None),
         )
     if baseline_material_plan_snapshot_artifact is None:
         baseline_bytes = _validate_exact_artifact(root, baseline_artifact).read_bytes()
@@ -1948,6 +2037,7 @@ def build_codex_image_v05_controller_blueprint(
         root,
         baseline,
         excluded_material_id=request.material_id,
+        mapping_recipe_overrides=mapping_recipe_by_id,
     )
     plan_output_graph_artifact = MaterialGraphArtifact(
         role="material_plan",
@@ -2041,6 +2131,7 @@ def build_codex_image_v05_controller_blueprint(
         provider_id=adoption.provider_id,
         bridge_run_id=validated_run_id,
         target_material_id=request.material_id,
+        mapping_overrides=dict(mapping_overrides or {}),
         source_authoring_receipt=source_authoring_receipt,
         source_material_plan=baseline_artifact,
         previous_canonical_material_plan=previous_canonical_material_plan,
@@ -2062,6 +2153,8 @@ def build_codex_image_v05_controller_blueprint(
         created_at=source_receipt.created_at,
         bridge_run_id=validated_run_id,
         target_material_id=request.material_id,
+        mapping_overrides=dict(mapping_overrides or {}),
+        mapping_recipe_overrides=mapping_recipe_overrides,
         run_root=run_root,
         source_authoring_receipt=source_authoring_receipt,
         source_authoring_request=_as_exact_artifact(source_receipt.request),
@@ -2138,6 +2231,7 @@ def publish_codex_image_v05_bridge(
     canonical_material_absence_evidence: ExactArtifact | None = None,
     source_authoring_receipt_artifact: ExactArtifact | None = None,
     source_scene_spec_artifact: ExactArtifact | None = None,
+    mapping_overrides: dict[str, Literal["uv"]] | None = None,
 ) -> CodexImageV05BridgeReceipt:
     """Atomically publish exact V0.5 dependencies and controller-copy blueprints."""
 
@@ -2153,6 +2247,7 @@ def publish_codex_image_v05_bridge(
         canonical_material_absence_evidence=canonical_material_absence_evidence,
         source_authoring_receipt_artifact=source_authoring_receipt_artifact,
         source_scene_spec_artifact=source_scene_spec_artifact,
+        mapping_overrides=mapping_overrides,
     )
     if isinstance(source_receipt, CodexImageNormalizedMaterialAuthoringReceiptV010):
         normalized_request = cast(
@@ -2188,9 +2283,7 @@ def publish_codex_image_v05_bridge(
             else {}
         ),
     }
-    final_root = ensure_contained_production_path(
-        root, root / blueprint.run_root, must_exist=False
-    )
+    final_root = ensure_contained_production_path(root, root / blueprint.run_root, must_exist=False)
     if os.path.exists(native_io_path(final_root)):
         raise FileExistsError(f"V0.5 bridge run already exists: {blueprint.run_root}")
     parent = ensure_contained_production_path(root, final_root.parent, must_exist=False)
@@ -2212,6 +2305,8 @@ def publish_codex_image_v05_bridge(
         created_at=blueprint.created_at,
         bridge_run_id=blueprint.bridge_run_id,
         target_material_id=blueprint.target_material_id,
+        mapping_overrides=blueprint.mapping_overrides,
+        mapping_recipe_overrides=blueprint.mapping_recipe_overrides,
         material_family=request.material_family,
         source_authoring_receipt=blueprint.source_authoring_receipt,
         source_authoring_request=blueprint.source_authoring_request,
@@ -2219,9 +2314,7 @@ def publish_codex_image_v05_bridge(
         source_scene_spec=blueprint.source_scene_spec,
         source_material_plan=blueprint.source_material_plan,
         previous_canonical_material_plan=blueprint.previous_canonical_material_plan,
-        canonical_material_absence_evidence=(
-            blueprint.canonical_material_absence_evidence
-        ),
+        canonical_material_absence_evidence=(blueprint.canonical_material_absence_evidence),
         baseline_material_plan_snapshot=blueprint.baseline_material_plan_snapshot,
         scale_context=blueprint.scale_context,
         uv_identity=blueprint.uv_identity,
@@ -2250,18 +2343,21 @@ def publish_codex_image_v05_bridge(
         with open(native_io_path(baseline_source), "rb") as source_handle:
             _write_exclusive(baseline_target, source_handle.read())
         payloads = (
+            *[
+                (item.artifact, _model_bytes(item.recipe))
+                for item in blueprint.mapping_recipe_overrides
+            ],
             (blueprint.texture_manifest_artifact, _model_bytes(blueprint.texture_manifest)),
             (blueprint.shader_recipe_artifact, _model_bytes(blueprint.shader_recipe)),
             (blueprint.material_plan_artifact, _model_bytes(blueprint.material_plan)),
             (blueprint.material_graph_artifact, _model_bytes(blueprint.material_graph)),
         )
         for artifact, payload in payloads:
-            _write_exclusive(
-                _stage_member(stage_root, blueprint.run_root, artifact.path), payload
-            )
+            _write_exclusive(_stage_member(stage_root, blueprint.run_root, artifact.path), payload)
         outputs = [
             blueprint.baseline_material_plan_snapshot,
             *[item.adapted for item in blueprint.channels],
+            *[item.artifact for item in blueprint.mapping_recipe_overrides],
             blueprint.texture_manifest_artifact,
             blueprint.shader_recipe_artifact,
             blueprint.material_plan_artifact,
@@ -2341,9 +2437,7 @@ def validate_codex_image_v05_bridge(
         root / _BRIDGE_ROOT / receipt.bridge_run_id / "receipt.json",
         must_exist=True,
     )
-    published = CodexImageV05BridgeReceipt.model_validate_json(
-        published_path.read_bytes()
-    )
+    published = CodexImageV05BridgeReceipt.model_validate_json(published_path.read_bytes())
     if published != receipt:
         raise ValueError("provided V0.5 bridge receipt differs from published bytes")
     source_receipt = cast(
@@ -2368,15 +2462,12 @@ def validate_codex_image_v05_bridge(
         material_plan_output_path=plan_output_path,
         material_graph_output_path=graph_output_path,
         material_plan_output_sha256=receipt.expected_output_sha256[plan_output_path],
-        canonical_material_absence_evidence=(
-            receipt.canonical_material_absence_evidence
-        ),
+        canonical_material_absence_evidence=(receipt.canonical_material_absence_evidence),
         source_authoring_receipt_artifact=receipt.source_authoring_receipt,
         source_scene_spec_artifact=receipt.source_scene_spec,
-        baseline_material_plan_snapshot_artifact=(
-            receipt.baseline_material_plan_snapshot
-        ),
+        baseline_material_plan_snapshot_artifact=(receipt.baseline_material_plan_snapshot),
         promoted_material_plan_sha256=receipt.candidate_material_plan.sha256,
+        mapping_overrides=receipt.mapping_overrides,
     )
     expected = {
         "job_id": blueprint.job_id,
@@ -2393,17 +2484,15 @@ def validate_codex_image_v05_bridge(
         "created_at": blueprint.created_at,
         "bridge_run_id": blueprint.bridge_run_id,
         "target_material_id": blueprint.target_material_id,
+        "mapping_overrides": blueprint.mapping_overrides,
+        "mapping_recipe_overrides": blueprint.mapping_recipe_overrides,
         "source_authoring_receipt": blueprint.source_authoring_receipt,
         "source_authoring_request": blueprint.source_authoring_request,
         "source_authoring_manifest": blueprint.source_authoring_manifest,
         "source_scene_spec": blueprint.source_scene_spec,
         "source_material_plan": blueprint.source_material_plan,
-        "previous_canonical_material_plan": (
-            blueprint.previous_canonical_material_plan
-        ),
-        "canonical_material_absence_evidence": (
-            blueprint.canonical_material_absence_evidence
-        ),
+        "previous_canonical_material_plan": (blueprint.previous_canonical_material_plan),
+        "canonical_material_absence_evidence": (blueprint.canonical_material_absence_evidence),
         "baseline_material_plan_snapshot": blueprint.baseline_material_plan_snapshot,
         "scale_context": blueprint.scale_context,
         "uv_identity": blueprint.uv_identity,
@@ -2421,6 +2510,7 @@ def validate_codex_image_v05_bridge(
     for artifact in (
         receipt.baseline_material_plan_snapshot,
         *[item.adapted for item in receipt.channels],
+        *[item.artifact for item in receipt.mapping_recipe_overrides],
         receipt.texture_manifest,
         receipt.shader_recipe,
         receipt.candidate_material_plan,
@@ -2437,6 +2527,13 @@ def validate_codex_image_v05_bridge(
         _read_exact_model(root, receipt.texture_manifest, TextureManifest),
     )
     shader = cast(ShaderRecipe, _read_exact_model(root, receipt.shader_recipe, ShaderRecipe))
+    for override in receipt.mapping_recipe_overrides:
+        stored_override = cast(
+            ShaderRecipe,
+            _read_exact_model(root, override.artifact, ShaderRecipe),
+        )
+        if stored_override != override.recipe:
+            raise ValueError("published mapping recipe derivative changed")
     plan = cast(
         MaterialPlan,
         _read_exact_model(root, receipt.candidate_material_plan, MaterialPlan),

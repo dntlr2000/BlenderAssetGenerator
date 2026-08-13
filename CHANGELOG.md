@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — Reversible terminal workspace archive
+
+- Added strict V0.9 workspace relocation plan and receipt contracts with deterministic full-tree
+  digests, exact workflow/job bindings, same-volume atomic rename, immutable control evidence, and
+  crash adoption between rename and receipt publication.
+- Added host CLI surfaces to list eligible jobs, archive one terminal job, restore one exact archive
+  receipt, and resume one persisted relocation plan. No new MCP/controller relocation authority was
+  added.
+- Completed/cancelled jobs are eligible by default. Failed jobs require explicit `--allow-failed`;
+  active, waiting, blocked, workflow-less, queued, locked, non-terminal dispatch, AQ/AQ v2, linked,
+  escaped, stale, or tampered jobs fail closed.
+- Archive storage defaults to the same-volume `workspace_archive/` sibling. Archived evidence is not
+  migrated or loaded in place; exact restore returns it to `workspaces/<job-id>` before normal use.
+
 ## Unreleased — Codex ImageGen 0.2 Material Loop Closure
 
 - Added an additive strict material-loop companion without changing project `0.9.0`, canonical
@@ -50,7 +64,15 @@
   destination-runtime parity claim.
 - Added Material Loop architecture, getting-started, test-plan, migration and verification documents
   and reconciled the existing ImageGen, AQ v2, MaterialAuthoring, ControllerExecutor, DeliveryProfile,
-  README and roadmap surfaces. Final full-gate counts remain explicit placeholders until executed.
+  README and roadmap surfaces. Added a Korean copy/paste prompt collection, updated the general
+  reference-validation prompt collection, and added an internal material-loop orchestration prompt.
+- Recorded the executed local result instead of placeholders: full pytest `1569 passed, 56 skipped,
+  8 warnings`; focused material-loop security/schema/service/public `160 passed, 1 skipped`; final
+  public/schema/catalog/CI parity `59 passed`; fake four-family actual Blender material/IQ `4 passed`;
+  and approval-free review/export-mechanism coverage `5 passed, 1 skipped`. Historical built-in source
+  replay remained `review_required`; fresh built-in ImageGen full-loop, human approval, production
+  package acceptance, destination parity, hosted CI, and the approval-synthesizing legacy chained gate
+  remain explicitly unverified or not run.
 
 ## Unreleased — Codex Built-in ImageGen Texture Provider 0.1.0
 

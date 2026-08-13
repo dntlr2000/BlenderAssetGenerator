@@ -24,10 +24,12 @@ V0.9는 오래된 정상 job을 자동 변환하지 않는다. 호환 가능한 
 
 ```text
 src/codex_blender_modeler/stabilization/
-├─ models.py       strict 0.9 contracts
-├─ locks.py        expiring O_EXCL queue writer lock
-├─ service.py      environment probe, workspace audit, local queue
-└─ pdf_report.py   exact JSON hashes에서 파생되는 stability PDF
+├─ models.py             strict 0.9 audit/queue contracts
+├─ archive_models.py     strict workspace relocation plan/receipt contracts
+├─ locks.py              expiring O_EXCL queue writer lock
+├─ service.py            environment probe, workspace audit, local queue
+├─ workspace_archive.py  terminal preflight, atomic archive/restore, crash adoption
+└─ pdf_report.py         exact JSON hashes에서 파생되는 stability PDF
 
 src/codex_blender_modeler/handoff/
 ├─ models.py       strict handoff·destination import 계약
@@ -51,6 +53,8 @@ src/codex_blender_modeler/production/
 schemas/
 ├─ environment_probe.schema.json
 ├─ workspace_audit.schema.json
+├─ workspace_relocation_plan.schema.json
+├─ workspace_relocation_receipt.schema.json
 ├─ local_workflow_queue.schema.json
 ├─ queue_attempt_receipt.schema.json
 ├─ queue_lock.schema.json
@@ -144,6 +148,17 @@ plan만 만들고 `visual_convergence_plan`에서 멈춘다. 기존 V0.6 승인 
 승인이 생긴 뒤에만 iteration을 실행하며, 한 advance에서 full Blender iteration은 최대
 한 번이다. 각 advance는 이전 receipt SHA-256, 전후 workflow state bytes, dispatch plan과
 선택적인 convergence progress artifact를 결속하는 immutable chain이다.
+
+Workflow reconcile은 권위 evidence에서 state를 재구성하는 투영이며 heartbeat가 아니다.
+step, artifact identity/integrity/currency, milestone, current step, waiting gate, warning/reason,
+quality/delivery state 또는 승인·완료 evidence가 바뀌지 않은 no-op이면 `state.json` bytes,
+SHA-256, `updated_at`과 `workflows/latest.json` bytes를 그대로 보존한다. 실제 권위 변화가
+생긴 경우 production controller는 reconcile 이전 persisted state를 advance의 before로
+캡처하고, reconcile 및 해당 action 뒤 state를 after로 캡처한다. 따라서 모든 새 receipt는
+연속 sequence와 previous-receipt byte hash뿐 아니라 `receipt[n].after ==
+receipt[n+1].before`, 각 snapshot의 선언/실제 hash 일치, 마지막 after와 현재 persisted
+workflow state의 일치를 보장한다. 이 연속성이나 job/workflow/dispatch/controller/dispatch-plan
+identity가 끊기면 status와 다음 advance는 fail-closed이며 history를 자동 보정하지 않는다.
 
 Bounded production은 `standard + preview_only` V0.8 workflow를 baseline historical
 evidence로 보존한다. 승인된 convergence가 canonical SceneSpec을 합법적으로 승격한 뒤에는
@@ -322,6 +337,40 @@ Production Controller는 queue와 별도다. Queue는 이미 존재하는 workfl
 host step만 실행하지만, production layer는 새 workflow와 client launch bundle을 만들고
 agent-authored 경계를 controller가 조율한다. 어느 쪽도 승인을 합성하거나 failed step을
 자동 재시도하지 않는다.
+
+## terminal workspace archive
+
+완료된 job이 많아져 active `workspaces/` 탐색이 어려워질 때 V0.9 host는 job 전체를
+별도 `workspace_archive/`로 이동할 수 있다. 이는 삭제나 migration이 아니다.
+
+```text
+workspaces/<job-id>/
+→ exact terminal/queue/dispatch/lock preflight
+→ immutable WorkspaceRelocationPlan
+→ same-volume atomic directory rename
+→ full tree SHA-256/count/size replay
+→ immutable WorkspaceRelocationReceipt
+→ workspace_archive/<completed|cancelled|failed>/<yyyy-mm>/...
+```
+
+안전 경계는 다음과 같다.
+
+- `completed`와 `cancelled`만 기본 적격이며 `failed`는 호출자의 명시적
+  `allow_failed=true` 없이는 이동하지 않는다.
+- `planned`, `running`, agent/approval 대기, `blocked`, workflow 근거 없음, active queue,
+  active lock, non-terminal production dispatch는 거부한다.
+- AQ/AQ v2 session이 있는 job은 해당 terminal validator를 일반화하기 전까지 자동
+  archive 대상에서 제외한다.
+- job tree 안의 symlink/junction/reparse entry와 workspace/archive root escape를 거부한다.
+- archive root는 active workspace와 분리된 동일 볼륨이어야 하며 recursive copy fallback은
+  사용하지 않는다.
+- `job.json`과 내부 상대 경로를 고치지 않는다. archived job은 직접 로드하지 않고 exact
+  receipt로 원래 `workspaces/<job-id>`에 복원한 뒤 기존 validator로 읽는다.
+- rename 뒤 receipt 발행 전에 중단되면 persisted plan과 destination tree hash가 정확히
+  일치할 때만 crash-adopt한다.
+
+archive plan과 receipt는 `workspace_archive/.cbm/` 아래에 남는다. 따라서 archive tree를
+수동으로 이름 변경하거나 일부 파일만 복사하면 이후 검증과 복원이 실패한다.
 
 ## PDF projection
 

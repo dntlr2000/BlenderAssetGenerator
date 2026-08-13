@@ -18,6 +18,10 @@ from codex_blender_modeler.handoff.models import (
     ImportChecklist,
     MaterialMappingManifest,
 )
+from codex_blender_modeler.stabilization.archive_models import (
+    WorkspaceRelocationPlan,
+    WorkspaceRelocationReceipt,
+)
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
     LocalWorkflowQueue,
@@ -35,6 +39,8 @@ def test_v09_contract_schemas_are_current_and_strict() -> None:
     contracts = {
         "environment_probe.schema.json": EnvironmentProbeReport,
         "workspace_audit.schema.json": WorkspaceAuditReport,
+        "workspace_relocation_plan.schema.json": WorkspaceRelocationPlan,
+        "workspace_relocation_receipt.schema.json": WorkspaceRelocationReceipt,
         "local_workflow_queue.schema.json": LocalWorkflowQueue,
         "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
         "queue_lock.schema.json": QueueLock,

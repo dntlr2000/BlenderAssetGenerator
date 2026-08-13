@@ -63,8 +63,38 @@ V0.9 완료 판정은 Python contract test만으로 내리지 않는다. 이전 
 - audit output overwrite
 - production launch, tool profile, task-binding receipt, advisory assignment, advance receipt chain 또는 postflight receipt 변조
 - production dispatch와 bound V0.8 workflow plan/state의 stale 또는 mismatched binding
+- production advance의 직전 after와 다음 before 불일치, snapshot byte 변조, sequence gap,
+  previous-receipt hash 불일치, latest after와 current state 불일치 또는
+  job/workflow/dispatch/controller/dispatch-plan identity 변조
 
 모든 사례에서 canonical 파일 byte hash가 바뀌지 않아야 한다.
+
+## Gate 3A — terminal workspace archive/restore
+
+정상 사례:
+
+- `completed`와 `cancelled` V0.8 workflow의 exact request/plan/state/latest binding
+- immutable plan 발행 뒤 same-volume atomic directory rename
+- 전체 directory/file inventory, SHA-256, byte size와 count가 plan/receipt에서 일치
+- archive 중 active job loader가 fail closed하고 restore 뒤 기존 loader가 다시 성공
+- archive→restore round trip에서 `job.json`, `input/`과 전체 tree digest 불변
+- rename 뒤 receipt 발행 전 중단을 exact destination tree로 한 번만 crash-adopt
+- 동일 plan/receipt 재호출의 idempotent 검증
+
+음성 사례:
+
+- `planned`, `running`, `waiting_for_agent`, `waiting_for_approval`, `blocked` 또는 workflow 없음
+- `--allow-failed` 없는 failed workflow
+- active local queue entry, transient `*.lock.json`, non-terminal production dispatch
+- AQ/AQ v2 session이 존재하지만 전용 terminal closure가 검증되지 않은 job
+- workspace/archive root 중첩, 다른 볼륨, symlink/junction/reparse tree entry
+- plan 이후 source byte 추가·변경, plan/receipt digest 변조
+- source와 destination 동시 존재 또는 둘 다 없음
+- archive entry 수동 변경 뒤 restore/receipt replay
+
+공개 표면은 `workspace-archive-candidates`, `workspace-archive`, `workspace-restore`,
+`workspace-relocation-resume` CLI만 제공한다. Canonical job relocation은 host 관리 작업이므로
+일반 MCP controller 도구 권한에는 추가하지 않는다.
 
 ## Gate 4 — queue와 복구
 
@@ -99,7 +129,12 @@ temporary workspace 단위·통합 테스트에서 검증한다. CLI smoke가 �
 - desktop mode도 exact input fingerprint, single-writer lock, 모든 V0.8 승인/failed-retry 경계를 그대로 보존
 - agent 경계에서 exact read-only assignment 생성, subagent write allowlist가 비어 있음
 - controller만 선언된 V0.8 agent output을 작성하고 exact input fingerprint로 완료
-- 모든 advance receipt가 전후 workflow state bytes와 previous receipt SHA-256에 결속
+- 반복 no-op reconcile은 `state.json`/`latest.json` bytes와 mtime, state SHA-256,
+  `updated_at`을 보존하고 실제 권위 evidence 변화에서만 새 state를 기록
+- 모든 advance receipt가 전후 workflow state bytes와 previous receipt SHA-256에 결속되고,
+  직전 after SHA-256이 다음 before SHA-256과 같으며 마지막 after가 현재 state와 일치
+- public AQ v2 reference action → V0.9 geometry assignment → desktop ControllerExecutor
+  waiting/adoption → AQ `validate_candidate` 경로가 production anchor 우회 없이 통과
 - completed workflow에서 atomic read-only V0.9 postflight receipt 생성
 - postflight warning은 보존하고 failure는 production acceptance 차단
 - 명시적 `standard + bounded_after_v06` dispatch가 최초 workflow를 V0.6

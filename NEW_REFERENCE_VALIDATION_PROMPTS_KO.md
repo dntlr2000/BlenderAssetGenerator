@@ -1,6 +1,6 @@
 # 새 레퍼런스 자산 단계별 검증 프롬프트
 
-이 문서는 새 레퍼런스 이미지를 제공한 뒤 사용자가 Codex 채팅에 복사해 입력할 수 있는 실사용 프롬프트 모음입니다. 현재 저장소의 V0.4~V0.9 계약과 CLI를 기준으로 하며, 각 단계의 승인 경계를 유지합니다.
+이 문서는 새 레퍼런스 이미지를 제공한 뒤 사용자가 Codex 채팅에 복사해 입력할 수 있는 실사용 프롬프트 모음입니다. 현재 저장소의 V0.4~V0.9 계약과 CLI를 기준으로 하며, 각 단계의 승인 경계를 유지합니다. Geometry promotion 뒤 선택적으로 AQ v2와 Codex Built-in ImageGen Material Loop를 사용할 때는 이 문서의 1.6/5A와 [전용 Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)을 함께 사용합니다.
 
 기계 판정의 원본은 JSON 계약과 보고서입니다. PDF는 사용자가 검토하기 쉬운 파생 보고서이며 JSON을 대체하지 않습니다.
 
@@ -60,6 +60,13 @@
 | `<GEOMETRY_REVISION_REQUEST>` | 다시 고칠 큰 실루엣·비율·중형 구조 설명 | 사용자의 실제 요청 |
 | `<INTERIOR_REQUEST>` | 허용할 층·공간·가구 범위와 제외 대상 | 사용자의 실제 요청 |
 | `<REVISION_REQUEST>` | V0.6 후보로 달성할 국소 수정 목적 | 사용자의 실제 요청 |
+| `<AQ_SESSION_ID>` | Codex가 보고한 current AQ v2 session ID | 실제 보고값 |
+| `<MATERIAL_FAMILY>` | ImageGen candidate의 material family | `wood` |
+| `<TARGET_MATERIAL_IDS>` | 변경을 허용할 stable material ID 목록 | Codex가 보고한 실제 ID |
+| `<TARGET_SEMANTIC_IDS>` | 대상 semantic ID 목록 | Codex가 보고한 실제 ID |
+| `<DELIVERY_PROFILES>` | 요청할 delivery profile 목록 | `review_only` |
+| `<NATIVE_SOURCE_PATH>` | current-task built-in 또는 허용된 historical PNG 절대 경로 | 실제 파일 경로 |
+| `<QUALITY_SUBMISSION_PATH>` | current job 안의 strict IQ submission JSON | 실제 보고 경로 |
 
 교체 예:
 
@@ -111,6 +118,14 @@
   강제할 수 있을 때만 task를 bind합니다.
 - Production orchestration도 generic·specialized exact approval, handoff plan, failed retry
   권한을 줄이지 않습니다. 최종 완료에는 exact V0.9 postflight audit receipt가 필요합니다.
+- `autonomous_static_prop_v2_codex_imagegen`은 계속 `disabled_experimental`이며 현재 Codex 작업의
+  built-in ImageGen만 사용합니다. 외부 API/provider, 새 task, daemon 또는 자동 앱 재개를 만들지 않습니다.
+- ImageGen native 원본은 immutable evidence로 보존하고 크기·비율 변경은 별도 deterministic
+  normalization derivative로만 수행합니다. 과거 selected candidate의 source를 소급 교체하지 않습니다.
+- Codex semantic review는 항상 `human_reviewed=false`입니다. actual observation이 없거나 후보 evidence가
+  unresolved이면 deterministic pixel score만으로 통과시키지 않고 `review_required`에서 멈춥니다.
+- MaterialAuthoring staging, canonical material promotion, IQ pass, V0.7 package와 destination handoff는
+  서로 다른 경계입니다. `ControllerResult`, 사용자 승인 또는 completion 상태를 합성하지 않습니다.
 
 ---
 
@@ -397,8 +412,12 @@ Asset Production Dispatcher와 별도 Codex 제작 작업을 준비해.
 8. controller는 한 번에 한 production action만 진행하고 기존 V0.8 generic review,
    InteriorScope, V0.6 revision/convergence/candidate decision, V0.7 optimization,
    Destination Handoff exact plan과 failed retry 경계에서 멈춰.
-9. 각 정지점에서 exact path, SHA-256, 필요한 전용 승인과 다음 행동을 보고해.
-10. workflow가 완료되면 exact terminal state에 결속된 V0.9 read-only postflight audit을
+9. 다음 advance 전에 receipt sequence, previous receipt byte hash,
+   `previous.after == next.before`, 각 before/after snapshot의 exact hash와 latest after가
+   current workflow state와 일치하는지 검증해. no-op reconcile만으로 state SHA-256이나
+   `updated_at`이 바뀌면 진행하지 말고 stale evidence로 보고해.
+10. 각 정지점에서 exact path, SHA-256, 필요한 전용 승인과 다음 행동을 보고해.
+11. workflow가 완료되면 exact terminal state에 결속된 V0.9 read-only postflight audit을
     수행하고 receipt가 current일 때만 production completed라고 보고해.
 
 현재 client가 task 생성 또는 controller MCP/shell restriction을 제공하지 못하면
@@ -447,10 +466,12 @@ Asset Production Dispatcher를 현재 Codex Desktop 작업 안에서 시작해.
 7. 내가 새 메시지로 exact 현재 SHA-256 또는 failed step을 명시적으로 승인하기
    전에는 접근 가능한 approval/retry 도구를 호출하지 마. 포괄적 사전 승인을
    exact 승인으로 해석하지 마.
-8. 각 정지점에서 exact path, SHA-256, 현재 next_action과 필요한 전용 승인만 보고해.
-9. workflow가 완료되면 exact terminal evidence에 결속된 V0.9 postflight audit을
+8. 각 advance 전에 receipt state-lineage와 current tail을 검증하고, no-op reconcile이
+   state bytes/SHA/`updated_at`을 바꾸거나 계보가 끊기면 repair·resume하지 말고 멈춰.
+9. 각 정지점에서 exact path, SHA-256, 현재 next_action과 필요한 전용 승인만 보고해.
+10. workflow가 완료되면 exact terminal evidence에 결속된 V0.9 postflight audit을
    수행하고 current/valid receipt가 있을 때만 production completed라고 보고해.
-10. 이 모드를 approval-isolated, client-profile-enforced 또는 완전 무인으로 표현하지 마.
+11. 이 모드를 approval-isolated, client-profile-enforced 또는 완전 무인으로 표현하지 마.
     목적지 runtime parity도 주장하지 마.
 ```
 
@@ -512,6 +533,44 @@ InteriorScope, V0.7 optimization 또는 Destination Handoff 승인을 대신하�
 `controller_execution_mode=desktop_in_session` 규칙을 적용합니다. 이 경우 별도 task
 binding은 생략하지만 exact convergence-plan SHA-256 승인과 iteration 안전 envelope는
 그대로 유지됩니다.
+
+### 1.6 AQ v2 + Codex ImageGen Material Loop 시작
+
+이 프롬프트는 AQ v2 geometry promotion과 current authorization이 이미 존재할 때만 사용합니다.
+새 reference부터 시작한다면 먼저 1A/1B와 표준 V0.4 승인 경계를 완료합니다.
+
+```text
+<JOB_ID>의 current AQ v2 session에서 Codex Built-in ImageGen Material Loop를
+disabled_experimental 명시적 opt-in으로 진행해줘.
+
+- aq_session_id: <AQ_SESSION_ID>
+- material_family: <MATERIAL_FAMILY>
+- target_material_ids: <TARGET_MATERIAL_IDS>
+- target_semantic_ids: <TARGET_SEMANTIC_IDS>
+- requested_delivery_profiles: <DELIVERY_PROFILES>
+
+먼저 RootAuthorization, profile, budget, predecessor, canonical SceneSpec, geometry receipt,
+build fingerprint, UV와 MaterialPlan baseline을 read-only로 검증해. stale/missing/tampered이면 멈춰.
+
+현재 Codex 작업의 built-in ImageGen만 사용하고 외부 API/provider나 새 task를 만들지 마.
+native 원본은 immutable evidence로 보존하고 deterministic normalization derivative만 사용해.
+모든 후보에 current-task semantic review를 만들되 human_reviewed=false로 기록하고,
+다중 후보는 exact companion ranking/selection precedence로 선택해.
+
+MaterialAuthoring staging 뒤 exact candidate bytes의 actual Blender shadow preflight가 있으면
+exact_adoption을, 아니면 bounded controller_authored_completion을 사용해.
+ControllerResult를 직접 쓰지 말고 기존 ControllerExecutor를 사용해.
+canonical promotion은 기존 material_phase_service만 호출하고 actual MaterialPhaseReceiptV2와
+neutral preview를 검증한 뒤 base AQ를 IQ 경계로 한 action만 재개해.
+
+IQ pass 전에는 quality_approved라고 보고하지 마. exact V0.7 사용자 승인 없이는
+waiting_for_v07_approval에서 멈추고 package나 delivery terminal을 만들지 마.
+마지막에는 current/stale/unverified, controller request/result, MaterialPhaseReceiptV2,
+base next action, IQ/delivery 상태, remaining budget와 latest failure를 보고해.
+```
+
+Native mismatch, semantic-only 감사, controller resume, promotion recovery와 IQ/delivery별로 더 작은
+프롬프트가 필요하면 [전용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)을 사용합니다.
 
 ## 2. 전체 파이프라인 조율 프롬프트
 
@@ -875,6 +934,40 @@ portable 결과는 raw PBR 의미와 알려진 bake loss만 기록해.
 MaterialPlan, ShaderRecipe, texture manifest, validation JSON,
 swatch와 PDF 경로를 보고하고 swatch 승인 대기 상태에서 멈춰.
 ```
+
+### 단계 5A — 선택적 Codex ImageGen Material Loop
+
+> **`autonomous_static_prop_v2_codex_imagegen` profile을 명시적으로 선택했고 AQ v2 geometry
+> promotion이 완료된 경우에만 사용합니다. 일반 V0.5 material authoring의 대체 경로가 아닙니다.**
+
+```text
+<JOB_ID> / <AQ_SESSION_ID>의 selected ImageGen candidate를 기존 AQ v2 material boundary에 연결해줘.
+
+1. ImageGen assignment/completion/candidate/quality/core selection/terminal과 current geometry,
+   SceneSpec, UV, material IDs, canonical MaterialPlan observation을 fresh rehash해.
+2. native source이면 immutable adoption, canonical normalization과
+   CodexImageNativeCorePreparationReceipt가 selected core bytes까지 exact하게 이어지는지 확인해.
+3. 모든 후보의 Codex semantic review는 human_reviewed=false로 기록하고 다중 후보이면 exact
+   companion ranking/selection receipt를 bridge/promotion까지 유지해.
+4. generated pixels는 base_color/decal_rgb/emission/opacity_source 후보로만 사용해.
+   normal/roughness/metallic/height/AO와 exact signage text는 기존 local deterministic 경계로 만들어.
+5. MaterialAuthoring 0.2.1 staging receipt의 not_run 의미를 바꾸지 마.
+   exact_adoption이면 exact candidate bytes에 대한 actual Blender shadow preflight를 먼저 발행하고,
+   그렇지 않으면 controller_authored_completion을 사용해.
+6. material_plan.json, material_graph.json, completion.json만 허용하는 exact controller request를 만들고
+   기존 ControllerExecutor가 ControllerResult를 발행하게 해. 직접 JSON을 합성하지 마.
+7. 기존 material_phase_service만 사용해 canonical CAS, graph compile, Blender rebuild/inspect/validate,
+   rollback과 actual MaterialPhaseReceiptV2를 처리해.
+8. fixed neutral preview와 promotion companion을 검증하고 base AQ를 IQ submission 경계로 한 번만 재개해.
+9. IQ pass 또는 review/blocked terminal 전에는 전체 완료를 주장하지 마.
+10. V0.7 exact approval이 없으면 waiting_for_v07_approval에서 멈추고 package를 만들지 마.
+
+중단 이력이 있으면 새 invocation/budget을 만들지 말고 동일 request/result/intent/receipt의 exact resume만
+허용해. 마지막에는 모든 evidence path/SHA, 현재 상태, next_action, remaining budget와 latest failure를 보고해.
+```
+
+세부 native/semantic/recovery/IQ 프롬프트는
+[Codex ImageGen Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)에 있습니다.
 
 ### 단계 6 — V0.6 직접 Visual QA
 
@@ -1750,6 +1843,14 @@ get_asset_production_dispatch_status의 controller ID, workflow binding,
 launch/tool-profile/task-binding receipt, 현재 assignment, advance receipt chain과
 postflight receipt를 exact hash로 검증해.
 
+advance receipt는 sequence와 previous-receipt bytes hash뿐 아니라 각 snapshot의 실제
+bytes hash, `receipt[n].workflow_state_after_sha256 ==
+receipt[n+1].workflow_state_before_sha256`, 마지막 after와 현재 persisted workflow
+state의 exact equality까지 확인해. job/workflow/dispatch/controller/dispatch-plan identity도
+모두 같아야 한다. 하나라도 missing, stale, tampered 또는 불연속이면 일반 reconcile로
+history를 메우거나 receipt/state를 수정하지 말고 fail-closed 원인과 별도 forward-only
+recovery 계약 또는 새 job 필요성을 보고해.
+
 controller_execution_mode가 desktop_in_session이면 task binding 부재는 정상이다.
 대신 approval_isolation=workflow_contract_only와 tool-profile 미강제 경고가 있는지
 확인하고, client-mediated와 같은 격리 보장을 주장하지 마.
@@ -1759,6 +1860,25 @@ approval boundary라면 승인 도구를 controller task에 노출하거나 shel
 stale/tampered evidence라면 repair, rebind, retry 또는 완료 처리하지 마.
 supporting client가 tool policy를 강제하지 않았다면 새 attestation을 꾸며내지 말고
 binding을 거부해야 하는 이유를 보고해.
+```
+
+### ImageGen Material Loop 대기·중단·rollback
+
+```text
+<JOB_ID> / <AQ_SESSION_ID>의 ImageGen Material Loop를 새 실행 없이 진단해.
+
+status와 append-only journal을 읽고 현재 지점을 native normalization, semantic review,
+controller waiting/result, pre-write promotion failure, canonical replace/rollback,
+MaterialPhaseReceipt, base state transition, IQ terminal/freeze 또는 delivery review로 분류해.
+
+동일 exact request/result/intent/receipt를 재검증해 adopt할 수 있을 때만 기존 resume 경계를 사용해.
+새 controller invocation, promotion budget, 사용자 승인 또는 오류 문자열 기반 success를 만들지 마.
+SceneSpec, UV, generated source, MaterialPlan baseline, profile 또는 authorization가 바뀌었으면
+stale로 종료하고 새 unique plan이 필요하다고 보고해.
+
+현재 상태, 재사용 가능한 exact artifact path/SHA, 거부된 evidence, next_action,
+remaining budget와 latest failure를 보고해. material_promoted를 IQ pass로,
+quality_approved를 package/destination 완료로 설명하지 마.
 ```
 
 ---
@@ -1776,6 +1896,7 @@ binding을 거부해야 하는 이유를 보고해.
 | 3 멀티뷰·치수 | 추가 뷰 또는 명시 치수 | source hash, 갱신 분석, constraints, residual report | 뷰 목록, constraint JSON/PDF | canonical 수정 전 승인 | 2 또는 5 | 새 도면·치수 추가, residual 실패 |
 | 4 선택적 실내 | 명시적 실내 요청 | InteriorScope draft/approval/validation, 승인 범위 geometry | scope JSON/hash, build preview | 수동 exact-hash 승인 | 5 | 범위 변경 시 새 scope·승인 |
 | 5 V0.5 재질 | 승인된 geometry/camera | MaterialPlan, ShaderRecipe, TextureManifest, swatches | material JSON, swatch, material PDF | material/swatch 승인 | 6 | geometry/material hash 변경, validation 실패 |
+| 5A 선택적 ImageGen Material Loop | AQ v2 geometry receipt, current authorization/profile/budget, ImageGen core+MaterialAuthoring evidence | native/semantic/selection closure, controller request/result, MaterialPhaseReceiptV2, neutral preview, base AQ resume | original/derivative hash, semantic outcome, controller lifecycle, promotion/preview/IQ status | ImageGen/profile opt-in은 승인 아님; V0.7 exact 승인은 별도 | IQ 또는 review/blocked | source/SceneSpec/UV/baseline/profile drift, missing preflight/semantic evidence, controller/promotion failure |
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 6B 선택적 외관 companion | completed canonical QA run, current source hashes | immutable attempts, terminal bundle, camera/shape/assembly attribution, optional five-view evidence | diagnostic JSON, attribution·limitation, structural views | revision 승인 없음; standalone five-view run은 exact plan hash 필요 | 7 또는 8 | terminal 전 retryable host 실패는 다음 attempt, source drift는 새 current QA |
@@ -1800,4 +1921,9 @@ binding을 거부해야 하는 이유를 보고해.
 - 실내 semantic visibility는 승인된 다각도에서 ID가 보이는지 나타낼 뿐 실내 완성도나 레퍼런스 유사도를 뜻하지 않습니다.
 - V0.7은 static asset, engine-neutral FBX/GLB package 범위입니다. Rig, skinning, animation, prefab/actor, runtime shader는 포함하지 않습니다.
 - V0.9 Destination Handoff는 목적지 Codex를 위한 계약과 안전한 import prompt를 생성할 뿐 목적지 엔진을 실행하거나 프로젝트를 수정하지 않습니다.
+- Codex ImageGen Material Loop의 fake-family Blender fixture는 controller/material/IQ mechanism을
+  검증할 뿐 actual built-in ImageGen 품질을 증명하지 않습니다. Historical PNG 재사용은 fresh invocation이
+  아니며 current-task semantic evidence가 없으면 `review_required`에서 멈춥니다.
+- Approval 없는 raw GLB/FBX export와 clean import는 production package acceptance가 아닙니다.
+  `quality_approved`도 V0.7 OptimizationApproval, package 또는 destination parity를 뜻하지 않습니다.
 - 현재 문서는 Unity/Unreal 자동 adapter나 V1.1 이후 기능이 구현된 것으로 가정하지 않습니다.

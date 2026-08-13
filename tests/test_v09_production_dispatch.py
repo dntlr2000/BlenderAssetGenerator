@@ -40,6 +40,7 @@ from codex_blender_modeler.production.service import (
 from codex_blender_modeler.production.validation import (
     controller_tool_profile_digest,
     production_artifact_digest,
+    validate_dispatch_bundle,
 )
 from codex_blender_modeler.stabilization.models import JobAudit, WorkspaceAuditReport
 from codex_blender_modeler.stabilization.service import _audit_production_dispatches
@@ -152,6 +153,53 @@ def _bind_dispatch(root: Path, result: dict) -> CodexTaskBinding:
     )
 
 
+def _three_receipt_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> tuple[Path, str, list[Path]]:
+    """Create three public controller actions whose final action changes workflow state."""
+
+    root, result = _dispatch(
+        monkeypatch,
+        tmp_path,
+        job_id="production_lineage_asset",
+    )
+    dispatch_id, controller_id, _workflow_id = _dispatch_identity(result)
+    _bind_dispatch(root, result)
+    advance_delegated_production_controller(
+        root.name,
+        dispatch_id,
+        controller_id,
+        max_host_steps=2,
+    )
+    assigned = advance_delegated_production_controller(
+        root.name,
+        dispatch_id,
+        controller_id,
+    )
+    assignment = DelegatedWorkAssignment.model_validate_json(
+        (root / assigned["state"]["current_assignment"]["path"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    _author_modeling_plan(root)
+    record_delegated_production_step(
+        root.name,
+        dispatch_id,
+        controller_id,
+        step_id=assignment.step_id,
+        input_fingerprint=assignment.input_fingerprint,
+        note="Complete the exact lineage fixture assignment.",
+    )
+    receipts = sorted(
+        (root / "production" / "dispatches" / dispatch_id / "advances").glob(
+            "*.json"
+        )
+    )
+    assert len(receipts) == 3
+    return root, dispatch_id, receipts
+
+
 def _author_modeling_plan(root: Path) -> None:
     """Promote the deterministic analysis scaffold to a schema-valid authored plan."""
 
@@ -193,8 +241,39 @@ def _author_modeling_plan(root: Path) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
-def _mark_workflow_completed(root: Path, workflow_id: str) -> None:
-    """Create one schema-valid terminal V0.8 state for postflight controller tests."""
+def _replace_workflow_state_with_test_receipt(
+    root: Path,
+    dispatch_id: str,
+    payload: dict[str, object],
+    *,
+    note: str,
+) -> None:
+    """Wrap one test-only V0.8 state fixture change in the real receipt lineage writer."""
+
+    dispatch_root = root / "production" / "dispatches" / dispatch_id
+    workflow_id = str(payload["workflow_id"])
+    path = root / "workflows" / workflow_id / "state.json"
+    before_bytes = path.read_bytes()
+    before = production_service._reconstruct_controller_state(root, dispatch_id)
+    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    after = production_service._reconstruct_controller_state(
+        root,
+        dispatch_id,
+        allow_inflight_workflow_state=True,
+    )
+    production_service._record_advance_receipt(
+        root,
+        dispatch_root,
+        before,
+        after,
+        before_workflow_state=before_bytes,
+        after_workflow_state=path.read_bytes(),
+        note=note,
+    )
+
+
+def _mark_workflow_completed(root: Path, workflow_id: str, dispatch_id: str) -> None:
+    """Create one receipt-anchored terminal V0.8 fixture for postflight tests."""
 
     path = root / "workflows" / workflow_id / "state.json"
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -208,7 +287,12 @@ def _mark_workflow_completed(root: Path, workflow_id: str) -> None:
             "updated_at": datetime.now(UTC).isoformat(),
         }
     )
-    path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    _replace_workflow_state_with_test_receipt(
+        root,
+        dispatch_id,
+        payload,
+        note="TEST FIXTURE ONLY: anchored terminal workflow projection.",
+    )
 
 
 def _write_fake_convergence_plan(
@@ -515,9 +599,83 @@ def test_controller_issues_read_only_assignment_and_records_exact_completion(
     assert [item.sequence for item in parsed] == [1, 2, 3]
     assert parsed[0].previous_receipt_sha256 is None
     assert parsed[1].previous_receipt_sha256 is not None
-    for item in parsed:
-        assert (root / item.workflow_state_before.path).is_file()
-        assert (root / item.workflow_state_after.path).is_file()
+    for index, item in enumerate(parsed):
+        before_path = root / item.workflow_state_before.path
+        after_path = root / item.workflow_state_after.path
+        assert before_path.is_file()
+        assert after_path.is_file()
+        assert sha256_file(before_path) == item.workflow_state_before_sha256
+        assert sha256_file(after_path) == item.workflow_state_after_sha256
+        if index:
+            assert (
+                parsed[index - 1].workflow_state_after_sha256
+                == item.workflow_state_before_sha256
+            )
+    workflow_state = root / "workflows" / parsed[-1].workflow_id / "state.json"
+    assert parsed[-1].workflow_state_after_sha256 == sha256_file(workflow_state)
+    validate_dispatch_bundle(root, dispatch_id)
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        ("lineage", "workflow-state lineage is broken"),
+        ("snapshot_bytes", "hash mismatch"),
+        ("sequence_gap", "sequence is not contiguous"),
+        ("previous_receipt", "hash chain is broken"),
+        ("tail", "receipt tail does not match"),
+        ("job_id", "receipt identity mismatch"),
+        ("workflow_id", "receipt identity mismatch"),
+        ("dispatch_id", "receipt identity mismatch"),
+        ("controller_id", "receipt identity mismatch"),
+        ("dispatch_plan", "receipt identity mismatch"),
+    ],
+)
+def test_production_receipt_state_lineage_tampering_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    mutation: str,
+    message: str,
+) -> None:
+    """Reject gaps, altered snapshots, identities, plan hashes, and stale current tails."""
+
+    root, dispatch_id, receipts = _three_receipt_dispatch(monkeypatch, tmp_path)
+    final_path = receipts[-1]
+    final = json.loads(final_path.read_text(encoding="utf-8"))
+    if mutation == "lineage":
+        final["workflow_state_before_sha256"] = final[
+            "workflow_state_after_sha256"
+        ]
+        final["workflow_state_before"] = final["workflow_state_after"]
+        final_path.write_text(json.dumps(final, indent=2) + "\n", encoding="utf-8")
+    elif mutation == "snapshot_bytes":
+        snapshot = root / final["workflow_state_after"]["path"]
+        snapshot.write_bytes(snapshot.read_bytes() + b"\n")
+    elif mutation == "sequence_gap":
+        receipts[1].unlink()
+    elif mutation == "previous_receipt":
+        final["previous_receipt_sha256"] = "0" * 64
+        final_path.write_text(json.dumps(final, indent=2) + "\n", encoding="utf-8")
+    elif mutation == "tail":
+        state_path = root / "workflows" / final["workflow_id"] / "state.json"
+        state = json.loads(state_path.read_text(encoding="utf-8"))
+        state["updated_at"] = datetime.now(UTC).isoformat()
+        state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    elif mutation == "dispatch_plan":
+        final["dispatch_plan_sha256"] = "0" * 64
+        final_path.write_text(json.dumps(final, indent=2) + "\n", encoding="utf-8")
+    else:
+        replacement = {
+            "job_id": "other-production-job",
+            "workflow_id": "wf-other-production",
+            "dispatch_id": "dispatch-other-production",
+            "controller_id": "controller-other-production",
+        }[mutation]
+        final[mutation] = replacement
+        final_path.write_text(json.dumps(final, indent=2) + "\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match=message):
+        validate_dispatch_bundle(root, dispatch_id)
 
 
 def test_client_binding_is_exact_and_does_not_approve_workflow(
@@ -667,7 +825,7 @@ def test_completed_workflow_runs_one_hash_bound_postflight_audit(
         controller_id,
         max_host_steps=2,
     )
-    _mark_workflow_completed(root, workflow_id)
+    _mark_workflow_completed(root, workflow_id, dispatch_id)
     monkeypatch.setattr(
         "codex_blender_modeler.production.service.reconcile_workflow",
         lambda *_args, **_kwargs: None,
@@ -686,9 +844,13 @@ def test_completed_workflow_runs_one_hash_bound_postflight_audit(
     assert advanced["state"]["status"] == "completed"
     assert advanced["state"]["next_action"] == "completed"
     state_path = root / "workflows" / workflow_id / "state.json"
+    original_state = state_path.read_bytes()
     state_payload = json.loads(state_path.read_text(encoding="utf-8"))
     state_payload["updated_at"] = datetime.now(UTC).isoformat()
     state_path.write_text(json.dumps(state_payload, indent=2) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="stale|receipt tail"):
+        get_asset_production_dispatch_status(root.name, dispatch_id)
+    state_path.write_bytes(original_state)
     assert (
         get_asset_production_dispatch_status(root.name, dispatch_id)["state"]["status"]
         == "completed"
@@ -760,7 +922,12 @@ def test_postflight_binds_v08_directory_artifacts_with_their_exact_digest(
             "updated_at": datetime.now(UTC).isoformat(),
         }
     )
-    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
+    _replace_workflow_state_with_test_receipt(
+        root,
+        dispatch_id,
+        state,
+        note="TEST FIXTURE ONLY: anchored directory-artifact terminal state.",
+    )
     monkeypatch.setattr(
         "codex_blender_modeler.production.service.reconcile_workflow",
         lambda *_args, **_kwargs: None,
@@ -913,7 +1080,7 @@ def test_bounded_convergence_dispatch_stops_for_one_exact_approval_and_runs_one_
     run_id = Path(qa_output["path"]).parts[-2]
 
     _bind_dispatch(root, result)
-    _mark_workflow_completed(root, workflow_id)
+    _mark_workflow_completed(root, workflow_id, dispatch_id)
     monkeypatch.setattr(
         production_service,
         "reconcile_workflow",

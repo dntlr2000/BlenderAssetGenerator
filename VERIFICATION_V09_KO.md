@@ -13,6 +13,54 @@ Stabilization / Destination Handoff contract: `0.9.0`
 
 이 문서는 실제 실행 결과만 기록한다. 실행하지 않은 운영체제, Blender 버전과 목적 엔진은 계획과 관계없이 `unverified` 또는 `unsupported`로 유지한다. V1.0 승격은 현재 중단되어 있다.
 
+## 2026-08-13 AQ v2 ↔ V0.9 production state anchor lifecycle 검증
+
+V0.8 `reconcile_workflow`가 권위 상태 변화 없이 `updated_at`만 갱신해 persisted state
+SHA-256을 바꾸고, V0.9 controller advance가 그 reconcile 변화를 직전 receipt의 after와
+다음 receipt의 before 사이에 기록하지 않던 결함을 수정했다. no-op reconcile은 이제
+`state.json`과 `latest.json`의 bytes, mtime, state SHA-256, `updated_at`을 그대로
+보존한다. 실제 권위 변화는 controller lock 안에서 reconcile 이전 state를 before로,
+reconcile/action 이후 state를 after로 기록한다.
+
+Production validator는 다음을 모두 exact하게 검사한다.
+
+- contiguous receipt sequence와 직전 receipt bytes SHA-256
+- 각 before/after snapshot artifact와 선언 SHA-256 및 실제 bytes hash
+- `receipt[n].after == receipt[n+1].before`
+- latest receipt after와 현재 persisted workflow state
+- job/workflow/dispatch/controller 및 dispatch-plan identity
+
+검증 결과:
+
+| 검사 | 결과 |
+|---|---|
+| 직접 영향 V0.8/V0.9/AQ controller suite | `127 passed` |
+| AQ supervisor/controller + V0.9 + ImageGen planner/material-loop 집중 회귀 | `226 passed` (`59.26s`) |
+| 전체 Python 회귀 | `1586 passed, 57 skipped, 8 warnings` (`237.95s`) |
+| Ruff 전체 저장소 | passed |
+| `cbm doctor` | Repository/Workspace/Blender/Codex 모두 OK |
+| `cbm blender-compat` | Blender `5.0.1`, built-in compatibility GLB/FBX/OBJ smoke passed |
+| agent instruction checker | root `7764` bytes, files `12`, invariants `192` |
+| repository summary generator | intended working-tree alternate-index projection passed; 실제 Git index는 보존되어 unstaged/untracked 변경 때문에 일반 `--check`가 tree/manifest drift를 보고 |
+| repository summary generator tests | `6 passed` |
+| Python compile / `git diff --check` | passed / 오류 0, line-ending 안내만 존재 |
+
+격리 통합 테스트는 public AQ v2 plan/reference action, public V0.9 geometry assignment,
+desktop ControllerExecutor request, `waiting_for_output`, request-owned exact output staging,
+ControllerExecutor adoption과 AQ `validate_candidate` 진입을 production-anchor monkeypatch 없이
+통과했다. 같은 fixture에서 current workflow state나 receipt snapshot bytes를 바꾸면
+fail-closed한다. 사용자 자산, Material/ImageGen 생성, canonical Blender build와 production
+package는 이 lifecycle 검증에서 실행하지 않았다. `cbm blender-compat`의 내장 cube export는
+환경 호환성 probe이며 사용자 자산 제작 또는 package acceptance 증거가 아니다.
+
+`collectible_wood_02_2`는 읽기 전용 재해시 결과 receipt JSON hash chain과 각 snapshot,
+latest tail은 유효하지만 `0001.after=ddfd4e71...`와
+`0002.before=3256e3b1...` 사이 state-lineage가 이미 끊겨 있다. 기존 receipt/state/AQ
+evidence는 수정하지 않았고 recovery도 적용하지 않았다. 따라서 현재 job은
+`stale/unverified`이며 일반 patch만으로 안전하게 resume할 수 없다. 별도 exact
+forward-only recovery plan/apply 계약을 구현·승인하기 전에는 새 job ID 재시작이 안전한
+운영 경로다.
+
 ## 2026-08-09 `desktop_in_session` Production Controller 검증
 
 Asset Production Dispatcher의 기존 `client_mediated` 기본 경로를 유지하면서, 현재
@@ -479,3 +527,31 @@ build/render/export/import를 통과했지만, 별도 client-mediated Codex task
 레퍼런스를 authoring하고 exact approval 뒤 여러 convergence iteration을 끝까지 수행하는
 실사용 E2E는 아직 별도 자산 검증 항목이다. 따라서 이번 결과는 controller 계약과
 회귀 안정성의 검증이며 특정 자산의 목표 유사도 달성을 보장하지 않는다.
+
+## 2026-08-13 terminal workspace archive 실행
+
+active `workspaces/`의 terminal job을 별도 동일 볼륨 archive로 이동하는 V0.9 host 기능을
+추가하고 실제 local workspace에 적용했다.
+
+| 검증 | 결과 |
+|---|---|
+| archive/restore/crash-adoption/tamper 집중 | `6 passed, 1 symlink-capability skip` |
+| contract/public surface 포함 | `15 passed, 1 skipped` |
+| V0.9 audit/queue/production/catalog 회귀 | `57 passed, 1 skipped` |
+| focused Ruff | 통과 |
+| 실제 archive 완료 | `16 jobs` |
+| 실제 이동량 | `3,456,425,516 bytes` (`3.219 GiB`) |
+| 이동된 inventory | `27,965 files`, `13,265 directories` |
+| failed job archive | `0` |
+| 이동 후 남은 적격 job | `0` |
+
+처음 `completed`로 분류된 19개 중 production dispatch가 있는
+`collectible_plastic_01_desktop`, `collectible_rock_01`, `collectible_scrap_01`은
+`production advance workflow-state lineage is broken`으로 fail closed했다. 이 세 job은
+수리하거나 재분류하지 않았고 active workspace에 보존했다. `blocked`, waiting, planned,
+workflow 근거 없음, AQ/AQ v2 job도 이동하지 않았다.
+
+각 archive tree는 rename 뒤 plan의 전체 tree SHA-256/count/size와 다시 비교했고 16개 local
+receipt 모두 current tree 재검증을 통과했다. compact tracked evidence는
+`verification/evidence/workspace_archive_20260813/`에 있다. 복원 권위는 이 문서가 아니라
+local `workspace_archive/.cbm/receipts/`의 exact receipt다.

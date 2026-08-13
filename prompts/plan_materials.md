@@ -17,3 +17,10 @@ For every material ID, produce a MaterialPlan v0.5 entry with:
 Do not generate textures, edit SceneSpec, convert a texture-routed detail back into geometry, or
 build arbitrary Blender nodes in this step. Blender master shaders may remain richer, but localized
 surface details must also exist in portable flattened PBR maps rather than an engine-specific graph.
+
+When an explicit Codex ImageGen material-loop companion is selected, treat its image only as a
+source-bound `base_color`, `decal_rgb`, `emission`, or `opacity_source` candidate. Preserve its native
+adoption/normalization/core-preparation and semantic-selection closure. Derive normal, roughness,
+metallic, height, displacement, AO, and exact signage text through the existing local contracts.
+MaterialAuthoring output remains staging evidence; do not claim canonical promotion, IQ pass, human
+review, or package acceptance until their separate host receipts exist.

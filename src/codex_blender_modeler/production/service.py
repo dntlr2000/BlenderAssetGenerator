@@ -1247,11 +1247,18 @@ def _postflight_controller_outcome(
     return "completed", "completed", warnings
 
 
-def _reconstruct_controller_state(root: Path, dispatch_id: str) -> DelegatedProductionState:
-    """Derive the next safe controller action from exact V0.8 and V0.9 evidence."""
+def _reconstruct_controller_state(
+    root: Path,
+    dispatch_id: str,
+    *,
+    allow_inflight_workflow_state: bool = False,
+) -> DelegatedProductionState:
+    """Derive controller state, allowing an exact lock-held unreceipted tail only in-flight."""
 
     dispatch_root, dispatch, _controller, launch, dispatch_plan = validate_dispatch_bundle(
-        root, dispatch_id
+        root,
+        dispatch_id,
+        require_current_workflow_state=not allow_inflight_workflow_state,
     )
     workflow_plan_path, workflow_plan = _load_workflow_plan(root, dispatch.workflow_id)
     workflow_state_path, workflow_state = _load_workflow_state(root, dispatch.workflow_id)
@@ -1544,6 +1551,14 @@ def _record_advance_receipt(
     paths = _advance_receipt_paths(root, dispatch_root)
     sequence = len(paths) + 1
     previous_hash = sha256_file(paths[-1]) if paths else None
+    if paths:
+        previous_receipt = DelegatedProductionAdvanceReceipt.model_validate_json(
+            _read_utf8(paths[-1])
+        )
+        if previous_receipt.workflow_state_after_sha256 != before.workflow_state_sha256:
+            raise ValueError(
+                "production advance before-state does not continue the prior receipt"
+            )
     receipt_id = f"advance-{sequence:04d}-{uuid4().hex[:8]}"
     snapshot_root = dispatch_root / "advance_states"
     snapshot_token = uuid4().hex[:8]
@@ -1757,6 +1772,12 @@ def advance_delegated_production_controller(
         if dispatch.controller_id != controller_id:
             raise PermissionError("controller_id does not own this production dispatch")
         _require_controller_runtime(root, dispatch_root, dispatch, launch)
+        workflow_state_path, _workflow_state = _load_workflow_state(
+            root,
+            dispatch.workflow_id,
+        )
+        before_workflow_state = workflow_state_path.read_bytes()
+        before = _reconstruct_controller_state(root, dispatch_id)
         convergence_binding_artifact = _convergence_binding_artifact(
             root,
             dispatch_root,
@@ -1766,14 +1787,17 @@ def advance_delegated_production_controller(
             and convergence_binding_artifact is not None
         ):
             reconcile_workflow(job_id, dispatch.workflow_id)
-        before = _reconstruct_controller_state(root, dispatch_id)
+        current = _reconstruct_controller_state(
+            root,
+            dispatch_id,
+            allow_inflight_workflow_state=True,
+        )
         _workflow_plan_path, workflow_plan = _load_workflow_plan(root, dispatch.workflow_id)
         workflow_state_path, workflow_state = _load_workflow_state(
             root, dispatch.workflow_id
         )
-        before_workflow_state = workflow_state_path.read_bytes()
         convergence_artifact = None
-        if before.next_action == "resume_host":
+        if current.next_action == "resume_host":
             resume_workflow(
                 job_id,
                 dispatch.workflow_id,
@@ -1781,14 +1805,18 @@ def advance_delegated_production_controller(
                 retry_failed=False,
             )
             note = "Advanced deterministic V0.8 host work to the next safe boundary."
-        elif before.next_action == "delegate_read_only":
-            if before.current_step_id is None:
+        elif current.next_action == "delegate_read_only":
+            if current.current_step_id is None:
                 raise RuntimeError("controller has no current agent step")
             step = next(
-                item for item in workflow_plan.steps if item.step_id == before.current_step_id
+                item
+                for item in workflow_plan.steps
+                if item.step_id == current.current_step_id
             )
             step_state = next(
-                item for item in workflow_state.steps if item.step_id == before.current_step_id
+                item
+                for item in workflow_state.steps
+                if item.step_id == current.current_step_id
             )
             if step_state.input_fingerprint is None:
                 raise ValueError("current agent step has no input fingerprint")
@@ -1802,7 +1830,7 @@ def advance_delegated_production_controller(
                 step_state.input_fingerprint,
             )
             note = "Issued one immutable read-only advisory assignment to the controller."
-        elif before.next_action == "plan_visual_convergence":
+        elif current.next_action == "plan_visual_convergence":
             convergence_artifact = _plan_production_convergence(
                 root,
                 dispatch_root,
@@ -1814,7 +1842,7 @@ def advance_delegated_production_controller(
                 "Planned bounded V0.6 convergence and stopped at its exact plan-hash "
                 "approval."
             )
-        elif before.next_action == "run_visual_convergence":
+        elif current.next_action == "run_visual_convergence":
             if convergence_binding_artifact is None:
                 raise RuntimeError("production convergence binding is missing")
             binding = _load_convergence_binding(
@@ -1840,20 +1868,20 @@ def advance_delegated_production_controller(
                 "Ran or recovered at most one approved bounded-convergence iteration; "
                 "no additional approval scope was created."
             )
-        elif before.next_action == "plan_destination_handoff":
-            if before.current_step_id is None:
+        elif current.next_action == "plan_destination_handoff":
+            if current.current_step_id is None:
                 raise RuntimeError("controller has no destination handoff step")
             _plan_current_handoff(
                 root,
                 dispatch,
                 workflow_plan,
-                before.current_step_id,
+                current.current_step_id,
             )
             note = "Planned destination handoff and stopped at its exact plan-hash approval."
         elif (
-            before.next_action == "request_specialized_approval"
-            and before.approval_boundary is not None
-            and before.approval_boundary.gate == "destination_handoff_plan"
+            current.next_action == "request_specialized_approval"
+            and current.approval_boundary is not None
+            and current.approval_boundary.gate == "destination_handoff_plan"
         ):
             _complete_generated_handoff(
                 dispatch,
@@ -1862,15 +1890,15 @@ def advance_delegated_production_controller(
             )
             note = "Revalidated a separately approved handoff and completed its workflow step."
         elif (
-            before.next_action == "request_specialized_approval"
-            and before.approval_boundary is not None
-            and before.approval_boundary.gate == "visual_convergence_plan"
+            current.next_action == "request_specialized_approval"
+            and current.approval_boundary is not None
+            and current.approval_boundary.gate == "visual_convergence_plan"
         ):
             raise RuntimeError(
                 "Bounded convergence is waiting for the exact user-approved plan SHA-256; "
                 "the production controller cannot create that approval."
             )
-        elif before.next_action in {
+        elif current.next_action in {
             "request_generic_approval",
             "request_specialized_approval",
         }:
@@ -1884,16 +1912,20 @@ def advance_delegated_production_controller(
                 "Reconciled existing approval evidence without creating or replacing any "
                 "approval; the controller remains stopped if approval is still absent."
             )
-        elif before.next_action == "run_postflight_audit":
+        elif current.next_action == "run_postflight_audit":
             _run_postflight_audit(root, dispatch_root, dispatch)
             note = "Ran one read-only V0.9 postflight audit and snapshotted its exact evidence."
         else:
             raise RuntimeError(
                 "No controller advance is authorized at the reported "
-                f"{before.next_action} boundary; use status or the owning completion/approval "
+                f"{current.next_action} boundary; use status or the owning completion/approval "
                 "surface instead."
             )
-        after = _reconstruct_controller_state(root, dispatch_id)
+        after = _reconstruct_controller_state(
+            root,
+            dispatch_id,
+            allow_inflight_workflow_state=True,
+        )
         after_workflow_state = workflow_state_path.read_bytes()
         receipt = _record_advance_receipt(
             root,
@@ -1935,15 +1967,21 @@ def record_delegated_production_step(
         if dispatch.controller_id != controller_id:
             raise PermissionError("controller_id does not own this production dispatch")
         _require_controller_runtime(root, dispatch_root, dispatch, launch)
-        reconcile_workflow(job_id, dispatch.workflow_id)
-        before = _reconstruct_controller_state(root, dispatch_id)
         workflow_state_path, _workflow_state = _load_workflow_state(
-            root, dispatch.workflow_id
+            root,
+            dispatch.workflow_id,
         )
         before_workflow_state = workflow_state_path.read_bytes()
-        if before.next_action != "controller_author" or before.current_assignment is None:
+        before = _reconstruct_controller_state(root, dispatch_id)
+        reconcile_workflow(job_id, dispatch.workflow_id)
+        current = _reconstruct_controller_state(
+            root,
+            dispatch_id,
+            allow_inflight_workflow_state=True,
+        )
+        if current.next_action != "controller_author" or current.current_assignment is None:
             raise RuntimeError("production controller is not waiting for authored agent output")
-        assignment_path = validate_artifact(root, before.current_assignment)
+        assignment_path = validate_artifact(root, current.current_assignment)
         assignment = DelegatedWorkAssignment.model_validate_json(
             _read_utf8(assignment_path)
         )
@@ -1956,7 +1994,11 @@ def record_delegated_production_step(
             input_fingerprint=input_fingerprint,
             note=note,
         )
-        after = _reconstruct_controller_state(root, dispatch_id)
+        after = _reconstruct_controller_state(
+            root,
+            dispatch_id,
+            allow_inflight_workflow_state=True,
+        )
         after_workflow_state = workflow_state_path.read_bytes()
         receipt = _record_advance_receipt(
             root,

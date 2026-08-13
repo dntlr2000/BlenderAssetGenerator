@@ -154,6 +154,98 @@
       "title": "Material Controller Request Id",
       "type": "string"
     },
+    "recovery_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recovery Id"
+    },
+    "mapping_repair_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "mapping_repair_approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_failed_material_loop_state": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "source_rollback_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "geometry_restore_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "promotion_retry_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Promotion Retry Id"
+    },
+    "promotion_retry_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CodexImageArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "root_authorization": {
       "$ref": "#/$defs/CodexImageArtifact"
     },

@@ -1,0 +1,171 @@
+{
+  "$defs": {
+    "WorkspaceArchiveArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one archive-control artifact by archive-root-relative path and bytes.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "workspace_relocation_plan",
+            "workspace_relocation_receipt"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 1,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "WorkspaceArchiveArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove one exact workspace relocation or crash-adopted move.",
+  "properties": {
+    "schema_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/WorkspaceArchiveArtifact"
+    },
+    "action": {
+      "enum": [
+        "archive",
+        "restore"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "classification": {
+      "enum": [
+        "completed",
+        "cancelled",
+        "failed"
+      ],
+      "title": "Classification",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "workflow_state_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workflow State Sha256",
+      "type": "string"
+    },
+    "job_metadata_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Job Metadata Sha256",
+      "type": "string"
+    },
+    "archive_entry_path": {
+      "title": "Archive Entry Path",
+      "type": "string"
+    },
+    "tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Tree Sha256",
+      "type": "string"
+    },
+    "file_count": {
+      "minimum": 1,
+      "title": "File Count",
+      "type": "integer"
+    },
+    "directory_count": {
+      "minimum": 1,
+      "title": "Directory Count",
+      "type": "integer"
+    },
+    "byte_size": {
+      "minimum": 1,
+      "title": "Byte Size",
+      "type": "integer"
+    },
+    "source_location": {
+      "enum": [
+        "workspace",
+        "archive"
+      ],
+      "title": "Source Location",
+      "type": "string"
+    },
+    "destination_location": {
+      "enum": [
+        "workspace",
+        "archive"
+      ],
+      "title": "Destination Location",
+      "type": "string"
+    },
+    "adopted_interrupted_move": {
+      "default": false,
+      "title": "Adopted Interrupted Move",
+      "type": "boolean"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "plan",
+    "action",
+    "job_id",
+    "classification",
+    "workflow_id",
+    "workflow_state_sha256",
+    "job_metadata_sha256",
+    "archive_entry_path",
+    "tree_sha256",
+    "file_count",
+    "directory_count",
+    "byte_size",
+    "source_location",
+    "destination_location",
+    "completed_at",
+    "input_sha256"
+  ],
+  "title": "WorkspaceRelocationReceipt",
+  "type": "object"
+}

@@ -45,3 +45,19 @@ Use `surface_details` for shallow non-structural windows, seams, labels, rivets,
 repeated marks. Never emit one SceneSpec object per texture-routed mark. V0.5 must bind those IDs to
 portable UVMap PBR channels before material build, while V0.6 reports their coverage separately
 from geometry similarity.
+
+# Optional AQ v2 Codex ImageGen material loop
+
+Enter `autonomous_static_prop_v2_codex_imagegen` only after an explicit disabled-profile opt-in and
+current AQ v2 geometry promotion. Use the current Codex task's built-in ImageGen capability only;
+never add an API provider, create a task, or claim background continuation. Preserve native bytes,
+normalize through an exact derivative, require non-human semantic evidence and multi-candidate
+ranking closure, and bind any native-fed core selection through
+`CodexImageNativeCorePreparationReceipt`.
+
+Do not reinterpret the V0.5 staging receipt's compile-`not_run` status. Exact adoption requires a
+separate actual-Blender shadow preflight for the exact bytes; otherwise use bounded controller-authored
+completion. Run only the existing ControllerExecutor and host material promotion service. Keep
+`material_promoted`, IQ `quality_approved`, V0.7 approval, package acceptance, and destination parity
+as separate boundaries. Stop at `review_required`, `blocked`, or `waiting_for_v07_approval` without
+synthesizing approval, human review, package evidence, or destination writes.

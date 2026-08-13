@@ -51,6 +51,7 @@ from .autonomy_v2 import (
     get_autonomy_v2_status,
     plan_autonomous_static_prop_v2,
     run_autonomy_v2,
+    validate_v2_artifact,
 )
 from .autonomy_v2.codex_image_material_loop_service import (
     ExactCodexImageMaterialAdoptionController,
@@ -189,13 +190,17 @@ from .qa import (
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan, sha256_file
 from .stabilization import (
+    archive_workspace_job,
     audit_workspace_state,
     cancel_local_workflow_queue_entry,
     enqueue_short_workflow,
     generate_stability_pdf_report,
     get_local_workflow_queue,
+    list_workspace_archive_candidates,
     probe_release_environment,
     requeue_local_workflow,
+    restore_workspace_job,
+    resume_workspace_relocation,
     run_local_workflow_queue,
 )
 from .structural_geometry.migration_service import (
@@ -363,8 +368,13 @@ def _load_codex_image_material_promotion_inputs(
     with open(native_io_path(plan_path), "rb") as handle:
         plan = AutonomyPlanV2.model_validate_json(handle.read())
     base_status = get_autonomy_v2_status(job_id, session_id)
-    budget = AutonomyBudgetV2.model_validate(base_status["budget"])
-    state = AutonomyStateV2.model_validate(base_status["state"])
+    budget_path = validate_v2_artifact(root, plan.budget)
+    with open(native_io_path(budget_path), "rb") as handle:
+        budget = AutonomyBudgetV2.model_validate_json(handle.read())
+    state_artifact = AQV2Artifact.model_validate(base_status["state_artifact"])
+    state_path = validate_v2_artifact(root, state_artifact)
+    with open(native_io_path(state_path), "rb") as handle:
+        state = AutonomyStateV2.model_validate_json(handle.read())
     if not state.provenance:
         raise ValueError("AQ v2 state has no formal controller or material receipt tail")
     result_artifact = state.provenance[-1]
@@ -3391,6 +3401,85 @@ def workspace_audit_command(
     console.print_json(report.model_dump_json())
     if report.status == "failed":
         raise typer.Exit(code=2)
+
+
+@app.command("workspace-archive-candidates")
+def workspace_archive_candidates_command(
+    allow_failed: Annotated[
+        bool,
+        typer.Option(
+            "--allow-failed",
+            help="Include exact failed workflows in the read-only eligibility report.",
+        ),
+    ] = False,
+) -> None:
+    """List terminal workspace jobs eligible for conservative relocation."""
+
+    result = list_workspace_archive_candidates(allow_failed=allow_failed)
+    console.print_json(json.dumps({"candidates": result}, ensure_ascii=False))
+
+
+@app.command("workspace-archive")
+def workspace_archive_command(
+    job_id: str,
+    allow_failed: Annotated[
+        bool,
+        typer.Option(
+            "--allow-failed",
+            help="Explicitly permit archiving only when the exact workflow status is failed.",
+        ),
+    ] = False,
+    archive_root: Annotated[Path | None, typer.Option("--archive-root")] = None,
+) -> None:
+    """Atomically move one exact terminal job into the separate archive root."""
+
+    plan, receipt = archive_workspace_job(
+        job_id,
+        allow_failed=allow_failed,
+        archive_root=archive_root,
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "plan": plan.model_dump(mode="json"),
+                "receipt": receipt.model_dump(mode="json"),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("workspace-restore")
+def workspace_restore_command(
+    archive_receipt_id: str,
+    archive_root: Annotated[Path | None, typer.Option("--archive-root")] = None,
+) -> None:
+    """Restore one archive receipt to its original active workspace path."""
+
+    plan, receipt = restore_workspace_job(
+        archive_receipt_id,
+        archive_root=archive_root,
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "plan": plan.model_dump(mode="json"),
+                "receipt": receipt.model_dump(mode="json"),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("workspace-relocation-resume")
+def workspace_relocation_resume_command(
+    plan_id: str,
+    archive_root: Annotated[Path | None, typer.Option("--archive-root")] = None,
+) -> None:
+    """Crash-adopt or idempotently resume one persisted relocation plan."""
+
+    receipt = resume_workspace_relocation(plan_id, archive_root=archive_root)
+    console.print_json(receipt.model_dump_json())
 
 
 @app.command("stability-report-pdf")

@@ -1,5 +1,10 @@
 """Public V0.9 stabilization, audit, release-evidence, and local-queue surface."""
 
+from .archive_models import (
+    WorkspaceArchiveArtifact,
+    WorkspaceRelocationPlan,
+    WorkspaceRelocationReceipt,
+)
 from .models import (
     AuditFinding,
     ContractVersionRecord,
@@ -24,6 +29,19 @@ from .service import (
     requeue_local_workflow,
     run_local_workflow_queue,
 )
+from .workspace_archive import (
+    archive_workspace_job,
+    execute_workspace_relocation,
+    list_workspace_archive_candidates,
+    load_workspace_relocation_plan,
+    load_workspace_relocation_receipt,
+    plan_workspace_archive,
+    plan_workspace_restore,
+    restore_workspace_job,
+    resume_workspace_relocation,
+    validate_workspace_relocation_receipt,
+    workspace_archive_root,
+)
 
 __all__ = [
     "AuditFinding",
@@ -38,6 +56,9 @@ __all__ = [
     "StabilityReportManifest",
     "StabilityReportSource",
     "WorkspaceAuditReport",
+    "WorkspaceArchiveArtifact",
+    "WorkspaceRelocationPlan",
+    "WorkspaceRelocationReceipt",
     "generate_stability_pdf_report",
     "audit_workspace_state",
     "cancel_local_workflow_queue_entry",
@@ -46,4 +67,15 @@ __all__ = [
     "probe_release_environment",
     "requeue_local_workflow",
     "run_local_workflow_queue",
+    "archive_workspace_job",
+    "execute_workspace_relocation",
+    "list_workspace_archive_candidates",
+    "load_workspace_relocation_plan",
+    "load_workspace_relocation_receipt",
+    "plan_workspace_archive",
+    "plan_workspace_restore",
+    "restore_workspace_job",
+    "resume_workspace_relocation",
+    "validate_workspace_relocation_receipt",
+    "workspace_archive_root",
 ]

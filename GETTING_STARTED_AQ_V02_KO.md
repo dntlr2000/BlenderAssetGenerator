@@ -274,14 +274,26 @@ normal/roughness/metallic/height/AO는 selected source에 결속된 local determ
 
 local raster quality는 dimension/detail/alpha/border/seam/emission을 검사하지만 unwanted
 object/text와 style/background semantics는 non-hard `unscorable`이다. fake controller success를 실제
-built-in ImageGen 실행이나 human review로 해석하지 않는다. 전체 workflow와 한계는
-`GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md`와
-`VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md`를 따른다.
+built-in ImageGen 실행이나 human review로 해석하지 않는다. core `0.1.0` 자체는 MaterialAuthoring
+`0.2.1` staging receipt 뒤 overlay `status=adopted`,
+`next_action=controller_promotion_required`에서 멈춘다.
 
-현재 ImageGen companion은 MaterialAuthoring `0.2.1` staging receipt 뒤 overlay
-`status=adopted`, `next_action=controller_promotion_required`에서 멈춘다. actual
-`MaterialPhaseReceiptV2`와 companion adoption/receipt의 exact controller-input binding은 아직
-없으므로 base AQ 자동 재개, canonical material promotion, IQ와 package 완료를 주장하지 않는다.
+2026-08-13 additive Material Loop `0.1.0`은 이 immutable core evidence를 다시 쓰지 않고 별도
+bridge/controller closure로 existing host material promotion에 연결한다. native-original adoption과
+normalization, `CodexImageNativeCorePreparationReceipt`, current-task semantic review,
+multi-candidate selection, actual Blender exact-adoption shadow preflight 또는 bounded
+controller-authored completion을 exact하게 결속한다. 기존 ControllerExecutor와
+`material_phase_service`만 actual `MaterialPhaseReceiptV2`와 canonical promotion을 만들 수 있다.
+
+성공 뒤 base AQ는 기존 transition service를 통해 IQ 경계로 재개된다. `material_promoted`는 IQ pass가
+아니고, `quality_approved`도 V0.7 approval/package/destination 완료가 아니다. exact V0.7 사용자 승인이
+없으면 `waiting_for_v07_approval`에서 멈춘다. 두 profile은 계속 `disabled_experimental`이다.
+
+core workflow는 [ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md), staging 이후는
+[Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), 현재 Codex 작업에 붙여 넣는
+요청은 [Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 실제 확인 범위는
+[ImageGen core 검증](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)과
+[Material Loop 검증](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 10. 안전한 기본 선택
 

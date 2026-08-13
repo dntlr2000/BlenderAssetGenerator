@@ -219,5 +219,9 @@ runtime parity와 package acceptance는 증명하지 않는다.
 AQ/V0.7~V0.9 gate가 실제로 통과해야 한다. 실행하지 않은 명령은 `not_run`, 환경상 불가능한
 항목은 `unavailable`, 사람이 검토하지 않은 항목은 `not_reviewed`다. 실제 내장 ImageGen smoke가
 없으면 fake/contract 구현은 검증할 수 있어도 provider를 `verified_active`로 바꿀 수 없다. 실제
-smoke가 있어도 actual `MaterialPhaseReceiptV2`와 exact controller-input binding이 없으면 full material
-promotion, IQ, package 완료를 주장하거나 profile을 활성화할 수 없다.
+core `0.1.0` smoke만으로는 actual `MaterialPhaseReceiptV2`나 exact controller-input binding을
+주장할 수 없다. 2026-08-13 additive Material Loop는 별도 strict bridge와 기존 host promotion으로
+fake-controller fixture의 actual receipt/IQ 경계를 검증했지만, historical actual source는 current-task
+`review_required`에서 멈췄다. 따라서 fresh built-in ImageGen full material promotion, human-approved
+package 완료를 주장하거나 profile을 활성화할 수 없다. 정확한 후속 범위는
+`TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md`와 `VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`를 따른다.

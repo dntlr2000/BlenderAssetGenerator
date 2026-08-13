@@ -2,14 +2,14 @@
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
   "status": "reported",
-  "verified_at": "2026-08-12T18:53:31Z",
-  "test_count": 1569,
-  "skipped_count": 56,
+  "verified_at": "2026-08-13T09:45:30Z",
+  "test_count": 1586,
+  "skipped_count": 57,
   "warning_count": 8,
   "final_verification": {
     "status": "passed_with_declared_scope_limits",
-    "pytest_passed": 1569,
-    "pytest_skipped": 56,
+    "pytest_passed": 1586,
+    "pytest_skipped": 57,
     "pytest_warnings": 8,
     "ruff_status": "passed"
   },
@@ -30,6 +30,37 @@
     }
   ],
   "quality_gates": {
+    "terminal_workspace_archive": {
+      "status": "local_operation_passed_with_three_completed_jobs_quarantined",
+      "recorded_on": "2026-08-13",
+      "archived_job_count": 16,
+      "archived_failed_job_count": 0,
+      "file_count": 27965,
+      "directory_count": 13265,
+      "byte_size": 3456425516,
+      "remaining_eligible_job_count": 0,
+      "excluded_completed_job_count": 3,
+      "focused_passed": 15,
+      "focused_skipped": 1,
+      "v09_regression_passed": 57,
+      "v09_regression_skipped": 1,
+      "evidence_root": "verification/evidence/workspace_archive_20260813",
+      "scope": "Exact terminal V0.8 preflight, same-volume atomic relocation, full-tree digest receipt replay, restore, crash adoption, and fail-closed production-lineage quarantine"
+    },
+    "aq_v2_v09_state_anchor_lifecycle": {
+      "status": "passed_with_existing_job_quarantined",
+      "recorded_on": "2026-08-13",
+      "direct_regression_passed": 127,
+      "related_focused_passed": 226,
+      "full_pytest_passed": 1586,
+      "full_pytest_skipped": 57,
+      "full_pytest_warnings": 8,
+      "existing_job_id": "collectible_wood_02_2",
+      "existing_job_status": "stale_unverified_lineage_gap",
+      "existing_job_modified": false,
+      "recovery_applied": false,
+      "scope": "No-op V0.8 reconciliation stability, exact V0.9 advance state lineage, AQ reference-to-controller resume, and fail-closed tamper coverage"
+    },
     "autonomous_quality_focused": {
       "status": "historical_passed",
       "recorded_on": "2026-08-12",

@@ -297,6 +297,61 @@ def _complete_proxy_scene(root: Path, state):
     )
 
 
+def test_reconcile_noop_preserves_state_and_latest_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Repeated no-op reconciliation preserves timestamps, hashes, bytes, and pointers."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path)
+    workflow_root = root / "workflows" / state.workflow_id
+    state_path = workflow_root / "state.json"
+    latest_path = root / "workflows" / "latest.json"
+    state_bytes = state_path.read_bytes()
+    latest_bytes = latest_path.read_bytes()
+    state_mtime = state_path.stat().st_mtime_ns
+    latest_mtime = latest_path.stat().st_mtime_ns
+    state_sha256 = sha256_file(state_path)
+    updated_at = state.updated_at
+
+    for _index in range(3):
+        reconciled = reconcile_workflow("workflow_asset", state.workflow_id)
+        assert reconciled.updated_at == updated_at
+
+    assert state_path.read_bytes() == state_bytes
+    assert latest_path.read_bytes() == latest_bytes
+    assert state_path.stat().st_mtime_ns == state_mtime
+    assert latest_path.stat().st_mtime_ns == latest_mtime
+    assert sha256_file(state_path) == state_sha256
+
+
+def test_reconcile_updates_state_only_for_authoritative_evidence_change(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """A changed declared artifact advances updated_at and persisted state bytes."""
+
+    root, state = _new_proxy_workflow(monkeypatch, tmp_path)
+    state_path = root / "workflows" / state.workflow_id / "state.json"
+    latest_path = root / "workflows" / "latest.json"
+    state_bytes = state_path.read_bytes()
+    latest_bytes = latest_path.read_bytes()
+    state_sha256 = sha256_file(state_path)
+
+    _author_modeling_plan(root, state)
+    reconciled = reconcile_workflow("workflow_asset", state.workflow_id)
+
+    assert reconciled.updated_at > state.updated_at
+    assert state_path.read_bytes() != state_bytes
+    assert latest_path.read_bytes() != latest_bytes
+    assert sha256_file(state_path) != state_sha256
+    modeling = next(
+        item for item in reconciled.steps if item.step_id == "geometry.modeling_plan"
+    )
+    assert modeling.artifacts
+    assert modeling.artifacts[0].currency == "superseded"
+
+
 def test_new_short_request_creates_isolated_proxy_workflow(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

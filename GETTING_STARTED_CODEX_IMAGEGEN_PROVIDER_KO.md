@@ -181,7 +181,9 @@ schema를 수정하지 않고 bridge/controller/promotion에서 검증된다.
 | `autonomy-v2-codex-imagegen-continue` | `continue_autonomy_v2_codex_imagegen` |
 
 이 표면의 exact 순서와 stale/recovery 경계는
-[Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)를 따른다.
+[Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)를 따른다. 현재 Codex 작업에
+복사할 전체 요청·상태 감사·native normalization·resume 예시는
+[Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)에 있다.
 
 MCP `run_codex_imagegen`은 신규 assignment에 `rendered_prompt_text`를 받으며 재개에서는 생략할 수
 있다. status는 prompt를 반환하지 않는다.

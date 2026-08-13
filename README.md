@@ -31,7 +31,8 @@
 | AQ 통합 gate | exit 0; focused 195 passed, 2 skipped; Blender 14 passed |
 | 2026-08-12 AQ/ImageGen core 전체 회귀 snapshot | 1438 passed, 44 skipped, 8 warnings; Material Loop 이전 이력 |
 | 2026-08-12 AQ/ImageGen core 통합 gate snapshot | focused 485 passed, 22 skipped, 8 warnings; Blender 34 passed, 6 warnings; V0.7/V0.8/V0.9 gates passed |
-| 2026-08-13 Material Loop 최종 gate | 진행 중; exact 결과는 `VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`의 placeholder를 실행 후 교체 |
+| 2026-08-13 Material Loop 최종 local gate | full `1569 passed, 56 skipped, 8 warnings`; focused `160 passed, 1 skipped`; public/schema/catalog/CI parity `59 passed`; 실제 범위와 not-run 항목은 검증 기록 참조 |
+| 2026-08-13 AQ v2 ↔ V0.9 state-anchor lifecycle | full `1586 passed, 57 skipped, 8 warnings`; related focused `226 passed`; no-op reconcile/receipt lineage/AQ controller resume 통과; 기존 `collectible_wood_02_2`는 read-only 감사상 stale/unverified |
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -798,21 +799,33 @@ non-human review가 `review_required`여서 promotion 전에 멈췄다. 승인 �
 mechanism evidence일 뿐 production package가 아니고 human review/destination parity도 수행하지 않았다.
 
 core 사용법은 [ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md), staging 이후
-사용법은 [Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), 정확한 결과는
-[Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+사용법은 [Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), Codex에 바로
+붙여 넣는 단계별 요청은 [Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 정확한
+결과는 [Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다. 저장소 내부
+agent-authored 단계는 [`prompts/imagegen_material_loop.md`](prompts/imagegen_material_loop.md)의 같은
+권위 경계를 사용한다.
 
 ## V0.9 안정화 표면
 
 ```powershell
 uv run cbm stability-probe --probe-id probe-local-001
 uv run cbm workspace-audit --audit-id audit-local-001
+uv run cbm workspace-archive-candidates
+# exact completed/cancelled job만 별도 동일 볼륨 archive로 이동
+uv run cbm workspace-archive <job-id>
+# 필요할 때 archive receipt로 원래 active 위치에 복원
+uv run cbm workspace-restore <archive-receipt-id>
 uv run cbm stability-report-pdf `
   --probe-id probe-local-001 `
   --audit-id audit-local-001 `
   --report-id stability-local-001
 ```
 
-Audit는 canonical job을 repair하거나 migration하지 않습니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고 agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
+Audit는 canonical job을 repair하거나 migration하지 않습니다. Archive는 exact terminal job
+전체를 `workspace_archive/`로 동일 볼륨 원자 이동하며 내부 증거를 고치지 않습니다.
+`failed` 상태는 명시적 `--allow-failed` 없이는 이동하지 않고, active/waiting/blocked/AQ
+job은 fail closed합니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고
+agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
 
 Passed round-trip package에 대해 전달 봉투를 만들려면 먼저 계획을 생성하고 그 정확한 SHA-256을 확인합니다.
 
@@ -975,9 +988,11 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
 - [Codex ImageGen Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)
 - [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [새 레퍼런스 전체 단계별 프롬프트 모음](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
 - [Portable verification evidence](verification/evidence/README.md)
 - [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
 - [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
@@ -1006,15 +1021,15 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 129
-- CLI registry SHA-256: b5a310581e5af530d25c78fe85aa48d4b61dff8eeb648f26a49b73fcaecb97d9
+- CLI commands: 133
+- CLI registry SHA-256: 712dd15b0de6f73d80baf236ba6eae54d1f53be4f5b29674f970f4d7c3ab0e80
 - MCP server tools: 124
 - MCP server registry SHA-256: d961d317581aeb4c22fb08fde3b1b8868f92a7da5afd7664ab56c225ecef2bda
 - Project-enabled MCP tools: 123
 - Project-enabled MCP SHA-256: c7aaa5a0e8d850d75339bf9b95e6b509bf422a24db92998f1d99f5b7cae5cd50
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1569
+- Latest reported test count: 1586
 - Verification summary: verification/latest_summary.json (reported)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

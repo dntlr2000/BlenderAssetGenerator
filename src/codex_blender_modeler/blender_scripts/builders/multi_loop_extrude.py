@@ -38,6 +38,83 @@ def _canonical_loops(
     return result
 
 
+def _triangle_area_2d(
+    points: list[tuple[float, float]],
+    triangle: tuple[int, int, int],
+) -> float:
+    """Return the unsigned 2D area of one indexed profile triangle."""
+
+    first, second, third = (points[index] for index in triangle)
+    return abs(
+        (second[0] - first[0]) * (third[1] - first[1])
+        - (second[1] - first[1]) * (third[0] - first[0])
+    ) / 2.0
+
+
+def _cross_2d(
+    first: tuple[float, float],
+    second: tuple[float, float],
+    third: tuple[float, float],
+) -> float:
+    """Return the signed 2D turn from first through second to third."""
+
+    return (second[0] - first[0]) * (third[1] - first[1]) - (
+        second[1] - first[1]
+    ) * (third[0] - first[0])
+
+
+def _point_in_or_on_triangle(
+    point: tuple[float, float],
+    first: tuple[float, float],
+    second: tuple[float, float],
+    third: tuple[float, float],
+) -> bool:
+    """Return whether a point lies inside or on one counter-clockwise triangle."""
+
+    tolerance = 1.0e-14
+    return (
+        _cross_2d(first, second, point) >= -tolerance
+        and _cross_2d(second, third, point) >= -tolerance
+        and _cross_2d(third, first, point) >= -tolerance
+    )
+
+
+def _ear_clip_simple_profile(
+    loop: list[tuple[float, float]],
+) -> list[tuple[int, int, int]]:
+    """Triangulate one simple counter-clockwise profile without skipping boundary edges."""
+
+    remaining = list(range(len(loop)))
+    triangles: list[tuple[int, int, int]] = []
+    while len(remaining) > 3:
+        for position, current in enumerate(remaining):
+            previous = remaining[position - 1]
+            following = remaining[(position + 1) % len(remaining)]
+            if _cross_2d(loop[previous], loop[current], loop[following]) <= 1.0e-14:
+                continue
+            if any(
+                _point_in_or_on_triangle(
+                    loop[other],
+                    loop[previous],
+                    loop[current],
+                    loop[following],
+                )
+                for other in remaining
+                if other not in {previous, current, following}
+            ):
+                continue
+            triangles.append((previous, current, following))
+            del remaining[position]
+            break
+        else:
+            raise RuntimeError("multi-loop fallback could not find a topology-safe ear")
+    final = tuple(remaining)
+    if _triangle_area_2d(loop, final) <= 1.0e-14:
+        raise RuntimeError("multi-loop fallback returned a degenerate final triangle")
+    triangles.append(final)
+    return triangles
+
+
 def _profile_triangle_indices(
     loops: list[list[tuple[float, float]]],
 ) -> list[tuple[int, int, int]]:
@@ -50,6 +127,7 @@ def _profile_triangle_indices(
     }
     vectors = [[Vector((point[0], point[1], 0.0)) for point in loop] for loop in loops]
     triangles: list[tuple[int, int, int]] = []
+    zero_area_returned = False
     for triangle in tessellate_polygon(vectors):
         indices: list[int] = []
         for item in triangle:
@@ -62,17 +140,25 @@ def _profile_triangle_indices(
             indices.append(lookup[key])
         if len(indices) != 3 or len(set(indices)) != 3:
             raise RuntimeError("multi-loop triangulation returned a degenerate triangle")
-        triangles.append(tuple(indices))
+        triangle = tuple(indices)
+        if _triangle_area_2d(flat, triangle) <= 1.0e-14:
+            zero_area_returned = True
+            continue
+        triangles.append(triangle)
+    if zero_area_returned:
+        if len(loops) != 1:
+            raise RuntimeError(
+                "multi-loop triangulation returned a degenerate triangle for a holed profile"
+            )
+        # Blender may bridge a valid comb-shaped outline with zero-area triangles,
+        # which either creates invalid faces or drops required boundary incidence.
+        triangles = _ear_clip_simple_profile(loops[0])
     expected_area = abs(_signed_area(loops[0])) - sum(
         abs(_signed_area(loop)) for loop in loops[1:]
     )
     actual_area = 0.0
-    for first, second, third in triangles:
-        a, b, c = flat[first], flat[second], flat[third]
-        actual_area += abs(
-            (b[0] - a[0]) * (c[1] - a[1])
-            - (b[1] - a[1]) * (c[0] - a[0])
-        ) / 2.0
+    for triangle in triangles:
+        actual_area += _triangle_area_2d(flat, triangle)
     if not triangles or not math.isclose(
         actual_area,
         expected_area,

@@ -137,7 +137,8 @@ def _read_exact_model(
 
     path = validate_v2_artifact(root, artifact)
     try:
-        return model.model_validate_json(path.read_bytes())
+        with open(native_io_path(path), "rb") as handle:
+            return model.model_validate_json(handle.read())
     except (OSError, ValidationError) as exc:
         raise MaterialPhaseError(f"invalid {model.__name__} material evidence") from exc
 
@@ -240,6 +241,8 @@ def _load_controller_material_bundle(
     plan: AutonomyPlanV2,
     state: AutonomyStateV2,
     result_artifact: AQV2Artifact,
+    *,
+    authorized_profile_artifact: AQV2Artifact | None = None,
 ) -> _ControllerMaterialBundle:
     """Validate result, request, profile, inventory, completion, plan, and graph bytes."""
 
@@ -254,7 +257,15 @@ def _load_controller_material_bundle(
         kind="controller-request",
     )
     request = _read_exact_model(root, request_artifact, ControllerExecutionRequest)
-    bound_profile, bound_profile_artifact = _phase_profile_artifact(root, plan)
+    if authorized_profile_artifact is None:
+        bound_profile, bound_profile_artifact = _phase_profile_artifact(root, plan)
+    else:
+        bound_profile_artifact = authorized_profile_artifact
+        bound_profile = _read_exact_model(
+            root,
+            bound_profile_artifact,
+            PhaseToolProfile,
+        )
     result_profile_artifact = _controller_to_aq(
         root,
         result.tool_profile,
@@ -1278,6 +1289,8 @@ def validate_and_promote_material_controller_result_v2(
     budget: AutonomyBudgetV2,
     state: AutonomyStateV2,
     result_artifact: AQV2Artifact,
+    *,
+    authorized_profile_artifact: AQV2Artifact | None = None,
 ) -> tuple[MaterialPhaseReceiptV2, AQV2Artifact]:
     """Compile and promote one exact material controller result under host authority."""
 
@@ -1335,6 +1348,7 @@ def validate_and_promote_material_controller_result_v2(
         plan,
         state,
         result_artifact,
+        authorized_profile_artifact=authorized_profile_artifact,
     )
     scene, scene_sha = _canonical_scene_and_scope(job_root, plan)
     if (
@@ -1381,6 +1395,7 @@ def validate_and_promote_material_controller_result_v2(
             plan,
             state,
             result_artifact,
+            authorized_profile_artifact=authorized_profile_artifact,
         )
         locked_scene, locked_scene_sha = _canonical_scene_and_scope(job_root, plan)
         if locked_scene_sha != scene_sha or locked_scene != scene:

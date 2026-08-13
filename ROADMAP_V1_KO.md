@@ -388,8 +388,12 @@ V0.8은 새로운 범용 3D 복원 알고리즘을 의미하지 않습니다. �
 
 - 기존 Blender compatibility JSON을 hash로 참조하는 privacy-safe environment probe
 - immutable input hash, contract readability/version, workflow pointer, handoff binding과 path escape를 검사하는 bounded read-only workspace audit
+- exact terminal workflow만 동일 볼륨 `workspace_archive/`로 원자 이동하고 plan/receipt/tree
+  digest로 복원하는 reversible workspace archive (`failed`는 명시적 opt-in, active/AQ는 거부)
 - 기존 V0.8 workflow만 실행하는 one-writer/one-worker local queue
 - execution lease, immutable attempt receipt, live/expired lock 처리와 explicit failed retry
+- 권위 변화가 없는 reconcile의 state/latest byte·SHA·timestamp 안정성과, production advance의
+  exact before/after snapshot 및 `previous.after == next.before == current-tail` 계보 검증
 - exact probe/audit source hash에 묶인 stability PDF와 sidecar
 - strict `0.9.0` JSON Schema, CLI/MCP allowlist와 격리 PowerShell/POSIX gate
 - 기존 V0.2~V0.8 계약을 재작성하지 않는 compatibility 정책과 수동 migration 원칙
@@ -634,7 +638,9 @@ corpus의 material/Blender/package 검증과 명시적 profile 정책 변경이 
 [마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
 [검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
 [Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)와
-[Material Loop 검증](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+[Material Loop 검증](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다. 실제 current-task 요청은
+[Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)에서 profile opt-in, native 원본
+보존, semantic `human_reviewed=false`, host-only promotion과 approval/package 정지 경계를 함께 사용한다.
 
 ## 12. V1.0 — Integrated Reference-to-Asset Pipeline
 
@@ -866,11 +872,15 @@ VERIFICATION_Vxx_KO.md
 - [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
 - [Codex ImageGen Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)
 - [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 
-현재 V0.9는 environment probe, read-only audit, single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다. 실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지 import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
+현재 V0.9는 environment probe, read-only audit, reversible terminal workspace archive,
+single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다.
+실제 gate와 지원 매트릭스 결과는 `VERIFICATION_V09_KO.md`에만 기록합니다. Handoff는 목적지
+import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 아닙니다.
 
 ## 17. 현재 시점의 다음 순서
 

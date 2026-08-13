@@ -324,6 +324,31 @@
       "title": "CodexImageV05ControllerInput",
       "type": "object"
     },
+    "CodexImageV05MappingRecipeOverride": {
+      "additionalProperties": false,
+      "description": "Bind one deterministic UV-mapping shader derivative to its stable material ID.",
+      "properties": {
+        "material_id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Material Id",
+          "type": "string"
+        },
+        "recipe": {
+          "$ref": "#/$defs/ShaderRecipe"
+        },
+        "artifact": {
+          "$ref": "#/$defs/ExactArtifact"
+        }
+      },
+      "required": [
+        "material_id",
+        "recipe",
+        "artifact"
+      ],
+      "title": "CodexImageV05MappingRecipeOverride",
+      "type": "object"
+    },
     "CurvatureMask": {
       "additionalProperties": false,
       "description": "Mask by bounded convexity or concavity sampled at a physical radius.",
@@ -2037,6 +2062,21 @@
       "minLength": 1,
       "title": "Target Material Id",
       "type": "string"
+    },
+    "mapping_overrides": {
+      "additionalProperties": {
+        "const": "uv",
+        "type": "string"
+      },
+      "title": "Mapping Overrides",
+      "type": "object"
+    },
+    "mapping_recipe_overrides": {
+      "items": {
+        "$ref": "#/$defs/CodexImageV05MappingRecipeOverride"
+      },
+      "title": "Mapping Recipe Overrides",
+      "type": "array"
     },
     "run_root": {
       "title": "Run Root",

@@ -27,6 +27,7 @@ from codex_blender_modeler.codex_imagegen.material_loop_models import (
     ImageGeneratedMaterialPromotionReceipt,
     ImageGenNativeNormalizationPlan,
     ImageGenNativeNormalizationReceipt,
+    ImageMaterialPromotionRetryReceipt,
 )
 from codex_blender_modeler.codex_imagegen.models import (
     CodexBuiltinImageProviderProfile,
@@ -105,6 +106,9 @@ SCHEMA_MODELS: dict[str, type[BaseModel]] = {
     ),
     "image_generated_material_promotion_receipt_0_1_0.schema.json": (
         ImageGeneratedMaterialPromotionReceipt
+    ),
+    "image_material_promotion_retry_receipt_0_1_0.schema.json": (
+        ImageMaterialPromotionRetryReceipt
     ),
     "image_generated_material_neutral_preview_0_1_0.schema.json": (
         ImageGeneratedMaterialNeutralPreview

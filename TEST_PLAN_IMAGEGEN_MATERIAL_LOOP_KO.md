@@ -160,6 +160,9 @@ fresh Blender clean import를 실행한다. 후자는 mechanism evidence일 뿐 
   authority를 노출하지 않는지 확인
 - semantic status가 observation을 작성하지 않는지 확인
 - public surface가 approval, canonical direct write나 destination write를 노출하지 않는지 확인
+- `IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md`, `NEW_REFERENCE_VALIDATION_PROMPTS_KO.md`와
+  `prompts/imagegen_material_loop.md`가 9+9 public surface, exact-adoption preflight,
+  `human_reviewed=false`, host-only promotion과 V0.7 approval stop을 서로 다르게 설명하지 않는지 확인
 
 ## 12. 회귀와 최종 gate
 
@@ -176,6 +179,9 @@ uv run python scripts/check_agent_instructions.py
 uv run python scripts/generate_repository_summary.py --check
 git diff --check
 ```
+
+문서 변경 뒤에는 Markdown local link와 stale placeholder/8+8 표기 검색도 수행한다. 프롬프트 예시를
+실행 evidence로 간주하거나 verification count를 문서 작성만으로 갱신하지 않는다.
 
 추가로 관련 AQ v2 host/Blender gate, ImageGen core/fake Blender gate와 V0.7~V0.9 chained regression을
 실행한다. Windows path assertion이 필요한 test는 충분히 짧은 격리 `--basetemp`를 사용하되 실제

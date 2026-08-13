@@ -26,6 +26,7 @@ OverlayEvent = Literal[
     "candidate_selected",
     "material_adopted",
     "material_candidate_staged",
+    "material_evidence_repaired",
     "base_material_authoring_resumed",
     "local_procedural_fallback",
     "review_required",
@@ -341,7 +342,7 @@ def transition_codex_image_overlay(
             {"base_material_authoring_resumed", "failed", "cancelled"}
         ),
         ("adoption", "adopted", "controller_promotion_required"): frozenset(
-            {"failed", "cancelled"}
+            {"material_evidence_repaired", "failed", "cancelled"}
         ),
     }
     if event == "initialized" or event not in allowed.get(boundary, frozenset()):
@@ -353,6 +354,11 @@ def transition_codex_image_overlay(
         "candidate_selected": ("selection", "selected", "adopt_material"),
         "material_adopted": ("adoption", "adopted", "resume_base_material_authoring"),
         "material_candidate_staged": (
+            "adoption",
+            "adopted",
+            "controller_promotion_required",
+        ),
+        "material_evidence_repaired": (
             "adoption",
             "adopted",
             "controller_promotion_required",
@@ -370,14 +376,10 @@ def transition_codex_image_overlay(
     next_completion = completion or current.completion
     next_controller_result = controller_result or current.controller_result
     next_candidates = list(candidates if candidates is not None else current.candidates)
-    next_reports = list(
-        quality_reports if quality_reports is not None else current.quality_reports
-    )
+    next_reports = list(quality_reports if quality_reports is not None else current.quality_reports)
     next_selection = selection or current.selection
     next_adoption = material_adoption or current.material_adoption
-    next_material_receipt = (
-        material_authoring_receipt or current.material_authoring_receipt
-    )
+    next_material_receipt = material_authoring_receipt or current.material_authoring_receipt
     next_terminal = generation_terminal or current.generation_terminal
     next_resume = base_resume_state or current.base_resume_state
     next_usage = budget_usage or current.budget_usage
@@ -393,9 +395,7 @@ def transition_codex_image_overlay(
         or next_usage.candidates < current.budget_usage.candidates
     ):
         raise ValueError("completion adoption must consume one assignment budget")
-    if event == "assignment_published" and (
-        assignment is None or evidence != [assignment]
-    ):
+    if event == "assignment_published" and (assignment is None or evidence != [assignment]):
         raise ValueError("assignment transition must name its exact assignment evidence")
     if event == "completion_adopted" and (
         controller_request is None
@@ -413,19 +413,29 @@ def transition_codex_image_overlay(
         or evidence != [*next_candidates, *next_reports]
     ):
         raise ValueError("quality transition must preserve every candidate and report")
-    if event == "candidate_selected" and (
-        selection is None or evidence != [selection]
-    ):
+    if event == "candidate_selected" and (selection is None or evidence != [selection]):
         raise ValueError("selection transition must name its exact selection evidence")
     if event in {"material_adopted", "material_candidate_staged"} and (
         material_adoption is None
         or material_authoring_receipt is None
         or generation_terminal is None
-        or evidence
-        != [material_adoption, material_authoring_receipt, generation_terminal]
+        or evidence != [material_adoption, material_authoring_receipt, generation_terminal]
     ):
         raise ValueError(
             "material adoption requires adoption, material receipt, and terminal evidence"
+        )
+    if event == "material_evidence_repaired" and (
+        current.material_authoring_receipt is None
+        or material_authoring_receipt is None
+        or material_authoring_receipt == current.material_authoring_receipt
+        or len(evidence) != 3
+        or evidence[0].kind != "material-evidence-repair-plan"
+        or evidence[1].kind != "material-evidence-repair-approval"
+        or evidence[2] != material_authoring_receipt
+        or material_authoring_receipt.kind != "codex-image-normalized-material-authoring-receipt"
+    ):
+        raise ValueError(
+            "material evidence repair requires a new normalized receipt and exact plan/approval"
         )
     if event == "base_material_authoring_resumed" and (
         base_resume_state is None or evidence != [base_resume_state]
@@ -465,9 +475,7 @@ def transition_codex_image_overlay(
     return AutonomyCodexImageOverlay.model_validate(
         {
             **payload,
-            "contract_id": (
-                f"codex-image-overlay-{current.session_id}-{current.sequence + 1:04d}"
-            ),
+            "contract_id": (f"codex-image-overlay-{current.session_id}-{current.sequence + 1:04d}"),
             "input_sha256": stable_json_digest(transition_payload),
             "source_fingerprint": stable_json_digest(
                 {**transition_payload, "status": status, "next_action": next_action}

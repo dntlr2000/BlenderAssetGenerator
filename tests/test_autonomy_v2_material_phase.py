@@ -49,6 +49,7 @@ from codex_blender_modeler.materials.models import MaterialPlan, MaterialPlanIte
 from codex_blender_modeler.production.controller_executor import (
     ControllerArtifact,
     ControllerExecutionRequest,
+    ControllerResult,
     FakeControllerForTests,
     PhaseToolProfile,
     execute_controller_request,
@@ -806,6 +807,65 @@ def test_material_phase_promotes_only_after_compile_and_rebuild(
     assert recovered_artifact.sha256 == artifact.sha256
 
 
+def test_material_phase_accepts_only_an_explicit_authorized_profile_override(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Permit a loop-validated recovery profile without weakening the default plan bind."""
+
+    root, plan, budget, state, result, _baseline_sha = _fixture(tmp_path, monkeypatch)
+    del budget
+    import codex_blender_modeler.autonomy_v2.material_phase_service as service
+
+    result_model = ControllerResult.model_validate_json(
+        (root / result.path).read_bytes()
+    )
+    result_profile_artifact = artifact_for_v2(
+        root,
+        root / result_model.tool_profile.path,
+        artifact_id=result_model.tool_profile.artifact_id,
+        kind="controller_phase_tool_profile",
+    )
+    result_profile = PhaseToolProfile.model_validate_json(
+        (root / result_profile_artifact.path).read_bytes()
+    )
+    base_profile = result_profile.model_copy(
+        update={
+            "contract_id": "material-authoring-base-profile",
+            "input_sha256": "1" * 64,
+            "source_fingerprint": "2" * 64,
+        }
+    )
+    base_profile_path = root / "production" / "base-material-profile.json"
+    _write_json(base_profile_path, base_profile)
+    base_profile_artifact = artifact_for_v2(
+        root,
+        base_profile_path,
+        artifact_id=base_profile.contract_id,
+        kind="material-authoring-profile",
+    )
+    plan_with_base_profile = plan.model_copy(
+        update={"phase_tool_profiles": [base_profile_artifact]}
+    )
+
+    with pytest.raises(MaterialPhaseError, match="plan material profile"):
+        service._load_controller_material_bundle(
+            root,
+            plan_with_base_profile,
+            state,
+            result,
+        )
+
+    bundle = service._load_controller_material_bundle(
+        root,
+        plan_with_base_profile,
+        state,
+        result,
+        authorized_profile_artifact=result_profile_artifact,
+    )
+    assert bundle.profile == result_profile
+
+
 def test_supervisor_material_boundary_transitions_to_integrated_quality(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -813,8 +873,28 @@ def test_supervisor_material_boundary_transitions_to_integrated_quality(
     """Dispatch the exact material profile and enter IQ only after host promotion."""
 
     root, plan, budget, state, result, _baseline_sha = _fixture(tmp_path, monkeypatch)
+    import codex_blender_modeler.autonomy_v2.codex_image_material_loop_service as loop
     import codex_blender_modeler.autonomy_v2.supervisor_service as supervisor
 
+    captured: dict[str, object] = {}
+    original_promote = supervisor.validate_and_promote_material_controller_result_v2
+
+    def capture_profile_override(*args: object, **kwargs: object) -> object:
+        """Capture the guard-authorized profile passed into host material promotion."""
+
+        captured.update(kwargs)
+        return original_promote(*args, **kwargs)
+
+    monkeypatch.setattr(
+        loop,
+        "validate_codex_image_material_controller_promotion_boundary",
+        lambda *_args, **_kwargs: True,
+    )
+    monkeypatch.setattr(
+        supervisor,
+        "validate_and_promote_material_controller_result_v2",
+        capture_profile_override,
+    )
     authorization = RootAuthorizationV2.model_validate_json(
         (root / plan.root_authorization.path).read_bytes()
     )
@@ -839,6 +919,7 @@ def test_supervisor_material_boundary_transitions_to_integrated_quality(
     assert next_state.budget_usage.total_blender_builds == 2
     assert next_state.budget_usage.canonical_promotions == 1
     assert next_state.provenance[-1].kind == "material_phase_receipt"
+    assert captured["authorized_profile_artifact"] is not None
 
 
 def test_material_phase_rejects_unknown_graph_before_canonical_write(

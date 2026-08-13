@@ -311,6 +311,8 @@ def validate_production_contract_file(path: Path) -> None:
 def validate_dispatch_bundle(
     root: Path,
     dispatch_id: str,
+    *,
+    require_current_workflow_state: bool = True,
 ) -> tuple[
     Path,
     AssetProductionDispatchRequest,
@@ -318,7 +320,7 @@ def validate_dispatch_bundle(
     CodexTaskLaunchManifest,
     AssetProductionDispatchPlan,
 ]:
-    """Validate one complete dispatch bundle and every immutable cross-file hash."""
+    """Validate one dispatch, its receipt lineage, and optionally its current state tail."""
 
     validated_dispatch_id = validate_production_id(dispatch_id, "dispatch_id")
     dispatch_parent = ensure_contained_production_path(
@@ -521,6 +523,8 @@ def validate_dispatch_bundle(
             postflight.workflow_authority_artifacts,
         )
     previous_hash: str | None = None
+    previous_after_sha256: str | None = None
+    receipts: list[Path] = []
     advances = ensure_contained_production_path(
         root,
         dispatch_root / "advances",
@@ -558,19 +562,71 @@ def validate_dispatch_bundle(
                 validate_artifact(root, receipt.convergence_artifact)
             before_state = validate_artifact(root, receipt.workflow_state_before)
             after_state = validate_artifact(root, receipt.workflow_state_after)
-            WorkflowState.model_validate_json(before_state.read_text(encoding="utf-8"))
-            WorkflowState.model_validate_json(after_state.read_text(encoding="utf-8"))
+            before_model = WorkflowState.model_validate_json(
+                before_state.read_text(encoding="utf-8")
+            )
+            after_model = WorkflowState.model_validate_json(
+                after_state.read_text(encoding="utf-8")
+            )
             if (
                 receipt.workflow_state_before_sha256 != sha256_file(before_state)
                 or receipt.workflow_state_after_sha256 != sha256_file(after_state)
+                or receipt.workflow_state_before.sha256
+                != receipt.workflow_state_before_sha256
+                or receipt.workflow_state_after.sha256
+                != receipt.workflow_state_after_sha256
             ):
                 raise ValueError("production advance workflow-state snapshot mismatch")
+            if previous_after_sha256 is not None and (
+                receipt.workflow_state_before_sha256 != previous_after_sha256
+            ):
+                raise ValueError("production advance workflow-state lineage is broken")
+            if any(
+                state.job_id != root.name
+                or state.workflow_id != request.workflow_id
+                or state.plan_sha256 != plan.workflow_plan.sha256
+                or state.request_sha256 != plan.workflow_request.sha256
+                for state in (before_model, after_model)
+            ):
+                raise ValueError("production advance workflow-state identity mismatch")
+            previous_after_sha256 = receipt.workflow_state_after_sha256
             previous_hash = sha256_file(receipt_path)
+    current_state_path = ensure_contained_production_path(
+        root,
+        root / "workflows" / request.workflow_id / "state.json",
+        must_exist=True,
+    )
+    current_state_sha256 = sha256_file(current_state_path)
+    if (
+        receipts
+        and require_current_workflow_state
+        and previous_after_sha256 != current_state_sha256
+    ):
+        raise ValueError(
+            "production advance receipt tail does not match current workflow state"
+        )
     controller_state_path = ensure_contained_production_path(
         root,
         dispatch_root / "controller_state.json",
         must_exist=False,
     )
     if controller_state_path.is_file():
-        _load_model(root, controller_state_path, DelegatedProductionState)
+        controller_state = _load_model(
+            root,
+            controller_state_path,
+            DelegatedProductionState,
+        )
+        if (
+            controller_state.dispatch_id != dispatch_id
+            or controller_state.controller_id != request.controller_id
+            or controller_state.job_id != root.name
+            or controller_state.workflow_id != request.workflow_id
+            or controller_state.dispatch_plan_sha256
+            != sha256_file(dispatch_root / "dispatch_plan.json")
+            or (
+                require_current_workflow_state
+                and controller_state.workflow_state_sha256 != current_state_sha256
+            )
+        ):
+            raise ValueError("production controller state is stale or mismatched")
     return dispatch_root, request, controller, launch, plan

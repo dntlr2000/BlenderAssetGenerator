@@ -35,6 +35,8 @@ from ..codex_imagegen.material_loop_models import (
     ImageGenNativeNormalizationPlan,
     ImageGenNativeNormalizationReceipt,
     ImageMaterialLoopBudgetUsage,
+    ImageMaterialMappingRecoveryReceipt,
+    ImageMaterialPromotionRetryReceipt,
     codex_image_v05_exact_adoption_preflight_receipt_path,
     codex_image_v05_exact_adoption_preflight_root_path,
     exact_adoption_preflight_input_sha256,
@@ -77,9 +79,12 @@ from ..materials.models import MaterialPlan
 from ..models import SceneSpec
 from ..production.controller_executor import (
     CandidateAuthoringController,
+    ControllerArtifact,
     ControllerExecutionRequest,
     ControllerResult,
     PhaseToolProfile,
+    execute_controller_request,
+    validate_controller_execution_result,
 )
 from ..production.validation import ensure_contained_production_path
 from ..workspace import job_dir
@@ -93,11 +98,13 @@ from .codex_image_material_preview_service import (
 from .codex_image_overlay import AutonomyCodexImageOverlay
 from .codex_image_phase_service import get_codex_image_phase_status
 from .controller_bridge import (
-    _state_chain as _base_aq_state_chain,
-)
-from .controller_bridge import (
+    _consume_controller_budget,
+    _controller_artifact,
     execute_autonomy_v2_controller,
     get_autonomy_v2_status,
+)
+from .controller_bridge import (
+    _state_chain as _base_aq_state_chain,
 )
 from .delivery_service import (
     artifact_for_v2,
@@ -105,6 +112,7 @@ from .delivery_service import (
     validate_quality_source_freeze,
     validate_root_authorization_boundary_v2,
     validate_v2_artifact,
+    write_immutable_v2_model,
 )
 from .material_phase_models import (
     MaterialControllerCompletionV2,
@@ -126,9 +134,12 @@ from .quality_terminal_service import (
     validate_quality_terminal_v2,
 )
 from .supervisor_service import QualitySubmissionV2, advance_autonomy_v2
+from .transitions import transition_state
 
 _PRODUCER = "codex_blender_modeler.autonomy_v2.codex_image_material_loop_service"
 _LOOP_DIR = "codex_image_material_loop"
+_LOOP_RECOVERIES_DIR = "codex_image_material_loop_recoveries"
+_LOOP_PROMOTION_RETRIES_DIR = "codex_image_material_loop_promotion_retries"
 
 
 class ExactCodexImageMaterialAdoptionController:
@@ -137,9 +148,7 @@ class ExactCodexImageMaterialAdoptionController:
     controller_kind = "desktop_in_session"
 
     @staticmethod
-    def _snapshot_by_sha256(
-        immutable_inputs: tuple[Path, ...], expected_sha256: str
-    ) -> Path:
+    def _snapshot_by_sha256(immutable_inputs: tuple[Path, ...], expected_sha256: str) -> Path:
         """Select one byte-identical immutable snapshot by its declared digest."""
 
         matches = [path for path in immutable_inputs if sha256_file(path) == expected_sha256]
@@ -155,9 +164,7 @@ class ExactCodexImageMaterialAdoptionController:
             raise ValueError("exact-adoption controller has no allowed outputs")
         parts = allowed_output_paths[0].parts
         indices = [
-            index
-            for index, part in enumerate(parts[:-1])
-            if part == "controller_executions"
+            index for index, part in enumerate(parts[:-1]) if part == "controller_executions"
         ]
         if len(indices) != 1 or indices[0] + 1 >= len(parts):
             raise ValueError("exact-adoption controller cannot resolve execution identity")
@@ -230,8 +237,7 @@ class ExactCodexImageMaterialAdoptionController:
         self._write_exact(outputs["material_plan.json"], plan_bytes)
         self._write_exact(outputs["material_graph.json"], graph_bytes)
         output_by_name = {
-            PurePosixPath(path).name: path
-            for path in controller_input.allowed_output_paths
+            PurePosixPath(path).name: path for path in controller_input.allowed_output_paths
         }
         completion = MaterialControllerCompletionV2(
             completion_id=f"material-completion-{controller_input.session_id}",
@@ -282,9 +288,7 @@ def _codex_from_aq(
     )
 
 
-def _aq_from_codex(
-    artifact: CodexImageArtifact, *, role: str | None = None
-) -> AQV2Artifact:
+def _aq_from_codex(artifact: CodexImageArtifact, *, role: str | None = None) -> AQV2Artifact:
     """Project one companion artifact, preserving its kind unless an alias is required."""
 
     return AQV2Artifact(
@@ -347,9 +351,7 @@ def _validate_controller_request_binding(
         raise ValueError("formal controller request identity differs from the bridge")
     if not _same_controller_artifact(request.assignment, input_artifact):
         raise ValueError("formal controller assignment differs from controller input")
-    if not _same_controller_artifact(
-        request.tool_profile, controller_input.phase_tool_profile
-    ):
+    if not _same_controller_artifact(request.tool_profile, controller_input.phase_tool_profile):
         raise ValueError("formal controller tool profile differs from controller input")
     if len(request.immutable_inputs) != len(expected_inputs) or any(
         not _same_controller_artifact(observed, expected)
@@ -365,6 +367,69 @@ def _validate_controller_request_binding(
         or request.expected_output_sha256 != controller_input.expected_output_sha256
     ):
         raise ValueError("formal controller output boundary differs from companion input")
+
+
+def _validate_material_controller_binding_request(
+    root: Path,
+    *,
+    plan: ImageGeneratedMaterialBridgePlan,
+    controller_input: ImageGeneratedMaterialControllerInput,
+    input_artifact: CodexImageArtifact,
+    binding: ImageGeneratedMaterialControllerBinding,
+    request: ControllerExecutionRequest,
+) -> None:
+    """Validate a normal request or the exact source request authorized for retry reuse."""
+
+    if not binding.reused_controller_result:
+        _validate_controller_request_binding(
+            request,
+            plan=plan,
+            controller_input=controller_input,
+            input_artifact=input_artifact,
+        )
+        return
+    retry = _validate_material_promotion_retry_closure(root, plan)
+    if (
+        retry is None
+        or binding.promotion_retry_receipt != plan.promotion_retry_receipt
+        or retry.source_controller_request != binding.controller_execution_request
+    ):
+        raise ValueError("reused controller binding differs from promotion retry authority")
+    source_plan = load_codex_image_model(
+        root,
+        retry.source_bridge_plan,
+        ImageGeneratedMaterialBridgePlan,
+    )
+    source_input = load_codex_image_model(
+        root,
+        retry.source_controller_input,
+        ImageGeneratedMaterialControllerInput,
+    )
+    source_bridge_path = ensure_contained_production_path(
+        root,
+        root / retry.source_bridge_plan.path,
+        must_exist=True,
+    )
+    source_binding_artifact = artifact_for_codex_image(
+        root,
+        source_bridge_path.parent / "controller_binding.json",
+        artifact_id=f"material-controller-binding-{source_plan.session_id}",
+        kind="material-controller-binding",
+        media_type="application/json",
+    )
+    source_binding = load_codex_image_model(
+        root,
+        source_binding_artifact,
+        ImageGeneratedMaterialControllerBinding,
+    )
+    _validate_material_controller_binding_request(
+        root,
+        request=request,
+        plan=source_plan,
+        controller_input=source_input,
+        input_artifact=retry.source_controller_input,
+        binding=source_binding,
+    )
 
 
 def _load_controller_output_model(
@@ -407,9 +472,7 @@ def _validate_controller_result_material_scope(
     )
     graph = cast(
         MaterialGraphSpec,
-        _load_controller_output_model(
-            root, result, "material_graph.json", MaterialGraphSpec
-        ),
+        _load_controller_output_model(root, result, "material_graph.json", MaterialGraphSpec),
     )
     blueprint_path = validate_codex_image_artifact(root, plan.candidate_material_plan)
     with open(native_io_path(blueprint_path), "rb") as handle:
@@ -436,14 +499,124 @@ def _validate_controller_result_material_scope(
             raise ValueError("formal material output changed an immutable material")
 
 
-def _loop_root(root: Path, session_id: str, *, must_exist: bool) -> Path:
-    """Resolve the run-owned material-loop companion directory."""
+def _legacy_loop_root(root: Path, session_id: str, *, must_exist: bool) -> Path:
+    """Resolve the original run-owned material-loop companion directory."""
 
     return ensure_contained_production_path(
         root,
         root / "production" / "autonomy_v2" / session_id / _LOOP_DIR,
         must_exist=must_exist,
     )
+
+
+def _recovery_loop_root(
+    root: Path,
+    session_id: str,
+    recovery_id: str,
+    *,
+    must_exist: bool,
+) -> Path:
+    """Resolve one append-only material-loop recovery attempt directory."""
+
+    return ensure_contained_production_path(
+        root,
+        root / "production" / "autonomy_v2" / session_id / _LOOP_RECOVERIES_DIR / recovery_id,
+        must_exist=must_exist,
+    )
+
+
+def _promotion_retry_loop_root(
+    root: Path,
+    session_id: str,
+    retry_id: str,
+    *,
+    must_exist: bool,
+) -> Path:
+    """Resolve one append-only failed-promotion retry directory."""
+
+    return ensure_contained_production_path(
+        root,
+        root
+        / "production"
+        / "autonomy_v2"
+        / session_id
+        / _LOOP_PROMOTION_RETRIES_DIR
+        / retry_id,
+        must_exist=must_exist,
+    )
+
+
+def _loop_root_for_plan(
+    root: Path,
+    plan: ImageGeneratedMaterialBridgePlan,
+    *,
+    must_exist: bool,
+) -> Path:
+    """Route a normal bridge to the legacy root and a repair to its isolated attempt."""
+
+    if plan.promotion_retry_id is not None:
+        return _promotion_retry_loop_root(
+            root,
+            plan.session_id,
+            plan.promotion_retry_id,
+            must_exist=must_exist,
+        )
+    if plan.recovery_id is None:
+        return _legacy_loop_root(root, plan.session_id, must_exist=must_exist)
+    return _recovery_loop_root(
+        root,
+        plan.session_id,
+        plan.recovery_id,
+        must_exist=must_exist,
+    )
+
+
+def _loop_root(root: Path, session_id: str, *, must_exist: bool) -> Path:
+    """Resolve one active attempt, then the newest append-only terminal family."""
+
+    session_root = ensure_contained_production_path(
+        root,
+        root / "production" / "autonomy_v2" / session_id,
+        must_exist=must_exist,
+    )
+    legacy = session_root / _LOOP_DIR
+    recoveries_root = session_root / _LOOP_RECOVERIES_DIR
+    retries_root = session_root / _LOOP_PROMOTION_RETRIES_DIR
+
+    def children(parent: Path) -> list[Path]:
+        """Enumerate attempt roots that contain one immutable bridge plan."""
+
+        if not parent.is_dir():
+            return []
+        return sorted(
+            path
+            for path in parent.iterdir()
+            if path.is_dir() and (path / "bridge_plan.json").is_file()
+        )
+
+    recoveries = children(recoveries_root)
+    retries = children(retries_root)
+    roots = [
+        *([legacy] if (legacy / "bridge_plan.json").is_file() else []),
+        *recoveries,
+        *retries,
+    ]
+    active = [path for path in roots if not (path / "terminal.json").is_file()]
+    if len(active) > 1:
+        raise ValueError("multiple active material-loop attempts are ambiguous")
+    if active:
+        return ensure_contained_production_path(root, active[0], must_exist=True)
+    if retries:
+        terminal_retries = [path for path in retries if (path / "terminal.json").is_file()]
+        if not terminal_retries:
+            raise ValueError("promotion retry history has no terminal attempt")
+        return ensure_contained_production_path(root, terminal_retries[-1], must_exist=True)
+    if recoveries:
+        terminal_recoveries = [path for path in recoveries if (path / "terminal.json").is_file()]
+        if not terminal_recoveries:
+            raise ValueError("material-loop recovery history has no terminal attempt")
+        return ensure_contained_production_path(root, terminal_recoveries[-1], must_exist=True)
+    return _legacy_loop_root(root, session_id, must_exist=must_exist)
 
 
 def _same_replay(existing: BaseModel, proposed: BaseModel) -> bool:
@@ -483,63 +656,66 @@ def _write_or_adopt(
 def _bridge_artifacts(plan: ImageGeneratedMaterialBridgePlan) -> list[CodexImageArtifact]:
     """Return the exact direct artifact inventory named by a bridge plan."""
 
-    return _merge_artifact_aliases([
-        plan.root_authorization,
-        plan.aq_plan,
-        plan.aq_profile,
-        plan.aq_budget,
-        plan.current_state,
-        plan.canonical_scene_spec,
-        plan.geometry_validation_receipt,
-        plan.current_build_provenance,
-        plan.provider_profile,
-        plan.imagegen_plan,
-        plan.assignment,
-        plan.completion,
-        plan.generation_terminal,
-        plan.selected_candidate,
-        plan.generated_image_evidence,
-        plan.quality_report,
-        plan.selection,
-        *(
-            [plan.companion_selection_receipt]
-            if plan.companion_selection_receipt
-            else []
-        ),
-        *(
-            [plan.native_core_preparation_receipt]
-            if plan.native_core_preparation_receipt
-            else []
-        ),
-        plan.semantic_review,
-        plan.normalization_receipt,
-        plan.adoption,
-        plan.material_authoring_request,
-        plan.material_authoring_manifest,
-        plan.material_authoring_receipt,
-        plan.v05_bridge_receipt,
-        *(
-            [plan.exact_adoption_preflight]
-            if plan.exact_adoption_preflight
-            else []
-        ),
-        *plan.texture_outputs,
-        plan.candidate_material_plan,
-        plan.material_graph_spec,
-        *plan.shader_recipes,
-        *plan.texture_manifests,
-        *(
-            [plan.canonical_material_observation]
-            if plan.canonical_material_observation
-            else []
-        ),
-        *([plan.previous_material_plan] if plan.previous_material_plan else []),
-        *(
-            [plan.canonical_material_absence_evidence]
-            if plan.canonical_material_absence_evidence
-            else []
-        ),
-    ], plan.v05_controller_inputs)
+    return _merge_artifact_aliases(
+        [
+            plan.root_authorization,
+            plan.aq_plan,
+            plan.aq_profile,
+            plan.aq_budget,
+            plan.current_state,
+            plan.canonical_scene_spec,
+            plan.geometry_validation_receipt,
+            plan.current_build_provenance,
+            plan.provider_profile,
+            plan.imagegen_plan,
+            plan.assignment,
+            plan.completion,
+            plan.generation_terminal,
+            plan.selected_candidate,
+            plan.generated_image_evidence,
+            plan.quality_report,
+            plan.selection,
+            *([plan.companion_selection_receipt] if plan.companion_selection_receipt else []),
+            *(
+                [plan.native_core_preparation_receipt]
+                if plan.native_core_preparation_receipt
+                else []
+            ),
+            plan.semantic_review,
+            plan.normalization_receipt,
+            plan.adoption,
+            plan.material_authoring_request,
+            plan.material_authoring_manifest,
+            plan.material_authoring_receipt,
+            plan.v05_bridge_receipt,
+            *(
+                [
+                    plan.mapping_repair_plan,
+                    plan.mapping_repair_approval,
+                    plan.source_failed_material_loop_state,
+                    plan.source_rollback_receipt,
+                    plan.geometry_restore_receipt,
+                ]
+                if plan.recovery_id is not None
+                else []
+            ),
+            *([plan.promotion_retry_receipt] if plan.promotion_retry_receipt else []),
+            *([plan.exact_adoption_preflight] if plan.exact_adoption_preflight else []),
+            *plan.texture_outputs,
+            plan.candidate_material_plan,
+            plan.material_graph_spec,
+            *plan.shader_recipes,
+            *plan.texture_manifests,
+            *([plan.canonical_material_observation] if plan.canonical_material_observation else []),
+            *([plan.previous_material_plan] if plan.previous_material_plan else []),
+            *(
+                [plan.canonical_material_absence_evidence]
+                if plan.canonical_material_absence_evidence
+                else []
+            ),
+        ],
+        plan.v05_controller_inputs,
+    )
 
 
 def _controller_input_artifacts(
@@ -547,62 +723,57 @@ def _controller_input_artifacts(
 ) -> list[CodexImageArtifact]:
     """Return controller immutable inputs in one stable request order."""
 
-    return _merge_artifact_aliases([
-        value.bridge_plan,
-        value.current_state,
-        value.phase_tool_profile,
-        value.root_authorization,
-        value.aq_plan,
-        value.aq_profile,
-        value.aq_budget,
-        value.canonical_scene_spec,
-        value.geometry_validation_receipt,
-        value.current_build_provenance,
-        value.provider_profile,
-        value.generation_terminal,
-        value.selected_candidate,
-        value.generated_image_evidence,
-        value.quality_report,
-        value.selection,
-        *(
-            [value.companion_selection_receipt]
-            if value.companion_selection_receipt
-            else []
-        ),
-        *(
-            [value.native_core_preparation_receipt]
-            if value.native_core_preparation_receipt
-            else []
-        ),
-        value.semantic_review,
-        value.normalization_receipt,
-        value.adoption,
-        value.material_authoring_request,
-        value.material_authoring_manifest,
-        value.material_authoring_receipt,
-        value.v05_bridge_receipt,
-        *(
-            [value.exact_adoption_preflight]
-            if value.exact_adoption_preflight
-            else []
-        ),
-        *value.texture_outputs,
-        value.candidate_material_plan,
-        value.material_graph_spec,
-        *value.shader_recipes,
-        *value.texture_manifests,
-        *(
-            [value.canonical_material_observation]
-            if value.canonical_material_observation
-            else []
-        ),
-        *([value.previous_material_plan] if value.previous_material_plan else []),
-        *(
-            [value.canonical_material_absence_evidence]
-            if value.canonical_material_absence_evidence
-            else []
-        ),
-    ], value.v05_controller_inputs)
+    return _merge_artifact_aliases(
+        [
+            value.bridge_plan,
+            value.current_state,
+            value.phase_tool_profile,
+            value.root_authorization,
+            value.aq_plan,
+            value.aq_profile,
+            value.aq_budget,
+            value.canonical_scene_spec,
+            value.geometry_validation_receipt,
+            value.current_build_provenance,
+            value.provider_profile,
+            value.generation_terminal,
+            value.selected_candidate,
+            value.generated_image_evidence,
+            value.quality_report,
+            value.selection,
+            *([value.companion_selection_receipt] if value.companion_selection_receipt else []),
+            *(
+                [value.native_core_preparation_receipt]
+                if value.native_core_preparation_receipt
+                else []
+            ),
+            value.semantic_review,
+            value.normalization_receipt,
+            value.adoption,
+            value.material_authoring_request,
+            value.material_authoring_manifest,
+            value.material_authoring_receipt,
+            value.v05_bridge_receipt,
+            *([value.exact_adoption_preflight] if value.exact_adoption_preflight else []),
+            *value.texture_outputs,
+            value.candidate_material_plan,
+            value.material_graph_spec,
+            *value.shader_recipes,
+            *value.texture_manifests,
+            *(
+                [value.canonical_material_observation]
+                if value.canonical_material_observation
+                else []
+            ),
+            *([value.previous_material_plan] if value.previous_material_plan else []),
+            *(
+                [value.canonical_material_absence_evidence]
+                if value.canonical_material_absence_evidence
+                else []
+            ),
+        ],
+        value.v05_controller_inputs,
+    )
 
 
 def _bridge_controller_input_artifacts(
@@ -630,11 +801,7 @@ def _bridge_controller_input_artifacts(
             plan.generated_image_evidence,
             plan.quality_report,
             plan.selection,
-            *(
-                [plan.companion_selection_receipt]
-                if plan.companion_selection_receipt
-                else []
-            ),
+            *([plan.companion_selection_receipt] if plan.companion_selection_receipt else []),
             *(
                 [plan.native_core_preparation_receipt]
                 if plan.native_core_preparation_receipt
@@ -647,21 +814,13 @@ def _bridge_controller_input_artifacts(
             plan.material_authoring_manifest,
             plan.material_authoring_receipt,
             plan.v05_bridge_receipt,
-            *(
-                [plan.exact_adoption_preflight]
-                if plan.exact_adoption_preflight
-                else []
-            ),
+            *([plan.exact_adoption_preflight] if plan.exact_adoption_preflight else []),
             *plan.texture_outputs,
             plan.candidate_material_plan,
             plan.material_graph_spec,
             *plan.shader_recipes,
             *plan.texture_manifests,
-            *(
-                [plan.canonical_material_observation]
-                if plan.canonical_material_observation
-                else []
-            ),
+            *([plan.canonical_material_observation] if plan.canonical_material_observation else []),
             *([plan.previous_material_plan] if plan.previous_material_plan else []),
             *(
                 [plan.canonical_material_absence_evidence]
@@ -763,9 +922,7 @@ def _validate_material_controller_input_closure(
     )
     if controller_input != expected:
         raise ValueError("material controller input differs from its frozen bridge closure")
-    if controller_input.input_sha256 != stable_json_digest(
-        controller_input.immutable_input_sha256
-    ):
+    if controller_input.input_sha256 != stable_json_digest(controller_input.immutable_input_sha256):
         raise ValueError("material controller input digest is inconsistent")
 
 
@@ -828,9 +985,7 @@ def _current_material_promotion_receipt(
     """Find and validate the host receipt that authorizes a changed canonical baseline."""
 
     status = get_autonomy_v2_status(plan.job_id, plan.session_id)
-    state = AutonomyStateV2.model_validate_json(
-        json.dumps(status["state"], ensure_ascii=False)
-    )
+    state = AutonomyStateV2.model_validate_json(json.dumps(status["state"], ensure_ascii=False))
     artifact: AQV2Artifact | None = None
     if (
         state.phase == "quality"
@@ -882,9 +1037,7 @@ def _current_material_promotion_receipt(
             or len(receipt_positions) != 1
             or receipt_positions[0] >= terminal_positions[0]
         ):
-            raise ValueError(
-                "post-quality AQ state does not retain one ordered material receipt"
-            )
+            raise ValueError("post-quality AQ state does not retain one ordered material receipt")
         artifact = state.provenance[receipt_positions[0]]
         anchor = _quality_terminal_anchor(root, plan, state)
         terminal = validate_quality_terminal_v2(root, state.quality_terminal)
@@ -908,18 +1061,14 @@ def _current_material_promotion_receipt(
                 or (anchor.phase, anchor.status, anchor.next_action)
                 != ("quality", "quality_approved", "plan_delivery")
             ):
-                raise ValueError(
-                    "post-quality AQ chain does not retain its exact passed boundary"
-                )
+                raise ValueError("post-quality AQ chain does not retain its exact passed boundary")
             freeze = cast(
                 QualityApprovedSourceFreeze,
                 _read_model(root, terminal.source_freeze, QualityApprovedSourceFreeze),
             )
             validate_quality_source_freeze(root, freeze)
             if freeze.material_phase_receipt != artifact:
-                raise ValueError(
-                    "quality source freeze targets another material promotion receipt"
-                )
+                raise ValueError("quality source freeze targets another material promotion receipt")
         else:
             expected_state = {
                 "review_required": ("terminal", "review_required", "none"),
@@ -978,8 +1127,7 @@ def _validate_canonical_material_observation(
     expected_previous = observation.sha256 if observation is not None else None
     if (
         receipt is None
-        or receipt.canonical_material_plan_sha256
-        != plan.candidate_material_plan.sha256
+        or receipt.canonical_material_plan_sha256 != plan.candidate_material_plan.sha256
         or receipt.previous_canonical_material_sha256 != expected_previous
     ):
         raise ValueError("changed canonical MaterialPlan lacks exact host promotion evidence")
@@ -1002,8 +1150,15 @@ def _validate_bridge_files(
         validate_codex_image_artifact(root, artifact)
     if len(plan.target_material_ids) != 1:
         raise ValueError("the initial ImageGen material bridge supports one material")
-    if plan.target_material_ids != plan.mutable_material_ids:
-        raise ValueError("only the single target material may be mutable")
+    if plan.recovery_id is None:
+        if plan.target_material_ids != plan.mutable_material_ids:
+            raise ValueError("only the single target material may be mutable")
+    else:
+        recovery = _validate_material_mapping_recovery_closure(root, plan)
+        expected_mutable = {*plan.target_material_ids, *recovery.mapping_overrides}
+        if set(plan.mutable_material_ids) != expected_mutable:
+            raise ValueError("mapping recovery mutable scope differs from its exact receipt")
+    _validate_material_promotion_retry_closure(root, plan)
     if plan.execution_mode == "exact_adoption":
         expected = {
             plan.candidate_material_plan.sha256,
@@ -1012,6 +1167,204 @@ def _validate_bridge_files(
         if set(plan.expected_output_sha256.values()) != expected:
             raise ValueError("exact adoption must bind both candidate content outputs")
     return promoted
+
+
+def _validate_material_mapping_recovery_closure(
+    root: Path,
+    plan: ImageGeneratedMaterialBridgePlan,
+) -> ImageMaterialMappingRecoveryReceipt:
+    """Replay one approved mapping-repair closure before widening mutable materials."""
+
+    if (
+        plan.recovery_id is None
+        or plan.mapping_repair_plan is None
+        or plan.mapping_repair_approval is None
+        or plan.source_failed_material_loop_state is None
+        or plan.source_rollback_receipt is None
+        or plan.geometry_restore_receipt is None
+    ):
+        raise ValueError("material mapping recovery evidence is incomplete")
+    recovery = load_codex_image_model(
+        root,
+        plan.geometry_restore_receipt,
+        ImageMaterialMappingRecoveryReceipt,
+    )
+    if (
+        recovery.recovery_id != plan.recovery_id
+        or recovery.repair_plan != plan.mapping_repair_plan
+        or recovery.approval != plan.mapping_repair_approval
+        or recovery.source_failed_material_loop_state != plan.source_failed_material_loop_state
+        or recovery.source_rollback_receipt != plan.source_rollback_receipt
+    ):
+        raise ValueError("material mapping recovery receipt differs from the bridge")
+    v05 = load_codex_image_model(
+        root,
+        plan.v05_bridge_receipt,
+        CodexImageV05BridgeReceipt,
+    )
+    if v05.mapping_overrides != recovery.mapping_overrides:
+        raise ValueError("V0.5 mapping overrides differ from the approved recovery")
+    return recovery
+
+
+def _promotion_retry_implementation_paths() -> dict[str, Path]:
+    """Return the exact repository sources bound by a promotion-retry approval plan."""
+
+    package_root = Path(__file__).resolve().parents[1]
+    return {
+        "material_loop_service_sha256": Path(__file__).resolve(),
+        "material_phase_service_sha256": package_root
+        / "autonomy_v2"
+        / "material_phase_service.py",
+        "supervisor_service_sha256": package_root
+        / "autonomy_v2"
+        / "supervisor_service.py",
+        "v05_bridge_service_sha256": (
+            package_root / "material_authoring" / "codex_image_v05_bridge.py"
+        ),
+        "material_loop_models_sha256": (
+            package_root / "codex_imagegen" / "material_loop_models.py"
+        ),
+    }
+
+
+def _expected_material_promotion_retry_approval(
+    payload: dict[str, object],
+    retry_plan_sha256: str,
+) -> str:
+    """Render the sole exact user approval accepted for one promotion retry plan."""
+
+    return (
+        "APPROVE MATERIAL PROMOTION GUARD RETRY "
+        f"job_id={payload['job_id']} source_session_id={payload['source_session_id']} "
+        f"source_aq_state_sha256={payload['source_aq_state_sha256']} "
+        f"source_material_loop_state_sha256={payload['source_material_loop_state_sha256']} "
+        f"source_material_loop_terminal_sha256={payload['source_material_loop_terminal_sha256']} "
+        f"material_promotion_retry_plan_sha256={retry_plan_sha256} "
+        f"source_bridge_plan_sha256={payload['source_bridge_plan_sha256']} "
+        f"controller_request_sha256={payload['controller_request_sha256']} "
+        f"controller_result_sha256={payload['controller_result_sha256']} "
+        f"corrected_material_plan_sha256={payload['corrected_material_plan_sha256']} "
+        f"corrected_material_graph_sha256={payload['corrected_material_graph_sha256']} "
+        f"v05_bridge_receipt_sha256={payload['v05_bridge_receipt_sha256']} "
+        "exact_adoption_preflight_receipt_sha256="
+        f"{payload['exact_adoption_preflight_receipt_sha256']} "
+        f"canonical_geometry_blend_sha256={payload['canonical_geometry_blend_sha256']} "
+        "reuse_controller_result=true new_controller_invocation_allowed=false "
+        "preserve_geometry=true preserve_semantic_ids=true preserve_material_ids=true "
+        "preserve_imagegen_evidence=true "
+        "scope=append_only_material_promotion_guard_retry_only "
+        "delivery_disabled=true optimization_disabled=true lod_disabled=true "
+        "collider_disabled=true destination_write_disabled=true"
+    )
+
+
+def _validate_material_promotion_retry_closure(
+    root: Path,
+    plan: ImageGeneratedMaterialBridgePlan,
+) -> ImageMaterialPromotionRetryReceipt | None:
+    """Replay the exact failed terminal, approval, controller, and implementation closure."""
+
+    if plan.promotion_retry_id is None:
+        return None
+    if plan.promotion_retry_receipt is None:
+        raise ValueError("material promotion retry receipt is missing")
+    retry = load_codex_image_model(
+        root,
+        plan.promotion_retry_receipt,
+        ImageMaterialPromotionRetryReceipt,
+    )
+    if retry.retry_id != plan.promotion_retry_id or retry.source_aq_state != plan.current_state:
+        raise ValueError("material promotion retry identity or AQ state changed")
+    for artifact in retry.provenance:
+        validate_codex_image_artifact(root, artifact)
+    retry_plan_path = ensure_contained_production_path(
+        root,
+        root / retry.retry_plan.path,
+        must_exist=True,
+    )
+    with open(native_io_path(retry_plan_path), "rb") as handle:
+        retry_payload = json.loads(handle.read())
+    with open(native_io_path(root / retry.approval.path), "rb") as handle:
+        approval_text = handle.read().decode("utf-8")
+    if approval_text != _expected_material_promotion_retry_approval(
+        retry_payload,
+        retry.retry_plan.sha256,
+    ):
+        raise PermissionError("material promotion retry approval differs from its exact plan")
+    implementation = retry_payload.get("implementation_evidence")
+    if not isinstance(implementation, dict):
+        raise ValueError("material promotion retry plan omits implementation evidence")
+    snapshot_by_id = {item.artifact_id: item for item in retry.implementation_snapshots}
+    for key, expected_sha256 in implementation.items():
+        snapshot = snapshot_by_id.get(f"promotion-retry-{key}")
+        if snapshot is None or snapshot.sha256 != expected_sha256:
+            raise ValueError("material promotion retry implementation snapshot changed")
+
+    terminal = validate_codex_image_material_loop_terminal(
+        root,
+        retry.source_failed_material_loop_terminal,
+        require_current=False,
+    )
+    source_plan = load_codex_image_model(
+        root,
+        retry.source_bridge_plan,
+        ImageGeneratedMaterialBridgePlan,
+    )
+    source_input = load_codex_image_model(
+        root,
+        retry.source_controller_input,
+        ImageGeneratedMaterialControllerInput,
+    )
+    source_bridge_path = ensure_contained_production_path(
+        root,
+        root / retry.source_bridge_plan.path,
+        must_exist=True,
+    )
+    source_binding_artifact = artifact_for_codex_image(
+        root,
+        source_bridge_path.parent / "controller_binding.json",
+        artifact_id=f"material-controller-binding-{source_plan.session_id}",
+        kind="material-controller-binding",
+        media_type="application/json",
+    )
+    source_binding = load_codex_image_model(
+        root,
+        source_binding_artifact,
+        ImageGeneratedMaterialControllerBinding,
+    )
+    request = load_codex_image_model(
+        root,
+        retry.source_controller_request,
+        ControllerExecutionRequest,
+    )
+    result = load_codex_image_model(root, retry.source_controller_result, ControllerResult)
+    _validate_material_controller_binding_request(
+        root,
+        plan=source_plan,
+        controller_input=source_input,
+        input_artifact=retry.source_controller_input,
+        binding=source_binding,
+        request=request,
+    )
+    if (
+        terminal.bridge_plan != retry.source_bridge_plan
+        or terminal.latest_state != retry.source_failed_material_loop_state
+        or terminal.status != "failed"
+        or terminal.material_candidate_promoted
+        or result.status != "completed"
+        or result.execution_id != request.execution_id
+        or result.request.sha256 != retry.source_controller_request.sha256
+    ):
+        raise ValueError("material promotion retry source terminal or controller changed")
+    if (
+        retry.corrected_material_plan != plan.candidate_material_plan
+        or retry.corrected_material_graph != plan.material_graph_spec
+        or retry.v05_bridge_receipt != plan.v05_bridge_receipt
+        or retry.exact_adoption_preflight != plan.exact_adoption_preflight
+    ):
+        raise ValueError("material promotion retry candidate evidence changed")
+    return retry
 
 
 def _validate_base_authoring_boundary(
@@ -1058,12 +1411,13 @@ def _validate_base_authoring_boundary(
         raise ValueError("material bridge profile or root authorization changed")
     if budget.contract_id != plan.budget.artifact_id:
         raise ValueError("material bridge budget identity changed")
-    if (state.phase, state.status, state.next_action) != (
-        "authoring",
-        "running",
-        "execute_controller",
-    ):
-        raise PermissionError("base AQ state is not authoring/running/execute_controller")
+    expected_base_boundary = (
+        ("authoring", "running", "validate_candidate")
+        if bridge_plan.promotion_retry_id is not None
+        else ("authoring", "running", "execute_controller")
+    )
+    if (state.phase, state.status, state.next_action) != expected_base_boundary:
+        raise PermissionError("base AQ state is not at the exact material bridge boundary")
     if state.plan.sha256 != bridge_plan.aq_plan.sha256:
         raise ValueError("material bridge state targets another AQ plan")
     authorization, _current_plan, _current_profile, _current_budget = (
@@ -1073,24 +1427,52 @@ def _validate_base_authoring_boundary(
             workflow_id=plan.workflow_id,
             dispatch_id=plan.dispatch_id,
             session_id=plan.session_id,
-            root_authorization_artifact=_aq_from_codex(
-                bridge_plan.root_authorization
-            ),
+            root_authorization_artifact=_aq_from_codex(bridge_plan.root_authorization),
         )
     )
     if (
         bridge_plan.requested_delivery_profiles != ["none"]
-        and bridge_plan.requested_delivery_profiles
-        != authorization.requested_delivery_profiles
+        and bridge_plan.requested_delivery_profiles != authorization.requested_delivery_profiles
     ):
         raise ValueError("material bridge delivery profiles exceed root authorization")
     geometry = [
-        item
-        for item in state.provenance
-        if item.kind == "geometry_candidate_validation_receipt"
+        item for item in state.provenance if item.kind == "geometry_candidate_validation_receipt"
     ]
-    if len(geometry) != 1 or state.provenance[-1] != geometry[0]:
-        raise ValueError("current AQ state must end at one geometry validation receipt")
+    if len(geometry) != 1:
+        raise ValueError("current AQ state must preserve one geometry validation receipt")
+    if bridge_plan.promotion_retry_id is not None:
+        retry = _validate_material_promotion_retry_closure(root, bridge_plan)
+        if retry is None:
+            raise ValueError("material promotion retry closure is missing")
+        if not _same_controller_artifact(
+            state.provenance[-1],
+            retry.source_controller_result,
+        ):
+            raise ValueError("promotion retry AQ state does not end at its controller result")
+    elif bridge_plan.recovery_id is None:
+        if state.provenance[-1] != geometry[0]:
+            raise ValueError("current AQ state must end at one geometry validation receipt")
+    else:
+        recovery = _validate_material_mapping_recovery_closure(root, bridge_plan)
+        expected_tail = _aq_from_codex(
+            bridge_plan.geometry_restore_receipt,
+            role="material_mapping_recovery_receipt",
+        )
+        if state.provenance[-1] != expected_tail:
+            raise ValueError("recovery AQ state does not end at its exact restore receipt")
+        source_state = cast(
+            AutonomyStateV2,
+            _read_model(
+                root,
+                _aq_from_codex(recovery.source_aq_state, role="state"),
+                AutonomyStateV2,
+            ),
+        )
+        if (
+            stable_json_digest(source_state.model_dump(mode="json"))
+            != state.previous_state_sha256
+        ):
+            raise ValueError("recovery AQ state does not directly follow its approved source")
     if promoted_material_receipt_artifact is None:
         receipt = validate_geometry_candidate_validation_receipt_v2(
             root,
@@ -1136,10 +1518,8 @@ def _validate_base_authoring_boundary(
         )
     if (
         bridge_plan.geometry_validation_receipt.sha256 != geometry[0].sha256
-        or bridge_plan.canonical_scene_spec.sha256
-        != receipt.canonical_scene_spec.sha256
-        or bridge_plan.current_build_provenance.sha256
-        != receipt.candidate_build_provenance.sha256
+        or bridge_plan.canonical_scene_spec.sha256 != receipt.canonical_scene_spec.sha256
+        or bridge_plan.current_build_provenance.sha256 != receipt.candidate_build_provenance.sha256
     ):
         raise ValueError("material bridge geometry, SceneSpec, or build evidence is stale")
 
@@ -1151,15 +1531,9 @@ def _validate_image_and_authoring_boundary(
     """Replay ImageGen and the additive normalized material-authoring chain."""
 
     expected_authoring_kinds = {
-        "material_authoring_request": (
-            "codex-image-normalized-material-authoring-request"
-        ),
-        "material_authoring_manifest": (
-            "codex-image-normalized-authored-material-manifest"
-        ),
-        "material_authoring_receipt": (
-            "codex-image-normalized-material-authoring-receipt"
-        ),
+        "material_authoring_request": ("codex-image-normalized-material-authoring-request"),
+        "material_authoring_manifest": ("codex-image-normalized-authored-material-manifest"),
+        "material_authoring_receipt": ("codex-image-normalized-material-authoring-receipt"),
     }
     for field, expected_kind in expected_authoring_kinds.items():
         if getattr(bridge_plan, field).kind != expected_kind:
@@ -1197,9 +1571,7 @@ def _validate_image_and_authoring_boundary(
         or overlay.generation_terminal != bridge_plan.generation_terminal
     ):
         raise ValueError("material bridge differs from the current ImageGen overlay")
-    selection = load_codex_image_model(
-        root, bridge_plan.selection, CodexImageGenerationSelection
-    )
+    selection = load_codex_image_model(root, bridge_plan.selection, CodexImageGenerationSelection)
     if (
         selection.outcome != "selected"
         or selection.selected_candidate != bridge_plan.selected_candidate
@@ -1208,18 +1580,14 @@ def _validate_image_and_authoring_boundary(
         raise ValueError("material bridge selection binding changed")
     if selection.candidate_count > 1:
         if bridge_plan.companion_selection_receipt is None:
-            raise ValueError(
-                "multi-candidate material promotion omits companion ranking closure"
-            )
+            raise ValueError("multi-candidate material promotion omits companion ranking closure")
         companion = load_codex_image_model(
             root,
             bridge_plan.companion_selection_receipt,
             CodexImageCompanionSelectionReceipt,
         )
         validate_codex_imagegen_companion_selection(root, companion)
-        selected_decisions = [
-            item for item in companion.decisions if item.outcome == "selected"
-        ]
+        selected_decisions = [item for item in companion.decisions if item.outcome == "selected"]
         if (
             companion.core_selection != bridge_plan.selection
             or companion.outcome != "selected"
@@ -1231,9 +1599,7 @@ def _validate_image_and_authoring_boundary(
             raise ValueError("multi-candidate companion selection closure changed")
     elif bridge_plan.companion_selection_receipt is not None:
         raise ValueError("single-candidate legacy selection cannot claim companion ranking")
-    adoption = load_codex_image_model(
-        root, bridge_plan.adoption, ImageToMaterialAdoption
-    )
+    adoption = load_codex_image_model(root, bridge_plan.adoption, ImageToMaterialAdoption)
     if (
         adoption.selection != bridge_plan.selection
         or adoption.selected_candidate != bridge_plan.selected_candidate
@@ -1312,9 +1678,7 @@ def _validate_image_and_authoring_boundary(
     validate_codex_image_v05_bridge(root, v05_receipt)
     _validate_exact_adoption_evidence(root, bridge_plan, v05_receipt)
     v05_contract_snapshots = [
-        v05_receipt.baseline_material_plan_snapshot
-        if item.kind == "v05-material-plan"
-        else item
+        v05_receipt.baseline_material_plan_snapshot if item.kind == "v05-material-plan" else item
         for item in base_request.source_v05_contracts
     ]
     validate_codex_image_normalized_material_candidate(
@@ -1368,8 +1732,7 @@ def _validate_image_and_authoring_boundary(
         != bridge_plan.material_authoring_request
         or _codex_from_exact(v05_receipt.source_authoring_manifest)
         != bridge_plan.material_authoring_manifest
-        or _codex_from_exact(v05_receipt.source_scene_spec)
-        != bridge_plan.canonical_scene_spec
+        or _codex_from_exact(v05_receipt.source_scene_spec) != bridge_plan.canonical_scene_spec
         or (
             _codex_from_exact(v05_receipt.source_material_plan)
             if v05_receipt.previous_canonical_material_plan is not None
@@ -1391,12 +1754,8 @@ def _validate_image_and_authoring_boundary(
         if v05_receipt.canonical_material_absence_evidence is not None
         else None
     )
-    direct_textures = {
-        (item.path, item.sha256) for item in bridge_plan.texture_outputs
-    }
-    expected_textures = {
-        (item.path, item.sha256) for item in authoring_receipt.outputs
-    }
+    direct_textures = {(item.path, item.sha256) for item in bridge_plan.texture_outputs}
+    expected_textures = {(item.path, item.sha256) for item in authoring_receipt.outputs}
     if (
         direct_textures != expected_textures
         or bridge_plan.v05_controller_inputs != expected_v05_inputs
@@ -1428,9 +1787,7 @@ def _validate_image_and_authoring_boundary(
     scene_path = validate_codex_image_artifact(root, bridge_plan.canonical_scene_spec)
     with open(native_io_path(scene_path), "rb") as handle:
         scene = SceneSpec.model_validate_json(handle.read())
-    candidate_path = validate_codex_image_artifact(
-        root, bridge_plan.candidate_material_plan
-    )
+    candidate_path = validate_codex_image_artifact(root, bridge_plan.candidate_material_plan)
     with open(native_io_path(candidate_path), "rb") as handle:
         candidate_plan = MaterialPlan.model_validate_json(handle.read())
     scene_material_ids = {item.id for item in scene.materials}
@@ -1553,12 +1910,8 @@ def _build_exact_adoption_preflight_receipt(
     )
     candidate_plan = _codex_from_exact(v05_receipt.candidate_material_plan)
     candidate_graph = _codex_from_exact(v05_receipt.candidate_material_graph)
-    shadow_plan_path = shadow_root.joinpath(
-        *v05_receipt.candidate_material_plan.path.split("/")
-    )
-    shadow_graph_path = shadow_root.joinpath(
-        *v05_receipt.candidate_material_graph.path.split("/")
-    )
+    shadow_plan_path = shadow_root.joinpath(*v05_receipt.candidate_material_plan.path.split("/"))
+    shadow_graph_path = shadow_root.joinpath(*v05_receipt.candidate_material_graph.path.split("/"))
     short_id = stable_json_digest(preflight_id)[:16]
     shadow_plan = _codex_artifact_for_preflight_file(
         root,
@@ -1589,9 +1942,7 @@ def _build_exact_adoption_preflight_receipt(
             artifact_id=f"preflight-{item.role}-{short_id}",
             kind=f"v05-exact-adoption-{item.role.replace('_', '-')}",
             media_type=(
-                "application/x-blender"
-                if item.role == "compiled_blend"
-                else "application/json"
+                "application/x-blender" if item.role == "compiled_blend" else "application/json"
             ),
         )
         for item in bundle.report.artifacts
@@ -1661,12 +2012,9 @@ def validate_codex_image_v05_exact_adoption_preflight(
     validate_codex_image_v05_bridge(root, v05_receipt)
     for artifact in receipt.provenance:
         validate_codex_image_artifact(root, artifact)
-    if (
-        receipt.candidate_material_plan
-        != _codex_from_exact(v05_receipt.candidate_material_plan)
-        or receipt.material_graph_spec
-        != _codex_from_exact(v05_receipt.candidate_material_graph)
-    ):
+    if receipt.candidate_material_plan != _codex_from_exact(
+        v05_receipt.candidate_material_plan
+    ) or receipt.material_graph_spec != _codex_from_exact(v05_receipt.candidate_material_graph):
         raise ValueError("exact-adoption preflight targets another V0.5 candidate")
     shadow_root = ensure_contained_production_path(
         root,
@@ -1685,8 +2033,7 @@ def validate_codex_image_v05_exact_adoption_preflight(
         raise ValueError("exact-adoption preflight compile report differs from replay")
     compile_prefix = f"{receipt.shadow_root}/{receipt.compile_run_root}/"
     expected_compile = {
-        f"{compile_prefix}{item.path}": (item.sha256, item.byte_size)
-        for item in report.artifacts
+        f"{compile_prefix}{item.path}": (item.sha256, item.byte_size) for item in report.artifacts
     }
     observed_compile = {
         item.path: (item.sha256, item.byte_size) for item in receipt.compile_artifacts
@@ -1701,9 +2048,7 @@ def validate_codex_image_v05_exact_adoption_preflight(
         MaterialPlan,
         load_codex_image_model(root, receipt.candidate_material_plan, MaterialPlan),
     )
-    material_inputs = [
-        item for item in graph.provenance.inputs if item.role == "material_plan"
-    ]
+    material_inputs = [item for item in graph.provenance.inputs if item.role == "material_plan"]
     if (
         report.status != "passed"
         or not report.ok
@@ -1720,10 +2065,8 @@ def validate_codex_image_v05_exact_adoption_preflight(
     if sha256_file(shadow_material_path) != receipt.candidate_material_plan.sha256:
         raise ValueError("exact-adoption shadow MaterialPlan dependency changed")
     if (
-        receipt.shadow_candidate_material_plan.sha256
-        != receipt.candidate_material_plan.sha256
-        or receipt.shadow_material_graph_spec.sha256
-        != receipt.material_graph_spec.sha256
+        receipt.shadow_candidate_material_plan.sha256 != receipt.candidate_material_plan.sha256
+        or receipt.shadow_material_graph_spec.sha256 != receipt.material_graph_spec.sha256
     ):
         raise ValueError("exact-adoption shadow source bytes changed")
     return receipt
@@ -1948,22 +2291,103 @@ def _material_phase_profile(
     root: Path,
     plan: ImageGeneratedMaterialBridgePlan,
 ) -> CodexImageArtifact:
-    """Select and validate the one existing material-authoring phase profile."""
+    """Select the base profile or publish one receipt-bound recovery derivative."""
+
+    if plan.promotion_retry_id is not None:
+        retry = _validate_material_promotion_retry_closure(root, plan)
+        if retry is None:
+            raise ValueError("material promotion retry closure is missing")
+        source_plan = load_codex_image_model(
+            root,
+            retry.source_bridge_plan,
+            ImageGeneratedMaterialBridgePlan,
+        )
+        if (
+            source_plan.recovery_id != plan.recovery_id
+            or source_plan.allowed_output_paths != plan.allowed_output_paths
+        ):
+            raise ValueError("material promotion retry changed its recovery profile scope")
+        return _material_phase_profile(root, source_plan)
 
     aq_plan = cast(
         AutonomyPlanV2,
         _read_model(root, _aq_from_codex(plan.aq_plan, role="plan"), AutonomyPlanV2),
     )
-    candidates: list[CodexImageArtifact] = []
+    candidates: list[tuple[PhaseToolProfile, CodexImageArtifact]] = []
     for item in aq_plan.phase_tool_profiles:
         profile = cast(PhaseToolProfile, _read_model(root, item, PhaseToolProfile))
         if profile.profile_id == "material_authoring":
-            candidates.append(_codex_from_aq(root, item))
-            if profile.allowed_output_paths != plan.allowed_output_paths:
-                raise ValueError("bridge outputs differ from the material phase profile")
+            candidates.append((profile, _codex_from_aq(root, item)))
     if len(candidates) != 1:
         raise ValueError("AQ v2 plan must name one material-authoring phase profile")
-    return candidates[0]
+    base, base_artifact = candidates[0]
+    if plan.recovery_id is None:
+        if base.allowed_output_paths != plan.allowed_output_paths:
+            raise ValueError("bridge outputs differ from the material phase profile")
+        return base_artifact
+
+    recovery = _validate_material_mapping_recovery_closure(root, plan)
+    profile_path = (
+        _recovery_loop_root(
+            root,
+            plan.session_id,
+            plan.recovery_id,
+            must_exist=True,
+        )
+        / "material_authoring_recovery_profile.json"
+    )
+    profile_provenance = [
+        ControllerArtifact(
+            artifact_id=base_artifact.artifact_id,
+            role="base-material-authoring-profile",
+            path=base_artifact.path,
+            sha256=base_artifact.sha256,
+            byte_size=base_artifact.byte_size,
+        ),
+        ControllerArtifact(
+            artifact_id=plan.geometry_restore_receipt.artifact_id,
+            role="material-mapping-recovery-receipt",
+            path=plan.geometry_restore_receipt.path,
+            sha256=plan.geometry_restore_receipt.sha256,
+            byte_size=plan.geometry_restore_receipt.byte_size,
+        ),
+    ]
+    expected = base.model_copy(
+        update={
+            "contract_id": f"tool-profile-material-repair-{plan.recovery_id}",
+            "input_sha256": stable_json_digest(
+                {
+                    "base_profile": base_artifact.sha256,
+                    "recovery_receipt": plan.geometry_restore_receipt.sha256,
+                    "outputs": plan.allowed_output_paths,
+                }
+            ),
+            "source_fingerprint": recovery.source_failed_material_loop_state.sha256,
+            "producer": _PRODUCER,
+            "provenance": profile_provenance,
+            "created_at": plan.created_at,
+            "allowed_output_paths": plan.allowed_output_paths,
+        }
+    )
+    if os.path.exists(native_io_path(profile_path)):
+        artifact = artifact_for_codex_image(
+            root,
+            profile_path,
+            artifact_id=expected.contract_id,
+            kind="material-authoring-recovery-profile",
+            media_type="application/json",
+        )
+        existing = load_codex_image_model(root, artifact, PhaseToolProfile)
+        if existing != expected:
+            raise FileExistsError("material recovery phase profile differs on replay")
+        return artifact
+    aq_artifact = write_immutable_v2_model(root, profile_path, expected)
+    return _codex_from_aq(
+        root,
+        aq_artifact,
+        artifact_id=expected.contract_id,
+        kind="material-authoring-recovery-profile",
+    )
 
 
 def _make_state(
@@ -2015,9 +2439,7 @@ def _make_state(
                 material_phase_receipt.sha256 if material_phase_receipt else None
             ),
             base_state_sha256=(base_state.sha256 if base_state else None),
-            failure_evidence_sha256=(
-                failure_evidence.sha256 if failure_evidence else None
-            ),
+            failure_evidence_sha256=(failure_evidence.sha256 if failure_evidence else None),
             review_evidence_sha256=(review_evidence.sha256 if review_evidence else None),
             latest_failure=latest_failure,
             budget_usage=budget_usage,
@@ -2039,9 +2461,7 @@ def _make_state(
         review_evidence=review_evidence,
         budget_usage=budget_usage,
         latest_failure=latest_failure,
-        promotion_consumed_sha256=(
-            promotion_receipt.sha256 if promotion_receipt else None
-        ),
+        promotion_consumed_sha256=(promotion_receipt.sha256 if promotion_receipt else None),
     )
 
 
@@ -2054,9 +2474,7 @@ def _state_chain(
 ) -> list[tuple[CodexImageMaterialLoopState, CodexImageArtifact]]:
     """Strictly reconstruct the contiguous append-only material-loop journal."""
 
-    states_root = ensure_contained_codex_image_path(
-        root, loop_root / "states", must_exist=True
-    )
+    states_root = ensure_contained_codex_image_path(root, loop_root / "states", must_exist=True)
     entries = sorted(path for path in states_root.iterdir() if path.is_file())
     expected_names = [f"{index:04d}.json" for index in range(len(entries))]
     if [item.name for item in entries] != expected_names:
@@ -2146,9 +2564,7 @@ def _publish_pre_promotion_terminal_locked(
         workflow_id=plan.workflow_id,
         dispatch_id=plan.dispatch_id,
         session_id=plan.session_id,
-        input_sha256=stable_json_digest(
-            {item.path: item.sha256 for item in provenance}
-        ),
+        input_sha256=stable_json_digest({item.path: item.sha256 for item in provenance}),
         source_fingerprint=state.failure_evidence.sha256,
         producer=_PRODUCER,
         provenance=provenance,
@@ -2188,7 +2604,7 @@ def _publish_codex_image_material_loop_bridge_locked(
     _validate_base_authoring_boundary(root, bridge_plan)
     _validate_image_and_authoring_boundary(root, bridge_plan)
     phase_profile = _material_phase_profile(root, bridge_plan)
-    loop_root = _loop_root(root, bridge_plan.session_id, must_exist=False)
+    loop_root = _loop_root_for_plan(root, bridge_plan, must_exist=False)
     now = created_at or datetime.now(UTC)
     published_plan, plan_artifact = _write_or_adopt(
         root,
@@ -2250,6 +2666,733 @@ def _publish_codex_image_material_loop_bridge_locked(
     }
 
 
+def prepare_codex_image_material_mapping_recovery(
+    job_id: str,
+    session_id: str,
+    *,
+    repair_plan_path: Path,
+    repair_plan_sha256: str,
+    exact_approval: str,
+    allow_disabled_experimental: bool = False,
+) -> tuple[ImageMaterialMappingRecoveryReceipt, CodexImageArtifact, AQV2Artifact]:
+    """Consume one exact repair approval, preserve rollback bytes, and restore geometry."""
+
+    root = job_dir(job_id)
+    session_root = ensure_contained_production_path(
+        root,
+        root / "production" / "autonomy_v2" / session_id,
+        must_exist=True,
+    )
+    plan_path = ensure_contained_production_path(root, repair_plan_path, must_exist=True)
+    if sha256_file(plan_path) != repair_plan_sha256:
+        raise ValueError("material mapping repair plan hash changed")
+    with open(native_io_path(plan_path), "rb") as handle:
+        repair_payload = json.loads(handle.read())
+    recovery_id = str(repair_payload.get("plan_id", ""))
+    expected_mappings = {
+        "mat.metal.trim": "uv",
+        "mat.grip.leather": "uv",
+        "mat.crystal.translucent": "uv",
+    }
+    observed_mappings = {
+        str(item.get("material_id")): str(item.get("to_mode"))
+        for item in repair_payload.get("required_mapping_changes", [])
+    }
+    required_plan_values = {
+        "status": "proposal_only",
+        "job_id": job_id,
+        "source_session_id": session_id,
+        "profile_id": "autonomous_static_prop_v2_codex_imagegen",
+        "profile_status": "disabled_experimental",
+        "source_aq_state_sha256": (
+            "03618ddfc8e618594cbb59bb3528749cd062b0d1aa43f9e0cc74af68a2679b58"
+        ),
+        "source_material_loop_state_sha256": (
+            "98d3eb28d54d05b8bc40e5ce97b1fa2acea19ae5efa56cb7edd1e3355ef72206"
+        ),
+        "rollback_receipt_sha256": (
+            "3b92e95daa0e0e76942b73b2a61b87f555c6aa89c8c55f506b3e7a52dcacfe47"
+        ),
+        "failed_material_plan_sha256": (
+            "157a427e56dcbe88899680e939d8d60dcdc68b19e4e988f1f0562613e17641a5"
+        ),
+        "reference_sha256": ("dd2ecc1bfeb403595d8a4f77875980fd7cad7d29582d661a248fa2d639c846bf"),
+        "approved_geometry_blend_sha256": (
+            "9d759794d96fe5361ef764b8bac1a2786374947c072f53cccc0f25444cc1ffb5"
+        ),
+        "current_rollback_blend_sha256": (
+            "89ca2a5610c82c9449232d40611fde4d35fc86ccab9ae7cf5dbdda3a9a7a72fa"
+        ),
+        "scope": "append_only_surface_detail_material_mapping_repair",
+        "approval_granted": False,
+    }
+    if any(repair_payload.get(key) != value for key, value in required_plan_values.items()):
+        raise ValueError("material mapping repair plan authority fields changed")
+    if observed_mappings != expected_mappings or any(
+        not repair_payload.get(key)
+        for key in (
+            "preserve_geometry",
+            "preserve_semantic_ids",
+            "preserve_material_ids",
+            "preserve_imagegen_evidence",
+            "delivery_disabled",
+            "optimization_disabled",
+            "lod_disabled",
+            "collider_disabled",
+            "destination_write_disabled",
+        )
+    ):
+        raise ValueError("material mapping repair scope changed")
+    expected_approval = (
+        "APPROVE MATERIAL SURFACE DETAIL MAPPING REPAIR "
+        f"job_id={job_id} source_session_id={session_id} "
+        f"source_aq_state_sha256={repair_payload['source_aq_state_sha256']} "
+        f"source_material_loop_state_sha256={repair_payload['source_material_loop_state_sha256']} "
+        f"rollback_receipt_sha256={repair_payload['rollback_receipt_sha256']} "
+        f"material_mapping_repair_plan_sha256={repair_plan_sha256} "
+        f"failed_material_plan_sha256={repair_payload['failed_material_plan_sha256']} "
+        f"reference_sha256={repair_payload['reference_sha256']} "
+        f"approved_geometry_blend_sha256={repair_payload['approved_geometry_blend_sha256']} "
+        f"current_rollback_blend_sha256={repair_payload['current_rollback_blend_sha256']} "
+        "changes=mat.metal.trim:object->uv,mat.grip.leather:object->uv,"
+        "mat.crystal.translucent:object->uv uv_set=UVMap preserve_geometry=true "
+        "preserve_semantic_ids=true preserve_material_ids=true "
+        "preserve_imagegen_evidence=true "
+        "scope=append_only_surface_detail_material_mapping_repair "
+        "delivery_disabled=true optimization_disabled=true lod_disabled=true "
+        "collider_disabled=true destination_write_disabled=true"
+    )
+    if exact_approval != expected_approval:
+        raise PermissionError("material mapping repair approval is not the exact plan approval")
+    status = get_autonomy_v2_status(job_id, session_id)
+    if (
+        status["profile_status"] != "verified_active"
+        and not allow_disabled_experimental
+    ):
+        raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
+    source_state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
+    source_state = AutonomyStateV2.model_validate_json(
+        json.dumps(status["state"], ensure_ascii=False)
+    )
+    if source_state_artifact.sha256 != repair_payload["source_aq_state_sha256"] or (
+        source_state.phase,
+        source_state.status,
+        source_state.next_action,
+    ) != ("authoring", "running", "validate_candidate"):
+        raise ValueError("material mapping recovery source AQ state is stale")
+    loop_state_path = _legacy_loop_root(root, session_id, must_exist=True) / "states" / "0002.json"
+    source_loop_artifact = artifact_for_codex_image(
+        root,
+        loop_state_path,
+        artifact_id=f"material-loop-state-{session_id}-0002",
+        kind="material-loop-state",
+        media_type="application/json",
+    )
+    source_loop = load_codex_image_model(
+        root,
+        source_loop_artifact,
+        CodexImageMaterialLoopState,
+    )
+    if (
+        source_loop_artifact.sha256 != repair_payload["source_material_loop_state_sha256"]
+        or source_loop.status != "failed"
+        or source_loop.latest_failure != "material_promotion_rolled_back"
+        or source_loop.failure_evidence is None
+        or source_loop.failure_evidence.sha256 != repair_payload["rollback_receipt_sha256"]
+    ):
+        raise ValueError("material mapping recovery source material loop is stale")
+    rollback_artifact = source_loop.failure_evidence
+    rollback = cast(
+        MaterialPhaseRollbackReceiptV2,
+        _read_model(root, _aq_from_codex(rollback_artifact), MaterialPhaseRollbackReceiptV2),
+    )
+    if (
+        rollback.status != "rolled_back"
+        or rollback.material_plan_candidate.sha256 != repair_payload["failed_material_plan_sha256"]
+        or rollback.restored_blend_snapshot is None
+        or rollback.restored_blend_snapshot.sha256
+        != repair_payload["current_rollback_blend_sha256"]
+    ):
+        raise ValueError("material mapping rollback evidence changed")
+    approved_path = ensure_contained_production_path(
+        root,
+        root / repair_payload["approved_geometry_blend_snapshot_path"],
+        must_exist=True,
+    )
+    if sha256_file(approved_path) != repair_payload["approved_geometry_blend_sha256"]:
+        raise ValueError("approved geometry blend changed")
+
+    with autonomy_session_lock(
+        root,
+        session_root,
+        owner_id="aqv2-material-mapping-recovery",
+        ttl_seconds=120,
+    ):
+        recovery_root = _recovery_loop_root(
+            root,
+            session_id,
+            recovery_id,
+            must_exist=False,
+        )
+        os.makedirs(native_io_path(recovery_root / "restore"), exist_ok=True)
+        approval_path = recovery_root / "approval.txt"
+        approval_bytes = exact_approval.encode("utf-8")
+        if approval_path.exists():
+            with open(native_io_path(approval_path), "rb") as handle:
+                if handle.read() != approval_bytes:
+                    raise FileExistsError("material mapping recovery approval differs")
+        else:
+            with open(native_io_path(approval_path), "xb") as handle:
+                handle.write(approval_bytes)
+        displaced_path = recovery_root / "restore" / "displaced_rollback_scene.blend"
+        restored_path = recovery_root / "restore" / "restored_approved_scene.blend"
+        canonical_path = ensure_contained_production_path(
+            root,
+            root / "blender" / "scene.blend",
+            must_exist=True,
+        )
+        if not displaced_path.exists():
+            if sha256_file(canonical_path) != repair_payload["current_rollback_blend_sha256"]:
+                raise ValueError("canonical rollback blend changed before recovery")
+            shutil.copyfile(native_io_path(canonical_path), native_io_path(displaced_path))
+        if sha256_file(displaced_path) != repair_payload["current_rollback_blend_sha256"]:
+            raise ValueError("displaced rollback snapshot changed")
+        if not restored_path.exists():
+            shutil.copyfile(native_io_path(approved_path), native_io_path(restored_path))
+        if sha256_file(restored_path) != repair_payload["approved_geometry_blend_sha256"]:
+            raise ValueError("restored approved snapshot changed")
+        if sha256_file(canonical_path) != repair_payload["approved_geometry_blend_sha256"]:
+            temp_path = canonical_path.with_name(f".{canonical_path.name}.{uuid4().hex}.tmp")
+            shutil.copyfile(native_io_path(restored_path), native_io_path(temp_path))
+            os.replace(native_io_path(temp_path), native_io_path(canonical_path))
+        if sha256_file(canonical_path) != repair_payload["approved_geometry_blend_sha256"]:
+            raise RuntimeError("canonical geometry blend restore did not converge")
+
+        repair_artifact = artifact_for_codex_image(
+            root,
+            plan_path,
+            artifact_id=f"{recovery_id}-plan",
+            kind="material-mapping-repair-plan",
+            media_type="application/json",
+        )
+        approval_artifact = artifact_for_codex_image(
+            root,
+            approval_path,
+            artifact_id=f"{recovery_id}-approval",
+            kind="material-mapping-repair-approval",
+            media_type="text/plain",
+        )
+        approved_artifact = artifact_for_codex_image(
+            root,
+            approved_path,
+            artifact_id=f"{recovery_id}-approved-geometry",
+            kind="approved-geometry-blend",
+            media_type="application/x-blender",
+        )
+        displaced_artifact = artifact_for_codex_image(
+            root,
+            displaced_path,
+            artifact_id=f"{recovery_id}-displaced-rollback",
+            kind="displaced-rollback-blend",
+            media_type="application/x-blender",
+        )
+        restored_artifact = artifact_for_codex_image(
+            root,
+            restored_path,
+            artifact_id=f"{recovery_id}-restored-geometry",
+            kind="restored-approved-blend",
+            media_type="application/x-blender",
+        )
+        source_aq_codex = _codex_from_aq(
+            root,
+            source_state_artifact,
+            kind="source-aq-state",
+        )
+        artifacts = [
+            repair_artifact,
+            approval_artifact,
+            source_aq_codex,
+            source_loop_artifact,
+            rollback_artifact,
+            approved_artifact,
+            displaced_artifact,
+            restored_artifact,
+        ]
+        receipt = ImageMaterialMappingRecoveryReceipt(
+            contract_id=recovery_id,
+            job_id=job_id,
+            workflow_id=rollback.workflow_id,
+            dispatch_id=rollback.dispatch_id,
+            session_id=session_id,
+            input_sha256=stable_json_digest(
+                {
+                    "artifacts": {item.path: item.sha256 for item in artifacts},
+                    "mapping_overrides": expected_mappings,
+                    "uv_set": "UVMap",
+                }
+            ),
+            source_fingerprint=source_loop_artifact.sha256,
+            producer=_PRODUCER,
+            provenance=artifacts,
+            created_at=datetime.now(UTC),
+            recovery_id=recovery_id,
+            repair_plan=repair_artifact,
+            approval=approval_artifact,
+            source_aq_state=source_aq_codex,
+            source_failed_material_loop_state=source_loop_artifact,
+            source_rollback_receipt=rollback_artifact,
+            approved_geometry_blend=approved_artifact,
+            displaced_rollback_blend_snapshot=displaced_artifact,
+            restored_geometry_blend=restored_artifact,
+            mapping_overrides=expected_mappings,
+        )
+        receipt_path = recovery_root / "recovery_receipt.json"
+        if receipt_path.exists():
+            receipt_artifact = artifact_for_codex_image(
+                root,
+                receipt_path,
+                artifact_id=recovery_id,
+                kind="material-mapping-recovery-receipt",
+                media_type="application/json",
+            )
+            receipt = load_codex_image_model(
+                root,
+                receipt_artifact,
+                ImageMaterialMappingRecoveryReceipt,
+            )
+        else:
+            receipt_artifact = write_immutable_codex_image_model(
+                root,
+                receipt_path,
+                receipt,
+                kind="material-mapping-recovery-receipt",
+            )
+        evidence = _aq_from_codex(
+            receipt_artifact,
+            role="material_mapping_recovery_receipt",
+        )
+        next_state = transition_state(
+            source_state,
+            event="candidate_validated",
+            evidence=evidence,
+            created_at=receipt.created_at,
+            budget_usage=source_state.budget_usage,
+        )
+        state_path = session_root / "states" / f"{next_state.sequence:04d}.json"
+        if state_path.exists():
+            state_artifact = artifact_for_v2(
+                root,
+                state_path,
+                artifact_id=next_state.contract_id,
+                kind="state",
+            )
+            stored = cast(AutonomyStateV2, _read_model(root, state_artifact, AutonomyStateV2))
+            if stored != next_state:
+                raise FileExistsError("material mapping recovery AQ state differs")
+        else:
+            state_artifact = write_immutable_v2_model(root, state_path, next_state)
+    return receipt, receipt_artifact, state_artifact
+
+
+def prepare_codex_image_material_promotion_retry(
+    job_id: str,
+    session_id: str,
+    *,
+    retry_plan_path: Path,
+    retry_plan_sha256: str,
+    exact_approval: str,
+    allow_disabled_experimental: bool = False,
+) -> tuple[ImageMaterialPromotionRetryReceipt, CodexImageArtifact, dict[str, object]]:
+    """Consume one exact retry approval and publish a new journal around reused evidence."""
+
+    root = job_dir(job_id)
+    session_root = ensure_contained_production_path(
+        root,
+        root / "production" / "autonomy_v2" / session_id,
+        must_exist=True,
+    )
+    plan_path = ensure_contained_production_path(root, retry_plan_path, must_exist=True)
+    if sha256_file(plan_path) != retry_plan_sha256:
+        raise ValueError("material promotion retry plan hash changed")
+    with open(native_io_path(plan_path), "rb") as handle:
+        retry_payload = json.loads(handle.read())
+    required_values = {
+        "status": "proposal_only",
+        "job_id": job_id,
+        "source_session_id": session_id,
+        "profile_id": "autonomous_static_prop_v2_codex_imagegen",
+        "profile_status": "disabled_experimental",
+        "scope": "append_only_material_promotion_guard_retry_only",
+        "reuse_controller_result": True,
+        "new_controller_invocation_allowed": False,
+        "preserve_geometry": True,
+        "preserve_semantic_ids": True,
+        "preserve_material_ids": True,
+        "preserve_imagegen_evidence": True,
+        "delivery_disabled": True,
+        "optimization_disabled": True,
+        "lod_disabled": True,
+        "collider_disabled": True,
+        "destination_write_disabled": True,
+        "canonical_write_authority": "host_material_promotion_service_only",
+        "approval_granted": False,
+    }
+    if any(retry_payload.get(key) != value for key, value in required_values.items()):
+        raise ValueError("material promotion retry plan authority fields changed")
+    if exact_approval != _expected_material_promotion_retry_approval(
+        retry_payload,
+        retry_plan_sha256,
+    ):
+        raise PermissionError("material promotion retry approval is not the exact plan approval")
+    status = get_autonomy_v2_status(job_id, session_id)
+    if status["profile_status"] != "verified_active" and not allow_disabled_experimental:
+        raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
+    state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
+    state = AutonomyStateV2.model_validate_json(json.dumps(status["state"], ensure_ascii=False))
+    if state_artifact.sha256 != retry_payload["source_aq_state_sha256"] or (
+        state.phase,
+        state.status,
+        state.next_action,
+    ) != ("authoring", "running", "validate_candidate"):
+        raise ValueError("material promotion retry source AQ state is stale")
+
+    source_loop_root = _loop_root(root, session_id, must_exist=True)
+    (
+        _source_root,
+        source_plan,
+        source_plan_artifact,
+        source_input,
+        source_input_artifact,
+        source_chain,
+    ) = _load_loop_bundle_from_root(root, source_loop_root)
+    source_terminal_path = source_loop_root / "terminal.json"
+    source_terminal_artifact = artifact_for_codex_image(
+        root,
+        source_terminal_path,
+        artifact_id=f"material-loop-terminal-{session_id}",
+        kind="material-loop-terminal",
+        media_type="application/json",
+    )
+    validate_codex_image_material_loop_terminal(
+        root,
+        source_terminal_artifact,
+        require_current=True,
+    )
+    source_state, source_state_artifact = source_chain[-1]
+    expected_source = {
+        "source_material_loop_state_sha256": source_state_artifact.sha256,
+        "source_material_loop_terminal_sha256": source_terminal_artifact.sha256,
+        "source_bridge_plan_sha256": source_plan_artifact.sha256,
+        "controller_request_sha256": "",
+        "controller_result_sha256": "",
+        "corrected_material_plan_sha256": source_plan.candidate_material_plan.sha256,
+        "corrected_material_graph_sha256": source_plan.material_graph_spec.sha256,
+        "v05_bridge_receipt_sha256": source_plan.v05_bridge_receipt.sha256,
+        "exact_adoption_preflight_receipt_sha256": (
+            source_plan.exact_adoption_preflight.sha256
+            if source_plan.exact_adoption_preflight is not None
+            else ""
+        ),
+    }
+    source_binding_artifact = artifact_for_codex_image(
+        root,
+        source_loop_root / "controller_binding.json",
+        artifact_id=f"material-controller-binding-{session_id}",
+        kind="material-controller-binding",
+        media_type="application/json",
+    )
+    source_binding = load_codex_image_model(
+        root,
+        source_binding_artifact,
+        ImageGeneratedMaterialControllerBinding,
+    )
+    request_artifact = source_binding.controller_execution_request
+    request = load_codex_image_model(root, request_artifact, ControllerExecutionRequest)
+    result_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / session_id
+        / "controller_executions"
+        / request.execution_id
+        / "result.json"
+    )
+    result_artifact = artifact_for_codex_image(
+        root,
+        result_path,
+        artifact_id=f"result-{request.execution_id}",
+        kind="controller-result",
+        media_type="application/json",
+    )
+    result = load_codex_image_model(root, result_artifact, ControllerResult)
+    result_artifact = artifact_for_codex_image(
+        root,
+        result_path,
+        artifact_id=result.contract_id,
+        kind="controller-result",
+        media_type="application/json",
+    )
+    expected_source["controller_request_sha256"] = request_artifact.sha256
+    expected_source["controller_result_sha256"] = result_artifact.sha256
+    if any(retry_payload.get(key) != value for key, value in expected_source.items()):
+        raise ValueError("material promotion retry source evidence changed")
+    _validate_material_controller_binding_request(
+        root,
+        plan=source_plan,
+        controller_input=source_input,
+        input_artifact=source_input_artifact,
+        binding=source_binding,
+        request=request,
+    )
+    _validate_controller_result_material_scope(root, source_plan, result)
+    canonical_blend = ensure_contained_production_path(
+        root,
+        root / "blender" / "scene.blend",
+        must_exist=True,
+    )
+    if sha256_file(canonical_blend) != retry_payload["canonical_geometry_blend_sha256"]:
+        raise ValueError("canonical geometry blend changed before promotion retry")
+
+    implementation_paths = _promotion_retry_implementation_paths()
+    implementation_hashes = {key: sha256_file(path) for key, path in implementation_paths.items()}
+    if retry_payload.get("implementation_evidence") != implementation_hashes:
+        raise ValueError("material promotion retry implementation evidence is stale")
+    retry_id = str(retry_payload["plan_id"])
+    retry_root = _promotion_retry_loop_root(
+        root,
+        session_id,
+        retry_id,
+        must_exist=False,
+    )
+    with autonomy_session_lock(
+        root,
+        session_root,
+        owner_id="aqv2-material-promotion-retry",
+        ttl_seconds=180,
+    ):
+        os.makedirs(native_io_path(retry_root / "implementation"), exist_ok=True)
+        approval_path = retry_root / "approval.txt"
+        approval_bytes = exact_approval.encode("utf-8")
+        if approval_path.exists():
+            with open(native_io_path(approval_path), "rb") as handle:
+                if handle.read() != approval_bytes:
+                    raise FileExistsError("material promotion retry approval differs")
+        else:
+            with open(native_io_path(approval_path), "xb") as handle:
+                handle.write(approval_bytes)
+
+        implementation_artifacts: list[CodexImageArtifact] = []
+        for key, source_path in implementation_paths.items():
+            snapshot_path = retry_root / "implementation" / source_path.name
+            if not snapshot_path.exists():
+                shutil.copyfile(native_io_path(source_path), native_io_path(snapshot_path))
+            if sha256_file(snapshot_path) != implementation_hashes[key]:
+                raise ValueError("material promotion retry implementation snapshot changed")
+            implementation_artifacts.append(
+                artifact_for_codex_image(
+                    root,
+                    snapshot_path,
+                    artifact_id=f"promotion-retry-{key}",
+                    kind="material-promotion-retry-implementation",
+                    media_type="text/x-python",
+                )
+            )
+        retry_plan_artifact = artifact_for_codex_image(
+            root,
+            plan_path,
+            artifact_id=f"{retry_id}-plan",
+            kind="material-promotion-retry-plan",
+            media_type="application/json",
+        )
+        approval_artifact = artifact_for_codex_image(
+            root,
+            approval_path,
+            artifact_id=f"{retry_id}-approval",
+            kind="material-promotion-retry-approval",
+            media_type="text/plain",
+        )
+        source_root = retry_root / "source"
+        os.makedirs(native_io_path(source_root), exist_ok=True)
+        canonical_blend_snapshot = source_root / "canonical_geometry_scene.blend"
+        if not canonical_blend_snapshot.exists():
+            shutil.copyfile(
+                native_io_path(canonical_blend),
+                native_io_path(canonical_blend_snapshot),
+            )
+        if (
+            sha256_file(canonical_blend_snapshot)
+            != retry_payload["canonical_geometry_blend_sha256"]
+        ):
+            raise ValueError("material promotion retry geometry snapshot changed")
+        canonical_blend_artifact = artifact_for_codex_image(
+            root,
+            canonical_blend_snapshot,
+            artifact_id=f"{retry_id}-canonical-geometry",
+            kind="canonical-geometry-blend-snapshot",
+            media_type="application/x-blender",
+        )
+        artifacts = [
+            retry_plan_artifact,
+            approval_artifact,
+            _codex_from_aq(root, state_artifact, kind="source-aq-state"),
+            source_state_artifact,
+            source_terminal_artifact,
+            source_plan_artifact,
+            source_input_artifact,
+            request_artifact,
+            result_artifact,
+            source_plan.candidate_material_plan,
+            source_plan.material_graph_spec,
+            source_plan.v05_bridge_receipt,
+            cast(CodexImageArtifact, source_plan.exact_adoption_preflight),
+            canonical_blend_artifact,
+            *implementation_artifacts,
+        ]
+        receipt = ImageMaterialPromotionRetryReceipt(
+            contract_id=retry_id,
+            job_id=job_id,
+            workflow_id=source_plan.workflow_id,
+            dispatch_id=source_plan.dispatch_id,
+            session_id=session_id,
+            input_sha256=stable_json_digest(
+                {
+                    "artifacts": {item.path: item.sha256 for item in artifacts},
+                    "reuse_controller_result": True,
+                    "new_controller_invocation_allowed": False,
+                }
+            ),
+            source_fingerprint=source_terminal_artifact.sha256,
+            producer=_PRODUCER,
+            provenance=artifacts,
+            created_at=datetime.now(UTC),
+            retry_id=retry_id,
+            retry_plan=retry_plan_artifact,
+            approval=approval_artifact,
+            source_aq_state=artifacts[2],
+            source_failed_material_loop_state=source_state_artifact,
+            source_failed_material_loop_terminal=source_terminal_artifact,
+            source_bridge_plan=source_plan_artifact,
+            source_controller_input=source_input_artifact,
+            source_controller_request=request_artifact,
+            source_controller_result=result_artifact,
+            corrected_material_plan=source_plan.candidate_material_plan,
+            corrected_material_graph=source_plan.material_graph_spec,
+            v05_bridge_receipt=source_plan.v05_bridge_receipt,
+            exact_adoption_preflight=cast(
+                CodexImageArtifact,
+                source_plan.exact_adoption_preflight,
+            ),
+            canonical_geometry_blend_snapshot=canonical_blend_artifact,
+            implementation_snapshots=implementation_artifacts,
+        )
+        receipt_path = retry_root / "retry_receipt.json"
+        receipt_artifact = write_immutable_codex_image_model(
+            root,
+            receipt_path,
+            receipt,
+            kind="material-promotion-retry-receipt",
+        )
+        updated_plan = source_plan.model_copy(
+            update={
+                "current_state": artifacts[2],
+                "promotion_retry_id": retry_id,
+                "promotion_retry_receipt": receipt_artifact,
+                "created_at": receipt.created_at,
+            }
+        )
+        retry_provenance = _bridge_artifacts(updated_plan)
+        retry_plan = updated_plan.model_copy(
+            update={
+                "provenance": retry_provenance,
+                "input_sha256": stable_json_digest(
+                    {item.path: item.sha256 for item in retry_provenance}
+                ),
+            }
+        )
+        published = _publish_codex_image_material_loop_bridge_locked(
+            root,
+            bridge_plan=retry_plan,
+            created_at=receipt.created_at,
+        )
+        retry_loop_root = _promotion_retry_loop_root(
+            root,
+            session_id,
+            retry_id,
+            must_exist=True,
+        )
+        _loop_root_value, bridge, bridge_artifact, controller_input, input_artifact, chain = (
+            _load_loop_bundle_from_root(root, retry_loop_root)
+        )
+        initial, initial_artifact = chain[-1]
+        binding_inputs = dict(controller_input.immutable_input_sha256)
+        binding_inputs[input_artifact.path] = input_artifact.sha256
+        binding_inputs[receipt_artifact.path] = receipt_artifact.sha256
+        binding = ImageGeneratedMaterialControllerBinding(
+            contract_id=f"material-controller-binding-{session_id}",
+            job_id=bridge.job_id,
+            workflow_id=bridge.workflow_id,
+            dispatch_id=bridge.dispatch_id,
+            session_id=bridge.session_id,
+            input_sha256=stable_json_digest(
+                {"request": request_artifact.sha256, "inputs": binding_inputs}
+            ),
+            source_fingerprint=request_artifact.sha256,
+            producer=_PRODUCER,
+            provenance=[
+                bridge_artifact,
+                input_artifact,
+                request_artifact,
+                controller_input.phase_tool_profile,
+                receipt_artifact,
+            ],
+            created_at=receipt.created_at,
+            bridge_plan=bridge_artifact,
+            controller_input=input_artifact,
+            controller_execution_request=request_artifact,
+            phase_tool_profile=controller_input.phase_tool_profile,
+            execution_id=request.execution_id,
+            immutable_input_sha256=binding_inputs,
+            allowed_output_paths=request.allowed_output_paths,
+            expected_output_sha256=request.expected_output_sha256,
+            controller_request_sha256=request_artifact.sha256,
+            reused_controller_result=True,
+            promotion_retry_receipt=receipt_artifact,
+        )
+        _binding, binding_artifact = _write_or_adopt(
+            root,
+            retry_loop_root / "controller_binding.json",
+            binding,
+            kind="material-controller-binding",
+            model_type=ImageGeneratedMaterialControllerBinding,
+        )
+        promoting = _make_state(
+            bridge,
+            bridge_artifact,
+            input_artifact,
+            sequence=initial.sequence + 1,
+            status="promoting_material",
+            budget_usage=initial.budget_usage,
+            created_at=receipt.created_at,
+            previous=(initial, initial_artifact),
+        )
+        promoting, promoting_artifact = _append_state(
+            root,
+            retry_loop_root,
+            bridge,
+            bridge_artifact,
+            input_artifact,
+            promoting,
+        )
+    return receipt, receipt_artifact, {
+        **published,
+        "controller_binding": binding.model_dump(mode="json"),
+        "controller_binding_artifact": binding_artifact.model_dump(mode="json"),
+        "material_loop_state": promoting.model_dump(mode="json"),
+        "material_loop_state_artifact": promoting_artifact.model_dump(mode="json"),
+        "reused_controller_result": result_artifact.model_dump(mode="json"),
+    }
+
+
 def publish_codex_image_material_loop_bridge(
     job_root: Path,
     *,
@@ -2287,6 +3430,27 @@ def _load_loop_bundle(
     """Load and revalidate the plan, assignment, and complete journal."""
 
     loop_root = _loop_root(root, session_id, must_exist=True)
+    return _load_loop_bundle_from_root(root, loop_root)
+
+
+def _load_loop_bundle_from_root(
+    root: Path,
+    loop_root: Path,
+) -> tuple[
+    Path,
+    ImageGeneratedMaterialBridgePlan,
+    CodexImageArtifact,
+    ImageGeneratedMaterialControllerInput,
+    CodexImageArtifact,
+    list[tuple[CodexImageMaterialLoopState, CodexImageArtifact]],
+]:
+    """Load one explicitly selected historical or active material-loop attempt."""
+
+    loop_root = ensure_contained_production_path(root, loop_root, must_exist=True)
+    relative_parts = loop_root.relative_to(root).parts
+    if len(relative_parts) < 4 or relative_parts[:2] != ("production", "autonomy_v2"):
+        raise ValueError("material-loop attempt is outside an AQ v2 session")
+    session_id = relative_parts[2]
     plan_artifact = artifact_for_codex_image(
         root,
         loop_root / "bridge_plan.json",
@@ -2321,6 +3485,198 @@ def _load_loop_bundle(
     return loop_root, plan, plan_artifact, controller_input, input_artifact, chain
 
 
+def _execute_recovery_material_controller(
+    root: Path,
+    plan: ImageGeneratedMaterialBridgePlan,
+    controller_input: ImageGeneratedMaterialControllerInput,
+    input_artifact: CodexImageArtifact,
+    *,
+    controller: CandidateAuthoringController,
+    timeout_seconds: int,
+) -> dict[str, object]:
+    """Run one approved recovery through ControllerExecutor with isolated output leaves."""
+
+    if plan.recovery_id is None:
+        raise ValueError("material recovery executor requires a recovery bridge")
+    session_root = ensure_contained_production_path(
+        root,
+        root / "production" / "autonomy_v2" / plan.session_id,
+        must_exist=True,
+    )
+    with autonomy_session_lock(
+        root,
+        session_root,
+        owner_id="aqv2-material-recovery-controller",
+        ttl_seconds=max(timeout_seconds + 60, 120),
+    ):
+        status = get_autonomy_v2_status(plan.job_id, plan.session_id)
+        state = AutonomyStateV2.model_validate_json(
+            json.dumps(status["state"], ensure_ascii=False)
+        )
+        state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
+        budget = AutonomyBudgetV2.model_validate_json(
+            json.dumps(status["budget"], ensure_ascii=False)
+        )
+        if state_artifact.sha256 != plan.current_state.sha256 or (
+            state.phase,
+            state.status,
+            state.next_action,
+        ) != ("authoring", "running", "execute_controller"):
+            raise PermissionError("material recovery AQ state is not executable")
+        recovery = _validate_material_mapping_recovery_closure(root, plan)
+        if state.provenance[-1].sha256 != plan.geometry_restore_receipt.sha256:
+            raise ValueError("material recovery state lost its approved restore boundary")
+        usage = _consume_controller_budget(state.budget_usage, budget)
+        assignment = _aq_from_codex(input_artifact, role="assignment")
+        immutable_inputs = [
+            _aq_from_codex(
+                item,
+                role=(
+                    "scene"
+                    if item.path == controller_input.canonical_scene_spec.path
+                    else "material-baseline"
+                ),
+            )
+            for item in _controller_input_artifacts(controller_input)
+        ]
+        profile_artifact = _aq_from_codex(
+            controller_input.phase_tool_profile,
+            role="tool_profile",
+        )
+        profile = cast(
+            PhaseToolProfile,
+            _read_model(root, profile_artifact, PhaseToolProfile),
+        )
+        if (
+            profile.profile_id != "material_authoring"
+            or profile.allowed_output_paths != plan.allowed_output_paths
+            or profile.source_fingerprint != recovery.source_failed_material_loop_state.sha256
+        ):
+            raise ValueError("material recovery phase profile changed")
+        execution_id = f"exec-{state.sequence + 1:04d}-material_authoring-repair"
+        execution_root = session_root / "controller_executions" / execution_id
+        request_path = execution_root / "request.json"
+        request_inputs = {
+            "state": stable_json_digest(state.model_dump(mode="json")),
+            "assignment": assignment.sha256,
+            "inputs": [item.sha256 for item in immutable_inputs],
+            "profile": profile_artifact.sha256,
+            "outputs": plan.allowed_output_paths,
+            "recovery": plan.geometry_restore_receipt.sha256,
+        }
+        request = ControllerExecutionRequest(
+            contract_id=f"request-{execution_id}",
+            job_id=plan.job_id,
+            workflow_id=plan.workflow_id,
+            dispatch_id=plan.dispatch_id,
+            session_id=plan.session_id,
+            input_sha256=stable_json_digest(request_inputs),
+            source_fingerprint=stable_json_digest(
+                {**request_inputs, "controller_kind": controller.controller_kind}
+            ),
+            producer="codex_blender_modeler.autonomy_v2.controller_bridge",
+            provenance=[
+                _controller_artifact(assignment, role="assignment"),
+                *[_controller_artifact(item, role=item.kind) for item in immutable_inputs],
+                _controller_artifact(profile_artifact, role="tool_profile"),
+            ],
+            created_at=datetime.now(UTC),
+            execution_id=execution_id,
+            controller_kind=cast(Any, controller.controller_kind),
+            assignment=_controller_artifact(assignment, role="assignment"),
+            immutable_inputs=[
+                _controller_artifact(item, role=item.kind) for item in immutable_inputs
+            ],
+            tool_profile=_controller_artifact(profile_artifact, role="tool_profile"),
+            output_root=plan.output_root,
+            allowed_output_paths=plan.allowed_output_paths,
+            expected_output_sha256=controller_input.expected_output_sha256,
+            timeout_seconds=timeout_seconds,
+        )
+        if request_path.exists():
+            request_artifact = artifact_for_v2(
+                root,
+                request_path,
+                artifact_id=request.contract_id,
+                kind="controller_request",
+            )
+            stored_request = cast(
+                ControllerExecutionRequest,
+                _read_model(root, request_artifact, ControllerExecutionRequest),
+            )
+            if stored_request.model_dump(mode="json", exclude={"created_at"}) != (
+                request.model_dump(mode="json", exclude={"created_at"})
+            ):
+                raise FileExistsError("material recovery controller request differs")
+            request = stored_request
+        else:
+            request_artifact = write_immutable_v2_model(root, request_path, request)
+        result_path = execution_root / "result.json"
+        if result_path.exists():
+            result = validate_controller_execution_result(
+                job_root=root,
+                request_path=request_path,
+                result_path=result_path,
+                controller=controller,
+            )
+            result_artifact = artifact_for_v2(
+                root,
+                result_path,
+                artifact_id=result.contract_id,
+                kind="result",
+            )
+        else:
+            result = execute_controller_request(
+                job_root=root,
+                request_path=request_path,
+                controller=controller,
+            )
+            result_artifact = write_immutable_v2_model(root, result_path, result)
+            result = validate_controller_execution_result(
+                job_root=root,
+                request_path=request_path,
+                result_path=result_path,
+                controller=controller,
+            )
+        event = "controller_output_ready" if result.status == "completed" else "failed"
+        next_state = transition_state(
+            state,
+            event=event,
+            evidence=result_artifact,
+            created_at=result.created_at,
+            budget_usage=usage,
+            reason=(
+                None if result.status == "completed" else f"controller outcome: {result.status}"
+            ),
+        )
+        next_path = session_root / "states" / f"{next_state.sequence:04d}.json"
+        if next_path.exists():
+            next_artifact = artifact_for_v2(
+                root,
+                next_path,
+                artifact_id=next_state.contract_id,
+                kind="state",
+            )
+            stored_state = cast(
+                AutonomyStateV2,
+                _read_model(root, next_artifact, AutonomyStateV2),
+            )
+            if stored_state != next_state:
+                raise FileExistsError("material recovery controller AQ state differs")
+        else:
+            next_artifact = write_immutable_v2_model(root, next_path, next_state)
+    return {
+        "advanced": True,
+        "outcome": (
+            "controller_output_ready" if result.status == "completed" else "controller_failed"
+        ),
+        "request": request.model_dump(mode="json"),
+        "result": result.model_dump(mode="json"),
+        "state": next_state.model_dump(mode="json"),
+        "state_artifact": next_artifact.model_dump(mode="json"),
+    }
+
+
 def execute_codex_image_material_loop_controller(
     job_id: str,
     session_id: str,
@@ -2333,8 +3689,8 @@ def execute_codex_image_material_loop_controller(
 
     base_status = get_autonomy_v2_status(job_id, session_id)
     root = job_dir(job_id)
-    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = (
-        _load_loop_bundle(root, session_id)
+    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = _load_loop_bundle(
+        root, session_id
     )
     aq_plan = cast(
         AutonomyPlanV2,
@@ -2348,10 +3704,7 @@ def execute_codex_image_material_loop_controller(
             AutonomyProfileV2,
         ),
     )
-    if (
-        aq_profile.status != "verified_active"
-        and not allow_disabled_experimental
-    ):
+    if aq_profile.status != "verified_active" and not allow_disabled_experimental:
         raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
     if aq_plan.session_id != session_id:
         raise ValueError("material controller bridge targets another AQ session")
@@ -2378,9 +3731,7 @@ def execute_codex_image_material_loop_controller(
         base_state.status,
         base_state.next_action,
     ) == ("authoring", "running", "validate_candidate"):
-        if not base_state.provenance or not base_state.provenance[-1].path.endswith(
-            "/result.json"
-        ):
+        if not base_state.provenance or not base_state.provenance[-1].path.endswith("/result.json"):
             raise ValueError("candidate validation state omits the controller result")
         recovered_result_artifact = base_state.provenance[-1]
         recovered_result = cast(
@@ -2389,9 +3740,7 @@ def execute_codex_image_material_loop_controller(
         )
         recovered_request_artifact = artifact_for_v2(
             root,
-            root
-            / recovered_result_artifact.path.rsplit("/", 1)[0]
-            / "request.json",
+            root / recovered_result_artifact.path.rsplit("/", 1)[0] / "request.json",
             artifact_id=f"request-{recovered_result.execution_id}",
             kind="controller_request",
         )
@@ -2408,6 +3757,15 @@ def execute_codex_image_material_loop_controller(
             "state_artifact": base_status["state_artifact"],
             "recovered_action": True,
         }
+    elif plan.recovery_id is not None:
+        response = _execute_recovery_material_controller(
+            root,
+            plan,
+            controller_input,
+            input_artifact,
+            controller=controller,
+            timeout_seconds=timeout_seconds,
+        )
     else:
         response = execute_autonomy_v2_controller(
             job_id,
@@ -2434,8 +3792,8 @@ def execute_codex_image_material_loop_controller(
         owner_id="aqv2-image-material-loop-bind",
         ttl_seconds=120,
     ):
-        loop_root, plan, plan_artifact, controller_input, input_artifact, chain = (
-            _load_loop_bundle(root, session_id)
+        loop_root, plan, plan_artifact, controller_input, input_artifact, chain = _load_loop_bundle(
+            root, session_id
         )
         latest = chain[-1][0]
         _validate_controller_request_binding(
@@ -2500,11 +3858,7 @@ def execute_codex_image_material_loop_controller(
         )
         if latest.status == "controller_promotion_required" and result.status == "completed":
             usage = latest.budget_usage.model_copy(
-                update={
-                    "controller_invocations": (
-                        latest.budget_usage.controller_invocations + 1
-                    )
-                }
+                update={"controller_invocations": (latest.budget_usage.controller_invocations + 1)}
             )
             proposed = _make_state(
                 plan,
@@ -2530,9 +3884,7 @@ def execute_codex_image_material_loop_controller(
                 status="failed",
                 budget_usage=latest.budget_usage.model_copy(
                     update={
-                        "controller_invocations": (
-                            latest.budget_usage.controller_invocations + 1
-                        )
+                        "controller_invocations": (latest.budget_usage.controller_invocations + 1)
                     }
                 ),
                 created_at=datetime.now(UTC),
@@ -2639,11 +3991,13 @@ def promote_codex_image_material_loop(
     request = load_codex_image_model(
         root, binding.controller_execution_request, ControllerExecutionRequest
     )
-    _validate_controller_request_binding(
-        request,
+    _validate_material_controller_binding_request(
+        root,
+        request=request,
         plan=bridge,
         controller_input=controller_input,
         input_artifact=input_artifact,
+        binding=binding,
     )
     result = cast(ControllerResult, _read_model(root, result_artifact, ControllerResult))
     if (
@@ -2723,9 +4077,12 @@ def promote_codex_image_material_loop(
         receipt_artifact,
         require_current=True,
     )
-    if receipt.budget_usage_after != AutonomyStateV2.model_validate_json(
-        json.dumps(outcome["state"], ensure_ascii=False)
-    ).budget_usage:
+    if (
+        receipt.budget_usage_after
+        != AutonomyStateV2.model_validate_json(
+            json.dumps(outcome["state"], ensure_ascii=False)
+        ).budget_usage
+    ):
         raise ValueError("AQ supervisor did not adopt the material receipt budget")
     return receipt, receipt_artifact
 
@@ -2750,7 +4107,8 @@ def record_codex_image_material_promotion_failure_locked(
     )
     if supplied_session_root != expected_session_root:
         raise ValueError("material-loop failure guard received another session root")
-    loop_path = expected_session_root / _LOOP_DIR / "bridge_plan.json"
+    selected_loop_root = _loop_root(job_root, plan.session_id, must_exist=False)
+    loop_path = selected_loop_root / "bridge_plan.json"
     if not os.path.exists(native_io_path(loop_path)):
         return None
     loop_root, bridge, plan_artifact, _input, _input_artifact, chain = _load_loop_bundle(
@@ -2780,10 +4138,7 @@ def record_codex_image_material_promotion_failure_locked(
         kind="controller-result",
     )
     rollback_path = (
-        expected_session_root
-        / "material_phase"
-        / f"{state.sequence:04d}"
-        / "rollback_receipt.json"
+        expected_session_root / "material_phase" / f"{state.sequence:04d}" / "rollback_receipt.json"
     )
     phase_root = rollback_path.parent
     promotion_receipt_path = phase_root / "promotion_receipt.json"
@@ -2880,10 +4235,7 @@ def record_codex_image_material_promotion_failure_locked(
         )
     else:
         failed, failed_artifact = latest, latest_artifact
-        if (
-            failed.failure_evidence != failure_evidence
-            or failed.latest_failure != failure_code
-        ):
+        if failed.failure_evidence != failure_evidence or failed.latest_failure != failure_code:
             raise ValueError("existing material-loop failure differs from exact host evidence")
     terminal, terminal_artifact = _publish_pre_promotion_terminal_locked(
         job_root,
@@ -2924,7 +4276,7 @@ def validate_codex_image_material_controller_promotion_boundary(
     )
     if supplied_session_root != expected_session_root:
         raise ValueError("material-loop promotion guard received another session root")
-    loop_root = expected_session_root / _LOOP_DIR
+    loop_root = _loop_root(job_root, plan.session_id, must_exist=False)
     if not os.path.exists(native_io_path(loop_root / "bridge_plan.json")):
         return False
     (
@@ -2964,11 +4316,13 @@ def validate_codex_image_material_controller_promotion_boundary(
     request = load_codex_image_model(
         job_root, binding.controller_execution_request, ControllerExecutionRequest
     )
-    _validate_controller_request_binding(
-        request,
+    _validate_material_controller_binding_request(
+        job_root,
+        request=request,
         plan=bridge,
         controller_input=controller_input,
         input_artifact=input_artifact,
+        binding=binding,
     )
     result = cast(
         ControllerResult,
@@ -2998,14 +4352,12 @@ def validate_codex_image_material_promotion_receipt(
     )
     if receipt.producer != _PRODUCER:
         raise ValueError("material-loop promotion receipt has an unexpected producer")
-    expected_path = (
-        PurePosixPath("production")
-        / "autonomy_v2"
-        / receipt.session_id
-        / _LOOP_DIR
-        / "promotion_receipt.json"
-    ).as_posix()
-    if promotion_artifact.path != expected_path:
+    promotion_path = ensure_contained_production_path(
+        root,
+        root / promotion_artifact.path,
+        must_exist=True,
+    )
+    if promotion_path.name != "promotion_receipt.json":
         raise ValueError("material-loop promotion receipt path is not canonical")
     (
         loop_root,
@@ -3014,7 +4366,10 @@ def validate_codex_image_material_promotion_receipt(
         controller_input,
         input_artifact,
         chain,
-    ) = _load_loop_bundle(root, receipt.session_id)
+    ) = _load_loop_bundle_from_root(root, promotion_path.parent)
+    expected_path = (loop_root.relative_to(root) / "promotion_receipt.json").as_posix()
+    if promotion_artifact.path != expected_path:
+        raise ValueError("material-loop promotion receipt path is not canonical")
     if (
         receipt.bridge_plan != plan_artifact
         or receipt.controller_input != input_artifact
@@ -3025,10 +4380,8 @@ def validate_codex_image_material_promotion_receipt(
         raise ValueError("material-loop promotion identity or plan binding changed")
     if (
         receipt.selection != plan.selection
-        or receipt.companion_selection_receipt
-        != plan.companion_selection_receipt
-        or receipt.native_core_preparation_receipt
-        != plan.native_core_preparation_receipt
+        or receipt.companion_selection_receipt != plan.companion_selection_receipt
+        or receipt.native_core_preparation_receipt != plan.native_core_preparation_receipt
         or receipt.semantic_review != plan.semantic_review
         or receipt.normalization_receipt != plan.normalization_receipt
         or receipt.adoption != plan.adoption
@@ -3058,11 +4411,13 @@ def validate_codex_image_material_promotion_receipt(
     request = load_codex_image_model(
         root, receipt.controller_execution_request, ControllerExecutionRequest
     )
-    _validate_controller_request_binding(
-        request,
+    _validate_material_controller_binding_request(
+        root,
+        request=request,
         plan=plan,
         controller_input=controller_input,
         input_artifact=input_artifact,
+        binding=binding,
     )
     result = cast(
         ControllerResult,
@@ -3073,8 +4428,7 @@ def validate_codex_image_material_promotion_receipt(
         ),
     )
     if (
-        result.producer
-        != "codex_blender_modeler.production.controller_executor.service"
+        result.producer != "codex_blender_modeler.production.controller_executor.service"
         or result.status != "completed"
         or result.execution_id != binding.execution_id
         or result.request.sha256 != receipt.controller_execution_request.sha256
@@ -3096,10 +4450,8 @@ def validate_codex_image_material_promotion_receipt(
     )
     if (
         receipt.controller_result.sha256 != material_receipt.controller_result.sha256
-        or receipt.canonical_material_plan_sha256
-        != material_receipt.canonical_material_plan_sha256
-        or receipt.canonical_scene_spec_sha256
-        != material_receipt.canonical_scene_spec_sha256
+        or receipt.canonical_material_plan_sha256 != material_receipt.canonical_material_plan_sha256
+        or receipt.canonical_scene_spec_sha256 != material_receipt.canonical_scene_spec_sha256
     ):
         raise ValueError("companion promotion differs from MaterialPhaseReceiptV2")
     promoted_base_state = cast(
@@ -3116,8 +4468,7 @@ def validate_codex_image_material_promotion_receipt(
         promoted_base_state.next_action,
     ) != ("quality", "running", "run_integrated_quality") or (
         not promoted_base_state.provenance
-        or promoted_base_state.provenance[-1].sha256
-        != receipt.material_phase_receipt.sha256
+        or promoted_base_state.provenance[-1].sha256 != receipt.material_phase_receipt.sha256
     ):
         raise ValueError("promotion receipt base state did not adopt MaterialPhaseReceiptV2")
     preview = validate_promoted_codex_image_material_preview(
@@ -3167,8 +4518,8 @@ def _finalize_codex_image_material_loop_promotion_locked(
     material_receipt = validate_material_phase_receipt_v2(
         root, material_phase_receipt_artifact, require_current=True
     )
-    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = (
-        _load_loop_bundle(root, material_receipt.session_id)
+    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = _load_loop_bundle(
+        root, material_receipt.session_id
     )
     latest = chain[-1][0]
     if latest.status not in {"promoting_material", "material_promoted", "waiting_for_quality"}:
@@ -3239,18 +4590,10 @@ def _finalize_codex_image_material_loop_promotion_locked(
         validate_codex_image_artifact(root, reference_preview_manifest)
     if reference_preview_image is not None:
         validate_codex_image_artifact(root, reference_preview_image)
-    graph_compile_artifact = _codex_from_aq(
-        root, material_receipt.graph_compile_report
-    )
-    material_validation_artifact = _codex_from_aq(
-        root, material_receipt.material_validation
-    )
-    canonical_material_snapshot = _codex_from_aq(
-        root, material_receipt.canonical_material_snapshot
-    )
-    canonical_scene_snapshot = _codex_from_aq(
-        root, material_receipt.canonical_scene_snapshot
-    )
+    graph_compile_artifact = _codex_from_aq(root, material_receipt.graph_compile_report)
+    material_validation_artifact = _codex_from_aq(root, material_receipt.material_validation)
+    canonical_material_snapshot = _codex_from_aq(root, material_receipt.canonical_material_snapshot)
+    canonical_scene_snapshot = _codex_from_aq(root, material_receipt.canonical_scene_snapshot)
     named = [
         plan_artifact,
         input_artifact,
@@ -3261,27 +4604,15 @@ def _finalize_codex_image_material_loop_promotion_locked(
         base_state_artifact,
         plan.generation_terminal,
         plan.selection,
-        *(
-            [plan.companion_selection_receipt]
-            if plan.companion_selection_receipt
-            else []
-        ),
-        *(
-            [plan.native_core_preparation_receipt]
-            if plan.native_core_preparation_receipt
-            else []
-        ),
+        *([plan.companion_selection_receipt] if plan.companion_selection_receipt else []),
+        *([plan.native_core_preparation_receipt] if plan.native_core_preparation_receipt else []),
         plan.generated_image_evidence,
         plan.semantic_review,
         plan.normalization_receipt,
         plan.adoption,
         plan.material_authoring_manifest,
         plan.material_authoring_receipt,
-        *(
-            [plan.exact_adoption_preflight]
-            if plan.exact_adoption_preflight
-            else []
-        ),
+        *([plan.exact_adoption_preflight] if plan.exact_adoption_preflight else []),
         graph_compile_artifact,
         material_validation_artifact,
         neutral_preview_artifact,
@@ -3343,9 +4674,7 @@ def _finalize_codex_image_material_loop_promotion_locked(
     )
     if latest.status == "promoting_material":
         promoted_usage = latest.budget_usage.model_copy(
-            update={
-                "promotions_consumed": latest.budget_usage.promotions_consumed + 1
-            }
+            update={"promotions_consumed": latest.budget_usage.promotions_consumed + 1}
         )
         promoted = _make_state(
             plan,
@@ -3457,9 +4786,7 @@ def record_codex_image_material_loop_quality_result_locked(
         raise ValueError("AQ quality result omits its exact next state")
     if not isinstance(raw_terminal, dict):
         raise ValueError("AQ quality result omits its exact quality terminal")
-    base_state = AutonomyStateV2.model_validate_json(
-        json.dumps(raw_state, ensure_ascii=False)
-    )
+    base_state = AutonomyStateV2.model_validate_json(json.dumps(raw_state, ensure_ascii=False))
     base_state_aq = AQV2Artifact.model_validate_json(
         json.dumps(raw_state_artifact, ensure_ascii=False)
     )
@@ -3471,8 +4798,7 @@ def record_codex_image_material_loop_quality_result_locked(
     if (
         base_state.session_id != session_id
         or base_state.quality_terminal != base_quality_terminal_aq
-        or base_terminal.integrated_quality_report
-        != submission.integrated_quality_report
+        or base_terminal.integrated_quality_report != submission.integrated_quality_report
     ):
         raise ValueError("AQ quality state, terminal, or submitted report differs")
     outcome = supervisor_result.get("outcome")
@@ -3539,9 +4865,7 @@ def record_codex_image_material_loop_quality_result_locked(
             failure_evidence=(
                 base_quality_terminal if target_status in {"blocked", "failed"} else None
             ),
-            review_evidence=(
-                review_bundle if target_status == "review_required" else None
-            ),
+            review_evidence=(review_bundle if target_status == "review_required" else None),
             latest_failure=(base_terminal.reason if target_status == "failed" else None),
         )
         latest, latest_artifact = _append_state(
@@ -3572,9 +4896,7 @@ def record_codex_image_material_loop_quality_result_locked(
         workflow_id=plan.workflow_id,
         dispatch_id=plan.dispatch_id,
         session_id=plan.session_id,
-        input_sha256=stable_json_digest(
-            {item.path: item.sha256 for item in terminal_provenance}
-        ),
+        input_sha256=stable_json_digest({item.path: item.sha256 for item in terminal_provenance}),
         source_fingerprint=base_quality_terminal.sha256,
         producer=_PRODUCER,
         provenance=terminal_provenance,
@@ -3621,26 +4943,22 @@ def validate_codex_image_material_loop_terminal(
 
     root = ensure_contained_codex_image_path(job_root, job_root, must_exist=True)
     validate_codex_image_artifact(root, terminal_artifact)
-    terminal = load_codex_image_model(
-        root, terminal_artifact, CodexImageMaterialLoopTerminal
+    terminal = load_codex_image_model(root, terminal_artifact, CodexImageMaterialLoopTerminal)
+    terminal_path = ensure_contained_production_path(
+        root,
+        root / terminal_artifact.path,
+        must_exist=True,
     )
-    expected_path = (
-        PurePosixPath("production")
-        / "autonomy_v2"
-        / terminal.session_id
-        / _LOOP_DIR
-        / "terminal.json"
-    ).as_posix()
+    loop_root, plan, plan_artifact, _input, _input_artifact, chain = (
+        _load_loop_bundle_from_root(root, terminal_path.parent)
+    )
+    expected_path = (loop_root.relative_to(root) / "terminal.json").as_posix()
     if (
         terminal.producer != _PRODUCER
         or terminal.contract_id != f"material-loop-terminal-{terminal.session_id}"
         or terminal_artifact.path != expected_path
     ):
         raise ValueError("material-loop terminal publisher or path is not canonical")
-    loop_root, plan, plan_artifact, _input, _input_artifact, chain = _load_loop_bundle(
-        root, terminal.session_id
-    )
-    del loop_root
     latest, latest_artifact = chain[-1]
     if (
         terminal.bridge_plan != plan_artifact
@@ -3801,21 +5119,16 @@ def validate_codex_image_material_loop_terminal(
             terminal.material_phase_receipt.path,
             terminal.material_phase_receipt.sha256,
         )
-        current_provenance = {
-            (item.path, item.sha256) for item in current_state.provenance
-        }
+        current_provenance = {(item.path, item.sha256) for item in current_state.provenance}
         if (
             current_state.plan.sha256 != plan.aq_plan.sha256
             or current_state.session_id != terminal.session_id
             or current_state.quality_terminal is None
-            or current_state.quality_terminal.sha256
-            != terminal.base_quality_terminal.sha256
+            or current_state.quality_terminal.sha256 != terminal.base_quality_terminal.sha256
             or material_binding not in current_provenance
         ):
             raise ValueError("current AQ descendant does not retain material quality closure")
-        expected_freeze_sha = (
-            terminal.quality_freeze.sha256 if terminal.quality_freeze else None
-        )
+        expected_freeze_sha = terminal.quality_freeze.sha256 if terminal.quality_freeze else None
         observed_freeze_sha = (
             current_state.source_freeze.sha256 if current_state.source_freeze else None
         )
@@ -3862,9 +5175,7 @@ def _controller_execution_status_projection(
             request_artifact,
             ControllerExecutionRequest,
         )
-    elif base_state.provenance and base_state.provenance[-1].path.endswith(
-        "/result.json"
-    ):
+    elif base_state.provenance and base_state.provenance[-1].path.endswith("/result.json"):
         result_artifact = _codex_from_aq(
             root,
             base_state.provenance[-1],
@@ -3885,12 +5196,22 @@ def _controller_execution_status_projection(
             ControllerExecutionRequest,
         )
     if request is not None and request_artifact is not None:
-        _validate_controller_request_binding(
-            request,
-            plan=plan,
-            controller_input=controller_input,
-            input_artifact=input_artifact,
-        )
+        if binding_model is not None:
+            _validate_material_controller_binding_request(
+                root,
+                plan=plan,
+                controller_input=controller_input,
+                input_artifact=input_artifact,
+                binding=binding_model,
+                request=request,
+            )
+        else:
+            _validate_controller_request_binding(
+                request,
+                plan=plan,
+                controller_input=controller_input,
+                input_artifact=input_artifact,
+            )
         if result is None:
             result_path = root / request_artifact.path.rsplit("/", 1)[0] / "result.json"
             if result_path.is_file():
@@ -3912,27 +5233,21 @@ def _controller_execution_status_projection(
         "status": (
             result.status
             if result is not None
-            else "request_published" if request is not None else "not_started"
+            else "request_published"
+            if request is not None
+            else "not_started"
         ),
-        "binding": (
-            binding_model.model_dump(mode="json") if binding_model is not None else None
-        ),
+        "binding": (binding_model.model_dump(mode="json") if binding_model is not None else None),
         "binding_artifact": (
-            binding_artifact.model_dump(mode="json")
-            if binding_artifact is not None
-            else None
+            binding_artifact.model_dump(mode="json") if binding_artifact is not None else None
         ),
         "request": request.model_dump(mode="json") if request is not None else None,
         "request_artifact": (
-            request_artifact.model_dump(mode="json")
-            if request_artifact is not None
-            else None
+            request_artifact.model_dump(mode="json") if request_artifact is not None else None
         ),
         "result": result.model_dump(mode="json") if result is not None else None,
         "result_artifact": (
-            result_artifact.model_dump(mode="json")
-            if result_artifact is not None
-            else None
+            result_artifact.model_dump(mode="json") if result_artifact is not None else None
         ),
     }
 
@@ -3976,14 +5291,10 @@ def _remaining_budget_status_projection(
         "package_repairs": budget.package_repairs,
         "total_actions": min(budget.global_action_limit, aq_plan.action_limit),
     }
-    if any(
-        getattr(base_state.budget_usage, name) > limit
-        for name, limit in base_limits.items()
-    ):
+    if any(getattr(base_state.budget_usage, name) > limit for name, limit in base_limits.items()):
         raise ValueError("base AQ budget usage exceeds the immutable loop authorization")
     base_remaining = {
-        name: limit - getattr(base_state.budget_usage, name)
-        for name, limit in base_limits.items()
+        name: limit - getattr(base_state.budget_usage, name) for name, limit in base_limits.items()
     }
     return {"material_loop": material_remaining, "base_aq": base_remaining}
 
@@ -3995,8 +5306,8 @@ def get_codex_image_material_loop_status(
     """Reconstruct and report the current material-loop companion without mutation."""
 
     root = ensure_contained_production_path(job_root, job_root, must_exist=True)
-    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = (
-        _load_loop_bundle(root, session_id)
+    loop_root, plan, plan_artifact, controller_input, input_artifact, chain = _load_loop_bundle(
+        root, session_id
     )
     latest, latest_artifact = chain[-1]
     session_root = root / "production" / "autonomy_v2" / session_id
@@ -4007,8 +5318,7 @@ def get_codex_image_material_loop_status(
         role="state",
     )
     base_state_current = any(
-        artifact.path == expected_base_state.path
-        and artifact.sha256 == expected_base_state.sha256
+        artifact.path == expected_base_state.path and artifact.sha256 == expected_base_state.sha256
         for _state, artifact in base_chain
     )
     terminal_path = loop_root / "terminal.json"

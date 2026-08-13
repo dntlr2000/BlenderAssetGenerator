@@ -63,6 +63,52 @@ chain, before/after constraint evidence, terminal JSON과 PDF sidecar를 함께
 신규 실행 binding이 없는 legacy partial plan은 status-only evidence로 취급되므로
 승인하거나 재개하지 말고 current direct QA에서 새 plan을 작성합니다.
 
+## 3A. 종료된 workspace 분리 보관
+
+먼저 read-only 후보 보고서를 확인한다.
+
+```powershell
+uv run cbm workspace-archive-candidates
+```
+
+기본 적격 대상은 exact V0.8 workflow 상태가 `completed` 또는 `cancelled`이고 active
+queue/lock/non-terminal production dispatch/AQ session이 없는 job뿐이다. workflow가 없거나
+`blocked`, agent/approval 대기, 실행 중인 job은 이동하지 않는다.
+
+한 job을 archive하려면:
+
+```powershell
+uv run cbm workspace-archive <job-id>
+```
+
+기본 위치는 active `workspaces/`의 형제인 `workspace_archive/`다. 외부 workspace를
+사용한다면 같은 볼륨의 별도 위치를 `CBM_WORKSPACE_ARCHIVE_ROOT` 또는
+`--archive-root`로 지정할 수 있다. 다른 볼륨으로의 recursive copy는 지원하지 않는다.
+
+실패 상태는 복구 가능성을 보존하기 위해 자동 적격이 아니다. 사용자가 해당 exact failed
+workflow를 별도 보관하기로 결정한 경우에만 다음 좁은 권한을 사용한다.
+
+```powershell
+uv run cbm workspace-archive <job-id> --allow-failed
+```
+
+명령 결과의 `receipt_id`로 복원한다.
+
+```powershell
+uv run cbm workspace-restore <archive-receipt-id>
+```
+
+archive/restore의 directory rename 뒤 receipt 기록 전에 프로세스가 중단된 경우 persisted
+`plan_id`를 그대로 사용한다.
+
+```powershell
+uv run cbm workspace-relocation-resume <plan-id>
+```
+
+Archive는 job 내부 파일이나 `input/`을 수정하지 않는다. archived job을 직접 실행하거나
+archive 경로를 active workspace로 지정하지 말고, 항상 exact restore receipt를 거쳐 원래
+`workspaces/<job-id>` 위치로 되돌린 뒤 사용한다.
+
 ## 4. PDF 보고서
 
 ```powershell

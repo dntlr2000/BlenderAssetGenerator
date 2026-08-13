@@ -204,3 +204,96 @@ def test_overlay_terminal_requires_only_its_exact_terminal_artifact() -> None:
     assert closed.status == "local_procedural_fallback"
     assert closed.next_action == "none"
     assert closed.terminal_reason == "immutable ImageGen budget is unavailable"
+
+
+def test_overlay_appends_one_exact_normalized_material_evidence_repair() -> None:
+    """Preserve the direct receipt while accepting only plan/approval/new receipt evidence."""
+
+    now = datetime(2026, 8, 11, tzinfo=UTC)
+    state = _initial()
+    assignment = _artifact("assignment", 20)
+    state = transition_codex_image_overlay(
+        state,
+        event="assignment_published",
+        evidence=[assignment],
+        assignment=assignment,
+        created_at=now + timedelta(seconds=1),
+    )
+    request = _artifact("controller-request", 21)
+    completion = _artifact("completion", 22)
+    result = _artifact("controller-result", 23)
+    state = transition_codex_image_overlay(
+        state,
+        event="completion_adopted",
+        evidence=[request, completion, result],
+        controller_request=request,
+        completion=completion,
+        controller_result=result,
+        budget_usage=CodexImageGenerationBudgetUsage(assignments=1),
+        created_at=now + timedelta(seconds=2),
+    )
+    candidate = _artifact("candidate", 24)
+    report = _artifact("report", 25)
+    state = transition_codex_image_overlay(
+        state,
+        event="quality_completed",
+        evidence=[candidate, report],
+        candidates=[candidate],
+        quality_reports=[report],
+        created_at=now + timedelta(seconds=3),
+    )
+    selection = _artifact("selection", 26)
+    state = transition_codex_image_overlay(
+        state,
+        event="candidate_selected",
+        evidence=[selection],
+        selection=selection,
+        created_at=now + timedelta(seconds=4),
+    )
+    adoption = _artifact("material-adoption", 27)
+    direct_receipt = _artifact("direct-material-receipt", 28)
+    terminal = _artifact("generation-terminal", 29)
+    state = transition_codex_image_overlay(
+        state,
+        event="material_candidate_staged",
+        evidence=[adoption, direct_receipt, terminal],
+        material_adoption=adoption,
+        material_authoring_receipt=direct_receipt,
+        generation_terminal=terminal,
+        created_at=now + timedelta(seconds=5),
+    )
+    plan = _artifact("repair-plan", 30).model_copy(
+        update={"kind": "material-evidence-repair-plan"}
+    )
+    approval = _artifact("repair-approval", 31).model_copy(
+        update={"kind": "material-evidence-repair-approval"}
+    )
+    normalized = _artifact("normalized-material-receipt", 32).model_copy(
+        update={"kind": "codex-image-normalized-material-authoring-receipt"}
+    )
+
+    repaired = transition_codex_image_overlay(
+        state,
+        event="material_evidence_repaired",
+        evidence=[plan, approval, normalized],
+        material_authoring_receipt=normalized,
+        created_at=now + timedelta(seconds=6),
+    )
+
+    assert repaired.sequence == state.sequence + 1
+    assert repaired.material_authoring_receipt == normalized
+    assert direct_receipt in repaired.provenance
+    assert repaired.provenance[-3:] == [plan, approval, normalized]
+    assert (repaired.phase, repaired.status, repaired.next_action) == (
+        "adoption",
+        "adopted",
+        "controller_promotion_required",
+    )
+    with pytest.raises(ValueError, match="replay consumed evidence"):
+        transition_codex_image_overlay(
+            state,
+            event="material_evidence_repaired",
+            evidence=[plan, approval, direct_receipt],
+            material_authoring_receipt=direct_receipt,
+            created_at=now + timedelta(seconds=6),
+        )

@@ -145,6 +145,7 @@ from codex_blender_modeler.codex_imagegen.material_loop_models import (
     ImageGeneratedMaterialPromotionReceipt,
     ImageGenNativeNormalizationPlan,
     ImageGenNativeNormalizationReceipt,
+    ImageMaterialPromotionRetryReceipt,
 )
 from codex_blender_modeler.codex_imagegen.models import (
     CodexBuiltinImageProviderProfile,
@@ -320,6 +321,10 @@ from codex_blender_modeler.reference_evidence.models import (
     ReferenceEvidenceRunResult,
 )
 from codex_blender_modeler.reporting.models import HumanReportManifest
+from codex_blender_modeler.stabilization.archive_models import (
+    WorkspaceRelocationPlan,
+    WorkspaceRelocationReceipt,
+)
 from codex_blender_modeler.stabilization.models import (
     EnvironmentProbeReport,
     LocalWorkflowQueue,
@@ -446,6 +451,8 @@ SCHEMAS = {
     "workflow_lock.schema.json": WorkflowLock,
     "environment_probe.schema.json": EnvironmentProbeReport,
     "workspace_audit.schema.json": WorkspaceAuditReport,
+    "workspace_relocation_plan.schema.json": WorkspaceRelocationPlan,
+    "workspace_relocation_receipt.schema.json": WorkspaceRelocationReceipt,
     "local_workflow_queue.schema.json": LocalWorkflowQueue,
     "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
     "queue_lock.schema.json": QueueLock,
@@ -632,6 +639,9 @@ SCHEMAS = {
     ),
     "image_generated_material_promotion_receipt_0_1_0.schema.json": (
         ImageGeneratedMaterialPromotionReceipt
+    ),
+    "image_material_promotion_retry_receipt_0_1_0.schema.json": (
+        ImageMaterialPromotionRetryReceipt
     ),
     "image_generated_material_neutral_preview_0_1_0.schema.json": (
         ImageGeneratedMaterialNeutralPreview

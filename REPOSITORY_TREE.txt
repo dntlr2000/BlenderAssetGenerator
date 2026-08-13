@@ -47,6 +47,7 @@ BlenderAssetGenerator/
   GETTING_STARTED_V07_KO.md
   GETTING_STARTED_V08_KO.md
   GETTING_STARTED_V09_KO.md
+  IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md
   INTERIOR_SCOPE_KO.md
   MATERIAL_AUTHORING_KO.md
   MIGRATION_AQ_V02_KO.md
@@ -126,6 +127,7 @@ BlenderAssetGenerator/
   prompts/compare_reference_preview.md
   prompts/convert_portable_materials.md
   prompts/generate_qa_target.md
+  prompts/imagegen_material_loop.md
   prompts/measured_modeling.md
   prompts/orchestrate_short_request.md
   prompts/plan_asset_optimization.md
@@ -267,6 +269,7 @@ BlenderAssetGenerator/
   schemas/image_generated_material_controller_input_0_1_0.schema.json
   schemas/image_generated_material_neutral_preview_0_1_0.schema.json
   schemas/image_generated_material_promotion_receipt_0_1_0.schema.json
+  schemas/image_material_promotion_retry_receipt_0_1_0.schema.json
   schemas/image_to_material_adoption.schema.json
   schemas/imagegen_native_normalization_plan_0_1_0.schema.json
   schemas/imagegen_native_normalization_receipt_0_1_0.schema.json
@@ -397,6 +400,8 @@ BlenderAssetGenerator/
   schemas/workflow_state.schema.json
   schemas/workflow_step_completion.schema.json
   schemas/workspace_audit.schema.json
+  schemas/workspace_relocation_plan.schema.json
+  schemas/workspace_relocation_receipt.schema.json
   scripts/bootstrap.ps1
   scripts/bootstrap.sh
   scripts/check_agent_instructions.py
@@ -745,10 +750,12 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/revision.py
   src/codex_blender_modeler/shader_recipe_runtime.py
   src/codex_blender_modeler/stabilization/__init__.py
+  src/codex_blender_modeler/stabilization/archive_models.py
   src/codex_blender_modeler/stabilization/locks.py
   src/codex_blender_modeler/stabilization/models.py
   src/codex_blender_modeler/stabilization/pdf_report.py
   src/codex_blender_modeler/stabilization/service.py
+  src/codex_blender_modeler/stabilization/workspace_archive.py
   src/codex_blender_modeler/structural_geometry/__init__.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
@@ -933,6 +940,7 @@ BlenderAssetGenerator/
   tests/test_v09_public_surface.py
   tests/test_v09_stabilization.py
   tests/test_v09_visual_convergence_audit.py
+  tests/test_v09_workspace_archive.py
   tests/test_visual_convergence_contracts.py
   tests/test_visual_convergence_reporting.py
   tests/test_visual_convergence_service.py
@@ -1144,4 +1152,6 @@ BlenderAssetGenerator/
   verification/evidence/v09_20260811/workspaces/v09_production_smoke/production/dispatches/dispatch-20260811t075006z-88193860/task_launch_manifest.json
   verification/evidence/v09_20260811/workspaces/v09_production_smoke/workflows/wf-20260811t075006z-f0a0a74a/state.json
   verification/evidence/v09_20260811/workspaces/v09_queue_smoke/workflows/wf-20260811t075022z-522f595e/state.json
+  verification/evidence/workspace_archive_20260813/README.md
+  verification/evidence/workspace_archive_20260813/manifest.json
   verification/latest_summary.json

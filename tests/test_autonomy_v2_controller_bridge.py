@@ -35,6 +35,10 @@ from codex_blender_modeler.production.controller_executor import (
     DesktopInSessionController,
     FakeControllerForTests,
 )
+from codex_blender_modeler.production.models import DelegatedProductionAdvanceReceipt
+from codex_blender_modeler.production.service import (
+    advance_delegated_production_controller,
+)
 
 
 def _planned(
@@ -250,6 +254,108 @@ def test_v2_bridge_runs_one_isolated_controller_action(
             immutable_inputs=[camera],
             controller=FakeControllerForTests(),
             timeout_seconds=30,
+        )
+
+
+def test_public_reference_assignment_and_desktop_resume_preserve_production_anchor(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run the real AQ/V0.9 assignment and desktop adoption lifecycle without anchor bypass."""
+
+    root, planned = _planned(tmp_path, monkeypatch, "aq_v2_production_anchor")
+    session_id = str(planned["session_id"])
+    reference = advance_autonomy_v2(
+        root.name,
+        session_id,
+        allow_disabled_experimental=True,
+    )
+    assert reference["outcome"] == "reference_ready"
+    production = reference["production_state"]
+    assigned = advance_delegated_production_controller(
+        root.name,
+        str(planned["dispatch_id"]),
+        str(production["controller_id"]),
+    )
+    assignment_payload = assigned["state"]["current_assignment"]
+    assert isinstance(assignment_payload, dict)
+    assignment_path = root / str(assignment_payload["path"])
+    assignment = artifact_for_v2(
+        root,
+        assignment_path,
+        artifact_id="production-geometry-assignment",
+        kind="assignment",
+    )
+    _unused_assignment, camera = _inputs(root, session_id)
+    waiting = execute_autonomy_v2_controller(
+        root.name,
+        session_id,
+        phase_profile_id="geometry_authoring",
+        assignment=assignment,
+        immutable_inputs=[camera],
+        controller=DesktopInSessionController(),
+        timeout_seconds=30,
+    )
+    request = ControllerExecutionRequest.model_validate_json(
+        json.dumps(waiting["request"])
+    )
+    assert waiting["result"]["status"] == "waiting_for_output"
+    for index, output in enumerate(_desktop_output_paths(root, session_id, request)):
+        os.makedirs(native_io_path(output.parent), exist_ok=True)
+        Path(native_io_path(output)).write_text(
+            f"production-anchor-output-{index}\n",
+            encoding="utf-8",
+        )
+
+    resumed = advance_autonomy_v2(
+        root.name,
+        session_id,
+        allow_disabled_experimental=True,
+    )
+    assert resumed["advanced"] is True
+    assert resumed["state"]["next_action"] == "validate_candidate"
+
+    advances_root = (
+        root
+        / "production"
+        / "dispatches"
+        / str(planned["dispatch_id"])
+        / "advances"
+    )
+    receipts = [
+        DelegatedProductionAdvanceReceipt.model_validate_json(path.read_bytes())
+        for path in sorted(advances_root.glob("*.json"))
+    ]
+    assert len(receipts) == 2
+    assert (
+        receipts[0].workflow_state_after_sha256
+        == receipts[1].workflow_state_before_sha256
+    )
+    workflow_state_path = root / "workflows" / str(planned["workflow_id"]) / "state.json"
+    assert receipts[-1].workflow_state_after_sha256 == sha256_file(workflow_state_path)
+
+    original_state = workflow_state_path.read_bytes()
+    tampered_state = json.loads(original_state)
+    tampered_state["updated_at"] = "2099-01-01T00:00:00Z"
+    workflow_state_path.write_text(
+        json.dumps(tampered_state, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="receipt tail|controller state"):
+        advance_autonomy_v2(
+            root.name,
+            session_id,
+            allow_disabled_experimental=True,
+        )
+    workflow_state_path.write_bytes(original_state)
+
+    reference_snapshot = root / receipts[0].workflow_state_after.path
+    reference_snapshot.write_bytes(reference_snapshot.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="hash mismatch"):
+        advance_autonomy_v2(
+            root.name,
+            session_id,
+            allow_disabled_experimental=True,
         )
 
 

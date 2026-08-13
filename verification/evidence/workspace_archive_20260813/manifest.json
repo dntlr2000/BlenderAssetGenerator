@@ -1,0 +1,156 @@
+{
+  "schema_version": "0.1.0",
+  "recorded_on": "2026-08-13",
+  "status": "local_terminal_workspace_archive_verified",
+  "archive_root_kind": "default_same_volume_workspace_sibling",
+  "archived_job_count": 16,
+  "failed_job_count": 0,
+  "file_count": 27965,
+  "directory_count": 13265,
+  "byte_size": 3456425516,
+  "remaining_eligible_job_count": 0,
+  "excluded_completed_jobs": [
+    {
+      "job_id": "collectible_plastic_01_desktop",
+      "reason": "production advance workflow-state lineage is broken"
+    },
+    {
+      "job_id": "collectible_rock_01",
+      "reason": "production advance workflow-state lineage is broken"
+    },
+    {
+      "job_id": "collectible_scrap_01",
+      "reason": "production advance workflow-state lineage is broken"
+    }
+  ],
+  "archives": [
+    {
+      "job_id": "collectible_cloth_01",
+      "receipt_id": "receipt-workspace-archive-20260813t123625758987z-65a9ab63",
+      "receipt_sha256": "ad24fd32ca0252f207ef205dcdbad6947e77ef7c9b055747a167ee0cf738c8e3",
+      "archive_entry_path": "completed/2026-08/collectible_cloth_01--65a9ab63",
+      "tree_sha256": "ec523a5c8f288997b72b2ed18f9b9cf9294aefd3a4c9eabba5ddb5c66fc728c4",
+      "byte_size": 78103184
+    },
+    {
+      "job_id": "collectible_plastic_02",
+      "receipt_id": "receipt-workspace-archive-20260813t123630689097z-7c6f4a0e",
+      "receipt_sha256": "ca8c5af9fc74922fc43f491339e36a81beaf1f1c467d5f7e0ec7b3c73d599d62",
+      "archive_entry_path": "completed/2026-08/collectible_plastic_02--7c6f4a0e",
+      "tree_sha256": "827c56dd7f860378cda863ab6374b315fb98c31db9ecab5ddff28b6529fcd5ea",
+      "byte_size": 60810304
+    },
+    {
+      "job_id": "collectible_wood_01",
+      "receipt_id": "receipt-workspace-archive-20260813t123634077550z-40bd8000",
+      "receipt_sha256": "1dc8bf421ae9904086cecaddc57022cf37b596df9db06d14effe4ce923408b5e",
+      "archive_entry_path": "completed/2026-08/collectible_wood_01--40bd8000",
+      "tree_sha256": "a04da780a766ba6db0b3fbbdc443e39f07c2ba07d6371263c45bc2e7abbfcdc0",
+      "byte_size": 57485479
+    },
+    {
+      "job_id": "item_cannongun_heavy",
+      "receipt_id": "receipt-workspace-archive-20260813t123641462460z-b3fa862a",
+      "receipt_sha256": "b9b4f47a1a5e8118f50e7653ccedbee04e176c8229fdeef1f90f5a7adc78bc2a",
+      "archive_entry_path": "completed/2026-08/item_cannongun_heavy--b3fa862a",
+      "tree_sha256": "b10c44c7eb6b80ec7a80c2039481704c21ca2cf8fc19253445b6fc5f94b60fd4",
+      "byte_size": 153421569
+    },
+    {
+      "job_id": "item_cannongun_light",
+      "receipt_id": "receipt-workspace-archive-20260813t123708896825z-e06dd72a",
+      "receipt_sha256": "2aaf471f564cac4ed328c1496884d19c6015f27d414073089fba84aea332f67d",
+      "archive_entry_path": "completed/2026-08/item_cannongun_light--e06dd72a",
+      "tree_sha256": "c92c4e233245978bfd7f9d30911ac67c7fc3018568224f63d957dc346764c0f4",
+      "byte_size": 516285706
+    },
+    {
+      "job_id": "item_canongun_normal",
+      "receipt_id": "receipt-workspace-archive-20260813t123721227522z-c54e50f1",
+      "receipt_sha256": "73f864ee7b9a318c96b1ff541b7c35ba0e49be64ad5782ef9a948a2bac1362e2",
+      "archive_entry_path": "completed/2026-08/item_canongun_normal--c54e50f1",
+      "tree_sha256": "39a286bd308e0451a2cca2b785826d0c678d9400ab9d1600dba5bdc0ad110005",
+      "byte_size": 253384840
+    },
+    {
+      "job_id": "item_degradedgun",
+      "receipt_id": "receipt-workspace-archive-20260813t123727391755z-c0d9acc0",
+      "receipt_sha256": "2b9bad52174ece4cedeb70db17fb43f2ae7b780f6216db8516482a158a57ce9c",
+      "archive_entry_path": "completed/2026-08/item_degradedgun--c0d9acc0",
+      "tree_sha256": "97f34e600647c736323f3c55ccf236eca471868def9611ed2fc54606bd23908a",
+      "byte_size": 127383776
+    },
+    {
+      "job_id": "item_lasergun_heavy",
+      "receipt_id": "receipt-workspace-archive-20260813t123733925027z-3d48881b",
+      "receipt_sha256": "1303db183321a10b77eed4724d6de8adae232df149fa6bc1b6bace6a1d89a0db",
+      "archive_entry_path": "completed/2026-08/item_lasergun_heavy--3d48881b",
+      "tree_sha256": "0b5a818446b58abe4c84629ece3f686702e124e0620b017a94ea93b4c4707301",
+      "byte_size": 133480091
+    },
+    {
+      "job_id": "item_lasergun_light",
+      "receipt_id": "receipt-workspace-archive-20260813t123805522544z-966f2475",
+      "receipt_sha256": "da4ed8dc6be874b7fe078ee330b9a962cd3f0fe9cb299f1597e2255c3a8cd25f",
+      "archive_entry_path": "completed/2026-08/item_lasergun_light--966f2475",
+      "tree_sha256": "ac55a3072c177255087aeebef74ffa1480494a68d57a8dc2ebe9c67102d67b78",
+      "byte_size": 272864628
+    },
+    {
+      "job_id": "item_standardgun_light",
+      "receipt_id": "receipt-workspace-archive-20260813t123819946306z-36d88bb7",
+      "receipt_sha256": "b0f9226a92ae1e6fa62091d0c32500009f1339e8d3b9dd18f21fc3680e5af19c",
+      "archive_entry_path": "completed/2026-08/item_standardgun_light--36d88bb7",
+      "tree_sha256": "0d32d62046290fc1b7c95e8b3976d26f6168a00bd0e9e6ae3ab82136ba253015",
+      "byte_size": 182854101
+    },
+    {
+      "job_id": "item_standardgun_normal",
+      "receipt_id": "receipt-workspace-archive-20260813t123826301754z-8b0c3df6",
+      "receipt_sha256": "3a564d53b20b29fd727a6a582f41f47c3cf7da712259ac24c8d36498088996c0",
+      "archive_entry_path": "completed/2026-08/item_standardgun_normal--8b0c3df6",
+      "tree_sha256": "ea9ea941266284e1ea6755a7f8bfff327028fa34357e5ad9848bcf9fa83a7790",
+      "byte_size": 123579211
+    },
+    {
+      "job_id": "sunken_submarine_a",
+      "receipt_id": "receipt-workspace-archive-20260813t123845219716z-11cc69c4",
+      "receipt_sha256": "7b6f01a49fd9219b05afe4458fbc20225ada52e483ae19ac8b495ba2d4bfbf10",
+      "archive_entry_path": "completed/2026-08/sunken_submarine_a--11cc69c4",
+      "tree_sha256": "0bfcfc6b6e2df3264ec947028e53fce73498b9781c88e9593a1d061a4dded3e0",
+      "byte_size": 1071810879
+    },
+    {
+      "job_id": "underwater_aidkit",
+      "receipt_id": "receipt-workspace-archive-20260813t123902868930z-fee09372",
+      "receipt_sha256": "4f738c56ee0808ab905ed9d4c68e2eec3e37d09135c128387ff79a05249f3353",
+      "archive_entry_path": "completed/2026-08/underwater_aidkit--fee09372",
+      "tree_sha256": "bcfa35526d6667963fe3d875e9fc461cdb2683d597ca8dfa2b8f5824ed3190e7",
+      "byte_size": 92382419
+    },
+    {
+      "job_id": "underwater_car4",
+      "receipt_id": "receipt-workspace-archive-20260813t123905742671z-ea9ed7a5",
+      "receipt_sha256": "6dfabde39dbf3d97b45c8d27ccbea04a623d50d7a1344012410e362f9ac58edf",
+      "archive_entry_path": "completed/2026-08/underwater_car4--ea9ed7a5",
+      "tree_sha256": "acf65aa755bb144ad030578ac59ab6eb20b21736230a10b163f2379030974105",
+      "byte_size": 48863920
+    },
+    {
+      "job_id": "underwater_department_v09",
+      "receipt_id": "receipt-workspace-archive-20260813t123915380825z-2f48c879",
+      "receipt_sha256": "fc51301e313076e09afca68c07cb1f462ae3907d596a2bcef97b3fea2187f0f2",
+      "archive_entry_path": "completed/2026-08/underwater_department_v09--2f48c879",
+      "tree_sha256": "78c8693c3903d78a3e287c795c4b58a4dcbf082cf7505a493dd82be3a86d1722",
+      "byte_size": 251623647
+    },
+    {
+      "job_id": "wooprider_mainstage_1",
+      "receipt_id": "receipt-workspace-archive-20260813t123918315999z-e4caabc2",
+      "receipt_sha256": "89834bd28597735b7b7154580ceea0f6b74591e5a3169f73d8b170cdd3119c78",
+      "archive_entry_path": "completed/2026-08/wooprider_mainstage_1--e4caabc2",
+      "tree_sha256": "d1b6a992e3b6f6e35c9cb1774db522506888009e5e5f3dfa895b01ba252a95ad",
+      "byte_size": 32091762
+    }
+  ]
+}

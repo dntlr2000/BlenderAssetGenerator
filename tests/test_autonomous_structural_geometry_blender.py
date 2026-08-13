@@ -166,6 +166,85 @@ def test_structural_builder_materializes_in_blender(
     assert payload.faces
 
 
+def test_concave_multi_loop_discards_redundant_zero_area_cap_triangles(
+    tmp_path: Path,
+) -> None:
+    """Materialize a valid charm profile that Blender tessellates with a zero-area no-op."""
+
+    candidate = StructuralGeometryCandidate.model_validate_json(
+        json.dumps({
+            "schema_version": "0.1.0",
+            "semantic_id": "prop.crystalgun.charms.cluster",
+            "geometry": {
+                "kind": "multi_loop_extrude",
+                "outer_loop": [
+                    [-0.2, -0.15],
+                    [0.24, -0.15],
+                    [0.24, -0.23],
+                    [0.19, -0.23],
+                    [0.2, -0.42],
+                    [0.16, -0.62],
+                    [0.12, -0.42],
+                    [0.13, -0.23],
+                    [0.07, -0.23],
+                    [0.08, -0.47],
+                    [0.03, -0.72],
+                    [-0.02, -0.47],
+                    [-0.01, -0.23],
+                    [-0.08, -0.23],
+                    [-0.07, -0.38],
+                    [-0.13, -0.58],
+                    [-0.19, -0.38],
+                    [-0.18, -0.23],
+                    [-0.2, -0.23],
+                ],
+                "hole_loops": [],
+                "depth": 0.07,
+                "axis": "Y",
+                "cap": True,
+            },
+            "geometry_intent": {
+                "face_groups": [],
+                "sharp_edges": [],
+                "crease_edges": [],
+                "bevel_weights": [],
+                "uv_seams": [],
+                "smoothing_policy": {
+                    "mode": "flat",
+                    "angle_degrees": 30.0,
+                    "keep_sharp": True,
+                },
+                "topology_policy": "static_prop_closed",
+                "subdivision_intent": {
+                    "enabled": False,
+                    "levels": 0,
+                    "boundary_smoothing": "preserve_corners",
+                },
+                "lod_intent": {
+                    "preserve_silhouette": True,
+                    "protected_face_groups": [],
+                    "minimum_triangle_ratio": 1.0,
+                },
+            },
+        })
+    )
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "concave_multi_loop",
+        candidate=candidate,
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+        mesh_payload_version="0.2.0",
+        material_id="mat.crystal.translucent",
+    )
+
+    assert payload.builder_kind == "multi_loop_extrude"
+    assert payload.semantic_id == "prop.crystalgun.charms.cluster"
+    assert payload.vertices
+    assert payload.faces
+
+
 def test_boolean_intersection_materializes_exact_overlap_in_blender(tmp_path: Path) -> None:
     """Evaluate INTERSECT in Blender and verify the overlapping cubes' exact bounds."""
 

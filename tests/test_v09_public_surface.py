@@ -20,6 +20,10 @@ ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_COMMANDS = {
     "stability-probe",
     "workspace-audit",
+    "workspace-archive-candidates",
+    "workspace-archive",
+    "workspace-restore",
+    "workspace-relocation-resume",
     "stability-report-pdf",
     "queue-enqueue",
     "queue-status",
