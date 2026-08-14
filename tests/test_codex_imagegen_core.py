@@ -1025,24 +1025,26 @@ def test_opacity_source_quality_requires_extractable_alpha(
     assert report.selection_eligible is (expected_outcome == "passed")
 
 
-def test_immutable_model_publication_rejects_duplicate_path(tmp_path: Path) -> None:
-    """Never rewrite an existing assignment or any other immutable evidence file."""
+def test_immutable_model_publication_exact_adopts_duplicate_bytes(tmp_path: Path) -> None:
+    """Exact-adopt identical evidence while never rewriting its immutable bytes."""
 
     assignment, _artifact, _budget = _build_assignment(tmp_path)
     duplicate = tmp_path / "duplicate.json"
-    write_immutable_codex_image_model(
+    first = write_immutable_codex_image_model(
         tmp_path,
         duplicate,
         assignment,
         kind="codex-image-generation-assignment",
     )
-    with pytest.raises(FileExistsError):
-        write_immutable_codex_image_model(
-            tmp_path,
-            duplicate,
-            assignment,
-            kind="codex-image-generation-assignment",
-        )
+    original = duplicate.read_bytes()
+    adopted = write_immutable_codex_image_model(
+        tmp_path,
+        duplicate,
+        assignment,
+        kind="codex-image-generation-assignment",
+    )
+    assert adopted == first
+    assert duplicate.read_bytes() == original
 
 
 def test_source_inventory_excludes_only_current_imagegen_subtree(tmp_path: Path) -> None:

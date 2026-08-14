@@ -135,6 +135,20 @@ from .interior_qa import (
     run_job_interior_qa,
 )
 from .material_authoring.codex_image_v05_bridge import CodexImageV05BridgeReceipt
+from .material_closure_public import (
+    approve_material_appearance,
+    get_material_closure_status,
+    get_material_framework_failure_status,
+    get_material_preflight_status,
+    get_material_state_consistency,
+    plan_material_closure,
+    plan_material_repair_session,
+    rebind_material_graph,
+    run_material_preflight,
+    run_material_repair_session,
+    run_material_shadow_compile,
+    supersede_material_retry,
+)
 from .materials import (
     create_material_scaffold,
     load_material_plan,
@@ -2703,6 +2717,261 @@ def autonomy_v2_codex_imagegen_continue_command(
     console.print_json(json.dumps(result, ensure_ascii=False))
 
 
+@app.command("material-closure-plan")
+def material_closure_plan_command(
+    job_id: str,
+    source_binding_path: Annotated[str, typer.Option("--source-binding")],
+    planned_outputs_path: Annotated[str, typer.Option("--planned-outputs")],
+    closure_id: Annotated[str | None, typer.Option("--closure-id")] = None,
+) -> None:
+    """Collect and immutably publish one dependency closure and passed receipt."""
+
+    result = plan_material_closure(
+        job_id,
+        source_binding_path=source_binding_path,
+        planned_outputs_path=planned_outputs_path,
+        closure_id=closure_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-closure-status")
+def material_closure_status_command(
+    job_id: str,
+    session_id: str,
+    material_attempt_path: Annotated[
+        str | None,
+        typer.Option("--material-attempt"),
+    ] = None,
+    consistency_report_path: Annotated[
+        str | None,
+        typer.Option("--consistency-report"),
+    ] = None,
+    framework_failure_path: Annotated[
+        str | None,
+        typer.Option("--framework-failure"),
+    ] = None,
+    retry_supersession_path: Annotated[
+        str | None,
+        typer.Option("--retry-supersession"),
+    ] = None,
+    session_supersession_path: Annotated[
+        str | None,
+        typer.Option("--session-supersession"),
+    ] = None,
+) -> None:
+    """Auto-discover current closure companions beside preserved raw AQ state."""
+
+    result = get_material_closure_status(
+        job_id,
+        session_id,
+        material_attempt_path=material_attempt_path,
+        consistency_report_path=consistency_report_path,
+        framework_failure_path=framework_failure_path,
+        retry_supersession_path=retry_supersession_path,
+        session_supersession_path=session_supersession_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-preflight-run")
+def material_preflight_run_command(
+    job_id: str,
+    request_path: Annotated[str, typer.Option("--request")],
+    preview_size: Annotated[int, typer.Option("--preview-size", min=64, max=2048)] = 512,
+) -> None:
+    """Run one isolated material preflight without controller or canonical authority."""
+
+    result = run_material_preflight(
+        job_id,
+        request_path=request_path,
+        preview_size=preview_size,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-preflight-status")
+def material_preflight_status_command(
+    job_id: str,
+    report_path: Annotated[str, typer.Option("--report")],
+    require_current: Annotated[
+        bool,
+        typer.Option("--require-current/--historical"),
+    ] = False,
+) -> None:
+    """Replay one published material preflight without changing its evidence."""
+
+    result = get_material_preflight_status(
+        job_id,
+        report_path=report_path,
+        require_current=require_current,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-shadow-compile")
+def material_shadow_compile_command(
+    job_id: str,
+    request_path: Annotated[str, typer.Option("--request")],
+    preview_size: Annotated[int, typer.Option("--preview-size", min=64, max=2048)] = 512,
+) -> None:
+    """Run shadow compilation only through the complete preflight boundary."""
+
+    result = run_material_shadow_compile(
+        job_id,
+        request_path=request_path,
+        preview_size=preview_size,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-appearance-approve")
+def material_appearance_approve_command(
+    job_id: str,
+    report_path: Annotated[str, typer.Option("--report")],
+    approval_path: Annotated[str, typer.Option("--approval")],
+    expected_uv_layout_fingerprint: Annotated[
+        str,
+        typer.Option("--expected-uv-layout-fingerprint"),
+    ],
+    confirm_explicit_user_decision: Annotated[
+        bool,
+        typer.Option("--confirm-explicit-user-decision"),
+    ] = False,
+) -> None:
+    """Publish one caller-authored exact appearance decision after current replay."""
+
+    result = approve_material_appearance(
+        job_id,
+        report_path=report_path,
+        approval_path=approval_path,
+        expected_uv_layout_fingerprint=expected_uv_layout_fingerprint,
+        explicit_user_decision_observed=confirm_explicit_user_decision,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-graph-rebind")
+def material_graph_rebind_command(
+    job_id: str,
+    source_graph_path: Annotated[str, typer.Option("--source-graph")],
+    plan_path: Annotated[str, typer.Option("--plan")],
+) -> None:
+    """Publish one declared path/hash-only graph derivative and passed receipt."""
+
+    result = rebind_material_graph(
+        job_id,
+        source_graph_path=source_graph_path,
+        plan_path=plan_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-state-consistency")
+def material_state_consistency_command(
+    job_id: str,
+    attempt_state_path: Annotated[str, typer.Option("--attempt-state")],
+    top_level_state_path: Annotated[str, typer.Option("--top-level-state")],
+    expected_snapshot_path: Annotated[str, typer.Option("--expected-snapshot")],
+    report_id: Annotated[str | None, typer.Option("--report-id")] = None,
+) -> None:
+    """Compare exact material-attempt state with current canonical observation."""
+
+    result = get_material_state_consistency(
+        job_id,
+        attempt_state_path=attempt_state_path,
+        top_level_state_path=top_level_state_path,
+        expected_snapshot_path=expected_snapshot_path,
+        report_id=report_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-framework-failure-status")
+def material_framework_failure_status_command(
+    job_id: str,
+    report_path: Annotated[str, typer.Option("--report")],
+) -> None:
+    """Read one strict framework-failure report without executing its retry."""
+
+    result = get_material_framework_failure_status(job_id, report_path=report_path)
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-retry-supersede")
+def material_retry_supersede_command(
+    job_id: str,
+    retry_plan_path: Annotated[str, typer.Option("--retry-plan")],
+    current_state_path: Annotated[str, typer.Option("--current-state")],
+    framework_failure_report_path: Annotated[
+        str,
+        typer.Option("--framework-failure-report"),
+    ],
+    supersession_reason: Annotated[str, typer.Option("--reason")],
+    observation_context_sha256: Annotated[
+        str,
+        typer.Option("--observation-context-sha256"),
+    ],
+    retry_approval_path: Annotated[
+        str | None,
+        typer.Option("--retry-approval"),
+    ] = None,
+    expected_approval_path: Annotated[
+        str | None,
+        typer.Option("--expected-approval-path"),
+    ] = None,
+    receipt_id: Annotated[str | None, typer.Option("--receipt-id")] = None,
+) -> None:
+    """Publish append-only retry supersession evidence without running the retry."""
+
+    result = supersede_material_retry(
+        job_id,
+        retry_plan_path=retry_plan_path,
+        current_state_path=current_state_path,
+        framework_failure_report_path=framework_failure_report_path,
+        supersession_reason=supersession_reason,
+        observation_context_sha256=observation_context_sha256,
+        retry_approval_path=retry_approval_path,
+        expected_approval_path=expected_approval_path,
+        receipt_id=receipt_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-repair-session-plan")
+def material_repair_session_plan_command(
+    job_id: str,
+    plan_path: Annotated[str, typer.Option("--plan")],
+    source_binding_path: Annotated[str, typer.Option("--source-binding")],
+) -> None:
+    """Validate and publish one pre-authored material-only repair session plan."""
+
+    result = plan_material_repair_session(
+        job_id,
+        plan_path=plan_path,
+        source_binding_path=source_binding_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-repair-session-run")
+def material_repair_session_run_command(
+    job_id: str,
+    plan_path: Annotated[str, typer.Option("--plan")],
+    source_binding_path: Annotated[str, typer.Option("--source-binding")],
+    preview_size: Annotated[int, typer.Option("--preview-size", min=64, max=2048)] = 512,
+) -> None:
+    """Run one material repair through preflight and stop before user approval."""
+
+    result = run_material_repair_session(
+        job_id,
+        plan_path=plan_path,
+        source_binding_path=source_binding_path,
+        preview_size=preview_size,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
 @app.command("autonomy-v2-plan")
 def autonomy_v2_plan_command(
     request: str,
@@ -2745,10 +3014,10 @@ def autonomy_v2_plan_command(
 
 @app.command("autonomy-v2-status")
 def autonomy_v2_status_command(job_id: str, session_id: str) -> None:
-    """Reconstruct one experimental v2 session without advancing it."""
+    """Reconstruct raw AQ plus any current material companions without advancing."""
 
     console.print_json(
-        json.dumps(get_autonomy_v2_status(job_id, session_id), ensure_ascii=False)
+        json.dumps(get_material_closure_status(job_id, session_id), ensure_ascii=False)
     )
 
 

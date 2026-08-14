@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained job-relative artifact by exact bytes and media type.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind the neutral review image to the exact preflight-approved candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "closure": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "preflight_request": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "shadow_compile_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "candidate_material_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "rebound_material_graph": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "preview_image": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "camera_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Camera Id",
+      "type": "string"
+    },
+    "lighting_profile_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Lighting Profile Id",
+      "type": "string"
+    },
+    "color_management_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Color Management Fingerprint",
+      "type": "string"
+    },
+    "reference_matched_preview": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "manifest_id",
+    "closure",
+    "preflight_request",
+    "shadow_compile_receipt",
+    "candidate_material_plan",
+    "rebound_material_graph",
+    "preview_image",
+    "camera_id",
+    "lighting_profile_id",
+    "color_management_fingerprint"
+  ],
+  "title": "MaterialNeutralPreviewManifest",
+  "type": "object"
+}

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 import os
 from dataclasses import dataclass
 from datetime import datetime
@@ -11,7 +10,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from ..blender_artifacts import native_io_path
+from ..blender_artifacts import native_io_path, native_json_bytes
 from ..production.controller_executor import (
     CandidateAuthoringController,
     validate_controller_execution_result,
@@ -830,10 +829,7 @@ def _load_canonical_published_model(
         media_type="application/json",
     )
     stored = load_codex_image_model(job_root, artifact, model_type)
-    canonical_text = (
-        json.dumps(stored.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n"
-    )
-    canonical = canonical_text.replace("\n", os.linesep).encode("utf-8")
+    canonical = native_json_bytes(stored.model_dump(mode="json"))
     with open(native_io_path(path), "rb") as handle:
         if handle.read() != canonical:
             raise ValueError("existing ImageGen evidence bytes are not canonical")

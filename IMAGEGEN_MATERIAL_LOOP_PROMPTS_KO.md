@@ -243,6 +243,7 @@ authorization가 바뀌었으면 stale로 종료하고 새 unique plan이 필요
 | `quality_approved` | IQ pass와 source freeze | V0.7 approval, package, destination 완료 |
 | `review_required` | 사람 또는 별도 evidence 검토 필요 | 실패 은폐, human review 완료 |
 | `waiting_for_v07_approval` | exact optimization-plan 승인 대기 | 자동 승인 가능 |
+| `approval_pending` | closure/preflight/preview 완료, appearance decision 대기 | approval 생성, controller/promotion 완료 |
 
 ## 13. 현재 검증 한계
 
@@ -251,3 +252,30 @@ authorization가 바뀌었으면 stale로 종료하고 새 unique plan이 필요
 - 승인 없는 raw GLB/FBX clean import는 production package acceptance가 아니다.
 - Human review, 목적지 runtime parity, 임의 자산의 품질 개선과 profile activation은 검증되지 않았다.
 
+## 14. Material Closure Stabilization을 적용하는 공통 프롬프트
+
+아래 block은 새 stabilized attempt에만 사용한다. 기존 ImageGen core/Material Loop history를 새
+contract로 rewrite하지 않는다.
+
+```text
+<JOB_ID> / <AQ_SESSION_ID>의 ImageGen material candidate를 controller 전에 Material Closure 0.1.0으로
+검증해줘.
+
+1. source_mode=imagegen strict source binding으로 provider profile, assignment, completion,
+   generated-image evidence, normalization plan/receipt, semantic review, selection, adoption,
+   MaterialAuthoring request/manifest/receipt와 primary/reference authority를 current hash로 결속해.
+2. host가 source graph를 보존한 canonical run-owned derivative에서 provenance path/hash만 rebind해.
+   material ID, layer, mask, channel, shader parameter가 바뀌면 중단하고 새 review가 필요하다고 보고해.
+3. rebind plan/receipt/source/rebound graph와 candidate plan, 모든 ShaderRecipe/TextureManifest/image/
+   channel/mask/reference, surface-detail/UV, canonical baseline과 rollback을 graph-derived closure에 넣어.
+4. request/assignment/completion map을 closure projection 하나에서만 만들고 reduced map을 거부해.
+5. approval 전에 finite budget, consistency, full-scene Blender 5.0.1 shadow compile과 실제 neutral
+   preview를 검증해. 실패하면 framework failure를 발행하고 approval/controller/canonical write는 0으로 유지해.
+6. 성공하면 approval_pending에서 멈춰. 사용자가 exact candidate/graph/preview를 명시적으로 결정하기
+   전에는 MaterialAppearanceApproval을 만들지 마. existing technical retry approval이나 generic
+   workflow approval을 재사용하지 마.
+```
+
+terminal AQ session에는 이 block으로 controller를 재개하지 않는다. 별도 material repair session의
+preapproval 단계로만 사용한다. 상세 placeholder와 승인 후/rollback prompt는
+[Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 따른다.

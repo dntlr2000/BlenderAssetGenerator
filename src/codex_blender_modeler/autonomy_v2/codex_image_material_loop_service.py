@@ -75,6 +75,10 @@ from ..material_authoring.codex_image_v05_bridge import (
 from ..material_graph.compiler_service import MaterialGraphCompilerService
 from ..material_graph.models import MaterialGraphArtifact, MaterialGraphSpec
 from ..material_graph.runtime_models import MaterialGraphCompileReport
+from ..material_retry_supersession import (
+    MaterialRetryAdmissionArtifact,
+    validate_material_retry_supersession_admission,
+)
 from ..materials.models import MaterialPlan
 from ..models import SceneSpec
 from ..production.controller_executor import (
@@ -3039,16 +3043,30 @@ def prepare_codex_image_material_promotion_retry(
     }
     if any(retry_payload.get(key) != value for key, value in required_values.items()):
         raise ValueError("material promotion retry plan authority fields changed")
+    status = get_autonomy_v2_status(job_id, session_id)
+    state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
+    state = AutonomyStateV2.model_validate_json(json.dumps(status["state"], ensure_ascii=False))
+    validate_material_retry_supersession_admission(
+        root,
+        candidate_artifacts=[
+            MaterialRetryAdmissionArtifact(
+                path=plan_path.relative_to(root).as_posix(),
+                sha256=retry_plan_sha256,
+                byte_size=os.path.getsize(native_io_path(plan_path)),
+            )
+        ],
+        job_id=job_id,
+        workflow_id=state.workflow_id,
+        dispatch_id=state.dispatch_id,
+        session_id=session_id,
+    )
     if exact_approval != _expected_material_promotion_retry_approval(
         retry_payload,
         retry_plan_sha256,
     ):
         raise PermissionError("material promotion retry approval is not the exact plan approval")
-    status = get_autonomy_v2_status(job_id, session_id)
     if status["profile_status"] != "verified_active" and not allow_disabled_experimental:
         raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
-    state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
-    state = AutonomyStateV2.model_validate_json(json.dumps(status["state"], ensure_ascii=False))
     if state_artifact.sha256 != retry_payload["source_aq_state_sha256"] or (
         state.phase,
         state.status,

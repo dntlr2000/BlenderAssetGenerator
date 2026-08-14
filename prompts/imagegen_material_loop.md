@@ -41,3 +41,25 @@ ImageGen core `0.1.0`, MaterialAuthoring `0.2.1`, and every immutable historical
     controller lifecycle, promotion receipt and `MaterialPhaseReceiptV2`, base next action, IQ and
     delivery state, remaining budget, and latest exact failure.
 
+## Material Closure Stabilization for new attempts
+
+When Material Closure `0.1.0` is selected, insert this boundary before step 7. Do not retrofit or
+rewrite historical ImageGen, retry, approval, controller, promotion, or AQ state evidence.
+
+1. Publish a strict source binding for `source_mode=imagegen`. Require the complete typed provider,
+   assignment, completion, generated-image, normalization, semantic-review, selection, adoption, and
+   MaterialAuthoring request/manifest/receipt roots plus the primary reference authority.
+2. Let the host create a separate path/hash-only MaterialGraph derivative. Preserve the source graph
+   and reject any material ID, layer, mask, channel, shader parameter, or other semantic change.
+3. Build the final graph-derived `MaterialDependencyClosure` only after the rebind plan, receipt, and
+   rebound graph exist. Include every ShaderRecipe, TextureManifest, channel image, mask, reference,
+   surface-detail/UV binding, canonical MaterialPlan observation+snapshot or strict absence, rollback,
+   authorization, profile, budget, and geometry evidence.
+4. Project request, assignment, and completion immutable maps only from that closure. Bind exact
+   MaterialPlan/graph outputs by SHA-256 and completion structurally to avoid a circular digest.
+5. Before any appearance approval or controller execution, run the comprehensive bounded preflight,
+   actual Blender 5.0.1 full-scene shadow compile, and actual neutral preview in a canonical-write-free
+   root. A failure emits framework evidence with zero approval, controller, or promotion actions.
+6. Stop at `approval_pending`. Only an explicitly observed, caller-authored specialized appearance
+   decision may be published and consumed once. Generic workflow/profile/retry approval is not a
+   substitute. A terminal historical AQ session requires a distinct material-repair session.

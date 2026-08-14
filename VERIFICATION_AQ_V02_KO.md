@@ -302,3 +302,22 @@ supporting-client sandbox는 검증되지 않았다. 따라서 `autonomous_stati
 2026-08-13 Material Loop 후속도 같은 결론을 바꾸지 않는다. companion profile
 `autonomous_static_prop_v2_codex_imagegen` 역시 `disabled_experimental`이며 actual user approval,
 production package 또는 destination parity를 주장하지 않는다.
+
+## 12. 2026-08-14 Material Closure 후속 경계
+
+Material Closure Stabilization `0.1.0`은 AQ v2 material path에 additive하게 구현됐다.
+기존 2026-08-11/13 결과를 소급 변경하지 않으며, 이 문서의 기존 AQ v2 통과 count가 closure,
+preapproval shadow compile, single-use appearance approval 또는 current Crystalgun repair를 검증한
+것은 아니다.
+
+Crystalgun의 verified raw head는 `0012 / terminal / cancelled / none`이다. canonical MaterialPlan,
+real `MaterialPhaseReceiptV2`, rendered neutral material preview와 IQ 진입 evidence가 없고 사용자
+appearance approval도 없다. Append-only supersession 뒤 새 repair dry-run은 dependency closure를
+게시했지만 surface-detail coverage 검사에서 Blender/preview/approval/controller 전에
+`preflight_failed`로 멈췄다. 따라서 old retry 실행, actual repair promotion, IQ와 package는
+`not_run`이다. Recorded focused 138 passed/1 skipped, later expanded host 165 passed/4 skipped와
+actual Blender 5.0.1 preapproval fixture 1 passed를
+포함한 신규 결과와 남은 미검증 항목은
+[Material Closure 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)에만 추가한다.
+
+이 후속 작업으로도 두 experimental profile의 판정은 계속 `disabled_experimental`이다.

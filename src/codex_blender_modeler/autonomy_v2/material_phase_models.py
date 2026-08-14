@@ -25,6 +25,7 @@ class MaterialControllerCompletionV2(AQV2StrictModel):
     immutable_input_sha256: dict[RelativePath, Sha256] = Field(min_length=1)
     source_scene_spec_sha256: Sha256
     source_material_plan_sha256: Sha256 | None = None
+    material_dependency_closure_sha256: Sha256 | None = None
     material_plan_path: RelativePath
     material_plan_sha256: Sha256
     material_graph_path: RelativePath
@@ -39,16 +40,99 @@ class MaterialControllerCompletionV2(AQV2StrictModel):
 
         if self.material_plan_path == self.material_graph_path:
             raise ValueError("material controller outputs must use distinct paths")
-        scene_hash = self.immutable_input_sha256.get("analysis/scene_spec.json")
-        if scene_hash != self.source_scene_spec_sha256:
-            raise ValueError(
-                "material completion must bind the canonical SceneSpec immutable input"
+        if self.material_dependency_closure_sha256 is None:
+            scene_hash = self.immutable_input_sha256.get("analysis/scene_spec.json")
+            if scene_hash != self.source_scene_spec_sha256:
+                raise ValueError(
+                    "material completion must bind the canonical SceneSpec immutable input"
+                )
+            material_hash = self.immutable_input_sha256.get(
+                "analysis/material_plan.json"
             )
-        material_hash = self.immutable_input_sha256.get("analysis/material_plan.json")
-        if material_hash != self.source_material_plan_sha256:
-            raise ValueError(
-                "material completion baseline MaterialPlan binding is inconsistent"
-            )
+            if material_hash != self.source_material_plan_sha256:
+                raise ValueError(
+                    "material completion baseline MaterialPlan binding is inconsistent"
+                )
+        else:
+            projected_hashes = set(self.immutable_input_sha256.values())
+            if self.source_scene_spec_sha256 not in projected_hashes:
+                raise ValueError(
+                    "closure completion omits its exact SceneSpec snapshot"
+                )
+            if (
+                self.source_material_plan_sha256 is not None
+                and (
+                    self.source_material_plan_sha256 not in projected_hashes
+                    or self.immutable_input_sha256.get(
+                        "analysis/material_plan.json"
+                    )
+                    != self.source_material_plan_sha256
+                )
+            ):
+                raise ValueError(
+                    "closure completion omits its immutable MaterialPlan baseline"
+                )
+        return self
+
+
+class MaterialClosurePromotionBoundaryV2(AQV2Evidence):
+    """Bind one preflighted and user-approved closure to exact controller projections."""
+
+    boundary_id: PortableId
+    current_state: AQV2Artifact
+    dependency_closure: AQV2Artifact
+    dependency_closure_receipt: AQV2Artifact
+    graph_rebinding_receipt: AQV2Artifact
+    preflight_report: AQV2Artifact
+    shadow_compile_receipt: AQV2Artifact
+    neutral_preview_manifest: AQV2Artifact
+    appearance_approval: AQV2Artifact
+    state_consistency_report: AQV2Artifact
+    candidate_material_plan: AQV2Artifact
+    rebound_material_graph: AQV2Artifact
+    immutable_input_sha256: dict[RelativePath, Sha256] = Field(min_length=1)
+    planned_output_sha256: dict[RelativePath, Sha256] = Field(min_length=2)
+    canonical_scene_spec_sha256: Sha256
+    canonical_blend_sha256: Sha256
+    uv_layout_fingerprint: Sha256
+    controller_invocation_limit: Literal[1] = 1
+    appearance_approval_required: Literal[True] = True
+    controller_may_execute: Literal[True] = True
+    canonical_write_authority: Literal["material_phase_service_only"] = (
+        "material_phase_service_only"
+    )
+
+    @model_validator(mode="after")
+    def validate_boundary_provenance(self) -> MaterialClosurePromotionBoundaryV2:
+        """Require every gate and exact candidate to appear once in provenance."""
+
+        named = [
+            self.current_state,
+            self.dependency_closure,
+            self.dependency_closure_receipt,
+            self.graph_rebinding_receipt,
+            self.preflight_report,
+            self.shadow_compile_receipt,
+            self.neutral_preview_manifest,
+            self.appearance_approval,
+            self.state_consistency_report,
+            self.candidate_material_plan,
+            self.rebound_material_graph,
+        ]
+        expected = {(item.path, item.sha256, item.byte_size) for item in named}
+        observed = {
+            (item.path, item.sha256, item.byte_size) for item in self.provenance
+        }
+        if expected != observed or len(named) != len(self.provenance):
+            raise ValueError("material closure boundary provenance is incomplete")
+        if len(self.immutable_input_sha256) != len(
+            set(self.immutable_input_sha256)
+        ) or len(self.planned_output_sha256) != len(
+            set(self.planned_output_sha256)
+        ):
+            raise ValueError("material closure boundary projections contain duplicates")
+        if set(self.immutable_input_sha256) & set(self.planned_output_sha256):
+            raise ValueError("material closure inputs and outputs must be disjoint")
         return self
 
 

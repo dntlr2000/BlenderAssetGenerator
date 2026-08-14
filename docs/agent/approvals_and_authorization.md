@@ -6,5 +6,12 @@ Before a side effect, acquire the relevant lock and re-read the exact plan, sour
 
 PolicyAuthorization records bounded policy-engine authority and is never approved_by=user. Controller/task completion never synthesizes approval. Changing a source, plan, profile, scope, target, operation, path family, delta, budget, output format, or destination requires a new plan and authorization.
 
-Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.
+Material Closure `0.1.0` adds one specialized pre-controller appearance/promotion
+approval. It binds the exact dependency closure, rebound graph, passed full preflight,
+actual neutral preview, canonical SceneSpec/Blend snapshots, UV fingerprint, limitations,
+and candidate bytes. Generic workflow approval, policy authorization, or a technical retry
+approval cannot replace it. Deterministic path/hash rebinding completed before preflight is
+`no_visual_change`; changed image, UV placement, shader value, material assignment, or
+scope requires a new exact approval at its proper boundary.
 
+Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.

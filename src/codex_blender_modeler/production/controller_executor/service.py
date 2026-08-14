@@ -13,8 +13,13 @@ from typing import Any, cast
 from ...blender_artifacts import (
     deterministic_directory_files,
     native_io_path,
+    native_json_bytes,
     sha256_file,
     stable_json_digest,
+)
+from ...material_retry_supersession import (
+    MaterialRetryAdmissionArtifact,
+    validate_material_retry_supersession_admission,
 )
 from ...production.validation import (
     ensure_contained_production_path as _ensure_contained_production_path,
@@ -938,6 +943,21 @@ def execute_controller_request(
     _validate_request_profile(request, profile)
     for item in [request.assignment, *request.immutable_inputs, request.tool_profile]:
         _validate_input(root, item)
+    validate_material_retry_supersession_admission(
+        root,
+        candidate_artifacts=[
+            MaterialRetryAdmissionArtifact(
+                path=item.path,
+                sha256=item.sha256,
+                byte_size=item.byte_size,
+            )
+            for item in (request.assignment, *request.immutable_inputs)
+        ],
+        job_id=request.job_id,
+        workflow_id=request.workflow_id,
+        dispatch_id=request.dispatch_id,
+        session_id=request.session_id,
+    )
     workspace = _prepare_workspace(
         root=root,
         request_path=request_path,
@@ -1225,15 +1245,7 @@ def validate_controller_execution_result(
         request_path=request_path,
         controller=controller,
     )
-    expected_text = (
-        json.dumps(
-            reconstructed.model_dump(mode="json"),
-            indent=2,
-            ensure_ascii=False,
-        )
-        + "\n"
-    )
-    expected_bytes = expected_text.replace("\n", os.linesep).encode("utf-8")
+    expected_bytes = native_json_bytes(reconstructed.model_dump(mode="json"))
     if stored_bytes != expected_bytes or stored != reconstructed:
         raise ValueError(
             "stored controller result differs from the fully reconstructed executor result"

@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import os
 import shutil
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
@@ -16,6 +18,24 @@ from pydantic import BaseModel, ValidationError
 from ..blender_artifacts import native_io_path, sha256_file, stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..build_provenance import collect_build_provenance
+from ..material_closure.models import (
+    ExactArtifact,
+    MaterialAppearanceApproval,
+    MaterialAppearanceApprovalConsumptionReceipt,
+    MaterialCanonicalSnapshot,
+    MaterialDependencyClosure,
+    MaterialDependencyClosureReceipt,
+    MaterialGraphRebindingReceipt,
+    MaterialNeutralPreviewManifest,
+    MaterialPlannedOutput,
+    MaterialPromotionPreflightReport,
+    MaterialShadowCompileReceipt,
+    MaterialStateConsistencyReport,
+)
+from ..material_closure.service import MaterialClosureService
+from ..material_closure.state_consistency import (
+    canonical_build_provenance_artifact_fingerprint,
+)
 from ..material_graph import MaterialGraphSpec
 from ..material_graph.compiler_service import (
     MaterialGraphCompileBundle,
@@ -40,13 +60,17 @@ from ..reference_scope import (
     validate_scene_content_scope,
 )
 from ..texturing.manifest import load_material_manifest
-from ..workspace import canonical_scene_spec_write_lock
+from ..workspace import (
+    canonical_scene_spec_write_lock,
+    current_job_write_lock_owner,
+)
 from .delivery_service import (
     artifact_for_v2,
     validate_v2_artifact,
     write_immutable_v2_model,
 )
 from .material_phase_models import (
+    MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
     MaterialPhaseRollbackReceiptV2,
@@ -102,6 +126,35 @@ class _RebuildSnapshots:
     build_fingerprint: str
 
 
+@contextmanager
+def _material_promotion_write_lock(
+    plan: AutonomyPlanV2,
+    *,
+    canonical_lock_held: bool,
+) -> Iterator[None]:
+    """Acquire the host writer lock or prove this call already owns its exact token."""
+
+    if canonical_lock_held:
+        try:
+            owner = current_job_write_lock_owner(plan.job_id)
+        except RuntimeError as exc:
+            raise MaterialPhaseError(
+                "material promotion does not own the canonical host lock"
+            ) from exc
+        if owner != plan.session_id:
+            raise MaterialPhaseError(
+                "material promotion canonical host lock belongs to another session"
+            )
+        yield
+        return
+    with canonical_scene_spec_write_lock(
+        plan.job_id,
+        plan.session_id,
+        ttl_seconds=3600,
+    ):
+        yield
+
+
 def _reserve_material_budget(
     usage: BudgetUsageV2,
     budget: AutonomyBudgetV2,
@@ -141,6 +194,392 @@ def _read_exact_model(
             return model.model_validate_json(handle.read())
     except (OSError, ValidationError) as exc:
         raise MaterialPhaseError(f"invalid {model.__name__} material evidence") from exc
+
+
+def _validate_closure_exact_artifact(root: Path, artifact: ExactArtifact) -> Path:
+    """Rehash one Material Closure artifact through the production containment boundary."""
+
+    path = ensure_contained_production_path(root, root / artifact.path, must_exist=True)
+    if path.stat().st_size != artifact.byte_size or sha256_file(path) != artifact.sha256:
+        raise MaterialPhaseError(
+            f"material closure artifact changed: {artifact.path}"
+        )
+    return path
+
+
+def _same_exact_artifact(
+    exact: ExactArtifact,
+    aq_artifact: AQV2Artifact,
+) -> bool:
+    """Compare cross-version exact artifacts by their path, digest, and byte size."""
+
+    return (
+        exact.path,
+        exact.sha256,
+        exact.byte_size,
+    ) == (
+        aq_artifact.path,
+        aq_artifact.sha256,
+        aq_artifact.byte_size,
+    )
+
+
+def _validate_material_closure_identity(
+    plan: AutonomyPlanV2,
+    *contracts: BaseModel,
+) -> None:
+    """Require every generic closure contract to retain the exact AQ v2 identity."""
+
+    expected = (plan.job_id, plan.workflow_id, plan.dispatch_id, plan.session_id)
+    for contract in contracts:
+        observed = tuple(
+            getattr(contract, name)
+            for name in ("job_id", "workflow_id", "dispatch_id", "session_id")
+        )
+        if observed != expected:
+            raise MaterialPhaseError(
+                f"{type(contract).__name__} belongs to another AQ v2 session"
+            )
+
+
+def _validate_canonical_snapshot_current(
+    root: Path,
+    snapshot: MaterialCanonicalSnapshot,
+) -> None:
+    """Rehash the canonical material baseline embedded in a consistency report."""
+
+    _validate_closure_exact_artifact(root, snapshot.scene_spec)
+    _validate_closure_exact_artifact(root, snapshot.modeling_plan)
+    _validate_closure_exact_artifact(root, snapshot.blend)
+    canonical_material = ensure_contained_production_path(
+        root,
+        root / "analysis" / "material_plan.json",
+        must_exist=False,
+    )
+    if snapshot.material_plan is not None:
+        _validate_closure_exact_artifact(root, snapshot.material_plan)
+        if (
+            snapshot.material_plan.path != "analysis/material_plan.json"
+            or not canonical_material.is_file()
+            or sha256_file(canonical_material) != snapshot.material_plan.sha256
+        ):
+            raise MaterialPhaseError("canonical MaterialPlan differs from preflight snapshot")
+    else:
+        if snapshot.material_plan_absence is None:
+            raise MaterialPhaseError("canonical snapshot omits MaterialPlan absence evidence")
+        _validate_closure_exact_artifact(root, snapshot.material_plan_absence)
+        if canonical_material.exists():
+            raise MaterialPhaseError("canonical MaterialPlan appeared after preflight")
+    try:
+        current_fingerprint = canonical_build_provenance_artifact_fingerprint(
+            job_root=root,
+            build_provenance=snapshot.build_provenance,
+            expected_job_id=snapshot.job_id,
+        )
+    except ValueError as exc:
+        raise MaterialPhaseError(
+            "canonical build provenance changed after preflight"
+        ) from exc
+    if current_fingerprint != snapshot.build_provenance_fingerprint:
+        raise MaterialPhaseError("canonical build provenance changed after preflight")
+
+
+def validate_material_closure_promotion_boundary_v2(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    *,
+    state: AutonomyStateV2 | None = None,
+    require_boundary_state: bool = False,
+    require_current_canonical: bool = True,
+    revalidate_published_preflight: bool = True,
+) -> tuple[MaterialClosurePromotionBoundaryV2, MaterialDependencyClosure]:
+    """Revalidate closure, preflight, preview, consistency, and exact user approval."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    boundary = _read_exact_model(
+        job_root,
+        boundary_artifact,
+        MaterialClosurePromotionBoundaryV2,
+    )
+    _validate_material_closure_identity(plan, boundary)
+    for artifact in boundary.provenance:
+        validate_v2_artifact(job_root, artifact)
+    boundary_state = _read_exact_model(
+        job_root,
+        boundary.current_state,
+        AutonomyStateV2,
+    )
+    if require_boundary_state and state != boundary_state:
+        raise MaterialPhaseError("material closure boundary targets another AQ v2 state")
+    if state is not None and (
+        state.job_id,
+        state.workflow_id,
+        state.dispatch_id,
+        state.session_id,
+    ) != (plan.job_id, plan.workflow_id, plan.dispatch_id, plan.session_id):
+        raise MaterialPhaseError("material promotion state belongs to another AQ session")
+    if state is not None and boundary_state.sequence > state.sequence:
+        raise MaterialPhaseError("material closure boundary state is ahead of promotion state")
+    if state is not None and boundary_state.sequence < state.sequence:
+        if state.sequence != boundary_state.sequence + 1 or (
+            boundary_state.phase,
+            boundary_state.status,
+            boundary_state.next_action,
+        ) != ("authoring", "running", "execute_controller") or (
+            state.phase,
+            state.status,
+            state.next_action,
+        ) != ("authoring", "running", "validate_candidate"):
+            raise MaterialPhaseError(
+                "material closure boundary is not the controller predecessor state"
+            )
+
+    closure = _read_exact_model(
+        job_root,
+        boundary.dependency_closure,
+        MaterialDependencyClosure,
+    )
+    closure_receipt = _read_exact_model(
+        job_root,
+        boundary.dependency_closure_receipt,
+        MaterialDependencyClosureReceipt,
+    )
+    rebinding = _read_exact_model(
+        job_root,
+        boundary.graph_rebinding_receipt,
+        MaterialGraphRebindingReceipt,
+    )
+    preflight = _read_exact_model(
+        job_root,
+        boundary.preflight_report,
+        MaterialPromotionPreflightReport,
+    )
+    if revalidate_published_preflight:
+        published_preflight = MaterialClosureService(
+            job_root
+        ).validate_published_preflight(
+            ExactArtifact(
+                artifact_id=boundary.preflight_report.artifact_id,
+                kind="preflight_report",
+                path=boundary.preflight_report.path,
+                sha256=boundary.preflight_report.sha256,
+                byte_size=boundary.preflight_report.byte_size,
+                media_type="application/json",
+            )
+        )
+        if published_preflight != preflight:
+            raise MaterialPhaseError("published material preflight replay differs")
+    shadow = _read_exact_model(
+        job_root,
+        boundary.shadow_compile_receipt,
+        MaterialShadowCompileReceipt,
+    )
+    preview = _read_exact_model(
+        job_root,
+        boundary.neutral_preview_manifest,
+        MaterialNeutralPreviewManifest,
+    )
+    approval = _read_exact_model(
+        job_root,
+        boundary.appearance_approval,
+        MaterialAppearanceApproval,
+    )
+    consistency = _read_exact_model(
+        job_root,
+        boundary.state_consistency_report,
+        MaterialStateConsistencyReport,
+    )
+    _validate_material_closure_identity(
+        plan,
+        closure,
+        closure_receipt,
+        rebinding,
+        preflight,
+        shadow,
+        preview,
+        approval,
+        consistency,
+        consistency.observed_snapshot,
+    )
+    for entry in closure.entries:
+        _validate_closure_exact_artifact(
+            job_root,
+            ExactArtifact(
+                artifact_id=entry.entry_id,
+                kind=entry.role,
+                path=entry.path,
+                sha256=entry.sha256,
+                byte_size=entry.byte_size,
+                media_type="application/octet-stream",
+            ),
+        )
+    immutable_projection = closure.project_immutable_input_map()
+    output_projection = closure.project_planned_output_map()
+    if (
+        boundary.immutable_input_sha256 != immutable_projection
+        or boundary.planned_output_sha256 != output_projection
+        or closure_receipt.status != "passed"
+        or closure_receipt.closure_sha256 != closure.closure_sha256
+        or closure_receipt.immutable_input_projection != immutable_projection
+        or closure_receipt.planned_output_projection != output_projection
+        or not _same_exact_artifact(closure_receipt.closure, boundary.dependency_closure)
+    ):
+        raise MaterialPhaseError("material closure projection or receipt is inconsistent")
+    if (
+        rebinding.status != "passed"
+        or rebinding.semantic_content_unchanged is not True
+        or not _same_exact_artifact(rebinding.source_binding, closure.source_binding)
+        or rebinding.rebound_graph is None
+        or not _same_exact_artifact(
+            rebinding.rebound_graph,
+            boundary.rebound_material_graph,
+        )
+    ):
+        raise MaterialPhaseError("material graph rebinding is not an exact passed derivative")
+    if (
+        preflight.status != "passed"
+        or preflight.immutable_input_projection != immutable_projection
+        or preflight.planned_output_projection != output_projection
+        or not _same_exact_artifact(preflight.closure, boundary.dependency_closure)
+        or not _same_exact_artifact(
+            preflight.closure_receipt,
+            boundary.dependency_closure_receipt,
+        )
+        or not _same_exact_artifact(
+            preflight.graph_rebinding_receipt,
+            boundary.graph_rebinding_receipt,
+        )
+        or not _same_exact_artifact(
+            preflight.shadow_compile_receipt,
+            boundary.shadow_compile_receipt,
+        )
+        or not _same_exact_artifact(
+            preflight.neutral_preview_manifest,
+            boundary.neutral_preview_manifest,
+        )
+    ):
+        raise MaterialPhaseError("material preflight report differs from its exact closure")
+    if shadow.status != "passed" or not _same_exact_artifact(
+        shadow.closure,
+        boundary.dependency_closure,
+    ):
+        raise MaterialPhaseError("material shadow compile did not pass for this closure")
+    if (
+        not _same_exact_artifact(preview.closure, boundary.dependency_closure)
+        or not _same_exact_artifact(
+            preview.shadow_compile_receipt,
+            boundary.shadow_compile_receipt,
+        )
+        or not _same_exact_artifact(
+            preview.candidate_material_plan,
+            boundary.candidate_material_plan,
+        )
+        or not _same_exact_artifact(
+            preview.rebound_material_graph,
+            boundary.rebound_material_graph,
+        )
+    ):
+        raise MaterialPhaseError("neutral preview differs from the approved candidate")
+    _validate_closure_exact_artifact(job_root, preview.preview_image)
+    if not consistency.consistent:
+        raise MaterialPhaseError("material state and canonical snapshot are inconsistent")
+    if require_current_canonical:
+        _validate_canonical_snapshot_current(job_root, consistency.observed_snapshot)
+    if (
+        approval.decision != "approved"
+        or approval.approved_by != "user"
+        or approval.scope != "material_appearance_promotion"
+        or approval.candidate_material_plan_sha256
+        != boundary.candidate_material_plan.sha256
+        or approval.rebound_material_graph_sha256
+        != boundary.rebound_material_graph.sha256
+        or approval.closure_sha256 != closure.closure_sha256
+        or approval.preflight_report_sha256 != boundary.preflight_report.sha256
+        or approval.neutral_preview_sha256 != preview.preview_image.sha256
+        or approval.canonical_scene_spec_sha256
+        != consistency.observed_snapshot.scene_spec.sha256
+        or approval.canonical_blend_sha256 != consistency.observed_snapshot.blend.sha256
+        or approval.uv_layout_fingerprint != boundary.uv_layout_fingerprint
+        or boundary.canonical_scene_spec_sha256
+        != consistency.observed_snapshot.scene_spec.sha256
+        or boundary.canonical_blend_sha256 != consistency.observed_snapshot.blend.sha256
+    ):
+        raise PermissionError(
+            "material closure controller requires one exact current appearance approval"
+        )
+    material_outputs = {
+        item.output_kind: item.sha256
+        for item in closure.planned_outputs
+        if item.verification == "exact_hash"
+    }
+    if (
+        material_outputs.get("material_plan")
+        != boundary.candidate_material_plan.sha256
+        or material_outputs.get("material_graph")
+        != boundary.rebound_material_graph.sha256
+    ):
+        raise MaterialPhaseError("planned material outputs differ from approved bytes")
+    return boundary, closure
+
+
+def validate_material_appearance_approval_consumption_v2(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    request_artifact: AQV2Artifact,
+    consumption_artifact: AQV2Artifact,
+) -> MaterialAppearanceApprovalConsumptionReceipt:
+    """Validate single-use approval consumption against its exact controller request."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    boundary, closure = validate_material_closure_promotion_boundary_v2(
+        job_root,
+        plan,
+        boundary_artifact,
+        require_current_canonical=True,
+        revalidate_published_preflight=False,
+    )
+    request = _read_exact_model(
+        job_root,
+        request_artifact,
+        ControllerExecutionRequest,
+    )
+    receipt = _read_exact_model(
+        job_root,
+        consumption_artifact,
+        MaterialAppearanceApprovalConsumptionReceipt,
+    )
+    _validate_material_closure_identity(plan, receipt)
+    approval = _read_exact_model(
+        job_root,
+        boundary.appearance_approval,
+        MaterialAppearanceApproval,
+    )
+    if (
+        not _same_exact_artifact(receipt.approval, boundary.appearance_approval)
+        or not _same_exact_artifact(receipt.controller_request, request_artifact)
+        or receipt.approval_id != approval.approval_id
+        or receipt.candidate_material_plan_sha256
+        != boundary.candidate_material_plan.sha256
+        or receipt.rebound_material_graph_sha256
+        != boundary.rebound_material_graph.sha256
+        or receipt.closure_sha256 != closure.closure_sha256
+        or receipt.preflight_report_sha256 != boundary.preflight_report.sha256
+        or receipt.neutral_preview_sha256 != approval.neutral_preview_sha256
+    ):
+        raise PermissionError("material appearance approval consumption is inconsistent")
+    request_map = {item.path: item.sha256 for item in request.immutable_inputs}
+    if (
+        request.assignment.path != boundary_artifact.path
+        or request.assignment.sha256 != boundary_artifact.sha256
+        or request_map != closure.project_immutable_input_map()
+        or request.expected_output_sha256 != closure.project_planned_output_map()
+    ):
+        raise MaterialPhaseError(
+            "approval consumption request differs from the closure projection"
+        )
+    return receipt
 
 
 def _controller_to_aq(
@@ -399,6 +838,87 @@ def _load_controller_material_bundle(
         material_graph=material_graph,
         material_graph_artifact=material_graph_artifact,
     )
+
+
+def _validate_controller_bundle_against_closure(
+    bundle: _ControllerMaterialBundle,
+    boundary: MaterialClosurePromotionBoundaryV2,
+    closure: MaterialDependencyClosure,
+) -> None:
+    """Require request, completion, and exact outputs to derive from one closure."""
+
+    immutable_projection = closure.project_immutable_input_map()
+    planned_projection = closure.project_planned_output_map()
+    request_projection = {
+        item.path: item.sha256 for item in bundle.request.immutable_inputs
+    }
+    if (
+        request_projection != immutable_projection
+        or bundle.completion.immutable_input_sha256 != immutable_projection
+        or bundle.completion.material_dependency_closure_sha256
+        != closure.closure_sha256
+        or bundle.request.expected_output_sha256 != planned_projection
+        or bundle.material_plan_artifact.sha256
+        != boundary.candidate_material_plan.sha256
+        or bundle.material_graph_artifact.sha256
+        != boundary.rebound_material_graph.sha256
+    ):
+        raise MaterialPhaseError(
+            "request, completion, and material outputs differ from one closure projection"
+        )
+    completion_output = next(
+        (
+            item
+            for item in closure.planned_outputs
+            if item.output_kind == "controller_completion"
+        ),
+        None,
+    )
+    if completion_output is None or completion_output.verification != "structural_binding":
+        raise MaterialPhaseError("closure omits structural controller completion binding")
+    completion_payload = bundle.completion.model_dump(mode="json")
+    if any(
+        str(completion_payload.get(field)) != expected
+        for field, expected in completion_output.expected_field_bindings.items()
+    ):
+        raise MaterialPhaseError("controller completion differs from structural binding")
+
+
+def validate_material_closure_controller_projections_v2(
+    *,
+    request_immutable_input_sha256: dict[str, str],
+    request_expected_output_sha256: dict[str, str],
+    completion_immutable_input_sha256: dict[str, str],
+    completion_payload: dict[str, Any],
+    closure: MaterialDependencyClosure,
+) -> None:
+    """Reject reduced maps and structurally invalid completion without filesystem writes."""
+
+    immutable_projection = closure.project_immutable_input_map()
+    planned_projection = closure.project_planned_output_map()
+    if (
+        request_immutable_input_sha256 != immutable_projection
+        or completion_immutable_input_sha256 != immutable_projection
+        or request_expected_output_sha256 != planned_projection
+    ):
+        raise MaterialPhaseError(
+            "request and completion must use the complete closure projection"
+        )
+    completion_output: MaterialPlannedOutput | None = next(
+        (
+            item
+            for item in closure.planned_outputs
+            if item.output_kind == "controller_completion"
+        ),
+        None,
+    )
+    if completion_output is None or completion_output.verification != "structural_binding":
+        raise MaterialPhaseError("closure omits structural completion projection")
+    if any(
+        str(completion_payload.get(field)) != expected
+        for field, expected in completion_output.expected_field_bindings.items()
+    ):
+        raise MaterialPhaseError("completion payload differs from closure binding")
 
 
 def _load_root_authorization(
@@ -1284,7 +1804,75 @@ def validate_material_phase_receipt_v2(
     )
 
 
-def validate_and_promote_material_controller_result_v2(
+def validate_material_phase_rollback_receipt_v2(
+    root: Path,
+    artifact: AQV2Artifact,
+    *,
+    require_current: bool = False,
+) -> MaterialPhaseRollbackReceiptV2:
+    """Recursively validate rollback evidence and optionally its restored canonical state."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    receipt = _read_exact_model(
+        job_root,
+        artifact,
+        MaterialPhaseRollbackReceiptV2,
+    )
+    for nested in receipt.provenance:
+        validate_v2_artifact(job_root, nested)
+    intent = _read_exact_model(
+        job_root,
+        receipt.promotion_intent,
+        MaterialPromotionIntentV2,
+    )
+    if (
+        intent.controller_result != receipt.controller_result
+        or intent.material_plan_candidate != receipt.material_plan_candidate
+        or intent.previous_material_plan != receipt.previous_material_plan
+    ):
+        raise MaterialPhaseError("material rollback receipt differs from its intent")
+    if not require_current:
+        return receipt
+    if receipt.status != "rolled_back":
+        raise MaterialPhaseError("rollback_failed evidence cannot be current canonical proof")
+    canonical_material = ensure_contained_production_path(
+        job_root,
+        job_root / "analysis" / "material_plan.json",
+        must_exist=False,
+    )
+    if receipt.previous_material_plan is None:
+        if canonical_material.exists():
+            raise MaterialPhaseError("canonical MaterialPlan exists after absence rollback")
+    elif (
+        not canonical_material.is_file()
+        or sha256_file(canonical_material) != receipt.previous_material_plan.sha256
+        or receipt.restored_material_snapshot is None
+        or receipt.restored_material_snapshot.sha256
+        != receipt.previous_material_plan.sha256
+    ):
+        raise MaterialPhaseError("canonical MaterialPlan differs from restored rollback")
+    for restored in (
+        receipt.restored_blend_snapshot,
+        receipt.restored_inventory_snapshot,
+        receipt.restored_validation_snapshot,
+        receipt.restored_build_provenance_snapshot,
+    ):
+        if restored is None:
+            raise MaterialPhaseError("successful rollback omits restored evidence")
+        validate_v2_artifact(job_root, restored)
+    current = collect_build_provenance(job_root, receipt.job_id)
+    provenance_payload = json.loads(
+        validate_v2_artifact(
+            job_root,
+            receipt.restored_build_provenance_snapshot,
+        ).read_text(encoding="utf-8")
+    )
+    if current.get("fingerprint") != provenance_payload.get("fingerprint"):
+        raise MaterialPhaseError("canonical build differs from restored rollback snapshot")
+    return receipt
+
+
+def _validate_and_promote_material_controller_result_v2(
     root: Path,
     plan: AutonomyPlanV2,
     budget: AutonomyBudgetV2,
@@ -1292,8 +1880,9 @@ def validate_and_promote_material_controller_result_v2(
     result_artifact: AQV2Artifact,
     *,
     authorized_profile_artifact: AQV2Artifact | None = None,
+    canonical_lock_held: bool,
 ) -> tuple[MaterialPhaseReceiptV2, AQV2Artifact]:
-    """Compile and promote one exact material controller result under host authority."""
+    """Execute host promotion with either a newly acquired or already proven lock."""
 
     job_root = ensure_contained_production_path(root, root, must_exist=True)
     _validate_budget_binding(job_root, plan, budget)
@@ -1386,10 +1975,9 @@ def validate_and_promote_material_controller_result_v2(
         phase_root,
         bundle,
     )
-    with canonical_scene_spec_write_lock(
-        plan.job_id,
-        plan.session_id,
-        ttl_seconds=3600,
+    with _material_promotion_write_lock(
+        plan,
+        canonical_lock_held=canonical_lock_held,
     ):
         bundle = _load_controller_material_bundle(
             job_root,
@@ -1573,3 +2161,177 @@ def validate_and_promote_material_controller_result_v2(
                 "material promotion failed and wrote rollback evidence at "
                 f"{rollback_artifact.path}"
             ) from failure
+
+
+def validate_and_promote_material_controller_result_v2(
+    root: Path,
+    plan: AutonomyPlanV2,
+    budget: AutonomyBudgetV2,
+    state: AutonomyStateV2,
+    result_artifact: AQV2Artifact,
+    *,
+    authorized_profile_artifact: AQV2Artifact | None = None,
+) -> tuple[MaterialPhaseReceiptV2, AQV2Artifact]:
+    """Compile and promote one exact legacy material result under a fresh host lock."""
+
+    return _validate_and_promote_material_controller_result_v2(
+        root,
+        plan,
+        budget,
+        state,
+        result_artifact,
+        authorized_profile_artifact=authorized_profile_artifact,
+        canonical_lock_held=False,
+    )
+
+
+def validate_and_promote_material_closure_controller_result_v2(
+    root: Path,
+    plan: AutonomyPlanV2,
+    budget: AutonomyBudgetV2,
+    state: AutonomyStateV2,
+    result_artifact: AQV2Artifact,
+    *,
+    boundary_artifact: AQV2Artifact,
+    approval_consumption_artifact: AQV2Artifact,
+    authorized_profile_artifact: AQV2Artifact | None = None,
+) -> tuple[MaterialPhaseReceiptV2, AQV2Artifact]:
+    """Revalidate stabilized authority under the host lock, then promote without a gap."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    with canonical_scene_spec_write_lock(
+        plan.job_id,
+        plan.session_id,
+        ttl_seconds=3600,
+    ):
+        _boundary, closure = validate_material_closure_promotion_boundary_v2(
+            job_root,
+            plan,
+            boundary_artifact,
+            state=state,
+            require_boundary_state=False,
+            require_current_canonical=True,
+        )
+        result = _read_exact_model(job_root, result_artifact, ControllerResult)
+        request_artifact = _controller_to_aq(
+            job_root,
+            result.request,
+            kind="controller-request",
+        )
+        validate_material_appearance_approval_consumption_v2(
+            job_root,
+            plan,
+            boundary_artifact,
+            request_artifact,
+            approval_consumption_artifact,
+        )
+        bundle = _load_controller_material_bundle(
+            job_root,
+            plan,
+            state,
+            result_artifact,
+            authorized_profile_artifact=authorized_profile_artifact,
+        )
+        _validate_controller_bundle_against_closure(bundle, _boundary, closure)
+        return _validate_and_promote_material_controller_result_v2(
+            job_root,
+            plan,
+            budget,
+            state,
+            result_artifact,
+            authorized_profile_artifact=authorized_profile_artifact,
+            canonical_lock_held=True,
+        )
+
+
+def validate_material_closure_promoted_receipt_v2(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    receipt_artifact: AQV2Artifact,
+) -> MaterialPhaseReceiptV2:
+    """Validate a promoted receipt without replaying intentionally superseded canonical input."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    boundary = _read_exact_model(
+        job_root,
+        boundary_artifact,
+        MaterialClosurePromotionBoundaryV2,
+    )
+    _validate_material_closure_identity(plan, boundary)
+    for nested in boundary.provenance:
+        validate_v2_artifact(job_root, nested)
+    closure = _read_exact_model(
+        job_root,
+        boundary.dependency_closure,
+        MaterialDependencyClosure,
+    )
+    _validate_material_closure_identity(plan, closure)
+    receipt = validate_material_phase_receipt_v2(
+        job_root,
+        receipt_artifact,
+        require_current=True,
+    )
+    if (
+        receipt.material_plan_candidate.sha256
+        != boundary.candidate_material_plan.sha256
+        or receipt.material_graph_spec.sha256
+        != boundary.rebound_material_graph.sha256
+        or receipt.canonical_scene_spec_sha256
+        != boundary.canonical_scene_spec_sha256
+    ):
+        raise MaterialPhaseError(
+            "promoted material receipt differs from its approved closure boundary"
+        )
+    live_observations = [
+        entry
+        for entry in closure.entries
+        if entry.path == "analysis/material_plan.json"
+        and entry.role in {
+            "canonical_material_plan_observation",
+        }
+    ]
+    if len(live_observations) > 1:
+        raise MaterialPhaseError("closure contains multiple live MaterialPlan observations")
+    for entry in closure.entries:
+        if live_observations and entry == live_observations[0]:
+            continue
+        _validate_closure_exact_artifact(
+            job_root,
+            ExactArtifact(
+                artifact_id=entry.entry_id,
+                kind=entry.role,
+                path=entry.path,
+                sha256=entry.sha256,
+                byte_size=entry.byte_size,
+                media_type="application/octet-stream",
+            ),
+        )
+    if live_observations:
+        observation = live_observations[0]
+        if (
+            receipt.previous_canonical_material_sha256 != observation.sha256
+            or receipt.archived_material_plan is None
+            or receipt.archived_material_plan.sha256 != observation.sha256
+        ):
+            raise MaterialPhaseError(
+                "promoted receipt does not prove the superseded live observation"
+            )
+        matching_snapshots = [
+            entry
+            for entry in closure.entries
+            if entry.path != "analysis/material_plan.json"
+            and entry.sha256 == observation.sha256
+            and entry.role in {
+                "material_plan_baseline_snapshot",
+            }
+        ]
+        if len(matching_snapshots) != 1:
+            raise MaterialPhaseError(
+                "closure lacks one immutable snapshot for the live observation"
+            )
+    elif receipt.previous_canonical_material_sha256 is not None:
+        raise MaterialPhaseError(
+            "promoted receipt claims a baseline absent from the material closure"
+        )
+    return receipt

@@ -121,3 +121,17 @@ staging은 실제 충돌·민감정보·용량 문제가 있을 때만 exact 영
 코드, fixture, documentation 또는 한 번의 actual source reuse는 activation migration이 아니다.
 별도 실제 reference corpus, 사람 평가, supporting-client/App Server execution, 장기 반복과 destination
 runtime evidence 없이는 profile을 `verified_active`로 바꾸지 않는다.
+
+## 12. Material Closure Stabilization으로의 additive 선택
+
+기존 ImageGen core/Material Loop evidence는 자동으로 closure evidence가 되지 않는다. 새 stabilized
+attempt가 exact source binding을 만들고 typed ImageGen chain을 current bytes로 검증한 뒤,
+host graph rebind plan/receipt/derivative와 final closure를 새 run-owned 경로에 게시한다. 과거 bridge,
+preflight, approval, ControllerResult, promotion receipt를 수정하거나 새 schema로 rewrite하지 않는다.
+
+기존 exact-adoption preflight는 후보 graph compile 의미를 유지한다. comprehensive preapproval
+full-scene shadow compile과 preview가 필요하면 별도 Material Closure preflight를 실행한다. existing
+technical retry approval은 specialized `MaterialAppearanceApproval`로 migration할 수 없고,
+terminal session은 새 material repair session으로만 이어진다.
+
+이 additive 선택은 profile activation, Standard integration 또는 V1.0 migration이 아니다.

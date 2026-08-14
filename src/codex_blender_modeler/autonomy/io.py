@@ -7,7 +7,12 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ..blender_artifacts import native_io_path, write_json_atomic
+from ..blender_artifacts import (
+    native_io_path,
+    native_json_bytes,
+    publish_bytes_create_once,
+    write_json_atomic,
+)
 from ..production.validation import ensure_contained_production_path
 
 
@@ -23,15 +28,13 @@ def ensure_autonomy_path(
 
 
 def write_immutable_json(root: Path, path: Path, payload: dict[str, Any]) -> None:
-    """Atomically publish one JSON file exactly once under the owning job root."""
+    """Create or exact-adopt deterministic JSON while rejecting conflicting history."""
 
     destination = ensure_autonomy_path(root, path, must_exist=False)
-    if os.path.exists(native_io_path(destination)):
-        raise FileExistsError(destination)
     os.makedirs(native_io_path(destination.parent), exist_ok=True)
     ensure_autonomy_path(root, destination.parent, must_exist=True)
     ensure_autonomy_path(root, destination, must_exist=False)
-    write_json_atomic(destination, payload)
+    publish_bytes_create_once(destination, native_json_bytes(payload))
     ensure_autonomy_path(root, destination, must_exist=True)
 
 

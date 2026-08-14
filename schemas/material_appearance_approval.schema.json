@@ -1,0 +1,140 @@
+{
+  "additionalProperties": false,
+  "description": "Record one explicit user decision over exact candidate and preview bytes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "approved",
+        "rejected"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "approved_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Approved By",
+      "type": "string"
+    },
+    "scope": {
+      "const": "material_appearance_promotion",
+      "default": "material_appearance_promotion",
+      "title": "Scope",
+      "type": "string"
+    },
+    "candidate_material_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Material Plan Sha256",
+      "type": "string"
+    },
+    "rebound_material_graph_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Rebound Material Graph Sha256",
+      "type": "string"
+    },
+    "closure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Closure Sha256",
+      "type": "string"
+    },
+    "preflight_report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Preflight Report Sha256",
+      "type": "string"
+    },
+    "neutral_preview_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Neutral Preview Sha256",
+      "type": "string"
+    },
+    "canonical_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Scene Spec Sha256",
+      "type": "string"
+    },
+    "canonical_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Canonical Blend Sha256",
+      "type": "string"
+    },
+    "uv_layout_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Uv Layout Fingerprint",
+      "type": "string"
+    },
+    "known_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Known Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "approval_id",
+    "decision",
+    "candidate_material_plan_sha256",
+    "rebound_material_graph_sha256",
+    "closure_sha256",
+    "preflight_report_sha256",
+    "neutral_preview_sha256",
+    "canonical_scene_spec_sha256",
+    "canonical_blend_sha256",
+    "uv_layout_fingerprint"
+  ],
+  "title": "MaterialAppearanceApproval",
+  "type": "object"
+}

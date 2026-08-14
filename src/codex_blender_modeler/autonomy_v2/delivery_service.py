@@ -10,7 +10,13 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from ..blender_artifacts import native_io_path, sha256_file, stable_json_digest, write_json_atomic
+from ..blender_artifacts import (
+    native_io_path,
+    native_json_bytes,
+    publish_bytes_create_once,
+    sha256_file,
+    stable_json_digest,
+)
 from ..integrated_quality.v02_contour_metrics import compare_contours_v02
 from ..integrated_quality.v02_models import (
     ContourEvidenceBindingV02,
@@ -287,14 +293,15 @@ def validate_root_authorization_boundary_v2(
 
 
 def write_immutable_v2_model(root: Path, path: Path, model: BaseModel) -> AQV2Artifact:
-    """Atomically publish one AQ v2 model exactly once and return its exact binding."""
+    """Create or exact-adopt deterministic AQ v2 bytes without replacing history."""
 
     destination = ensure_contained_production_path(root, path, must_exist=False)
-    if os.path.exists(native_io_path(destination)):
-        raise FileExistsError(destination)
     os.makedirs(native_io_path(destination.parent), exist_ok=True)
     ensure_contained_production_path(root, destination.parent, must_exist=True)
-    write_json_atomic(destination, model.model_dump(mode="json"))
+    publish_bytes_create_once(
+        destination,
+        native_json_bytes(model.model_dump(mode="json")),
+    )
     return artifact_for_v2(
         root,
         destination,

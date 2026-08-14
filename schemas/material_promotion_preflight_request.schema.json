@@ -1,0 +1,808 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained job-relative artifact by exact bytes and media type.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "MaterialAQBudgetObservation": {
+      "additionalProperties": false,
+      "description": "Record exact existing AQ v2 usage and immutable category limits at failure.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "blender_builds_used": {
+          "minimum": 0,
+          "title": "Blender Builds Used",
+          "type": "integer"
+        },
+        "blender_builds_limit": {
+          "minimum": 0,
+          "title": "Blender Builds Limit",
+          "type": "integer"
+        },
+        "controller_invocations_used": {
+          "minimum": 0,
+          "title": "Controller Invocations Used",
+          "type": "integer"
+        },
+        "controller_invocations_limit": {
+          "minimum": 0,
+          "title": "Controller Invocations Limit",
+          "type": "integer"
+        },
+        "canonical_promotions_used": {
+          "minimum": 0,
+          "title": "Canonical Promotions Used",
+          "type": "integer"
+        },
+        "canonical_promotions_limit": {
+          "minimum": 0,
+          "title": "Canonical Promotions Limit",
+          "type": "integer"
+        },
+        "actions_used": {
+          "minimum": 0,
+          "title": "Actions Used",
+          "type": "integer"
+        },
+        "actions_limit": {
+          "minimum": 0,
+          "title": "Actions Limit",
+          "type": "integer"
+        },
+        "quality_evaluations_used": {
+          "minimum": 0,
+          "title": "Quality Evaluations Used",
+          "type": "integer"
+        },
+        "quality_evaluations_limit": {
+          "minimum": 0,
+          "title": "Quality Evaluations Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "blender_builds_used",
+        "blender_builds_limit",
+        "controller_invocations_used",
+        "controller_invocations_limit",
+        "canonical_promotions_used",
+        "canonical_promotions_limit",
+        "actions_used",
+        "actions_limit",
+        "quality_evaluations_used",
+        "quality_evaluations_limit"
+      ],
+      "title": "MaterialAQBudgetObservation",
+      "type": "object"
+    },
+    "MaterialCanonicalSnapshot": {
+      "additionalProperties": false,
+      "description": "Capture the exact canonical material baseline and latest lifecycle evidence.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "producer": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "snapshot_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "scene_spec": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "modeling_plan": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "material_plan_absence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "blend": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "build_provenance": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "build_provenance_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Provenance Fingerprint",
+          "type": "string"
+        },
+        "latest_material_promotion_receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "latest_rollback_receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "active_candidate_closure": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "session_id",
+        "producer",
+        "producer_version",
+        "created_at",
+        "snapshot_id",
+        "scene_spec",
+        "modeling_plan",
+        "blend",
+        "build_provenance",
+        "build_provenance_fingerprint"
+      ],
+      "title": "MaterialCanonicalSnapshot",
+      "type": "object"
+    },
+    "MaterialFrameworkFailureContext": {
+      "additionalProperties": false,
+      "description": "Carry complete workflow-neutral state needed for strict preflight failure evidence.",
+      "properties": {
+        "state_sequence": {
+          "minimum": 0,
+          "title": "State Sequence",
+          "type": "integer"
+        },
+        "current_state": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "canonical_snapshot": {
+          "$ref": "#/$defs/MaterialCanonicalSnapshot"
+        },
+        "latest_successful_rollback_receipt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pending_retry_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "pending_retry_approval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "controller_execution_count": {
+          "minimum": 0,
+          "title": "Controller Execution Count",
+          "type": "integer"
+        },
+        "rollback_count": {
+          "minimum": 0,
+          "title": "Rollback Count",
+          "type": "integer"
+        },
+        "budget_usage": {
+          "$ref": "#/$defs/MaterialResourceCounters"
+        },
+        "aq_budget_observation": {
+          "$ref": "#/$defs/MaterialAQBudgetObservation"
+        },
+        "neutral_preview_present": {
+          "title": "Neutral Preview Present",
+          "type": "boolean"
+        },
+        "material_phase_receipt_present": {
+          "title": "Material Phase Receipt Present",
+          "type": "boolean"
+        },
+        "integrated_quality_entered": {
+          "title": "Integrated Quality Entered",
+          "type": "boolean"
+        },
+        "existing_retry_execution_forbidden": {
+          "const": true,
+          "default": true,
+          "title": "Existing Retry Execution Forbidden",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "state_sequence",
+        "current_state",
+        "canonical_snapshot",
+        "controller_execution_count",
+        "rollback_count",
+        "budget_usage",
+        "aq_budget_observation",
+        "neutral_preview_present",
+        "material_phase_receipt_present",
+        "integrated_quality_entered"
+      ],
+      "title": "MaterialFrameworkFailureContext",
+      "type": "object"
+    },
+    "MaterialResourceCounters": {
+      "additionalProperties": false,
+      "description": "Keep bounded material-resource limits and consumption in separate categories.",
+      "properties": {
+        "preflight_blender_runs": {
+          "minimum": 0,
+          "title": "Preflight Blender Runs",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "appearance_revisions": {
+          "minimum": 0,
+          "title": "Appearance Revisions",
+          "type": "integer"
+        },
+        "transient_controller_retries": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Transient Controller Retries",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "preflight_blender_runs",
+        "controller_invocations",
+        "canonical_promotions",
+        "appearance_revisions"
+      ],
+      "title": "MaterialResourceCounters",
+      "type": "object"
+    },
+    "SurfaceDetailMaterialBinding": {
+      "additionalProperties": false,
+      "description": "Expose the candidate mapping facts used by deterministic surface preflight.",
+      "properties": {
+        "detail_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Detail Id",
+          "type": "string"
+        },
+        "object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "none",
+            "procedural",
+            "image",
+            "hybrid"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "mapping": {
+          "enum": [
+            "uv",
+            "generated",
+            "object",
+            "triplanar"
+          ],
+          "title": "Mapping",
+          "type": "string"
+        },
+        "uv_set": {
+          "anyOf": [
+            {
+              "const": "UVMap",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Set"
+        },
+        "uv_layout_fingerprint": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Layout Fingerprint"
+        },
+        "available_channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Available Channels",
+          "type": "array"
+        },
+        "coverage_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Coverage Ids",
+          "type": "array"
+        },
+        "mask_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Mask Paths",
+          "type": "array"
+        },
+        "detail_owned_by_geometry": {
+          "default": false,
+          "title": "Detail Owned By Geometry",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "detail_id",
+        "object_id",
+        "material_id",
+        "strategy",
+        "mapping"
+      ],
+      "title": "SurfaceDetailMaterialBinding",
+      "type": "object"
+    },
+    "SurfaceDetailRequirement": {
+      "additionalProperties": false,
+      "description": "Describe one localized detail that a material candidate must cover exactly.",
+      "properties": {
+        "detail_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Detail Id",
+          "type": "string"
+        },
+        "object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        },
+        "strategy": {
+          "enum": [
+            "image",
+            "hybrid"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "uv_set": {
+          "const": "UVMap",
+          "title": "Uv Set",
+          "type": "string"
+        },
+        "uv_layout_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Uv Layout Fingerprint",
+          "type": "string"
+        },
+        "requested_channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Requested Channels",
+          "type": "array"
+        },
+        "coverage_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Coverage Id",
+          "type": "string"
+        },
+        "mask": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExactArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "uv_rect": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SurfaceDetailUVRect"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "wrap_policy": {
+          "enum": [
+            "clamp",
+            "repeat",
+            "mirror"
+          ],
+          "title": "Wrap Policy",
+          "type": "string"
+        },
+        "ownership": {
+          "const": "surface_detail",
+          "default": "surface_detail",
+          "title": "Ownership",
+          "type": "string"
+        }
+      },
+      "required": [
+        "detail_id",
+        "object_id",
+        "material_id",
+        "strategy",
+        "uv_set",
+        "uv_layout_fingerprint",
+        "requested_channels",
+        "coverage_id",
+        "wrap_policy"
+      ],
+      "title": "SurfaceDetailRequirement",
+      "type": "object"
+    },
+    "SurfaceDetailUVRect": {
+      "additionalProperties": false,
+      "description": "Represent one normalized non-empty surface-detail UV rectangle.",
+      "properties": {
+        "u_min": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "U Min",
+          "type": "number"
+        },
+        "v_min": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "V Min",
+          "type": "number"
+        },
+        "u_max": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "U Max",
+          "type": "number"
+        },
+        "v_max": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "V Max",
+          "type": "number"
+        }
+      },
+      "required": [
+        "u_min",
+        "v_min",
+        "u_max",
+        "v_max"
+      ],
+      "title": "SurfaceDetailUVRect",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind every candidate, closure, rebound graph, budget, and baseline before review.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "closure": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "closure_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "graph_rebinding_receipt": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "candidate_material_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "rebound_material_graph": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "canonical_snapshot": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "budget": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "framework_failure_context": {
+      "$ref": "#/$defs/MaterialFrameworkFailureContext"
+    },
+    "uv_layout_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Uv Layout Fingerprint",
+      "type": "string"
+    },
+    "surface_details": {
+      "items": {
+        "$ref": "#/$defs/SurfaceDetailRequirement"
+      },
+      "title": "Surface Details",
+      "type": "array"
+    },
+    "surface_bindings": {
+      "items": {
+        "$ref": "#/$defs/SurfaceDetailMaterialBinding"
+      },
+      "title": "Surface Bindings",
+      "type": "array"
+    },
+    "planned_output_projection": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minProperties": 2,
+      "title": "Planned Output Projection",
+      "type": "object"
+    },
+    "approval_may_be_requested": {
+      "const": false,
+      "default": false,
+      "title": "Approval May Be Requested",
+      "type": "boolean"
+    },
+    "controller_may_execute": {
+      "const": false,
+      "default": false,
+      "title": "Controller May Execute",
+      "type": "boolean"
+    },
+    "canonical_write_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Allowed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "request_id",
+    "closure",
+    "closure_receipt",
+    "graph_rebinding_receipt",
+    "candidate_material_plan",
+    "rebound_material_graph",
+    "canonical_snapshot",
+    "budget",
+    "framework_failure_context",
+    "uv_layout_fingerprint",
+    "planned_output_projection"
+  ],
+  "title": "MaterialPromotionPreflightRequest",
+  "type": "object"
+}

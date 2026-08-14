@@ -1,0 +1,76 @@
+{
+  "additionalProperties": false,
+  "description": "Record exact existing AQ v2 usage and immutable category limits at failure.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "blender_builds_used": {
+      "minimum": 0,
+      "title": "Blender Builds Used",
+      "type": "integer"
+    },
+    "blender_builds_limit": {
+      "minimum": 0,
+      "title": "Blender Builds Limit",
+      "type": "integer"
+    },
+    "controller_invocations_used": {
+      "minimum": 0,
+      "title": "Controller Invocations Used",
+      "type": "integer"
+    },
+    "controller_invocations_limit": {
+      "minimum": 0,
+      "title": "Controller Invocations Limit",
+      "type": "integer"
+    },
+    "canonical_promotions_used": {
+      "minimum": 0,
+      "title": "Canonical Promotions Used",
+      "type": "integer"
+    },
+    "canonical_promotions_limit": {
+      "minimum": 0,
+      "title": "Canonical Promotions Limit",
+      "type": "integer"
+    },
+    "actions_used": {
+      "minimum": 0,
+      "title": "Actions Used",
+      "type": "integer"
+    },
+    "actions_limit": {
+      "minimum": 0,
+      "title": "Actions Limit",
+      "type": "integer"
+    },
+    "quality_evaluations_used": {
+      "minimum": 0,
+      "title": "Quality Evaluations Used",
+      "type": "integer"
+    },
+    "quality_evaluations_limit": {
+      "minimum": 0,
+      "title": "Quality Evaluations Limit",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "blender_builds_used",
+    "blender_builds_limit",
+    "controller_invocations_used",
+    "controller_invocations_limit",
+    "canonical_promotions_used",
+    "canonical_promotions_limit",
+    "actions_used",
+    "actions_limit",
+    "quality_evaluations_used",
+    "quality_evaluations_limit"
+  ],
+  "title": "MaterialAQBudgetObservation",
+  "type": "object"
+}

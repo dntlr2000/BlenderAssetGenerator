@@ -297,3 +297,23 @@ Codex ImageGen Material Loop 후속 fixture에서 분리해 확인하는 범위:
 
 이 미검증 항목이 남아 있으므로 `autonomous_static_prop_v2`와 관련 experimental delivery는
 계속 `disabled_experimental`이다.
+
+## 13. Material Closure와 delivery source eligibility
+
+Material Closure preflight, shadow compile, neutral preview 또는 `approval_pending`은 delivery
+source가 아니다. delivery에 진입하려면 specialized appearance approval의 1회 consumption,
+existing host canonical promotion, actual `MaterialPhaseReceiptV2`, IQ 0.2 passing terminal과 exact
+`QualityApprovedSourceFreeze`가 모두 필요하다.
+
+framework failure, controller failure, promotion failure, rollback completed와 asset-quality
+failure를 서로 바꿔 표시하지 않는다. rollback 뒤 combined status가 current canonical baseline과
+consistent하더라도 이는 IQ pass나 package eligibility가 아니다. terminal historical AQ session의
+companion supersession도 delivery를 재개하지 않는다.
+
+Standard ImageGen, Unity URP reconstruction과 profile activation은 roadmap의 별도 후속 단계다.
+현재 Material Closure 구현이나 dry-run은 V0.7 approval, accepted GLB/FBX package, Destination
+Handoff 또는 runtime parity를 만들지 않는다.
+
+2026-08-14 current incident dry-run은 material coverage 검사에서 Blender/preview/approval/controller
+전에 `preflight_failed`가 됐다. 따라서 delivery source freeze에 도달하지 않았고, 이 실패 evidence를
+review bundle이나 production package로 사용할 수 없다.

@@ -41,6 +41,9 @@ jobs:
       - name: Check repository registries and generated projections
         run: uv run python scripts/generate_repository_summary.py --check
 
+      - name: Check generic framework sources for incident literals
+        run: uv run python scripts/check_no_job_specific_framework_literals.py
+
       - name: Run deterministic non-Blender benchmarks
         run: |
           uv run pytest -q tests/test_autonomous_quality_benchmarks.py tests/test_autonomous_quality_benchmarks_v02.py
@@ -59,6 +62,7 @@ jobs:
           tests/test_aq_v02_schema_registry.py
           tests/test_integrated_quality_v02_schemas.py
           tests/test_material_authoring_schemas_v02.py
+          tests/test_material_closure_schemas.py
 
       - name: Run AQ 0.2 host contracts
         run: >-
@@ -101,6 +105,14 @@ jobs:
           tests/test_codex_image_material_quality_service.py
           tests/test_codex_image_material_loop_service.py
           tests/test_codex_image_material_loop_public.py
+          tests/test_material_closure_contracts.py
+          tests/test_material_closure_service.py
+          tests/test_material_closure_aq_integration.py
+          tests/test_material_closure_controller_repair.py
+          tests/test_material_closure_incident_service.py
+          tests/test_material_closure_public.py
+          tests/test_autonomy_v2_supervisor_material_closure.py
+          tests/test_no_job_specific_framework_literals.py
           tests/test_repository_catalog.py
           tests/test_repository_summary_generator.py
           tests/test_ci_workflows.py

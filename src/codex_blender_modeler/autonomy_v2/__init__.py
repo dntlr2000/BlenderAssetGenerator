@@ -45,8 +45,11 @@ from .codex_image_phase_service import (
 )
 from .codex_image_planner import plan_autonomous_static_prop_v2_codex_imagegen
 from .controller_bridge import (
+    ExactMaterialClosureAdoptionController,
     cancel_autonomy_v2,
     execute_autonomy_v2_controller,
+    execute_material_closure_controller_v2,
+    get_autonomy_v2_material_closure_status,
     get_autonomy_v2_status,
 )
 from .delivery_executor import execute_approved_delivery_plan_v2
@@ -64,14 +67,21 @@ from .delivery_service import (
     validate_v2_artifact,
 )
 from .material_phase_models import (
+    MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
     MaterialPhaseRollbackReceiptV2,
     MaterialPromotionIntentV2,
 )
 from .material_phase_service import (
+    validate_and_promote_material_closure_controller_result_v2,
     validate_and_promote_material_controller_result_v2,
+    validate_material_appearance_approval_consumption_v2,
+    validate_material_closure_controller_projections_v2,
+    validate_material_closure_promoted_receipt_v2,
+    validate_material_closure_promotion_boundary_v2,
     validate_material_phase_receipt_v2,
+    validate_material_phase_rollback_receipt_v2,
 )
 from .models import (
     AQV2Artifact,
@@ -134,6 +144,7 @@ __all__ = [
     "GeometryAuthoringCompletionV2",
     "GeometryCandidateValidationReceiptV2",
     "MaterialControllerCompletionV2",
+    "MaterialClosurePromotionBoundaryV2",
     "MaterialPhaseReceiptV2",
     "MaterialPhaseRollbackReceiptV2",
     "MaterialPromotionIntentV2",
@@ -155,9 +166,12 @@ __all__ = [
     "delivery_profile_catalog",
     "execute_approved_delivery_plan_v2",
     "execute_autonomy_v2_controller",
+    "execute_material_closure_controller_v2",
+    "ExactMaterialClosureAdoptionController",
     "execute_codex_image_material_loop_controller",
     "finalize_codex_image_material_loop_promotion",
     "get_autonomy_v2_status",
+    "get_autonomy_v2_material_closure_status",
     "get_codex_image_material_loop_status",
     "get_codex_image_phase_status",
     "initialize_codex_image_phase",
@@ -191,12 +205,18 @@ __all__ = [
     "validate_and_promote_geometry_candidate_v2",
     "validate_geometry_candidate_validation_receipt_v2",
     "validate_and_promote_material_controller_result_v2",
+    "validate_and_promote_material_closure_controller_result_v2",
     "promote_codex_image_material_loop",
     "prepare_codex_image_material_promotion_retry",
     "validate_codex_image_material_promotion_receipt",
     "validate_codex_image_v05_exact_adoption_preflight",
     "validate_codex_image_material_quality_boundary",
     "validate_material_phase_receipt_v2",
+    "validate_material_phase_rollback_receipt_v2",
+    "validate_material_closure_promotion_boundary_v2",
+    "validate_material_closure_promoted_receipt_v2",
+    "validate_material_closure_controller_projections_v2",
+    "validate_material_appearance_approval_consumption_v2",
     "validate_promoted_codex_image_material_preview",
     "validate_v2_artifact",
 ]

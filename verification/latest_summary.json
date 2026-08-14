@@ -2,14 +2,14 @@
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
   "status": "reported",
-  "verified_at": "2026-08-13T09:45:30Z",
-  "test_count": 1586,
-  "skipped_count": 57,
+  "verified_at": "2026-08-13T21:52:32Z",
+  "test_count": 1750,
+  "skipped_count": 62,
   "warning_count": 8,
   "final_verification": {
     "status": "passed_with_declared_scope_limits",
-    "pytest_passed": 1586,
-    "pytest_skipped": 57,
+    "pytest_passed": 1750,
+    "pytest_skipped": 62,
     "pytest_warnings": 8,
     "ruff_status": "passed"
   },
@@ -150,6 +150,37 @@
       "material_promotion_status": "fake_controller_path_verified_actual_source_unverified",
       "evidence_root": "verification/evidence/imagegen_material_loop_20260813"
     },
+    "material_closure_stabilization": {
+      "status": "as_built_preapproval_boundary_verified_with_declared_authorization_limits",
+      "recorded_on": "2026-08-14",
+      "full_pytest_passed": 1750,
+      "full_pytest_skipped": 62,
+      "full_pytest_warnings": 8,
+      "focused_host_passed": 165,
+      "focused_host_skipped": 4,
+      "actual_blender_preapproval": {
+        "passed": 1,
+        "elapsed_seconds": 13.76,
+        "blender": "5.0.1",
+        "appearance_approval_created": false,
+        "controller_invocation_count": 0,
+        "canonical_promotion_count": 0
+      },
+      "crystalgun_repair_dry_run": {
+        "status": "preflight_failed",
+        "issue": "candidate MaterialPlan lacks image-backed UV coverage for detail.crystal.facet_lines",
+        "blender_preflight_count": 0,
+        "appearance_approval_created": false,
+        "controller_invocation_count": 0,
+        "canonical_promotion_count": 0,
+        "canonical_material_plan_present": false
+      },
+      "authorized_material_promotion_verified": false,
+      "actual_material_phase_receipt_verified": false,
+      "actual_integrated_quality_transition_verified": false,
+      "evidence_root": "verification/evidence/material_closure_stabilization_20260814",
+      "scope": "Graph-derived closure, host rebinding, fail-closed preflight, immutable approval-boundary mechanics, retry/session supersession, state consistency, actual Blender preapproval, and canonical-write-free Crystalgun failure recovery"
+    },
     "v07": {
       "status": "historical_passed",
       "recorded_on": "2026-08-11",
@@ -184,11 +215,15 @@
     "autonomous_static_prop_v2_codex_imagegen": "disabled_experimental"
   },
   "ci_status": {
-    "local_python_ci_equivalent": "passed_with_blender_and_declared_legacy_gate_exclusion",
+    "local_python_ci_equivalent": "passed_with_actual_blender_preapproval_and_declared_authorization_limits",
     "github_hosted_python_ci": "not_run",
     "self_hosted_blender_ci": "not_run"
   },
   "limitations": [
+    "The 2026-08-14 Material Closure full regression and actual Blender smoke stop before user appearance approval; they do not prove an authorized controller-to-promotion-to-IQ success path.",
+    "The Crystalgun repair session failed closed before Blender because the exact candidate lacks image-backed UV coverage for detail.crystal.facet_lines; no appearance approval, controller invocation, promotion, MaterialPhaseReceiptV2, IQ transition, package, or destination write occurred.",
+    "ImageGen plus localized-detail and crystal plus emission plus alpha closure-integrated actual Blender fixtures remain unverified.",
+    "The V0.7 through V0.9 chained gates were not rerun for the 2026-08-14 Material Closure change set.",
     "The 2026-08-13 ImageGen material-loop Blender runs use deterministic fake controller completions; they do not verify a repository-triggered built-in ImageGen source execution or arbitrary generated-image quality.",
     "The historical built-in ImageGen PNG was replayed only to a current-task non-human semantic review_required boundary; it was not promoted or packaged.",
     "The delivery-mechanism run stops at the exact V0.7 review boundary, creates no optimization approval, and verifies raw GLB/FBX export plus clean import only after production package validation rejects the unapproved run.",

@@ -548,12 +548,17 @@ def test_quality_terminal_does_not_downgrade_pass_or_overwrite_history(
         reason="Blocked hard gate.",
         created_at=NOW,
     )
-    with pytest.raises(FileExistsError):
-        publish_quality_terminal_v2(
-            job_root=root,
-            session_id="quality-blocked-session",
-            status="blocked",
-            integrated_quality_report=blocked,
-            reason="Blocked hard gate.",
-            created_at=NOW,
-        )
+    terminal_path = (
+        root / "production/autonomy_v2/quality-blocked-session/quality_terminal.json"
+    )
+    original = terminal_path.read_bytes()
+    replayed, _artifact = publish_quality_terminal_v2(
+        job_root=root,
+        session_id="quality-blocked-session",
+        status="blocked",
+        integrated_quality_report=blocked,
+        reason="Blocked hard gate.",
+        created_at=NOW,
+    )
+    assert replayed.status == "blocked"
+    assert terminal_path.read_bytes() == original

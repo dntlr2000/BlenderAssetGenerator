@@ -8,7 +8,12 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from ..blender_artifacts import native_io_path, sha256_file, write_json_atomic
+from ..blender_artifacts import (
+    native_io_path,
+    native_json_bytes,
+    publish_bytes_create_once,
+    sha256_file,
+)
 from ..production.validation import ensure_contained_production_path
 from .models import CodexImageArtifact
 
@@ -70,15 +75,16 @@ def write_immutable_codex_image_model(
     *,
     kind: str,
 ) -> CodexImageArtifact:
-    """Publish one strict JSON contract exactly once and return its exact binding."""
+    """Create or exact-adopt one strict JSON contract without replacing history."""
 
     root = ensure_contained_codex_image_path(job_root, job_root, must_exist=True)
     destination = ensure_contained_codex_image_path(root, path, must_exist=False)
-    if os.path.exists(native_io_path(destination)):
-        raise FileExistsError(destination)
     os.makedirs(native_io_path(destination.parent), exist_ok=True)
     ensure_contained_codex_image_path(root, destination.parent, must_exist=True)
-    write_json_atomic(destination, model.model_dump(mode="json"))
+    publish_bytes_create_once(
+        destination,
+        native_json_bytes(model.model_dump(mode="json")),
+    )
     return artifact_for_codex_image(
         root,
         destination,

@@ -255,6 +255,8 @@ def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
             or (
                 name.startswith(prefixes)
                 and not name.startswith("material_authoring_codex_image_")
+                and name
+                != "autonomy_v02_material_closure_promotion_boundary.schema.json"
             )
         )
     }

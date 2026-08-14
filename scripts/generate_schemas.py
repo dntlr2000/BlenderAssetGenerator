@@ -94,6 +94,7 @@ from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
+    MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
     MaterialPhaseRollbackReceiptV2,
@@ -228,6 +229,38 @@ from codex_blender_modeler.material_authoring.models import (
     HighResolutionAuthorization,
     MaterialAuthoringReceipt,
     MaterialAuthoringRequest,
+)
+from codex_blender_modeler.material_closure.models import (
+    AQV2StatusProjection,
+    IncidentStateDiscrepancyReport,
+    JobSpecificRecoverySourceInventory,
+    MaterialAppearanceApproval,
+    MaterialAppearanceApprovalConsumptionReceipt,
+    MaterialApprovalImpactReport,
+    MaterialAQBudgetObservation,
+    MaterialAttemptState,
+    MaterialCanonicalMaterialPlanAbsence,
+    MaterialCanonicalSnapshot,
+    MaterialClosureSourceBindingArtifact,
+    MaterialDependencyClosure,
+    MaterialDependencyClosureReceipt,
+    MaterialFrameworkFailureReport,
+    MaterialGraphRebindingPlan,
+    MaterialGraphRebindingReceipt,
+    MaterialNeutralPreviewManifest,
+    MaterialPreflightBudget,
+    MaterialPreflightResourceReceipt,
+    MaterialPromotionPreflightFailure,
+    MaterialPromotionPreflightReport,
+    MaterialPromotionPreflightRequest,
+    MaterialRepairSessionPlan,
+    MaterialRepairSourceBinding,
+    MaterialRetryApprovalAbsence,
+    MaterialRetrySupersessionReceipt,
+    MaterialRollbackRestorationObservation,
+    MaterialSessionSupersessionReceipt,
+    MaterialShadowCompileReceipt,
+    MaterialStateConsistencyReport,
 )
 from codex_blender_modeler.material_graph.models import MaterialGraphSpec
 from codex_blender_modeler.material_graph.runtime_models import (
@@ -590,6 +623,52 @@ SCHEMAS = {
     "autonomy_v02_material_phase_receipt.schema.json": MaterialPhaseReceiptV2,
     "autonomy_v02_material_rollback_receipt.schema.json": (
         MaterialPhaseRollbackReceiptV2
+    ),
+    "autonomy_v02_material_closure_promotion_boundary.schema.json": (
+        MaterialClosurePromotionBoundaryV2
+    ),
+    # Material Closure 0.1.0 is a strict pre-controller companion, not a new pipeline.
+    "material_closure_source_binding.schema.json": MaterialClosureSourceBindingArtifact,
+    "material_dependency_closure.schema.json": MaterialDependencyClosure,
+    "material_dependency_closure_receipt.schema.json": MaterialDependencyClosureReceipt,
+    "material_graph_rebinding_plan.schema.json": MaterialGraphRebindingPlan,
+    "material_graph_rebinding_receipt.schema.json": MaterialGraphRebindingReceipt,
+    "material_promotion_preflight_request.schema.json": MaterialPromotionPreflightRequest,
+    "material_promotion_preflight_report.schema.json": MaterialPromotionPreflightReport,
+    "material_promotion_preflight_failure.schema.json": MaterialPromotionPreflightFailure,
+    "material_shadow_compile_receipt.schema.json": MaterialShadowCompileReceipt,
+    "material_neutral_preview_manifest.schema.json": MaterialNeutralPreviewManifest,
+    "material_preflight_budget.schema.json": MaterialPreflightBudget,
+    "material_preflight_resource_receipt.schema.json": MaterialPreflightResourceReceipt,
+    "material_aq_budget_observation.schema.json": MaterialAQBudgetObservation,
+    "material_approval_impact_report.schema.json": MaterialApprovalImpactReport,
+    "material_appearance_approval.schema.json": MaterialAppearanceApproval,
+    "material_appearance_approval_consumption_receipt.schema.json": (
+        MaterialAppearanceApprovalConsumptionReceipt
+    ),
+    "material_attempt_state.schema.json": MaterialAttemptState,
+    "material_canonical_material_plan_absence.schema.json": (
+        MaterialCanonicalMaterialPlanAbsence
+    ),
+    "material_canonical_snapshot.schema.json": MaterialCanonicalSnapshot,
+    "material_state_consistency_report.schema.json": MaterialStateConsistencyReport,
+    "aq_v2_status_projection.schema.json": AQV2StatusProjection,
+    "material_framework_failure_report.schema.json": MaterialFrameworkFailureReport,
+    "incident_state_discrepancy_report.schema.json": IncidentStateDiscrepancyReport,
+    "material_retry_supersession_receipt.schema.json": (
+        MaterialRetrySupersessionReceipt
+    ),
+    "material_retry_approval_absence.schema.json": MaterialRetryApprovalAbsence,
+    "material_repair_session_plan.schema.json": MaterialRepairSessionPlan,
+    "material_repair_source_binding.schema.json": MaterialRepairSourceBinding,
+    "material_rollback_restoration_observation.schema.json": (
+        MaterialRollbackRestorationObservation
+    ),
+    "material_session_supersession_receipt.schema.json": (
+        MaterialSessionSupersessionReceipt
+    ),
+    "job_specific_recovery_source_inventory.schema.json": (
+        JobSpecificRecoverySourceInventory
     ),
     # Codex built-in ImageGen is a controller-mediated additive AQ v2 overlay.
     "codex_builtin_image_provider_profile.schema.json": (

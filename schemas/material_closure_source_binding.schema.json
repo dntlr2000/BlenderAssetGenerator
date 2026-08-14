@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "MaterialClosureSourceBinding": {
+      "additionalProperties": false,
+      "description": "Declare exact source-evidence roots required for one material authoring mode.",
+      "properties": {
+        "source_mode": {
+          "enum": [
+            "procedural",
+            "imagegen",
+            "manual_image"
+          ],
+          "title": "Source Mode",
+          "type": "string"
+        },
+        "primary_reference_path": {
+          "title": "Primary Reference Path",
+          "type": "string"
+        },
+        "reference_authority_path": {
+          "title": "Reference Authority Path",
+          "type": "string"
+        },
+        "manual_image_source_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Manual Image Source Path"
+        },
+        "imagegen_provider_profile_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Provider Profile Path"
+        },
+        "imagegen_assignment_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Assignment Path"
+        },
+        "imagegen_completion_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Completion Path"
+        },
+        "imagegen_generated_image_evidence_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Generated Image Evidence Path"
+        },
+        "imagegen_normalization_plan_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Normalization Plan Path"
+        },
+        "imagegen_normalization_receipt_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Normalization Receipt Path"
+        },
+        "imagegen_semantic_review_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Semantic Review Path"
+        },
+        "imagegen_selection_receipt_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Imagegen Selection Receipt Path"
+        },
+        "image_to_material_adoption_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image To Material Adoption Path"
+        },
+        "material_authoring_request_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Authoring Request Path"
+        },
+        "material_authoring_manifest_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Authoring Manifest Path"
+        },
+        "material_authoring_receipt_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Authoring Receipt Path"
+        },
+        "additional_evidence_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Additional Evidence Paths",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_mode",
+        "primary_reference_path",
+        "reference_authority_path"
+      ],
+      "title": "MaterialClosureSourceBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Persist host collection roots as exact replayable Material Closure evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "binding_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Binding Id",
+      "type": "string"
+    },
+    "authority_mode": {
+      "default": "aq_same_session",
+      "enum": [
+        "aq_same_session",
+        "material_repair_lineage"
+      ],
+      "title": "Authority Mode",
+      "type": "string"
+    },
+    "scene_spec_path": {
+      "title": "Scene Spec Path",
+      "type": "string"
+    },
+    "modeling_plan_path": {
+      "title": "Modeling Plan Path",
+      "type": "string"
+    },
+    "root_authorization_path": {
+      "title": "Root Authorization Path",
+      "type": "string"
+    },
+    "autonomy_plan_path": {
+      "title": "Autonomy Plan Path",
+      "type": "string"
+    },
+    "autonomy_profile_path": {
+      "title": "Autonomy Profile Path",
+      "type": "string"
+    },
+    "autonomy_budget_path": {
+      "title": "Autonomy Budget Path",
+      "type": "string"
+    },
+    "material_phase_tool_profile_path": {
+      "title": "Material Phase Tool Profile Path",
+      "type": "string"
+    },
+    "geometry_candidate_validation_receipt_path": {
+      "title": "Geometry Candidate Validation Receipt Path",
+      "type": "string"
+    },
+    "canonical_build_provenance_path": {
+      "title": "Canonical Build Provenance Path",
+      "type": "string"
+    },
+    "canonical_scene_inventory_path": {
+      "title": "Canonical Scene Inventory Path",
+      "type": "string"
+    },
+    "repair_source_binding_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Repair Source Binding Path"
+    },
+    "canonical_material_plan_observation_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Canonical Material Plan Observation Path"
+    },
+    "material_plan_baseline_snapshot_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Material Plan Baseline Snapshot Path"
+    },
+    "material_plan_absence_evidence_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Material Plan Absence Evidence Path"
+    },
+    "candidate_material_plan_path": {
+      "title": "Candidate Material Plan Path",
+      "type": "string"
+    },
+    "material_graph_path": {
+      "title": "Material Graph Path",
+      "type": "string"
+    },
+    "graph_rebinding_plan_path": {
+      "title": "Graph Rebinding Plan Path",
+      "type": "string"
+    },
+    "graph_rebinding_receipt_path": {
+      "title": "Graph Rebinding Receipt Path",
+      "type": "string"
+    },
+    "rebound_material_graph_path": {
+      "title": "Rebound Material Graph Path",
+      "type": "string"
+    },
+    "rollback_baseline_path": {
+      "title": "Rollback Baseline Path",
+      "type": "string"
+    },
+    "uv_layout_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Uv Layout Fingerprint",
+      "type": "string"
+    },
+    "source_evidence": {
+      "$ref": "#/$defs/MaterialClosureSourceBinding"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "binding_id",
+    "scene_spec_path",
+    "modeling_plan_path",
+    "root_authorization_path",
+    "autonomy_plan_path",
+    "autonomy_profile_path",
+    "autonomy_budget_path",
+    "material_phase_tool_profile_path",
+    "geometry_candidate_validation_receipt_path",
+    "canonical_build_provenance_path",
+    "canonical_scene_inventory_path",
+    "candidate_material_plan_path",
+    "material_graph_path",
+    "graph_rebinding_plan_path",
+    "graph_rebinding_receipt_path",
+    "rebound_material_graph_path",
+    "rollback_baseline_path",
+    "uv_layout_fingerprint",
+    "source_evidence"
+  ],
+  "title": "MaterialClosureSourceBindingArtifact",
+  "type": "object"
+}

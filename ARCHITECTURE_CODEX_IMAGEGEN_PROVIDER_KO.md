@@ -328,3 +328,18 @@ completed terminal로 재분류하지 않는다. GLB 성공은 FBX 성공을 뜻
 
 Material Loop의 상세 contract와 public 9 CLI/9 MCP는
 [Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)를 따른다.
+
+## 15. Material Closure source binding
+
+Material Closure source mode `imagegen`은 provider core를 바꾸지 않고 exact evidence consumer로
+사용한다. provider profile, assignment, completion, generated image, native normalization
+plan/receipt, semantic review, selection, adoption과 MaterialAuthoring request/manifest/receipt 전체를
+typed root로 요구한다. `additional_evidence_paths`는 필수 typed root를 대신할 수 없다.
+
+provider completion이 유효해도 reference, graph provenance, ShaderRecipe, TextureManifest,
+channel/mask, UV/surface-detail, rollback baseline이 closure에 없으면 material approval로 진행하지
+않는다. ImageGen pixels의 허용 role과 local PBR derivation 정책은 그대로 유지한다.
+
+이 연동은 built-in ImageGen invocation authority, task 생성/재개, API/SDK/HTTP provider 또는
+profile activation을 추가하지 않는다. fake/historical/current-task evidence 분류도 바꾸지 않으며
+`autonomous_static_prop_v2_codex_imagegen`은 계속 `disabled_experimental`이다.

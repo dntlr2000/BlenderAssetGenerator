@@ -1023,3 +1023,39 @@ AQ 0.2가 구현되더라도 다음 제한은 유지된다.
 이 설계의 완료는 코드를 많이 추가하는 것으로 판정하지 않는다. v1 하위 호환, exact evidence
 chain, 실제 GeometryIntent 생존, IQ 0.2의 권위 구분, material spatial detail, format별 direct
 delivery, controller confinement와 실제 host/Blender/legacy gate가 함께 증명되어야 한다.
+
+## 27. Material Closure Stabilization 0.1.0 연동
+
+Material Closure Stabilization은 AQ v2 state machine을 대체하지 않는 additive companion이다.
+geometry validation 뒤 material candidate가 준비되면 다음 경계를 승인 전에 추가한다.
+
+```text
+candidate + exact geometry/canonical baseline
+→ host source binding
+→ path/hash-only MaterialGraph rebinding
+→ graph-derived MaterialDependencyClosure
+→ comprehensive preflight + Blender 5.0.1 shadow compile
+→ actual neutral preview
+→ specialized MaterialAppearanceApproval
+→ fixed ControllerExecutor exact adoption
+→ existing host material promotion/rollback
+→ MaterialPhaseReceiptV2
+→ existing IQ 0.2 boundary
+```
+
+request, assignment과 `MaterialControllerCompletionV2`의 immutable map은 closure의 동일 projection을
+사용한다. 기존 completion JSON은 additive closure field가 없어도 원래 의미로 읽히며 자동
+migration하지 않는다. 새 stabilized execution만 exact closure binding과 single-use approval
+consumption을 요구한다.
+
+raw `AutonomyStateV2`를 material 상태로 재해석하지 않는다. `MaterialAttemptState`, freshly observed
+`MaterialCanonicalSnapshot`, `MaterialStateConsistencyReport`와 `AQV2StatusProjection`을 함께 보여
+rollback·terminal·superseded retry를 숨기지 않는다. terminal AQ session은 재개하지 않고 별도
+material repair session을 사용한다.
+
+기존 `validate_and_promote_material_controller_result_v2`가 canonical promotion의 유일한 authority다.
+preflight와 shadow workspace는 canonical 또는 destination을 쓰지 않는다. 상세 계약과 현재 검증
+상태는 [Material Closure 아키텍처](ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)와
+[검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 이 연동으로
+`autonomous_static_prop_v2` 또는 ImageGen profile을 활성화하지 않으며 둘 다
+`disabled_experimental`이다.

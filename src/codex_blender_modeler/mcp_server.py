@@ -183,6 +183,40 @@ from .interior_qa import (
     run_job_interior_qa,
 )
 from .material_authoring.codex_image_v05_bridge import CodexImageV05BridgeReceipt
+from .material_closure_public import (
+    approve_material_appearance as approve_material_appearance_internal,
+)
+from .material_closure_public import (
+    get_material_closure_status as get_material_closure_status_internal,
+)
+from .material_closure_public import (
+    get_material_framework_failure_status as get_material_framework_failure_status_internal,
+)
+from .material_closure_public import (
+    get_material_preflight_status as get_material_preflight_status_internal,
+)
+from .material_closure_public import (
+    get_material_state_consistency as get_material_state_consistency_internal,
+)
+from .material_closure_public import (
+    plan_material_closure as plan_material_closure_internal,
+)
+from .material_closure_public import (
+    plan_material_repair_session as plan_material_repair_session_internal,
+)
+from .material_closure_public import rebind_material_graph as rebind_material_graph_internal
+from .material_closure_public import (
+    run_material_preflight as run_material_preflight_internal,
+)
+from .material_closure_public import (
+    run_material_repair_session as run_material_repair_session_internal,
+)
+from .material_closure_public import (
+    run_material_shadow_compile as run_material_shadow_compile_internal,
+)
+from .material_closure_public import (
+    supersede_material_retry as supersede_material_retry_internal,
+)
 from .materials import (
     create_material_scaffold,
     validate_job_material_contracts,
@@ -285,6 +319,7 @@ from .versioning import (
     DESTINATION_HANDOFF_SCHEMA_VERSION,
     EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
+    MATERIAL_CLOSURE_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
     PRODUCTION_DISPATCH_SCHEMA_VERSION,
@@ -669,6 +704,7 @@ def get_modeling_capabilities() -> dict:
         "analysis_schema_version": REFERENCE_SCHEMA_VERSION,
         "constraint_schema_version": CONSTRAINT_SCHEMA_VERSION,
         "material_schema_version": MATERIAL_SCHEMA_VERSION,
+        "material_closure_schema_version": MATERIAL_CLOSURE_SCHEMA_VERSION,
         "visual_qa_schema_version": VISUAL_QA_SCHEMA_VERSION,
         "portable_asset_schema_version": PORTABLE_ASSET_SCHEMA_VERSION,
         "interior_scope_schema_version": INTERIOR_SCOPE_SCHEMA_VERSION,
@@ -679,6 +715,16 @@ def get_modeling_capabilities() -> dict:
         "experimental_contract_versions": {
             "autonomy": "0.1.0",
             "integrated_quality": "0.1.0",
+        },
+        "material_closure": {
+            "contract_version": MATERIAL_CLOSURE_SCHEMA_VERSION,
+            "status": "additive_pre_controller_companion",
+            "canonical_writer": "existing_host_material_promotion_only",
+            "approval": "caller-authored exact user decision after current preflight replay",
+            "shadow_scope": "complete_preflight_with_shadow_compile",
+            "repair_stop_boundary": "approval_pending",
+            "automatic_migration": False,
+            "destination_writes": False,
         },
         "feature_flags": {
             "material_core": feature_config.features.material_core,
@@ -1011,6 +1057,213 @@ def get_modeling_capabilities() -> dict:
             "Single-view concept reconstruction remains approximate without scale/camera anchors.",
         ],
     }
+
+
+@mcp.tool()
+def plan_material_closure(
+    job_id: str,
+    source_binding_path: str,
+    planned_outputs_path: str,
+    closure_id: str | None = None,
+) -> dict:
+    """Collect and immutably publish one dependency closure and passed receipt."""
+
+    return plan_material_closure_internal(
+        job_id,
+        source_binding_path=source_binding_path,
+        planned_outputs_path=planned_outputs_path,
+        closure_id=closure_id,
+    )
+
+
+@mcp.tool()
+def get_material_closure_status(
+    job_id: str,
+    session_id: str,
+    material_attempt_path: str | None = None,
+    consistency_report_path: str | None = None,
+    framework_failure_path: str | None = None,
+    retry_supersession_path: str | None = None,
+    session_supersession_path: str | None = None,
+) -> dict:
+    """Auto-discover current closure companions beside preserved raw AQ state."""
+
+    return get_material_closure_status_internal(
+        job_id,
+        session_id,
+        material_attempt_path=material_attempt_path,
+        consistency_report_path=consistency_report_path,
+        framework_failure_path=framework_failure_path,
+        retry_supersession_path=retry_supersession_path,
+        session_supersession_path=session_supersession_path,
+    )
+
+
+@mcp.tool()
+def run_material_preflight(
+    job_id: str,
+    request_path: str,
+    preview_size: int = 512,
+) -> dict:
+    """Run one isolated preflight without approval, controller, or canonical authority."""
+
+    return run_material_preflight_internal(
+        job_id,
+        request_path=request_path,
+        preview_size=preview_size,
+    )
+
+
+@mcp.tool()
+def get_material_preflight_status(
+    job_id: str,
+    report_path: str,
+    require_current: bool = False,
+) -> dict:
+    """Replay a published preflight historically or against current canonical bytes."""
+
+    return get_material_preflight_status_internal(
+        job_id,
+        report_path=report_path,
+        require_current=require_current,
+    )
+
+
+@mcp.tool()
+def run_material_shadow_compile(
+    job_id: str,
+    request_path: str,
+    preview_size: int = 512,
+) -> dict:
+    """Run shadow compilation only through the mandatory complete preflight."""
+
+    return run_material_shadow_compile_internal(
+        job_id,
+        request_path=request_path,
+        preview_size=preview_size,
+    )
+
+
+@mcp.tool()
+def approve_material_appearance(
+    job_id: str,
+    report_path: str,
+    approval_path: str,
+    expected_uv_layout_fingerprint: str,
+    explicit_user_decision_observed: bool,
+) -> dict:
+    """Publish one caller-authored decision only after an explicit user observation."""
+
+    return approve_material_appearance_internal(
+        job_id,
+        report_path=report_path,
+        approval_path=approval_path,
+        expected_uv_layout_fingerprint=expected_uv_layout_fingerprint,
+        explicit_user_decision_observed=explicit_user_decision_observed,
+    )
+
+
+@mcp.tool()
+def rebind_material_graph(
+    job_id: str,
+    source_graph_path: str,
+    plan_path: str,
+) -> dict:
+    """Publish one declared path/hash-only graph derivative and passed receipt."""
+
+    return rebind_material_graph_internal(
+        job_id,
+        source_graph_path=source_graph_path,
+        plan_path=plan_path,
+    )
+
+
+@mcp.tool()
+def get_material_state_consistency(
+    job_id: str,
+    attempt_state_path: str,
+    top_level_state_path: str,
+    expected_snapshot_path: str,
+    report_id: str | None = None,
+) -> dict:
+    """Host-observe current canonical bytes and publish their exact comparison."""
+
+    return get_material_state_consistency_internal(
+        job_id,
+        attempt_state_path=attempt_state_path,
+        top_level_state_path=top_level_state_path,
+        expected_snapshot_path=expected_snapshot_path,
+        report_id=report_id,
+    )
+
+
+@mcp.tool()
+def get_material_framework_failure_status(job_id: str, report_path: str) -> dict:
+    """Read one strict framework failure without executing its historical retry."""
+
+    return get_material_framework_failure_status_internal(
+        job_id,
+        report_path=report_path,
+    )
+
+
+@mcp.tool()
+def supersede_material_retry(
+    job_id: str,
+    retry_plan_path: str,
+    current_state_path: str,
+    framework_failure_report_path: str,
+    supersession_reason: str,
+    observation_context_sha256: str,
+    retry_approval_path: str | None = None,
+    expected_approval_path: str | None = None,
+    receipt_id: str | None = None,
+) -> dict:
+    """Publish append-only supersession evidence without executing the retry."""
+
+    return supersede_material_retry_internal(
+        job_id,
+        retry_plan_path=retry_plan_path,
+        current_state_path=current_state_path,
+        framework_failure_report_path=framework_failure_report_path,
+        supersession_reason=supersession_reason,
+        observation_context_sha256=observation_context_sha256,
+        retry_approval_path=retry_approval_path,
+        expected_approval_path=expected_approval_path,
+        receipt_id=receipt_id,
+    )
+
+
+@mcp.tool()
+def plan_material_repair_session(
+    job_id: str,
+    plan_path: str,
+    source_binding_path: str,
+) -> dict:
+    """Validate and publish one material-only repair plan and geometry binding."""
+
+    return plan_material_repair_session_internal(
+        job_id,
+        plan_path=plan_path,
+        source_binding_path=source_binding_path,
+    )
+
+
+@mcp.tool()
+def run_material_repair_session(
+    job_id: str,
+    plan_path: str,
+    source_binding_path: str,
+    preview_size: int = 512,
+) -> dict:
+    """Run one material-only repair through preflight and stop before approval."""
+
+    return run_material_repair_session_internal(
+        job_id,
+        plan_path=plan_path,
+        source_binding_path=source_binding_path,
+        preview_size=preview_size,
+    )
 
 
 @mcp.tool()

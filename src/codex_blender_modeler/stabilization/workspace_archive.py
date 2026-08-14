@@ -16,7 +16,6 @@ from ..blender_artifacts import native_io_path, sha256_file, write_json_atomic
 from ..config import get_settings
 from ..orchestration import get_workflow_status
 from ..orchestration.models import WorkflowPlan, WorkflowRequest, WorkflowState
-from ..production.service import get_asset_production_dispatch_status
 from ..workspace import validate_job_id
 from .archive_models import (
     WorkspaceArchiveArtifact,
@@ -249,6 +248,10 @@ def _reject_active_locks(root: Path) -> None:
 
 def _validate_terminal_boundary(job_id: str, *, allow_failed: bool) -> _WorkspaceBoundary:
     """Validate exact V0.8 terminal evidence and all known active-work boundaries."""
+
+    # Import at the execution boundary so production models can import stabilization
+    # contracts without initializing the workspace-archive service recursively.
+    from ..production.service import get_asset_production_dispatch_status
 
     settings = get_settings()
     root = _absolute_lexical(settings.workspace_root / validate_job_id(job_id))

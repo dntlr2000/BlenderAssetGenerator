@@ -201,3 +201,26 @@ git diff --check
 - human review, production approval, package acceptance와 destination parity의 미검증 상태
 
 fixture 통과만으로 profile을 활성화하지 않는다.
+
+## 14. Material Closure compatibility gate
+
+ImageGen + localized surface-detail fixture를 Material Closure source mode `imagegen`으로 다시 실행해
+다음을 확인한다.
+
+- 12개 typed ImageGen/MaterialAuthoring root와 재귀 dependency가 final closure에 모두 존재
+- primary/reference authority, generated/normalized/selected/adopted bytes의 identity chain current
+- source/rebound graph와 rebind plan/receipt가 모두 closure input이고 semantic diff는 0
+- every manifest/channel/mask/reference와 UV/coverage mismatch가 approval 전에 차단
+- request/assignment/completion map이 closure projection과 동일하며 reduced map 거부
+- actual Blender shadow receipt와 neutral preview가 생기기 전 approval 0
+- actual user decision을 exact하게 관찰한 authorized run에서만 controller/promotion 각 1회;
+  test-synthesized user approval은 성공 근거가 아니며 failure fixture는 모두 0
+- existing ImageGen 5+9 public surface와 새 Material Closure 12 surface가 additive coexistence
+
+historical PNG 재사용은 fresh built-in ImageGen이 아니고 current incident dry-run은 production
+promotion이 아니다. 이 gate의 실제 결과는 Material Closure verification에 기록되기 전까지
+`unverified`다.
+
+2026-08-14 현재 이 compatibility success fixture는 여전히 `unverified`다. 별도 procedural
+preapproval fixture 1회 통과와 current incident의 coverage-driven `preflight_failed` 결과를
+ImageGen+localized success로 재분류하지 않는다.

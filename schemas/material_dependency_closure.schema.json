@@ -1,0 +1,356 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained job-relative artifact by exact bytes and media type.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "MaterialDependencyEntry": {
+      "additionalProperties": false,
+      "description": "Describe one unique immutable input in a complete material dependency closure.",
+      "properties": {
+        "entry_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Entry Id",
+          "type": "string"
+        },
+        "role": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Role",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "source_kind": {
+          "enum": [
+            "canonical_artifact",
+            "staging_artifact",
+            "request_input",
+            "generated_evidence",
+            "derived_evidence",
+            "policy_evidence",
+            "rollback_evidence"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "required": {
+          "title": "Required",
+          "type": "boolean"
+        },
+        "producer": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Producer",
+          "type": "string"
+        },
+        "dependency_parent": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dependency Parent"
+        },
+        "semantic_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Semantic Id"
+        },
+        "material_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Material Id"
+        },
+        "ownership": {
+          "enum": [
+            "canonical",
+            "staging",
+            "request_owned"
+          ],
+          "title": "Ownership",
+          "type": "string"
+        }
+      },
+      "required": [
+        "entry_id",
+        "role",
+        "path",
+        "sha256",
+        "byte_size",
+        "source_kind",
+        "required",
+        "producer",
+        "ownership"
+      ],
+      "title": "MaterialDependencyEntry",
+      "type": "object"
+    },
+    "MaterialPlannedOutput": {
+      "additionalProperties": false,
+      "description": "Declare one exact request-owned controller output before execution.",
+      "properties": {
+        "output_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Output Id",
+          "type": "string"
+        },
+        "output_kind": {
+          "enum": [
+            "material_plan",
+            "material_graph",
+            "controller_completion",
+            "additional"
+          ],
+          "title": "Output Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "verification": {
+          "enum": [
+            "exact_hash",
+            "structural_binding"
+          ],
+          "title": "Verification",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "expected_schema_version": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Schema Version"
+        },
+        "expected_field_bindings": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Expected Field Bindings",
+          "type": "object"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        },
+        "request_owned": {
+          "const": true,
+          "default": true,
+          "title": "Request Owned",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "output_id",
+        "output_kind",
+        "path",
+        "verification",
+        "media_type"
+      ],
+      "title": "MaterialPlannedOutput",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the full exact dependency set and controller output projection.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "closure_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Closure Id",
+      "type": "string"
+    },
+    "closure_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Closure Sha256",
+      "type": "string"
+    },
+    "collection_mode": {
+      "const": "host_graph_derived",
+      "default": "host_graph_derived",
+      "title": "Collection Mode",
+      "type": "string"
+    },
+    "source_binding": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "root_kind": {
+      "const": "job_root",
+      "default": "job_root",
+      "title": "Root Kind",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/MaterialDependencyEntry"
+      },
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    },
+    "planned_outputs": {
+      "items": {
+        "$ref": "#/$defs/MaterialPlannedOutput"
+      },
+      "minItems": 3,
+      "title": "Planned Outputs",
+      "type": "array"
+    },
+    "rollback_baseline": {
+      "$ref": "#/$defs/ExactArtifact"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "closure_id",
+    "closure_sha256",
+    "source_binding",
+    "entries",
+    "planned_outputs",
+    "rollback_baseline"
+  ],
+  "title": "MaterialDependencyClosure",
+  "type": "object"
+}

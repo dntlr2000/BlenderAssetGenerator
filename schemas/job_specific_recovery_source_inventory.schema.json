@@ -1,0 +1,235 @@
+{
+  "$defs": {
+    "JobSpecificRecoverySource": {
+      "additionalProperties": false,
+      "description": "Inventory one incident-specific executable source before generic replacement.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "tracking_status": {
+          "enum": [
+            "tracked",
+            "untracked",
+            "ignored"
+          ],
+          "title": "Tracking Status",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "index_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index Sha256"
+        },
+        "index_byte_size": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Index Byte Size"
+        },
+        "working_tree_differs_from_index": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Working Tree Differs From Index"
+        },
+        "job_specific_literals": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Job Specific Literals",
+          "type": "array"
+        },
+        "generic_capabilities": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]{1,95}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Generic Capabilities",
+          "type": "array"
+        },
+        "disposition": {
+          "enum": [
+            "archive_then_delete",
+            "archive_then_move",
+            "retain_as_evidence"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "archive_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Path"
+        },
+        "archive_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Sha256"
+        },
+        "archive_byte_size": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Archive Byte Size"
+        }
+      },
+      "required": [
+        "path",
+        "tracking_status",
+        "sha256",
+        "byte_size",
+        "job_specific_literals",
+        "generic_capabilities",
+        "disposition"
+      ],
+      "title": "JobSpecificRecoverySource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve exact provenance for incident-specific executable recovery sources.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "inventory_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Inventory Id",
+      "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/JobSpecificRecoverySource"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "scan_roots": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Scan Roots",
+      "type": "array"
+    },
+    "scan_complete": {
+      "title": "Scan Complete",
+      "type": "boolean"
+    },
+    "evidence_only_after_inventory": {
+      "const": true,
+      "default": true,
+      "title": "Evidence Only After Inventory",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "inventory_id",
+    "scan_roots",
+    "scan_complete"
+  ],
+  "title": "JobSpecificRecoverySourceInventory",
+  "type": "object"
+}

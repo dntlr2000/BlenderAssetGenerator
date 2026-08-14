@@ -61,3 +61,18 @@ completion. Run only the existing ControllerExecutor and host material promotion
 `material_promoted`, IQ `quality_approved`, V0.7 approval, package acceptance, and destination parity
 as separate boundaries. Stop at `review_required`, `blocked`, or `waiting_for_v07_approval` without
 synthesizing approval, human review, package evidence, or destination writes.
+
+# Material Closure approval-before-controller boundary
+
+For a new stabilized AQ v2 material attempt, collect one host graph-derived dependency closure after a
+path/hash-only MaterialGraph rebind and before controller request creation. The closure must include the
+candidate, canonical MaterialPlan observation+snapshot or strict absence, all recipes/manifests/images/
+masks/references, surface-detail/UV, source-mode evidence, rollback, budget, authorization/profile, and
+geometry/canonical bindings. Request, assignment, and completion must use its identical immutable map.
+
+Run bounded contract/state checks, an actual Blender 5.0.1 full-scene shadow compile, and an actual
+neutral preview before asking for a specialized material appearance decision. Technical wiring repair
+does not need user approval. If preflight fails, emit framework failure evidence and keep approval,
+controller, canonical promotion, IQ, and destination writes at zero. If it passes, stop at
+`approval_pending`; never synthesize or reuse a generic, profile, policy, or retry approval. A terminal
+AQ session cannot be resumed and must be linked to a new material-only repair session.

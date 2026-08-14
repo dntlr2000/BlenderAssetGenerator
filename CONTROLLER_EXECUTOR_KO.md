@@ -341,3 +341,29 @@ host/full 회귀와 synthetic Blender flow가 geometry→material→caller-suppl
 terminal→delivery terminal 계약을 검증했다. external supporting-client containment, optional App
 Server 실기동, 실제 사람이 승인한 production run과 repository-side task spawn은 계속
 **unverified**다.
+
+## 11. Material Closure exact-adoption boundary
+
+새 stabilized material request는 caller가 조립한 일부 input map을 받지 않는다. host가 검증한
+`MaterialDependencyClosure.project_immutable_input_map()` 하나를 request, assignment와 completion에
+동일하게 사용한다. fixed material closure controller는 exact approved MaterialPlan과 rebound
+MaterialGraph를 request-owned `material_plan.json`, `material_graph.json`으로 채택하고 strict
+`completion.json`만 쓸 수 있다.
+
+ControllerExecutor 진입 조건은 current closure/receipt, graph rebind receipt, passed comprehensive
+preflight, shadow receipt, neutral preview, canonical consistency와 single-use
+`MaterialAppearanceApprovalConsumptionReceipt`다. caller-authored ControllerResult, reduced map,
+approval reuse, canonical/destination write, undeclared output은 거부한다.
+
+completion byte hash를 closure에 미리 넣으면 순환하므로 plan/graph output은 exact SHA-256,
+completion은 expected schema/field와 closure hash에 결속된 structural verification을 사용한다.
+`MaterialControllerCompletionV2`의 closure field는 additive다. legacy completion은 원래 의미로
+읽히지만 새 stabilized request에서는 field와 full map이 필수다.
+
+controller 성공은 canonical success가 아니다. 기존 host material promotion이 same closure와
+approval consumption을 다시 검증하고 CAS/rebuild/validate/rollback을 수행한 뒤 actual
+`MaterialPhaseReceiptV2`가 있어야 IQ 경계로 이동한다.
+
+2026-08-14 Material Closure 검증에서는 current incident가 preflight에서 먼저 차단돼 이 fixed
+controller를 실행하지 않았다. Actual user-approved one-shot controller, promotion 성공과
+`MaterialPhaseReceiptV2`/IQ 연결은 여전히 `unverified`다.

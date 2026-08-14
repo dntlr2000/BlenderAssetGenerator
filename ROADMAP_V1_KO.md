@@ -876,6 +876,11 @@ VERIFICATION_Vxx_KO.md
 - [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Material Closure Stabilization 아키텍처](ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 테스트 계획](TEST_PLAN_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 마이그레이션 정책](MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, reversible terminal workspace archive,
 single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다.
@@ -885,11 +890,30 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 ## 17. 현재 시점의 다음 순서
 
 ```text
-현재 V0.9 stabilization + destination handoff 기준선 유지
-→ 사용자가 V1.0 승격 재개 여부와 제품 범위를 다시 결정
-→ 재개 시 필요한 benchmark·지원 매트릭스·공개 계약 범위를 별도 승인
-→ 승인된 범위만 V1.0 release gate로 검증
-→ 목적 엔진이 확정된 경우 V1.1+ automatic Destination Adapter 설계
+1. Material Closure Stabilization local contract/regression sign-off — 2026-08-14 완료
+2. Crystalgun candidate coverage repair와 새 preapproval dry-run
+3. 실제 자산 3종 이상의 material regression
+4. Standard Codex ImageGen integration
+5. 실제 material benchmark
+6. Unity URP material reconstruction
+7. AQ v2 local-only activation review
+8. ImageGen overlay activation review
+9. Architecture exterior / environment / measured 확장
+10. V1.0 승격 재심사
 ```
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+각 단계는 앞 단계의 실제 evidence와 gate가 통과한 뒤에만 시작합니다. 2026-08-14 현재
+Material Closure contracts/public surface, 전체 `1750/62/8` 회귀와 한 actual Blender preapproval
+fixture는 검증됐습니다. 다만 authorized controller/promotion/IQ success는 별도 권한 evidence가
+없어 미검증입니다. Crystalgun retry02는 closure 뒤
+`detail.crystal.facet_lines`의 image-backed UV coverage 누락으로 Blender/preview/approval 전에
+`preflight_failed`가 됐으므로 2번은 완료가 아닙니다.
+
+특히 Standard ImageGen 통합은 Crystalgun approval-pending dry-run,
+서로 다른 실제 자산 3종 이상의 material regression, specialized approval/rollback consistency가
+모두 검증되기 전에는 시작하지 않습니다. Unity URP는 engine-neutral source package를 목적
+엔진에서 재구성하는 별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
+7번과 8번은 구현 존재가 아니라 별도 activation review이고, 두 experimental profile은 그때까지
+계속 `disabled_experimental`입니다.
+
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen/Material Closure 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

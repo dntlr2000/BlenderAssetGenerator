@@ -969,6 +969,35 @@ swatch와 PDF 경로를 보고하고 swatch 승인 대기 상태에서 멈춰.
 세부 native/semantic/recovery/IQ 프롬프트는
 [Codex ImageGen Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)에 있습니다.
 
+#### 단계 5B — Material Closure 승인 전 안정화
+
+> **새 stabilized AQ v2/ImageGen material attempt 또는 terminal session의 별도 material repair
+> session에만 사용합니다. 기존 retry approval을 재사용하거나 terminal AQ session을 재개하지 않습니다.**
+
+```text
+<JOB_ID> / <MATERIAL_SESSION_ID>의 current material candidate를 controller 전에 Material Closure 0.1.0으로 검증해.
+
+1. current canonical SceneSpec, ModelingPlan, Blend와 MaterialPlan observation+snapshot 또는 strict
+   absence, geometry approval/validation, rollback baseline, reference와 UV fingerprint를 fresh rehash해.
+2. procedural/manual_image/imagegen 중 exact source mode를 선언하고 해당 typed root 전체를 검증해.
+3. host가 source graph를 보존한 run-owned derivative에서 provenance path/hash만 rebind해.
+4. candidate plan, source/rebound graph, rebind plan/receipt, 모든 ShaderRecipe/TextureManifest/channel/
+   mask/reference, surface-detail/UV와 authorization/profile/budget을 graph-derived closure에 수집해.
+5. request/assignment/completion immutable map을 closure projection 하나에서만 만들고 reduced map을 거부해.
+6. finite resource/rollback/state consistency를 검사한 뒤 canonical-write-free shadow root에서 실제
+   Blender 5.0.1 full-scene compile/build/inspect/validate와 neutral preview를 생성해.
+7. 실패하면 framework failure evidence를 발행하고 approval/controller/promotion은 0으로 유지해.
+8. 성공하면 exact candidate/graph/closure/preflight/preview/canonical/UV를 보여 주고
+   approval_pending에서 멈춰. 사용자의 명시적 appearance 결정 전에는 승인을 만들지 마.
+
+technical path/hash repair에는 사용자 승인을 요구하지 마. appearance/scope bytes가 바뀌면 새
+closure/preflight/preview가 필요하다고 보고해. shadow compile을 canonical promotion이나 human review로
+표현하지 마.
+```
+
+승인 뒤 exact controller/promotion, retry/rollback과 material repair session prompt는
+[Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 사용합니다.
+
 ### 단계 6 — V0.6 직접 Visual QA
 
 ```text
@@ -1897,6 +1926,7 @@ quality_approved를 package/destination 완료로 설명하지 마.
 | 4 선택적 실내 | 명시적 실내 요청 | InteriorScope draft/approval/validation, 승인 범위 geometry | scope JSON/hash, build preview | 수동 exact-hash 승인 | 5 | 범위 변경 시 새 scope·승인 |
 | 5 V0.5 재질 | 승인된 geometry/camera | MaterialPlan, ShaderRecipe, TextureManifest, swatches | material JSON, swatch, material PDF | material/swatch 승인 | 6 | geometry/material hash 변경, validation 실패 |
 | 5A 선택적 ImageGen Material Loop | AQ v2 geometry receipt, current authorization/profile/budget, ImageGen core+MaterialAuthoring evidence | native/semantic/selection closure, controller request/result, MaterialPhaseReceiptV2, neutral preview, base AQ resume | original/derivative hash, semantic outcome, controller lifecycle, promotion/preview/IQ status | ImageGen/profile opt-in은 승인 아님; V0.7 exact 승인은 별도 | IQ 또는 review/blocked | source/SceneSpec/UV/baseline/profile drift, missing preflight/semantic evidence, controller/promotion failure |
+| 5B Material Closure 승인 전 안정화 | current geometry/canonical baseline, candidate, typed source roots | host graph rebind, graph-derived closure, comprehensive preflight, Blender shadow compile, neutral preview | closure/rebind/preflight/preview/consistency JSON과 exact hash | exact MaterialAppearanceApproval 1회; technical repair 승인 없음 | approval_pending 또는 framework blocked | dependency/UV/reference/budget/rollback/state drift, terminal old session, approval 부재 |
 | 6 V0.6 QA | fresh build, 고정 카메라 | 7 passes, QA report, candidates | direct score, pass 이미지, QA PDF | 후보 적용 전 필요 | 7 또는 8 | 새 geometry/material/build |
 | 6A 선택적 실내 QA | 승인된 InteriorScope, interior geometry, fresh build | exact camera plan, view별 7 passes, coverage/report/candidates | contact sheets, interior QA PDF, plan hash | camera plan exact-hash 승인 | 7 또는 8 | scope/SceneSpec/build 변경, unseen 공간 재계획 |
 | 6B 선택적 외관 companion | completed canonical QA run, current source hashes | immutable attempts, terminal bundle, camera/shape/assembly attribution, optional five-view evidence | diagnostic JSON, attribution·limitation, structural views | revision 승인 없음; standalone five-view run은 exact plan hash 필요 | 7 또는 8 | terminal 전 retryable host 실패는 다음 attempt, source drift는 새 current QA |
@@ -1927,3 +1957,6 @@ quality_approved를 package/destination 완료로 설명하지 마.
 - Approval 없는 raw GLB/FBX export와 clean import는 production package acceptance가 아닙니다.
   `quality_approved`도 V0.7 OptimizationApproval, package 또는 destination parity를 뜻하지 않습니다.
 - 현재 문서는 Unity/Unreal 자동 adapter나 V1.1 이후 기능이 구현된 것으로 가정하지 않습니다.
+- Material Closure shadow compile/neutral preview는 canonical promotion, human review,
+  MaterialPhaseReceiptV2 또는 IQ pass가 아닙니다. terminal old session은 별도 material repair session으로만
+  이어지며, existing technical retry approval은 specialized appearance approval이 아닙니다.

@@ -187,3 +187,29 @@ uv run cbm validate-material-fidelity <JOB_ID>
   재질 유사도 점수나 pixel-level decal placement 증명으로 해석하지 않습니다.
 - V0.7 package는 raw PBR 이미지를 보존하지만 특정 Unity/Unreal 셰이더 parity를
   주장하지 않습니다.
+
+## Material Closure 승인 전 검사
+
+새 stabilized material attempt는 ModelingPlan의 non-omitted `surface_details`를 closure와
+preflight에서 다시 검증합니다. 각 detail은 stable detail/object/material ID, `image|hybrid`
+strategy, `UVMap`, current UV layout fingerprint, requested channel, coverage ID, exact mask 또는
+bounded `uv_rect`, wrap policy에 결속되어야 합니다.
+
+candidate MaterialPlan/TextureManifest mapping과 다음이 하나라도 다르면 appearance approval 전에
+fail closed합니다.
+
+- object/material/detail ID 또는 coverage 부재
+- procedural/none strategy로 localized detail을 거짓 충족
+- requested PBR channel 또는 mask/image 누락
+- UV set/fingerprint/rect/wrap 불일치
+- geometry와 surface-detail이 같은 mark를 중복 소유
+- reference나 placement provenance가 closure에서 누락
+
+preflight가 coverage를 통과했다는 사실은 reference와 pixel-level 위치가 미적으로 승인됐다는 뜻이
+아닙니다. actual neutral preview와 specialized appearance approval은 별도 경계이며, technical UV
+binding/path repair에는 사용자 승인을 반복 요구하지 않습니다. UV나 placement bytes가 실제로
+바뀌면 새 closure/preflight/preview/approval이 필요합니다.
+
+2026-08-14 current incident dry-run은 non-omitted detail의 image-backed UV coverage가 없어 이 단계에서
+`preflight_failed`로 멈췄습니다. Blender/preview/approval/controller/promotion은 실행되지 않았고,
+이 early rejection을 appearance quality 판정으로 해석하지 않습니다.

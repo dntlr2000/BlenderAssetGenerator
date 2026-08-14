@@ -24,3 +24,9 @@ adoption/normalization/core-preparation and semantic-selection closure. Derive n
 metallic, height, displacement, AO, and exact signage text through the existing local contracts.
 MaterialAuthoring output remains staging evidence; do not claim canonical promotion, IQ pass, human
 review, or package acceptance until their separate host receipts exist.
+
+When a later Material Closure `0.1.0` attempt is planned, make every dependency discoverable from the
+MaterialPlan instead of supplying a hand-maintained controller map. Every ShaderRecipe,
+TextureManifest, channel image, mask, reference, localized-detail coverage, UV set, and mapping must be
+explicit and current. Do not create the closure, graph rebind, approval, controller result, or canonical
+write in this authoring step. The host will derive and verify them after candidate publication.

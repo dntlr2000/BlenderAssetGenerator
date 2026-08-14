@@ -22,3 +22,10 @@ For each material:
   hash-bound font evidence.
 
 Do not alter geometry in this task.
+
+For a candidate that will enter Material Closure `0.1.0`, do not hide a required channel, mask,
+reference, coverage image, or UV prerequisite in prose. Declare contained relative paths and stable
+material/detail IDs so the host graph collector can discover every exact dependency. A missing or stale
+dependency must block the later preapproval preflight; never mark it optional merely to complete the
+manifest. This task does not perform graph rebinding, approval, controller execution, or canonical
+promotion.

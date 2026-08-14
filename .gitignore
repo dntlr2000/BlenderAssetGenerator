@@ -153,3 +153,19 @@ build/
 /tmp_tests_completion_binding_20260814_01
 /tmp_tests_completion_binding_20260814_02
 /tmp_tests_dependency_closure_plan_20260814_01
+
+# Material Closure audit/test intermediates. Preserve locally but never treat them
+# as repository instructions, source, or generated-summary inputs.
+/.gate-tmp/
+/.dry_cg*/
+/.tmp-public-*/
+/.tmp-root-*/
+/.tmp_closure_*/
+/.tmp_closure_service_*/
+/.tmp_closure_suite_*/
+/.uv-cache*/
+/qa_tmp_*/
+/scratch/
+/tmp_tests_*/
+/output/
+/production/

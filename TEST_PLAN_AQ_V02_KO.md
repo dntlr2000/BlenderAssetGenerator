@@ -701,3 +701,23 @@ workflow는 `not-run/unverified`이며 성공 badge나 verification 문서가 �
 실제 실행 날짜, host/Blender version, exact command, 결과, evidence path/hash와 남은 제한은
 `VERIFICATION_AQ_V02_KO.md`에만 기록한다. 이 계획 문서의 `unverified` 표를 실행 결과처럼
 수정하거나, 계획 자체를 성공 증거로 인용하지 않는다.
+
+## 11. Material Closure additive regression
+
+AQ v2 focused gate에는 다음을 additive하게 포함한다.
+
+- closure projection과 request/assignment/completion map equality, reduced map rejection
+- source binding → graph rebind → final closure의 순환 없는 replay
+- existing MaterialPlan snapshot 또는 strict current absence
+- approval 전 missing dependency, reference, UV/surface-detail, budget/rollback failure 차단
+- actual Blender 5.0.1 shadow compile과 neutral preview가 canonical을 바꾸지 않음
+- explicit appearance approval의 1회 consumption과 재사용/stale 거부
+- fixed controller의 allowed-output confinement와 기존 host promotion 위임
+- promotion 실패 rollback 뒤 attempt/canonical consistency, IQ 미진입
+- raw AQ state와 combined material status가 모두 보이며 terminal session을 재개하지 않음
+- 기존 AQ v2 evidence가 additive completion field 없이도 기존 의미로 읽힘
+- AQ v2/ImageGen profile이 계속 `disabled_experimental`
+
+정상 fixture의 approval/controller/promotion 각각 1회 assertion은 fixture가 제공한 specialized user
+decision이 있을 때만 적용한다. current incident dry-run은 approval/controller/promotion 모두 0인
+별도 행이며 `approval_pending` 또는 strict framework-blocked가 유일한 올바른 preapproval terminal이다.

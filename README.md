@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`은 이 기존 경계 위에 dependency closure, 승인 전 shadow preflight, 전문 material appearance 승인과 canonical 상태 투영을 더하는 additive companion이며 기존 profile을 활성화하지 않습니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -24,6 +24,7 @@
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` additive overlay; `disabled_experimental` |
 | Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1`; `disabled_experimental` |
 | Codex ImageGen Material Loop | additive strict `0.1.0`; native/semantic/controller/promotion/IQ bridge; `disabled_experimental` |
+| Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
@@ -33,6 +34,9 @@
 | 2026-08-12 AQ/ImageGen core 통합 gate snapshot | focused 485 passed, 22 skipped, 8 warnings; Blender 34 passed, 6 warnings; V0.7/V0.8/V0.9 gates passed |
 | 2026-08-13 Material Loop 최종 local gate | full `1569 passed, 56 skipped, 8 warnings`; focused `160 passed, 1 skipped`; public/schema/catalog/CI parity `59 passed`; 실제 범위와 not-run 항목은 검증 기록 참조 |
 | 2026-08-13 AQ v2 ↔ V0.9 state-anchor lifecycle | full `1586 passed, 57 skipped, 8 warnings`; related focused `226 passed`; no-op reconcile/receipt lineage/AQ controller resume 통과; 기존 `collectible_wood_02_2`는 read-only 감사상 stale/unverified |
+| 2026-08-14 Material Closure Stabilization | full `1750 passed, 62 skipped, 8 warnings`; actual Blender 5.0.1 승인 전 fixture `1 passed`; Crystalgun retry02는 missing UV coverage로 권한 소비 전 `preflight_failed`; authorized promotion/`MaterialPhaseReceiptV2`/IQ는 미검증 |
+
+2026-08-14 Crystalgun incident 감사에서 보고된 AQ state `0011`이 최신이 아님을 확인했습니다. 실제 head는 `0012 / terminal / cancelled / none`이며 canonical MaterialPlan, `MaterialPhaseReceiptV2`, neutral material preview와 IQ 진입 evidence가 없습니다. 기존 technical retry와 승인은 새 material controller 권한이 아니며, append-only failure/discrepancy/supersession evidence와 별도 material repair session만 허용합니다. supersession 게시, 새 repair dry-run, 사용자 appearance approval과 production promotion은 각각 실제 evidence가 생성되기 전까지 완료로 간주하지 않습니다.
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -69,6 +73,12 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
   non-human multi-candidate semantic precedence, exact local text와 source-bound local PBR derivation.
   additive Material Loop는 native preservation/normalization, host material promotion, actual
   `MaterialPhaseReceiptV2`와 IQ 경계를 연결한다. API key/SDK/HTTP provider와 daemon은 없음
+- Material Closure Stabilization `0.1.0`: 하나의 graph-derived dependency closure에서
+  request·assignment·completion immutable map을 투영하고, host-only MaterialGraph rebinding,
+  surface-detail/UV/budget/canonical consistency 검사, isolated Blender 5.0.1 shadow compile과
+  실제 neutral preview를 appearance 승인 전에 수행합니다. technical wiring 수정에는 사용자
+  승인을 요구하지 않으며, exact appearance 승인은 1회만 소비되고 기존 host promotion/rollback
+  authority만 canonical MaterialPlan과 `.blend`를 쓸 수 있습니다.
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -107,6 +117,10 @@ BlenderAssetGenerator/
 │  ├─ autonomy_v2/                   AQ 0.2와 optional ImageGen overlay state
 │  ├─ codex_imagegen/                built-in ImageGen assignment/검증/선택 companion
 │  ├─ material_authoring/            local material 및 Codex-image 0.2.1 candidate
+│  ├─ material_closure/              dependency closure, rebinding, preflight와 상태 계약
+│  ├─ material_preflight/            승인 전 shadow compile 공개 facade
+│  ├─ material_promotion/            기존 host promotion 경계의 additive facade
+│  ├─ material_recovery/             retry supersession과 material-only repair facade
 │  ├─ autonomy_benchmarks/           deterministic AQ benchmark runner
 │  ├─ handoff/                       V0.9 hash-bound destination handoff
 │  ├─ external_intake/               V0.9 external static source contract
@@ -992,6 +1006,12 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
 - [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Material Closure Stabilization 아키텍처](ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 테스트 계획](TEST_PLAN_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 마이그레이션 정책](MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 재사용 프롬프트](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
+- [Crystalgun material framework incident](CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)
 - [새 레퍼런스 전체 단계별 프롬프트 모음](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
 - [Portable verification evidence](verification/evidence/README.md)
 - [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
@@ -1021,15 +1041,15 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 133
-- CLI registry SHA-256: 712dd15b0de6f73d80baf236ba6eae54d1f53be4f5b29674f970f4d7c3ab0e80
-- MCP server tools: 124
-- MCP server registry SHA-256: d961d317581aeb4c22fb08fde3b1b8868f92a7da5afd7664ab56c225ecef2bda
-- Project-enabled MCP tools: 123
-- Project-enabled MCP SHA-256: c7aaa5a0e8d850d75339bf9b95e6b509bf422a24db92998f1d99f5b7cae5cd50
+- CLI commands: 145
+- CLI registry SHA-256: a09fe54ea8c07c7d05e0f19269f58c2c3172d53941144e8b196e0a287b213175
+- MCP server tools: 136
+- MCP server registry SHA-256: f0014064ce2f70986727a57f3fd1e56bfecc5fbe12ebc66f88d805e0eb2f3d7d
+- Project-enabled MCP tools: 135
+- Project-enabled MCP SHA-256: 1c0633f599478d06088371eb977fe39567f2b2d6d345965649c25bbe98430c69
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1586
+- Latest reported test count: 1750
 - Verification summary: verification/latest_summary.json (reported)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

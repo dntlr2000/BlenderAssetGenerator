@@ -346,3 +346,33 @@ completion marker만으로 canonical 성공을 주장하지 않는다.
   `material_promoted|waiting_for_quality`와 `quality_approved`로 구분한다.
 - package, clean import와 destination runtime parity는 각각 V0.7과 검증된 destination adapter의
   별도 evidence가 필요하다.
+
+## 13. Material Closure Stabilization 0.1.0 경계
+
+MaterialAuthoring receipt는 candidate source일 뿐 controller-ready closure가 아니다. 새 stabilized
+attempt는 candidate MaterialPlan에서 모든 ShaderRecipe, TextureManifest, channel image, reference,
+mask와 surface-detail/UV dependency를 graph-derived 방식으로 수집하고, source graph의 host-owned
+path/hash-only derivative를 포함한 final closure를 만든다.
+
+canonical MaterialPlan이 있으면 live `analysis/material_plan.json` observation과 byte-identical
+run-owned baseline snapshot을 함께 보존한다. 없으면 current state, SceneSpec, Blend와 parent
+fingerprint에 결속된 strict absence evidence를 사용한다. 단순 `{absent: true}` 또는 caller 주장은
+rollback baseline이 아니다.
+
+MaterialAuthoring의 기존 `not_run` compile 의미와 Material Loop exact-adoption preflight는 그대로
+보존된다. 새로운 `MaterialPromotionPreflight`는 그 위에서 전체 scene, UV, assignment, node
+inventory와 실제 neutral preview를 승인 전에 검사한다. preview까지 통과해도
+`MaterialPhaseReceiptV2`, IQ pass 또는 package가 아니며, 사용자 appearance approval이 없으면
+`approval_pending`에서 멈춘다.
+
+appearance bytes가 바뀌면 새 closure/preflight/preview/approval이 필요하다. path/hash-only
+rebinding은 technical repair로 분류하며 별도 사용자 승인을 요구하지 않지만 semantic diff가 있으면
+path repair로 위장할 수 없다.
+
+2026-08-14 current incident dry-run은 이 경계에서 missing image-backed surface-detail coverage를
+Blender/approval/controller 전에 차단했다. 이는 MaterialAuthoring 품질 통과나 successful
+promotion이 아니라 early framework rejection과 canonical 보존 증거다.
+
+2026-08-14 current incident dry-run은 이 경계에서 missing image-backed surface-detail coverage를
+Blender/approval/controller 전에 차단했다. 이는 MaterialAuthoring 품질 통과나 successful
+promotion이 아니라 early framework rejection과 canonical 보존 증거다.

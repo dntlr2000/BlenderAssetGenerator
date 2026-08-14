@@ -1,0 +1,188 @@
+{
+  "$defs": {
+    "MaterialChange": {
+      "additionalProperties": false,
+      "description": "Describe one exact material repair or candidate change for approval policy.",
+      "properties": {
+        "change_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Change Id",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "path_only_rebinding",
+            "hash_map_reconstruction",
+            "manifest_ordering",
+            "closure_collection",
+            "deterministic_serialization",
+            "receipt_regeneration",
+            "base_color",
+            "roughness_metallic",
+            "normal_height",
+            "texture_bytes",
+            "uv_placement",
+            "shader_parameter",
+            "material_assignment",
+            "new_object_material",
+            "reference_replacement",
+            "target_subject",
+            "content_scope",
+            "imagegen_scope_expansion"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "before_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before Sha256"
+        },
+        "after_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After Sha256"
+        },
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        }
+      },
+      "required": [
+        "change_id",
+        "category",
+        "description"
+      ],
+      "title": "MaterialChange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Classify changes by visual or scope impact without inventing user authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/MaterialChange"
+      },
+      "minItems": 1,
+      "title": "Changes",
+      "type": "array"
+    },
+    "impact": {
+      "enum": [
+        "no_visual_change",
+        "appearance_change",
+        "scope_change"
+      ],
+      "title": "Impact",
+      "type": "string"
+    },
+    "user_approval_required": {
+      "title": "User Approval Required",
+      "type": "boolean"
+    },
+    "required_approval": {
+      "enum": [
+        "none",
+        "material_appearance_promotion",
+        "root_scope"
+      ],
+      "title": "Required Approval",
+      "type": "string"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "prior_approval_reusable": {
+      "title": "Prior Approval Reusable",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "report_id",
+    "changes",
+    "impact",
+    "user_approval_required",
+    "required_approval",
+    "reasons",
+    "prior_approval_reusable"
+  ],
+  "title": "MaterialApprovalImpactReport",
+  "type": "object"
+}

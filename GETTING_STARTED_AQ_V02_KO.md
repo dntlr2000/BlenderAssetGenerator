@@ -308,3 +308,34 @@ core workflow는 [ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROV
 
 실제 지원·활성화 여부의 판단 원본은 `VERIFICATION_AQ_V02_KO.md`와 machine-readable JSON
 evidence다. PDF, README 문구 또는 synthetic benchmark 점수는 이를 대신하지 않는다.
+
+## 11. Material Closure가 필요한 material 재개
+
+새 stabilized AQ v2 material attempt에서는 old retry를 바로 실행하지 않는다. 먼저 combined status로
+raw AQ state와 current canonical을 함께 확인하고, terminal session이면 별도
+`material-repair-<timestamp>-<suffix>` plan을 만든다.
+
+운영 순서는 다음 12개 CLI/MCP 동등 surface의 좁은 조합으로 표현된다.
+
+```text
+material-closure-plan / material-closure-status
+material-graph-rebind
+material-preflight-run / material-preflight-status / material-shadow-compile
+material-state-consistency / material-framework-failure-status
+material-retry-supersede
+material-repair-session-plan / material-repair-session-run
+material-appearance-approve
+```
+
+repair run은 geometry hash 확인, candidate, closure, rebind, preflight, shadow compile, preview까지
+자동으로 수행할 수 있지만 사용자 결정 없이 approval을 만들지 않는다. 정상 preapproval 종료는
+`approval_pending`이다. `material-appearance-approve`는 caller-authored exact decision을 current
+preflight에 검증·게시할 뿐 self-approval 명령이 아니다. 실제 명령 등록과 gate 상태는
+[Material Closure 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 확인한다.
+
+현재 Crystalgun historical session은 verified head가 `0012 / terminal / cancelled / none`이므로
+이 경로로도 그 session을 resume하지 않는다. canonical MaterialPlan, MaterialPhaseReceiptV2,
+neutral preview와 IQ evidence가 없으며 existing technical retry approval은 새 authority가 아니다.
+2026-08-14 새 repair dry-run도 surface-detail coverage 검사에서 Blender/preview/approval/controller
+전에 `preflight_failed`로 멈췄다. 따라서 새 coverage-complete candidate 없이 approve 또는 resume
+명령으로 건너뛸 단계가 없다.

@@ -296,3 +296,36 @@ controller_authored_completion을 사용해. ControllerResult를 직접 쓰지 �
 ControllerExecutor와 material_phase_service로만 promotion해.
 MaterialPhaseReceiptV2 뒤 IQ 경계에서 멈추고, exact V0.7 승인 없이는 package를 만들지 마.
 ```
+
+## 14. Stabilized preapproval 경로
+
+Material Closure Stabilization이 적용된 새 attempt에서는 위 예시의 controller 실행 전에 다음을
+추가한다.
+
+```text
+typed ImageGen source binding
+→ host path/hash-only graph rebind
+→ final graph-derived closure
+→ surface-detail/UV/budget/canonical consistency preflight
+→ actual Blender 5.0.1 full-scene shadow compile
+→ actual neutral preview
+→ approval_pending
+```
+
+이 경로가 통과하기 전에는 appearance approval을 요청하거나 controller를 실행하지 않는다.
+`material-appearance-approve`는 사용자가 exact candidate/graph/preview를 명시적으로 결정한 뒤에만
+사용한다. generic workflow approval, existing retry approval, PolicyAuthorization 또는 ImageGen
+opt-in을 material appearance 승인으로 재사용하지 않는다.
+
+terminal historical session은 resume하지 않고 material-only repair session을 새로 만든다. repair
+session이 preview까지 통과해도 canonical promotion, `MaterialPhaseReceiptV2`, IQ와 package가 완료된
+것은 아니다. 상세 재사용 프롬프트는
+[Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 따른다.
+
+현재 검증은 한 procedural actual-Blender preapproval fixture와 current incident의 승인 전
+fail-closed 결과까지다. ImageGen+localized material의 이 전체 경로, 실제 사용자 승인 이후
+controller/promotion과 `MaterialPhaseReceiptV2`는 아직 검증되지 않았다.
+
+현재 검증은 한 procedural actual-Blender preapproval fixture와 current incident의 승인 전
+fail-closed 결과까지다. ImageGen+localized material의 이 전체 경로, 실제 사용자 승인 이후
+controller/promotion과 `MaterialPhaseReceiptV2`는 아직 검증되지 않았다.

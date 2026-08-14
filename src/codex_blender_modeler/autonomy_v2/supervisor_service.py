@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, TypeVar, cast
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..autonomy.worker import autonomy_session_lock
 from ..blender_artifacts import native_io_path, sha256_file
@@ -16,6 +17,7 @@ from ..integrated_quality.v02_models import (
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
 )
+from ..material_closure.models import MaterialAppearanceApprovalConsumptionReceipt
 from ..optimization.models import OptimizationApproval, OptimizationPlan, OptimizationReview
 from ..orchestration.models import WorkflowState
 from ..production import (
@@ -24,7 +26,12 @@ from ..production import (
     advance_delegated_production_controller,
     get_asset_production_dispatch_status,
 )
-from ..production.controller_executor import ControllerResult, PhaseToolProfile
+from ..production.controller_executor import (
+    ControllerArtifact,
+    ControllerExecutionRequest,
+    ControllerResult,
+    PhaseToolProfile,
+)
 from ..production.validation import ensure_contained_production_path
 from .candidate_validation_service import validate_and_promote_geometry_candidate_v2
 from .controller_bridge import _resume_pending_controller_locked, _session_bundle
@@ -45,7 +52,11 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
-from .material_phase_service import validate_and_promote_material_controller_result_v2
+from .material_phase_models import MaterialClosurePromotionBoundaryV2
+from .material_phase_service import (
+    validate_and_promote_material_closure_controller_result_v2,
+    validate_and_promote_material_controller_result_v2,
+)
 from .models import (
     AQV2Artifact,
     AutonomyBudgetV2,
@@ -472,6 +483,241 @@ def _advance_reference_action(
     }
 
 
+def _rebind_controller_artifact_for_supervisor(
+    root: Path,
+    artifact: ControllerArtifact,
+    *,
+    kind: str,
+) -> AQV2Artifact:
+    """Rehash one controller artifact and preserve its exact path, digest, and size."""
+
+    rebound = artifact_for_v2(
+        root,
+        root / artifact.path,
+        artifact_id=artifact.artifact_id,
+        kind=kind,
+    )
+    if (
+        rebound.path,
+        rebound.sha256,
+        rebound.byte_size,
+    ) != (
+        artifact.path,
+        artifact.sha256,
+        artifact.byte_size,
+    ):
+        raise ValueError(f"AQ v2 controller artifact changed: {artifact.path}")
+    return rebound
+
+
+def _material_closure_assignment(
+    root: Path,
+    plan: AutonomyPlanV2,
+    result: ControllerResult,
+) -> tuple[
+    MaterialClosurePromotionBoundaryV2,
+    AQV2Artifact,
+    ControllerExecutionRequest,
+    AQV2Artifact,
+] | None:
+    """Identify one exact closure assignment while rejecting malformed closure-like bytes."""
+
+    request_artifact = _rebind_controller_artifact_for_supervisor(
+        root,
+        result.request,
+        kind="controller-request",
+    )
+    request = _read_exact_model(root, request_artifact, ControllerExecutionRequest)
+    expected_identity = (
+        plan.job_id,
+        plan.workflow_id,
+        plan.dispatch_id,
+        plan.session_id,
+    )
+    if (
+        request.job_id,
+        request.workflow_id,
+        request.dispatch_id,
+        request.session_id,
+    ) != expected_identity:
+        raise ValueError("material controller request identity differs from its AQ plan")
+    if request.execution_id != result.execution_id:
+        raise ValueError("material controller result targets another request execution")
+    if (
+        request.tool_profile.path,
+        request.tool_profile.sha256,
+        request.tool_profile.byte_size,
+    ) != (
+        result.tool_profile.path,
+        result.tool_profile.sha256,
+        result.tool_profile.byte_size,
+    ):
+        raise ValueError("material controller request and result use different profiles")
+    assignment_artifact = _rebind_controller_artifact_for_supervisor(
+        root,
+        request.assignment,
+        kind="material-controller-assignment",
+    )
+    assignment_path = ensure_contained_production_path(
+        root,
+        root / assignment_artifact.path,
+        must_exist=True,
+    )
+    with open(native_io_path(assignment_path), "rb") as handle:
+        payload = handle.read()
+    try:
+        boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(payload)
+    except ValidationError as exc:
+        try:
+            untyped = json.loads(payload)
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            return None
+        closure_markers = {
+            "boundary_id",
+            "dependency_closure",
+            "appearance_approval",
+            "appearance_approval_required",
+            "controller_may_execute",
+        }
+        if isinstance(untyped, dict) and (
+            closure_markers & set(untyped)
+            or untyped.get("canonical_write_authority")
+            == "material_phase_service_only"
+        ):
+            raise ValueError(
+                "material controller assignment resembles a malformed closure boundary"
+            ) from exc
+        return None
+    if (
+        boundary.job_id,
+        boundary.workflow_id,
+        boundary.dispatch_id,
+        boundary.session_id,
+    ) != expected_identity:
+        raise ValueError("material closure assignment identity differs from its AQ plan")
+    return boundary, assignment_artifact, request, request_artifact
+
+
+def _discover_material_approval_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary: MaterialClosurePromotionBoundaryV2,
+    request: ControllerExecutionRequest,
+    request_artifact: AQV2Artifact,
+) -> AQV2Artifact:
+    """Select one canonical receipt bound to both the current request and approval."""
+
+    receipt_root = ensure_contained_production_path(
+        root,
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "material_closure"
+        / "approval_consumptions",
+        must_exist=False,
+    )
+    if not os.path.isdir(native_io_path(receipt_root)):
+        raise PermissionError(
+            "material closure promotion requires one approval consumption receipt"
+        )
+    request_binding = (
+        request_artifact.path,
+        request_artifact.sha256,
+        request_artifact.byte_size,
+    )
+    approval_binding = (
+        boundary.appearance_approval.path,
+        boundary.appearance_approval.sha256,
+        boundary.appearance_approval.byte_size,
+    )
+    relevant: list[
+        tuple[MaterialAppearanceApprovalConsumptionReceipt, AQV2Artifact, Path]
+    ] = []
+    receipt_paths = sorted(
+        (
+            path
+            for path in receipt_root.iterdir()
+            if path.suffix.casefold() == ".json"
+        ),
+        key=lambda item: (item.name.casefold(), item.name),
+    )
+    for path in receipt_paths:
+        safe_path = ensure_contained_production_path(root, path, must_exist=True)
+        with open(native_io_path(safe_path), "rb") as handle:
+            receipt = MaterialAppearanceApprovalConsumptionReceipt.model_validate_json(
+                handle.read()
+            )
+        artifact = artifact_for_v2(
+            root,
+            safe_path,
+            artifact_id=receipt.receipt_id,
+            kind="material-approval-consumption",
+        )
+        observed_request = (
+            receipt.controller_request.path,
+            receipt.controller_request.sha256,
+            receipt.controller_request.byte_size,
+        )
+        observed_approval = (
+            receipt.approval.path,
+            receipt.approval.sha256,
+            receipt.approval.byte_size,
+        )
+        if observed_request == request_binding or observed_approval == approval_binding:
+            relevant.append((receipt, artifact, safe_path))
+    if len(relevant) != 1:
+        raise PermissionError(
+            "material closure approval consumption is missing or ambiguous"
+        )
+    receipt, artifact, path = relevant[0]
+    if (
+        receipt.job_id,
+        receipt.workflow_id,
+        receipt.dispatch_id,
+        receipt.session_id,
+    ) != (
+        plan.job_id,
+        plan.workflow_id,
+        plan.dispatch_id,
+        plan.session_id,
+    ):
+        raise PermissionError("material closure approval consumption identity changed")
+    if (
+        receipt.producer
+        != "codex_blender_modeler.autonomy_v2.controller_bridge"
+        or receipt.producer_version != "0.1.0"
+        or receipt.created_at != request.created_at
+        or receipt.approval.artifact_id != boundary.appearance_approval.artifact_id
+        or receipt.approval.kind != "appearance_approval"
+        or receipt.controller_request.artifact_id != request_artifact.artifact_id
+        or receipt.controller_request.kind != "controller_request"
+    ):
+        raise PermissionError(
+            "material closure approval consumption is not host-published exact evidence"
+        )
+    if (
+        receipt.controller_request.path,
+        receipt.controller_request.sha256,
+        receipt.controller_request.byte_size,
+    ) != request_binding or (
+        receipt.approval.path,
+        receipt.approval.sha256,
+        receipt.approval.byte_size,
+    ) != approval_binding:
+        raise PermissionError(
+            "material closure approval was consumed by another controller request"
+        )
+    expected_path = receipt_root / f"{request.execution_id}.json"
+    if path != expected_path or receipt.receipt_id != (
+        f"approval-consumption-{request.execution_id}"
+    ):
+        raise PermissionError(
+            "material closure approval consumption path or identity is noncanonical"
+        )
+    return artifact
+
+
 def _controller_validation_boundary(
     root: Path,
     session_root: Path,
@@ -518,27 +764,51 @@ def _controller_validation_boundary(
         event = "candidate_validated"
         outcome = "geometry_candidate_validated"
     elif profile.profile_id == "material_authoring":
-        from .codex_image_material_loop_service import (
-            validate_codex_image_material_controller_promotion_boundary,
-        )
+        closure_context = _material_closure_assignment(root, plan, result)
+        if closure_context is not None:
+            boundary, boundary_artifact, request, request_artifact = closure_context
+            consumption_artifact = _discover_material_approval_consumption(
+                root,
+                plan,
+                boundary,
+                request,
+                request_artifact,
+            )
+            receipt, evidence = (
+                validate_and_promote_material_closure_controller_result_v2(
+                    root,
+                    plan,
+                    budget,
+                    state,
+                    result_artifact,
+                    boundary_artifact=boundary_artifact,
+                    approval_consumption_artifact=consumption_artifact,
+                )
+            )
+        else:
+            from .codex_image_material_loop_service import (
+                validate_codex_image_material_controller_promotion_boundary,
+            )
 
-        loop_profile_authorized = validate_codex_image_material_controller_promotion_boundary(
-            root,
-            session_root,
-            plan,
-            state,
-            result_artifact,
-        )
-        receipt, evidence = validate_and_promote_material_controller_result_v2(
-            root,
-            plan,
-            budget,
-            state,
-            result_artifact,
-            authorized_profile_artifact=(
-                profile_artifact if loop_profile_authorized else None
-            ),
-        )
+            loop_profile_authorized = (
+                validate_codex_image_material_controller_promotion_boundary(
+                    root,
+                    session_root,
+                    plan,
+                    state,
+                    result_artifact,
+                )
+            )
+            receipt, evidence = validate_and_promote_material_controller_result_v2(
+                root,
+                plan,
+                budget,
+                state,
+                result_artifact,
+                authorized_profile_artifact=(
+                    profile_artifact if loop_profile_authorized else None
+                ),
+            )
         event = "material_candidate_validated"
         outcome = "material_candidate_validated"
     else:

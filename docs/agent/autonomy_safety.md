@@ -8,5 +8,12 @@ Server MCP registration, project-enabled MCP tools, and phase/controller profile
 
 Quality pass, review-required, package, and handoff terminals remain distinct. Missing evidence is unscorable, never an invented pass. Preserve best-known evidence on budget, plateau, cycle, rollback, or bounded failure.
 
-Primary rules: CBM-INV-045..066, CBM-INV-072..112, CBM-INV-151..192.
+New AQ v2 material attempts collect one deterministic dependency closure, perform
+host-owned provenance rebinding, and pass an isolated Blender shadow preflight plus neutral
+preview before a material controller request can exist. Framework preflight failure creates
+no user approval, controller invocation, promotion intent, or canonical write. Historical
+terminal sessions are never resumed through technical retry evidence; a new repair session
+must bind the exact old terminal, current geometry, scope, rollback baseline, and source
+bytes without synthesizing authority.
 
+Primary rules: CBM-INV-045..066, CBM-INV-072..112, CBM-INV-151..192.

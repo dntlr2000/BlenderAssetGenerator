@@ -1,5 +1,51 @@
 # Changelog
 
+## Unreleased — AQ v2 Material Closure Stabilization 0.1.0
+
+- Added additive strict `0.1.0` contracts for graph-derived material dependency closure and receipt,
+  source binding, host-only MaterialGraph rebinding, promotion preflight, finite preflight resource
+  accounting, isolated shadow compile, neutral preview, appearance approval and single-use
+  consumption, canonical/attempt consistency, framework failure, retry supersession and material-only
+  repair sessions. Project `0.9.0`, canonical SceneSpec `0.2.0`, legacy evidence meanings and all
+  existing profile activation states remain unchanged.
+- Made one closure projection authoritative for controller request, assignment and completion input
+  maps. Planned MaterialPlan and rebound MaterialGraph outputs are exact-hash-bound; completion uses a
+  non-circular structural binding. Missing ShaderRecipe, TextureManifest, channel, mask, reference,
+  UV/surface-detail evidence, stale provenance and reduced maps fail closed before approval.
+- Added host-owned path/hash-only graph rebinding and a full approval-before-controller preflight with
+  isolated Blender 5.0.1 compile/build/inspect/validate checks and an actual neutral preview. A
+  preflight failure creates framework failure evidence and consumes no appearance approval,
+  controller invocation or canonical promotion authority.
+- Kept `validate_and_promote_material_controller_result_v2` as the only canonical MaterialPlan
+  promotion/rebuild/rollback authority. A specialized `MaterialAppearanceApproval` must bind the
+  candidate, rebound graph, closure, passed preflight, preview, canonical geometry/blend and UV
+  fingerprint, and is consumed at most once.
+- Added additive AQ v2 material-attempt/canonical consistency projection and material closure binding
+  on controller completion without rewriting existing AQ state. Raw AQ state remains visible beside
+  closure, preflight, approval, controller, promotion, rollback and consistency companions.
+- Added equivalent CLI/MCP surfaces for closure plan/status, graph rebind, preflight run/status,
+  shadow compile, appearance approval, state consistency, framework failure status, retry
+  supersession and material repair session plan/run. These surfaces do not synthesize user approval,
+  ControllerResult, canonical state or destination writes.
+- Audited the Crystalgun incident without editing history. The verified head is sequence `0012`,
+  `terminal/cancelled/none`, not the previously reported running `0011`. Published discrepancy/failure,
+  old-retry approval-absence/supersession and repair-session supersession evidence append-only. The
+  final repair dry-run published an exact dependency closure and then stopped `preflight_failed` on
+  missing image-backed UV coverage before Blender, approval, controller, promotion or canonical write;
+  canonical MaterialPlan, `MaterialPhaseReceiptV2`, neutral preview and IQ evidence remain absent.
+- Added a job-specific framework-literal gate and exact source-inventory/archive contracts. Historical
+  workspace evidence is outside the executable framework scan and is never rewritten to make the gate
+  pass. Archived the two exact incident recovery source files and inventory under job-local history
+  before removing them from executable common source.
+- Added architecture, test, migration, verification, incident and reusable prompt documentation and
+  synchronized AQ v2, ImageGen Material Loop, material authoring, controller, delivery and
+  surface-detail guidance. Commands and gates not actually executed remain `unverified` in the
+  verification record.
+- Final full regression passed with 1,750 tests, 62 skips and 8 warnings; an actual Blender 5.0.1
+  preapproval fixture passed once while consuming zero approval/controller/promotion authority. Full
+  authorized promotion, `MaterialPhaseReceiptV2`/IQ, ImageGen-localized and crystal/emission/alpha
+  Blender fixtures, and chained V0.7–V0.9 gates remain unverified.
+
 ## Unreleased — Reversible terminal workspace archive
 
 - Added strict V0.9 workspace relocation plan and receipt contracts with deterministic full-tree

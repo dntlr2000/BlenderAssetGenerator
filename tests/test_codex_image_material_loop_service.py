@@ -69,6 +69,19 @@ def _create_directory_link_or_skip(link: Path, target: Path) -> None:
         pytest.skip(f"directory symlink creation is unavailable: {exc}")
 
 
+def test_promotion_retry_supersession_guard_precedes_every_side_effect() -> None:
+    """Keep exact supersession admission ahead of approval, locks, writes, and state."""
+
+    source = inspect.getsource(service.prepare_codex_image_material_promotion_retry)
+    guard = source.index("validate_material_retry_supersession_admission(")
+    assert guard < source.index("if exact_approval !=")
+    assert guard < source.index("with autonomy_session_lock(")
+    assert guard < source.index("approval_path =")
+    assert guard < source.index("_append_state(")
+    assert "_consume_controller_budget(" not in source
+    assert "execute_controller_request(" not in source
+
+
 def test_loop_root_prefers_one_active_promotion_retry_over_failed_history(
     tmp_path: Path,
 ) -> None:

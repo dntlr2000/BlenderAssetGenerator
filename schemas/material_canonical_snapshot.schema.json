@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained job-relative artifact by exact bytes and media type.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Capture the exact canonical material baseline and latest lifecycle evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "scene_spec": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "modeling_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "material_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "material_plan_absence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "blend": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "build_provenance": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "build_provenance_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Provenance Fingerprint",
+      "type": "string"
+    },
+    "latest_material_promotion_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "latest_rollback_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "active_candidate_closure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "snapshot_id",
+    "scene_spec",
+    "modeling_plan",
+    "blend",
+    "build_provenance",
+    "build_provenance_fingerprint"
+  ],
+  "title": "MaterialCanonicalSnapshot",
+  "type": "object"
+}

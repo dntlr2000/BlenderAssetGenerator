@@ -16,6 +16,10 @@ from codex_blender_modeler.blender_artifacts import (
     stable_json_digest,
     write_json_atomic,
 )
+from codex_blender_modeler.material_closure.models import (
+    ExactArtifact,
+    MaterialRetrySupersessionReceipt,
+)
 from codex_blender_modeler.production.controller_executor import (
     ControllerArtifact,
     ControllerExecutionRequest,
@@ -68,6 +72,91 @@ def _workspace_output_paths(
         / Path(*PurePosixPath(relative).relative_to(output_root).parts)
         for relative in request.allowed_output_paths
     ]
+
+
+def _install_retry_supersession(
+    root: Path,
+    request: ControllerExecutionRequest,
+) -> ControllerArtifact:
+    """Create one exact supersession whose retry plan can be bound to a controller call."""
+
+    prefix = f"production/autonomy_v2/{request.session_id}"
+
+    def _exact(
+        relative: str,
+        *,
+        artifact_id: str,
+        kind: str,
+        payload: bytes,
+        media_type: str = "application/json",
+    ) -> ExactArtifact:
+        """Write and bind one exact session-local supersession fixture artifact."""
+
+        _write(root / relative, payload)
+        return ExactArtifact(
+            artifact_id=artifact_id,
+            kind=kind,
+            path=relative,
+            sha256=sha256_file(root / relative),
+            byte_size=os.path.getsize(native_io_path(root / relative)),
+            media_type=media_type,
+        )
+
+    retry_plan = _exact(
+        f"{prefix}/retry_plans/controller-retry.json",
+        artifact_id="controller-retry",
+        kind="material_retry_plan",
+        payload=b'{"retry":"controller"}\n',
+    )
+    approval = _exact(
+        f"{prefix}/retry_approvals/controller-retry.txt",
+        artifact_id="controller-retry-approval",
+        kind="material_retry_approval",
+        payload=b"approved historical retry\n",
+        media_type="text/plain",
+    )
+    state = _exact(
+        f"{prefix}/states/controller-retry.json",
+        artifact_id="controller-retry-state",
+        kind="aq_v2_state",
+        payload=b'{"state":"historical"}\n',
+    )
+    report = _exact(
+        f"{prefix}/material_framework_failures/controller-retry/report.json",
+        artifact_id="controller-retry-report",
+        kind="material_framework_failure_report",
+        payload=b'{"failure":"framework"}\n',
+    )
+    receipt = MaterialRetrySupersessionReceipt(
+        receipt_id="controller-retry-supersession",
+        retry_plan=retry_plan,
+        retry_approval=approval,
+        current_state=state,
+        framework_failure_report=report,
+        supersession_reason="a new framework-safe attempt replaced this exact retry",
+        job_id=request.job_id,
+        workflow_id=request.workflow_id,
+        dispatch_id=request.dispatch_id,
+        session_id=request.session_id,
+        producer="tests.controller_executor",
+        producer_version="0.1.0",
+        created_at=request.created_at,
+    )
+    write_json_atomic(
+        root
+        / prefix
+        / "retry_supersessions"
+        / receipt.receipt_id
+        / "receipt.json",
+        receipt.model_dump(mode="json"),
+    )
+    return ControllerArtifact(
+        artifact_id=retry_plan.artifact_id,
+        role="assignment",
+        path=retry_plan.path,
+        sha256=retry_plan.sha256,
+        byte_size=retry_plan.byte_size,
+    )
 
 
 def _symlink_or_skip(link: Path, target: Path) -> None:
@@ -219,6 +308,41 @@ def test_fake_controller_publishes_only_exact_isolated_outputs(tmp_path: Path) -
         "published.json",
     }
     assert not (root / "analysis" / "scene_spec.json").exists()
+
+
+def test_superseded_retry_blocks_before_workspace_or_controller_invocation(
+    tmp_path: Path,
+) -> None:
+    """Enforce an exact retry supersession before executor evidence or one-shot budget use."""
+
+    root, request_path, request = _request_bundle(tmp_path)
+    retry_assignment = _install_retry_supersession(root, request)
+    guarded_request = request.model_copy(
+        update={
+            "assignment": retry_assignment,
+            "immutable_inputs": [retry_assignment, request.immutable_inputs[-1]],
+            "provenance": [
+                retry_assignment,
+                request.immutable_inputs[-1],
+                request.tool_profile,
+            ],
+        }
+    )
+    guarded_path = request_path.with_name("superseded-request.json")
+    write_controller_contract(guarded_path, guarded_request)
+    controller = FakeControllerForTests()
+
+    with pytest.raises(PermissionError, match="exact bytes were superseded"):
+        execute_controller_request(
+            job_root=root,
+            request_path=guarded_path,
+            controller=controller,
+        )
+
+    assert controller.calls == 0
+    assert not (guarded_path.parent / "controller_workspace").exists()
+    assert not (guarded_path.parent / "controller_executor_evidence").exists()
+    assert not any(root.glob("**/invocation.json"))
 
 
 def test_completed_request_is_adopted_without_a_second_controller_call(

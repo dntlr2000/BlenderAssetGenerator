@@ -2,13 +2,27 @@
 
 from __future__ import annotations
 
+import json
 import os
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import cast
 
 from ..autonomy.worker import autonomy_session_lock
 from ..blender_artifacts import native_io_path, sha256_file, stable_json_digest
+from ..material_closure.models import (
+    ExactArtifact,
+    MaterialAppearanceApproval,
+    MaterialAppearanceApprovalConsumptionReceipt,
+    MaterialAttemptState,
+    MaterialDependencyClosure,
+    MaterialFrameworkFailureReport,
+    MaterialRetrySupersessionReceipt,
+    MaterialSessionSupersessionReceipt,
+    MaterialStateConsistencyReport,
+)
+from ..material_closure.state_consistency import build_aq_v2_status_projection
 from ..production.controller_executor import (
     CandidateAuthoringController,
     ControllerArtifact,
@@ -32,6 +46,11 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from .material_phase_models import (
+    MaterialClosurePromotionBoundaryV2,
+    MaterialControllerCompletionV2,
+)
+from .material_phase_service import validate_material_closure_promotion_boundary_v2
 from .models import (
     AQV2Artifact,
     AutonomyBudgetV2,
@@ -927,6 +946,448 @@ def execute_autonomy_v2_controller(
         }
 
 
+def _exact_artifact_from_aq(
+    artifact: AQV2Artifact,
+    *,
+    kind: str,
+    media_type: str = "application/json",
+) -> ExactArtifact:
+    """Project one AQ artifact into the generic closure exact-artifact shape."""
+
+    return ExactArtifact(
+        artifact_id=artifact.artifact_id,
+        kind=kind,
+        path=artifact.path,
+        sha256=artifact.sha256,
+        byte_size=artifact.byte_size,
+        media_type=media_type,
+    )
+
+
+def _publish_material_approval_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    request_artifact: AQV2Artifact,
+) -> tuple[MaterialAppearanceApprovalConsumptionReceipt, AQV2Artifact]:
+    """Publish or revalidate one single-use approval consumption after request binding."""
+
+    boundary, closure = validate_material_closure_promotion_boundary_v2(
+        root,
+        plan,
+        boundary_artifact,
+        require_current_canonical=True,
+    )
+    approval_path = validate_v2_artifact(root, boundary.appearance_approval)
+    approval = MaterialAppearanceApproval.model_validate_json(
+        _read_native_bytes(approval_path)
+    )
+    request_path = validate_v2_artifact(root, request_artifact)
+    request = ControllerExecutionRequest.model_validate_json(
+        _read_native_bytes(request_path)
+    )
+    receipt = MaterialAppearanceApprovalConsumptionReceipt(
+        receipt_id=f"approval-consumption-{request.execution_id}",
+        job_id=plan.job_id,
+        workflow_id=plan.workflow_id,
+        dispatch_id=plan.dispatch_id,
+        session_id=plan.session_id,
+        producer="codex_blender_modeler.autonomy_v2.controller_bridge",
+        producer_version="0.1.0",
+        created_at=request.created_at,
+        approval=_exact_artifact_from_aq(
+            boundary.appearance_approval,
+            kind="appearance_approval",
+        ),
+        controller_request=_exact_artifact_from_aq(
+            request_artifact,
+            kind="controller_request",
+        ),
+        approval_id=approval.approval_id,
+        candidate_material_plan_sha256=boundary.candidate_material_plan.sha256,
+        rebound_material_graph_sha256=boundary.rebound_material_graph.sha256,
+        closure_sha256=closure.closure_sha256,
+        preflight_report_sha256=boundary.preflight_report.sha256,
+        neutral_preview_sha256=approval.neutral_preview_sha256,
+    )
+    receipt_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "material_closure"
+        / "approval_consumptions"
+        / f"{request.execution_id}.json"
+    )
+    receipt_path = ensure_contained_production_path(
+        root,
+        receipt_path,
+        must_exist=False,
+    )
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_contained_production_path(root, receipt_path.parent, must_exist=True)
+    for existing_path in sorted(receipt_path.parent.glob("*.json")):
+        if existing_path == receipt_path:
+            continue
+        existing = MaterialAppearanceApprovalConsumptionReceipt.model_validate_json(
+            _read_native_bytes(existing_path)
+        )
+        if (
+            existing.approval.sha256 == receipt.approval.sha256
+            or existing.approval_id == receipt.approval_id
+        ):
+            raise PermissionError("material appearance approval was already consumed")
+    if receipt_path.exists():
+        artifact = artifact_for_v2(
+            root,
+            receipt_path,
+            artifact_id=receipt.receipt_id,
+            kind="material-approval-consumption",
+        )
+        observed = MaterialAppearanceApprovalConsumptionReceipt.model_validate_json(
+            _read_native_bytes(receipt_path)
+        )
+        if observed != receipt:
+            raise FileExistsError("material approval was consumed by another request")
+        return observed, artifact
+    artifact = write_immutable_v2_model(root, receipt_path, receipt).model_copy(
+        update={
+            "artifact_id": receipt.receipt_id,
+            "kind": "material-approval-consumption",
+        }
+    )
+    return receipt, artifact
+
+
+class ExactMaterialClosureAdoptionController:
+    """Publish only closure-approved material bytes and their strict completion contract."""
+
+    controller_kind = "desktop_in_session"
+
+    def __init__(self, closure: MaterialDependencyClosure) -> None:
+        """Bind the fixed controller to the host-validated immutable closure contract."""
+
+        self._closure = closure
+
+    @staticmethod
+    def _write_exact(path: Path, content: bytes) -> None:
+        """Create one isolated output once and adopt only byte-identical crash replay."""
+
+        os.makedirs(native_io_path(path.parent), exist_ok=True)
+        if os.path.exists(native_io_path(path)):
+            if _read_native_bytes(path) != content:
+                raise FileExistsError("material closure output differs on exact replay")
+            return
+        with open(native_io_path(path), "xb") as handle:
+            handle.write(content)
+
+    @staticmethod
+    def _snapshot_by_sha256(
+        immutable_inputs: tuple[Path, ...],
+        expected_sha256: str,
+        *,
+        label: str,
+    ) -> Path:
+        """Select the stable first path among full-multiset-validated digest aliases."""
+
+        matches = [path for path in immutable_inputs if sha256_file(path) == expected_sha256]
+        if not matches:
+            raise ValueError(f"{label} immutable snapshot is missing")
+        return min(matches, key=lambda path: path.as_posix())
+
+    @staticmethod
+    def _execution_id(allowed_output_paths: tuple[Path, ...]) -> str:
+        """Recover the host-owned execution identity from the isolated output paths."""
+
+        if not allowed_output_paths:
+            raise ValueError("material closure controller has no allowed outputs")
+        parts = allowed_output_paths[0].parts
+        indices = [
+            index for index, part in enumerate(parts[:-1]) if part == "controller_executions"
+        ]
+        if len(indices) != 1 or indices[0] + 1 >= len(parts):
+            raise ValueError("material closure controller cannot resolve execution identity")
+        return parts[indices[0] + 1]
+
+    @staticmethod
+    def _tool_profile_sha256(
+        immutable_inputs: tuple[Path, ...],
+        tool_profile: PhaseToolProfile,
+    ) -> str:
+        """Find the exact closure input whose strict bytes equal the authorized profile."""
+
+        matches: list[Path] = []
+        for path in immutable_inputs:
+            try:
+                observed = PhaseToolProfile.model_validate_json(_read_native_bytes(path))
+            except (OSError, ValueError):
+                continue
+            if observed == tool_profile:
+                matches.append(path)
+        if len(matches) != 1:
+            raise ValueError("authorized material tool profile is absent or ambiguous")
+        return sha256_file(matches[0])
+
+    @staticmethod
+    def _validate_snapshot_multiset(
+        immutable_inputs: tuple[Path, ...],
+        closure: MaterialDependencyClosure,
+    ) -> None:
+        """Require every closure entry, including aliases, as one exact snapshot."""
+
+        observed = Counter(
+            (sha256_file(path), path.stat().st_size) for path in immutable_inputs
+        )
+        expected = Counter(
+            (entry.sha256, entry.byte_size) for entry in closure.entries
+        )
+        if observed != expected:
+            raise ValueError(
+                "material closure immutable snapshots differ from the full projection"
+            )
+
+    def execute(
+        self,
+        *,
+        assignment: Path,
+        immutable_inputs: tuple[Path, ...],
+        allowed_output_paths: tuple[Path, ...],
+        tool_profile: PhaseToolProfile,
+        timeout_seconds: int,
+    ) -> str:
+        """Copy approved plan/graph bytes and author one closure-bound completion only."""
+
+        del timeout_seconds
+        if tool_profile.profile_id != "material_authoring":
+            raise PermissionError("material closure exact adoption requires material authority")
+        boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(
+            _read_native_bytes(assignment)
+        )
+        closure = self._closure
+        if closure.source_binding.sha256 not in boundary.immutable_input_sha256.values():
+            raise ValueError("material closure assignment omits its exact source binding")
+        if closure.project_immutable_input_map() != boundary.immutable_input_sha256:
+            raise ValueError("material closure assignment immutable projection changed")
+        if closure.project_planned_output_map() != boundary.planned_output_sha256:
+            raise ValueError("material closure assignment output projection changed")
+        self._validate_snapshot_multiset(immutable_inputs, closure)
+        outputs = {path.name: path for path in allowed_output_paths}
+        if set(outputs) != {"material_plan.json", "material_graph.json", "completion.json"}:
+            raise ValueError("material closure controller received another output boundary")
+        planned = {item.output_kind: item for item in closure.planned_outputs}
+        if {
+            PurePosixPath(planned["material_plan"].path).name,
+            PurePosixPath(planned["material_graph"].path).name,
+            PurePosixPath(planned["controller_completion"].path).name,
+        } != set(outputs):
+            raise ValueError("material closure planned outputs use another boundary")
+        plan_source = self._snapshot_by_sha256(
+            immutable_inputs,
+            boundary.candidate_material_plan.sha256,
+            label="candidate MaterialPlan",
+        )
+        graph_source = self._snapshot_by_sha256(
+            immutable_inputs,
+            boundary.rebound_material_graph.sha256,
+            label="rebound MaterialGraph",
+        )
+        scene_entries = [
+            item for item in closure.entries if item.role == "canonical_scene_spec"
+        ]
+        baseline_entries = [
+            item
+            for item in closure.entries
+            if item.role == "canonical_material_plan_observation"
+        ]
+        if len(scene_entries) != 1 or len(baseline_entries) > 1:
+            raise ValueError("material closure canonical baseline roles are incomplete")
+        completion = MaterialControllerCompletionV2(
+            completion_id=f"material-completion-{self._execution_id(allowed_output_paths)}",
+            job_id=boundary.job_id,
+            workflow_id=boundary.workflow_id,
+            dispatch_id=boundary.dispatch_id,
+            session_id=boundary.session_id,
+            execution_id=self._execution_id(allowed_output_paths),
+            assignment_sha256=sha256_file(assignment),
+            tool_profile_sha256=self._tool_profile_sha256(
+                immutable_inputs,
+                tool_profile,
+            ),
+            immutable_input_sha256=closure.project_immutable_input_map(),
+            source_scene_spec_sha256=scene_entries[0].sha256,
+            source_material_plan_sha256=(
+                baseline_entries[0].sha256 if baseline_entries else None
+            ),
+            material_dependency_closure_sha256=closure.closure_sha256,
+            material_plan_path=planned["material_plan"].path,
+            material_plan_sha256=boundary.candidate_material_plan.sha256,
+            material_graph_path=planned["material_graph"].path,
+            material_graph_sha256=boundary.rebound_material_graph.sha256,
+        )
+        structural = planned["controller_completion"]
+        completion_payload = completion.model_dump(mode="json")
+        if any(
+            str(completion_payload.get(field)) != expected
+            for field, expected in structural.expected_field_bindings.items()
+        ):
+            raise ValueError("material completion differs from structural output binding")
+        self._write_exact(outputs["material_plan.json"], _read_native_bytes(plan_source))
+        self._write_exact(outputs["material_graph.json"], _read_native_bytes(graph_source))
+        self._write_exact(
+            outputs["completion.json"],
+            (completion.model_dump_json(indent=2) + "\n").encode("utf-8"),
+        )
+        return "completed"
+
+
+class _ApprovalConsumingController:
+    """Consume the exact appearance approval before delegating controller work."""
+
+    def __init__(
+        self,
+        delegate: CandidateAuthoringController,
+        *,
+        root: Path,
+        plan: AutonomyPlanV2,
+        boundary_artifact: AQV2Artifact,
+    ) -> None:
+        """Bind the delegate to the closure boundary used by its future request."""
+
+        self.controller_kind = delegate.controller_kind
+        self._delegate = delegate
+        self._root = root
+        self._plan = plan
+        self._boundary_artifact = boundary_artifact
+
+    def execute(
+        self,
+        *,
+        assignment: Path,
+        immutable_inputs: tuple[Path, ...],
+        allowed_output_paths: tuple[Path, ...],
+        tool_profile: PhaseToolProfile,
+        timeout_seconds: int,
+    ) -> str:
+        """Publish single-use consumption before the wrapped controller is invoked."""
+
+        if not allowed_output_paths:
+            raise ValueError("material closure controller has no request-owned output")
+        output = allowed_output_paths[0]
+        workspace_root = next(
+            (
+                parent
+                for parent in output.parents
+                if parent.name == "controller_workspace"
+            ),
+            None,
+        )
+        if workspace_root is None:
+            raise ValueError("material controller output is outside its request workspace")
+        request_path = workspace_root.parent / "request.json"
+        request = ControllerExecutionRequest.model_validate_json(
+            _read_native_bytes(request_path)
+        )
+        request_artifact = artifact_for_v2(
+            self._root,
+            request_path,
+            artifact_id=request.contract_id,
+            kind="controller-request",
+        )
+        _publish_material_approval_consumption(
+            self._root,
+            self._plan,
+            self._boundary_artifact,
+            request_artifact,
+        )
+        return self._delegate.execute(
+            assignment=assignment,
+            immutable_inputs=immutable_inputs,
+            allowed_output_paths=allowed_output_paths,
+            tool_profile=tool_profile,
+            timeout_seconds=timeout_seconds,
+        )
+
+
+def execute_material_closure_controller_v2(
+    job_id: str,
+    session_id: str,
+    *,
+    boundary_artifact: AQV2Artifact,
+    controller: CandidateAuthoringController,
+    timeout_seconds: int = 900,
+) -> dict[str, object]:
+    """Execute one approved closure projection and persist its single-use approval receipt."""
+
+    root, _session_root, plan, _budget, state, _state_artifact = _session_bundle(
+        job_id,
+        session_id,
+    )
+    _boundary, closure = validate_material_closure_promotion_boundary_v2(
+        root,
+        plan,
+        boundary_artifact,
+        state=state,
+        require_boundary_state=True,
+        require_current_canonical=True,
+    )
+    immutable_inputs = [
+        AQV2Artifact(
+            artifact_id=entry.entry_id,
+            kind="material-baseline",
+            path=entry.path,
+            sha256=entry.sha256,
+            byte_size=entry.byte_size,
+        )
+        for entry in sorted(closure.entries, key=lambda item: item.path)
+    ]
+    consuming_controller = _ApprovalConsumingController(
+        controller,
+        root=root,
+        plan=plan,
+        boundary_artifact=boundary_artifact,
+    )
+    response = execute_autonomy_v2_controller(
+        job_id,
+        session_id,
+        phase_profile_id="material_authoring",
+        assignment=boundary_artifact.model_copy(update={"kind": "assignment"}),
+        immutable_inputs=immutable_inputs,
+        controller=consuming_controller,
+        expected_output_sha256=closure.project_planned_output_map(),
+        timeout_seconds=timeout_seconds,
+    )
+    request = ControllerExecutionRequest.model_validate_json(
+        json.dumps(response["request"], ensure_ascii=False)
+    )
+    request_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / session_id
+        / "controller_executions"
+        / request.execution_id
+        / "request.json"
+    )
+    request_artifact = artifact_for_v2(
+        root,
+        request_path,
+        artifact_id=request.contract_id,
+        kind="controller-request",
+    )
+    consumption, consumption_artifact = _publish_material_approval_consumption(
+        root,
+        plan,
+        boundary_artifact,
+        request_artifact,
+    )
+    return {
+        **response,
+        "material_closure_boundary": boundary_artifact.model_dump(mode="json"),
+        "approval_consumption": consumption.model_dump(mode="json"),
+        "approval_consumption_artifact": consumption_artifact.model_dump(mode="json"),
+    }
+
+
 def get_autonomy_v2_status(job_id: str, session_id: str) -> dict[str, object]:
     """Reconstruct one AQ v2 session read-only from its exact immutable state chain."""
 
@@ -944,6 +1405,235 @@ def get_autonomy_v2_status(job_id: str, session_id: str) -> dict[str, object]:
         "state_artifact": state_artifact.model_dump(mode="json"),
         "budget": budget.model_dump(mode="json"),
         "session_path": session_root.relative_to(root).as_posix(),
+    }
+
+
+def _load_optional_material_companion(
+    root: Path,
+    artifact: AQV2Artifact | None,
+    model: type[MaterialAttemptState]
+    | type[MaterialStateConsistencyReport]
+    | type[MaterialFrameworkFailureReport]
+    | type[MaterialRetrySupersessionReceipt]
+    | type[MaterialSessionSupersessionReceipt],
+) -> object | None:
+    """Rehash and strict-parse one optional material companion without mutation."""
+
+    if artifact is None:
+        return None
+    path = validate_v2_artifact(root, artifact)
+    return model.model_validate_json(_read_native_bytes(path))
+
+
+def _require_material_status_companions_current(
+    *,
+    state: AutonomyStateV2,
+    state_artifact: AQV2Artifact,
+    attempt: MaterialAttemptState | None,
+    consistency: MaterialStateConsistencyReport | None,
+    failure: MaterialFrameworkFailureReport | None,
+    retry: MaterialRetrySupersessionReceipt | None,
+    session: MaterialSessionSupersessionReceipt | None,
+) -> None:
+    """Reject companion status evidence that does not bind the exact raw AQ state."""
+
+    raw_identity = (state.job_id, state.workflow_id, state.dispatch_id, state.session_id)
+    for label, companion in (
+        ("material attempt", attempt),
+        ("state consistency", consistency),
+        ("framework failure", failure),
+        ("retry supersession", retry),
+    ):
+        if companion is None:
+            continue
+        observed_identity = (
+            companion.job_id,
+            companion.workflow_id,
+            companion.dispatch_id,
+            companion.session_id,
+        )
+        if observed_identity != raw_identity:
+            raise ValueError(f"{label} belongs to another AQ identity")
+    if session is not None and (
+        (session.job_id, session.workflow_id, session.dispatch_id)
+        != raw_identity[:3]
+        or session.superseded_session_id != state.session_id
+    ):
+        raise ValueError("session supersession belongs to another raw AQ session")
+
+    def require_same_state(label: str, artifact: ExactArtifact | None) -> None:
+        """Compare the authoritative path, digest, and size across artifact vocabularies."""
+
+        if artifact is None:
+            return
+        if (
+            artifact.path,
+            artifact.sha256,
+            artifact.byte_size,
+        ) != (
+            state_artifact.path,
+            state_artifact.sha256,
+            state_artifact.byte_size,
+        ):
+            raise ValueError(f"{label} does not bind the current raw AQ state")
+
+    require_same_state(
+        "state consistency report",
+        None if consistency is None else consistency.top_level_state,
+    )
+    require_same_state(
+        "framework failure report",
+        None if failure is None else failure.current_state,
+    )
+    require_same_state(
+        "retry supersession receipt",
+        None if retry is None else retry.current_state,
+    )
+    require_same_state(
+        "session supersession receipt",
+        None if session is None else session.superseded_state,
+    )
+
+
+def get_autonomy_v2_material_closure_status(
+    job_id: str,
+    session_id: str,
+    *,
+    material_attempt: AQV2Artifact | None = None,
+    consistency_report: AQV2Artifact | None = None,
+    framework_failure: AQV2Artifact | None = None,
+    retry_supersession: AQV2Artifact | None = None,
+    session_supersession: AQV2Artifact | None = None,
+) -> dict[str, object]:
+    """Combine raw AQ state with optional closure companions, including old terminals."""
+
+    raw = get_autonomy_v2_status(job_id, session_id)
+    root = job_dir(job_id)
+    attempt = _load_optional_material_companion(
+        root,
+        material_attempt,
+        MaterialAttemptState,
+    )
+    consistency = _load_optional_material_companion(
+        root,
+        consistency_report,
+        MaterialStateConsistencyReport,
+    )
+    failure = _load_optional_material_companion(
+        root,
+        framework_failure,
+        MaterialFrameworkFailureReport,
+    )
+    retry = _load_optional_material_companion(
+        root,
+        retry_supersession,
+        MaterialRetrySupersessionReceipt,
+    )
+    session = _load_optional_material_companion(
+        root,
+        session_supersession,
+        MaterialSessionSupersessionReceipt,
+    )
+    state = AutonomyStateV2.model_validate_json(
+        json.dumps(raw["state"], ensure_ascii=False)
+    )
+    state_artifact = AQV2Artifact.model_validate_json(
+        json.dumps(raw["state_artifact"], ensure_ascii=False)
+    )
+    _require_material_status_companions_current(
+        state=state,
+        state_artifact=state_artifact,
+        attempt=(attempt if isinstance(attempt, MaterialAttemptState) else None),
+        consistency=(
+            consistency
+            if isinstance(consistency, MaterialStateConsistencyReport)
+            else None
+        ),
+        failure=(
+            failure if isinstance(failure, MaterialFrameworkFailureReport) else None
+        ),
+        retry=(retry if isinstance(retry, MaterialRetrySupersessionReceipt) else None),
+        session=(
+            session if isinstance(session, MaterialSessionSupersessionReceipt) else None
+        ),
+    )
+    projection = None
+    if isinstance(consistency, MaterialStateConsistencyReport):
+        projection_model = build_aq_v2_status_projection(
+            projection_id=f"material-status-{session_id}",
+            top_level_state=_exact_artifact_from_aq(
+                state_artifact,
+                kind="top_level_state",
+            ),
+            top_level_phase=state.phase,
+            top_level_status=state.status,
+            top_level_next_action=state.next_action,
+            canonical_snapshot=consistency.observed_snapshot,
+            consistency_report=_exact_artifact_from_aq(
+                consistency_report,
+                kind="consistency_report",
+            ),
+            state_consistent=consistency.consistent,
+            producer="codex_blender_modeler.autonomy_v2.controller_bridge",
+            producer_version="0.1.0",
+            created_at=datetime.now(UTC),
+            controller_invocation_count=state.budget_usage.controller_invocations,
+            canonical_promotion_count=state.budget_usage.canonical_promotions,
+            rollback_count=(
+                failure.rollback_count
+                if isinstance(failure, MaterialFrameworkFailureReport)
+                else 0
+            ),
+            attempt=(attempt if isinstance(attempt, MaterialAttemptState) else None),
+            attempt_artifact=(
+                _exact_artifact_from_aq(material_attempt, kind="material_attempt")
+                if isinstance(attempt, MaterialAttemptState)
+                else None
+            ),
+            blocking_companion_present=(
+                failure is not None or retry is not None or session is not None
+            ),
+        )
+        projection = projection_model.model_dump(mode="json")
+        combined_status = projection_model.combined_status
+    elif failure is not None or retry is not None or session is not None:
+        combined_status = "blocked"
+    elif state.next_action == "none":
+        combined_status = state.status
+    elif isinstance(attempt, MaterialAttemptState):
+        combined_status = attempt.state
+    else:
+        combined_status = "raw_aq_only"
+    return {
+        "raw_aq": raw,
+        "material_attempt": (
+            attempt.model_dump(mode="json")
+            if isinstance(attempt, MaterialAttemptState)
+            else None
+        ),
+        "state_consistency": (
+            consistency.model_dump(mode="json")
+            if isinstance(consistency, MaterialStateConsistencyReport)
+            else None
+        ),
+        "framework_failure": (
+            failure.model_dump(mode="json")
+            if isinstance(failure, MaterialFrameworkFailureReport)
+            else None
+        ),
+        "retry_supersession": (
+            retry.model_dump(mode="json")
+            if isinstance(retry, MaterialRetrySupersessionReceipt)
+            else None
+        ),
+        "session_supersession": (
+            session.model_dump(mode="json")
+            if isinstance(session, MaterialSessionSupersessionReceipt)
+            else None
+        ),
+        "projection": projection,
+        "combined_status": combined_status,
+        "raw_state_preserved": True,
     }
 
 

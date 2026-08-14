@@ -65,8 +65,8 @@
 - actual-source canonical promotion/MaterialPhaseReceipt/IQ/package: 수행하지 않음
 - 과거 MaterialAuthoring `0.2.1` receipt의 `blender_compilation_status=not_run`: 그대로 보존
 
-해당 focused test의 구현 중간 실행 기록은 `1 passed`였다. 최종 focused 묶음은 아래 대장의
-placeholder를 따른다.
+해당 focused test의 구현 중간 실행 기록은 `1 passed`였다. 최종 Material Loop 묶음은 아래
+대장의 실제 기록을 따른다.
 
 ## 4. fake four-family material/IQ 범위
 
@@ -131,8 +131,8 @@ verification/evidence/imagegen_material_loop_20260813
 
 ## 7. 최종 검증 대장
 
-아래 placeholder는 명령을 실제로 실행한 뒤 exact 결과와 evidence root로 교체한다. 실행되지 않은
-항목은 `not_run`으로 남긴다.
+아래 표는 2026-08-13 Material Loop 당시의 exact 결과를 보존한다. 실행되지 않은 항목은
+`not_run`으로 남기며, 2026-08-14 Material Closure 전체 회귀와 혼합하지 않는다.
 
 | 검증 | 최종 결과 |
 |---|---|
@@ -183,3 +183,19 @@ ImageGen API 호출, semantic review 작성, user approval 작성, arbitrary con
 - rig, animation, gameplay, CAD B-Rep 또는 engine graph 지원
 
 따라서 올바른 profile 상태는 계속 `disabled_experimental`이다.
+
+## 10. 2026-08-14 Material Closure 후속 상태
+
+Material Closure Stabilization은 기존 Material Loop 결과 뒤에 추가되는 별도 gate다. 이 문서의
+2026-08-13 fake-family/historical-source/Blender 결과는 graph-derived full dependency closure,
+comprehensive preapproval full-scene shadow compile, specialized appearance approval 또는 current
+Crystalgun repair session의 통과 증거가 아니다.
+
+현재 verified incident head는 `0012 / terminal / cancelled / none`이며 canonical MaterialPlan,
+`MaterialPhaseReceiptV2`, rendered neutral preview, IQ와 user appearance approval이 없다. 따라서
+existing retry 실행, current asset promotion과 delivery는 `not_run`이다. Append-only repair dry-run은
+closure 뒤 image-backed UV coverage 누락으로 Blender/preview/approval/controller 전에
+`preflight_failed`가 됐다. 한 procedural actual-Blender preapproval fixture는 통과했지만
+ImageGen+localized 및 crystal/emission/alpha fixture와 authorized promotion은 `unverified`다. 상세
+결과는 [Material Closure 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)에 기록한다.
+Profile은 계속 `disabled_experimental`이다.

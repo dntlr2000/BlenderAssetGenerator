@@ -8,6 +8,7 @@ import stat
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 _SAFE_NAME_RE = re.compile(r"[^a-zA-Z0-9._-]+")
 
@@ -156,6 +157,136 @@ def stable_json_digest(value: Any) -> str:
 
     encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def deterministic_json_bytes(value: Any) -> bytes:
+    """Serialize one JSON value with stable UTF-8, LF, indentation, and final newline."""
+
+    return (json.dumps(value, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
+
+
+def native_json_bytes(value: Any) -> bytes:
+    """Serialize JSON with the historical host newline convention used by legacy APIs."""
+
+    text = json.dumps(value, indent=2, ensure_ascii=False) + "\n"
+    return text.replace("\n", os.linesep).encode("utf-8")
+
+
+def _immutable_file_matches(path: Path, content: bytes) -> bool:
+    """Return whether one pre-existing regular non-link file has the exact bytes."""
+
+    native = native_io_path(path)
+    try:
+        metadata = os.lstat(native)
+    except FileNotFoundError:
+        return False
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    if (
+        not stat.S_ISREG(metadata.st_mode)
+        or stat.S_ISLNK(metadata.st_mode)
+        or bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+    ):
+        raise FileExistsError(f"immutable artifact path is not a regular file: {path}")
+    with open(native, "rb") as handle:
+        return handle.read() == content
+
+
+def _is_link_or_reparse(metadata: os.stat_result) -> bool:
+    """Recognize POSIX links and Windows junction/reparse metadata without following it."""
+
+    attributes = getattr(metadata, "st_file_attributes", 0)
+    return stat.S_ISLNK(metadata.st_mode) or bool(
+        attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    )
+
+
+def _ensure_lexical_directory(path: Path) -> None:
+    """Create missing lexical ancestors while rejecting every link or reparse hop."""
+
+    directory = Path(os.path.abspath(os.fspath(path.expanduser())))
+    chain = list(reversed((directory, *directory.parents)))
+    for member in chain:
+        native = native_io_path(member)
+        try:
+            metadata = os.lstat(native)
+        except FileNotFoundError:
+            try:
+                os.mkdir(native)
+            except FileExistsError:
+                pass
+            metadata = os.lstat(native)
+        if _is_link_or_reparse(metadata):
+            raise ValueError(
+                f"immutable artifact ancestor is a symlink or reparse point: {member}"
+            )
+        if not stat.S_ISDIR(metadata.st_mode):
+            raise NotADirectoryError(
+                f"immutable artifact ancestor is not a directory: {member}"
+            )
+
+
+def _require_lexical_destination_safe(path: Path) -> None:
+    """Recheck lexical ancestors and reject an existing linked final destination."""
+
+    _ensure_lexical_directory(path.parent)
+    native = native_io_path(path)
+    try:
+        metadata = os.lstat(native)
+    except FileNotFoundError:
+        return
+    if _is_link_or_reparse(metadata):
+        raise FileExistsError(
+            f"immutable artifact path is a symlink or reparse point: {path}"
+        )
+
+
+def publish_bytes_create_once(
+    path: Path,
+    content: bytes,
+) -> bool:
+    """Atomically link complete immutable bytes once, exact-adopting identical peers."""
+
+    destination = Path(os.path.abspath(os.fspath(path.expanduser())))
+    _require_lexical_destination_safe(destination)
+    create_flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)
+    if os.path.lexists(native_io_path(destination)):
+        if not _immutable_file_matches(destination, content):
+            raise FileExistsError(f"conflicting immutable artifact bytes: {destination}")
+        return False
+    temporary = destination.with_name(
+        f".{destination.name}.{os.getpid()}.{uuid4().hex}.immutable.tmp"
+    )
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(native_io_path(temporary), create_flags, 0o600)
+        destination_created = False
+        try:
+            pending = memoryview(content)
+            while pending:
+                written = os.write(descriptor, pending)
+                if written <= 0:
+                    raise OSError("immutable artifact write made no progress")
+                pending = pending[written:]
+            os.fsync(descriptor)
+        finally:
+            if descriptor is not None:
+                os.close(descriptor)
+                descriptor = None
+        _require_lexical_destination_safe(destination)
+        try:
+            os.link(native_io_path(temporary), native_io_path(destination))
+            destination_created = True
+        except FileExistsError as exc:
+            if not _immutable_file_matches(destination, content):
+                raise FileExistsError(
+                    f"conflicting immutable artifact bytes: {destination}"
+                ) from exc
+        return destination_created
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+        if os.path.lexists(native_io_path(temporary)):
+            os.unlink(native_io_path(temporary))
 
 
 def artifact_path(path: Path, manifest_path: Path) -> str:

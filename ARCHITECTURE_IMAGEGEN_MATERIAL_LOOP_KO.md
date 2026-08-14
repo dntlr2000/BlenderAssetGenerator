@@ -277,3 +277,26 @@ fake family, historical built-in source와 실제 production 승인은 분리한
 기록한다. 사용자가 current Codex 작업에 붙여 넣는 prompt는 권위 artifact가 아니며
 [실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)이 이 문서의 opt-in, native provenance,
 host-only promotion, IQ와 approval/package 분리 경계를 그대로 투영한다.
+
+## 13. Material Closure Stabilization 연동
+
+새 stabilized ImageGen material attempt에서는 기존 ImageGen chain이 final graph-derived closure의
+typed source root가 된다. provider profile, assignment, completion, generated-image evidence,
+normalization plan/receipt, semantic review, selection, adoption과 MaterialAuthoring
+request/manifest/receipt 중 하나라도 누락되면 preflight 전 fail closed다.
+
+기존 `codex-imagegen-material-exact-adoption-preflight`는 exact V0.5 candidate의 isolated compile
+증거이며 그 역사 의미를 바꾸지 않는다. Stabilization의 `MaterialPromotionPreflight`는 reference,
+모든 ShaderRecipe/TextureManifest/channel/mask, surface-detail/UV, canonical snapshot, rollback과
+finite budget을 추가 검증하고 full-scene Blender 5.0.1 shadow compile과 실제 neutral preview를
+approval 전에 생성하는 별도 증거다. 기존 receipt를 새 comprehensive preflight로 재분류하지 않는다.
+
+host graph rebinding은 source graph를 보존하고 provenance path/hash만 canonical/request-owned
+context로 바꾼다. candidate bytes나 semantic graph가 바뀌면 새 closure, preview와 appearance
+approval이 필요하다. controller request/assignment/completion은 closure projection을 공유하고,
+기존 host promotion/rollback authority만 canonical을 쓴다.
+
+Material Closure 12개 CLI/MCP는 기존 ImageGen core 5개와 Material Loop 9개 surface를 제거하거나
+rename하지 않는 additive layer다. Focused host 12/12 동등성과 전체 `1750/62/8` 회귀를
+확인했어도 ImageGen+localized actual Blender fixture와 authorized promotion evidence가 없으므로
+활성화 근거가 아니며 profile은 계속 `disabled_experimental`이다.
