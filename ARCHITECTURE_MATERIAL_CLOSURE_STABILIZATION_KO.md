@@ -236,3 +236,17 @@ Focused host tests에서 12/12 registration과 schema/capability parity를 확�
 명시적 decision observation을 host가 current preflight에 대해 검증·게시할 뿐이다. repair run은
 기본적으로 `approval_pending`에서 멈추며 승인, controller, canonical promotion을 자동 실행하지
 않는다. 실제 공개/동등성 검증 상태는 검증 기록을 따른다.
+
+## 12. `scope_change`와 Material Identity Split
+
+Material Closure의 approval-impact 판정이 object material assignment 또는 material identity 추가를
+`scope_change`로 분류하면 closure/preflight를 완화하거나 MaterialAppearanceApproval로 대신하지
+않는다. 이 경우 [Material Identity Split](ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md)이 paired
+SceneSpec/ModelingPlan 후보, semantic-clone identity, isolated Blender shadow와 specialized
+root-scope ApprovalRequest를 검증한다.
+
+Identity Split ApprovalRequest는 사용자 승인이 아니며 실제 apply 전까지 canonical geometry와
+MaterialPlan absence는 바뀌지 않는다. 사용자 승인 후 guarded apply가 성공하더라도 이전 closure,
+rebound graph, preflight, neutral preview와 appearance approval은 stale이다. 새 post-apply
+SceneInventory/BuildProvenance/MaterialPlan absence/canonical snapshot과 geometry-continuation evidence를
+source로 별도 Material Closure material repair를 처음부터 수행해야 한다.

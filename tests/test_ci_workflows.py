@@ -37,6 +37,13 @@ MATERIAL_CLOSURE_HOST_TESTS = (
     "tests/test_autonomy_v2_supervisor_material_closure.py",
     "tests/test_no_job_specific_framework_literals.py",
 )
+MATERIAL_IDENTITY_SPLIT_HOST_TESTS = (
+    "tests/test_material_identity_split_contracts.py",
+    "tests/test_material_identity_split_schemas.py",
+    "tests/test_material_identity_split_service.py",
+    "tests/test_material_identity_split_transaction.py",
+    "tests/test_material_identity_split_public.py",
+)
 
 
 def _load_workflow(name: str) -> dict[str, Any]:
@@ -87,6 +94,8 @@ def test_python_ci_runs_on_push_pr_and_dispatch_without_blender() -> None:
         assert test_name in commands
     for test_name in MATERIAL_CLOSURE_HOST_TESTS:
         assert test_name in commands
+    for test_name in MATERIAL_IDENTITY_SPLIT_HOST_TESTS:
+        assert test_name in commands
     assert "uv run pytest" in commands
     assert "uv run ruff check ." in commands
     assert "blender-compat" not in commands
@@ -129,6 +138,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE",
         "CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E",
         "CBM_RUN_MATERIAL_CLOSURE_BLENDER_SMOKE",
+        "CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE",
     }
     expected_nodes = {
         "tests/test_aq_v02_geometry_blender.py",
@@ -139,6 +149,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "tests/test_codex_image_material_loop_blender.py",
         "tests/test_codex_image_material_loop_delivery_blender.py",
         "tests/test_material_closure_service.py::test_complete_preflight_runs_actual_blender_5_and_stops_before_approval",
+        "tests/test_material_identity_split_service.py::test_identity_split_runs_actual_blender_5_and_stops_before_scope_approval",
     }
     for token in expected_env | expected_nodes:
         assert token in powershell
@@ -147,6 +158,9 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         assert test_name in powershell
         assert test_name in bash
     for test_name in MATERIAL_CLOSURE_HOST_TESTS:
+        assert test_name in powershell
+        assert test_name in bash
+    for test_name in MATERIAL_IDENTITY_SPLIT_HOST_TESTS:
         assert test_name in powershell
         assert test_name in bash
     assert "scripts/check_no_job_specific_framework_literals.py" in powershell

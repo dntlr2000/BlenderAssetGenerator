@@ -191,7 +191,25 @@ material-repair-session-run
 모든 mutating surface는 immutable publication 또는 기존 host authority로만 전달한다. CLI/MCP가 approval,
 ControllerResult, canonical state, destination output을 합성하지 않는다.
 
-## 12. 다음 단계인 Standard ImageGen 시작 조건
+## 12. scope-change material identity split 라우팅
+
+```text
+Material Closure가 object material assignment 또는 material identity 추가 때문에 scope_change를
+보고하면 closure validator, spatial ownership 또는 approval requirement를 완화하지 마.
+
+<JOB_ID>의 current canonical bytes와 기존 immutable identity-split planning evidence를 exact-load하고
+Material Identity Split 0.1.0으로 paired SceneSpec/ModelingPlan 후보, semantic clone, exact diff,
+isolated Blender shadow와 invariant를 검증해. 통과하면 ApprovalRequest만 게시하고
+framework_ready_for_explicit_scope_approval에서 멈춰.
+
+사용자의 별도 explicit root-scope 결정 없이는 approval, consumption, ApplyIntent, canonical apply,
+새 material repair, controller, promotion, IQ, package 또는 destination write를 수행하지 마.
+```
+
+Material Identity Split의 전체 reusable prompt와 apply/recovery 경계는
+`MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md`를 따른다.
+
+## 13. 다음 단계인 Standard ImageGen 시작 조건
 
 Standard Codex ImageGen material companion 작업은 다음이 모두 충족된 뒤 별도 작업으로 시작한다.
 

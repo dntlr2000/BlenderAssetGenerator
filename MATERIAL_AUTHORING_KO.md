@@ -373,6 +373,8 @@ path repair로 위장할 수 없다.
 Blender/approval/controller 전에 차단했다. 이는 MaterialAuthoring 품질 통과나 successful
 promotion이 아니라 early framework rejection과 canonical 보존 증거다.
 
-2026-08-14 current incident dry-run은 이 경계에서 missing image-backed surface-detail coverage를
-Blender/approval/controller 전에 차단했다. 이는 MaterialAuthoring 품질 통과나 successful
-promotion이 아니라 early framework rejection과 canonical 보존 증거다.
+공유 material identity가 localized detail의 object ownership을 막는 경우 old-ID manifest/recipe를
+새 identity로 재분류하거나 closure 검사를 완화하지 않는다. 별도 Material Identity Split `0.1.0`이
+paired SceneSpec/ModelingPlan semantic-clone scope change를 Blender shadow에서 검증하고 specialized
+root-scope ApprovalRequest까지 게시한다. 실제 apply가 승인·완료된 뒤에만 새 identity에 결속된
+TextureManifest/ShaderRecipe와 MaterialPlan candidate를 후속 material repair에서 저작한다.

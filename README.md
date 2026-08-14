@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`은 이 기존 경계 위에 dependency closure, 승인 전 shadow preflight, 전문 material appearance 승인과 canonical 상태 투영을 더하는 additive companion이며 기존 profile을 활성화하지 않습니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`은 이 기존 경계 위에 dependency closure, 승인 전 shadow preflight, 전문 material appearance 승인과 canonical 상태 투영을 더하는 additive companion이며 기존 profile을 활성화하지 않습니다. Material Identity Split `0.1.0`은 공유 material identity를 객체별 identity로 분리해야 하는 `scope_change`를 paired SceneSpec/ModelingPlan shadow 검증, 별도 root-scope 승인, host-locked transaction으로 처리하는 additive companion입니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -25,6 +25,7 @@
 | Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1`; `disabled_experimental` |
 | Codex ImageGen Material Loop | additive strict `0.1.0`; native/semantic/controller/promotion/IQ bridge; `disabled_experimental` |
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
+| Material Identity Split | additive strict `0.1.0`; paired SceneSpec/ModelingPlan, Blender shadow validation, specialized root-scope approval, guarded apply/recovery; 실제 자산은 승인 요청 경계에서 정지 |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
@@ -35,8 +36,11 @@
 | 2026-08-13 Material Loop 최종 local gate | full `1569 passed, 56 skipped, 8 warnings`; focused `160 passed, 1 skipped`; public/schema/catalog/CI parity `59 passed`; 실제 범위와 not-run 항목은 검증 기록 참조 |
 | 2026-08-13 AQ v2 ↔ V0.9 state-anchor lifecycle | full `1586 passed, 57 skipped, 8 warnings`; related focused `226 passed`; no-op reconcile/receipt lineage/AQ controller resume 통과; 기존 `collectible_wood_02_2`는 read-only 감사상 stale/unverified |
 | 2026-08-14 Material Closure Stabilization | full `1750 passed, 62 skipped, 8 warnings`; actual Blender 5.0.1 승인 전 fixture `1 passed`; Crystalgun retry02는 missing UV coverage로 권한 소비 전 `preflight_failed`; authorized promotion/`MaterialPhaseReceiptV2`/IQ는 미검증 |
+| 2026-08-14 Material Identity Split 승인 전 검증 | Crystalgun paired candidate를 실제 Blender 5.0.1 build/inspect/validate 3 processes로 검증하고 `framework_ready_for_explicit_scope_approval`에서 정지; ApprovalRequest `1`, 사용자 승인·consumption·ApplyIntent·canonical write·controller/promotion/IQ `0`; 최종 full `1809 passed, 63 skipped, 8 warnings`, 실제 opt-in Blender node `1 passed` |
 
 2026-08-14 Crystalgun incident 감사에서 보고된 AQ state `0011`이 최신이 아님을 확인했습니다. 실제 head는 `0012 / terminal / cancelled / none`이며 canonical MaterialPlan, `MaterialPhaseReceiptV2`, neutral material preview와 IQ 진입 evidence가 없습니다. 기존 technical retry와 승인은 새 material controller 권한이 아니며, append-only failure/discrepancy/supersession evidence와 별도 material repair session만 허용합니다. supersession 게시, 새 repair dry-run, 사용자 appearance approval과 production promotion은 각각 실제 evidence가 생성되기 전까지 완료로 간주하지 않습니다.
+
+같은 자산의 shared-material ownership 문제는 Material Closure를 완화하지 않고 Material Identity Split으로 분리했습니다. 승인 전 shadow run은 두 material identity와 두 object assignment, 대응 ModelingPlan 변경만 검증했으며 canonical SceneSpec, ModelingPlan, Blend와 MaterialPlan absence는 그대로입니다. ApprovalRequest는 사용자 승인이 아니므로 별도 사용자 결정 전에는 apply 또는 후속 material repair를 실행하지 않습니다.
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
 
@@ -79,6 +83,12 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
   실제 neutral preview를 appearance 승인 전에 수행합니다. technical wiring 수정에는 사용자
   승인을 요구하지 않으며, exact appearance 승인은 1회만 소비되고 기존 host promotion/rollback
   authority만 canonical MaterialPlan과 `.blend`를 쓸 수 있습니다.
+- Material Identity Split `0.1.0`: 공유 material identity를 localized detail 대상 객체만의
+  semantic clone으로 분리하는 paired SceneSpec/ModelingPlan 후보를 exact diff로 검증하고,
+  격리 Blender build/inspect/validate와 geometry·topology·transform·UV·reference 불변 검사를
+  통과한 경우에만 specialized root-scope ApprovalRequest를 게시합니다. 실제 사용자 승인 이후에도
+  SceneSpec·ModelingPlan·Blend는 하나의 host transaction으로만 교체되며, MaterialPlan/controller/IQ는
+  별도 downstream 경계입니다.
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -118,6 +128,7 @@ BlenderAssetGenerator/
 │  ├─ codex_imagegen/                built-in ImageGen assignment/검증/선택 companion
 │  ├─ material_authoring/            local material 및 Codex-image 0.2.1 candidate
 │  ├─ material_closure/              dependency closure, rebinding, preflight와 상태 계약
+│  ├─ material_identity_split/       paired scope-change preapproval과 guarded transaction
 │  ├─ material_preflight/            승인 전 shadow compile 공개 facade
 │  ├─ material_promotion/            기존 host promotion 경계의 additive facade
 │  ├─ material_recovery/             retry supersession과 material-only repair facade
@@ -1011,6 +1022,11 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [Material Closure Stabilization 마이그레이션 정책](MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
 - [Material Closure Stabilization 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
 - [Material Closure Stabilization 재사용 프롬프트](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
+- [Material Identity Split 아키텍처](ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 테스트 계획](TEST_PLAN_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 마이그레이션 정책](MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 검증 기록](VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 재사용 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)
 - [Crystalgun material framework incident](CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)
 - [새 레퍼런스 전체 단계별 프롬프트 모음](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
 - [Portable verification evidence](verification/evidence/README.md)
@@ -1041,15 +1057,15 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 145
-- CLI registry SHA-256: a09fe54ea8c07c7d05e0f19269f58c2c3172d53941144e8b196e0a287b213175
-- MCP server tools: 136
-- MCP server registry SHA-256: f0014064ce2f70986727a57f3fd1e56bfecc5fbe12ebc66f88d805e0eb2f3d7d
-- Project-enabled MCP tools: 135
-- Project-enabled MCP SHA-256: 1c0633f599478d06088371eb977fe39567f2b2d6d345965649c25bbe98430c69
+- CLI commands: 152
+- CLI registry SHA-256: 9427bab8cec47000efb0d892d92ea341088fc77224f4bab6c0e49b909799391e
+- MCP server tools: 143
+- MCP server registry SHA-256: 4667d2b431245106f007bbdaf7af94bcde81437c59561e418f751997b41f0d65
+- Project-enabled MCP tools: 142
+- Project-enabled MCP SHA-256: c26c8fe72be430f8d1911b5499fd8d05483c7895dbc635089e16b8f51df689b4
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1750
+- Latest reported test count: 1809
 - Verification summary: verification/latest_summary.json (reported)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

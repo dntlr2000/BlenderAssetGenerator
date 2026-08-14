@@ -23,7 +23,7 @@ A lower layer may narrow authority but may not broaden it. RULE_POLICY declarati
 | optimization, packages, roundtrip, handoff | packaging_and_handoff.md |
 | AQ, production dispatch, controller, phase tools | autonomy_safety.md |
 | tests, CI, verification claims, registries | testing_and_verification.md |
+| material identity scope change, paired preapproval/apply | approvals_and_authorization.md, autonomy_safety.md, source_of_truth.md |
 | step-by-step V0.4–V0.9 procedures | workflow_reference.md |
 
 The invariant catalog carries the original English rule text to avoid translation drift. Topic guides may be concise but must reference stable RULE_ID ranges.
-

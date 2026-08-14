@@ -1059,3 +1059,16 @@ preflight와 shadow workspace는 canonical 또는 destination을 쓰지 않는�
 [검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 이 연동으로
 `autonomous_static_prop_v2` 또는 ImageGen profile을 활성화하지 않으며 둘 다
 `disabled_experimental`이다.
+
+## 28. Material Identity Split 0.1.0 연동
+
+Material Closure가 shared material identity/object assignment를 `scope_change`로 판정하면 AQ state나
+appearance approval을 재사용하지 않는다. Material Identity Split은 current geometry authority와
+MaterialPlan absence를 exact-bind하고 paired SceneSpec/ModelingPlan semantic-clone 후보를 격리 Blender
+shadow에서 검증한 뒤 ApprovalRequest에서 멈추는 host-only companion이다.
+
+별도 explicit user root-scope approval 뒤 guarded apply가 성공하면 post-apply SceneInventory,
+BuildProvenance, MaterialPlan absence, canonical snapshot과 non-synthetic geometry-continuation evidence를
+새로 발행한다. 이전 dependency closure/preflight/preview/appearance approval은 stale이며 후속 material
+repair session이 새 canonical에서 다시 시작한다. 이 연동은 AQ v2 profile 활성화, controller 실행,
+MaterialPlan promotion 또는 IQ 진입을 자동화하지 않는다.

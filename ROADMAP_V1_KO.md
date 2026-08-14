@@ -86,6 +86,8 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
+| Material Closure 0.1 | additive stabilization 구현·local regression, authorized success 미검증 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
+| Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
 ## 3. V0.1 — Primitive Proxy & Harness
@@ -881,6 +883,11 @@ VERIFICATION_Vxx_KO.md
 - [Material Closure Stabilization 마이그레이션 정책](MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
 - [Material Closure Stabilization 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
 - [Material Closure Stabilization 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
+- [Material Identity Split 아키텍처](ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 테스트 계획](TEST_PLAN_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 마이그레이션 정책](MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 검증 기록](VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 프롬프트 모음](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, reversible terminal workspace archive,
 single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다.
@@ -891,6 +898,8 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 
 ```text
 1. Material Closure Stabilization local contract/regression sign-off — 2026-08-14 완료
+   1A. Material Identity Split generic framework + Crystalgun preapproval — framework 준비 완료
+   1B. 별도 사용자 root-scope 승인 뒤 guarded apply + post-apply authority refresh — 승인 대기
 2. Crystalgun candidate coverage repair와 새 preapproval dry-run
 3. 실제 자산 3종 이상의 material regression
 4. Standard Codex ImageGen integration
@@ -902,12 +911,16 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 10. V1.0 승격 재심사
 ```
 
-각 단계는 앞 단계의 실제 evidence와 gate가 통과한 뒤에만 시작합니다. 2026-08-14 현재
+각 단계는 앞 단계의 실제 evidence와 gate가 통과한 뒤에만 시작합니다. 1A/1B는 기존 1번과
+2번 사이에 추가된 scope-change 선행 경계이며 기존 1→10 우선순위를 바꾸지 않습니다. 2026-08-14 현재
 Material Closure contracts/public surface, 전체 `1750/62/8` 회귀와 한 actual Blender preapproval
 fixture는 검증됐습니다. 다만 authorized controller/promotion/IQ success는 별도 권한 evidence가
 없어 미검증입니다. Crystalgun retry02는 closure 뒤
 `detail.crystal.facet_lines`의 image-backed UV coverage 누락으로 Blender/preview/approval 전에
-`preflight_failed`가 됐으므로 2번은 완료가 아닙니다.
+`preflight_failed`가 됐습니다. 원인인 shared material identity를 완화하지 않고 분리하는 generic
+Material Identity Split `0.1.0`과 actual Blender paired shadow preapproval은 통과했지만,
+최종 저장소 회귀도 `1809 passed, 63 skipped, 8 warnings`로 통과했습니다. 그러나
+ApprovalRequest는 승인이 아니므로 1B와 2번은 완료가 아닙니다.
 
 특히 Standard ImageGen 통합은 Crystalgun approval-pending dry-run,
 서로 다른 실제 자산 3종 이상의 material regression, specialized approval/rollback consistency가
@@ -916,4 +929,4 @@ fixture는 검증됐습니다. 다만 authorized controller/promotion/IQ success
 7번과 8번은 구현 존재가 아니라 별도 activation review이고, 두 experimental profile은 그때까지
 계속 `disabled_experimental`입니다.
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen/Material Closure 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen/Material Closure/Material Identity Split 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

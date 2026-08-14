@@ -5,6 +5,9 @@ import json
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .blender_scripts.standard_custom_mesh_runtime import (
+    validate_standard_custom_mesh_payload,
+)
 from .material_manifest import load_material_manifest
 from .shader_recipe_runtime import load_runtime_shader_recipes
 
@@ -220,7 +223,7 @@ def _material_binding_override_paths(
 
 
 def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str, str]:
-    """Hash every external custom-mesh or terrain-heightmap payload used by SceneSpec."""
+    """Validate Standard identity and hash every external geometry dependency."""
 
     payloads: dict[str, str] = {}
     material_binding_overrides = _material_binding_override_paths(root, scene_spec)
@@ -249,6 +252,88 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
         resolved = material_binding_overrides.get(path_value, source_resolved)
         if not resolved.is_file():
             raise BuildProvenanceError(f"Geometry payload does not exist: {resolved}")
+        if geometry.get("kind") == "custom_mesh":
+            try:
+                raw_payload = json.loads(resolved.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise BuildProvenanceError(
+                    f"Geometry payload is not valid JSON: {resolved}"
+                ) from exc
+            if (
+                isinstance(raw_payload, dict)
+                and raw_payload.get("payload_kind") == "standard_custom_mesh"
+            ):
+                try:
+                    standard_payload = validate_standard_custom_mesh_payload(raw_payload)
+                except RuntimeError as exc:
+                    raise BuildProvenanceError(
+                        f"Standard custom_mesh payload is invalid: {resolved}"
+                    ) from exc
+                if (
+                    standard_payload["job_id"] != scene_spec.get("job_id")
+                    or standard_payload["object_id"] != item.get("id")
+                ):
+                    raise BuildProvenanceError(
+                        "Standard custom_mesh identity differs from SceneSpec"
+                    )
+                for source_path_value, expected_sha256, label in (
+                    (
+                        standard_payload["source_scene_spec_path"],
+                        standard_payload["source_scene_spec_sha256"],
+                        "Standard source SceneSpec",
+                    ),
+                    (
+                        standard_payload["source_blend_path"],
+                        standard_payload["source_blend_sha256"],
+                        "Standard source Blend",
+                    ),
+                ):
+                    source_path = _contained_relative_path(
+                        root,
+                        source_path_value,
+                        label,
+                    )
+                    if (
+                        not source_path.is_file()
+                        or sha256_file(source_path) != expected_sha256
+                    ):
+                        raise BuildProvenanceError(f"{label} hash is stale")
+                source_scene_spec_path = _contained_relative_path(
+                    root,
+                    standard_payload["source_scene_spec_path"],
+                    "Standard source SceneSpec",
+                )
+                try:
+                    source_scene_spec = json.loads(
+                        source_scene_spec_path.read_text(encoding="utf-8")
+                    )
+                except (OSError, json.JSONDecodeError) as exc:
+                    raise BuildProvenanceError(
+                        "Standard source SceneSpec is invalid"
+                    ) from exc
+                source_objects = source_scene_spec.get("objects")
+                matches = (
+                    [
+                        source_item
+                        for source_item in source_objects
+                        if isinstance(source_item, dict)
+                        and source_item.get("id") == standard_payload["object_id"]
+                    ]
+                    if isinstance(source_objects, list)
+                    else []
+                )
+                source_geometry = matches[0].get("geometry") if len(matches) == 1 else None
+                if (
+                    source_scene_spec.get("job_id") != standard_payload["job_id"]
+                    or not isinstance(source_geometry, dict)
+                    or source_geometry.get("kind") != "custom_mesh"
+                    or source_geometry.get("path") is not None
+                    or source_geometry.get("vertices") != standard_payload["vertices"]
+                    or source_geometry.get("faces") != standard_payload["faces"]
+                ):
+                    raise BuildProvenanceError(
+                        "Standard payload topology differs from source SceneSpec"
+                    )
         payloads[relative] = sha256_file(resolved)
     return dict(sorted(payloads.items()))
 

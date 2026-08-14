@@ -144,3 +144,12 @@ coverage가 완전한 새 candidate, 새 closure/preflight/preview를 요구하�
 Compact tracked index는
 [`verification/evidence/material_closure_stabilization_20260814/README.md`](verification/evidence/material_closure_stabilization_20260814/README.md)에
 기록한다. Job-local JSON이 권위이고 이 문서는 그 내용을 대체하지 않는다.
+
+## 7. 후속 scope-change 분리 결과
+
+Crystalgun의 shared-material ownership 실패는 Material Closure 검사를 완화하지 않고 별도
+[Material Identity Split 0.1.0](VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)으로 분리했다. 실제
+Blender 5.0.1 paired shadow 검증은 통과하여 ApprovalRequest 하나를 게시했지만 사용자 승인,
+consumption, ApplyIntent, canonical write, 새 material repair, controller, promotion,
+`MaterialPhaseReceiptV2`와 IQ는 모두 실행하지 않았다. 따라서 이 후속 결과는 위 Material Closure의
+authorized-success 미검증 항목을 충족하지 않는다.

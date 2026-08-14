@@ -213,3 +213,10 @@ binding/path repair에는 사용자 승인을 반복 요구하지 않습니다. 
 2026-08-14 current incident dry-run은 non-omitted detail의 image-backed UV coverage가 없어 이 단계에서
 `preflight_failed`로 멈췄습니다. Blender/preview/approval/controller/promotion은 실행되지 않았고,
 이 early rejection을 appearance quality 판정으로 해석하지 않습니다.
+
+대상 material이 다른 object와 공유되어 `spatial_v1` ownership을 충족할 수 없으면 validator의
+`material_users == [parent_object_id]` 경계를 완화하지 않습니다. Exact planning evidence가 있는
+경우에만 Material Identity Split `0.1.0`으로 semantic-clone identity와 대상 object assignment,
+대응 ModelingPlan target을 paired revision으로 검증합니다. ApprovalRequest는 사용자 승인이 아니며,
+실제 apply 뒤에도 새 material ID의 image-backed manifest/recipe는 별도 authoring과 appearance
+approval을 요구합니다.

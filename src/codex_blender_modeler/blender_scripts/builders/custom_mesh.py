@@ -12,6 +12,7 @@ from compile_mesh_payload_v02 import (
     _apply_modifier_intent,
     _required_payload_shape,
 )
+from standard_custom_mesh_runtime import validate_standard_custom_mesh_payload
 
 
 def _resolve(path: str, base_dir: Path) -> Path:
@@ -52,6 +53,27 @@ def _apply_vertex_uvs(mesh: bpy.types.Mesh, raw_uvs: object) -> None:
         for loop_index in polygon.loop_indices:
             vertex_index = mesh.loops[loop_index].vertex_index
             uv_layer.data[loop_index].uv = vertex_uvs[vertex_index]
+
+
+def _apply_loop_uvs(
+    mesh: bpy.types.Mesh,
+    raw_uvs: list[list[float]],
+    uv_set: str,
+) -> None:
+    """Restore one exact UV pair for every polygon corner in mesh loop order."""
+
+    if len(raw_uvs) != len(mesh.loops):
+        raise RuntimeError(
+            "standard custom_mesh loop_uvs must match the mesh loop count"
+        )
+    uv_layer = mesh.uv_layers.get(uv_set) or mesh.uv_layers.new(
+        name=uv_set,
+        do_init=False,
+    )
+    mesh.uv_layers.active = uv_layer
+    uv_layer.active_render = True
+    for loop_index, uv in enumerate(raw_uvs):
+        uv_layer.data[loop_index].uv = uv
 
 
 def _sha256_file(path: Path) -> str:
@@ -99,6 +121,111 @@ def _contained_v02_path(raw_path: str, base_dir: Path) -> Path:
     if not candidate.is_file():
         raise FileNotFoundError(candidate)
     return candidate
+
+
+def _contained_standard_path(raw_path: str, base_dir: Path, label: str) -> Path:
+    """Resolve a normalized Standard dependency without allowing job-root escape."""
+
+    if (
+        not raw_path
+        or raw_path != raw_path.replace("\\", "/")
+        or raw_path.startswith("/")
+        or ":" in raw_path
+    ):
+        raise RuntimeError(f"{label} path is not job-relative")
+    parts = PurePosixPath(raw_path).parts
+    if not parts or any(part in {"", ".", ".."} for part in parts):
+        raise RuntimeError(f"{label} path is not normalized")
+    root = base_dir.resolve()
+    candidate = (root / Path(*parts)).resolve()
+    try:
+        candidate.relative_to(root)
+    except ValueError as exc:
+        raise RuntimeError(f"{label} path escapes job root") from exc
+    if not candidate.is_file():
+        raise FileNotFoundError(candidate)
+    return candidate
+
+
+def _build_standard(
+    raw_payload: dict[str, Any],
+    *,
+    payload_path: Path,
+    base_dir: Path,
+) -> bpy.types.Object:
+    """Build one strict Standard payload after verifying its immutable source closure."""
+
+    root = base_dir.resolve()
+    try:
+        payload_path.resolve().relative_to(root)
+    except ValueError as exc:
+        raise RuntimeError("Standard custom_mesh path escapes job root") from exc
+    payload = validate_standard_custom_mesh_payload(raw_payload)
+    source_spec_path = _contained_standard_path(
+        payload["source_scene_spec_path"],
+        root,
+        "Standard source SceneSpec",
+    )
+    source_blend_path = _contained_standard_path(
+        payload["source_blend_path"],
+        root,
+        "Standard source Blend",
+    )
+    if _sha256_file(source_spec_path) != payload["source_scene_spec_sha256"]:
+        raise RuntimeError("Standard source SceneSpec hash is stale")
+    if _sha256_file(source_blend_path) != payload["source_blend_sha256"]:
+        raise RuntimeError("Standard source Blend hash is stale")
+    try:
+        source_spec = json.loads(source_spec_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError("Standard source SceneSpec is invalid") from exc
+    matches = [
+        item
+        for item in source_spec.get("objects", [])
+        if isinstance(item, dict) and item.get("id") == payload["object_id"]
+    ]
+    if source_spec.get("job_id") != payload["job_id"] or len(matches) != 1:
+        raise RuntimeError("Standard payload source identity differs from SceneSpec")
+    source_geometry = matches[0].get("geometry")
+    if (
+        not isinstance(source_geometry, dict)
+        or source_geometry.get("kind") != "custom_mesh"
+        or source_geometry.get("path") is not None
+        or source_geometry.get("vertices") != payload["vertices"]
+        or source_geometry.get("faces") != payload["faces"]
+    ):
+        raise RuntimeError("Standard payload topology differs from source SceneSpec")
+
+    mesh = bpy.data.meshes.new("CBM_StandardCustomMesh")
+    mesh.from_pydata(payload["vertices"], [], payload["faces"])
+    mesh.validate(clean_customdata=False)
+    mesh.update(calc_edges=True)
+    observed_faces = [list(polygon.vertices) for polygon in mesh.polygons]
+    if observed_faces != payload["faces"] or len(mesh.loops) != len(
+        payload["loop_uvs"]
+    ):
+        raise RuntimeError(
+            "Standard custom_mesh topology changed before loop UV restoration"
+        )
+    _apply_loop_uvs(mesh, payload["loop_uvs"], payload["uv_set"])
+    mesh.update(calc_edges=True)
+    obj = bpy.data.objects.new("CBM_StandardCustomMesh", mesh)
+    bpy.context.scene.collection.objects.link(obj)
+    obj["cbm_mesh_payload_version"] = "standard-0.1.0"
+    obj["cbm_standard_payload_sha256"] = _sha256_file(payload_path)
+    obj["cbm_standard_job_id"] = payload["job_id"]
+    obj["cbm_standard_object_id"] = payload["object_id"]
+    obj["cbm_standard_uv_set"] = payload["uv_set"]
+    obj["cbm_standard_source_coordinate_fingerprint"] = (
+        payload["source_coordinate_fingerprint"]
+    )
+    obj["cbm_standard_source_binding_fingerprint"] = (
+        payload["source_vertex_uv_binding_fingerprint"]
+    )
+    obj["cbm_standard_ordered_corner_topology_sha256"] = (
+        payload["ordered_corner_topology_sha256"]
+    )
+    return obj
 
 
 def _material_binding_override_path(
@@ -244,18 +371,35 @@ def _build_v02(
 
 
 def build(spec: dict, base_dir: Path) -> bpy.types.Object:
-    """Build legacy custom meshes unchanged or explicitly dispatch MeshPayload 0.2."""
+    """Dispatch strict Standard/v2 payloads while preserving both legacy dialects."""
 
     vertex_uvs = None
     if spec.get("path"):
         payload_path = _resolve(spec["path"], base_dir)
         payload = json.loads(payload_path.read_text(encoding="utf-8"))
+        payload_kind = payload.get("payload_kind")
         version = payload.get("schema_version")
+        if payload_kind == "standard_custom_mesh":
+            if version != "0.1.0":
+                raise RuntimeError(
+                    "standard custom_mesh requires schema_version '0.1.0'"
+                )
+            return _build_standard(
+                payload,
+                payload_path=payload_path,
+                base_dir=base_dir,
+            )
+        if payload_kind is not None:
+            raise RuntimeError(f"unsupported custom_mesh payload_kind: {payload_kind!r}")
         if version == "0.2.0":
             return _build_v02(
                 payload,
                 payload_path=payload_path,
                 base_dir=base_dir,
+            )
+        if "loop_uvs" in payload:
+            raise RuntimeError(
+                "custom_mesh loop_uvs require explicit standard_custom_mesh payload_kind"
             )
         if version not in {None, "0.1.0"}:
             raise RuntimeError(

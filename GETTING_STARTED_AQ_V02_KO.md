@@ -339,3 +339,15 @@ neutral preview와 IQ evidence가 없으며 existing technical retry approval은
 2026-08-14 새 repair dry-run도 surface-detail coverage 검사에서 Blender/preview/approval/controller
 전에 `preflight_failed`로 멈췄다. 따라서 새 coverage-complete candidate 없이 approve 또는 resume
 명령으로 건너뛸 단계가 없다.
+
+## 12. Shared material identity가 원인인 경우
+
+Material Closure가 object assignment/material identity `scope_change`를 보고하면
+`material-identity-split-plan`, `material-identity-split-preapproval`과 status/approval-request 조회로
+paired candidate를 검증한다. 정상 자동 종료는 `framework_ready_for_explicit_scope_approval`이며
+ApprovalRequest 자체는 승인이 아니다.
+
+실제 사용자 결정이 별도 evidence로 제공되기 전에는 `material-identity-split-approve`, apply 또는
+recover를 호출하지 않는다. 승인 후 apply가 성공해도 기존 material repair를 resume하지 말고 새
+canonical observation/continuation에서 closure와 MaterialAppearanceApproval을 다시 만든다. 상세
+운영 문구는 [Material Identity Split 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)를 따른다.

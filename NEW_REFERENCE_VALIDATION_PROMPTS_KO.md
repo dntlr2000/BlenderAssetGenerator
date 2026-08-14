@@ -998,6 +998,29 @@ closure/preflight/preview가 필요하다고 보고해. shadow compile을 canoni
 승인 뒤 exact controller/promotion, retry/rollback과 material repair session prompt는
 [Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 사용합니다.
 
+#### 단계 5C — Shared material identity scope-change
+
+> **단계 5B가 object material assignment 또는 material identity 추가를 `scope_change`로 판정한
+> 경우에만 사용합니다. Material Closure 검사를 완화하는 대체 경로가 아닙니다.**
+
+```text
+<JOB_ID>의 <IDENTITY_SPLIT_PLAN_ROOT>를 exact-load하고 Material Identity Split 0.1.0으로 검증해.
+
+1. current SceneSpec, ModelingPlan, Blend, MaterialPlan absence, reference/content scope와 UV를 rehash해.
+2. declared semantic-clone material IDs와 target object assignment만 포함한 candidate SceneSpec,
+   대응 surface-detail target만 바꾼 candidate ModelingPlan을 paired exact diff로 검증해.
+3. 격리 shadow workspace에서 실제 Blender 5.0.1 build/inspect/validate와 geometry/topology/transform/
+   UV/reference/material-assignment invariant를 검사해.
+4. canonical bytes를 전후 rehash하고 모두 current/passed인 경우 ApprovalRequest만 게시해.
+5. framework_ready_for_explicit_scope_approval에서 멈춰. ApprovalRequest를 승인으로 부르지 마.
+
+사용자의 별도 explicit root-scope 결정 전에는 approval, consumption, ApplyIntent, canonical apply,
+material repair, controller, promotion, IQ, package 또는 destination write를 수행하지 마.
+```
+
+승인/apply/recovery와 post-apply authority refresh의 상세 prompt는
+[Material Identity Split 프롬프트 모음](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)을 사용합니다.
+
 ### 단계 6 — V0.6 직접 Visual QA
 
 ```text

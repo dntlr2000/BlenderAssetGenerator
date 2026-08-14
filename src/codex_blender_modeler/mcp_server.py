@@ -217,6 +217,27 @@ from .material_closure_public import (
 from .material_closure_public import (
     supersede_material_retry as supersede_material_retry_internal,
 )
+from .material_identity_split_public import (
+    apply_material_identity_split_public as apply_material_identity_split_internal,
+)
+from .material_identity_split_public import (
+    approve_material_identity_split as approve_material_identity_split_internal,
+)
+from .material_identity_split_public import (
+    get_material_identity_split_approval_request as get_identity_split_approval_request_internal,
+)
+from .material_identity_split_public import (
+    get_material_identity_split_status as get_material_identity_split_status_internal,
+)
+from .material_identity_split_public import (
+    plan_material_identity_split as plan_material_identity_split_internal,
+)
+from .material_identity_split_public import (
+    recover_material_identity_split_public as recover_material_identity_split_internal,
+)
+from .material_identity_split_public import (
+    run_material_identity_split_preapproval as run_material_identity_split_preapproval_internal,
+)
 from .materials import (
     create_material_scaffold,
     validate_job_material_contracts,
@@ -320,6 +341,7 @@ from .versioning import (
     EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
     INTERIOR_SCOPE_SCHEMA_VERSION,
     MATERIAL_CLOSURE_SCHEMA_VERSION,
+    MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION,
     MATERIAL_SCHEMA_VERSION,
     PORTABLE_ASSET_SCHEMA_VERSION,
     PRODUCTION_DISPATCH_SCHEMA_VERSION,
@@ -705,6 +727,7 @@ def get_modeling_capabilities() -> dict:
         "constraint_schema_version": CONSTRAINT_SCHEMA_VERSION,
         "material_schema_version": MATERIAL_SCHEMA_VERSION,
         "material_closure_schema_version": MATERIAL_CLOSURE_SCHEMA_VERSION,
+        "material_identity_split_schema_version": MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION,
         "visual_qa_schema_version": VISUAL_QA_SCHEMA_VERSION,
         "portable_asset_schema_version": PORTABLE_ASSET_SCHEMA_VERSION,
         "interior_scope_schema_version": INTERIOR_SCOPE_SCHEMA_VERSION,
@@ -723,6 +746,16 @@ def get_modeling_capabilities() -> dict:
             "approval": "caller-authored exact user decision after current preflight replay",
             "shadow_scope": "complete_preflight_with_shadow_compile",
             "repair_stop_boundary": "approval_pending",
+            "automatic_migration": False,
+            "destination_writes": False,
+        },
+        "material_identity_split": {
+            "contract_version": MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION,
+            "status": "additive_guarded_scope_change_companion",
+            "approval": "caller-authored exact specialized root-scope decision only",
+            "preapproval_stop_boundary": "framework_ready_for_explicit_scope_approval",
+            "canonical_writer": "host_owned_paired_transaction_only",
+            "material_plan_promotion": False,
             "automatic_migration": False,
             "destination_writes": False,
         },
@@ -1264,6 +1297,101 @@ def run_material_repair_session(
         source_binding_path=source_binding_path,
         preview_size=preview_size,
     )
+
+
+@mcp.tool()
+def plan_material_identity_split(
+    job_id: str,
+    planning_root: str,
+    run_id: str,
+    material_plan_absence_path: str,
+) -> dict:
+    """Replay one immutable scope-change plan into strict paired candidates."""
+
+    return plan_material_identity_split_internal(
+        job_id,
+        planning_root=planning_root,
+        run_id=run_id,
+        material_plan_absence_path=material_plan_absence_path,
+    )
+
+
+@mcp.tool()
+def get_material_identity_split_status(job_id: str, run_id: str) -> dict:
+    """Project one append-only identity-split run without advancing it."""
+
+    return get_material_identity_split_status_internal(job_id, run_id=run_id)
+
+
+@mcp.tool()
+def run_material_identity_split_preapproval(
+    job_id: str,
+    plan_path: str,
+    modeling_plan_diff_path: str,
+    canonical_scene_inventory_path: str,
+) -> dict:
+    """Run isolated paired Blender validation and stop before user approval."""
+
+    return run_material_identity_split_preapproval_internal(
+        job_id,
+        plan_path=plan_path,
+        modeling_plan_diff_path=modeling_plan_diff_path,
+        canonical_scene_inventory_path=canonical_scene_inventory_path,
+    )
+
+
+@mcp.tool()
+def get_material_identity_split_approval_request(
+    job_id: str,
+    approval_request_path: str,
+) -> dict:
+    """Read one eligible exact request without treating it as user approval."""
+
+    return get_identity_split_approval_request_internal(
+        job_id,
+        approval_request_path=approval_request_path,
+    )
+
+
+@mcp.tool()
+def approve_material_identity_split(
+    job_id: str,
+    approval_request_path: str,
+    approval_path: str,
+    user_decision_path: str,
+    explicit_user_decision_observed: bool,
+) -> dict:
+    """Publish one complete caller-authored specialized user decision."""
+
+    return approve_material_identity_split_internal(
+        job_id,
+        approval_request_path=approval_request_path,
+        approval_path=approval_path,
+        user_decision_path=user_decision_path,
+        explicit_user_decision_observed=explicit_user_decision_observed,
+    )
+
+
+@mcp.tool()
+def apply_material_identity_split(
+    job_id: str,
+    apply_intent_path: str,
+    canonical_scene_inventory_path: str,
+) -> dict:
+    """Apply one caller-authored intent through the host-owned paired transaction."""
+
+    return apply_material_identity_split_internal(
+        job_id,
+        apply_intent_path=apply_intent_path,
+        canonical_scene_inventory_path=canonical_scene_inventory_path,
+    )
+
+
+@mcp.tool()
+def recover_material_identity_split(job_id: str, run_id: str) -> dict:
+    """Recover one partial approved transaction without minting new authority."""
+
+    return recover_material_identity_split_internal(job_id, run_id=run_id)
 
 
 @mcp.tool()

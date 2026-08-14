@@ -279,3 +279,9 @@ contract로 rewrite하지 않는다.
 terminal AQ session에는 이 block으로 controller를 재개하지 않는다. 별도 material repair session의
 preapproval 단계로만 사용한다. 상세 placeholder와 승인 후/rollback prompt는
 [Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 따른다.
+
+Material Closure가 shared material identity 때문에 `scope_change`를 반환하면 기존 ImageGen evidence를
+새 material ID의 권한으로 재분류하거나 appearance approval로 우회하지 않는다. 별도
+[Material Identity Split 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)로 paired canonical 후보와
+root-scope ApprovalRequest까지만 검증하고, 사용자 결정 전에는 apply 또는 ImageGen material loop를
+재개하지 않는다.

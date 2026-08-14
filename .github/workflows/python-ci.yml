@@ -63,6 +63,7 @@ jobs:
           tests/test_integrated_quality_v02_schemas.py
           tests/test_material_authoring_schemas_v02.py
           tests/test_material_closure_schemas.py
+          tests/test_material_identity_split_schemas.py
 
       - name: Run AQ 0.2 host contracts
         run: >-
@@ -112,6 +113,10 @@ jobs:
           tests/test_material_closure_incident_service.py
           tests/test_material_closure_public.py
           tests/test_autonomy_v2_supervisor_material_closure.py
+          tests/test_material_identity_split_contracts.py
+          tests/test_material_identity_split_service.py
+          tests/test_material_identity_split_transaction.py
+          tests/test_material_identity_split_public.py
           tests/test_no_job_specific_framework_literals.py
           tests/test_repository_catalog.py
           tests/test_repository_summary_generator.py

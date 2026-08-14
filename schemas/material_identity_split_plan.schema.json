@@ -1,0 +1,406 @@
+{
+  "$defs": {
+    "ExactArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained job-relative artifact by exact bytes and media type.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{1,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "media_type": {
+          "maxLength": 127,
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size",
+        "media_type"
+      ],
+      "title": "ExactArtifact",
+      "type": "object"
+    },
+    "MaterialIdentityCloneRule": {
+      "additionalProperties": false,
+      "description": "Declare one exact semantic material clone and its exclusive target object.",
+      "properties": {
+        "source_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Material Id",
+          "type": "string"
+        },
+        "new_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "New Material Id",
+          "type": "string"
+        },
+        "target_object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Object Id",
+          "type": "string"
+        },
+        "surface_detail_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Surface Detail Id",
+          "type": "string"
+        },
+        "retained_source_object_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Retained Source Object Ids",
+          "type": "array"
+        },
+        "allow_display_name_change": {
+          "const": false,
+          "default": false,
+          "title": "Allow Display Name Change",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source_material_id",
+        "new_material_id",
+        "target_object_id",
+        "surface_detail_id"
+      ],
+      "title": "MaterialIdentityCloneRule",
+      "type": "object"
+    },
+    "MaterialIdentitySplitAssignment": {
+      "additionalProperties": false,
+      "description": "Bind one object to one material before or after the guarded split.",
+      "properties": {
+        "object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Material Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "object_id",
+        "material_id"
+      ],
+      "title": "MaterialIdentitySplitAssignment",
+      "type": "object"
+    },
+    "MaterialIdentitySplitCanonicalPreconditions": {
+      "additionalProperties": false,
+      "description": "Bind exact canonical bytes, absence, reference, scope, and UV preconditions.",
+      "properties": {
+        "scene_spec": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "modeling_plan": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "blend": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "material_plan_absence": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "root_authorization": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "primary_reference": {
+          "$ref": "#/$defs/ExactArtifact"
+        },
+        "content_scope_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Content Scope Sha256",
+          "type": "string"
+        },
+        "target_subject": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target Subject",
+          "type": "string"
+        },
+        "uv_layout_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Uv Layout Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "scene_spec",
+        "modeling_plan",
+        "blend",
+        "material_plan_absence",
+        "root_authorization",
+        "primary_reference",
+        "content_scope_sha256",
+        "target_subject",
+        "uv_layout_fingerprint"
+      ],
+      "title": "MaterialIdentitySplitCanonicalPreconditions",
+      "type": "object"
+    },
+    "MaterialIdentitySplitModelingPlanChange": {
+      "additionalProperties": false,
+      "description": "Declare one allowed ModelingPlan surface-detail target material replacement.",
+      "properties": {
+        "detail_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Detail Id",
+          "type": "string"
+        },
+        "parent_object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Parent Object Id",
+          "type": "string"
+        },
+        "source_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Material Id",
+          "type": "string"
+        },
+        "new_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "New Material Id",
+          "type": "string"
+        },
+        "required_channels": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Required Channels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "detail_id",
+        "parent_object_id",
+        "source_material_id",
+        "new_material_id",
+        "required_channels"
+      ],
+      "title": "MaterialIdentitySplitModelingPlanChange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one exact paired identity-split plan without granting execution authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "producer": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "planning_root": {
+      "title": "Planning Root",
+      "type": "string"
+    },
+    "plan_manifest": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "revision_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "candidate_scene_spec": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "candidate_modeling_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "scene_diff_allowlist": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "approval_impact_report": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "geometry_uv_unchanged_report": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "surface_detail_material_mapping": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "specialized_approval_requirement": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "session_supersession_plan": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "current_material_closure": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "latest_framework_failure": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "channel_reconciliation": {
+      "$ref": "#/$defs/ExactArtifact"
+    },
+    "preconditions": {
+      "$ref": "#/$defs/MaterialIdentitySplitCanonicalPreconditions"
+    },
+    "clone_rules": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentityCloneRule"
+      },
+      "minItems": 1,
+      "title": "Clone Rules",
+      "type": "array"
+    },
+    "modeling_plan_changes": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentitySplitModelingPlanChange"
+      },
+      "minItems": 1,
+      "title": "Modeling Plan Changes",
+      "type": "array"
+    },
+    "changed_assignments": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentitySplitAssignment"
+      },
+      "minItems": 1,
+      "title": "Changed Assignments",
+      "type": "array"
+    },
+    "retained_assignments": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentitySplitAssignment"
+      },
+      "minItems": 1,
+      "title": "Retained Assignments",
+      "type": "array"
+    },
+    "impact": {
+      "const": "scope_change",
+      "default": "scope_change",
+      "title": "Impact",
+      "type": "string"
+    },
+    "required_approval": {
+      "const": "root_scope",
+      "default": "root_scope",
+      "title": "Required Approval",
+      "type": "string"
+    },
+    "approval_scope": {
+      "const": "material_identity_split",
+      "default": "material_identity_split",
+      "title": "Approval Scope",
+      "type": "string"
+    },
+    "no_visual_change_allowed": {
+      "const": false,
+      "default": false,
+      "title": "No Visual Change Allowed",
+      "type": "boolean"
+    },
+    "execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "run_id",
+    "producer",
+    "producer_version",
+    "created_at",
+    "plan_id",
+    "planning_root",
+    "plan_manifest",
+    "revision_plan",
+    "candidate_scene_spec",
+    "candidate_modeling_plan",
+    "scene_diff_allowlist",
+    "approval_impact_report",
+    "geometry_uv_unchanged_report",
+    "surface_detail_material_mapping",
+    "specialized_approval_requirement",
+    "session_supersession_plan",
+    "current_material_closure",
+    "latest_framework_failure",
+    "channel_reconciliation",
+    "preconditions",
+    "clone_rules",
+    "modeling_plan_changes",
+    "changed_assignments",
+    "retained_assignments"
+  ],
+  "title": "MaterialIdentitySplitPlan",
+  "type": "object"
+}

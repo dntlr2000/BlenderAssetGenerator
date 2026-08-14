@@ -124,3 +124,12 @@ fixture 통과를 실제 자산, built-in ImageGen, human review, accepted packa
 coverage 검사에서 `preflight_failed`로 멈췄고 Blender/preview/approval/controller/promotion은
 실행되지 않았다. 이 결과는 본 계획의 authorized success 및 chained V0.7–V0.9 항목을 충족하지
 않는다.
+
+## 11. scope-change companion 회귀
+
+공유 material identity 때문에 localized detail ownership이 닫히지 않는 경우 Material Closure가
+빈 binding이나 느슨한 사용자 승인으로 통과하지 않는지 검증한다. 별도 Material Identity Split
+suite는 paired SceneSpec/ModelingPlan exact diff, semantic clone, target-object exclusivity, 실제 Blender
+승인 전 shadow, specialized root-scope approval, single-use apply, crash recovery와 post-apply stale
+authority refresh를 검증한다. 이 suite의 synthetic approval은 mechanism-only이며 실제 자산 approval로
+재사용하지 않는다.

@@ -1,5 +1,37 @@
 # Changelog
 
+## Unreleased — Material Identity Split 0.1.0
+
+- Added strict additive contracts and generated schemas for paired material-identity split planning,
+  Blender shadow preapproval, specialized root-scope approval, single-use approval consumption,
+  append-only apply/rollback/recovery journals, post-apply geometry continuation and read-only status.
+  Project `0.9.0`, canonical SceneSpec `0.2.0` and both experimental profile activation states remain
+  unchanged.
+- Added a host-only plan replay that permits only declared semantic material clones, target-object
+  assignment changes and paired ModelingPlan detail-target changes. Shader/default appearance,
+  geometry, topology, transforms, parenting, dimensions, UV, reference, subject and content scope
+  drift fail closed.
+- Added isolated Blender 5.0.1 paired shadow build/inspect/validate before any approval can exist.
+  ApprovalRequest is explicitly non-authoritative; only a complete caller-authored specialized user
+  decision can authorize one exact ApplyIntent, and CLI/MCP never synthesize that decision.
+- Added one host-locked SceneSpec/ModelingPlan/Blend transaction with exact archives, atomic
+  replacement, six apply-stage crash-injection boundaries plus a during-rollback crash boundary,
+  deterministic rollback and at most one technical recovery retry without re-consuming approval or
+  creating a second intent.
+- Added post-apply authority-refresh mechanics that publish new SceneInventory, BuildProvenance,
+  MaterialPlan absence, canonical snapshot and a non-synthetic GeometryContinuationReceipt. Old
+  Material Closure, preflight, preview and appearance approval evidence remains stale after apply.
+- Added 7 equivalent CLI/MCP surfaces, project allowlist/capability entries, CI/AQ focused projections,
+  reusable prompts, architecture/test/migration/verification documents and compact evidence.
+- Replayed the existing Crystalgun identity-split planning evidence and passed an actual isolated
+  Blender 5.0.1 shadow run with three processes. The run stopped at
+  `framework_ready_for_explicit_scope_approval`: one ApprovalRequest exists and actual user approval,
+  consumption, ApplyIntent, canonical writes, new repair session, controller, promotion,
+  `MaterialPhaseReceiptV2`, IQ, package and destination writes remain zero.
+- Final repository regression passed with 1,809 tests, 63 skips and 8 warnings. Ruff, schema parity,
+  instruction hierarchy, job-literal isolation, doctor and Blender 5.0.1 compatibility passed; the
+  opt-in identity-split Blender node also passed without broadening the preapproval boundary.
+
 ## Unreleased — AQ v2 Material Closure Stabilization 0.1.0
 
 - Added additive strict `0.1.0` contracts for graph-derived material dependency closure and receipt,

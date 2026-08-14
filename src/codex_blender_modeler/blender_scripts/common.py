@@ -684,7 +684,7 @@ def apply_object_spec(
     base_dir: Path,
     index: int = 0,
 ) -> bpy.types.Object:
-    """Build one instance and preserve legacy or v2 material and shading semantics."""
+    """Build one instance and preserve Standard, legacy, or v2 mesh semantics."""
 
     generator = spec.get("generator")
     offset = (0.0, 0.0, 0.0)
@@ -696,6 +696,11 @@ def apply_object_spec(
     location = tuple(float(a) + float(b) for a, b in zip(base_location, offset, strict=True))
 
     obj = create_geometry(spec["geometry"], base_dir)
+    standard_object_id = obj.get("cbm_standard_object_id")
+    if standard_object_id is not None and str(standard_object_id) != str(spec["id"]):
+        raise RuntimeError(
+            "Standard custom_mesh object_id differs from the SceneSpec object ID"
+        )
     obj.name = spec["id"] if index == 0 else f"{spec['id']}__{index:03d}"
     obj["cbm_id"] = spec["id"]
     obj["cbm_instance_index"] = index

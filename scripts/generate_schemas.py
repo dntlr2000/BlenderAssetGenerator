@@ -272,6 +272,26 @@ from codex_blender_modeler.material_graph.runtime_models import (
     NormalizedMaterialNodeInventory,
     PortableMaterialApproximationReport,
 )
+from codex_blender_modeler.material_identity_split.models import (
+    MaterialIdentitySplitApplyIntent,
+    MaterialIdentitySplitApplyReceipt,
+    MaterialIdentitySplitApprovalConsumptionReceipt,
+    MaterialIdentitySplitApprovalRequest,
+    MaterialIdentitySplitGeometryContinuationReceipt,
+    MaterialIdentitySplitInvariantReport,
+    MaterialIdentitySplitMaterialBindingDerivativeReceipt,
+    MaterialIdentitySplitModelingPlanDiffReport,
+    MaterialIdentitySplitPlan,
+    MaterialIdentitySplitPreapprovalFailure,
+    MaterialIdentitySplitPreapprovalReport,
+    MaterialIdentitySplitPreapprovalRequest,
+    MaterialIdentitySplitRecoveryReceipt,
+    MaterialIdentitySplitRollbackReceipt,
+    MaterialIdentitySplitRootScopeApproval,
+    MaterialIdentitySplitShadowBuildReceipt,
+    MaterialIdentitySplitStatusProjection,
+    MaterialIdentitySplitTransactionState,
+)
 from codex_blender_modeler.materials.fidelity_models import MaterialFidelityReport
 from codex_blender_modeler.materials.models import (
     MaterialPlan,
@@ -366,6 +386,7 @@ from codex_blender_modeler.stabilization.models import (
     StabilityReportManifest,
     WorkspaceAuditReport,
 )
+from codex_blender_modeler.standard_custom_mesh import StandardCustomMeshPayload
 from codex_blender_modeler.structural_geometry.geometry_survival_v02 import (
     GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
@@ -393,6 +414,7 @@ from codex_blender_modeler.texturing.models import TextureManifest
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMAS = {
     "scene_spec.schema.json": SceneSpec,
+    "standard_custom_mesh_payload.schema.json": StandardCustomMeshPayload,
     "reference_analysis.schema.json": ReferenceAnalysis,
     "camera_solution.schema.json": CameraSolution,
     "modeling_plan.schema.json": ModelingPlan,
@@ -669,6 +691,55 @@ SCHEMAS = {
     ),
     "job_specific_recovery_source_inventory.schema.json": (
         JobSpecificRecoverySourceInventory
+    ),
+    # Material Identity Split 0.1.0 stops at a specialized explicit approval request.
+    "material_identity_split_plan.schema.json": MaterialIdentitySplitPlan,
+    "material_identity_split_modeling_plan_diff_report.schema.json": (
+        MaterialIdentitySplitModelingPlanDiffReport
+    ),
+    "material_identity_split_preapproval_request.schema.json": (
+        MaterialIdentitySplitPreapprovalRequest
+    ),
+    "material_identity_split_shadow_build_receipt.schema.json": (
+        MaterialIdentitySplitShadowBuildReceipt
+    ),
+    "material_identity_split_binding_derivative_receipt.schema.json": (
+        MaterialIdentitySplitMaterialBindingDerivativeReceipt
+    ),
+    "material_identity_split_invariant_report.schema.json": (
+        MaterialIdentitySplitInvariantReport
+    ),
+    "material_identity_split_preapproval_report.schema.json": (
+        MaterialIdentitySplitPreapprovalReport
+    ),
+    "material_identity_split_preapproval_failure.schema.json": (
+        MaterialIdentitySplitPreapprovalFailure
+    ),
+    "material_identity_split_approval_request.schema.json": (
+        MaterialIdentitySplitApprovalRequest
+    ),
+    "material_identity_split_root_scope_approval.schema.json": (
+        MaterialIdentitySplitRootScopeApproval
+    ),
+    "material_identity_split_approval_consumption_receipt.schema.json": (
+        MaterialIdentitySplitApprovalConsumptionReceipt
+    ),
+    "material_identity_split_apply_intent.schema.json": MaterialIdentitySplitApplyIntent,
+    "material_identity_split_transaction_state.schema.json": (
+        MaterialIdentitySplitTransactionState
+    ),
+    "material_identity_split_apply_receipt.schema.json": MaterialIdentitySplitApplyReceipt,
+    "material_identity_split_rollback_receipt.schema.json": (
+        MaterialIdentitySplitRollbackReceipt
+    ),
+    "material_identity_split_recovery_receipt.schema.json": (
+        MaterialIdentitySplitRecoveryReceipt
+    ),
+    "material_identity_split_geometry_continuation_receipt.schema.json": (
+        MaterialIdentitySplitGeometryContinuationReceipt
+    ),
+    "material_identity_split_status_projection.schema.json": (
+        MaterialIdentitySplitStatusProjection
     ),
     # Codex built-in ImageGen is a controller-mediated additive AQ v2 overlay.
     "codex_builtin_image_provider_profile.schema.json": (

@@ -367,3 +367,15 @@ approval consumption을 다시 검증하고 CAS/rebuild/validate/rollback을 수
 2026-08-14 Material Closure 검증에서는 current incident가 preflight에서 먼저 차단돼 이 fixed
 controller를 실행하지 않았다. Actual user-approved one-shot controller, promotion 성공과
 `MaterialPhaseReceiptV2`/IQ 연결은 여전히 `unverified`다.
+
+## 12. Material Identity Split은 controller 작업이 아니다
+
+Material Identity Split `0.1.0`의 preapproval은 paired SceneSpec/ModelingPlan을 격리 shadow job에서
+Blender build/inspect/validate하고 ApprovalRequest에서 멈춘다. 별도 specialized user approval이
+있더라도 canonical SceneSpec, ModelingPlan과 Blend 교체는 ControllerExecutor가 아니라 실제 host
+canonical lock 아래의 guarded transaction만 수행한다.
+
+Identity Split은 ControllerResult, canonical MaterialPlan, TextureManifest/ShaderRecipe,
+MaterialAppearanceApproval, IQ 또는 package evidence를 만들지 않는다. Apply가 성공한 뒤 후속 material
+repair가 새 closure와 appearance approval을 만든 경우에만 기존 exact-adoption controller 경계를
+별도로 사용할 수 있다.

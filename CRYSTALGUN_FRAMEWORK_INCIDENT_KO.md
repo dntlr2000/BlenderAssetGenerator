@@ -148,7 +148,7 @@ shadow compile/neutral preview, approval, controller, promotion, rollback, canon
 모두 0이다. canonical SceneSpec/ModelingPlan/Blend hashes는 2절과 동일하고 MaterialPlan은 계속
 absent다.
 
-## 8. 현재 recovery 판정
+## 8. Material Identity Split 이전 recovery 판정
 
 - generic framework의 early-failure/canonical-preservation 경계는 이 incident dry-run에서 확인됐다.
 - Crystalgun candidate가 material preflight를 통과했다는 주장은 거짓이다.
@@ -158,3 +158,24 @@ absent다.
   candidate와 새 closure/preflight가 필요하다.
 - actual user-approved controller/promotion, `MaterialPhaseReceiptV2`, IQ 0.2와 production package는
   실행되지 않았다.
+
+## 9. 2026-08-14 Material Identity Split 승인 전 결과
+
+Shared `mat.metal.trim`과 `mat.crystal.translucent` ownership을 validator 예외로 처리하지 않고,
+`frame.trim`과 `rear.crown`에만 semantic-clone identity를 배정하는 paired SceneSpec/ModelingPlan
+scope-change를 별도 Material Identity Split `0.1.0`으로 검증했다.
+
+최신 successful run은
+`material-identity-split-preapproval-20260814t132423938z-scope02`이며 Blender 5.0.1
+build/inspect/validate 3 processes, clone/assignment와 geometry/topology/transform/UV/reference invariant를
+통과했다. ApprovalRequest SHA-256은
+`047dc95ff4f7ceb9097aaa945d8c5bf7c017dd5f69de33b9fcdcf69aa317384a`이고 상태는
+`framework_ready_for_explicit_scope_approval`이다.
+
+Canonical SceneSpec `ef7cadec41a56a10701c10ea623fb6367dc05cb34acc39f8d360b8752fe77ab8`,
+ModelingPlan `52779a95bd5bf4f87b55cd6481d55c8e50efcaca79e7c16973682314b1a4b225`, Blend
+`5def13d76012b0c9747dce6ef016799550bca74a9e5f2e3bccf6b7ed8a9ebe5a`는 실행 전후 동일하고
+MaterialPlan은 absent다. ApprovalRequest는 승인 증거가 아니므로 실제 user approval, consumption,
+ApplyIntent, canonical write, 새 repair session, controller, promotion, `MaterialPhaseReceiptV2`, IQ,
+package와 destination write는 모두 0이다. 다음 단계는 사용자의 별도 exact root-scope 결정이며,
+그 전에는 이 자산을 재질 복구 완료로 분류하지 않는다.

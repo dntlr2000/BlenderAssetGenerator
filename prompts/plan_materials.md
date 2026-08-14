@@ -30,3 +30,10 @@ MaterialPlan instead of supplying a hand-maintained controller map. Every Shader
 TextureManifest, channel image, mask, reference, localized-detail coverage, UV set, and mapping must be
 explicit and current. Do not create the closure, graph rebind, approval, controller result, or canonical
 write in this authoring step. The host will derive and verify them after candidate publication.
+
+If localized ownership requires a material identity that is currently shared by unrelated objects,
+do not silently split IDs in the MaterialPlan and do not weaken `spatial_v1`. Report a `scope_change`
+and route it to Material Identity Split `0.1.0`: paired SceneSpec/ModelingPlan candidates, exact
+semantic-clone diff, isolated Blender shadow and specialized root-scope ApprovalRequest. Stop before
+approval and canonical apply. New-ID TextureManifest/ShaderRecipe evidence belongs to a later material
+repair after an explicitly approved split succeeds.

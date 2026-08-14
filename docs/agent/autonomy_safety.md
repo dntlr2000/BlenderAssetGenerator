@@ -16,4 +16,10 @@ terminal sessions are never resumed through technical retry evidence; a new repa
 must bind the exact old terminal, current geometry, scope, rollback baseline, and source
 bytes without synthesizing authority.
 
+If closure reports a `scope_change` caused by material identity or object assignment, do not weaken
+the closure or reuse appearance approval. Material Identity Split validates an exact semantic clone,
+paired SceneSpec/ModelingPlan diff and isolated Blender shadow, then stops at an ApprovalRequest.
+Canonical apply is host-only under the canonical lock. It never invokes a controller and never starts
+downstream material repair, IQ, packaging or destination work automatically.
+
 Primary rules: CBM-INV-045..066, CBM-INV-072..112, CBM-INV-151..192.

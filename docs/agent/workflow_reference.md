@@ -203,6 +203,24 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 11. Advance one controller action at a time. Run deterministic host work, issue read-only advisory assignments, stop at existing approvals or failures, and run the exact V0.9 postflight audit only after workflow completion.
 12. Keep the V0.9 production controller distinct from the local queue. The queue dispatches existing workflows; it does not create production tasks, bind clients, or perform agent-authored steps.
 
+## Material identity split workflow
+
+1. Use this additive companion only when an exact plan splits a shared material identity without
+   changing geometry, topology, transforms, parenting, dimensions, UV, reference, target or content
+   scope.
+2. Rehash current SceneSpec, ModelingPlan, Blend, strict MaterialPlan absence and all plan evidence.
+3. Build paired candidate SceneSpec/ModelingPlan artifacts; permit only declared semantic-clone IDs,
+   target-object assignments and matching detail target-material changes.
+4. Run isolated Blender build, inspect and validate; publish invariant evidence and rehash canonical
+   bytes before and after.
+5. Publish only an ApprovalRequest and stop at `framework_ready_for_explicit_scope_approval`.
+6. After a separate caller-authored explicit user decision, consume one approval into one ApplyIntent
+   and replace SceneSpec/ModelingPlan/Blend together under the canonical host lock.
+7. Commit, exact-rollback or stop `recovery_required`; allow at most one same-intent technical retry.
+8. After commit, publish new canonical observations, MaterialPlan absence, snapshot and a
+   non-synthetic geometry continuation. Rebuild downstream material closure and appearance approval
+   from the new canonical state.
+
 ## Testing
 
 - Dependencies: `uv sync --extra dev`
@@ -246,4 +264,3 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - `reports/v09/`: repository-owned environment probes and read-only workspace audits with relative paths only
 - `.cbm/queue/`: operational single-worker queue, locks, leases, and immutable dispatch receipts; never canonical asset data
 - `output/pdf/v09/`: derived V0.9 stability PDFs and exact source-hash sidecars
-

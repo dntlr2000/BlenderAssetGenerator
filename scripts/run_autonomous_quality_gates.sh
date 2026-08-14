@@ -115,6 +115,11 @@ FOCUSED_TESTS=(
   tests/test_material_closure_incident_service.py
   tests/test_material_closure_public.py
   tests/test_autonomy_v2_supervisor_material_closure.py
+  tests/test_material_identity_split_contracts.py
+  tests/test_material_identity_split_schemas.py
+  tests/test_material_identity_split_service.py
+  tests/test_material_identity_split_transaction.py
+  tests/test_material_identity_split_public.py
   tests/test_no_job_specific_framework_literals.py
   tests/test_autonomous_quality_benchmarks_v02.py
   tests/test_repository_catalog.py
@@ -158,6 +163,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
   CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_BLENDER_SMOKE=1 \
   CBM_RUN_CODEX_IMAGE_MATERIAL_LOOP_DELIVERY_BLENDER_E2E=1 \
   CBM_RUN_MATERIAL_CLOSURE_BLENDER_SMOKE=1 \
+  CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE=1 \
     uv run pytest -q --basetemp "$PYTEST_ROOT/b" \
       tests/test_autonomous_structural_geometry_blender.py \
       tests/test_autonomous_quality_blender_evidence.py::test_blender_scale_assembly_and_topology_evidence \
@@ -176,7 +182,8 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
       tests/test_codex_image_material_authoring_v021.py::test_fake_core_adoption_compiles_in_blender_5 \
       tests/test_codex_image_material_loop_blender.py \
       tests/test_codex_image_material_loop_delivery_blender.py \
-      tests/test_material_closure_service.py::test_complete_preflight_runs_actual_blender_5_and_stops_before_approval
+      tests/test_material_closure_service.py::test_complete_preflight_runs_actual_blender_5_and_stops_before_approval \
+      tests/test_material_identity_split_service.py::test_identity_split_runs_actual_blender_5_and_stops_before_scope_approval
   BENCHMARK_ARGS+=(--run-blender)
   BENCHMARK_V02_ARGS+=(--run-blender)
 

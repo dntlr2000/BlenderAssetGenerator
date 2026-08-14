@@ -80,3 +80,12 @@ neutral preview와 approval pending에 도달하지 않았다. Migration 정책�
 않고 AQ v2/ImageGen profile도 활성화하지 않는다. Standard ImageGen companion은 stabilization,
 current repair preapproval dry-run, 실제 자산 3종 regression과 specialized approval/rollback
 consistency가 검증된 뒤 별도 additive 작업으로 시작한다.
+
+## 9. material identity split은 migration이 아니다
+
+기존 material ID를 자동 rename하거나 old TextureManifest/ShaderRecipe를 새 identity의 evidence로
+재분류하지 않는다. Object assignment 또는 material identity 추가가 필요한 `scope_change`는
+Material Identity Split `0.1.0`의 exact paired candidate와 별도 root-scope 승인으로만 진행한다.
+실제 apply 후에는 새 canonical bytes에 대해 Material Closure source, closure, preflight, preview와
+MaterialAppearanceApproval을 다시 만든다. Legacy closure/evidence는 원래 의미로 계속 읽되 current
+post-split authority로 자동 승격하지 않는다.

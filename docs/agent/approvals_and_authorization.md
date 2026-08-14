@@ -14,4 +14,12 @@ approval cannot replace it. Deterministic path/hash rebinding completed before p
 `no_visual_change`; changed image, UV placement, shader value, material assignment, or
 scope requires a new exact approval at its proper boundary.
 
+Material Identity Split `0.1.0` adds a narrower `material_identity_split` approval that satisfies
+only the declared `root_scope` change for one exact paired SceneSpec/ModelingPlan candidate. A passed
+shadow report or ApprovalRequest is not approval. The caller must supply exact user-decision bytes,
+and one approval may authorize only one ApplyIntent and one logical host transaction. It does not
+authorize reference/subject/content-scope expansion, geometry/UV changes, material appearance,
+MaterialPlan promotion, package or destination writes. Generic workflow approval,
+MaterialAppearanceApproval and test fixture authority cannot replace it.
+
 Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.

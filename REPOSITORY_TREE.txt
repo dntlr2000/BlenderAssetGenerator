@@ -26,6 +26,7 @@ BlenderAssetGenerator/
   ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md
   ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md
   ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md
+  ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md
   ARCHITECTURE_V04_KO.md
   ARCHITECTURE_V06_KO.md
   ARCHITECTURE_V07_KO.md
@@ -53,11 +54,13 @@ BlenderAssetGenerator/
   INTERIOR_SCOPE_KO.md
   MATERIAL_AUTHORING_KO.md
   MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md
+  MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md
   MIGRATION_AQ_V02_KO.md
   MIGRATION_AUTONOMOUS_QUALITY_KO.md
   MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md
   MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md
   MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md
+  MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md
   MIGRATION_V2_KO.md
   Makefile
   NEW_REFERENCE_VALIDATION_PROMPTS_KO.md
@@ -71,6 +74,7 @@ BlenderAssetGenerator/
   TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md
   TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md
   TEST_PLAN_MATERIAL_CLOSURE_STABILIZATION_KO.md
+  TEST_PLAN_MATERIAL_IDENTITY_SPLIT_KO.md
   TEST_PLAN_V04_KO.md
   TEST_PLAN_V06_KO.md
   TEST_PLAN_V07_KO.md
@@ -84,6 +88,7 @@ BlenderAssetGenerator/
   VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md
   VERIFICATION_KO.md
   VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md
+  VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md
   VERIFICATION_V06_KO.md
   VERIFICATION_V073_KO.md
   VERIFICATION_V074_KO.md
@@ -134,6 +139,7 @@ BlenderAssetGenerator/
   prompts/convert_portable_materials.md
   prompts/generate_qa_target.md
   prompts/imagegen_material_loop.md
+  prompts/material_identity_split.md
   prompts/measured_modeling.md
   prompts/orchestrate_short_request.md
   prompts/plan_asset_optimization.md
@@ -339,6 +345,24 @@ BlenderAssetGenerator/
   schemas/material_graph_runtime_preview_manifest.schema.json
   schemas/material_graph_spec.schema.json
   schemas/material_high_resolution_authorization.schema.json
+  schemas/material_identity_split_apply_intent.schema.json
+  schemas/material_identity_split_apply_receipt.schema.json
+  schemas/material_identity_split_approval_consumption_receipt.schema.json
+  schemas/material_identity_split_approval_request.schema.json
+  schemas/material_identity_split_binding_derivative_receipt.schema.json
+  schemas/material_identity_split_geometry_continuation_receipt.schema.json
+  schemas/material_identity_split_invariant_report.schema.json
+  schemas/material_identity_split_modeling_plan_diff_report.schema.json
+  schemas/material_identity_split_plan.schema.json
+  schemas/material_identity_split_preapproval_failure.schema.json
+  schemas/material_identity_split_preapproval_report.schema.json
+  schemas/material_identity_split_preapproval_request.schema.json
+  schemas/material_identity_split_recovery_receipt.schema.json
+  schemas/material_identity_split_rollback_receipt.schema.json
+  schemas/material_identity_split_root_scope_approval.schema.json
+  schemas/material_identity_split_shadow_build_receipt.schema.json
+  schemas/material_identity_split_status_projection.schema.json
+  schemas/material_identity_split_transaction_state.schema.json
   schemas/material_mapping.schema.json
   schemas/material_neutral_preview_manifest.schema.json
   schemas/material_plan.schema.json
@@ -406,6 +430,7 @@ BlenderAssetGenerator/
   schemas/semantic_reference_mask_registry_status.schema.json
   schemas/shader_recipe.schema.json
   schemas/stability_report_manifest.schema.json
+  schemas/standard_custom_mesh_payload.schema.json
   schemas/structural_candidate_manifest.schema.json
   schemas/structural_candidate_plan.schema.json
   schemas/structural_geometry_candidate.schema.json
@@ -580,6 +605,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/convert_portable_materials.py
   src/codex_blender_modeler/blender_scripts/export_portable_package.py
   src/codex_blender_modeler/blender_scripts/export_scene.py
+  src/codex_blender_modeler/blender_scripts/extract_standard_custom_mesh.py
   src/codex_blender_modeler/blender_scripts/geometry_intent_runtime.py
   src/codex_blender_modeler/blender_scripts/inspect_asset_topology.py
   src/codex_blender_modeler/blender_scripts/inspect_custom_mesh_v02.py
@@ -612,6 +638,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/render_preview.py
   src/codex_blender_modeler/blender_scripts/render_qa_passes.py
   src/codex_blender_modeler/blender_scripts/render_uv_diagnostic.py
+  src/codex_blender_modeler/blender_scripts/standard_custom_mesh_runtime.py
   src/codex_blender_modeler/blender_scripts/surface_detail_uv_runtime.py
   src/codex_blender_modeler/blender_scripts/topology/__init__.py
   src/codex_blender_modeler/blender_scripts/topology/models.py
@@ -717,6 +744,12 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/material_graph/models.py
   src/codex_blender_modeler/material_graph/registry.py
   src/codex_blender_modeler/material_graph/runtime_models.py
+  src/codex_blender_modeler/material_identity_split/AGENTS.md
+  src/codex_blender_modeler/material_identity_split/__init__.py
+  src/codex_blender_modeler/material_identity_split/models.py
+  src/codex_blender_modeler/material_identity_split/service.py
+  src/codex_blender_modeler/material_identity_split/transaction.py
+  src/codex_blender_modeler/material_identity_split_public.py
   src/codex_blender_modeler/material_manifest.py
   src/codex_blender_modeler/material_preflight/AGENTS.md
   src/codex_blender_modeler/material_preflight/__init__.py
@@ -818,6 +851,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/stabilization/pdf_report.py
   src/codex_blender_modeler/stabilization/service.py
   src/codex_blender_modeler/stabilization/workspace_archive.py
+  src/codex_blender_modeler/standard_custom_mesh.py
+  src/codex_blender_modeler/standard_custom_mesh_candidate.py
   src/codex_blender_modeler/structural_geometry/__init__.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
@@ -945,6 +980,11 @@ BlenderAssetGenerator/
   tests/test_material_fidelity.py
   tests/test_material_graph_aq.py
   tests/test_material_graph_runtime.py
+  tests/test_material_identity_split_contracts.py
+  tests/test_material_identity_split_public.py
+  tests/test_material_identity_split_schemas.py
+  tests/test_material_identity_split_service.py
+  tests/test_material_identity_split_transaction.py
   tests/test_material_manifest.py
   tests/test_material_retry_supersession.py
   tests/test_material_scaffold.py
@@ -975,6 +1015,7 @@ BlenderAssetGenerator/
   tests/test_scene_spec_v03_migration_public.py
   tests/test_scene_validation_modifier_order.py
   tests/test_shader_recipe_runtime.py
+  tests/test_standard_custom_mesh.py
   tests/test_surface_detail_policy.py
   tests/test_surface_detail_uv_runtime.py
   tests/test_texture_service.py
@@ -1144,6 +1185,7 @@ BlenderAssetGenerator/
   verification/evidence/imagegen_material_loop_20260813/README.md
   verification/evidence/imagegen_material_loop_20260813/command-log.txt
   verification/evidence/material_closure_stabilization_20260814/README.md
+  verification/evidence/material_identity_split_20260814/README.md
   verification/evidence/v07_20260811/README.md
   verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/fbx_interchange/v07-fbx-smoke-package/package_manifest.json
   verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/obj_legacy/v07-obj-smoke-package/package_manifest.json

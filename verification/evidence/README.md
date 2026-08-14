@@ -15,6 +15,9 @@
   승인 없는 delivery mechanism 범위를 기록한 compact index.
 - [`material_closure_stabilization_20260814/`](material_closure_stabilization_20260814/): graph-derived Material Closure, 실제 Blender 5.0.1
   승인 전 preflight, Crystalgun append-only recovery와 명시적 미검증 경계를 기록한 compact index.
+- [`material_identity_split_20260814/`](material_identity_split_20260814/): shared material scope-change의 paired
+  SceneSpec/ModelingPlan, 실제 Blender 5.0.1 shadow preapproval, ApprovalRequest와 zero-side-effect 경계를
+  기록한 compact index.
 
 원본 pytest basetemp, 캐시, 중간 실패 실행, 중복 `.blend`, 전체 render pass는 저장소에
 복사하지 않았다. 따라서 이 묶음은 당시 pytest stdout 전체를 재현하는 archive가 아니다.

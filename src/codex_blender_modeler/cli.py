@@ -149,6 +149,15 @@ from .material_closure_public import (
     run_material_shadow_compile,
     supersede_material_retry,
 )
+from .material_identity_split_public import (
+    apply_material_identity_split_public,
+    approve_material_identity_split,
+    get_material_identity_split_approval_request,
+    get_material_identity_split_status,
+    plan_material_identity_split,
+    recover_material_identity_split_public,
+    run_material_identity_split_preapproval,
+)
 from .materials import (
     create_material_scaffold,
     load_material_plan,
@@ -2732,6 +2741,124 @@ def material_closure_plan_command(
         planned_outputs_path=planned_outputs_path,
         closure_id=closure_id,
     )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-plan")
+def material_identity_split_plan_command(
+    job_id: str,
+    planning_root: Annotated[str, typer.Option("--planning-root")],
+    run_id: Annotated[str, typer.Option("--run-id")],
+    material_plan_absence_path: Annotated[
+        str,
+        typer.Option("--material-plan-absence"),
+    ],
+) -> None:
+    """Replay one immutable scope-change plan into strict paired candidates."""
+
+    result = plan_material_identity_split(
+        job_id,
+        planning_root=planning_root,
+        run_id=run_id,
+        material_plan_absence_path=material_plan_absence_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-status")
+def material_identity_split_status_command(job_id: str, run_id: str) -> None:
+    """Project one append-only identity-split run without advancing it."""
+
+    console.print_json(
+        json.dumps(
+            get_material_identity_split_status(job_id, run_id=run_id),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("material-identity-split-preapproval")
+def material_identity_split_preapproval_command(
+    job_id: str,
+    plan_path: Annotated[str, typer.Option("--plan")],
+    modeling_plan_diff_path: Annotated[str, typer.Option("--modeling-plan-diff")],
+    canonical_scene_inventory_path: Annotated[
+        str,
+        typer.Option("--canonical-scene-inventory"),
+    ],
+) -> None:
+    """Run isolated Blender validation and stop before any user approval."""
+
+    result = run_material_identity_split_preapproval(
+        job_id,
+        plan_path=plan_path,
+        modeling_plan_diff_path=modeling_plan_diff_path,
+        canonical_scene_inventory_path=canonical_scene_inventory_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-approval-request")
+def material_identity_split_approval_request_command(
+    job_id: str,
+    approval_request_path: Annotated[str, typer.Option("--approval-request")],
+) -> None:
+    """Read an eligible exact request without treating it as user approval."""
+
+    result = get_material_identity_split_approval_request(
+        job_id,
+        approval_request_path=approval_request_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-approve")
+def material_identity_split_approve_command(
+    job_id: str,
+    approval_request_path: Annotated[str, typer.Option("--approval-request")],
+    approval_path: Annotated[str, typer.Option("--approval")],
+    user_decision_path: Annotated[str, typer.Option("--user-decision")],
+    confirm_explicit_user_decision: Annotated[
+        bool,
+        typer.Option("--confirm-explicit-user-decision"),
+    ] = False,
+) -> None:
+    """Publish one complete caller-authored specialized user decision."""
+
+    result = approve_material_identity_split(
+        job_id,
+        approval_request_path=approval_request_path,
+        approval_path=approval_path,
+        user_decision_path=user_decision_path,
+        explicit_user_decision_observed=confirm_explicit_user_decision,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-apply")
+def material_identity_split_apply_command(
+    job_id: str,
+    apply_intent_path: Annotated[str, typer.Option("--apply-intent")],
+    canonical_scene_inventory_path: Annotated[
+        str,
+        typer.Option("--canonical-scene-inventory"),
+    ],
+) -> None:
+    """Apply one caller-authored intent through the host-owned paired transaction."""
+
+    result = apply_material_identity_split_public(
+        job_id,
+        apply_intent_path=apply_intent_path,
+        canonical_scene_inventory_path=canonical_scene_inventory_path,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("material-identity-split-recover")
+def material_identity_split_recover_command(job_id: str, run_id: str) -> None:
+    """Recover one partial approved transaction without minting new authority."""
+
+    result = recover_material_identity_split_public(job_id, run_id=run_id)
     console.print_json(json.dumps(result, ensure_ascii=False))
 
 
