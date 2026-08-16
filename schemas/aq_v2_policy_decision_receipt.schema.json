@@ -1,0 +1,545 @@
+{
+  "$defs": {
+    "AQV2ApprovalBudget": {
+      "additionalProperties": false,
+      "description": "Separate user decisions, policy actions, technical repairs, and terminal counters.",
+      "properties": {
+        "schema_version": {
+          "const": "0.3.0",
+          "default": "0.3.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "contract_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Contract Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "dispatch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Dispatch Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "root_authorization": {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        "producer": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Producer",
+          "type": "string"
+        },
+        "producer_version": {
+          "const": "0.3.0",
+          "default": "0.3.0",
+          "title": "Producer Version",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "approval_count_effect": {
+          "enum": [
+            "reduces",
+            "maintains",
+            "increases"
+          ],
+          "title": "Approval Count Effect",
+          "type": "string"
+        },
+        "approval_count_justification": {
+          "maxLength": 1200,
+          "minLength": 1,
+          "title": "Approval Count Justification",
+          "type": "string"
+        },
+        "budget_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Budget Id",
+          "type": "string"
+        },
+        "policy_profile": {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        "approval_mode": {
+          "enum": [
+            "autonomous",
+            "checkpointed",
+            "interactive"
+          ],
+          "title": "Approval Mode",
+          "type": "string"
+        },
+        "initial_user_requests": {
+          "const": 1,
+          "default": 1,
+          "title": "Initial User Requests",
+          "type": "integer"
+        },
+        "additional_user_decisions": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Additional User Decisions",
+          "type": "integer"
+        },
+        "geometry_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Geometry User Approvals",
+          "type": "integer"
+        },
+        "material_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Material User Approvals",
+          "type": "integer"
+        },
+        "delivery_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Delivery User Approvals",
+          "type": "integer"
+        },
+        "scope_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Scope User Approvals",
+          "type": "integer"
+        },
+        "budget_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Budget User Approvals",
+          "type": "integer"
+        },
+        "destination_user_approvals": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Destination User Approvals",
+          "type": "integer"
+        },
+        "technical_user_approval_requests": {
+          "const": 0,
+          "default": 0,
+          "title": "Technical User Approval Requests",
+          "type": "integer"
+        },
+        "routine_policy_authorizations": {
+          "default": 0,
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Routine Policy Authorizations",
+          "type": "integer"
+        },
+        "technical_policy_repairs": {
+          "default": 0,
+          "maximum": 256,
+          "minimum": 0,
+          "title": "Technical Policy Repairs",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "canonical_promotions": {
+          "default": 0,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Canonical Promotions",
+          "type": "integer"
+        },
+        "rollbacks": {
+          "default": 0,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Rollbacks",
+          "type": "integer"
+        },
+        "quality_terminals": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Quality Terminals",
+          "type": "integer"
+        },
+        "delivery_terminals": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Delivery Terminals",
+          "type": "integer"
+        },
+        "imagegen_generations": {
+          "default": 0,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Imagegen Generations",
+          "type": "integer"
+        },
+        "blender_builds": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Blender Builds",
+          "type": "integer"
+        },
+        "quality_evaluations": {
+          "default": 0,
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Quality Evaluations",
+          "type": "integer"
+        },
+        "delivery_runs": {
+          "default": 0,
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Delivery Runs",
+          "type": "integer"
+        },
+        "total_elapsed_actions": {
+          "default": 0,
+          "maximum": 512,
+          "minimum": 0,
+          "title": "Total Elapsed Actions",
+          "type": "integer"
+        },
+        "canonical_corruption_count": {
+          "const": 0,
+          "default": 0,
+          "title": "Canonical Corruption Count",
+          "type": "integer"
+        },
+        "max_additional_user_decisions": {
+          "maximum": 64,
+          "minimum": 0,
+          "title": "Max Additional User Decisions",
+          "type": "integer"
+        },
+        "max_routine_policy_authorizations": {
+          "default": 128,
+          "maximum": 256,
+          "minimum": 1,
+          "title": "Max Routine Policy Authorizations",
+          "type": "integer"
+        },
+        "max_total_elapsed_actions": {
+          "default": 128,
+          "maximum": 512,
+          "minimum": 1,
+          "title": "Max Total Elapsed Actions",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "contract_id",
+        "job_id",
+        "workflow_id",
+        "dispatch_id",
+        "session_id",
+        "root_authorization",
+        "producer",
+        "created_at",
+        "approval_count_effect",
+        "approval_count_justification",
+        "budget_id",
+        "policy_profile",
+        "approval_mode",
+        "max_additional_user_decisions"
+      ],
+      "title": "AQV2ApprovalBudget",
+      "type": "object"
+    },
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Consume one routine policy authorization and bind its exact host action result.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_envelope": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "policy_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "eligibility_report": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "gate_kind": {
+      "enum": [
+        "geometry_candidate_promotion",
+        "structural_candidate_promotion",
+        "bounded_parametric_revision",
+        "bounded_material_identity_split",
+        "material_candidate_promotion",
+        "material_quality_acknowledgement",
+        "iq_quality_acceptance",
+        "optimization_plan_authorization",
+        "package_acknowledgement",
+        "review_bundle_terminal",
+        "technical_retry",
+        "rollback",
+        "imagegen_candidate_adoption"
+      ],
+      "title": "Gate Kind",
+      "type": "string"
+    },
+    "exact_target_artifact": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "canonical_snapshot_before": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "canonical_snapshot_after": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "action_result": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome": {
+      "enum": [
+        "applied",
+        "rejected",
+        "rolled_back",
+        "technical_failed"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "budget_before": {
+      "$ref": "#/$defs/AQV2ApprovalBudget"
+    },
+    "budget_after": {
+      "$ref": "#/$defs/AQV2ApprovalBudget"
+    },
+    "previous_receipt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "decision_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Decision Reasons",
+      "type": "array"
+    },
+    "authorization_consumption_ordinal": {
+      "const": 1,
+      "default": 1,
+      "title": "Authorization Consumption Ordinal",
+      "type": "integer"
+    },
+    "authorization_consumed_once": {
+      "const": true,
+      "default": true,
+      "title": "Authorization Consumed Once",
+      "type": "boolean"
+    },
+    "consumed_at": {
+      "format": "date-time",
+      "title": "Consumed At",
+      "type": "string"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    },
+    "approved_by_user": {
+      "const": false,
+      "default": false,
+      "title": "Approved By User",
+      "type": "boolean"
+    },
+    "canonical_corruption": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Corruption",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "receipt_id",
+    "policy_profile",
+    "approval_envelope",
+    "policy_authorization",
+    "eligibility_report",
+    "gate_kind",
+    "exact_target_artifact",
+    "canonical_snapshot_before",
+    "canonical_snapshot_after",
+    "outcome",
+    "budget_before",
+    "budget_after",
+    "decision_reasons",
+    "consumed_at"
+  ],
+  "title": "AQV2PolicyDecisionReceipt",
+  "type": "object"
+}

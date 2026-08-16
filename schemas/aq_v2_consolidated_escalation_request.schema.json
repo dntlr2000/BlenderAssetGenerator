@@ -1,0 +1,319 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    },
+    "EscalationChoice": {
+      "additionalProperties": false,
+      "description": "Describe one bounded user-selectable response and its complete impact.",
+      "properties": {
+        "choice_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Choice Id",
+          "type": "string"
+        },
+        "label": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Label",
+          "type": "string"
+        },
+        "impact": {
+          "maxLength": 1200,
+          "minLength": 1,
+          "title": "Impact",
+          "type": "string"
+        },
+        "additional_budget_actions": {
+          "default": 0,
+          "maximum": 512,
+          "minimum": 0,
+          "title": "Additional Budget Actions",
+          "type": "integer"
+        },
+        "changed_scope": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Changed Scope",
+          "type": "array"
+        },
+        "review_bundle_if_not_selected": {
+          "title": "Review Bundle If Not Selected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "choice_id",
+        "label",
+        "impact",
+        "review_bundle_if_not_selected"
+      ],
+      "title": "EscalationChoice",
+      "type": "object"
+    },
+    "EscalationDecisionItem": {
+      "additionalProperties": false,
+      "description": "Consolidate one genuine user-only question and all currently known choices.",
+      "properties": {
+        "item_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Item Id",
+          "type": "string"
+        },
+        "reason": {
+          "enum": [
+            "scope_expansion",
+            "reference_replacement",
+            "target_change",
+            "budget_expansion",
+            "delivery_expansion",
+            "destination_project_write",
+            "provider_scope_expansion",
+            "unresolved_design_ambiguity",
+            "missing_exact_user_text",
+            "rights_or_license_decision"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "question": {
+          "maxLength": 1200,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "choices": {
+          "items": {
+            "$ref": "#/$defs/EscalationChoice"
+          },
+          "minItems": 1,
+          "title": "Choices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "item_id",
+        "reason",
+        "question",
+        "choices"
+      ],
+      "title": "EscalationDecisionItem",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Present all known genuine user decisions as one non-approval request payload.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "escalation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Escalation Id",
+      "type": "string"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_envelope": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_budget": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "current_best_candidate": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "completed_evidence": {
+      "items": {
+        "$ref": "#/$defs/ApprovalArtifact"
+      },
+      "minItems": 1,
+      "title": "Completed Evidence",
+      "type": "array"
+    },
+    "decisions": {
+      "items": {
+        "$ref": "#/$defs/EscalationDecisionItem"
+      },
+      "minItems": 1,
+      "title": "Decisions",
+      "type": "array"
+    },
+    "total_additional_budget_actions": {
+      "maximum": 512,
+      "minimum": 0,
+      "title": "Total Additional Budget Actions",
+      "type": "integer"
+    },
+    "changed_scope": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Scope",
+      "type": "array"
+    },
+    "review_bundle_if_no_decision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "single_decision_payload_required": {
+      "const": true,
+      "default": true,
+      "title": "Single Decision Payload Required",
+      "type": "boolean"
+    },
+    "individual_approval_request_count": {
+      "const": 0,
+      "default": 0,
+      "title": "Individual Approval Request Count",
+      "type": "integer"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    },
+    "status": {
+      "default": "pending",
+      "enum": [
+        "pending",
+        "decided",
+        "review_terminal"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "escalation_id",
+    "policy_profile",
+    "approval_envelope",
+    "approval_budget",
+    "current_best_candidate",
+    "completed_evidence",
+    "decisions",
+    "total_additional_budget_actions",
+    "changed_scope"
+  ],
+  "title": "AQV2ConsolidatedEscalationRequest",
+  "type": "object"
+}

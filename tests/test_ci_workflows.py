@@ -101,6 +101,14 @@ def test_python_ci_runs_on_push_pr_and_dispatch_without_blender() -> None:
     assert "blender-compat" not in commands
 
 
+def test_repository_local_codex_test_roots_are_ignored() -> None:
+    """Keep preserved repository-local test evidence outside Git and Ruff source scans."""
+
+    ignore_rules = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    for rule in ("/.t", "/.codex_test", "/.codex_tmp"):
+        assert rule in ignore_rules
+
+
 def test_blender_smoke_is_manual_and_self_hosted() -> None:
     """Require explicit dispatch and the Windows Blender 5 runner labels."""
 

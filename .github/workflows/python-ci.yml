@@ -46,7 +46,7 @@ jobs:
 
       - name: Run deterministic non-Blender benchmarks
         run: |
-          uv run pytest -q tests/test_autonomous_quality_benchmarks.py tests/test_autonomous_quality_benchmarks_v02.py
+          uv run pytest -q tests/test_autonomous_quality_benchmarks.py tests/test_autonomous_quality_benchmarks_v02.py tests/test_aq_approval_kpi.py
           uv run python -m codex_blender_modeler.autonomy_benchmarks.v02_cli \
             --manifest examples/autonomous_quality_benchmarks_v02/manifest.json \
             --output "${{ runner.temp }}/autonomous_quality_benchmark_v02.json"
@@ -64,6 +64,8 @@ jobs:
           tests/test_material_authoring_schemas_v02.py
           tests/test_material_closure_schemas.py
           tests/test_material_identity_split_schemas.py
+          tests/test_aq_approval_envelope_schemas.py
+          tests/test_aq_approval_public_surface.py
 
       - name: Run AQ 0.2 host contracts
         run: >-
@@ -117,6 +119,8 @@ jobs:
           tests/test_material_identity_split_service.py
           tests/test_material_identity_split_transaction.py
           tests/test_material_identity_split_public.py
+          tests/test_aq_approval_envelope.py
+          tests/test_aq_approval_kpi.py
           tests/test_no_job_specific_framework_literals.py
           tests/test_repository_catalog.py
           tests/test_repository_summary_generator.py

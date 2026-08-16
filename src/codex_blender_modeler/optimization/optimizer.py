@@ -1213,6 +1213,62 @@ def _consume_optimization_policy_authorization(
 ):
     """Validate a consumed autonomy policy grant without forging a user approval."""
 
+    raw_authorization = json.loads(policy_authorization_path.read_text(encoding="utf-8"))
+    if raw_authorization.get("schema_version") == "0.3.0":
+        from ..autonomy_v2.approval_models import AQV2RoutinePolicyAuthorization
+        from ..autonomy_v2.approval_policy_service import (
+            validate_routine_policy_authorization,
+        )
+
+        authorization_v2 = AQV2RoutinePolicyAuthorization.model_validate_json(
+            json.dumps(raw_authorization)
+        )
+        review_plan_path = run_root / "review_plan.json"
+        review_path = run_root / "optimization_review.json"
+        reviewed_plan = load_model(review_plan_path, OptimizationPlan)
+        review = load_model(review_path, OptimizationReview)
+        plan_hash = sha256_file(review_plan_path)
+        if not approved_plan_sha256 or approved_plan_sha256.lower() != plan_hash:
+            raise RuntimeError(
+                "asset-optimize requires the exact AQ v2 policy-authorized plan SHA-256"
+            )
+        validate_routine_policy_authorization(
+            authorization_v2.job_id,
+            authorization_v2.session_id,
+            policy_authorization_path=policy_authorization_path,
+            expected_gate_kind="optimization_plan_authorization",
+            expected_target_path=review_plan_path,
+        )
+        if (
+            workflow_id != authorization_v2.workflow_id
+            or workflow_step_id != f"aqv2-delivery-{run_root.name}"
+            or workflow_input_fingerprint != plan_hash
+            or authorization_v2.exact_target_artifact.path
+            != review_plan_path.resolve().relative_to(root.resolve()).as_posix()
+            or authorization_v2.exact_target_artifact.sha256 != plan_hash
+            or review.plan_sha256 != plan_hash
+            or review.job_id != plan.job_id
+            or review.run_id != run_root.name
+            or review.profile_artifact != plan.profile_artifact
+            or review.preflight_report != plan.preflight_report
+            or review.source != plan.source
+            or reviewed_plan.status != "draft"
+            or plan != reviewed_plan
+        ):
+            raise RuntimeError("AQ v2 optimization policy authorization is stale or mismatched")
+        _snapshot_optimization_policy_authorization(
+            run_root,
+            policy_authorization_path,
+        )
+        approved_v2 = reviewed_plan.model_copy(
+            update={"status": "approved", "approved_at": authorization_v2.created_at}
+        )
+        write_model(
+            run_root / "optimization_plan.json",
+            OptimizationPlan.model_validate(approved_v2.model_dump(mode="json")),
+        )
+        return authorization_v2
+
     from ..autonomy.authorization import validate_policy_authorization
     from ..autonomy.models import PolicyAuthorization
 
@@ -1332,10 +1388,16 @@ def optimize_asset(
             workflow_input_fingerprint=workflow_input_fingerprint,
         )
         approval_note = (
-            "Execution is bound to one exact preauthorized-profile PolicyAuthorization; "
-            "no user OptimizationApproval was created."
+            "Execution is bound to one exact policy authorization; no user "
+            "OptimizationApproval was created."
         )
-        approved_at = approval.consumed_at
+        approved_at = getattr(approval, "consumed_at", None) or getattr(
+            approval,
+            "created_at",
+            None,
+        )
+        if approved_at is None:
+            raise RuntimeError("policy authorization has no exact issuance timestamp")
     plan = plan.model_copy(
         update={
             "status": "running",

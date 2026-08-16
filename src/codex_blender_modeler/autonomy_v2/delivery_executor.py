@@ -257,6 +257,79 @@ def _validate_consumed_exact_approval(
     return completed_plan, approval
 
 
+def _validate_completed_exact_policy_authorization(
+    *,
+    root: Path,
+    freeze: QualityApprovedSourceFreeze,
+    request: DeliveryRequest,
+    review: DeliveryReviewEntry,
+    policy_authorization: AQV2Artifact,
+) -> OptimizationPlan:
+    """Validate a completed optimization run bound only to AQ v2 policy authority."""
+
+    from .approval_models import AQV2RoutinePolicyAuthorization
+    from .approval_policy_service import validate_routine_policy_authorization
+
+    if request.run_id is None:
+        raise ValueError("portable delivery request has no optimization run")
+    run_root = ensure_contained_production_path(
+        root,
+        root / "optimization" / "runs" / request.run_id,
+        must_exist=True,
+    )
+    authorization_path = validate_v2_artifact(root, policy_authorization)
+    authorization = AQV2RoutinePolicyAuthorization.model_validate_json(
+        Path(native_io_path(authorization_path)).read_bytes()
+    )
+    validate_routine_policy_authorization(
+        freeze.job_id,
+        freeze.session_id,
+        policy_authorization_path=authorization_path,
+        expected_gate_kind="optimization_plan_authorization",
+        expected_target_path=root / review.optimization_plan.path,
+    )
+    snapshot_path = ensure_contained_production_path(
+        root,
+        run_root / "optimization_policy_authorization.json",
+        must_exist=True,
+    )
+    if Path(native_io_path(snapshot_path)).read_bytes() != Path(
+        native_io_path(authorization_path)
+    ).read_bytes():
+        raise RuntimeError("optimization policy snapshot differs from issued authority")
+    reviewed_plan = _load_bound_model(root, review.optimization_plan, OptimizationPlan)
+    completed_plan = OptimizationPlan.model_validate_json(
+        Path(native_io_path(run_root / "optimization_plan.json")).read_bytes()
+    )
+    stable_fields = (
+        "plan_id",
+        "job_id",
+        "profile_id",
+        "profile_artifact",
+        "preflight_report",
+        "source",
+        "source_quality",
+        "directives",
+    )
+    if (
+        completed_plan.status != "complete"
+        or completed_plan.approved_at != authorization.created_at
+        or completed_plan.completed_at is None
+        or completed_plan.errors
+        or any(
+            getattr(completed_plan, field) != getattr(reviewed_plan, field)
+            for field in stable_fields
+        )
+        or completed_plan.notes[: len(reviewed_plan.notes)] != reviewed_plan.notes
+    ):
+        raise RuntimeError("AQ v2 policy authority has no exact completed optimization run")
+    for artifact in completed_plan.output_manifests:
+        path = ensure_contained_production_path(root, root / artifact.path, must_exist=True)
+        if not os.path.isfile(native_io_path(path)) or sha256_file(path) != artifact.sha256:
+            raise RuntimeError("completed optimization output changed after policy execution")
+    return completed_plan
+
+
 def _primary_package_artifact_path(
     root: Path,
     package: BaseModel,
@@ -325,8 +398,9 @@ def _adopt_completed_portable_request(
     source_freeze_artifact: AQV2Artifact,
     request: DeliveryRequest,
     review: DeliveryReviewEntry,
+    policy_authorization: AQV2Artifact | None = None,
 ) -> DeliveryResult:
-    """Adopt an exact completed delivery after a crash without reusing its approval."""
+    """Adopt exact completed delivery without reusing either authority kind."""
 
     if (
         request.run_id is None
@@ -334,12 +408,21 @@ def _adopt_completed_portable_request(
         or request.profile.asset_profile_id is None
     ):
         raise ValueError("portable delivery request is incomplete")
-    completed_plan, _approval = _validate_consumed_exact_approval(
-        root=root,
-        freeze=freeze,
-        request=request,
-        review=review,
-    )
+    if policy_authorization is None:
+        completed_plan, _approval = _validate_consumed_exact_approval(
+            root=root,
+            freeze=freeze,
+            request=request,
+            review=review,
+        )
+    else:
+        completed_plan = _validate_completed_exact_policy_authorization(
+            root=root,
+            freeze=freeze,
+            request=request,
+            review=review,
+            policy_authorization=policy_authorization,
+        )
     validate_quality_source_freeze(root, freeze)
     run_root = ensure_contained_production_path(
         root,
@@ -438,12 +521,14 @@ def _adopt_completed_portable_request(
     )
     if survival != recomputed_survival:
         raise RuntimeError("geometry survival report does not match its exact snapshots")
-    approval_artifact = artifact_for_v2(
-        root,
-        run_root / "optimization_approval.json",
-        artifact_id=f"{request.delivery_id}-optimization-approval-used",
-        kind="optimization_approval",
-    )
+    approval_artifact = None
+    if policy_authorization is None:
+        approval_artifact = artifact_for_v2(
+            root,
+            run_root / "optimization_approval.json",
+            artifact_id=f"{request.delivery_id}-optimization-approval-used",
+            kind="optimization_approval",
+        )
     package_artifact = artifact_for_v2(
         root,
         package_path,
@@ -477,6 +562,7 @@ def _adopt_completed_portable_request(
         source_freeze_sha256=source_freeze_artifact.sha256,
         optimization_plan=review.optimization_plan,
         optimization_approval=approval_artifact,
+        optimization_policy_authorization=policy_authorization,
         package_manifest=package_artifact,
         roundtrip_validation=roundtrip_artifact,
         material_loss_report=material_artifact,
@@ -498,8 +584,9 @@ def _execute_portable_request(
     source_freeze_artifact: AQV2Artifact,
     request: DeliveryRequest,
     review: DeliveryReviewEntry,
+    policy_authorization: AQV2Artifact | None = None,
 ) -> DeliveryResult:
-    """Execute one format directly from the freeze and retain its independent outcome."""
+    """Execute one format from the freeze under exactly one authority kind."""
 
     if (
         request.run_id is None
@@ -532,6 +619,7 @@ def _execute_portable_request(
         / "roundtrip_validation.json"
     )
     approval_path = run_root / "optimization_approval.json"
+    policy_snapshot_path = run_root / "optimization_policy_authorization.json"
     geometry_root = run_root / "aq_v2" / "geometry"
     optimized_snapshot_path = geometry_root / "optimized_lod0_snapshot.json"
     imported_stage = (
@@ -544,6 +632,7 @@ def _execute_portable_request(
     collected: dict[str, AQV2Artifact | None] = {
         "optimization_plan": None,
         "optimization_approval": None,
+        "optimization_policy_authorization": policy_authorization,
         "package_manifest": None,
         "roundtrip_validation": None,
         "material_loss_report": None,
@@ -551,37 +640,95 @@ def _execute_portable_request(
     }
     try:
         validate_quality_source_freeze(root, freeze)
-        if os.path.isfile(native_io_path(approval_path)):
-            existing_approval = OptimizationApproval.model_validate_json(
-                Path(native_io_path(approval_path)).read_bytes()
+        if policy_authorization is None:
+            if os.path.isfile(native_io_path(policy_snapshot_path)):
+                raise RuntimeError(
+                    "delivery run mixes AQ v2 policy and user approval authority"
+                )
+            if os.path.isfile(native_io_path(approval_path)):
+                existing_approval = OptimizationApproval.model_validate_json(
+                    Path(native_io_path(approval_path)).read_bytes()
+                )
+                if existing_approval.used:
+                    return _adopt_completed_portable_request(
+                        root=root,
+                        freeze=freeze,
+                        source_freeze_artifact=source_freeze_artifact,
+                        request=request,
+                        review=review,
+                    )
+            _validate_unused_exact_approval(
+                root=root,
+                freeze=freeze,
+                request=request,
+                review=review,
             )
-            if existing_approval.used:
-                return _adopt_completed_portable_request(
+            collected["optimization_plan"] = review.optimization_plan
+            optimized = optimize_asset(
+                freeze.job_id,
+                profile_id=request.profile.asset_profile_id,
+                run_id=request.run_id,
+                approved_plan_sha256=review.exact_plan_sha256,
+            )
+            collected["optimization_approval"] = artifact_for_v2(
+                root,
+                approval_path,
+                artifact_id=f"{request.delivery_id}-optimization-approval-used",
+                kind="optimization_approval",
+            )
+        else:
+            if os.path.isfile(native_io_path(approval_path)):
+                raise RuntimeError(
+                    "delivery run mixes user approval and AQ v2 policy authority"
+                )
+            collected["optimization_plan"] = review.optimization_plan
+            if os.path.isfile(native_io_path(policy_snapshot_path)):
+                completed_path = run_root / "optimization_plan.json"
+                completed = OptimizationPlan.model_validate_json(
+                    Path(native_io_path(completed_path)).read_bytes()
+                )
+                if completed.status == "complete" and os.path.isfile(
+                    native_io_path(package_path)
+                ):
+                    return _adopt_completed_portable_request(
+                        root=root,
+                        freeze=freeze,
+                        source_freeze_artifact=source_freeze_artifact,
+                        request=request,
+                        review=review,
+                        policy_authorization=policy_authorization,
+                    )
+                optimized = _validate_completed_exact_policy_authorization(
                     root=root,
                     freeze=freeze,
-                    source_freeze_artifact=source_freeze_artifact,
                     request=request,
                     review=review,
+                    policy_authorization=policy_authorization,
                 )
-        _validate_unused_exact_approval(
-            root=root,
-            freeze=freeze,
-            request=request,
-            review=review,
-        )
-        collected["optimization_plan"] = review.optimization_plan
-        optimized = optimize_asset(
-            freeze.job_id,
-            profile_id=request.profile.asset_profile_id,
-            run_id=request.run_id,
-            approved_plan_sha256=review.exact_plan_sha256,
-        )
-        collected["optimization_approval"] = artifact_for_v2(
-            root,
-            approval_path,
-            artifact_id=f"{request.delivery_id}-optimization-approval-used",
-            kind="optimization_approval",
-        )
+            else:
+                from .approval_policy_service import (
+                    validate_routine_policy_authorization,
+                )
+
+                policy_path = validate_v2_artifact(root, policy_authorization)
+                validate_routine_policy_authorization(
+                    freeze.job_id,
+                    freeze.session_id,
+                    policy_authorization_path=policy_path,
+                    expected_gate_kind="optimization_plan_authorization",
+                    expected_target_path=root / review.optimization_plan.path,
+                )
+                optimized = optimize_asset(
+                    freeze.job_id,
+                    profile_id=request.profile.asset_profile_id,
+                    run_id=request.run_id,
+                    approved_plan_sha256=review.exact_plan_sha256,
+                    policy_authorization_path=policy_path,
+                    workflow_id=freeze.workflow_id,
+                    workflow_step_id=f"aqv2-delivery-{request.run_id}",
+                    workflow_input_fingerprint=review.exact_plan_sha256,
+                )
+            collected["optimization_policy_authorization"] = policy_authorization
         if (
             optimized.status != "complete"
             or optimized.job_id != freeze.job_id
@@ -717,6 +864,9 @@ def _execute_portable_request(
             source_freeze_sha256=source_freeze_artifact.sha256,
             optimization_plan=review.optimization_plan,
             optimization_approval=collected["optimization_approval"],
+            optimization_policy_authorization=collected[
+                "optimization_policy_authorization"
+            ],
             package_manifest=collected["package_manifest"],
             roundtrip_validation=collected["roundtrip_validation"],
             material_loss_report=collected["material_loss_report"],
@@ -772,6 +922,9 @@ def _execute_portable_request(
             source_freeze_sha256=source_freeze_artifact.sha256,
             optimization_plan=collected["optimization_plan"],
             optimization_approval=collected["optimization_approval"],
+            optimization_policy_authorization=collected[
+                "optimization_policy_authorization"
+            ],
             package_manifest=collected["package_manifest"],
             roundtrip_validation=collected["roundtrip_validation"],
             material_loss_report=collected["material_loss_report"],
@@ -829,3 +982,93 @@ def execute_approved_delivery_plan_v2(
             )
         )
     return results
+
+
+def execute_policy_authorized_delivery_plan_v2(
+    *,
+    job_root: Path,
+    delivery_plan_artifact: AQV2Artifact,
+    delivery_review_artifact: AQV2Artifact,
+    policy_authorizations: dict[str, AQV2Artifact],
+) -> list[DeliveryResult]:
+    """Execute exact AQ policy-authorized formats without creating V0.7 approvals."""
+
+    root = ensure_contained_production_path(job_root, job_root, must_exist=True)
+    plan = _load_bound_model(root, delivery_plan_artifact, DeliveryPlan)
+    validate_delivery_plan_authority_v2(root, plan, delivery_plan_artifact)
+    configured_root = Path(job_dir(plan.job_id)).resolve()
+    if configured_root != root.resolve():
+        raise ValueError("job_root does not match the configured job workspace")
+    freeze = _load_bound_model(root, plan.source_freeze, QualityApprovedSourceFreeze)
+    review = _load_bound_model(root, delivery_review_artifact, DeliveryReviewBinding)
+    if (
+        freeze.job_id != plan.job_id
+        or freeze.workflow_id != plan.workflow_id
+        or freeze.dispatch_id != plan.dispatch_id
+        or freeze.session_id != plan.session_id
+    ):
+        raise ValueError("quality freeze does not match the immutable delivery plan")
+    validate_quality_source_freeze(root, freeze)
+    entries = _validate_execution_binding(plan, delivery_plan_artifact, review)
+    portable_ids = {
+        request.delivery_id
+        for request in plan.requests
+        if request.profile.profile_id != "review_only"
+    }
+    if set(policy_authorizations) != portable_ids:
+        raise ValueError("policy authorizations must exactly cover portable deliveries")
+    results: list[DeliveryResult] = []
+    for request in plan.requests:
+        if request.profile.profile_id == "review_only":
+            results.append(
+                DeliveryResult(
+                    delivery_id=request.delivery_id,
+                    profile_id="review_only",
+                    status="review_only",
+                    source_freeze_sha256=plan.source_freeze.sha256,
+                    production_ready=False,
+                )
+            )
+            continue
+        results.append(
+            _execute_portable_request(
+                root=root,
+                freeze=freeze,
+                source_freeze_artifact=plan.source_freeze,
+                request=request,
+                review=entries[request.delivery_id],
+                policy_authorization=policy_authorizations[request.delivery_id],
+            )
+        )
+    return results
+
+
+def execute_policy_authorized_delivery_request_v2(
+    *,
+    job_root: Path,
+    delivery_plan_artifact: AQV2Artifact,
+    delivery_review_artifact: AQV2Artifact,
+    delivery_id: str,
+    policy_authorization: AQV2Artifact,
+) -> DeliveryResult:
+    """Execute one exact portable request so policy budgets can advance sequentially."""
+
+    root = ensure_contained_production_path(job_root, job_root, must_exist=True)
+    plan = _load_bound_model(root, delivery_plan_artifact, DeliveryPlan)
+    validate_delivery_plan_authority_v2(root, plan, delivery_plan_artifact)
+    freeze = _load_bound_model(root, plan.source_freeze, QualityApprovedSourceFreeze)
+    review = _load_bound_model(root, delivery_review_artifact, DeliveryReviewBinding)
+    entries = _validate_execution_binding(plan, delivery_plan_artifact, review)
+    requests = [item for item in plan.requests if item.delivery_id == delivery_id]
+    if len(requests) != 1 or requests[0].profile.profile_id == "review_only":
+        raise ValueError("policy delivery ID must select one exact portable request")
+    request = requests[0]
+    validate_quality_source_freeze(root, freeze)
+    return _execute_portable_request(
+        root=root,
+        freeze=freeze,
+        source_freeze_artifact=plan.source_freeze,
+        request=request,
+        review=entries[delivery_id],
+        policy_authorization=policy_authorization,
+    )

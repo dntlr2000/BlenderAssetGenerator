@@ -24,6 +24,71 @@ def test_duplicate_job_is_rejected_without_mutation(tmp_path: Path, monkeypatch)
     assert not (tmp_path / "workspaces" / "asset_001" / "input" / "reference.jpg").exists()
 
 
+def test_create_job_retries_transient_atomic_directory_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retry a transient Windows-style publication denial without changing staged bytes."""
+
+    from codex_blender_modeler import workspace
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path / "workspaces"))
+    reference = tmp_path / "reference.png"
+    reference.write_bytes(b"reference")
+    original_replace = workspace.os.replace
+    attempts = 0
+
+    def transient_replace(source: Path, destination: Path) -> None:
+        """Fail the first exact publication attempt and delegate the bounded retry."""
+
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError("simulated transient directory publication denial")
+        original_replace(source, destination)
+
+    monkeypatch.setattr(workspace.os, "replace", transient_replace)
+    monkeypatch.setattr(workspace, "sleep", lambda _seconds: None)
+
+    metadata = workspace.create_job("retry_asset", reference, "concept", [])
+
+    assert attempts == 2
+    assert metadata["reference_sha256"] == workspace.sha256_file(reference)
+    assert (tmp_path / "workspaces" / "retry_asset" / "job.json").is_file()
+
+
+def test_create_job_exhausts_atomic_directory_retry_without_publication(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail closed after the bounded retry count and remove only the private staging tree."""
+
+    from codex_blender_modeler import workspace
+
+    workspace_root = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace_root))
+    reference = tmp_path / "reference.png"
+    reference.write_bytes(b"reference")
+    attempts = 0
+
+    def denied_replace(_source: Path, _destination: Path) -> None:
+        """Keep the exact atomic publication unavailable for every bounded attempt."""
+
+        nonlocal attempts
+        attempts += 1
+        raise PermissionError("simulated persistent directory publication denial")
+
+    monkeypatch.setattr(workspace.os, "replace", denied_replace)
+    monkeypatch.setattr(workspace, "sleep", lambda _seconds: None)
+
+    with pytest.raises(PermissionError, match="persistent directory publication"):
+        workspace.create_job("blocked_asset", reference, "concept", [])
+
+    assert attempts == 3
+    assert not (workspace_root / "blocked_asset").exists()
+    assert not list(workspace_root.glob(".blocked_asset.creating-*"))
+
+
 def test_add_view_requires_explicit_replace(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path / "workspaces"))
     reference = tmp_path / "reference.png"

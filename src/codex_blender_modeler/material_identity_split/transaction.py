@@ -7,8 +7,10 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Literal, TypeAlias
 from uuid import uuid4
+
+from pydantic import BaseModel
 
 from ..autonomy.io import ensure_autonomy_path
 from ..blender_artifacts import native_io_path, publish_bytes_create_once
@@ -30,6 +32,8 @@ from .models import (
     MaterialIdentitySplitGeometryContinuationReceipt,
     MaterialIdentitySplitInvariantReport,
     MaterialIdentitySplitPlan,
+    MaterialIdentitySplitPolicyApplyIntent,
+    MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt,
     MaterialIdentitySplitPreapprovalReport,
     MaterialIdentitySplitPreapprovalRequest,
     MaterialIdentitySplitRecoveryReceipt,
@@ -59,6 +63,9 @@ CrashPoint = Literal[
     "after_apply_receipt",
     "during_rollback",
 ]
+MaterialIdentitySplitTransactionIntent: TypeAlias = (
+    MaterialIdentitySplitApplyIntent | MaterialIdentitySplitPolicyApplyIntent
+)
 
 
 @dataclass(frozen=True)
@@ -225,15 +232,15 @@ def _archive_canonical(
 
 def _validate_apply_bindings(
     job_root: Path,
-    intent: MaterialIdentitySplitApplyIntent,
+    intent: MaterialIdentitySplitTransactionIntent,
     *,
     require_current_preconditions: bool = True,
 ) -> tuple[
     MaterialIdentitySplitPlan,
     MaterialIdentitySplitApprovalRequest,
-    MaterialIdentitySplitRootScopeApproval,
+    MaterialIdentitySplitRootScopeApproval | object,
 ]:
-    """Replay one approved intent and optionally require untouched canonical preconditions."""
+    """Replay one explicit or policy intent and require its exact candidate bindings."""
 
     plan = load_material_closure_model(job_root, intent.plan, MaterialIdentitySplitPlan)
     request = load_material_closure_model(
@@ -241,6 +248,103 @@ def _validate_apply_bindings(
         intent.approval_request,
         MaterialIdentitySplitApprovalRequest,
     )
+    if isinstance(intent, MaterialIdentitySplitPolicyApplyIntent):
+        from ..autonomy_v2.approval_models import (
+            ApprovalArtifact,
+            AQV2RoutinePolicyAuthorization,
+        )
+        from ..autonomy_v2.approval_policy_service import (
+            validate_routine_policy_authorization,
+        )
+        from ..workspace import job_dir
+
+        if job_dir(intent.job_id).expanduser().resolve(strict=True) != job_root:
+            raise PermissionError("policy ApplyIntent resolved another workspace job")
+        validate_exact_artifact(job_root, intent.policy_authorization)
+        replay = validate_routine_policy_authorization(
+            intent.job_id,
+            intent.session_id,
+            policy_authorization_path=intent.policy_authorization.path,
+            expected_gate_kind="bounded_material_identity_split",
+            expected_target_path=intent.approval_request.path,
+        )
+        authorization = AQV2RoutinePolicyAuthorization.model_validate_json(
+            json.dumps(replay["authorization"])
+        )
+        authorization_artifact = ApprovalArtifact.model_validate(
+            replay["authorization_artifact"]
+        )
+        authority_matches = (
+            intent.policy_authorization.path == authorization_artifact.path
+            and intent.policy_authorization.sha256 == authorization_artifact.sha256
+            and intent.policy_authorization.byte_size == authorization_artifact.byte_size
+            and intent.policy_authorization.kind == authorization_artifact.kind
+        )
+        target_matches = (
+            authorization.exact_target_artifact.path == intent.approval_request.path
+            and authorization.exact_target_artifact.sha256
+            == intent.approval_request.sha256
+            and authorization.exact_target_artifact.byte_size
+            == intent.approval_request.byte_size
+        )
+        canonical_matches = (
+            authorization.current_canonical_snapshot.path
+            == plan.preconditions.scene_spec.path
+            and authorization.current_canonical_snapshot.sha256
+            == plan.preconditions.scene_spec.sha256
+            and authorization.current_canonical_snapshot.byte_size
+            == plan.preconditions.scene_spec.byte_size
+        )
+        if (
+            not authority_matches
+            or not target_matches
+            or not canonical_matches
+            or authorization.workflow_id != intent.workflow_id
+            or authorization.dispatch_id != intent.dispatch_id
+            or authorization.session_id != intent.session_id
+            or authorization.bounded_transformation
+            != "bounded_material_identity_split"
+            or authorization.is_user_approval
+            or authorization.approved_by_user
+        ):
+            raise PermissionError(
+                "identity-split policy authority differs from the exact bounded request"
+            )
+        if (
+            any(
+                observed != expected
+                for observed, expected in (
+                    (request.job_id, intent.job_id),
+                    (request.workflow_id, intent.workflow_id),
+                    (request.dispatch_id, intent.dispatch_id),
+                    (request.run_id, intent.run_id),
+                )
+            )
+            or request.plan != intent.plan
+            or request.candidate_scene_spec != plan.candidate_scene_spec
+            or request.candidate_modeling_plan != plan.candidate_modeling_plan
+            or request.scene_diff_allowlist != plan.scene_diff_allowlist
+            or request.modeling_plan_diff_report != intent.modeling_plan_diff_report
+            or request.preapproval_report != intent.preapproval_report
+            or request.shadow_build_receipt != intent.shadow_build_receipt
+            or request.invariant_report != intent.invariant_report
+            or request.preconditions != plan.preconditions
+            or intent.candidate_scene_spec != plan.candidate_scene_spec
+            or intent.candidate_modeling_plan != plan.candidate_modeling_plan
+            or intent.scene_diff_allowlist != plan.scene_diff_allowlist
+            or intent.modeling_plan_diff_report != request.modeling_plan_diff_report
+            or intent.preapproval_report != request.preapproval_report
+            or intent.shadow_build_receipt != request.shadow_build_receipt
+            or intent.invariant_report != request.invariant_report
+            or intent.preconditions != plan.preconditions
+            or intent.transaction_id != plan.run_id
+        ):
+            raise PermissionError(
+                "policy ApplyIntent is not exact-bound to the paired split candidate"
+            )
+        if require_current_preconditions:
+            MaterialIdentitySplitService(job_root).validate_plan_current(plan)
+        return plan, request, authorization
     approval = load_material_closure_model(
         job_root,
         intent.approval,
@@ -331,52 +435,114 @@ def _recovery_retry_count(
 def _require_single_intent(
     job_root: Path,
     approval_artifact: ExactArtifact,
-    intent: MaterialIdentitySplitApplyIntent,
+    intent: MaterialIdentitySplitTransactionIntent,
 ) -> None:
-    """Reject a second substantive ApplyIntent for one single-use approval."""
+    """Reject a second substantive intent for one user or policy authority."""
 
     intents_root = job_root / "production" / "material_identity_split" / intent.run_id / "intents"
     if not intents_root.is_dir():
         return
     for path in sorted(intents_root.glob("*.json")):
-        observed = MaterialIdentitySplitApplyIntent.model_validate_json(path.read_bytes())
-        if observed.approval == approval_artifact and observed != intent:
-            raise PermissionError("identity-split approval already binds another ApplyIntent")
+        observed = _load_transaction_intent_bytes(path.read_bytes())
+        observed_authority = (
+            observed.policy_authorization
+            if isinstance(observed, MaterialIdentitySplitPolicyApplyIntent)
+            else observed.approval
+        )
+        if observed_authority == approval_artifact and observed != intent:
+            raise PermissionError(
+                "identity-split authority already binds another ApplyIntent"
+            )
+
+
+def _load_transaction_intent_bytes(
+    payload: bytes,
+) -> MaterialIdentitySplitTransactionIntent:
+    """Dispatch an immutable split intent by exact additive schema version."""
+
+    decoded = json.loads(payload)
+    if not isinstance(decoded, dict):
+        raise ValueError("identity-split ApplyIntent must contain one JSON object")
+    if decoded.get("schema_version") == "0.3.0":
+        return MaterialIdentitySplitPolicyApplyIntent.model_validate_json(payload)
+    return MaterialIdentitySplitApplyIntent.model_validate_json(payload)
+
+
+def _load_transaction_intent(
+    job_root: Path,
+    artifact: ExactArtifact,
+) -> MaterialIdentitySplitTransactionIntent:
+    """Hash-check and strict-load either supported split intent authority shape."""
+
+    model = (
+        MaterialIdentitySplitPolicyApplyIntent
+        if artifact.kind == "material_identity_split_policy_apply_intent"
+        else MaterialIdentitySplitApplyIntent
+    )
+    return load_material_closure_model(job_root, artifact, model)
 
 
 def _publish_intent_and_consumption(
     job_root: Path,
-    intent: MaterialIdentitySplitApplyIntent,
+    intent: MaterialIdentitySplitTransactionIntent,
 ) -> tuple[ExactArtifact, ExactArtifact]:
-    """Publish a caller-authored intent and consume its approval exactly once."""
+    """Publish an intent and consume its separated user or policy authority once."""
 
-    _require_single_intent(job_root, intent.approval, intent)
+    authority = (
+        intent.policy_authorization
+        if isinstance(intent, MaterialIdentitySplitPolicyApplyIntent)
+        else intent.approval
+    )
+    _require_single_intent(job_root, authority, intent)
     intent_artifact = _publish_model(
         job_root,
         f"production/material_identity_split/{intent.run_id}/intents/{intent.intent_id}.json",
         intent,
         artifact_id=intent.intent_id,
-        kind="material_identity_split_apply_intent",
+        kind=(
+            "material_identity_split_policy_apply_intent"
+            if isinstance(intent, MaterialIdentitySplitPolicyApplyIntent)
+            else "material_identity_split_apply_intent"
+        ),
     )
-    consumption = MaterialIdentitySplitApprovalConsumptionReceipt(
-        job_id=intent.job_id,
-        workflow_id=intent.workflow_id,
-        dispatch_id=intent.dispatch_id,
-        run_id=intent.run_id,
-        producer="codex_blender_modeler.material_identity_split",
-        producer_version="0.1.0",
-        created_at=intent.created_at,
-        receipt_id=f"{intent.run_id}-approval-consumption",
-        approval=intent.approval,
-        approval_request=intent.approval_request,
-        apply_intent=intent_artifact,
-    )
+    if isinstance(intent, MaterialIdentitySplitPolicyApplyIntent):
+        consumption: BaseModel = MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt(
+            job_id=intent.job_id,
+            workflow_id=intent.workflow_id,
+            dispatch_id=intent.dispatch_id,
+            session_id=intent.session_id,
+            run_id=intent.run_id,
+            producer="codex_blender_modeler.material_identity_split",
+            created_at=intent.created_at,
+            receipt_id=f"{intent.run_id}-policy-consumption",
+            policy_authorization=intent.policy_authorization,
+            approval_request=intent.approval_request,
+            apply_intent=intent_artifact,
+        )
+        consumption_id = f"{intent.run_id}-policy-consumption"
+        consumption_kind = "material_identity_split_policy_authorization_consumption_receipt"
+    else:
+        consumption = MaterialIdentitySplitApprovalConsumptionReceipt(
+            job_id=intent.job_id,
+            workflow_id=intent.workflow_id,
+            dispatch_id=intent.dispatch_id,
+            run_id=intent.run_id,
+            producer="codex_blender_modeler.material_identity_split",
+            producer_version="0.1.0",
+            created_at=intent.created_at,
+            receipt_id=f"{intent.run_id}-approval-consumption",
+            approval=intent.approval,
+            approval_request=intent.approval_request,
+            apply_intent=intent_artifact,
+        )
+        consumption_id = f"{intent.run_id}-approval-consumption"
+        consumption_kind = "material_identity_split_approval_consumption_receipt"
     consumption_artifact = _publish_model(
         job_root,
         (f"production/material_identity_split/{intent.run_id}/approval_consumptions/0001.json"),
         consumption,
-        artifact_id=f"{intent.run_id}-approval-consumption",
-        kind="material_identity_split_approval_consumption_receipt",
+        artifact_id=consumption_id,
+        kind=consumption_kind,
     )
     return intent_artifact, consumption_artifact
 
@@ -676,12 +842,12 @@ def _restore_archives(job_root: Path, archives: list[ExactArtifact]) -> None:
 def apply_material_identity_split(
     job_root: Path,
     *,
-    intent: MaterialIdentitySplitApplyIntent,
+    intent: MaterialIdentitySplitTransactionIntent,
     canonical_scene_inventory: ExactArtifact,
     crash_after: CrashPoint | None = None,
     created_at: datetime | None = None,
 ) -> MaterialIdentitySplitApplyResult:
-    """Execute one approved paired transaction or exact-rollback every partial write."""
+    """Execute one user-approved or policy-authorized guarded paired transaction."""
 
     root = job_root.expanduser().resolve(strict=True)
     observed_at = _utc_now(created_at)
@@ -690,7 +856,10 @@ def apply_material_identity_split(
         observed_at = intent.created_at
     status = MaterialIdentitySplitService(root).get_status(plan.run_id)
     if status.status != "eligible_for_explicit_user_scope_approval":
-        raise PermissionError("identity-split transaction is not at the approval boundary")
+        raise PermissionError(
+            "identity-split transaction is not at its approval boundary "
+            "or policy authority boundary"
+        )
     lock_owner = f"material-identity-split-{plan.run_id}"
     archives: list[ExactArtifact] = []
     state_artifacts: list[ExactArtifact] = []
@@ -700,7 +869,7 @@ def apply_material_identity_split(
             status = MaterialIdentitySplitService(root).get_status(plan.run_id)
             if status.status != "eligible_for_explicit_user_scope_approval":
                 raise PermissionError(
-                    "identity-split transaction changed before approval consumption"
+                    "identity-split transaction changed before authority consumption"
                 )
             MaterialIdentitySplitService(root).validate_plan_current(plan)
             intent_artifact, consumption_artifact = _publish_intent_and_consumption(
@@ -938,11 +1107,7 @@ def recover_material_identity_split(
         raise FileExistsError("identity-split transaction is already rolled back")
     if latest.apply_intent is None or latest.approval_consumption is None:
         raise PermissionError("identity-split recovery has no consumed approved ApplyIntent")
-    intent = load_material_closure_model(
-        root,
-        latest.apply_intent,
-        MaterialIdentitySplitApplyIntent,
-    )
+    intent = _load_transaction_intent(root, latest.apply_intent)
     plan, request, _approval = _validate_apply_bindings(
         root,
         intent,

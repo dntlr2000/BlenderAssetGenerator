@@ -444,6 +444,33 @@ def test_glb_export_verifies_file_level_texcoord0_and_tangent_attributes() -> No
     assert 'if args.format in {"glb", "gltf"}:' in source
 
 
+def test_gltf_export_triangulates_serialization_meshes_before_evidence() -> None:
+    """Keep glTF topology evidence aligned with the exporter-triangulated payload."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assignment = "serialization_topology = normalize_gltf_serialization_topology("
+    assert "def normalize_gltf_serialization_topology" in source
+    assert 'if format_name not in {"glb", "gltf"}:' in source
+    assert 'quad_method="FIXED"' in source
+    assert 'ngon_method="EAR_CLIP"' in source
+    assert source.index(assignment) < source.index("operator = export_selected(")
+    assert '"serialization_topology": serialization_topology' in source
+
+
+def test_non_gltf_export_skips_serialization_triangulation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Leave FBX and OBJ topology untouched by the glTF-only normalization."""
+
+    module = load_export_script(monkeypatch)
+    result = module.normalize_gltf_serialization_topology([], "fbx")
+    assert result == {
+        "status": "not_applicable",
+        "format": "fbx",
+        "reason": "format_does_not_require_gltf_triangle_serialization",
+    }
+
+
 def test_gltf_uv0_file_verifier_accepts_complete_portable_contract(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

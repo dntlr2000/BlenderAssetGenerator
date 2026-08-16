@@ -203,7 +203,12 @@ def _fixture(
     assignment_path = session_root / "assignments" / "material.json"
     _write_json(
         assignment_path,
-        boundary if boundary is not None else {"phase": "material_authoring"},
+        boundary
+        if boundary is not None
+        else {
+            "phase": "material_authoring",
+            "canonical_write_authority": "material_phase_service_only",
+        },
     )
     assignment = _controller_artifact(
         root,

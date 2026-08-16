@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    },
+    "RoutineGatePolicy": {
+      "additionalProperties": false,
+      "description": "Declare one deterministic gate rule without granting authority to a controller.",
+      "properties": {
+        "gate_kind": {
+          "enum": [
+            "geometry_candidate_promotion",
+            "structural_candidate_promotion",
+            "bounded_parametric_revision",
+            "bounded_material_identity_split",
+            "material_candidate_promotion",
+            "material_quality_acknowledgement",
+            "iq_quality_acceptance",
+            "optimization_plan_authorization",
+            "package_acknowledgement",
+            "review_bundle_terminal",
+            "technical_retry",
+            "rollback",
+            "imagegen_candidate_adoption"
+          ],
+          "title": "Gate Kind",
+          "type": "string"
+        },
+        "allowed_modes": {
+          "items": {
+            "enum": [
+              "autonomous",
+              "checkpointed",
+              "interactive"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Modes",
+          "type": "array"
+        },
+        "bounded_transformation": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_visual_technical_normalization",
+                "bounded_geometry_revision",
+                "bounded_parameter_revision",
+                "bounded_material_identity_split",
+                "bounded_material_promotion",
+                "aq_delivery_authorization"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bounded Transformation"
+        },
+        "requires_current_canonical_snapshot": {
+          "const": true,
+          "default": true,
+          "title": "Requires Current Canonical Snapshot",
+          "type": "boolean"
+        },
+        "requires_exact_target": {
+          "const": true,
+          "default": true,
+          "title": "Requires Exact Target",
+          "type": "boolean"
+        },
+        "host_policy_only": {
+          "const": true,
+          "default": true,
+          "title": "Host Policy Only",
+          "type": "boolean"
+        },
+        "controller_eligibility_authority": {
+          "const": false,
+          "default": false,
+          "title": "Controller Eligibility Authority",
+          "type": "boolean"
+        },
+        "user_approval_equivalent": {
+          "const": false,
+          "default": false,
+          "title": "User Approval Equivalent",
+          "type": "boolean"
+        },
+        "technical_failure_category_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Technical Failure Category Allowed",
+          "type": "boolean"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Limitations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "gate_kind",
+        "allowed_modes",
+        "limitations"
+      ],
+      "title": "RoutineGatePolicy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze the deterministic routine-gate registry and bounded transformation caps.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "profile_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Status",
+      "type": "string"
+    },
+    "supported_modes": {
+      "items": {
+        "enum": [
+          "autonomous",
+          "checkpointed",
+          "interactive"
+        ],
+        "type": "string"
+      },
+      "maxItems": 3,
+      "minItems": 3,
+      "title": "Supported Modes",
+      "type": "array"
+    },
+    "routine_gate_policies": {
+      "items": {
+        "$ref": "#/$defs/RoutineGatePolicy"
+      },
+      "minItems": 1,
+      "title": "Routine Gate Policies",
+      "type": "array"
+    },
+    "allowed_bounded_transformations": {
+      "items": {
+        "enum": [
+          "no_visual_technical_normalization",
+          "bounded_geometry_revision",
+          "bounded_parameter_revision",
+          "bounded_material_identity_split",
+          "bounded_material_promotion",
+          "aq_delivery_authorization"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Bounded Transformations",
+      "type": "array"
+    },
+    "default_max_identity_splits": {
+      "default": 4,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Default Max Identity Splits",
+      "type": "integer"
+    },
+    "hard_max_identity_splits": {
+      "const": 8,
+      "default": 8,
+      "title": "Hard Max Identity Splits",
+      "type": "integer"
+    },
+    "transient_controller_retry_limit": {
+      "const": 1,
+      "default": 1,
+      "title": "Transient Controller Retry Limit",
+      "type": "integer"
+    },
+    "technical_user_approval_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Technical User Approval Allowed",
+      "type": "boolean"
+    },
+    "policy_is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Policy Is User Approval",
+      "type": "boolean"
+    },
+    "repository_creates_codex_task": {
+      "const": false,
+      "default": false,
+      "title": "Repository Creates Codex Task",
+      "type": "boolean"
+    },
+    "destination_project_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Write",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "profile_id",
+    "supported_modes",
+    "routine_gate_policies",
+    "allowed_bounded_transformations"
+  ],
+  "title": "AutonomyApprovalPolicyProfile",
+  "type": "object"
+}

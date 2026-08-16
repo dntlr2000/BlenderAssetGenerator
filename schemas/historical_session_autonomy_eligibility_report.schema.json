@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Evaluate historical evidence read-only without granting retroactive policy authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "historical_session_artifacts": {
+      "items": {
+        "$ref": "#/$defs/ApprovalArtifact"
+      },
+      "minItems": 1,
+      "title": "Historical Session Artifacts",
+      "type": "array"
+    },
+    "evaluated_gate_kind": {
+      "enum": [
+        "geometry_candidate_promotion",
+        "structural_candidate_promotion",
+        "bounded_parametric_revision",
+        "bounded_material_identity_split",
+        "material_candidate_promotion",
+        "material_quality_acknowledgement",
+        "iq_quality_acceptance",
+        "optimization_plan_authorization",
+        "package_acknowledgement",
+        "review_bundle_terminal",
+        "technical_retry",
+        "rollback",
+        "imagegen_candidate_adoption"
+      ],
+      "title": "Evaluated Gate Kind",
+      "type": "string"
+    },
+    "future_bounded_conditions_satisfied": {
+      "title": "Future Bounded Conditions Satisfied",
+      "type": "boolean"
+    },
+    "condition_results": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Condition Results",
+      "type": "object"
+    },
+    "policy_authorization_that_could_have_applied": {
+      "anyOf": [
+        {
+          "enum": [
+            "geometry_candidate_promotion",
+            "structural_candidate_promotion",
+            "bounded_parametric_revision",
+            "bounded_material_identity_split",
+            "material_candidate_promotion",
+            "material_quality_acknowledgement",
+            "iq_quality_acceptance",
+            "optimization_plan_authorization",
+            "package_acknowledgement",
+            "review_bundle_terminal",
+            "technical_retry",
+            "rollback",
+            "imagegen_candidate_adoption"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Policy Authorization That Could Have Applied"
+    },
+    "additional_user_decision_would_have_been_required": {
+      "title": "Additional User Decision Would Have Been Required",
+      "type": "boolean"
+    },
+    "decision_reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Decision Reasons",
+      "type": "array"
+    },
+    "approval_envelope_existed_historically": {
+      "const": false,
+      "default": false,
+      "title": "Approval Envelope Existed Historically",
+      "type": "boolean"
+    },
+    "retroactive_authority_applied": {
+      "const": false,
+      "default": false,
+      "title": "Retroactive Authority Applied",
+      "type": "boolean"
+    },
+    "historical_user_approval_reclassified": {
+      "const": false,
+      "default": false,
+      "title": "Historical User Approval Reclassified",
+      "type": "boolean"
+    },
+    "canonical_apply_performed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Apply Performed",
+      "type": "boolean"
+    },
+    "report_is_read_only": {
+      "const": true,
+      "default": true,
+      "title": "Report Is Read Only",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "report_id",
+    "policy_profile",
+    "historical_session_artifacts",
+    "evaluated_gate_kind",
+    "future_bounded_conditions_satisfied",
+    "condition_results",
+    "additional_user_decision_would_have_been_required",
+    "decision_reasons"
+  ],
+  "title": "HistoricalSessionAutonomyEligibilityReport",
+  "type": "object"
+}

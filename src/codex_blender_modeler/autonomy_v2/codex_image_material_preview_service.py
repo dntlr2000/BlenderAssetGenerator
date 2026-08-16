@@ -86,8 +86,8 @@ def _read_json(path: Path) -> dict[str, Any]:
     return payload
 
 
-def _publish_renderer_snapshot(source: Path, destination: Path) -> None:
-    """Copy or exact-adopt the fixed renderer bytes beneath the run-owned evidence root."""
+def _publish_exact_snapshot(source: Path, destination: Path) -> None:
+    """Copy or exact-adopt one file beneath the run-owned evidence root."""
 
     if not source.is_file():
         raise FileNotFoundError(source)
@@ -344,7 +344,7 @@ def render_promoted_codex_image_material_preview(
             kind="material-neutral-preview",
             media_type="application/json",
         )
-    _publish_renderer_snapshot(script_source, script_path)
+    _publish_exact_snapshot(script_source, script_path)
     renderer_script = artifact_for_codex_image(
         root,
         script_path,
@@ -357,26 +357,58 @@ def render_promoted_codex_image_material_preview(
     if manifest_exists != image_exists:
         raise ValueError("partial neutral preview output requires explicit review")
     if not manifest_exists:
-        os.makedirs(native_io_path(output_root), exist_ok=True)
-        run_blender(
-            "render_material_swatches.py",
-            [
-                "--output-dir",
-                str(output_root / "renders"),
-                "--manifest",
-                str(manifest_path),
-                "--render-engine",
-                "eevee",
-                "--render-device",
-                "auto",
-                "--size",
-                str(size),
-                "--material-id",
-                material_id,
-            ],
-            blend_file=blend_path,
-            disable_autoexec=True,
+        staging_id = stable_json_digest(
+            {
+                "material_phase_receipt": material_phase_receipt.sha256,
+                "preview_id": preview_id,
+                "material_id": material_id,
+                "size": size,
+                "renderer": sha256_file(script_source),
+            }
+        )[:20]
+        staging_root = ensure_contained_codex_image_path(
+            root,
+            root / ".cbm_preview" / staging_id,
+            must_exist=False,
         )
+        staging_manifest = staging_root / "swatch_manifest.json"
+        staging_image = (
+            staging_root / "renders" / safe_artifact_name(material_id) / "swatch.png"
+        )
+        staging_manifest_exists = os.path.exists(native_io_path(staging_manifest))
+        staging_image_exists = os.path.exists(native_io_path(staging_image))
+        if staging_manifest_exists != staging_image_exists:
+            raise ValueError("partial staged neutral preview requires explicit review")
+        if not staging_manifest_exists:
+            os.makedirs(native_io_path(staging_root), exist_ok=True)
+            run_blender(
+                "render_material_swatches.py",
+                [
+                    "--output-dir",
+                    str(staging_root / "renders"),
+                    "--manifest",
+                    str(staging_manifest),
+                    "--render-engine",
+                    "eevee",
+                    "--render-device",
+                    "auto",
+                    "--size",
+                    str(size),
+                    "--material-id",
+                    material_id,
+                ],
+                blend_file=blend_path,
+                disable_autoexec=True,
+            )
+        _validate_swatch_manifest(
+            root,
+            staging_manifest,
+            expected_image=staging_image,
+            material_id=material_id,
+            size=size,
+        )
+        _publish_exact_snapshot(staging_image, image_path)
+        _publish_exact_snapshot(staging_manifest, manifest_path)
     preview_image = _validate_swatch_manifest(
         root,
         manifest_path,

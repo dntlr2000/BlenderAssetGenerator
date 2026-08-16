@@ -1,0 +1,340 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind explicit initial delegation to exact routine scopes without preapproving artifacts.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "envelope_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Envelope Id",
+      "type": "string"
+    },
+    "approval_mode": {
+      "enum": [
+        "autonomous",
+        "checkpointed",
+        "interactive"
+      ],
+      "title": "Approval Mode",
+      "type": "string"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_budget": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "initial_user_request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Initial User Request Sha256",
+      "type": "string"
+    },
+    "explicit_autonomy_delegation_observed": {
+      "title": "Explicit Autonomy Delegation Observed",
+      "type": "boolean"
+    },
+    "allowed_routine_gate_kinds": {
+      "items": {
+        "enum": [
+          "geometry_candidate_promotion",
+          "structural_candidate_promotion",
+          "bounded_parametric_revision",
+          "bounded_material_identity_split",
+          "material_candidate_promotion",
+          "material_quality_acknowledgement",
+          "iq_quality_acceptance",
+          "optimization_plan_authorization",
+          "package_acknowledgement",
+          "review_bundle_terminal",
+          "technical_retry",
+          "rollback",
+          "imagegen_candidate_adoption"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Routine Gate Kinds",
+      "type": "array"
+    },
+    "allowed_bounded_transformations": {
+      "items": {
+        "enum": [
+          "no_visual_technical_normalization",
+          "bounded_geometry_revision",
+          "bounded_parameter_revision",
+          "bounded_material_identity_split",
+          "bounded_material_promotion",
+          "aq_delivery_authorization"
+        ],
+        "type": "string"
+      },
+      "title": "Allowed Bounded Transformations",
+      "type": "array"
+    },
+    "allowed_provider_scopes": {
+      "items": {
+        "enum": [
+          "local_only",
+          "codex_builtin_imagegen"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Provider Scopes",
+      "type": "array"
+    },
+    "allowed_delivery_profiles": {
+      "items": {
+        "enum": [
+          "review_only",
+          "portable_gltf",
+          "portable_fbx"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Allowed Delivery Profiles",
+      "type": "array"
+    },
+    "requested_delivery_profiles": {
+      "items": {
+        "enum": [
+          "review_only",
+          "portable_gltf",
+          "portable_fbx"
+        ],
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Requested Delivery Profiles",
+      "type": "array"
+    },
+    "allow_review_bundle_terminal": {
+      "title": "Allow Review Bundle Terminal",
+      "type": "boolean"
+    },
+    "allow_automatic_rollback": {
+      "title": "Allow Automatic Rollback",
+      "type": "boolean"
+    },
+    "allow_automatic_technical_retry": {
+      "title": "Allow Automatic Technical Retry",
+      "type": "boolean"
+    },
+    "max_identity_splits": {
+      "default": 4,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Max Identity Splits",
+      "type": "integer"
+    },
+    "max_material_identities_created": {
+      "default": 4,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Max Material Identities Created",
+      "type": "integer"
+    },
+    "max_controller_invocations": {
+      "maximum": 64,
+      "minimum": 0,
+      "title": "Max Controller Invocations",
+      "type": "integer"
+    },
+    "max_canonical_promotions": {
+      "maximum": 32,
+      "minimum": 0,
+      "title": "Max Canonical Promotions",
+      "type": "integer"
+    },
+    "max_blender_builds": {
+      "maximum": 64,
+      "minimum": 0,
+      "title": "Max Blender Builds",
+      "type": "integer"
+    },
+    "max_quality_evaluations": {
+      "maximum": 64,
+      "minimum": 0,
+      "title": "Max Quality Evaluations",
+      "type": "integer"
+    },
+    "max_package_runs": {
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Max Package Runs",
+      "type": "integer"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "status": {
+      "default": "active",
+      "enum": [
+        "active",
+        "expired",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "future_artifacts_user_approved": {
+      "const": false,
+      "default": false,
+      "title": "Future Artifacts User Approved",
+      "type": "boolean"
+    },
+    "policy_authorization_required_per_action": {
+      "const": true,
+      "default": true,
+      "title": "Policy Authorization Required Per Action",
+      "type": "boolean"
+    },
+    "destination_project_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Write",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "envelope_id",
+    "approval_mode",
+    "policy_profile",
+    "approval_budget",
+    "initial_user_request_sha256",
+    "explicit_autonomy_delegation_observed",
+    "allowed_routine_gate_kinds",
+    "allowed_bounded_transformations",
+    "allowed_provider_scopes",
+    "allowed_delivery_profiles",
+    "requested_delivery_profiles",
+    "allow_review_bundle_terminal",
+    "allow_automatic_rollback",
+    "allow_automatic_technical_retry",
+    "max_controller_invocations",
+    "max_canonical_promotions",
+    "max_blender_builds",
+    "max_quality_evaluations",
+    "max_package_runs",
+    "expires_at"
+  ],
+  "title": "AutonomyApprovalEnvelope",
+  "type": "object"
+}

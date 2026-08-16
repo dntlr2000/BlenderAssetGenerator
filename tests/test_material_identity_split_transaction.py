@@ -16,6 +16,8 @@ from codex_blender_modeler.material_identity_split import transaction
 from codex_blender_modeler.material_identity_split.models import (
     MaterialIdentitySplitApplyIntent,
     MaterialIdentitySplitCanonicalPreconditions,
+    MaterialIdentitySplitPolicyApplyIntent,
+    MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt,
 )
 
 NOW = datetime(2026, 8, 14, tzinfo=UTC)
@@ -141,6 +143,30 @@ def _intent(*, intent_id: str = "intent-1") -> MaterialIdentitySplitApplyIntent:
     )
 
 
+def _policy_intent(
+    *, intent_id: str = "policy-intent-1"
+) -> MaterialIdentitySplitPolicyApplyIntent:
+    """Build one strict non-user policy intent for separated consumption tests."""
+
+    explicit = _intent(intent_id=intent_id)
+    payload = explicit.model_dump()
+    payload.pop("approval")
+    payload.update(
+        {
+            "schema_version": "0.3.0",
+            "session_id": "session-1",
+            "producer_version": "0.3.0",
+            "policy_authorization": _artifact(
+                "policy-auth-1",
+                "production/autonomy_v2/session-1/policy_authorizations/policy-auth-1.json",
+                "aq_v2_routine_policy_authorization",
+                "4" * 64,
+            ),
+        }
+    )
+    return MaterialIdentitySplitPolicyApplyIntent.model_validate(payload)
+
+
 def _binding_chain(
     intent: MaterialIdentitySplitApplyIntent,
 ) -> tuple[SimpleNamespace, SimpleNamespace, SimpleNamespace]:
@@ -202,6 +228,36 @@ def test_single_approval_exact_adopts_one_intent_and_rejects_another(tmp_path: P
     assert replay_consumption == first_consumption
     with pytest.raises(PermissionError, match="another ApplyIntent"):
         transaction._publish_intent_and_consumption(root, _intent(intent_id="intent-2"))
+
+
+def test_single_policy_authorization_is_separate_non_user_and_single_use(
+    tmp_path: Path,
+) -> None:
+    """Keep policy consumption non-user and reject authorization rebinding."""
+
+    root = tmp_path / "fixture_job"
+    root.mkdir()
+    first_intent, first_consumption = transaction._publish_intent_and_consumption(
+        root, _policy_intent()
+    )
+    replay_intent, replay_consumption = transaction._publish_intent_and_consumption(
+        root, _policy_intent()
+    )
+
+    assert replay_intent == first_intent
+    assert replay_consumption == first_consumption
+    receipt_path = root / first_consumption.path
+    receipt = MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt.model_validate_json(
+        receipt_path.read_bytes()
+    )
+    assert receipt.policy_authorization == _policy_intent().policy_authorization
+    assert receipt.is_user_approval is False
+    assert receipt.approved_by_user is False
+    assert receipt.user_approval_created is False
+    with pytest.raises(PermissionError, match="another ApplyIntent"):
+        transaction._publish_intent_and_consumption(
+            root, _policy_intent(intent_id="policy-intent-2")
+        )
 
 
 def test_apply_rejects_wrong_boundary_before_consuming_approval(

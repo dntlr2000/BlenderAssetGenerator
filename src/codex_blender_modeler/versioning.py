@@ -51,3 +51,8 @@ MATERIAL_REPAIR_SCHEMA_VERSION = "0.1.0"
 
 # Guarded material-identity splitting remains an additive pre-material companion.
 MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION = "0.1.0"
+
+# Approval-minimizing AQ v2 companions bind to, but never modify, RootAuthorizationV2.
+AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION = "0.3.0"
+AUTONOMY_ONE_PROMPT_SCHEMA_VERSION = "0.1.0"
+FRAMEWORK_CHANGE_JUSTIFICATION_SCHEMA_VERSION = "0.1.0"

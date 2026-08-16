@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from ..stabilization.models import JobId, PortableId, RelativePath, Sha256, WorkflowId
+from .approval_models import ApprovalArtifact, ApprovalV03Evidence
 from .models import AQV2Artifact, AQV2Evidence, AQV2StrictModel, BudgetUsageV2
 
 
@@ -134,6 +135,103 @@ class MaterialClosurePromotionBoundaryV2(AQV2Evidence):
         if set(self.immutable_input_sha256) & set(self.planned_output_sha256):
             raise ValueError("material closure inputs and outputs must be disjoint")
         return self
+
+
+class MaterialClosurePolicyPromotionBoundaryV03(ApprovalV03Evidence):
+    """Bind passed closure evidence to one exact non-user material policy authority."""
+
+    boundary_id: PortableId
+    policy_profile: ApprovalArtifact
+    approval_envelope: ApprovalArtifact
+    approval_budget: ApprovalArtifact
+    policy_authorization: ApprovalArtifact
+    current_state: AQV2Artifact
+    dependency_closure: AQV2Artifact
+    dependency_closure_receipt: AQV2Artifact
+    graph_rebinding_receipt: AQV2Artifact
+    preflight_report: AQV2Artifact
+    shadow_compile_receipt: AQV2Artifact
+    neutral_preview_manifest: AQV2Artifact
+    state_consistency_report: AQV2Artifact
+    candidate_material_plan: AQV2Artifact
+    rebound_material_graph: AQV2Artifact
+    provenance: list[AQV2Artifact] = Field(min_length=11, max_length=11)
+    immutable_input_sha256: dict[RelativePath, Sha256] = Field(min_length=1)
+    planned_output_sha256: dict[RelativePath, Sha256] = Field(min_length=2)
+    canonical_scene_spec_sha256: Sha256
+    canonical_blend_sha256: Sha256
+    uv_layout_fingerprint: Sha256
+    controller_invocation_limit: Literal[1] = 1
+    appearance_approval_required: Literal[False] = False
+    policy_authorization_required: Literal[True] = True
+    policy_authorization_is_user_approval: Literal[False] = False
+    controller_may_execute: Literal[True] = True
+    canonical_write_authority: Literal["material_phase_service_only"] = (
+        "material_phase_service_only"
+    )
+
+    @model_validator(mode="after")
+    def validate_policy_boundary_provenance(
+        self,
+    ) -> MaterialClosurePolicyPromotionBoundaryV03:
+        """Require every gate, policy authority, and exact candidate once in provenance."""
+
+        policy_as_aq = AQV2Artifact.model_validate(
+            self.policy_authorization.model_dump(mode="python")
+        )
+        named = [
+            self.current_state,
+            self.dependency_closure,
+            self.dependency_closure_receipt,
+            self.graph_rebinding_receipt,
+            self.preflight_report,
+            self.shadow_compile_receipt,
+            self.neutral_preview_manifest,
+            policy_as_aq,
+            self.state_consistency_report,
+            self.candidate_material_plan,
+            self.rebound_material_graph,
+        ]
+        expected = {(item.path, item.sha256, item.byte_size) for item in named}
+        observed = {
+            (item.path, item.sha256, item.byte_size) for item in self.provenance
+        }
+        if expected != observed or len(named) != len(self.provenance):
+            raise ValueError("material policy boundary provenance is incomplete")
+        if set(self.immutable_input_sha256) & set(self.planned_output_sha256):
+            raise ValueError("material policy boundary inputs and outputs overlap")
+        return self
+
+
+class MaterialPolicyAuthorizationConsumptionReceiptV03(ApprovalV03Evidence):
+    """Bind one material controller request to an exact unused AQ policy authority."""
+
+    receipt_id: PortableId
+    policy_profile: ApprovalArtifact
+    approval_envelope: ApprovalArtifact
+    approval_budget: ApprovalArtifact
+    policy_authorization: ApprovalArtifact
+    material_policy_boundary: ApprovalArtifact
+    controller_request: ApprovalArtifact
+    candidate_material_plan_sha256: Sha256
+    rebound_material_graph_sha256: Sha256
+    closure_sha256: Sha256
+    preflight_report_sha256: Sha256
+    neutral_preview_sha256: Sha256
+    gate_kind: Literal["material_candidate_promotion"] = (
+        "material_candidate_promotion"
+    )
+    consumption_ordinal: Literal[1] = 1
+    consumed_once: Literal[True] = True
+    is_user_approval: Literal[False] = False
+    approved_by_user: Literal[False] = False
+    user_approval_created: Literal[False] = False
+
+
+MaterialClosurePromotionBoundary = (
+    MaterialClosurePromotionBoundaryV2 | MaterialClosurePolicyPromotionBoundaryV03
+)
+"""Represent either the unchanged user-approval boundary or additive policy boundary."""
 
 
 class MaterialPromotionIntentV2(AQV2Evidence):

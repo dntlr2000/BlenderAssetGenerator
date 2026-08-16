@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from codex_blender_modeler import config
 from codex_blender_modeler.workspace import create_job, find_input_images, validate_job_id
 
 
@@ -10,6 +11,11 @@ def test_job_id() -> None:
 
 
 def test_multiview_job_outside_repo(tmp_path: Path, monkeypatch) -> None:
+    """Exercise absolute metadata paths against a mocked external repository boundary."""
+
+    simulated_repo_root = tmp_path / "repository-boundary"
+    simulated_repo_root.mkdir()
+    monkeypatch.setattr(config, "REPO_ROOT", simulated_repo_root.resolve())
     workspace_root = tmp_path / "external-workspaces"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace_root))
 

@@ -749,6 +749,99 @@ def export_object_inventory(
     return record
 
 
+def normalize_gltf_serialization_topology(
+    objects: list[bpy.types.Object], format_name: str
+) -> dict[str, Any]:
+    """Triangulate only in-memory glTF meshes before evidence and serialization."""
+
+    if format_name not in {"glb", "gltf"}:
+        return {
+            "status": "not_applicable",
+            "format": format_name,
+            "reason": "format_does_not_require_gltf_triangle_serialization",
+        }
+
+    import bmesh
+
+    mesh_objects = sorted(
+        (obj for obj in objects if obj.type == "MESH"), key=lambda item: item.name
+    )
+    seen_meshes: set[int] = set()
+    records: list[dict[str, Any]] = []
+    for obj in mesh_objects:
+        mesh = obj.data
+        mesh_key = int(mesh.as_pointer())
+        if mesh_key in seen_meshes:
+            continue
+        seen_meshes.add(mesh_key)
+        mesh.calc_loop_triangles()
+        polygons_before = len(mesh.polygons)
+        triangles_before = len(mesh.loop_triangles)
+        non_tri_faces_before = sum(
+            1 for polygon in mesh.polygons if len(polygon.vertices) != 3
+        )
+        if non_tri_faces_before:
+            editable = bmesh.new()
+            try:
+                editable.from_mesh(mesh)
+                faces = [face for face in editable.faces if len(face.verts) != 3]
+                bmesh.ops.triangulate(
+                    editable,
+                    faces=faces,
+                    quad_method="FIXED",
+                    ngon_method="EAR_CLIP",
+                )
+                editable.to_mesh(mesh)
+            finally:
+                editable.free()
+            mesh.update()
+        mesh.calc_loop_triangles()
+        polygons_after = len(mesh.polygons)
+        triangles_after = len(mesh.loop_triangles)
+        remaining_non_tri_faces = sum(
+            1 for polygon in mesh.polygons if len(polygon.vertices) != 3
+        )
+        if remaining_non_tri_faces:
+            raise RuntimeError(
+                f"glTF serialization mesh remains non-triangular: {obj.name}"
+            )
+        if triangles_after != triangles_before or polygons_after != triangles_after:
+            raise RuntimeError(
+                f"glTF serialization triangulation changed triangle identity: {obj.name}"
+            )
+        records.append(
+            {
+                "object_name": obj.name,
+                "mesh_name": mesh.name,
+                "polygons_before": polygons_before,
+                "polygons_after": polygons_after,
+                "triangles_before": triangles_before,
+                "triangles_after": triangles_after,
+                "non_tri_faces_before": non_tri_faces_before,
+            }
+        )
+    return {
+        "status": "applied",
+        "format": format_name,
+        "policy": "in_memory_pre_evidence_triangulation",
+        "object_count": len(mesh_objects),
+        "unique_mesh_count": len(records),
+        "triangulated_mesh_count": sum(
+            1 for record in records if record["non_tri_faces_before"]
+        ),
+        "non_tri_face_count_before": sum(
+            int(record["non_tri_faces_before"]) for record in records
+        ),
+        "triangle_count_before": sum(
+            int(record["triangles_before"]) for record in records
+        ),
+        "triangle_count_after": sum(
+            int(record["triangles_after"]) for record in records
+        ),
+        "records": records,
+    }
+
+
 def export_gltf(path: Path, binary: bool) -> str:
     """Export selected objects through the runtime-probed glTF operator."""
 
@@ -941,6 +1034,9 @@ def main() -> None:
             "reason": "format_has_no_portable_uv0_contract",
         }
     )
+    serialization_topology = normalize_gltf_serialization_topology(
+        selected, args.format
+    )
     sanitization = sanitize_export_custom_properties(selected)
     if args.format == "obj":
         normalize_obj_material_names(selected)
@@ -1006,6 +1102,7 @@ def main() -> None:
         },
         "coordinate_contract": coordinate_contract(args.format),
         "uv_binding_contract": uv_binding_contract,
+        "serialization_topology": serialization_topology,
         "objects": [export_object_inventory(obj, args.format) for obj in selected],
         "semantic_ids": sorted(
             {str(obj.get("cbm_id")) for obj in selected if obj.get("cbm_id")}

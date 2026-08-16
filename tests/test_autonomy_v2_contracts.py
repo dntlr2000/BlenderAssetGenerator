@@ -195,6 +195,30 @@ def test_delivery_profiles_map_directly_to_existing_v07_exporters() -> None:
     assert fbx.requires_clean_import_roundtrip is True
 
 
+def test_completed_delivery_accepts_exactly_one_explicit_or_policy_authority() -> None:
+    """Keep additive AQ policy authority separate from unchanged V0.7 user approval."""
+
+    explicit = _completed_result("delivery-explicit", "portable_gltf")
+    policy_payload = explicit.model_dump(mode="python")
+    policy_payload["delivery_id"] = "delivery-policy"
+    policy_payload["optimization_approval"] = None
+    policy_payload["optimization_policy_authorization"] = _artifact(
+        "delivery-policy-authorization",
+        "aq_v2_routine_policy_authorization",
+    )
+    policy = DeliveryResult.model_validate(policy_payload)
+
+    assert policy.optimization_approval is None
+    assert policy.optimization_policy_authorization is not None
+    mixed = policy.model_dump(mode="python")
+    mixed["optimization_approval"] = _artifact(
+        "delivery-explicit-approval",
+        "optimization_approval",
+    )
+    with pytest.raises(ValueError, match="cannot mix user and policy authority"):
+        DeliveryResult.model_validate(mixed)
+
+
 def test_dual_delivery_plan_requires_unique_runs_and_same_freeze() -> None:
     """Every format receives a unique run/package while sharing one exact source freeze."""
 

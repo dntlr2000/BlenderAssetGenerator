@@ -1508,18 +1508,32 @@ def _validate_package_result(
     if result.status != "completed":
         return
     assert result.optimization_plan is not None
-    assert result.optimization_approval is not None
     assert result.package_manifest is not None
     assert result.roundtrip_validation is not None
     assert result.material_loss_report is not None
     assert result.geometry_survival_report is not None
     plan_path = validate_v2_artifact(root, result.optimization_plan)
-    approval_path = validate_v2_artifact(root, result.optimization_approval)
     package_path = validate_v2_artifact(root, result.package_manifest)
     roundtrip_path = validate_v2_artifact(root, result.roundtrip_validation)
-    approval = OptimizationApproval.model_validate_json(
-        Path(native_io_path(approval_path)).read_bytes()
-    )
+    approval = None
+    policy_authorization = None
+    if result.optimization_approval is not None:
+        approval_path = validate_v2_artifact(root, result.optimization_approval)
+        approval = OptimizationApproval.model_validate_json(
+            Path(native_io_path(approval_path)).read_bytes()
+        )
+    elif result.optimization_policy_authorization is not None:
+        from .approval_models import AQV2RoutinePolicyAuthorization
+
+        policy_path = validate_v2_artifact(
+            root,
+            result.optimization_policy_authorization,
+        )
+        policy_authorization = AQV2RoutinePolicyAuthorization.model_validate_json(
+            Path(native_io_path(policy_path)).read_bytes()
+        )
+    else:
+        raise ValueError("completed delivery has no exact user or policy authority")
     package = ExportPackageManifest.model_validate_json(
         Path(native_io_path(package_path)).read_bytes()
     )
@@ -1547,15 +1561,39 @@ def _validate_package_result(
         or plan.job_id != freeze.job_id
         or plan.profile_id != expected_profile
         or plan.source.source_fingerprint != freeze.v07_source_fingerprint
-        or not approval.used
-        or approval.plan_sha256 != sha256_file(plan_path)
-        or approval.review_sha256 != review.optimization_review.sha256
-        or approval.job_id != freeze.job_id
-        or approval.run_id != request.run_id
-        or approval.profile_id != expected_profile
-        or approval.profile_sha256 != review.asset_profile.sha256
-        or approval.preflight_sha256 != plan.preflight_report.sha256
-        or approval.source_fingerprint != freeze.v07_source_fingerprint
+        or (
+            approval is not None
+            and (
+                not approval.used
+                or approval.plan_sha256 != sha256_file(plan_path)
+                or approval.review_sha256 != review.optimization_review.sha256
+                or approval.job_id != freeze.job_id
+                or approval.run_id != request.run_id
+                or approval.profile_id != expected_profile
+                or approval.profile_sha256 != review.asset_profile.sha256
+                or approval.preflight_sha256 != plan.preflight_report.sha256
+                or approval.source_fingerprint != freeze.v07_source_fingerprint
+            )
+        )
+        or (
+            policy_authorization is not None
+            and (
+                policy_authorization.job_id != freeze.job_id
+                or policy_authorization.workflow_id != freeze.workflow_id
+                or policy_authorization.dispatch_id != freeze.dispatch_id
+                or policy_authorization.session_id != freeze.session_id
+                or policy_authorization.gate_kind
+                != "optimization_plan_authorization"
+                or policy_authorization.exact_target_artifact.path
+                != review.optimization_plan.path
+                or policy_authorization.exact_target_artifact.sha256
+                != review.exact_plan_sha256
+                or policy_authorization.current_canonical_snapshot.path
+                != request.source_freeze.path
+                or policy_authorization.current_canonical_snapshot.sha256
+                != request.source_freeze.sha256
+            )
+        )
         or parsed_review.run_id != request.run_id
         or parsed_review.profile_id != expected_profile
         or parsed_review.plan_sha256 != review.exact_plan_sha256
@@ -1698,6 +1736,7 @@ def publish_delivery_terminal(
         for artifact in (
             result.optimization_plan,
             result.optimization_approval,
+            result.optimization_policy_authorization,
             result.package_manifest,
             result.roundtrip_validation,
             result.material_loss_report,
@@ -1732,6 +1771,7 @@ def publish_delivery_terminal(
             for artifact in (
                 result.optimization_plan,
                 result.optimization_approval,
+                result.optimization_policy_authorization,
                 result.package_manifest,
                 result.roundtrip_validation,
                 result.material_loss_report,
@@ -1846,6 +1886,7 @@ def validate_delivery_terminal_v2(
         for artifact in (
             result.optimization_plan,
             result.optimization_approval,
+            result.optimization_policy_authorization,
             result.package_manifest,
             result.roundtrip_validation,
             result.material_loss_report,
@@ -1902,6 +1943,7 @@ def validate_delivery_terminal_v2(
             for artifact in (
                 result.optimization_plan,
                 result.optimization_approval,
+                result.optimization_policy_authorization,
                 result.package_manifest,
                 result.roundtrip_validation,
                 result.material_loss_report,

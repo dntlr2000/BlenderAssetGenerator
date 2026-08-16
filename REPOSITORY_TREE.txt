@@ -21,6 +21,8 @@ BlenderAssetGenerator/
   .github/workflows/python-ci.yml
   .gitignore
   AGENTS.md
+  AQ_APPROVAL_KPI_KO.md
+  ARCHITECTURE_AQ_APPROVAL_ENVELOPE_KO.md
   ARCHITECTURE_AQ_V02_KO.md
   ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md
   ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md
@@ -39,6 +41,7 @@ BlenderAssetGenerator/
   DELIVERY_PROFILES_KO.md
   EXTERNAL_STATIC_ASSET_INTAKE_KO.md
   FILE_MANIFEST.sha256
+  GETTING_STARTED_AQ_ONE_PROMPT_KO.md
   GETTING_STARTED_AQ_V02_KO.md
   GETTING_STARTED_AUTONOMOUS_KO.md
   GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md
@@ -55,6 +58,7 @@ BlenderAssetGenerator/
   MATERIAL_AUTHORING_KO.md
   MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md
   MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md
+  MIGRATION_AQ_APPROVAL_ENVELOPE_KO.md
   MIGRATION_AQ_V02_KO.md
   MIGRATION_AUTONOMOUS_QUALITY_KO.md
   MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md
@@ -69,6 +73,7 @@ BlenderAssetGenerator/
   REPOSITORY_TREE.txt
   ROADMAP_V1_KO.md
   SURFACE_DETAIL_ROUTING_KO.md
+  TEST_PLAN_AQ_APPROVAL_ENVELOPE_KO.md
   TEST_PLAN_AQ_V02_KO.md
   TEST_PLAN_AUTONOMOUS_QUALITY_KO.md
   TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md
@@ -82,6 +87,7 @@ BlenderAssetGenerator/
   TEST_PLAN_V09_KO.md
   UPGRADE_FROM_V02_KO.md
   V074_PRE_OPTIMIZATION_REVIEW_KO.md
+  VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md
   VERIFICATION_AQ_V02_KO.md
   VERIFICATION_AUTONOMOUS_QUALITY_KO.md
   VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md
@@ -94,6 +100,7 @@ BlenderAssetGenerator/
   VERIFICATION_V074_KO.md
   VERIFICATION_V08_KO.md
   VERIFICATION_V09_KO.md
+  benchmarks/aq_approval_kpi/representative_asset_runs.json
   cbm.toml
   docs/agent/README.md
   docs/agent/approvals_and_authorization.md
@@ -157,7 +164,19 @@ BlenderAssetGenerator/
   schemas/advanced_material_handoff_plan.schema.json
   schemas/advanced_material_handoff_receipt.schema.json
   schemas/advanced_material_handoff_request.schema.json
+  schemas/aq_v2_approval_budget.schema.json
+  schemas/aq_v2_approval_telemetry_report.schema.json
+  schemas/aq_v2_consolidated_escalation_request.schema.json
+  schemas/aq_v2_escalation_decision.schema.json
+  schemas/aq_v2_material_closure_policy_promotion_boundary.schema.json
+  schemas/aq_v2_material_policy_authorization_consumption_receipt.schema.json
+  schemas/aq_v2_one_prompt_run_plan.schema.json
+  schemas/aq_v2_one_prompt_run_terminal.schema.json
+  schemas/aq_v2_policy_decision_receipt.schema.json
+  schemas/aq_v2_routine_gate_eligibility_report.schema.json
+  schemas/aq_v2_routine_policy_authorization.schema.json
   schemas/aq_v2_status_projection.schema.json
+  schemas/aq_v2_technical_failure_report.schema.json
   schemas/assembly_companion_report.schema.json
   schemas/assembly_companion_request.schema.json
   schemas/assembly_manifest.schema.json
@@ -171,6 +190,8 @@ BlenderAssetGenerator/
   schemas/asset_profile.schema.json
   schemas/asset_scale_context.schema.json
   schemas/authored_material_manifest.schema.json
+  schemas/autonomy_approval_envelope.schema.json
+  schemas/autonomy_approval_policy_profile.schema.json
   schemas/autonomy_benchmark_v02_blender_receipt.schema.json
   schemas/autonomy_benchmark_v02_case.schema.json
   schemas/autonomy_benchmark_v02_manifest.schema.json
@@ -270,10 +291,12 @@ BlenderAssetGenerator/
   schemas/external_asset_intake_validation.schema.json
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
+  schemas/framework_change_justification.schema.json
   schemas/geometry_intent_survival_report.schema.json
   schemas/geometry_multiview_visual_review.schema.json
   schemas/geometry_stage_snapshot_v02.schema.json
   schemas/handoff_report_manifest.schema.json
+  schemas/historical_session_autonomy_eligibility_report.schema.json
   schemas/host_attempt_failure.schema.json
   schemas/host_attempt_intent.schema.json
   schemas/host_failure_terminal_receipt.schema.json
@@ -354,6 +377,8 @@ BlenderAssetGenerator/
   schemas/material_identity_split_invariant_report.schema.json
   schemas/material_identity_split_modeling_plan_diff_report.schema.json
   schemas/material_identity_split_plan.schema.json
+  schemas/material_identity_split_policy_apply_intent.schema.json
+  schemas/material_identity_split_policy_authorization_consumption_receipt.schema.json
   schemas/material_identity_split_preapproval_failure.schema.json
   schemas/material_identity_split_preapproval_report.schema.json
   schemas/material_identity_split_preapproval_request.schema.json
@@ -544,6 +569,9 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_benchmarks/v02_models.py
   src/codex_blender_modeler/autonomy_benchmarks/v02_runner.py
   src/codex_blender_modeler/autonomy_v2/__init__.py
+  src/codex_blender_modeler/autonomy_v2/approval_models.py
+  src/codex_blender_modeler/autonomy_v2/approval_policy_service.py
+  src/codex_blender_modeler/autonomy_v2/approval_supervisor_service.py
   src/codex_blender_modeler/autonomy_v2/candidate_validation_models.py
   src/codex_blender_modeler/autonomy_v2/candidate_validation_service.py
   src/codex_blender_modeler/autonomy_v2/codex_image_material_loop_service.py
@@ -554,9 +582,12 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/codex_image_planner.py
   src/codex_blender_modeler/autonomy_v2/controller_bridge.py
   src/codex_blender_modeler/autonomy_v2/delivery_executor.py
+  src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
+  src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/material_phase_models.py
   src/codex_blender_modeler/autonomy_v2/material_phase_service.py
+  src/codex_blender_modeler/autonomy_v2/material_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/models.py
   src/codex_blender_modeler/autonomy_v2/planner.py
   src/codex_blender_modeler/autonomy_v2/profiles.py
@@ -883,6 +914,10 @@ BlenderAssetGenerator/
   tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
   tests/test_agent_instruction_hierarchy.py
+  tests/test_aq_approval_envelope.py
+  tests/test_aq_approval_envelope_schemas.py
+  tests/test_aq_approval_kpi.py
+  tests/test_aq_approval_public_surface.py
   tests/test_aq_evidence_envelopes.py
   tests/test_aq_v02_delivery_executor_blender.py
   tests/test_aq_v02_delivery_geometry_blender.py

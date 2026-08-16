@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.0
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`은 이 기존 경계 위에 dependency closure, 승인 전 shadow preflight, 전문 material appearance 승인과 canonical 상태 투영을 더하는 additive companion이며 기존 profile을 활성화하지 않습니다. Material Identity Split `0.1.0`은 공유 material identity를 객체별 identity로 분리해야 하는 `scope_change`를 paired SceneSpec/ModelingPlan shadow 검증, 별도 root-scope 승인, host-locked transaction으로 처리하는 additive companion입니다.
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt Supervisor `0.1.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`과 Material Identity Split `0.1.0`은 기존 사용자 승인 경로를 보존하면서, 새 envelope session에서 exact non-user policy authority를 별도 adapter로 받을 수 있는 기반 capability입니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -22,6 +22,8 @@
 | Asset Production Dispatch / Controller | `0.9.0` |
 | Autonomous Quality / Integrated Quality | `0.1.0` opt-in companion |
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` additive overlay; `disabled_experimental` |
+| AQ Approval Envelope | strict additive `0.3.0`; routine policy authority, approval budget, escalation, telemetry; `disabled_experimental` |
+| AQ One-Prompt Supervisor | strict additive `0.1.0`; bounded current-task run/resume/terminal; `disabled_experimental` |
 | Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1`; `disabled_experimental` |
 | Codex ImageGen Material Loop | additive strict `0.1.0`; native/semantic/controller/promotion/IQ bridge; `disabled_experimental` |
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
@@ -43,6 +45,42 @@
 같은 자산의 shared-material ownership 문제는 Material Closure를 완화하지 않고 Material Identity Split으로 분리했습니다. 승인 전 shadow run은 두 material identity와 두 object assignment, 대응 ModelingPlan 변경만 검증했으며 canonical SceneSpec, ModelingPlan, Blend와 MaterialPlan absence는 그대로입니다. ApprovalRequest는 사용자 승인이 아니므로 별도 사용자 결정 전에는 apply 또는 후속 material repair를 실행하지 않습니다.
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
+
+## AQ Approval Envelope 0.3과 One-Prompt
+
+새 companion은 기존 `RootAuthorizationV2`를 수정하지 않고 exact hash로 결속합니다. Envelope가 없는
+기존 AQ v2 session은 `legacy_without_envelope`로 읽으며 자동 migration, 과거 승인 재분류 또는 소급
+authority가 없습니다.
+
+| 용어 | 의미 |
+|---|---|
+| `autonomous` | 최초 범위 안의 exact routine action을 host policy가 처리하며 추가 사용자 결정 목표는 0회 |
+| `checkpointed` | geometry/material/delivery 사용자 결정 합계를 최대 3회로 제한 |
+| `interactive` | 기존 AQ v2의 explicit approval 대기와 의미를 그대로 보존 |
+| user approval | 사용자가 exact artifact와 결정을 실제로 승인한 기존 전문 계약 |
+| policy authorization | host가 current evidence를 재검증해 한 exact action에만 발행하는 single-use non-user authority |
+| technical repair | closure/path/hash/manifest/projection/rollback 같은 비시각적 복구; 사용자 승인이 아님 |
+| genuine escalation | scope/reference/target/budget/delivery/provider/destination 또는 해결 불가능한 디자인 선택을 하나로 모은 사용자 결정 |
+| review terminal | current best와 unresolved findings를 담는 비-production 종료 |
+| production delivery | IQ, 요청 package와 format별 clean-import evidence까지 완료된 종료 |
+
+13개 routine gate에는 geometry/structural/parameter promotion, bounded identity split, material
+promotion/quality acknowledgement, IQ acceptance, optimization/package acknowledgement, review terminal,
+technical retry, rollback과 ImageGen adoption이 포함됩니다. Controller나 LLM은 eligibility를 결정하지
+않으며 host service가 exact target, canonical snapshot, root/envelope/profile/budget과 forbidden condition을
+다시 검증합니다. PolicyAuthorization은 user approval이 아니고 미래 candidate를 미리 승인하지 않습니다.
+
+One-Prompt는 `geometry → material → quality → delivery → terminal`의 bounded current-task loop입니다.
+controller output이 필요하면 request-owned assignment를 남기고 `waiting_for_controller`로 멈춥니다.
+repository는 Codex task를 spawn하지 않으며 앱 종료 뒤 background 실행을 주장하지 않습니다. 같은
+state, budget, assignment를 검증한 뒤에만 resume합니다. 목적지 Unity/Unreal 프로젝트는 수정하지
+않습니다.
+
+현재 machine-readable KPI에는 여섯 자산 유형·일곱 run의 대표 계약 fixture가 있습니다. 이는 실제
+Blender 자산 E2E, 사람 품질 검토 또는 profile activation 증거가 아닙니다. 실제 상태와 명령은
+[AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
+[AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는
+[AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)를 참조합니다.
 
 ## 구현 범위
 
@@ -89,6 +127,11 @@ Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소
   통과한 경우에만 specialized root-scope ApprovalRequest를 게시합니다. 실제 사용자 승인 이후에도
   SceneSpec·ModelingPlan·Blend는 하나의 host transaction으로만 교체되며, MaterialPlan/controller/IQ는
   별도 downstream 경계입니다.
+- AQ Approval Envelope `0.3.0`: exact RootAuthorization companion, 세 approval mode, 13개 host-only
+  routine gate, 분리된 사용자/정책/technical budget, single-use policy authorization/receipt,
+  consolidated escalation, telemetry와 framework-vs-job-local 분류를 제공합니다.
+- AQ One-Prompt Supervisor `0.1.0`: 기존 AQ v2 state machine을 바꾸지 않고 geometry에서
+  delivery/review까지 bounded current-task 실행·중단·동일 상태 resume·cancel을 제공합니다.
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -1057,12 +1100,12 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 152
-- CLI registry SHA-256: 9427bab8cec47000efb0d892d92ea341088fc77224f4bab6c0e49b909799391e
-- MCP server tools: 143
-- MCP server registry SHA-256: 4667d2b431245106f007bbdaf7af94bcde81437c59561e418f751997b41f0d65
-- Project-enabled MCP tools: 142
-- Project-enabled MCP SHA-256: c26c8fe72be430f8d1911b5499fd8d05483c7895dbc635089e16b8f51df689b4
+- CLI commands: 163
+- CLI registry SHA-256: 223ffda56243c578fea92e75931af44cf82c6afcce9401779677a1872b7529f9
+- MCP server tools: 154
+- MCP server registry SHA-256: ac78b9e33ebd202047d606db5091211f467d45470646df1588bec3a94cd6a7e1
+- Project-enabled MCP tools: 153
+- Project-enabled MCP SHA-256: 1adecbb32ddcb500555b347dc9a1de485421dabb554f65148ef15edbc9d16525
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
 - Latest reported test count: 1809

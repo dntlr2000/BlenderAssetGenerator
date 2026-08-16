@@ -11,3 +11,4 @@ Normative focus: CBM-INV-157..179 and CBM-INV-187..192.
 
 The delegated controller is the sole canonical writer; assignments and external controllers are bounded candidate producers or advisers. Preserve exact launch, binding, phase-profile, source, transition, postflight, and receipt chains. desktop_in_session is workflow-contract-only, not an attested sandbox. Server tools, project-enabled tools, and phase profiles are distinct.
 
+Approval Envelope eligibility and authorization are host policy decisions, never controller output. One-Prompt may publish a request-owned assignment and let the current Codex task satisfy it, but repository code must not spawn another Codex task, claim background continuation after app exit, or resume with a different state, budget, source, or assignment.

@@ -36,13 +36,13 @@ function Invoke-LegacyRegressionGates {
 }
 
 if (-not $OutputRoot) {
-    # Keep the default short enough for nested Blender/package evidence on Windows.
-    $OutputRoot = Join-Path ([System.IO.Path]::GetTempPath()) "aqg-$PID"
+    # Keep the default short and repository-local for nested Blender/package evidence.
+    $OutputRoot = Join-Path (Get-Location) ".codex_test/aqg-$PID"
 }
 $OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
-# Keep pytest's nested fixtures short and outside the repository regardless of report location.
-$PytestRoot = Join-Path ([System.IO.Path]::GetTempPath()) "aqp-$PID"
+# Keep pytest repository-local while staying short enough for Windows nested evidence paths.
+$PytestRoot = Join-Path (Get-Location) ".t/aqp-$PID"
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 $BenchmarkReport = Join-Path $OutputRoot "autonomous_quality_benchmark.json"
 $BenchmarkV02Report = Join-Path $OutputRoot "autonomous_quality_benchmark_v02.json"
@@ -135,6 +135,10 @@ $FocusedTests = @(
     "tests/test_material_identity_split_service.py",
     "tests/test_material_identity_split_transaction.py",
     "tests/test_material_identity_split_public.py",
+    "tests/test_aq_approval_envelope.py",
+    "tests/test_aq_approval_envelope_schemas.py",
+    "tests/test_aq_approval_kpi.py",
+    "tests/test_aq_approval_public_surface.py",
     "tests/test_no_job_specific_framework_literals.py",
     "tests/test_autonomous_quality_benchmarks_v02.py",
     "tests/test_repository_catalog.py",

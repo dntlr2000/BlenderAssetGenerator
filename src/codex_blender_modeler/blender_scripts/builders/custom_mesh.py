@@ -397,7 +397,7 @@ def build(spec: dict, base_dir: Path) -> bpy.types.Object:
                 payload_path=payload_path,
                 base_dir=base_dir,
             )
-        if "loop_uvs" in payload:
+        if payload.get("loop_uvs") is not None:
             raise RuntimeError(
                 "custom_mesh loop_uvs require explicit standard_custom_mesh payload_kind"
             )

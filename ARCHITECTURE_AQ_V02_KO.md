@@ -1072,3 +1072,22 @@ BuildProvenance, MaterialPlan absence, canonical snapshot과 non-synthetic geome
 새로 발행한다. 이전 dependency closure/preflight/preview/appearance approval은 stale이며 후속 material
 repair session이 새 canonical에서 다시 시작한다. 이 연동은 AQ v2 profile 활성화, controller 실행,
 MaterialPlan promotion 또는 IQ 진입을 자동화하지 않는다.
+
+## 29. Approval Envelope 0.3과 One-Prompt 0.1 companion
+
+Approval Envelope는 `RootAuthorizationV2 0.2.0`을 수정하지 않는 선택적 exact-hash companion이다.
+새 session이 명시적으로 `autonomous`, `checkpointed`, `interactive` 중 하나를 계획할 때만
+`AutonomyApprovalPolicyProfile`, `AQV2ApprovalBudget`과 함께 생성된다. Envelope가 없는 기존 AQ v2
+session은 `legacy_without_envelope`이며 자동 migration이나 소급 policy authority가 없다.
+
+`autonomous`와 `checkpointed`에서 host는 13개 routine gate의 exact target, current canonical
+snapshot, root/envelope/profile/budget, dependency와 forbidden condition을 재계산한다. 통과하면 한
+action에만 쓸 수 있는 `AQV2RoutinePolicyAuthorization`을 발행하고 별도 decision receipt로 소비한다.
+이는 user approval이 아니며 controller/LLM이 eligibility를 선언할 수 없다. `interactive` one-prompt는
+새 policy wrapper를 사용하지 않고 기존 explicit approval wait를 그대로 보존한다.
+
+One-Prompt는 기존 AQ state machine 위에서 geometry → material → IQ → delivery/review를 bounded action
+slice로 반복한다. controller output이 필요하면 현재 Codex task가 처리할 request-owned assignment를
+남기고 멈춘다. repository task spawn, 앱 종료 뒤 background continuation, arbitrary canonical write와
+destination project write는 지원하지 않는다. 상세 계약과 실행 제한은
+[Approval Envelope 아키텍처](ARCHITECTURE_AQ_APPROVAL_ENVELOPE_KO.md)를 따른다.

@@ -317,5 +317,5 @@ def test_mesh_payload_v02_dispatch_precedes_standard_loop_uv_guard() -> None:
         / "custom_mesh.py"
     ).read_text(encoding="utf-8")
     v02_dispatch = builder.index('if version == "0.2.0":')
-    standard_guard = builder.index('if "loop_uvs" in payload:')
+    standard_guard = builder.index('if payload.get("loop_uvs") is not None:')
     assert v02_dispatch < standard_guard

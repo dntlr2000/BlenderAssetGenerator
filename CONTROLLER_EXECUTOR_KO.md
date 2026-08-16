@@ -379,3 +379,15 @@ Identity Split은 ControllerResult, canonical MaterialPlan, TextureManifest/Shad
 MaterialAppearanceApproval, IQ 또는 package evidence를 만들지 않는다. Apply가 성공한 뒤 후속 material
 repair가 새 closure와 appearance approval을 만든 경우에만 기존 exact-adoption controller 경계를
 별도로 사용할 수 있다.
+
+## 13. One-Prompt와 policy engine 경계
+
+ControllerExecutor는 Approval Envelope eligibility 또는 policy authorization을 결정하지 않는다.
+controller result는 후보 evidence일 뿐이며 host가 exact result, source inventory, current canonical,
+envelope/profile/budget을 다시 검증한 뒤에만 routine gate authority를 발행할 수 있다.
+
+One-Prompt의 `desktop_in_session`은 request-owned assignment를 현재 Codex task가 수행한다는 기존 의미를
+유지한다. repository가 Codex task를 spawn하거나 daemon/background 실행을 시작하지 않는다. task가
+끝나거나 앱이 닫히면 persisted state, budget과 assignment를 남기고 실행은 멈춘다. resume은 같은
+request/workspace/source/assignment를 재검증하며 controller retry는 같은 candidate에 최대 한 번인
+technical action이지 user approval이 아니다.

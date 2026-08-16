@@ -34,10 +34,14 @@ Turn references, measured evidence, and user feedback into reproducible Blender 
 - [CBM-ROOT-FAIL-CLOSED] Unknown, stale, tampered, escaped, under-authorized, or incomplete evidence fails closed and remains visible.
 - [CBM-ROOT-HISTORY] Preserve immutable requests, plans, approvals, attempts, receipts, histories, packages, QA runs, and terminal evidence. Never repair history in place.
 - [CBM-ROOT-STATIC-ONLY] V0.7, Destination Handoff, external intake, and current AQ profiles are static-asset boundaries; do not imply rig, animation, gameplay, CAD B-Rep, engine graph, or runtime parity.
+- [CBM-ROOT-POLICY-NOT-USER] AQ Approval Envelope policy authorization is a separate, host-issued, exact single-use authority. Never serialize, count, display, or reuse it as user approval, and never treat initial delegation as approval of a future artifact.
+- [CBM-ROOT-TECHNICAL-NO-APPROVAL] Dependency, manifest, path/hash, schema/projection, deterministic normalization, controller packaging, retry, and rollback failures must not create a user approval request.
+- [CBM-ROOT-ENVELOPE-OPTIONAL] Approval Envelope 0.3 is an optional exact RootAuthorizationV2 companion. Missing historical evidence is not `interactive`, is never auto-created, and grants no retroactive authority.
+- [CBM-ROOT-ONE-PROMPT-SESSION] One-Prompt execution is bounded to the current Codex task. Repository code must not spawn a Codex task or claim execution after app exit; resume must reuse and revalidate the same state, budget, and assignment.
 
 ## Version and compatibility baseline
 
-Project remains 0.9.0. Canonical geometry remains SceneSpec 0.2.0. SceneSpec V03 0.3.0 is derived-only. Existing Reference/Constraint 0.4.0, Material/Shader/Texture 0.5.0, Visual QA 0.6.0, Portable Asset 0.7.0, Workflow 0.8.0, Stabilization/Handoff 0.9.0, standard, background_exterior, external intake, AQ 0.1, and autonomous_static_prop_v1 evidence remain readable and retain their original meaning.
+Project remains 0.9.0. Canonical geometry remains SceneSpec 0.2.0. SceneSpec V03 0.3.0 is derived-only. Approval Envelope 0.3.0 and One-Prompt 0.1.0 are additive disabled-experimental companions over unchanged AQ v2 0.2.0. Existing Reference/Constraint 0.4.0, Material/Shader/Texture 0.5.0, Visual QA 0.6.0, Portable Asset 0.7.0, Workflow 0.8.0, Stabilization/Handoff 0.9.0, standard, background_exterior, external intake, AQ 0.1, and autonomous_static_prop_v1 evidence remain readable and retain their original meaning.
 
 New companion versions and profiles are additive and selected by exact schema_version plus profile/session binding. Unknown combinations are never guessed. Existing blocked, failed, cancelled, or completed evidence is never rewritten or retroactively reclassified.
 

@@ -250,3 +250,17 @@ MaterialPlan absence는 바뀌지 않는다. 사용자 승인 후 guarded apply�
 rebound graph, preflight, neutral preview와 appearance approval은 stale이다. 새 post-apply
 SceneInventory/BuildProvenance/MaterialPlan absence/canonical snapshot과 geometry-continuation evidence를
 source로 별도 Material Closure material repair를 처음부터 수행해야 한다.
+
+## 13. Approval Envelope 0.3 material promotion adapter
+
+기존 `MaterialClosurePromotionBoundaryV2 0.2.0`과 `MaterialAppearanceApproval` 경로는 그대로 유지된다.
+새 autonomous/checkpointed envelope session은 모든 기존 closure/rebind/detail·UV preflight/shadow compile/
+neutral preview/consistency/rollback 전제를 통과한 exact candidate에 한해
+`MaterialClosurePolicyPromotionBoundaryV03`을 사용할 수 있다. 이 경계는 exact
+`material_candidate_promotion` policy authorization을 요구하고 `user_approval_created=false`를 고정한다.
+
+Explicit approval consumption과 policy authorization consumption은 서로 다른 contract와 path다. 둘을
+혼합하거나 policy authority를 `MaterialAppearanceApproval`로 직렬화하지 않는다. 기존 host canonical
+promotion, rebuild, inspect/validate와 rollback만 실제 MaterialPlan/Blend를 쓸 수 있으며, 성공 뒤 policy
+decision receipt가 single-use 소비와 budget 전이를 기록한다. `interactive`와 envelope 없는 session은
+기존 appearance approval 경계를 사용한다.

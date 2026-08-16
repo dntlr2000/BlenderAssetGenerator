@@ -36,6 +36,7 @@ from ..production.controller_executor import (
 )
 from ..production.validation import ensure_contained_production_path
 from ..workspace import job_dir
+from .approval_models import ApprovalArtifact
 from .candidate_validation_service import (
     validate_geometry_candidate_validation_receipt_v2,
 )
@@ -47,8 +48,11 @@ from .delivery_service import (
     write_immutable_v2_model,
 )
 from .material_phase_models import (
+    MaterialClosurePolicyPromotionBoundaryV03,
+    MaterialClosurePromotionBoundary,
     MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
+    MaterialPolicyAuthorizationConsumptionReceiptV03,
 )
 from .material_phase_service import validate_material_closure_promotion_boundary_v2
 from .models import (
@@ -978,6 +982,8 @@ def _publish_material_approval_consumption(
         boundary_artifact,
         require_current_canonical=True,
     )
+    if not isinstance(boundary, MaterialClosurePromotionBoundaryV2):
+        raise PermissionError("appearance approval consumption cannot consume policy authority")
     approval_path = validate_v2_artifact(root, boundary.appearance_approval)
     approval = MaterialAppearanceApproval.model_validate_json(
         _read_native_bytes(approval_path)
@@ -1057,6 +1063,150 @@ def _publish_material_approval_consumption(
         }
     )
     return receipt, artifact
+
+
+def _approval_artifact_from_aq(artifact: AQV2Artifact) -> ApprovalArtifact:
+    """Project an AQ artifact into the strict approval-envelope artifact shape."""
+
+    return ApprovalArtifact.model_validate(artifact.model_dump(mode="python"))
+
+
+def _publish_material_policy_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    request_artifact: AQV2Artifact,
+) -> tuple[MaterialPolicyAuthorizationConsumptionReceiptV03, AQV2Artifact]:
+    """Publish or replay one non-user material policy consumption before execution."""
+
+    boundary, closure = validate_material_closure_promotion_boundary_v2(
+        root,
+        plan,
+        boundary_artifact,
+        require_current_canonical=True,
+    )
+    if not isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
+        raise PermissionError("material policy consumption requires a policy boundary")
+    request_path = validate_v2_artifact(root, request_artifact)
+    request = ControllerExecutionRequest.model_validate_json(
+        _read_native_bytes(request_path)
+    )
+    preview_path = validate_v2_artifact(root, boundary.neutral_preview_manifest)
+    from ..material_closure.models import MaterialNeutralPreviewManifest
+
+    preview = MaterialNeutralPreviewManifest.model_validate_json(
+        _read_native_bytes(preview_path)
+    )
+    receipt_id = f"material-policy-consumption-{request.execution_id}"
+    receipt = MaterialPolicyAuthorizationConsumptionReceiptV03(
+        contract_id=receipt_id,
+        receipt_id=receipt_id,
+        job_id=plan.job_id,
+        workflow_id=plan.workflow_id,
+        dispatch_id=plan.dispatch_id,
+        session_id=plan.session_id,
+        root_authorization=boundary.root_authorization,
+        producer="codex_blender_modeler.autonomy_v2.controller_bridge",
+        created_at=request.created_at,
+        approval_count_effect="reduces",
+        approval_count_justification=(
+            "One exact host policy authority is consumed without user approval."
+        ),
+        policy_profile=boundary.policy_profile,
+        approval_envelope=boundary.approval_envelope,
+        approval_budget=boundary.approval_budget,
+        policy_authorization=boundary.policy_authorization,
+        material_policy_boundary=_approval_artifact_from_aq(boundary_artifact),
+        controller_request=_approval_artifact_from_aq(request_artifact),
+        candidate_material_plan_sha256=boundary.candidate_material_plan.sha256,
+        rebound_material_graph_sha256=boundary.rebound_material_graph.sha256,
+        closure_sha256=closure.closure_sha256,
+        preflight_report_sha256=boundary.preflight_report.sha256,
+        neutral_preview_sha256=preview.preview_image.sha256,
+    )
+    receipt_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "material_closure"
+        / "policy_authorization_consumptions"
+        / f"{request.execution_id}.json"
+    )
+    receipt_path = ensure_contained_production_path(
+        root,
+        receipt_path,
+        must_exist=False,
+    )
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    ensure_contained_production_path(root, receipt_path.parent, must_exist=True)
+    for existing_path in sorted(receipt_path.parent.glob("*.json")):
+        safe_existing = ensure_contained_production_path(
+            root,
+            existing_path,
+            must_exist=True,
+        )
+        existing = MaterialPolicyAuthorizationConsumptionReceiptV03.model_validate_json(
+            _read_native_bytes(safe_existing)
+        )
+        if existing_path != receipt_path and (
+            existing.policy_authorization == receipt.policy_authorization
+            or existing.controller_request == receipt.controller_request
+        ):
+            raise PermissionError("material policy authorization was already consumed")
+    if receipt_path.exists():
+        artifact = artifact_for_v2(
+            root,
+            receipt_path,
+            artifact_id=receipt.receipt_id,
+            kind="material-policy-authorization-consumption",
+        )
+        observed = MaterialPolicyAuthorizationConsumptionReceiptV03.model_validate_json(
+            _read_native_bytes(receipt_path)
+        )
+        if observed != receipt:
+            raise FileExistsError("material policy authority was consumed by another request")
+        return observed, artifact
+    artifact = write_immutable_v2_model(root, receipt_path, receipt).model_copy(
+        update={
+            "artifact_id": receipt.receipt_id,
+            "kind": "material-policy-authorization-consumption",
+        }
+    )
+    return receipt, artifact
+
+
+def _publish_material_authority_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    request_artifact: AQV2Artifact,
+) -> tuple[
+    MaterialAppearanceApprovalConsumptionReceipt
+    | MaterialPolicyAuthorizationConsumptionReceiptV03,
+    AQV2Artifact,
+]:
+    """Dispatch consumption without reclassifying policy authority as user approval."""
+
+    boundary, _closure = validate_material_closure_promotion_boundary_v2(
+        root,
+        plan,
+        boundary_artifact,
+        require_current_canonical=True,
+    )
+    if isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
+        return _publish_material_policy_consumption(
+            root,
+            plan,
+            boundary_artifact,
+            request_artifact,
+        )
+    return _publish_material_approval_consumption(
+        root,
+        plan,
+        boundary_artifact,
+        request_artifact,
+    )
 
 
 class ExactMaterialClosureAdoptionController:
@@ -1160,9 +1310,19 @@ class ExactMaterialClosureAdoptionController:
         del timeout_seconds
         if tool_profile.profile_id != "material_authoring":
             raise PermissionError("material closure exact adoption requires material authority")
-        boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(
-            _read_native_bytes(assignment)
-        )
+        boundary_bytes = _read_native_bytes(assignment)
+        boundary_payload = json.loads(boundary_bytes)
+        if not isinstance(boundary_payload, dict):
+            raise ValueError("material closure assignment must be a JSON object")
+        boundary: MaterialClosurePromotionBoundary
+        if boundary_payload.get("schema_version") == "0.3.0":
+            boundary = MaterialClosurePolicyPromotionBoundaryV03.model_validate_json(
+                boundary_bytes
+            )
+        else:
+            boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(
+                boundary_bytes
+            )
         closure = self._closure
         if closure.source_binding.sha256 not in boundary.immutable_input_sha256.values():
             raise ValueError("material closure assignment omits its exact source binding")
@@ -1241,7 +1401,7 @@ class ExactMaterialClosureAdoptionController:
 
 
 class _ApprovalConsumingController:
-    """Consume the exact appearance approval before delegating controller work."""
+    """Consume exact user or policy authority before delegating controller work."""
 
     def __init__(
         self,
@@ -1251,7 +1411,7 @@ class _ApprovalConsumingController:
         plan: AutonomyPlanV2,
         boundary_artifact: AQV2Artifact,
     ) -> None:
-        """Bind the delegate to the closure boundary used by its future request."""
+        """Bind the delegate to the unchanged or additive closure authority boundary."""
 
         self.controller_kind = delegate.controller_kind
         self._delegate = delegate
@@ -1268,7 +1428,7 @@ class _ApprovalConsumingController:
         tool_profile: PhaseToolProfile,
         timeout_seconds: int,
     ) -> str:
-        """Publish single-use consumption before the wrapped controller is invoked."""
+        """Publish one authority-specific consumption before controller invocation."""
 
         if not allowed_output_paths:
             raise ValueError("material closure controller has no request-owned output")
@@ -1293,7 +1453,7 @@ class _ApprovalConsumingController:
             artifact_id=request.contract_id,
             kind="controller-request",
         )
-        _publish_material_approval_consumption(
+        _publish_material_authority_consumption(
             self._root,
             self._plan,
             self._boundary_artifact,
@@ -1316,7 +1476,7 @@ def execute_material_closure_controller_v2(
     controller: CandidateAuthoringController,
     timeout_seconds: int = 900,
 ) -> dict[str, object]:
-    """Execute one approved closure projection and persist its single-use approval receipt."""
+    """Execute one authorized closure and persist its authority-specific receipt."""
 
     root, _session_root, plan, _budget, state, _state_artifact = _session_bundle(
         job_id,
@@ -1374,7 +1534,7 @@ def execute_material_closure_controller_v2(
         artifact_id=request.contract_id,
         kind="controller-request",
     )
-    consumption, consumption_artifact = _publish_material_approval_consumption(
+    consumption, consumption_artifact = _publish_material_authority_consumption(
         root,
         plan,
         boundary_artifact,
@@ -1383,8 +1543,14 @@ def execute_material_closure_controller_v2(
     return {
         **response,
         "material_closure_boundary": boundary_artifact.model_dump(mode="json"),
+        "authority_consumption": consumption.model_dump(mode="json"),
+        "authority_consumption_artifact": consumption_artifact.model_dump(mode="json"),
         "approval_consumption": consumption.model_dump(mode="json"),
         "approval_consumption_artifact": consumption_artifact.model_dump(mode="json"),
+        "user_approval_consumed": isinstance(
+            consumption,
+            MaterialAppearanceApprovalConsumptionReceipt,
+        ),
     }
 
 

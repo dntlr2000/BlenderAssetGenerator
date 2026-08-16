@@ -1,5 +1,20 @@
 # BlenderAssetGenerator V1.0 로드맵
 
+## AQ North Star
+
+지원 범위 안의 새 정적 소품 작업은 최초 사용자 요청 한 번으로 시작하며, 사용자가 최초 요청에서
+허용한 scope, budget, provider 및 delivery 범위 안에서는 routine user approval 없이 production
+delivery 또는 review terminal까지 진행되어야 합니다.
+
+Dependency closure, provenance, manifest, path rebinding, preflight, technical retry, controller retry,
+rollback과 deterministic identity normalization은 사용자 승인 대상이 아닙니다. 추가 사용자 결정은
+최초 권한 범위를 벗어나는 실제 scope, reference, target, budget, delivery, provider 또는 destination
+write 변경과 reference evidence로 해결할 수 없는 중요한 디자인 선택에만 요구합니다.
+
+모든 신규 마일스톤과 계약은 “정상 작업의 사용자 승인 수를 줄이는가, 유지하는가, 늘리는가?”와
+“늘린다면 왜 사용자만 판단할 수 있는 결정인가?”에 대한 답과 exact evidence를 기록해야 합니다.
+새 기술 edge case가 발견됐다는 이유만으로 사용자 승인 계약을 추가하지 않습니다.
+
 이 문서는 BlenderAssetGenerator가 현재 프로젝트 `0.9.0`에서 V1.0까지 발전하는 공식 개발 로드맵입니다. 구현된 기능과 계획된 기능을 구분하고, 각 단계의 책임·진입 조건·완료 조건·되돌아가기 규칙을 정의합니다.
 
 로드맵은 구현 사실을 대신하지 않습니다. 어떤 단계가 `완료`로 바뀌려면 해당 버전의 코드, JSON 계약, 테스트 계획, 실제 Blender 통합 게이트와 검증 기록이 함께 존재해야 합니다.
@@ -28,6 +43,8 @@
 | External Static Asset Intake | `0.9.0` | 수동 제작 static source의 inspection, exact 승인, normalized authoring derivative와 V0.7 연결 |
 | Autonomous Quality / Integrated Quality | `0.1.0` | 새 standard 정적 소품을 위한 opt-in supervisor와 네 축 companion quality evidence |
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` | additive experimental overlay; profile은 `disabled_experimental` |
+| AQ Approval Envelope | `0.3.0` | exact RootAuthorizationV2 companion, routine policy authority, approval budget와 telemetry |
+| AQ One-Prompt Supervisor | `0.1.0` | geometry → material → IQ → delivery/review의 bounded current-task orchestration |
 | Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1` | current-task image candidate overlay; `disabled_experimental` |
 | SceneSpec V03 structural derivative | `0.3.0` | canonical `0.2.0`을 바꾸지 않는 opt-in derived 구조 형상 계약 |
 
@@ -67,6 +84,8 @@ AQ 0.1  Optional Autonomous Quality overlay (프로젝트 버전 불변)
   ↓
 AQ 0.2  Additive experimental quality/delivery harness (비활성)
   ↓
+AQ 0.3  Approval Envelope + One-Prompt Supervisor (비활성)
+  ↓
 ImageGen 0.1  Optional current-Codex texture companion (비활성)
   ↓
 V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
@@ -85,6 +104,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약과 대표 contract fixture 구현, 실제 자산 E2E 미검증 | 두 v2 profile 모두 `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | Material Closure 0.1 | additive stabilization 구현·local regression, authorized success 미검증 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
@@ -888,6 +908,12 @@ VERIFICATION_Vxx_KO.md
 - [Material Identity Split 마이그레이션 정책](MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md)
 - [Material Identity Split 검증 기록](VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)
 - [Material Identity Split 프롬프트 모음](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)
+- [AQ Approval Envelope 아키텍처](ARCHITECTURE_AQ_APPROVAL_ENVELOPE_KO.md)
+- [AQ Approval Envelope 테스트 계획](TEST_PLAN_AQ_APPROVAL_ENVELOPE_KO.md)
+- [AQ Approval Envelope 마이그레이션 정책](MIGRATION_AQ_APPROVAL_ENVELOPE_KO.md)
+- [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md)
+- [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md)
+- [AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, reversible terminal workspace archive,
 single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다.
@@ -897,36 +923,39 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 ## 17. 현재 시점의 다음 순서
 
 ```text
-1. Material Closure Stabilization local contract/regression sign-off — 2026-08-14 완료
-   1A. Material Identity Split generic framework + Crystalgun preapproval — framework 준비 완료
-   1B. 별도 사용자 root-scope 승인 뒤 guarded apply + post-apply authority refresh — 승인 대기
-2. Crystalgun candidate coverage repair와 새 preapproval dry-run
-3. 실제 자산 3종 이상의 material regression
-4. Standard Codex ImageGen integration
-5. 실제 material benchmark
-6. Unity URP material reconstruction
-7. AQ v2 local-only activation review
-8. ImageGen overlay activation review
+0. 현재 Crystalgun explicit identity split / material repair
+   - 기존 authority로 별도 진행
+   - acceptance fixture로만 취급
+1. AQ Approval Envelope 0.3
+   - approval mode, routine policy authorization, bounded identity split, approval budget
+2. One-Prompt End-to-End Supervisor
+   - geometry → material → IQ → delivery/review
+   - genuine escalation에서만 사용자 대기
+3. 실제 자산 5~10개 Approval KPI benchmark
+   - 추가 사용자 결정 수, technical approval 수, safe terminal 비율
+4. AQ v2 local-only activation review
+5. Codex ImageGen overlay one-prompt benchmark와 activation review
+6. Standard Generated Texture Intake 0.1
+   - 수동 생성 PNG의 immutable 등록·provenance·local PBR 연결
+   - Full Standard ImageGen은 반복 assignment/provenance/후보/다중 사용자 workflow 병목이 입증될 때만 조건부
+7. 실제 material benchmark
+8. Unity URP material reconstruction
 9. Architecture exterior / environment / measured 확장
-10. V1.0 승격 재심사
+10. Interior AQ
+11. V1.0 승격 재심사
 ```
 
-각 단계는 앞 단계의 실제 evidence와 gate가 통과한 뒤에만 시작합니다. 1A/1B는 기존 1번과
-2번 사이에 추가된 scope-change 선행 경계이며 기존 1→10 우선순위를 바꾸지 않습니다. 2026-08-14 현재
-Material Closure contracts/public surface, 전체 `1750/62/8` 회귀와 한 actual Blender preapproval
-fixture는 검증됐습니다. 다만 authorized controller/promotion/IQ success는 별도 권한 evidence가
-없어 미검증입니다. Crystalgun retry02는 closure 뒤
-`detail.crystal.facet_lines`의 image-backed UV coverage 누락으로 Blender/preview/approval 전에
-`preflight_failed`가 됐습니다. 원인인 shared material identity를 완화하지 않고 분리하는 generic
-Material Identity Split `0.1.0`과 actual Blender paired shadow preapproval은 통과했지만,
-최종 저장소 회귀도 `1809 passed, 63 skipped, 8 warnings`로 통과했습니다. 그러나
-ApprovalRequest는 승인이 아니므로 1B와 2번은 완료가 아닙니다.
+Material Closure와 Material Identity Split은 더 이상 반복되는 top-level 제품 마일스톤이 아니라
+Approval Envelope가 엄격한 전제 아래 호출하는 기반 capability입니다. Crystalgun의 기존
+ApprovalRequest에는 새 authority를 소급하지 않으며 canonical apply도 이 로드맵 변경으로 자동 실행하지
+않습니다. `Standard Codex ImageGen integration`은 필수 선행 항목에서 제거하고 좁은
+`Standard Generated Texture Intake 0.1`로 대체합니다.
 
-특히 Standard ImageGen 통합은 Crystalgun approval-pending dry-run,
-서로 다른 실제 자산 3종 이상의 material regression, specialized approval/rollback consistency가
-모두 검증되기 전에는 시작하지 않습니다. Unity URP는 engine-neutral source package를 목적
-엔진에서 재구성하는 별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
-7번과 8번은 구현 존재가 아니라 별도 activation review이고, 두 experimental profile은 그때까지
-계속 `disabled_experimental`입니다.
+activation review는 구현 존재나 대표 contract fixture 통과와 별개입니다. local-only profile에는
+최소 5개 실제 자산 one-prompt E2E, 추가 사용자 결정 0 목표, technical approval 0, safe terminal 100%,
+canonical corruption 0과 rollback 무결성이 필요합니다. ImageGen overlay에는 실제 built-in ImageGen
+호출과 semantic/material evidence가 추가로 필요합니다. 두 profile은 그 review 전까지 계속
+`disabled_experimental`입니다. Unity URP는 engine-neutral source package를 목적 엔진에서 재구성하는
+별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
 
-현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 AQ/ImageGen/Material Closure/Material Identity Split 지원 표시는 각각의 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt `0.1.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 각 companion 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

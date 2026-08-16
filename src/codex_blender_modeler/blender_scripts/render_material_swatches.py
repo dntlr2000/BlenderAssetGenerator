@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -20,6 +21,7 @@ from artifact_render_common import configure_artifact_render  # noqa: E402
 
 from codex_blender_modeler.blender_artifacts import (  # noqa: E402
     artifact_path,
+    native_io_path,
     safe_artifact_name,
     sha256_file,
     write_json_atomic,
@@ -164,7 +166,7 @@ def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir).expanduser().resolve()
     manifest_path = Path(args.manifest).expanduser().resolve()
-    output_dir.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output_dir), exist_ok=True)
     configure_artifact_render(args.render_engine, args.render_device)
     scene = bpy.context.scene
     scene.render.resolution_x = args.size
@@ -185,7 +187,7 @@ def main() -> None:
         _assign_material(plane, material)
         material_id = _material_id(material)
         swatch_path = output_dir / safe_artifact_name(material_id) / "swatch.png"
-        swatch_path.parent.mkdir(parents=True, exist_ok=True)
+        os.makedirs(native_io_path(swatch_path.parent), exist_ok=True)
         scene.render.filepath = str(swatch_path)
         bpy.ops.render.render(write_still=True)
         records.append(

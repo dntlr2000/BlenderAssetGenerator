@@ -1,0 +1,212 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Close an unrecoverable technical branch without requesting a user decision.",
+  "properties": {
+    "schema_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.3.0",
+      "default": "0.3.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "failure_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Failure Id",
+      "type": "string"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_envelope": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_budget": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "category": {
+      "enum": [
+        "dependency_closure",
+        "manifest_missing",
+        "path_rebinding",
+        "hash_projection",
+        "schema_serialization",
+        "completion_map_binding",
+        "stale_generated_projection",
+        "controller_output_packaging",
+        "rollback_archive",
+        "deterministic_normalization",
+        "transient_controller_failure",
+        "repeated_framework_failure"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "current_state": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "failure_evidence": {
+      "items": {
+        "$ref": "#/$defs/ApprovalArtifact"
+      },
+      "minItems": 1,
+      "title": "Failure Evidence",
+      "type": "array"
+    },
+    "automatic_repair_attempted": {
+      "title": "Automatic Repair Attempted",
+      "type": "boolean"
+    },
+    "transient_retry_count": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Transient Retry Count",
+      "type": "integer"
+    },
+    "retry_exhausted": {
+      "title": "Retry Exhausted",
+      "type": "boolean"
+    },
+    "canonical_restored_or_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Restored Or Unchanged",
+      "type": "boolean"
+    },
+    "user_approval_requested": {
+      "const": false,
+      "default": false,
+      "title": "User Approval Requested",
+      "type": "boolean"
+    },
+    "status": {
+      "const": "blocked",
+      "default": "blocked",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "failure_id",
+    "policy_profile",
+    "approval_envelope",
+    "approval_budget",
+    "category",
+    "current_state",
+    "failure_evidence",
+    "automatic_repair_attempted",
+    "transient_retry_count",
+    "retry_exhausted"
+  ],
+  "title": "AQV2TechnicalFailureReport",
+  "type": "object"
+}

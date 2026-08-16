@@ -55,15 +55,32 @@ from .autonomy_v2 import (
     advance_autonomy_v2 as advance_autonomy_v2_internal,
 )
 from .autonomy_v2 import (
+    authorize_routine_gate as authorize_routine_gate_internal,
+)
+from .autonomy_v2 import (
     autonomy_v2_profile_status as autonomy_v2_profile_status_internal,
 )
 from .autonomy_v2 import cancel_autonomy_v2 as cancel_autonomy_v2_internal
+from .autonomy_v2 import cancel_one_prompt as cancel_one_prompt_internal
 from .autonomy_v2 import delivery_profile_catalog as delivery_profile_catalog_internal
+from .autonomy_v2 import (
+    evaluate_routine_gate_eligibility as evaluate_routine_gate_eligibility_internal,
+)
+from .autonomy_v2 import (
+    get_approval_envelope_status as get_approval_envelope_status_internal,
+)
+from .autonomy_v2 import get_approval_telemetry as get_approval_telemetry_internal
 from .autonomy_v2 import get_autonomy_v2_status as get_autonomy_v2_status_internal
+from .autonomy_v2 import get_escalation_status as get_escalation_status_internal
+from .autonomy_v2 import get_one_prompt_status as get_one_prompt_status_internal
+from .autonomy_v2 import plan_approval_envelope as plan_approval_envelope_internal
 from .autonomy_v2 import (
     plan_autonomous_static_prop_v2 as plan_autonomous_static_prop_v2_internal,
 )
+from .autonomy_v2 import plan_one_prompt_run as plan_one_prompt_run_internal
+from .autonomy_v2 import resume_one_prompt as resume_one_prompt_internal
 from .autonomy_v2 import run_autonomy_v2 as run_autonomy_v2_internal
+from .autonomy_v2 import run_one_prompt as run_one_prompt_internal
 from .autonomy_v2.codex_image_material_loop_service import (
     ExactCodexImageMaterialAdoptionController,
 )
@@ -1928,6 +1945,195 @@ def cancel_autonomous_quality_v2(job_id: str, session_id: str, reason: str) -> d
     """Cancel future AQ v2 actions without deleting any accumulated evidence."""
 
     return cancel_autonomy_v2_internal(job_id, session_id, reason=reason)
+
+
+@mcp.tool()
+def plan_aq_approval_envelope(
+    job_id: str,
+    session_id: str,
+    initial_user_request_sha256: str,
+    approval_mode: str = "autonomous",
+    explicit_autonomy_delegation_observed: bool = False,
+    allowed_provider_scopes: list[str] | None = None,
+    max_identity_splits: int = 4,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Plan one exact optional envelope without modifying base root authorization."""
+
+    return plan_approval_envelope_internal(
+        job_id,
+        session_id,
+        approval_mode=approval_mode,  # type: ignore[arg-type]
+        initial_user_request_sha256=initial_user_request_sha256,
+        explicit_autonomy_delegation_observed=(
+            explicit_autonomy_delegation_observed
+        ),
+        allowed_provider_scopes=allowed_provider_scopes,  # type: ignore[arg-type]
+        max_identity_splits=max_identity_splits,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def get_aq_approval_envelope_status(job_id: str, session_id: str) -> dict:
+    """Replay an envelope or report legacy absence without automatic migration."""
+
+    return get_approval_envelope_status_internal(job_id, session_id)
+
+
+@mcp.tool()
+def evaluate_aq_policy_eligibility(
+    job_id: str,
+    session_id: str,
+    gate_kind: str,
+    exact_target_path: str,
+    exact_target_kind: str,
+    current_canonical_snapshot_path: str,
+    current_canonical_snapshot_kind: str,
+    dependency_paths: list[str] | None = None,
+    dependency_kinds: list[str] | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Publish a host-recomputed eligibility report without creating user approval."""
+
+    return evaluate_routine_gate_eligibility_internal(
+        job_id,
+        session_id,
+        gate_kind=gate_kind,  # type: ignore[arg-type]
+        exact_target_path=exact_target_path,
+        exact_target_kind=exact_target_kind,
+        current_canonical_snapshot_path=current_canonical_snapshot_path,
+        current_canonical_snapshot_kind=current_canonical_snapshot_kind,
+        dependency_paths=dependency_paths,
+        dependency_kinds=dependency_kinds,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def authorize_aq_policy_gate(
+    job_id: str,
+    session_id: str,
+    eligibility_report_path: str,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Issue one exact single-use non-user authority from passed host eligibility."""
+
+    return authorize_routine_gate_internal(
+        job_id,
+        session_id,
+        eligibility_report_path=eligibility_report_path,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def get_aq_escalation_status(job_id: str, session_id: str) -> dict:
+    """Read the sole consolidated genuine-decision boundary for a session."""
+
+    return get_escalation_status_internal(job_id, session_id)
+
+
+@mcp.tool()
+def get_aq_approval_telemetry(job_id: str, session_id: str) -> dict:
+    """Read immutable approval-minimization KPI evidence without advancing work."""
+
+    return get_approval_telemetry_internal(job_id, session_id)
+
+
+@mcp.tool()
+def plan_autonomy_v2_one_prompt(
+    request: str,
+    reference_path: str,
+    target_subject: str,
+    requested_delivery_profiles: list[str],
+    approval_mode: str = "autonomous",
+    explicit_autonomy_delegation_observed: bool = False,
+    allowed_provider_scopes: list[str] | None = None,
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    destination_hint: str = "engine_neutral",
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Plan a disabled one-prompt run from exact initial delegation and scope."""
+
+    return plan_one_prompt_run_internal(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=requested_delivery_profiles,
+        approval_mode=approval_mode,  # type: ignore[arg-type]
+        explicit_autonomy_delegation_observed=(
+            explicit_autonomy_delegation_observed
+        ),
+        allowed_provider_scopes=allowed_provider_scopes,  # type: ignore[arg-type]
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def run_autonomy_v2_one_prompt(
+    job_id: str,
+    session_id: str,
+    max_actions: int = 32,
+    quality_submission: dict[str, object] | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Run bounded in-session actions until controller work or one safe terminal."""
+
+    return run_one_prompt_internal(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def resume_autonomy_v2_one_prompt(
+    job_id: str,
+    session_id: str,
+    max_actions: int = 32,
+    quality_submission: dict[str, object] | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Resume the same immutable one-prompt state, budget, and assignment."""
+
+    return resume_one_prompt_internal(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def get_autonomy_v2_one_prompt_status(job_id: str, session_id: str) -> dict:
+    """Read one-prompt state without spawning, executing, or migrating work."""
+
+    return get_one_prompt_status_internal(job_id, session_id)
+
+
+@mcp.tool()
+def cancel_autonomy_v2_one_prompt(
+    job_id: str,
+    session_id: str,
+    reason: str,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Cancel future one-prompt actions while retaining immutable evidence."""
+
+    return cancel_one_prompt_internal(
+        job_id,
+        session_id,
+        reason=reason,
+        allow_disabled_experimental=experimental_opt_in,
+    )
 
 
 @mcp.tool()

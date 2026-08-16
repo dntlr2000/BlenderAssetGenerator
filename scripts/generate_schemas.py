@@ -86,6 +86,22 @@ from codex_blender_modeler.autonomy_benchmarks.v02_models import (
     BenchmarkReportV02,
     BlenderBenchmarkReceiptV02,
 )
+from codex_blender_modeler.autonomy_v2.approval_models import (
+    AQV2ApprovalBudget,
+    AQV2ApprovalTelemetryReport,
+    AQV2ConsolidatedEscalationRequest,
+    AQV2EscalationDecision,
+    AQV2OnePromptRunPlan,
+    AQV2OnePromptRunTerminal,
+    AQV2PolicyDecisionReceipt,
+    AQV2RoutineGateEligibilityReport,
+    AQV2RoutinePolicyAuthorization,
+    AQV2TechnicalFailureReport,
+    AutonomyApprovalEnvelope,
+    AutonomyApprovalPolicyProfile,
+    FrameworkChangeJustification,
+    HistoricalSessionAutonomyEligibilityReport,
+)
 from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
     GeometryAuthoringCompletionV2,
     GeometryCandidateValidationReceiptV2,
@@ -94,10 +110,12 @@ from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
+    MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
     MaterialPhaseRollbackReceiptV2,
+    MaterialPolicyAuthorizationConsumptionReceiptV03,
     MaterialPromotionIntentV2,
 )
 from codex_blender_modeler.autonomy_v2.models import (
@@ -282,6 +300,8 @@ from codex_blender_modeler.material_identity_split.models import (
     MaterialIdentitySplitMaterialBindingDerivativeReceipt,
     MaterialIdentitySplitModelingPlanDiffReport,
     MaterialIdentitySplitPlan,
+    MaterialIdentitySplitPolicyApplyIntent,
+    MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt,
     MaterialIdentitySplitPreapprovalFailure,
     MaterialIdentitySplitPreapprovalReport,
     MaterialIdentitySplitPreapprovalRequest,
@@ -649,6 +669,35 @@ SCHEMAS = {
     "autonomy_v02_material_closure_promotion_boundary.schema.json": (
         MaterialClosurePromotionBoundaryV2
     ),
+    "aq_v2_material_closure_policy_promotion_boundary.schema.json": (
+        MaterialClosurePolicyPromotionBoundaryV03
+    ),
+    "aq_v2_material_policy_authorization_consumption_receipt.schema.json": (
+        MaterialPolicyAuthorizationConsumptionReceiptV03
+    ),
+    # Optional AQ v2 Approval Envelope 0.3 and one-prompt companion evidence.
+    "autonomy_approval_envelope.schema.json": AutonomyApprovalEnvelope,
+    "autonomy_approval_policy_profile.schema.json": AutonomyApprovalPolicyProfile,
+    "aq_v2_routine_gate_eligibility_report.schema.json": (
+        AQV2RoutineGateEligibilityReport
+    ),
+    "aq_v2_routine_policy_authorization.schema.json": (
+        AQV2RoutinePolicyAuthorization
+    ),
+    "aq_v2_policy_decision_receipt.schema.json": AQV2PolicyDecisionReceipt,
+    "aq_v2_approval_budget.schema.json": AQV2ApprovalBudget,
+    "aq_v2_consolidated_escalation_request.schema.json": (
+        AQV2ConsolidatedEscalationRequest
+    ),
+    "aq_v2_escalation_decision.schema.json": AQV2EscalationDecision,
+    "aq_v2_approval_telemetry_report.schema.json": AQV2ApprovalTelemetryReport,
+    "aq_v2_technical_failure_report.schema.json": AQV2TechnicalFailureReport,
+    "aq_v2_one_prompt_run_plan.schema.json": AQV2OnePromptRunPlan,
+    "aq_v2_one_prompt_run_terminal.schema.json": AQV2OnePromptRunTerminal,
+    "framework_change_justification.schema.json": FrameworkChangeJustification,
+    "historical_session_autonomy_eligibility_report.schema.json": (
+        HistoricalSessionAutonomyEligibilityReport
+    ),
     # Material Closure 0.1.0 is a strict pre-controller companion, not a new pipeline.
     "material_closure_source_binding.schema.json": MaterialClosureSourceBindingArtifact,
     "material_dependency_closure.schema.json": MaterialDependencyClosure,
@@ -725,6 +774,12 @@ SCHEMAS = {
         MaterialIdentitySplitApprovalConsumptionReceipt
     ),
     "material_identity_split_apply_intent.schema.json": MaterialIdentitySplitApplyIntent,
+    "material_identity_split_policy_apply_intent.schema.json": (
+        MaterialIdentitySplitPolicyApplyIntent
+    ),
+    "material_identity_split_policy_authorization_consumption_receipt.schema.json": (
+        MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt
+    ),
     "material_identity_split_transaction_state.schema.json": (
         MaterialIdentitySplitTransactionState
     ),

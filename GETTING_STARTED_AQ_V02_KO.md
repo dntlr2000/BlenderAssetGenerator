@@ -351,3 +351,24 @@ ApprovalRequest 자체는 승인이 아니다.
 recover를 호출하지 않는다. 승인 후 apply가 성공해도 기존 material repair를 resume하지 말고 새
 canonical observation/continuation에서 closure와 MaterialAppearanceApproval을 다시 만든다. 상세
 운영 문구는 [Material Identity Split 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)를 따른다.
+
+## 13. Approval Envelope/One-Prompt 선택 사용
+
+새 AQ v2 session에서만 Approval Envelope를 선택할 수 있다. `autonomous`는 최초 scope/provider/budget/
+delivery 안의 routine gate에서 추가 사용자 결정 0회를 목표로 하고, `checkpointed`는 geometry/material/
+delivery 결정을 합쳐 최대 3회, `interactive`는 기존 explicit approval 대기를 유지한다. technical repair는
+세 mode 모두 user approval이 아니다.
+
+```powershell
+uv run cbm autonomy-v2-one-prompt-plan --reference <PATH> --target-subject "<SUBJECT>" `
+  --approval-mode autonomous --deliveries review_only --provider-scopes local_only `
+  --delegate-routine-actions --enable-v2 "<EXACT_REQUEST>"
+uv run cbm autonomy-v2-one-prompt-run <JOB_ID> <SESSION_ID> --enable-v2
+uv run cbm autonomy-v2-one-prompt-status <JOB_ID> <SESSION_ID>
+uv run cbm autonomy-v2-one-prompt-resume <JOB_ID> <SESSION_ID> --enable-v2
+```
+
+이 profile은 계속 `disabled_experimental`이므로 명시적 opt-in이 필요하다. `waiting_for_controller`는
+repository가 다른 task를 spawn했다는 뜻이 아니다. 현재 task가 exact assignment output을 만든 뒤 같은
+state/budget/assignment에서 resume해야 하며 앱 종료 뒤에는 실행이 이어지지 않는다. 전체 입력 예시는
+[One-Prompt 시작 안내](GETTING_STARTED_AQ_ONE_PROMPT_KO.md)를 따른다.

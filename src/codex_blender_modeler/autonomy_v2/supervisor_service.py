@@ -52,7 +52,12 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
-from .material_phase_models import MaterialClosurePromotionBoundaryV2
+from .material_phase_models import (
+    MaterialClosurePolicyPromotionBoundaryV03,
+    MaterialClosurePromotionBoundary,
+    MaterialClosurePromotionBoundaryV2,
+    MaterialPolicyAuthorizationConsumptionReceiptV03,
+)
 from .material_phase_service import (
     validate_and_promote_material_closure_controller_result_v2,
     validate_and_promote_material_controller_result_v2,
@@ -515,7 +520,7 @@ def _material_closure_assignment(
     plan: AutonomyPlanV2,
     result: ControllerResult,
 ) -> tuple[
-    MaterialClosurePromotionBoundaryV2,
+    MaterialClosurePromotionBoundary,
     AQV2Artifact,
     ControllerExecutionRequest,
     AQV2Artifact,
@@ -566,24 +571,30 @@ def _material_closure_assignment(
     with open(native_io_path(assignment_path), "rb") as handle:
         payload = handle.read()
     try:
-        boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(payload)
+        untyped = json.loads(payload)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(untyped, dict):
+        return None
+    try:
+        boundary: MaterialClosurePromotionBoundary
+        if untyped.get("schema_version") == "0.3.0":
+            boundary = MaterialClosurePolicyPromotionBoundaryV03.model_validate_json(
+                payload
+            )
+        else:
+            boundary = MaterialClosurePromotionBoundaryV2.model_validate_json(payload)
     except ValidationError as exc:
-        try:
-            untyped = json.loads(payload)
-        except (json.JSONDecodeError, UnicodeDecodeError):
-            return None
         closure_markers = {
             "boundary_id",
             "dependency_closure",
             "appearance_approval",
             "appearance_approval_required",
+            "policy_authorization",
+            "policy_authorization_required",
             "controller_may_execute",
         }
-        if isinstance(untyped, dict) and (
-            closure_markers & set(untyped)
-            or untyped.get("canonical_write_authority")
-            == "material_phase_service_only"
-        ):
+        if closure_markers & set(untyped):
             raise ValueError(
                 "material controller assignment resembles a malformed closure boundary"
             ) from exc
@@ -718,6 +729,160 @@ def _discover_material_approval_consumption(
     return artifact
 
 
+def _discover_material_policy_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary: MaterialClosurePolicyPromotionBoundaryV03,
+    boundary_artifact: AQV2Artifact,
+    request: ControllerExecutionRequest,
+    request_artifact: AQV2Artifact,
+) -> AQV2Artifact:
+    """Select the one canonical non-user receipt for this policy and request."""
+
+    receipt_root = ensure_contained_production_path(
+        root,
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "material_closure"
+        / "policy_authorization_consumptions",
+        must_exist=False,
+    )
+    if not os.path.isdir(native_io_path(receipt_root)):
+        raise PermissionError(
+            "material policy promotion requires one authorization consumption receipt"
+        )
+    request_binding = (
+        request_artifact.path,
+        request_artifact.sha256,
+        request_artifact.byte_size,
+    )
+    authorization_binding = (
+        boundary.policy_authorization.path,
+        boundary.policy_authorization.sha256,
+        boundary.policy_authorization.byte_size,
+    )
+    relevant: list[
+        tuple[MaterialPolicyAuthorizationConsumptionReceiptV03, AQV2Artifact, Path]
+    ] = []
+    for path in sorted(
+        (item for item in receipt_root.iterdir() if item.suffix.casefold() == ".json"),
+        key=lambda item: (item.name.casefold(), item.name),
+    ):
+        safe_path = ensure_contained_production_path(root, path, must_exist=True)
+        with open(native_io_path(safe_path), "rb") as handle:
+            receipt = MaterialPolicyAuthorizationConsumptionReceiptV03.model_validate_json(
+                handle.read()
+            )
+        artifact = artifact_for_v2(
+            root,
+            safe_path,
+            artifact_id=receipt.receipt_id,
+            kind="material-policy-authorization-consumption",
+        )
+        observed_request = (
+            receipt.controller_request.path,
+            receipt.controller_request.sha256,
+            receipt.controller_request.byte_size,
+        )
+        observed_authorization = (
+            receipt.policy_authorization.path,
+            receipt.policy_authorization.sha256,
+            receipt.policy_authorization.byte_size,
+        )
+        if (
+            observed_request == request_binding
+            or observed_authorization == authorization_binding
+        ):
+            relevant.append((receipt, artifact, safe_path))
+    if len(relevant) != 1:
+        raise PermissionError(
+            "material policy authorization consumption is missing or ambiguous"
+        )
+    receipt, artifact, path = relevant[0]
+    expected_identity = (
+        plan.job_id,
+        plan.workflow_id,
+        plan.dispatch_id,
+        plan.session_id,
+    )
+    if (
+        receipt.job_id,
+        receipt.workflow_id,
+        receipt.dispatch_id,
+        receipt.session_id,
+    ) != expected_identity:
+        raise PermissionError("material policy consumption identity changed")
+    boundary_binding = (
+        boundary_artifact.path,
+        boundary_artifact.sha256,
+        boundary_artifact.byte_size,
+    )
+    if (
+        receipt.producer
+        != "codex_blender_modeler.autonomy_v2.controller_bridge"
+        or receipt.producer_version != "0.3.0"
+        or receipt.created_at != request.created_at
+        or receipt.policy_authorization != boundary.policy_authorization
+        or receipt.policy_profile != boundary.policy_profile
+        or receipt.approval_envelope != boundary.approval_envelope
+        or receipt.approval_budget != boundary.approval_budget
+        or (
+            receipt.material_policy_boundary.path,
+            receipt.material_policy_boundary.sha256,
+            receipt.material_policy_boundary.byte_size,
+        )
+        != boundary_binding
+        or (
+            receipt.controller_request.path,
+            receipt.controller_request.sha256,
+            receipt.controller_request.byte_size,
+        )
+        != request_binding
+        or receipt.is_user_approval
+        or receipt.approved_by_user
+        or receipt.user_approval_created
+    ):
+        raise PermissionError(
+            "material policy consumption is not host-published exact evidence"
+        )
+    expected_path = receipt_root / f"{request.execution_id}.json"
+    if path != expected_path or receipt.receipt_id != (
+        f"material-policy-consumption-{request.execution_id}"
+    ):
+        raise PermissionError("material policy consumption path or identity is noncanonical")
+    return artifact
+
+
+def _discover_material_authority_consumption(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary: MaterialClosurePromotionBoundary,
+    boundary_artifact: AQV2Artifact,
+    request: ControllerExecutionRequest,
+    request_artifact: AQV2Artifact,
+) -> AQV2Artifact:
+    """Dispatch discovery while preserving distinct user and policy authority types."""
+
+    if isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
+        return _discover_material_policy_consumption(
+            root,
+            plan,
+            boundary,
+            boundary_artifact,
+            request,
+            request_artifact,
+        )
+    return _discover_material_approval_consumption(
+        root,
+        plan,
+        boundary,
+        request,
+        request_artifact,
+    )
+
+
 def _controller_validation_boundary(
     root: Path,
     session_root: Path,
@@ -752,6 +917,7 @@ def _controller_validation_boundary(
     ):
         raise ValueError("AQ v2 controller phase profile changed after execution")
     profile = _read_exact_model(root, profile_artifact, PhaseToolProfile)
+    policy_decision: dict[str, object] | None = None
     if profile.profile_id == "geometry_authoring":
         receipt, evidence = validate_and_promote_geometry_candidate_v2(
             job_root=root,
@@ -767,10 +933,11 @@ def _controller_validation_boundary(
         closure_context = _material_closure_assignment(root, plan, result)
         if closure_context is not None:
             boundary, boundary_artifact, request, request_artifact = closure_context
-            consumption_artifact = _discover_material_approval_consumption(
+            consumption_artifact = _discover_material_authority_consumption(
                 root,
                 plan,
                 boundary,
+                boundary_artifact,
                 request,
                 request_artifact,
             )
@@ -785,6 +952,20 @@ def _controller_validation_boundary(
                     approval_consumption_artifact=consumption_artifact,
                 )
             )
+            if isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
+                from .approval_policy_service import publish_policy_decision_receipt
+
+                policy_decision = publish_policy_decision_receipt(
+                    plan.job_id,
+                    plan.session_id,
+                    policy_authorization_path=boundary.policy_authorization.path,
+                    canonical_snapshot_after_path="analysis/scene_spec.json",
+                    canonical_snapshot_after_kind="canonical-scene-snapshot",
+                    outcome="applied",
+                    action_result_path=evidence.path,
+                    action_result_kind="material-phase-receipt",
+                    allow_disabled_experimental=True,
+                )
         else:
             from .codex_image_material_loop_service import (
                 validate_codex_image_material_controller_promotion_boundary,
@@ -823,13 +1004,16 @@ def _controller_validation_boundary(
         budget_usage=receipt.budget_usage_after,
     )
     state_artifact = _write_next_state(root, session_root, next_state)
-    return {
+    response: dict[str, object] = {
         "advanced": True,
         "outcome": outcome,
         "candidate_receipt": evidence.model_dump(mode="json"),
         "state": next_state.model_dump(mode="json"),
         "state_artifact": state_artifact.model_dump(mode="json"),
     }
+    if policy_decision is not None:
+        response["routine_policy_decision"] = policy_decision
+    return response
 
 
 def _report_named_evidence_hashes(report: IntegratedQualityReportV02) -> set[str]:

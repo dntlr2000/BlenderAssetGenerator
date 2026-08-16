@@ -93,6 +93,17 @@
           ],
           "default": null
         },
+        "optimization_policy_authorization": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AQV2Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "package_manifest": {
           "anyOf": [
             {

@@ -45,12 +45,23 @@ from .autonomy_v2 import (
     AutonomyPlanV2,
     AutonomyStateV2,
     advance_autonomy_v2,
+    authorize_routine_gate,
     autonomy_v2_profile_status,
     cancel_autonomy_v2,
+    cancel_one_prompt,
     delivery_profile_catalog,
+    evaluate_routine_gate_eligibility,
+    get_approval_envelope_status,
+    get_approval_telemetry,
     get_autonomy_v2_status,
+    get_escalation_status,
+    get_one_prompt_status,
+    plan_approval_envelope,
     plan_autonomous_static_prop_v2,
+    plan_one_prompt_run,
+    resume_one_prompt,
     run_autonomy_v2,
+    run_one_prompt,
     validate_v2_artifact,
 )
 from .autonomy_v2.codex_image_material_loop_service import (
@@ -3157,6 +3168,280 @@ def _load_quality_submission_payload(path: Path | None) -> dict[str, object] | N
     if not isinstance(payload, dict):
         raise ValueError("AQ v2 quality submission JSON must contain one object")
     return payload
+
+
+@app.command("aq-approval-envelope-plan")
+def aq_approval_envelope_plan_command(
+    job_id: str,
+    session_id: str,
+    initial_user_request_sha256: Annotated[
+        str, typer.Option("--initial-user-request-sha256")
+    ],
+    approval_mode: Annotated[str, typer.Option("--approval-mode")] = "autonomous",
+    delegate_routine_actions: Annotated[
+        bool,
+        typer.Option("--delegate-routine-actions/--no-delegate-routine-actions"),
+    ] = False,
+    provider_scopes: Annotated[
+        str,
+        typer.Option(
+            "--provider-scopes",
+            help="Comma-separated: local_only,codex_builtin_imagegen",
+        ),
+    ] = "local_only",
+    max_identity_splits: Annotated[
+        int, typer.Option("--max-identity-splits", min=0, max=8)
+    ] = 4,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Plan one exact disabled approval envelope without changing RootAuthorizationV2."""
+
+    result = plan_approval_envelope(
+        job_id,
+        session_id,
+        approval_mode=approval_mode,  # type: ignore[arg-type]
+        initial_user_request_sha256=initial_user_request_sha256,
+        explicit_autonomy_delegation_observed=delegate_routine_actions,
+        allowed_provider_scopes=_parse_required_csv(
+            provider_scopes,
+            option_name="--provider-scopes",
+        ),  # type: ignore[arg-type]
+        max_identity_splits=max_identity_splits,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-approval-envelope-status")
+def aq_approval_envelope_status_command(job_id: str, session_id: str) -> None:
+    """Replay an approval envelope or report legacy absence without migration."""
+
+    console.print_json(
+        json.dumps(get_approval_envelope_status(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("aq-policy-eligibility")
+def aq_policy_eligibility_command(
+    job_id: str,
+    session_id: str,
+    gate_kind: Annotated[str, typer.Option("--gate-kind")],
+    target_path: Annotated[str, typer.Option("--target")],
+    target_kind: Annotated[str, typer.Option("--target-kind")],
+    canonical_snapshot_path: Annotated[str, typer.Option("--canonical-snapshot")],
+    canonical_snapshot_kind: Annotated[
+        str, typer.Option("--canonical-snapshot-kind")
+    ],
+    dependency_paths: Annotated[
+        list[str] | None, typer.Option("--dependency-path")
+    ] = None,
+    dependency_kinds: Annotated[
+        list[str] | None, typer.Option("--dependency-kind")
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Publish one host-recomputed gate eligibility report without user authority."""
+
+    result = evaluate_routine_gate_eligibility(
+        job_id,
+        session_id,
+        gate_kind=gate_kind,  # type: ignore[arg-type]
+        exact_target_path=target_path,
+        exact_target_kind=target_kind,
+        current_canonical_snapshot_path=canonical_snapshot_path,
+        current_canonical_snapshot_kind=canonical_snapshot_kind,
+        dependency_paths=dependency_paths,
+        dependency_kinds=dependency_kinds,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-policy-authorize")
+def aq_policy_authorize_command(
+    job_id: str,
+    session_id: str,
+    eligibility_report_path: Annotated[str, typer.Option("--eligibility-report")],
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Issue one unused exact policy authorization only from passed host evidence."""
+
+    result = authorize_routine_gate(
+        job_id,
+        session_id,
+        eligibility_report_path=eligibility_report_path,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-escalation-status")
+def aq_escalation_status_command(job_id: str, session_id: str) -> None:
+    """Read one consolidated genuine-decision request without creating approval."""
+
+    console.print_json(
+        json.dumps(get_escalation_status(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("aq-approval-telemetry")
+def aq_approval_telemetry_command(job_id: str, session_id: str) -> None:
+    """Read immutable approval-minimization telemetry for one AQ v2 session."""
+
+    console.print_json(
+        json.dumps(get_approval_telemetry(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("autonomy-v2-one-prompt-plan")
+def autonomy_v2_one_prompt_plan_command(
+    request: str,
+    reference_path: Annotated[str, typer.Option("--reference")],
+    target_subject: Annotated[str, typer.Option("--target-subject")],
+    deliveries: Annotated[
+        str,
+        typer.Option(
+            "--deliveries",
+            help="Comma-separated: review_only,portable_gltf,portable_fbx",
+        ),
+    ] = "portable_gltf",
+    approval_mode: Annotated[str, typer.Option("--approval-mode")] = "autonomous",
+    delegate_routine_actions: Annotated[
+        bool,
+        typer.Option("--delegate-routine-actions/--no-delegate-routine-actions"),
+    ] = False,
+    provider_scopes: Annotated[
+        str,
+        typer.Option(
+            "--provider-scopes",
+            help="Comma-separated: local_only,codex_builtin_imagegen",
+        ),
+    ] = "local_only",
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    controller_execution_mode: Annotated[
+        str, typer.Option("--controller-mode")
+    ] = "desktop_in_session",
+    destination_hint: Annotated[
+        str, typer.Option("--destination-hint")
+    ] = "engine_neutral",
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Plan one disabled one-prompt session from exact initial user delegation."""
+
+    result = plan_one_prompt_run(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=_parse_required_csv(
+            deliveries,
+            option_name="--deliveries",
+        ),
+        approval_mode=approval_mode,  # type: ignore[arg-type]
+        explicit_autonomy_delegation_observed=delegate_routine_actions,
+        allowed_provider_scopes=_parse_required_csv(
+            provider_scopes,
+            option_name="--provider-scopes",
+        ),  # type: ignore[arg-type]
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-one-prompt-run")
+def autonomy_v2_one_prompt_run_command(
+    job_id: str,
+    session_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=128)] = 32,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Run bounded in-session work until controller output or one safe terminal."""
+
+    result = run_one_prompt(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-one-prompt-resume")
+def autonomy_v2_one_prompt_resume_command(
+    job_id: str,
+    session_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=128)] = 32,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Resume the same one-prompt plan, state, budget, and pending assignment."""
+
+    result = resume_one_prompt(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("autonomy-v2-one-prompt-status")
+def autonomy_v2_one_prompt_status_command(job_id: str, session_id: str) -> None:
+    """Read one-prompt state without executing, spawning, or migrating work."""
+
+    console.print_json(
+        json.dumps(get_one_prompt_status(job_id, session_id), ensure_ascii=False)
+    )
+
+
+@app.command("autonomy-v2-one-prompt-cancel")
+def autonomy_v2_one_prompt_cancel_command(
+    job_id: str,
+    session_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Cancel future one-prompt actions while preserving immutable evidence."""
+
+    result = cancel_one_prompt(
+        job_id,
+        session_id,
+        reason=reason,
+        allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
 
 
 @app.command("autonomy-v2-advance")

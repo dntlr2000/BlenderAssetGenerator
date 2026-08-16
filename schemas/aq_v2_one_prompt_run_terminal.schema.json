@@ -1,0 +1,249 @@
+{
+  "$defs": {
+    "ApprovalArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one non-empty job-contained artifact to a normalized path and exact bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ApprovalArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Close one-prompt execution with exact production, review, escalation, or failure evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "policy_profile": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "approval_envelope": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "producer": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "approval_count_effect": {
+      "enum": [
+        "reduces",
+        "maintains",
+        "increases"
+      ],
+      "title": "Approval Count Effect",
+      "type": "string"
+    },
+    "approval_count_justification": {
+      "maxLength": 1200,
+      "minLength": 1,
+      "title": "Approval Count Justification",
+      "type": "string"
+    },
+    "terminal_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Terminal Id",
+      "type": "string"
+    },
+    "one_prompt_plan": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "final_autonomy_state": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "terminal_type": {
+      "enum": [
+        "production_delivery",
+        "review_bundle",
+        "genuine_escalation",
+        "blocked",
+        "cancelled"
+      ],
+      "title": "Terminal Type",
+      "type": "string"
+    },
+    "delivery_terminal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "review_bundle": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "consolidated_escalation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "framework_change_justification": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "framework_failure_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "approval_telemetry": {
+      "$ref": "#/$defs/ApprovalArtifact"
+    },
+    "canonical_corruption_count": {
+      "const": 0,
+      "default": 0,
+      "title": "Canonical Corruption Count",
+      "type": "integer"
+    },
+    "canonical_restored_after_rollback": {
+      "title": "Canonical Restored After Rollback",
+      "type": "boolean"
+    },
+    "destination_project_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Write",
+      "type": "boolean"
+    },
+    "background_execution_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Background Execution Claimed",
+      "type": "boolean"
+    },
+    "repository_task_spawn_claimed": {
+      "const": false,
+      "default": false,
+      "title": "Repository Task Spawn Claimed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "root_authorization",
+    "policy_profile",
+    "approval_envelope",
+    "producer",
+    "created_at",
+    "approval_count_effect",
+    "approval_count_justification",
+    "terminal_id",
+    "one_prompt_plan",
+    "final_autonomy_state",
+    "terminal_type",
+    "approval_telemetry",
+    "canonical_restored_after_rollback"
+  ],
+  "title": "AQV2OnePromptRunTerminal",
+  "type": "object"
+}

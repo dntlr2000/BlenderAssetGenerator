@@ -70,10 +70,13 @@ from .delivery_service import (
     write_immutable_v2_model,
 )
 from .material_phase_models import (
+    MaterialClosurePolicyPromotionBoundaryV03,
+    MaterialClosurePromotionBoundary,
     MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
     MaterialPhaseReceiptV2,
     MaterialPhaseRollbackReceiptV2,
+    MaterialPolicyAuthorizationConsumptionReceiptV03,
     MaterialPromotionIntentV2,
 )
 from .models import (
@@ -196,6 +199,32 @@ def _read_exact_model(
         raise MaterialPhaseError(f"invalid {model.__name__} material evidence") from exc
 
 
+def _read_material_closure_boundary(
+    root: Path,
+    artifact: AQV2Artifact,
+) -> MaterialClosurePromotionBoundary:
+    """Strictly dispatch one material boundary without weakening either authority type."""
+
+    path = validate_v2_artifact(root, artifact)
+    try:
+        encoded = _read_native_material_bytes(path)
+        payload = json.loads(encoded)
+        if not isinstance(payload, dict):
+            raise ValueError("material closure boundary must be a JSON object")
+        if payload.get("schema_version") == "0.3.0":
+            return MaterialClosurePolicyPromotionBoundaryV03.model_validate_json(encoded)
+        return MaterialClosurePromotionBoundaryV2.model_validate_json(encoded)
+    except (OSError, json.JSONDecodeError, UnicodeDecodeError, ValidationError, ValueError) as exc:
+        raise MaterialPhaseError("invalid material closure promotion boundary") from exc
+
+
+def _read_native_material_bytes(path: Path) -> bytes:
+    """Read one material evidence file through the repository's native path adapter."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 def _validate_closure_exact_artifact(root: Path, artifact: ExactArtifact) -> Path:
     """Rehash one Material Closure artifact through the production containment boundary."""
 
@@ -222,6 +251,90 @@ def _same_exact_artifact(
         aq_artifact.sha256,
         aq_artifact.byte_size,
     )
+
+
+def _same_artifact_bytes(left: object, right: object) -> bool:
+    """Compare two supported artifact records by contained path, digest, and byte size."""
+
+    return (
+        getattr(left, "path", None),
+        getattr(left, "sha256", None),
+        getattr(left, "byte_size", None),
+    ) == (
+        getattr(right, "path", None),
+        getattr(right, "sha256", None),
+        getattr(right, "byte_size", None),
+    )
+
+
+def _validate_material_policy_authority(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary: MaterialClosurePolicyPromotionBoundaryV03,
+    consistency: MaterialStateConsistencyReport,
+) -> None:
+    """Replay one unused exact policy authority and reject any user-approval equivalence."""
+
+    from .approval_models import ApprovalArtifact, AQV2RoutinePolicyAuthorization
+    from .approval_policy_service import validate_routine_policy_authorization
+
+    validation = validate_routine_policy_authorization(
+        plan.job_id,
+        plan.session_id,
+        policy_authorization_path=boundary.policy_authorization.path,
+        expected_gate_kind="material_candidate_promotion",
+        expected_target_path=boundary.preflight_report.path,
+    )
+    authorization = AQV2RoutinePolicyAuthorization.model_validate_json(
+        json.dumps(validation["authorization"])
+    )
+    authorization_artifact = ApprovalArtifact.model_validate(
+        validation["authorization_artifact"]
+    )
+    expected_dependencies = [
+        boundary.dependency_closure,
+        boundary.dependency_closure_receipt,
+        boundary.graph_rebinding_receipt,
+        boundary.shadow_compile_receipt,
+        boundary.neutral_preview_manifest,
+        boundary.state_consistency_report,
+        boundary.candidate_material_plan,
+        boundary.rebound_material_graph,
+    ]
+    observed_dependency_bytes = {
+        (item.path, item.sha256, item.byte_size)
+        for item in authorization.dependency_artifacts
+    }
+    expected_dependency_bytes = {
+        (item.path, item.sha256, item.byte_size) for item in expected_dependencies
+    }
+    if (
+        authorization_artifact != boundary.policy_authorization
+        or authorization.root_authorization != boundary.root_authorization
+        or authorization.policy_profile != boundary.policy_profile
+        or authorization.approval_envelope != boundary.approval_envelope
+        or authorization.approval_budget != boundary.approval_budget
+        or authorization.is_user_approval
+        or authorization.approved_by_user
+        or authorization.synthetic_user_approval
+        or not _same_artifact_bytes(
+            authorization.exact_target_artifact,
+            boundary.preflight_report,
+        )
+        or not _same_artifact_bytes(
+            authorization.current_canonical_snapshot,
+            consistency.observed_snapshot.scene_spec,
+        )
+        or observed_dependency_bytes != expected_dependency_bytes
+        or len(authorization.dependency_artifacts) != len(expected_dependencies)
+        or boundary.canonical_scene_spec_sha256
+        != consistency.observed_snapshot.scene_spec.sha256
+        or boundary.canonical_blend_sha256
+        != consistency.observed_snapshot.blend.sha256
+    ):
+        raise PermissionError(
+            "material closure controller requires one exact current policy authorization"
+        )
 
 
 def _validate_material_closure_identity(
@@ -293,14 +406,13 @@ def validate_material_closure_promotion_boundary_v2(
     require_boundary_state: bool = False,
     require_current_canonical: bool = True,
     revalidate_published_preflight: bool = True,
-) -> tuple[MaterialClosurePromotionBoundaryV2, MaterialDependencyClosure]:
-    """Revalidate closure, preflight, preview, consistency, and exact user approval."""
+) -> tuple[MaterialClosurePromotionBoundary, MaterialDependencyClosure]:
+    """Revalidate one unchanged user boundary or additive exact policy boundary."""
 
     job_root = ensure_contained_production_path(root, root, must_exist=True)
-    boundary = _read_exact_model(
+    boundary = _read_material_closure_boundary(
         job_root,
         boundary_artifact,
-        MaterialClosurePromotionBoundaryV2,
     )
     _validate_material_closure_identity(plan, boundary)
     for artifact in boundary.provenance:
@@ -380,11 +492,6 @@ def validate_material_closure_promotion_boundary_v2(
         boundary.neutral_preview_manifest,
         MaterialNeutralPreviewManifest,
     )
-    approval = _read_exact_model(
-        job_root,
-        boundary.appearance_approval,
-        MaterialAppearanceApproval,
-    )
     consistency = _read_exact_model(
         job_root,
         boundary.state_consistency_report,
@@ -398,7 +505,6 @@ def validate_material_closure_promotion_boundary_v2(
         preflight,
         shadow,
         preview,
-        approval,
         consistency,
         consistency.observed_snapshot,
     )
@@ -487,26 +593,45 @@ def validate_material_closure_promotion_boundary_v2(
     if require_current_canonical:
         _validate_canonical_snapshot_current(job_root, consistency.observed_snapshot)
     if (
-        approval.decision != "approved"
-        or approval.approved_by != "user"
-        or approval.scope != "material_appearance_promotion"
-        or approval.candidate_material_plan_sha256
-        != boundary.candidate_material_plan.sha256
-        or approval.rebound_material_graph_sha256
-        != boundary.rebound_material_graph.sha256
-        or approval.closure_sha256 != closure.closure_sha256
-        or approval.preflight_report_sha256 != boundary.preflight_report.sha256
-        or approval.neutral_preview_sha256 != preview.preview_image.sha256
-        or approval.canonical_scene_spec_sha256
+        boundary.canonical_scene_spec_sha256
         != consistency.observed_snapshot.scene_spec.sha256
-        or approval.canonical_blend_sha256 != consistency.observed_snapshot.blend.sha256
-        or approval.uv_layout_fingerprint != boundary.uv_layout_fingerprint
-        or boundary.canonical_scene_spec_sha256
-        != consistency.observed_snapshot.scene_spec.sha256
-        or boundary.canonical_blend_sha256 != consistency.observed_snapshot.blend.sha256
+        or boundary.canonical_blend_sha256
+        != consistency.observed_snapshot.blend.sha256
     ):
-        raise PermissionError(
-            "material closure controller requires one exact current appearance approval"
+        raise MaterialPhaseError("material closure canonical snapshot binding changed")
+    if isinstance(boundary, MaterialClosurePromotionBoundaryV2):
+        approval = _read_exact_model(
+            job_root,
+            boundary.appearance_approval,
+            MaterialAppearanceApproval,
+        )
+        _validate_material_closure_identity(plan, approval)
+        if (
+            approval.decision != "approved"
+            or approval.approved_by != "user"
+            or approval.scope != "material_appearance_promotion"
+            or approval.candidate_material_plan_sha256
+            != boundary.candidate_material_plan.sha256
+            or approval.rebound_material_graph_sha256
+            != boundary.rebound_material_graph.sha256
+            or approval.closure_sha256 != closure.closure_sha256
+            or approval.preflight_report_sha256 != boundary.preflight_report.sha256
+            or approval.neutral_preview_sha256 != preview.preview_image.sha256
+            or approval.canonical_scene_spec_sha256
+            != consistency.observed_snapshot.scene_spec.sha256
+            or approval.canonical_blend_sha256
+            != consistency.observed_snapshot.blend.sha256
+            or approval.uv_layout_fingerprint != boundary.uv_layout_fingerprint
+        ):
+            raise PermissionError(
+                "material closure controller requires one exact current appearance approval"
+            )
+    else:
+        _validate_material_policy_authority(
+            job_root,
+            plan,
+            boundary,
+            consistency,
         )
     material_outputs = {
         item.output_kind: item.sha256
@@ -578,6 +703,77 @@ def validate_material_appearance_approval_consumption_v2(
     ):
         raise MaterialPhaseError(
             "approval consumption request differs from the closure projection"
+        )
+    return receipt
+
+
+def validate_material_policy_authorization_consumption_v03(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    request_artifact: AQV2Artifact,
+    consumption_artifact: AQV2Artifact,
+) -> MaterialPolicyAuthorizationConsumptionReceiptV03:
+    """Validate a non-user material policy consumption against its exact request."""
+
+    job_root = ensure_contained_production_path(root, root, must_exist=True)
+    boundary, closure = validate_material_closure_promotion_boundary_v2(
+        job_root,
+        plan,
+        boundary_artifact,
+        require_current_canonical=True,
+        revalidate_published_preflight=False,
+    )
+    if not isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
+        raise PermissionError("material policy consumption cannot consume user approval")
+    request = _read_exact_model(
+        job_root,
+        request_artifact,
+        ControllerExecutionRequest,
+    )
+    receipt = _read_exact_model(
+        job_root,
+        consumption_artifact,
+        MaterialPolicyAuthorizationConsumptionReceiptV03,
+    )
+    _validate_material_closure_identity(plan, receipt)
+    preview = _read_exact_model(
+        job_root,
+        boundary.neutral_preview_manifest,
+        MaterialNeutralPreviewManifest,
+    )
+    if (
+        receipt.root_authorization != boundary.root_authorization
+        or receipt.policy_profile != boundary.policy_profile
+        or receipt.approval_envelope != boundary.approval_envelope
+        or receipt.approval_budget != boundary.approval_budget
+        or receipt.policy_authorization != boundary.policy_authorization
+        or not _same_artifact_bytes(
+            receipt.material_policy_boundary,
+            boundary_artifact,
+        )
+        or not _same_artifact_bytes(receipt.controller_request, request_artifact)
+        or receipt.candidate_material_plan_sha256
+        != boundary.candidate_material_plan.sha256
+        or receipt.rebound_material_graph_sha256
+        != boundary.rebound_material_graph.sha256
+        or receipt.closure_sha256 != closure.closure_sha256
+        or receipt.preflight_report_sha256 != boundary.preflight_report.sha256
+        or receipt.neutral_preview_sha256 != preview.preview_image.sha256
+        or receipt.is_user_approval
+        or receipt.approved_by_user
+        or receipt.user_approval_created
+    ):
+        raise PermissionError("material policy authorization consumption is inconsistent")
+    request_map = {item.path: item.sha256 for item in request.immutable_inputs}
+    if (
+        request.assignment.path != boundary_artifact.path
+        or request.assignment.sha256 != boundary_artifact.sha256
+        or request_map != closure.project_immutable_input_map()
+        or request.expected_output_sha256 != closure.project_planned_output_map()
+    ):
+        raise MaterialPhaseError(
+            "material policy consumption request differs from the closure projection"
         )
     return receipt
 
@@ -842,7 +1038,7 @@ def _load_controller_material_bundle(
 
 def _validate_controller_bundle_against_closure(
     bundle: _ControllerMaterialBundle,
-    boundary: MaterialClosurePromotionBoundaryV2,
+    boundary: MaterialClosurePromotionBoundary,
     closure: MaterialDependencyClosure,
 ) -> None:
     """Require request, completion, and exact outputs to derive from one closure."""
@@ -2218,13 +2414,22 @@ def validate_and_promote_material_closure_controller_result_v2(
             result.request,
             kind="controller-request",
         )
-        validate_material_appearance_approval_consumption_v2(
-            job_root,
-            plan,
-            boundary_artifact,
-            request_artifact,
-            approval_consumption_artifact,
-        )
+        if isinstance(_boundary, MaterialClosurePolicyPromotionBoundaryV03):
+            validate_material_policy_authorization_consumption_v03(
+                job_root,
+                plan,
+                boundary_artifact,
+                request_artifact,
+                approval_consumption_artifact,
+            )
+        else:
+            validate_material_appearance_approval_consumption_v2(
+                job_root,
+                plan,
+                boundary_artifact,
+                request_artifact,
+                approval_consumption_artifact,
+            )
         bundle = _load_controller_material_bundle(
             job_root,
             plan,
@@ -2253,10 +2458,9 @@ def validate_material_closure_promoted_receipt_v2(
     """Validate a promoted receipt without replaying intentionally superseded canonical input."""
 
     job_root = ensure_contained_production_path(root, root, must_exist=True)
-    boundary = _read_exact_model(
+    boundary = _read_material_closure_boundary(
         job_root,
         boundary_artifact,
-        MaterialClosurePromotionBoundaryV2,
     )
     _validate_material_closure_identity(plan, boundary)
     for nested in boundary.provenance:

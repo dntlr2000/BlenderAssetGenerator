@@ -379,6 +379,7 @@ class DeliveryResult(AQV2StrictModel):
     source_freeze_sha256: Sha256
     optimization_plan: AQV2Artifact | None = None
     optimization_approval: AQV2Artifact | None = None
+    optimization_policy_authorization: AQV2Artifact | None = None
     package_manifest: AQV2Artifact | None = None
     roundtrip_validation: AQV2Artifact | None = None
     material_loss_report: AQV2Artifact | None = None
@@ -392,20 +393,37 @@ class DeliveryResult(AQV2StrictModel):
     def validate_result_evidence(self) -> DeliveryResult:
         """Require exact package evidence only for completed portable deliveries."""
 
+        if (
+            self.optimization_approval is not None
+            and self.optimization_policy_authorization is not None
+        ):
+            raise ValueError("delivery result cannot mix user and policy authority")
         evidence = [
             self.optimization_plan,
-            self.optimization_approval,
             self.package_manifest,
             self.roundtrip_validation,
             self.material_loss_report,
             self.geometry_survival_report,
         ]
         if self.status == "review_only":
-            if any(item is not None for item in evidence) or self.production_ready:
+            if (
+                any(item is not None for item in evidence)
+                or self.optimization_approval is not None
+                or self.optimization_policy_authorization is not None
+                or self.production_ready
+            ):
                 raise ValueError("review_only result cannot claim production evidence")
         elif self.status == "completed":
-            if any(item is None for item in evidence):
-                raise ValueError("completed delivery requires approval, package, and validation")
+            authorities = [
+                self.optimization_approval,
+                self.optimization_policy_authorization,
+            ]
+            if any(item is None for item in evidence) or sum(
+                item is not None for item in authorities
+            ) != 1:
+                raise ValueError(
+                    "completed delivery requires one exact authority, package, and validation"
+                )
             if not self.production_ready or self.errors:
                 raise ValueError("completed delivery must be production-ready and error-free")
         elif not self.errors or self.production_ready:
@@ -565,6 +583,7 @@ class DeliveryTerminalV2(AQV2Evidence):
                 for artifact in (
                     result.optimization_plan,
                     result.optimization_approval,
+                    result.optimization_policy_authorization,
                     result.package_manifest,
                     result.roundtrip_validation,
                     result.material_loss_report,

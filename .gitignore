@@ -26,6 +26,8 @@ build/
 /tmp
 /.tmp
 /.t
+/.codex_test
+/.codex_tmp
 /.codex-test-tmp
 /.test-tmp-root-multiview-integration
 /.test-tmp-root-orchestration-escalated

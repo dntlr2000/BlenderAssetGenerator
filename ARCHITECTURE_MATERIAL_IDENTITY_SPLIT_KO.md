@@ -146,3 +146,15 @@ ApplyIntent를 요구한다. controller tool에는 canonical write authority를 
 이 companion은 MaterialPlan, TextureManifest, ShaderRecipe, MaterialAppearanceApproval,
 ControllerResult, MaterialPhaseReceiptV2, IQ, package 또는 destination evidence를 생성하지 않는다.
 
+## 10. Approval Envelope 0.3 authority adapter
+
+기존 `MaterialIdentitySplitRootScopeApproval`과 그 consumption은 삭제하거나 완화하지 않는다. 새
+autonomous/checkpointed envelope session에서 host가 exact paired candidate와 모든 기존 불변식, shadow
+Blender, clone equivalence, assignment exclusivity, rollback 준비, identity cap을 재검증한 경우에만
+`bounded_material_identity_split` policy authorization을 별도 ApplyIntent adapter로 전달할 수 있다.
+
+Policy ApplyIntent와 consumption receipt는 schema `0.3.0`, 별도 artifact kind/path, `is_user_approval=false`,
+`approved_by_user=false`, `user_approval_created=false`를 사용한다. 한 policy authority는 한 substantive
+ApplyIntent에만 결속되며 exact replay만 create-once adopt할 수 있다. Policy authority를 specialized
+approval로 변환하지 않으며 `interactive`, envelope 없는 session, bounded 조건 밖 candidate와 기존
+Crystalgun history는 계속 explicit user approval 경계를 사용한다.

@@ -1,5 +1,41 @@
 # Changelog
 
+## Unreleased — AQ Approval Envelope 0.3 & One-Prompt Supervisor 0.1
+
+- Added strict additive `AutonomyApprovalEnvelope`, deterministic policy profile, separated approval
+  budget, gate eligibility, single-use non-user policy authorization/decision receipts, consolidated
+  escalation, telemetry, technical-failure, one-prompt, framework-justification, and historical-session
+  contracts. Project `0.9.0`, canonical SceneSpec `0.2.0`, `RootAuthorizationV2`, legacy approvals, AQ v1,
+  Standard, Background Exterior, and existing session meanings remain unchanged.
+- Added three modes: `autonomous` targets zero additional user decisions, `checkpointed` caps geometry,
+  material, and delivery decisions at three, and `interactive` preserves legacy explicit approval waits.
+  Missing envelopes are reported without automatic migration or retroactive authority.
+- Added a host-only registry for 13 routine gates. Every action is rebound to the current root,
+  envelope, policy profile, budget, exact target and canonical snapshot. Policy authorization is never
+  serialized or counted as user approval and is consumed at most once.
+- Added separate policy-authority adapters for bounded Material Identity Split, Material Closure
+  promotion, IQ acceptance, optimization/package delivery and review terminals. Existing specialized
+  identity-split, material-appearance, and V0.7 user-approval paths remain available and retain their
+  exact semantics.
+- Added fail-closed rejection of technical failure categories at user-approval factories, bounded
+  technical retry/rollback evidence, one consolidated genuine-decision escalation, and explicit
+  framework-vs-job-local classification.
+- Added the current-task One-Prompt supervisor for bounded geometry → material → quality → delivery →
+  terminal execution, plus status/resume/cancel. It does not spawn repository tasks, claim execution
+  after app exit, write destination projects, or continue past an unverified controller boundary.
+- Added CLI/MCP/config surfaces, Draft 2020-12 schemas and parity tests, six representative asset types
+  across seven machine-readable KPI runs, and Korean architecture, test, migration, verification,
+  getting-started, and KPI documents. The representative benchmark is explicitly not real Blender
+  asset E2E, human review, or activation evidence; both v2 profiles remain `disabled_experimental`.
+- Added a bounded, fail-closed retry for transient Windows directory-publication denials during
+  atomic job creation after the same host failure reproduced across multiple generic fixtures.
+  Repository-local `.t`, `.codex_test`, and `.codex_tmp` evidence remains preserved but is excluded
+  from Git and Ruff source scans.
+- Final verification passed with `1839 passed, 63 skipped` in the full Python suite, `845 passed,
+  26 skipped` in the AQ focused gate, and `45 passed, 1 skipped` in the actual Blender 5.0.1 opt-in
+  bundle. Ruff, doctor, instruction parity, Blender compatibility and GLB/FBX/OBJ smoke exports passed.
+  Actual user-reference One-Prompt E2E, human review and profile activation remain unverified.
+
 ## Unreleased — Material Identity Split 0.1.0
 
 - Added strict additive contracts and generated schemas for paired material-identity split planning,

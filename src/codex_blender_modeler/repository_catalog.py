@@ -87,7 +87,10 @@ AUTONOMY_PROFILES = (
         contract_version="0.2.0",
         execution_policy="standard",
         output_scope="delivery_profile",
-        notes="AQ 0.2 design target; activation requires completed host and Blender gates.",
+        notes=(
+            "AQ 0.2 design target with optional Approval Envelope 0.3 and One-Prompt 0.1 "
+            "companions; activation requires actual asset host and Blender gates."
+        ),
     ),
     AutonomyProfileCatalogEntry(
         profile_id="autonomous_static_prop_v2_codex_imagegen",

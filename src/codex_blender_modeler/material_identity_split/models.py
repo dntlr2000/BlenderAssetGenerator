@@ -9,7 +9,10 @@ from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validat
 
 from ..material_closure.models import ExactArtifact
 from ..stabilization.models import JobId, PortableId, RelativePath, Sha256, WorkflowId
-from ..versioning import MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION
+from ..versioning import (
+    AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION,
+    MATERIAL_IDENTITY_SPLIT_SCHEMA_VERSION,
+)
 
 SEMVER_PATTERN = r"^[0-9]+\.[0-9]+\.[0-9]+$"
 
@@ -492,6 +495,55 @@ class MaterialIdentitySplitApplyIntent(MaterialIdentitySplitBoundContract):
         return self
 
 
+class MaterialIdentitySplitPolicyApplyIntent(MaterialIdentitySplitStrictModel):
+    """Bind one AQ policy authorization to the same guarded paired transaction."""
+
+    schema_version: Literal["0.3.0"] = AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION
+    job_id: JobId
+    workflow_id: WorkflowId
+    dispatch_id: PortableId
+    session_id: PortableId
+    run_id: PortableId
+    producer: PortableId
+    producer_version: Literal["0.3.0"] = AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION
+    created_at: AwareDateTime
+    intent_id: PortableId
+    transaction_id: PortableId
+    policy_authorization: ExactArtifact
+    approval_request: ExactArtifact
+    plan: ExactArtifact
+    candidate_scene_spec: ExactArtifact
+    candidate_modeling_plan: ExactArtifact
+    scene_diff_allowlist: ExactArtifact
+    modeling_plan_diff_report: ExactArtifact
+    preapproval_report: ExactArtifact
+    shadow_build_receipt: ExactArtifact
+    invariant_report: ExactArtifact
+    preconditions: MaterialIdentitySplitCanonicalPreconditions
+    expected_scene_spec_sha256: Sha256
+    expected_modeling_plan_sha256: Sha256
+    expected_material_assignment_sha256: Sha256
+    authority_kind: Literal["aq_v2_routine_policy_authorization"] = (
+        "aq_v2_routine_policy_authorization"
+    )
+    policy_authorization_is_user_approval: Literal[False] = False
+    user_approval_created: Literal[False] = False
+    retry_allowance: Literal[1] = 1
+    rollback_policy: Literal["exact_archives_required"] = "exact_archives_required"
+
+    @model_validator(mode="after")
+    def validate_expected_outputs(self) -> MaterialIdentitySplitPolicyApplyIntent:
+        """Require exact paired outputs and one transaction identity for policy apply."""
+
+        if self.transaction_id != self.run_id:
+            raise ValueError("policy ApplyIntent transaction must equal its split run")
+        if self.expected_scene_spec_sha256 != self.candidate_scene_spec.sha256:
+            raise ValueError("policy ApplyIntent SceneSpec differs from its candidate")
+        if self.expected_modeling_plan_sha256 != self.candidate_modeling_plan.sha256:
+            raise ValueError("policy ApplyIntent ModelingPlan differs from its candidate")
+        return self
+
+
 class MaterialIdentitySplitApprovalConsumptionReceipt(MaterialIdentitySplitBoundContract):
     """Consume one approved identity-split decision for exactly one ApplyIntent."""
 
@@ -503,6 +555,34 @@ class MaterialIdentitySplitApprovalConsumptionReceipt(MaterialIdentitySplitBound
     consumption_ordinal: Literal[1] = 1
     consumed_once: Literal[True] = True
     approval_unchanged: Literal[True] = True
+
+
+class MaterialIdentitySplitPolicyAuthorizationConsumptionReceipt(
+    MaterialIdentitySplitStrictModel
+):
+    """Consume one exact non-user AQ policy authority for one split ApplyIntent."""
+
+    schema_version: Literal["0.3.0"] = AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION
+    job_id: JobId
+    workflow_id: WorkflowId
+    dispatch_id: PortableId
+    session_id: PortableId
+    run_id: PortableId
+    producer: PortableId
+    producer_version: Literal["0.3.0"] = AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION
+    created_at: AwareDateTime
+    receipt_id: PortableId
+    policy_authorization: ExactArtifact
+    approval_request: ExactArtifact
+    apply_intent: ExactArtifact
+    gate_kind: Literal["bounded_material_identity_split"] = (
+        "bounded_material_identity_split"
+    )
+    consumption_ordinal: Literal[1] = 1
+    consumed_once: Literal[True] = True
+    is_user_approval: Literal[False] = False
+    approved_by_user: Literal[False] = False
+    user_approval_created: Literal[False] = False
 
 
 class MaterialIdentitySplitApplyReceipt(MaterialIdentitySplitBoundContract):

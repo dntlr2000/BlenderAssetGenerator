@@ -11,10 +11,12 @@ from typing import Any
 
 import pytest
 
+from codex_blender_modeler.autonomy_v2.approval_models import ApprovalArtifact
 from codex_blender_modeler.autonomy_v2.controller_bridge import (
     ExactMaterialClosureAdoptionController,
 )
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
+    MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundaryV2,
     MaterialControllerCompletionV2,
 )
@@ -408,6 +410,93 @@ def _controller_fixture(
         output_paths=output_paths,
         tool_profile=tool_profile,
     )
+
+
+def test_policy_material_boundary_is_non_user_and_cannot_mix_appearance_approval(
+    tmp_path: Path,
+) -> None:
+    """Model the additive policy seam without weakening the explicit boundary."""
+
+    fixture = _controller_fixture(tmp_path)
+    explicit = fixture.boundary
+
+    def policy_artifact(name: str, kind: str) -> ApprovalArtifact:
+        """Build one distinct approval-envelope artifact for policy-bound evidence."""
+
+        return ApprovalArtifact.model_validate(
+            _aq_artifact(
+                artifact_id=name,
+                path=f"production/autonomy_v2/session-1/approval_envelope/{name}.json",
+            ).model_dump(mode="python")
+            | {"kind": kind}
+        )
+
+    root_authorization = policy_artifact("root-authorization", "root-authorization")
+    policy_profile = policy_artifact("policy-profile", "autonomy-approval-policy-profile")
+    envelope = policy_artifact("approval-envelope", "autonomy-approval-envelope")
+    budget = policy_artifact("approval-budget", "aqv2-approval-budget")
+    authorization = policy_artifact(
+        "material-policy-authorization",
+        "aq-v2-routine-policy-authorization",
+    )
+    authorization_as_aq = AQV2Artifact.model_validate(
+        authorization.model_dump(mode="python")
+    )
+    provenance = [
+        explicit.current_state,
+        explicit.dependency_closure,
+        explicit.dependency_closure_receipt,
+        explicit.graph_rebinding_receipt,
+        explicit.preflight_report,
+        explicit.shadow_compile_receipt,
+        explicit.neutral_preview_manifest,
+        authorization_as_aq,
+        explicit.state_consistency_report,
+        explicit.candidate_material_plan,
+        explicit.rebound_material_graph,
+    ]
+    boundary = MaterialClosurePolicyPromotionBoundaryV03(
+        contract_id="material-policy-boundary",
+        boundary_id="material-policy-boundary",
+        job_id=explicit.job_id,
+        workflow_id=explicit.workflow_id,
+        dispatch_id=explicit.dispatch_id,
+        session_id=explicit.session_id,
+        root_authorization=root_authorization,
+        producer="tests.material_closure",
+        created_at=NOW,
+        approval_count_effect="reduces",
+        approval_count_justification=(
+            "Exact routine policy authority replaces no user approval artifact."
+        ),
+        policy_profile=policy_profile,
+        approval_envelope=envelope,
+        approval_budget=budget,
+        policy_authorization=authorization,
+        current_state=explicit.current_state,
+        dependency_closure=explicit.dependency_closure,
+        dependency_closure_receipt=explicit.dependency_closure_receipt,
+        graph_rebinding_receipt=explicit.graph_rebinding_receipt,
+        preflight_report=explicit.preflight_report,
+        shadow_compile_receipt=explicit.shadow_compile_receipt,
+        neutral_preview_manifest=explicit.neutral_preview_manifest,
+        state_consistency_report=explicit.state_consistency_report,
+        candidate_material_plan=explicit.candidate_material_plan,
+        rebound_material_graph=explicit.rebound_material_graph,
+        provenance=provenance,
+        immutable_input_sha256=explicit.immutable_input_sha256,
+        planned_output_sha256=explicit.planned_output_sha256,
+        canonical_scene_spec_sha256=explicit.canonical_scene_spec_sha256,
+        canonical_blend_sha256=explicit.canonical_blend_sha256,
+        uv_layout_fingerprint=explicit.uv_layout_fingerprint,
+    )
+
+    assert boundary.appearance_approval_required is False
+    assert boundary.policy_authorization_is_user_approval is False
+    mixed = boundary.model_dump(mode="python")
+    mixed["appearance_approval"] = explicit.appearance_approval
+    with pytest.raises(ValueError, match="Extra inputs are not permitted"):
+        MaterialClosurePolicyPromotionBoundaryV03.model_validate(mixed)
 
 
 def test_exact_controller_emits_only_closure_planned_bytes_and_completion(

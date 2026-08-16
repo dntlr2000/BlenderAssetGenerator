@@ -10,6 +10,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from time import sleep
 from typing import Any
 from uuid import uuid4
 
@@ -67,6 +68,7 @@ SUBDIRS = [
 SOURCE_KINDS = {"reference", "front", "right", "top", "blueprint", "cad"}
 SOURCE_ORDER = {"reference": 0, "front": 1, "right": 2, "top": 3, "blueprint": 4, "cad": 5}
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
+_DIRECTORY_REPLACE_RETRY_DELAYS_SECONDS = (0.05, 0.15)
 
 
 def validate_job_id(job_id: str) -> str:
@@ -114,6 +116,23 @@ def native_io_path(path: Path) -> str:
     if resolved.startswith("\\\\"):
         return "\\\\?\\UNC\\" + resolved[2:]
     return "\\\\?\\" + resolved
+
+
+def _replace_directory_with_retry(source: Path, destination: Path) -> None:
+    """Retry only a transient directory publication denial and otherwise fail closed."""
+
+    attempts = len(_DIRECTORY_REPLACE_RETRY_DELAYS_SECONDS) + 1
+    for attempt in range(attempts):
+        try:
+            os.replace(source, destination)
+            return
+        except PermissionError:
+            retry_available = attempt < len(_DIRECTORY_REPLACE_RETRY_DELAYS_SECONDS)
+            source_unchanged = source.is_dir()
+            destination_absent = not destination.exists()
+            if not retry_available or not source_unchanged or not destination_absent:
+                raise
+            sleep(_DIRECTORY_REPLACE_RETRY_DELAYS_SECONDS[attempt])
 
 
 def file_exists(path: Path) -> bool:
@@ -233,7 +252,7 @@ def create_job(
         (temp_root / "job.json").write_text(
             json.dumps(metadata, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
         )
-        os.replace(temp_root, root)
+        _replace_directory_with_retry(temp_root, root)
         return metadata
     except Exception:
         shutil.rmtree(temp_root, ignore_errors=True)

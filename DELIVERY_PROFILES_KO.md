@@ -317,3 +317,16 @@ Handoff 또는 runtime parity를 만들지 않는다.
 2026-08-14 current incident dry-run은 material coverage 검사에서 Blender/preview/approval/controller
 전에 `preflight_failed`가 됐다. 따라서 delivery source freeze에 도달하지 않았고, 이 실패 evidence를
 review bundle이나 production package로 사용할 수 없다.
+
+## 14. Approval Envelope 0.3 delivery authority
+
+기존 V0.7 `OptimizationApproval`과 그 user-decision 의미는 그대로 유지된다. 새 autonomous/checkpointed
+AQ v2 session은 최초 RootAuthorization/Envelope에 포함된 `review_only`, `portable_gltf` 또는
+`portable_fbx`에 대해서만 별도 exact policy adapter를 사용할 수 있다. Adapter는 current
+quality-approved source freeze, exact optimization plan, requested profile, budget과 unused
+`optimization_plan_authorization` 또는 `package_acknowledgement` authority를 재검증한다.
+
+Policy authority는 V0.7 user approval을 합성하지 않으며 실행 중 format 추가, source 교체, cross-format
+pass borrowing 또는 clean-import 생략을 허용하지 않는다. GLB와 FBX는 각각 independent package와
+roundtrip evidence가 있어야 `completed`다. `review_only` terminal은 policy-authorizable한 안전 종료지만
+production package가 아니며, interactive/envelope 없는 session은 기존 V0.7 경계를 유지한다.
