@@ -1,0 +1,411 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationBlenderEvidence": {
+      "additionalProperties": false,
+      "description": "Bind the supported Blender executable and its executed version evidence.",
+      "properties": {
+        "executable_path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Executable Path",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Executable Sha256",
+          "type": "string"
+        },
+        "version": {
+          "const": "5.0.1",
+          "default": "5.0.1",
+          "title": "Version",
+          "type": "string"
+        },
+        "version_command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Version Command",
+          "type": "array"
+        },
+        "version_output_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Version Output Sha256",
+          "type": "string"
+        },
+        "version_receipt": {
+          "$ref": "#/$defs/ActivationArtifact"
+        }
+      },
+      "required": [
+        "executable_path",
+        "executable_sha256",
+        "version_command",
+        "version_output_sha256",
+        "version_receipt"
+      ],
+      "title": "ActivationBlenderEvidence",
+      "type": "object"
+    },
+    "ActivationCommandReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one executed verification command to its exact result evidence.",
+      "properties": {
+        "receipt_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "command_id": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Command Id",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Sha256"
+        },
+        "output_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActivationArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "command_id",
+        "command",
+        "status",
+        "recorded_at"
+      ],
+      "title": "ActivationCommandReceipt",
+      "type": "object"
+    },
+    "ActivationSourceExclusion": {
+      "additionalProperties": false,
+      "description": "Explain one runtime class that is deliberately outside source identity.",
+      "properties": {
+        "path_prefix": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Path Prefix",
+          "type": "string"
+        },
+        "reason_code": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path_prefix",
+        "reason_code",
+        "reason"
+      ],
+      "title": "ActivationSourceExclusion",
+      "type": "object"
+    },
+    "ActivationSourceFile": {
+      "additionalProperties": false,
+      "description": "Bind one exact Git-blob payload used by an activation source checkpoint.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "source",
+            "schema",
+            "controller_promotion",
+            "profile_registry",
+            "dependency_lock",
+            "test",
+            "tooling",
+            "configuration",
+            "documentation",
+            "verification",
+            "example",
+            "prompt",
+            "tracked_repository_input"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "content_source": {
+          "const": "git_blob",
+          "default": "git_blob",
+          "title": "Content Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "role",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationSourceFile",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one clean Git checkpoint and every executable source dependency.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "manifest_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Manifest Id",
+      "type": "string"
+    },
+    "manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Manifest Sha256",
+      "type": "string"
+    },
+    "project_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Project Version",
+      "type": "string"
+    },
+    "canonical_scenespec_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Canonical Scenespec Version",
+      "type": "string"
+    },
+    "git_commit_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Git Commit Sha",
+      "type": "string"
+    },
+    "git_tree_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Git Tree Sha",
+      "type": "string"
+    },
+    "working_tree_clean": {
+      "const": true,
+      "default": true,
+      "title": "Working Tree Clean",
+      "type": "boolean"
+    },
+    "staged_tree_clean": {
+      "const": true,
+      "default": true,
+      "title": "Staged Tree Clean",
+      "type": "boolean"
+    },
+    "untracked_source_files": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 0,
+      "title": "Untracked Source Files",
+      "type": "array"
+    },
+    "source_files": {
+      "items": {
+        "$ref": "#/$defs/ActivationSourceFile"
+      },
+      "minItems": 1,
+      "title": "Source Files",
+      "type": "array"
+    },
+    "schema_files": {
+      "items": {
+        "$ref": "#/$defs/ActivationSourceFile"
+      },
+      "minItems": 1,
+      "title": "Schema Files",
+      "type": "array"
+    },
+    "controller_promotion_files": {
+      "items": {
+        "$ref": "#/$defs/ActivationSourceFile"
+      },
+      "minItems": 1,
+      "title": "Controller Promotion Files",
+      "type": "array"
+    },
+    "profile_registry": {
+      "$ref": "#/$defs/ActivationSourceFile"
+    },
+    "uv_lock": {
+      "$ref": "#/$defs/ActivationSourceFile"
+    },
+    "python_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Python Version",
+      "type": "string"
+    },
+    "uv_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Uv Version",
+      "type": "string"
+    },
+    "dependency_resolution_evidence": {
+      "$ref": "#/$defs/ActivationCommandReceipt"
+    },
+    "blender": {
+      "$ref": "#/$defs/ActivationBlenderEvidence"
+    },
+    "excluded_classes": {
+      "items": {
+        "$ref": "#/$defs/ActivationSourceExclusion"
+      },
+      "minItems": 1,
+      "title": "Excluded Classes",
+      "type": "array"
+    },
+    "generator_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Generator Version",
+      "type": "string"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "manifest_id",
+    "manifest_sha256",
+    "git_commit_sha",
+    "git_tree_sha",
+    "source_files",
+    "schema_files",
+    "controller_promotion_files",
+    "profile_registry",
+    "uv_lock",
+    "python_version",
+    "uv_version",
+    "dependency_resolution_evidence",
+    "blender",
+    "excluded_classes",
+    "generated_at"
+  ],
+  "title": "ActivationSourceManifest",
+  "type": "object"
+}

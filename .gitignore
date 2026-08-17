@@ -171,3 +171,6 @@ build/
 /tmp_tests_*/
 /output/
 /production/
+/test_runs
+/.tr/
+/*.trvg/

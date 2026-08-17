@@ -10,6 +10,12 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from codex_blender_modeler.autonomy_v2.approval_policy_service import (
+    authorize_routine_gate,
+    evaluate_routine_gate_eligibility,
+    get_applied_policy_decision_receipt,
+    plan_approval_envelope,
+)
 from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
     GeometryAuthoringCompletionV2,
 )
@@ -37,6 +43,9 @@ from codex_blender_modeler.autonomy_v2.transitions import transition_state
 from codex_blender_modeler.blender_artifacts import sha256_file, write_json_atomic
 from codex_blender_modeler.production.controller_executor import (
     FakeControllerForTests,
+)
+from codex_blender_modeler.production.controller_executor.models import (
+    ControllerResult,
 )
 
 pytestmark = pytest.mark.skipif(
@@ -297,7 +306,7 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Exercise strict controller output through isolated Blender and exact promotion."""
+    """Bind exact controller, policy, Blender, promotion, and decision evidence."""
 
     workspace = tmp_path / "workspaces"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
@@ -313,6 +322,16 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
     )
     session_id = str(planned["session_id"])
     root = workspace / "aqv2_candidate_smoke"
+    plan_approval_envelope(
+        "aqv2_candidate_smoke",
+        session_id,
+        approval_mode="autonomous",
+        initial_user_request_sha256=str(
+            planned["root_authorization"]["original_request_sha256"]  # type: ignore[index]
+        ),
+        explicit_autonomy_delegation_observed=True,
+        allow_disabled_experimental=True,
+    )
     session_root = root / "production" / "autonomy_v2" / session_id
     authorization = RootAuthorizationV2.model_validate_json(
         (session_root / "root_authorization.json").read_bytes()
@@ -423,6 +442,40 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
         "aqv2_candidate_smoke",
         session_id,
     )
+    controller_result_artifact = state.provenance[-1]
+    controller_result = ControllerResult.model_validate_json(
+        (root / controller_result_artifact.path).read_bytes()
+    )
+    eligibility = evaluate_routine_gate_eligibility(
+        "aqv2_candidate_smoke",
+        session_id,
+        gate_kind="geometry_candidate_promotion",
+        exact_target_path=controller_result_artifact.path,
+        exact_target_kind="controller-result",
+        current_canonical_snapshot_path=authorization.primary_reference.path,
+        current_canonical_snapshot_kind="canonical-reference-snapshot",
+        dependency_paths=[
+            controller_result.request.path,
+            controller_result.tool_profile.path,
+            *[item.path for item in controller_result.outputs],
+        ],
+        dependency_kinds=[
+            "controller-request",
+            "controller-tool-profile",
+            *["controller-output" for _item in controller_result.outputs],
+        ],
+        allow_disabled_experimental=True,
+    )
+    assert eligibility["eligibility"] == "passed"
+    issued = authorize_routine_gate(
+        "aqv2_candidate_smoke",
+        session_id,
+        eligibility_report_path=str(eligibility["report_artifact"]["path"]),  # type: ignore[index]
+        allow_disabled_experimental=True,
+    )
+    policy_authorization_path = str(
+        issued["authorization_artifact"]["path"]  # type: ignore[index]
+    )
     receipt, receipt_artifact = validate_and_promote_geometry_candidate_v2(
         job_root=root,
         session_root=session_root,
@@ -430,6 +483,7 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
         budget=budget,
         state=state,
         authorization=authorization,
+        policy_authorization_path=policy_authorization_path,
     )
     assert receipt.status == "passed"
     assert receipt_artifact.kind == "geometry_candidate_validation_receipt"
@@ -444,6 +498,14 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
     assert receipt.budget_usage_after.initial_candidates == 1
     assert receipt.budget_usage_after.total_blender_builds == 2
     assert receipt.budget_usage_after.canonical_promotions == 1
+    policy_decision = get_applied_policy_decision_receipt(
+        "aqv2_candidate_smoke",
+        session_id,
+        policy_authorization_path=policy_authorization_path,
+        action_result_path=receipt_artifact.path,
+    )
+    assert policy_decision["status"] == "applied"
+    assert policy_decision["is_user_approval"] is False
     recovered, recovered_artifact = validate_and_promote_geometry_candidate_v2(
         job_root=root,
         session_root=session_root,
@@ -451,6 +513,7 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
         budget=budget,
         state=state,
         authorization=authorization,
+        policy_authorization_path=policy_authorization_path,
     )
     assert recovered == receipt
     assert recovered_artifact == receipt_artifact
@@ -462,6 +525,7 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
         budget,
         state,
         authorization,
+        policy_authorization_path=policy_authorization_path,
     )
     assert advanced["outcome"] == "geometry_candidate_validated"
     root, _session_root, plan, _budget, material_boundary, _artifact = _session_bundle(

@@ -402,7 +402,7 @@ def test_v03_intent_survives_materialization_and_scene_build_in_blender(
     assert payload.smoothing_policy.mode == "weighted_normals"
     assert payload.weighted_normal_intent.enabled is True
     assert payload.subdivision_intent.enabled is True
-    assert any(item.code == "generated_planar_uv_fallback" for item in payload.findings)
+    assert any(item.code == "generated_declared_seam_uv" for item in payload.findings)
     assert json.loads(validation.read_text(encoding="utf-8"))["ok"] is True
     assert report.status == "passed"
     assert report.snapshot.uv_fingerprint.status == "available"

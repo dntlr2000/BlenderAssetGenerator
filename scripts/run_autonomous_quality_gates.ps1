@@ -4,7 +4,8 @@ param(
     [switch]$SkipLegacyGates,
     [switch]$SkipVision,
     [switch]$SkipTextureBake,
-    [string]$OutputRoot
+    [string]$OutputRoot,
+    [string]$PytestRoot
 )
 
 $ErrorActionPreference = "Stop"
@@ -41,8 +42,11 @@ if (-not $OutputRoot) {
 }
 $OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
-# Keep pytest repository-local while staying short enough for Windows nested evidence paths.
-$PytestRoot = Join-Path (Get-Location) ".t/aqp-$PID"
+# Allow an exact repository-local short path for Windows nested evidence fixtures.
+if (-not $PytestRoot) {
+    $PytestRoot = Join-Path (Get-Location) ".t/aqp-$PID"
+}
+$PytestRoot = [System.IO.Path]::GetFullPath($PytestRoot)
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 $BenchmarkReport = Join-Path $OutputRoot "autonomous_quality_benchmark.json"
 $BenchmarkV02Report = Join-Path $OutputRoot "autonomous_quality_benchmark_v02.json"
@@ -139,6 +143,7 @@ $FocusedTests = @(
     "tests/test_aq_approval_envelope_schemas.py",
     "tests/test_aq_approval_kpi.py",
     "tests/test_aq_approval_public_surface.py",
+    "tests/test_activation_readiness.py",
     "tests/test_no_job_specific_framework_literals.py",
     "tests/test_autonomous_quality_benchmarks_v02.py",
     "tests/test_repository_catalog.py",
@@ -146,6 +151,7 @@ $FocusedTests = @(
     "tests/test_ci_workflows.py"
 )
 Invoke-Uv run python scripts/check_no_job_specific_framework_literals.py
+Invoke-Uv run python scripts/check_activation_readiness_contract.py
 Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "f") @FocusedTests
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor

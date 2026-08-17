@@ -1,0 +1,327 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationBlenderEvidence": {
+      "additionalProperties": false,
+      "description": "Bind the supported Blender executable and its executed version evidence.",
+      "properties": {
+        "executable_path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Executable Path",
+          "type": "string"
+        },
+        "executable_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Executable Sha256",
+          "type": "string"
+        },
+        "version": {
+          "const": "5.0.1",
+          "default": "5.0.1",
+          "title": "Version",
+          "type": "string"
+        },
+        "version_command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Version Command",
+          "type": "array"
+        },
+        "version_output_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Version Output Sha256",
+          "type": "string"
+        },
+        "version_receipt": {
+          "$ref": "#/$defs/ActivationArtifact"
+        }
+      },
+      "required": [
+        "executable_path",
+        "executable_sha256",
+        "version_command",
+        "version_output_sha256",
+        "version_receipt"
+      ],
+      "title": "ActivationBlenderEvidence",
+      "type": "object"
+    },
+    "ActivationCommandReceipt": {
+      "additionalProperties": false,
+      "description": "Bind one executed verification command to its exact result evidence.",
+      "properties": {
+        "receipt_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "command_id": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Command Id",
+          "type": "string"
+        },
+        "command": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Command",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "not_applicable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "output_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Sha256"
+        },
+        "output_artifact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActivationArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "recorded_at": {
+          "format": "date-time",
+          "title": "Recorded At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "command_id",
+        "command",
+        "status",
+        "recorded_at"
+      ],
+      "title": "ActivationCommandReceipt",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one validated clean source checkpoint without activating its profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "baseline_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Baseline Id",
+      "type": "string"
+    },
+    "baseline_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Sha256",
+      "type": "string"
+    },
+    "source_manifest": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "source_manifest_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Source Manifest Id",
+      "type": "string"
+    },
+    "source_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Manifest Sha256",
+      "type": "string"
+    },
+    "git_commit_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Git Commit Sha",
+      "type": "string"
+    },
+    "git_tree_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Git Tree Sha",
+      "type": "string"
+    },
+    "schema_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Schema Manifest Sha256",
+      "type": "string"
+    },
+    "controller_promotion_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Controller Promotion Manifest Sha256",
+      "type": "string"
+    },
+    "profile_registry_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Registry Sha256",
+      "type": "string"
+    },
+    "uv_lock_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Uv Lock Sha256",
+      "type": "string"
+    },
+    "python_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Python Version",
+      "type": "string"
+    },
+    "uv_version": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Uv Version",
+      "type": "string"
+    },
+    "blender": {
+      "$ref": "#/$defs/ActivationBlenderEvidence"
+    },
+    "validation_receipts": {
+      "items": {
+        "$ref": "#/$defs/ActivationCommandReceipt"
+      },
+      "minItems": 1,
+      "title": "Validation Receipts",
+      "type": "array"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2",
+      "default": "autonomous_static_prop_v2",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "profile_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "campaign_created": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Created",
+      "type": "boolean"
+    },
+    "production_activation_performed": {
+      "const": false,
+      "default": false,
+      "title": "Production Activation Performed",
+      "type": "boolean"
+    },
+    "human_activation_accepted": {
+      "const": false,
+      "default": false,
+      "title": "Human Activation Accepted",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "baseline_id",
+    "baseline_sha256",
+    "source_manifest",
+    "source_manifest_id",
+    "source_manifest_sha256",
+    "git_commit_sha",
+    "git_tree_sha",
+    "schema_manifest_sha256",
+    "controller_promotion_manifest_sha256",
+    "profile_registry_sha256",
+    "uv_lock_sha256",
+    "python_version",
+    "uv_version",
+    "blender",
+    "validation_receipts",
+    "created_at"
+  ],
+  "title": "ActivationBaseline",
+  "type": "object"
+}

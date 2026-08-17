@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -91,6 +92,51 @@ def test_v2_internal_plan_binds_standard_dispatch_and_phase_profiles(
     assert workflow_request["target_subject"] == "blue handheld prop"
     assert not list(root.glob("**/approvals/*.json"))
     assert not list((root / "exports" / "packages").glob("**/package_manifest.json"))
+
+
+def test_v2_long_request_keeps_exact_root_hash_and_bounded_dispatch_purpose(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep the full initial request authoritative while bounding its dispatch summary."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    external_path = "C:/outside/private/reference.png"
+    request = f"Create the isolated prop from {external_path}. " + ("detail " * 220).strip()
+    result = plan_autonomous_static_prop_v2(
+        request,
+        reference_path=_reference(tmp_path / "long-reference.png"),
+        target_subject="isolated long-request prop",
+        requested_delivery_profiles=["portable_gltf"],
+        job_id="aq_v2_long_request",
+        allow_disabled_experimental=True,
+    )
+
+    root = workspace / "aq_v2_long_request"
+    workflow_request = json.loads(
+        (
+            root
+            / "workflows"
+            / str(result["workflow_id"])
+            / "request.json"
+        ).read_text(encoding="utf-8")
+    )
+    dispatch_request = json.loads(
+        (
+            root
+            / "production"
+            / "dispatches"
+            / str(result["dispatch_id"])
+            / "dispatch_request.json"
+        ).read_text(encoding="utf-8")
+    )
+    expected_sha256 = hashlib.sha256(request.encode("utf-8")).hexdigest()
+    assert workflow_request["raw_request"] == request
+    assert result["root_authorization"]["original_request_sha256"] == expected_sha256
+    assert len(dispatch_request["purpose"]) <= 1000
+    assert expected_sha256 in dispatch_request["purpose"]
+    assert external_path not in dispatch_request["purpose"]
 
 
 def test_v2_delivery_scope_is_validated_before_dispatch_mutation(

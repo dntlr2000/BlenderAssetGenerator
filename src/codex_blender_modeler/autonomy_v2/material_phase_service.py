@@ -2076,6 +2076,7 @@ def _validate_and_promote_material_controller_result_v2(
     result_artifact: AQV2Artifact,
     *,
     authorized_profile_artifact: AQV2Artifact | None = None,
+    policy_authorization_path: str | Path | None = None,
     canonical_lock_held: bool,
 ) -> tuple[MaterialPhaseReceiptV2, AQV2Artifact]:
     """Execute host promotion with either a newly acquired or already proven lock."""
@@ -2113,6 +2114,15 @@ def _validate_and_promote_material_controller_result_v2(
             budget,
         ):
             raise MaterialPhaseError("existing material receipt budget usage is stale")
+        if policy_authorization_path is not None:
+            from .approval_policy_service import get_applied_policy_decision_receipt
+
+            get_applied_policy_decision_receipt(
+                plan.job_id,
+                plan.session_id,
+                policy_authorization_path=policy_authorization_path,
+                action_result_path=artifact.path,
+            )
         return receipt, artifact.model_copy(update={"artifact_id": receipt.contract_id})
     if rollback_path.exists():
         rollback_artifact = artifact_for_v2(
@@ -2314,6 +2324,20 @@ def _validate_and_promote_material_controller_result_v2(
                 receipt_path,
                 receipt,
             ).model_copy(update={"kind": "material_phase_receipt"})
+            if policy_authorization_path is not None:
+                from .approval_policy_service import publish_policy_decision_receipt
+
+                publish_policy_decision_receipt(
+                    plan.job_id,
+                    plan.session_id,
+                    policy_authorization_path=policy_authorization_path,
+                    canonical_snapshot_after_path="analysis/scene_spec.json",
+                    canonical_snapshot_after_kind="canonical-scene-snapshot",
+                    outcome="applied",
+                    action_result_path=receipt_artifact.path,
+                    action_result_kind=receipt_artifact.kind,
+                    allow_disabled_experimental=True,
+                )
             return receipt, receipt_artifact
         except Exception as failure:
             if not wrote_candidate:
@@ -2377,6 +2401,7 @@ def validate_and_promote_material_controller_result_v2(
         state,
         result_artifact,
         authorized_profile_artifact=authorized_profile_artifact,
+        policy_authorization_path=None,
         canonical_lock_held=False,
     )
 
@@ -2438,6 +2463,11 @@ def validate_and_promote_material_closure_controller_result_v2(
             authorized_profile_artifact=authorized_profile_artifact,
         )
         _validate_controller_bundle_against_closure(bundle, _boundary, closure)
+        policy_authorization_path = (
+            _boundary.policy_authorization.path
+            if isinstance(_boundary, MaterialClosurePolicyPromotionBoundaryV03)
+            else None
+        )
         return _validate_and_promote_material_controller_result_v2(
             job_root,
             plan,
@@ -2445,6 +2475,7 @@ def validate_and_promote_material_closure_controller_result_v2(
             state,
             result_artifact,
             authorized_profile_artifact=authorized_profile_artifact,
+            policy_authorization_path=policy_authorization_path,
             canonical_lock_held=True,
         )
 

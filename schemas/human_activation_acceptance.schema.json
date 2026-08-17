@@ -1,0 +1,166 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one human profile-activation decision without impersonating policy authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "acceptance_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Acceptance Id",
+      "type": "string"
+    },
+    "acceptance_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Acceptance Sha256",
+      "type": "string"
+    },
+    "activation_baseline": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "activation_baseline_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Activation Baseline Id",
+      "type": "string"
+    },
+    "activation_baseline_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Activation Baseline Sha256",
+      "type": "string"
+    },
+    "candidate_index": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "candidate_index_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Candidate Index Id",
+      "type": "string"
+    },
+    "candidate_index_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Index Sha256",
+      "type": "string"
+    },
+    "distinct_primary_reference_sha256s": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Distinct Primary Reference Sha256S",
+      "type": "array"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2",
+      "default": "autonomous_static_prop_v2",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "requested_operation": {
+      "const": "activate_profile",
+      "default": "activate_profile",
+      "title": "Requested Operation",
+      "type": "string"
+    },
+    "reviewer_identity": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer Identity",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "single_use": {
+      "const": true,
+      "default": true,
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "is_policy_authorization": {
+      "const": false,
+      "default": false,
+      "title": "Is Policy Authorization",
+      "type": "boolean"
+    },
+    "is_user_approval": {
+      "const": true,
+      "default": true,
+      "title": "Is User Approval",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "acceptance_id",
+    "acceptance_sha256",
+    "activation_baseline",
+    "activation_baseline_id",
+    "activation_baseline_sha256",
+    "candidate_index",
+    "candidate_index_id",
+    "candidate_index_sha256",
+    "distinct_primary_reference_sha256s",
+    "reviewer_identity",
+    "created_at",
+    "expires_at"
+  ],
+  "title": "HumanActivationAcceptance",
+  "type": "object"
+}

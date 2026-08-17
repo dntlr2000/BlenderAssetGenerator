@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Report the safe activation reentry boundary without starting a campaign.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Sha256",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "ready_for_campaign_but_not_activated",
+        "source_checkpoint_required",
+        "validation_blocked"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "source_manifest": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "activation_baseline": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "candidate_index": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "blockers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2",
+      "default": "autonomous_static_prop_v2",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "profile_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "human_activation_accepted": {
+      "const": false,
+      "default": false,
+      "title": "Human Activation Accepted",
+      "type": "boolean"
+    },
+    "campaign_created": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Created",
+      "type": "boolean"
+    },
+    "production_activation_performed": {
+      "const": false,
+      "default": false,
+      "title": "Production Activation Performed",
+      "type": "boolean"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "report_sha256",
+    "status",
+    "blockers",
+    "generated_at"
+  ],
+  "title": "ActivationReadinessReport",
+  "type": "object"
+}

@@ -1,0 +1,361 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationAssetEvidence": {
+      "additionalProperties": false,
+      "description": "Provide one explicit candidate root without scanning or migrating legacy evidence.",
+      "properties": {
+        "candidate_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "attempt_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "revision_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Revision Id",
+          "type": "string"
+        },
+        "evidence_root": {
+          "title": "Evidence Root",
+          "type": "string"
+        },
+        "classification": {
+          "$ref": "#/$defs/ActivationEvidenceClassification"
+        },
+        "primary_reference": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "candidate_artifact": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "final_artifact": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "source_activation_baseline": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "source_activation_baseline_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Activation Baseline Id",
+          "type": "string"
+        },
+        "source_activation_baseline_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Activation Baseline Sha256",
+          "type": "string"
+        },
+        "profile_id": {
+          "const": "autonomous_static_prop_v2",
+          "default": "autonomous_static_prop_v2",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "profile_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "terminal_state": {
+          "enum": [
+            "completed",
+            "failed",
+            "blocked",
+            "cancelled",
+            "nonterminal"
+          ],
+          "title": "Terminal State",
+          "type": "string"
+        },
+        "canonical_disposition": {
+          "enum": [
+            "canonical",
+            "superseded",
+            "unknown"
+          ],
+          "title": "Canonical Disposition",
+          "type": "string"
+        },
+        "superseded_by_candidate_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Superseded By Candidate Id"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/ActivationEvidenceCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "job_id",
+        "workflow_id",
+        "session_id",
+        "attempt_id",
+        "revision_id",
+        "evidence_root",
+        "classification",
+        "primary_reference",
+        "candidate_artifact",
+        "final_artifact",
+        "source_activation_baseline",
+        "source_activation_baseline_id",
+        "source_activation_baseline_sha256",
+        "terminal_state",
+        "canonical_disposition",
+        "checks"
+      ],
+      "title": "ActivationAssetEvidence",
+      "type": "object"
+    },
+    "ActivationEvidenceCheck": {
+      "additionalProperties": false,
+      "description": "Bind one eligibility requirement to exact validator-owned evidence artifacts.",
+      "properties": {
+        "check_id": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Check Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "passed",
+            "failed",
+            "missing",
+            "unknown"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "validator": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Validator",
+          "type": "string"
+        },
+        "artifacts": {
+          "items": {
+            "$ref": "#/$defs/ActivationArtifact"
+          },
+          "title": "Artifacts",
+          "type": "array"
+        },
+        "detail": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "check_id",
+        "status",
+        "validator",
+        "detail"
+      ],
+      "title": "ActivationEvidenceCheck",
+      "type": "object"
+    },
+    "ActivationEvidenceClassification": {
+      "additionalProperties": false,
+      "description": "Declare whether one candidate root is canonical production evidence or a copy.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "authoritative_job",
+            "test_run",
+            "pytest_basetemp",
+            "copied_workspace",
+            "local_clone",
+            "shadow_job",
+            "preflight_copy",
+            "staging_copy",
+            "recovery_copy",
+            "audit_directory",
+            "report_only_fixture",
+            "review_bundle"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "authoritative": {
+          "title": "Authoritative",
+          "type": "boolean"
+        },
+        "copied_workspace": {
+          "title": "Copied Workspace",
+          "type": "boolean"
+        },
+        "test_only": {
+          "title": "Test Only",
+          "type": "boolean"
+        },
+        "activation_asset": {
+          "title": "Activation Asset",
+          "type": "boolean"
+        },
+        "production_evidence": {
+          "title": "Production Evidence",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "kind",
+        "authoritative",
+        "copied_workspace",
+        "test_only",
+        "activation_asset",
+        "production_evidence"
+      ],
+      "title": "ActivationEvidenceClassification",
+      "type": "object"
+    },
+    "ActivationExclusion": {
+      "additionalProperties": false,
+      "description": "Record one deterministic machine-readable reason a candidate is not counted.",
+      "properties": {
+        "code": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "ActivationExclusion",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Project exact candidate evidence into a fail-closed activation eligibility result.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Sha256",
+      "type": "string"
+    },
+    "evidence": {
+      "$ref": "#/$defs/ActivationAssetEvidence"
+    },
+    "eligible": {
+      "title": "Eligible",
+      "type": "boolean"
+    },
+    "exclusion_reasons": {
+      "items": {
+        "$ref": "#/$defs/ActivationExclusion"
+      },
+      "title": "Exclusion Reasons",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "report_sha256",
+    "evidence",
+    "eligible",
+    "exclusion_reasons",
+    "generated_at"
+  ],
+  "title": "ActivationAssetEligibilityReport",
+  "type": "object"
+}

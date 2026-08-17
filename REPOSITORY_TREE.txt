@@ -22,6 +22,7 @@ BlenderAssetGenerator/
   .gitignore
   AGENTS.md
   AQ_APPROVAL_KPI_KO.md
+  ARCHITECTURE_AQ_ACTIVATION_READINESS_KO.md
   ARCHITECTURE_AQ_APPROVAL_ENVELOPE_KO.md
   ARCHITECTURE_AQ_V02_KO.md
   ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md
@@ -161,6 +162,13 @@ BlenderAssetGenerator/
   prompts/texture_plan.md
   prompts/visual_qa.md
   pyproject.toml
+  schemas/activation_asset_candidate_index.schema.json
+  schemas/activation_asset_candidate_registry.schema.json
+  schemas/activation_asset_eligibility_report.schema.json
+  schemas/activation_asset_evidence.schema.json
+  schemas/activation_baseline.schema.json
+  schemas/activation_readiness_report.schema.json
+  schemas/activation_source_manifest.schema.json
   schemas/advanced_material_handoff_plan.schema.json
   schemas/advanced_material_handoff_receipt.schema.json
   schemas/advanced_material_handoff_request.schema.json
@@ -300,6 +308,7 @@ BlenderAssetGenerator/
   schemas/host_attempt_failure.schema.json
   schemas/host_attempt_intent.schema.json
   schemas/host_failure_terminal_receipt.schema.json
+  schemas/human_activation_acceptance.schema.json
   schemas/human_report_manifest.schema.json
   schemas/image_generated_material_bridge_plan_0_1_0.schema.json
   schemas/image_generated_material_controller_binding_0_1_0.schema.json
@@ -491,6 +500,7 @@ BlenderAssetGenerator/
   schemas/workspace_relocation_receipt.schema.json
   scripts/bootstrap.ps1
   scripts/bootstrap.sh
+  scripts/check_activation_readiness_contract.py
   scripts/check_agent_instructions.py
   scripts/check_no_job_specific_framework_literals.py
   scripts/doctor.py
@@ -825,6 +835,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/packaging/texture_packing.py
   src/codex_blender_modeler/production/AGENTS.md
   src/codex_blender_modeler/production/__init__.py
+  src/codex_blender_modeler/production/activation_models.py
+  src/codex_blender_modeler/production/activation_service.py
   src/codex_blender_modeler/production/controller_executor/__init__.py
   src/codex_blender_modeler/production/controller_executor/app_server.py
   src/codex_blender_modeler/production/controller_executor/desktop.py
@@ -911,6 +923,7 @@ BlenderAssetGenerator/
   tests/blender_scripts/create_external_static_asset_fixture.py
   tests/blender_scripts/probe_portable_json_long_path.py
   tests/fixtures/integrated_quality_v02/masks.json
+  tests/test_activation_readiness.py
   tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
   tests/test_agent_instruction_hierarchy.py

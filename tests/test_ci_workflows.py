@@ -173,6 +173,12 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         assert test_name in bash
     assert "scripts/check_no_job_specific_framework_literals.py" in powershell
     assert "scripts/check_no_job_specific_framework_literals.py" in bash
+    assert "scripts/check_activation_readiness_contract.py" in powershell
+    assert "scripts/check_activation_readiness_contract.py" in bash
+    assert "tests/test_activation_readiness.py" in powershell
+    assert "tests/test_activation_readiness.py" in bash
+    assert "PytestRoot" in powershell
+    assert "--pytest-root" in bash
     for token in expected_env:
         assert token not in python_commands
     assert "codex_blender_modeler.autonomy_benchmarks.v02_cli" in powershell

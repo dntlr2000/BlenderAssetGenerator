@@ -890,6 +890,7 @@ def _controller_validation_boundary(
     budget: AutonomyBudgetV2,
     state: AutonomyStateV2,
     authorization: RootAuthorizationV2,
+    policy_authorization_path: str | Path | None = None,
 ) -> dict[str, object]:
     """Run the strict host validator selected by the exact authoring phase profile."""
 
@@ -926,7 +927,17 @@ def _controller_validation_boundary(
             budget=budget,
             state=state,
             authorization=authorization,
+            policy_authorization_path=policy_authorization_path,
         )
+        if policy_authorization_path is not None:
+            from .approval_policy_service import get_applied_policy_decision_receipt
+
+            policy_decision = get_applied_policy_decision_receipt(
+                plan.job_id,
+                plan.session_id,
+                policy_authorization_path=policy_authorization_path,
+                action_result_path=evidence.path,
+            )
         event = "candidate_validated"
         outcome = "geometry_candidate_validated"
     elif profile.profile_id == "material_authoring":
@@ -953,18 +964,13 @@ def _controller_validation_boundary(
                 )
             )
             if isinstance(boundary, MaterialClosurePolicyPromotionBoundaryV03):
-                from .approval_policy_service import publish_policy_decision_receipt
+                from .approval_policy_service import get_applied_policy_decision_receipt
 
-                policy_decision = publish_policy_decision_receipt(
+                policy_decision = get_applied_policy_decision_receipt(
                     plan.job_id,
                     plan.session_id,
                     policy_authorization_path=boundary.policy_authorization.path,
-                    canonical_snapshot_after_path="analysis/scene_spec.json",
-                    canonical_snapshot_after_kind="canonical-scene-snapshot",
-                    outcome="applied",
                     action_result_path=evidence.path,
-                    action_result_kind="material-phase-receipt",
-                    allow_disabled_experimental=True,
                 )
         else:
             from .codex_image_material_loop_service import (
@@ -1406,6 +1412,7 @@ def _advance_quality_action(
     state: AutonomyStateV2,
     authorization: RootAuthorizationV2,
     submission: QualitySubmissionV2 | None,
+    policy_authorization_path: str | Path | None = None,
 ) -> dict[str, object]:
     """Publish one strict IQ terminal and transition only from its exact artifact."""
 
@@ -1431,6 +1438,34 @@ def _advance_quality_action(
         submission,
     )
     report = validated_submission.report
+    policy_required = False
+    if report.outcome == "passed":
+        from .approval_policy_service import (
+            policy_authorization_required,
+            validate_routine_policy_authorization,
+        )
+
+        policy_required = policy_authorization_required(
+            plan.job_id,
+            plan.session_id,
+            "iq_quality_acceptance",
+        )
+        if policy_required and policy_authorization_path is None:
+            raise PermissionError(
+                "Approval Envelope quality acceptance requires PolicyAuthorization"
+            )
+        if policy_required:
+            validate_routine_policy_authorization(
+                plan.job_id,
+                plan.session_id,
+                policy_authorization_path=policy_authorization_path,
+                expected_gate_kind="iq_quality_acceptance",
+                expected_target_path=submission.integrated_quality_report.path,
+            )
+        elif policy_authorization_path is not None:
+            raise PermissionError(
+                "quality policy authorization was supplied outside a required envelope gate"
+            )
     usage = _consume_action_budget(
         state.budget_usage,
         budget,
@@ -1479,6 +1514,24 @@ def _advance_quality_action(
             reason=reason,
         )
         event = "blocked"
+    policy_decision: dict[str, object] | None = None
+    if policy_required:
+        if policy_authorization_path is None:  # pragma: no cover - guarded above.
+            raise RuntimeError("required quality policy authorization disappeared")
+        from .approval_policy_service import publish_policy_decision_receipt
+
+        canonical_path = root / "analysis" / "scene_spec.json"
+        policy_decision = publish_policy_decision_receipt(
+            plan.job_id,
+            plan.session_id,
+            policy_authorization_path=policy_authorization_path,
+            canonical_snapshot_after_path=canonical_path,
+            canonical_snapshot_after_kind="canonical-quality-snapshot",
+            outcome="applied",
+            action_result_path=terminal_artifact.path,
+            action_result_kind=terminal_artifact.kind,
+            allow_disabled_experimental=True,
+        )
     next_state = transition_state(
         state,
         event=cast(Any, event),
@@ -1511,6 +1564,8 @@ def _advance_quality_action(
     )
     if companion is not None:
         result["codex_image_material_loop"] = companion
+    if policy_decision is not None:
+        result["routine_policy_decision"] = policy_decision
     return result
 
 
@@ -2123,7 +2178,26 @@ def advance_autonomy_v2(
     quality_submission: QualitySubmissionV2 | dict[str, object] | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
-    """Execute or recover at most one host-owned AQ v2 action and stop at boundaries."""
+    """Execute one public AQ action without expanding the legacy public contract."""
+
+    return _advance_autonomy_v2_with_policy(
+        job_id,
+        session_id,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=allow_disabled_experimental,
+        policy_authorization_path=None,
+    )
+
+
+def _advance_autonomy_v2_with_policy(
+    job_id: str,
+    session_id: str,
+    *,
+    quality_submission: QualitySubmissionV2 | dict[str, object] | None = None,
+    allow_disabled_experimental: bool = False,
+    policy_authorization_path: str | Path | None = None,
+) -> dict[str, object]:
+    """Execute one host action with optional exact companion policy authority."""
 
     submission = _normalize_quality_submission(quality_submission)
     root, session_root, plan, _budget, _state, _state_artifact = _session_bundle(
@@ -2229,6 +2303,7 @@ def advance_autonomy_v2(
                 budget,
                 state,
                 authorization,
+                policy_authorization_path=policy_authorization_path,
             )
         if state.next_action == "run_integrated_quality":
             return _advance_quality_action(
@@ -2239,6 +2314,7 @@ def advance_autonomy_v2(
                 state=state,
                 authorization=authorization,
                 submission=submission,
+                policy_authorization_path=policy_authorization_path,
             )
         if state.next_action == "plan_delivery":
             return _advance_delivery_plan_action(
@@ -2268,12 +2344,35 @@ def run_autonomy_v2(
     quality_submission: QualitySubmissionV2 | dict[str, object] | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
-    """Run bounded actions, adopting pending desktop output before stopping at hard waits."""
+    """Run the unchanged public bounded AQ supervisor surface."""
+
+    return _run_autonomy_v2_with_policy(
+        job_id,
+        session_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        allow_disabled_experimental=allow_disabled_experimental,
+        policy_authorization_path=None,
+    )
+
+
+def _run_autonomy_v2_with_policy(
+    job_id: str,
+    session_id: str,
+    *,
+    max_actions: int = 8,
+    quality_submission: QualitySubmissionV2 | dict[str, object] | None = None,
+    allow_disabled_experimental: bool = False,
+    policy_authorization_path: str | Path | None = None,
+) -> dict[str, object]:
+    """Run bounded actions while limiting one policy authorization to one exact action."""
 
     if isinstance(max_actions, bool) or not isinstance(max_actions, int):
         raise TypeError("AQ v2 max_actions must be an integer")
     if not 1 <= max_actions <= 32:
         raise ValueError("AQ v2 max_actions must be within [1, 32]")
+    if policy_authorization_path is not None and max_actions != 1:
+        raise ValueError("one policy authorization can execute exactly one AQ action")
     initial = _session_bundle(job_id, session_id)
     plan = initial[2]
     budget = initial[3]
@@ -2286,12 +2385,21 @@ def run_autonomy_v2(
     actions: list[dict[str, object]] = []
     stop_reason = "max_actions_reached"
     for _index in range(permitted):
-        result = advance_autonomy_v2(
-            job_id,
-            session_id,
-            quality_submission=quality_submission,
-            allow_disabled_experimental=allow_disabled_experimental,
-        )
+        if policy_authorization_path is None:
+            result = advance_autonomy_v2(
+                job_id,
+                session_id,
+                quality_submission=quality_submission,
+                allow_disabled_experimental=allow_disabled_experimental,
+            )
+        else:
+            result = _advance_autonomy_v2_with_policy(
+                job_id,
+                session_id,
+                quality_submission=quality_submission,
+                allow_disabled_experimental=allow_disabled_experimental,
+                policy_authorization_path=policy_authorization_path,
+            )
         actions.append(result)
         state_payload = result.get("state")
         if not isinstance(state_payload, dict):

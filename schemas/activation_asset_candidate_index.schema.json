@@ -1,0 +1,293 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationAssetIndexRecord": {
+      "additionalProperties": false,
+      "description": "Record one registered candidate and whether it contributes an asset unit.",
+      "properties": {
+        "candidate_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Candidate Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "attempt_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Attempt Id",
+          "type": "string"
+        },
+        "revision_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Revision Id",
+          "type": "string"
+        },
+        "primary_reference_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Primary Reference Sha256",
+          "type": "string"
+        },
+        "eligibility_report": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "eligible": {
+          "title": "Eligible",
+          "type": "boolean"
+        },
+        "counted": {
+          "title": "Counted",
+          "type": "boolean"
+        },
+        "exclusion_reasons": {
+          "items": {
+            "$ref": "#/$defs/ActivationExclusion"
+          },
+          "title": "Exclusion Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "job_id",
+        "session_id",
+        "attempt_id",
+        "revision_id",
+        "primary_reference_sha256",
+        "eligibility_report",
+        "eligible",
+        "counted",
+        "exclusion_reasons"
+      ],
+      "title": "ActivationAssetIndexRecord",
+      "type": "object"
+    },
+    "ActivationExclusion": {
+      "additionalProperties": false,
+      "description": "Record one deterministic machine-readable reason a candidate is not counted.",
+      "properties": {
+        "code": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "ActivationExclusion",
+      "type": "object"
+    },
+    "ActivationReferenceDeduplicationGroup": {
+      "additionalProperties": false,
+      "description": "Deduplicate all revisions sharing one exact primary-reference content hash.",
+      "properties": {
+        "primary_reference_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Primary Reference Sha256",
+          "type": "string"
+        },
+        "candidate_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Candidate Ids",
+          "type": "array"
+        },
+        "eligible_canonical_representative": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eligible Canonical Representative"
+        },
+        "excluded_candidate_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Excluded Candidate Ids",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "counted",
+            "excluded",
+            "ambiguous"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "counted_asset_units": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Counted Asset Units",
+          "type": "integer"
+        },
+        "duplicate_count": {
+          "minimum": 0,
+          "title": "Duplicate Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "primary_reference_sha256",
+        "candidate_ids",
+        "excluded_candidate_ids",
+        "status",
+        "counted_asset_units",
+        "duplicate_count"
+      ],
+      "title": "ActivationReferenceDeduplicationGroup",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Count only uniquely eligible primary references from one explicit registry.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "index_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Index Id",
+      "type": "string"
+    },
+    "index_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Index Sha256",
+      "type": "string"
+    },
+    "authoritative_registry": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "source_activation_baseline": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "source_activation_baseline_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Source Activation Baseline Id",
+      "type": "string"
+    },
+    "source_activation_baseline_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Activation Baseline Sha256",
+      "type": "string"
+    },
+    "records": {
+      "items": {
+        "$ref": "#/$defs/ActivationAssetIndexRecord"
+      },
+      "title": "Records",
+      "type": "array"
+    },
+    "deduplication_groups": {
+      "items": {
+        "$ref": "#/$defs/ActivationReferenceDeduplicationGroup"
+      },
+      "title": "Deduplication Groups",
+      "type": "array"
+    },
+    "distinct_asset_count": {
+      "minimum": 0,
+      "title": "Distinct Asset Count",
+      "type": "integer"
+    },
+    "counted_asset_units": {
+      "minimum": 0,
+      "title": "Counted Asset Units",
+      "type": "integer"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "index_id",
+    "index_sha256",
+    "authoritative_registry",
+    "source_activation_baseline",
+    "source_activation_baseline_id",
+    "source_activation_baseline_sha256",
+    "records",
+    "deduplication_groups",
+    "distinct_asset_count",
+    "counted_asset_units",
+    "generated_at"
+  ],
+  "title": "ActivationAssetCandidateIndex",
+  "type": "object"
+}

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from ..blender_artifacts import native_io_path
-from ..workspace import job_dir
+from ..workspace import find_reference, job_dir
 from .approval_models import (
     ApprovalArtifact,
     ApprovalMode,
@@ -56,7 +56,11 @@ from .controller_bridge import (
 )
 from .models import AutonomyStateV2
 from .planner import plan_autonomous_static_prop_v2
-from .supervisor_service import QualitySubmissionV2, run_autonomy_v2
+from .supervisor_service import (
+    QualitySubmissionV2,
+    _run_autonomy_v2_with_policy,
+    run_autonomy_v2,
+)
 
 _PRODUCER = "codex_blender_modeler.autonomy_v2.approval_supervisor_service"
 
@@ -1440,6 +1444,18 @@ def _terminalize_pending_escalation(
     )
 
 
+def _geometry_policy_snapshot(root: Path, job_id: str) -> tuple[Path, str]:
+    """Select existing geometry or the immutable reference for an initial promotion."""
+
+    scene_path = root / "analysis" / "scene_spec.json"
+    if os.path.isfile(native_io_path(scene_path)):
+        return scene_path, "canonical-scene-snapshot"
+    blend_path = root / "blender" / "scene.blend"
+    if os.path.isfile(native_io_path(blend_path)):
+        return blend_path, "canonical-scene-snapshot"
+    return find_reference(job_id), "canonical-reference-snapshot"
+
+
 def _advance_geometry_with_policy(
     job_id: str,
     session_id: str,
@@ -1463,17 +1479,21 @@ def _advance_geometry_with_policy(
         profile = PhaseToolProfile.model_validate_json(handle.read())
     if profile.profile_id != "geometry_authoring":
         return None
-    canonical_path = root / "analysis" / "scene_spec.json"
-    if not os.path.isfile(native_io_path(canonical_path)):
-        canonical_path = root / "blender" / "scene.blend"
+    canonical_before_path, canonical_before_kind = _geometry_policy_snapshot(
+        root,
+        job_id,
+    )
+    dependencies = [result.request, result.tool_profile, *result.outputs]
     eligibility = evaluate_routine_gate_eligibility(
         job_id,
         session_id,
         gate_kind="geometry_candidate_promotion",
         exact_target_path=result_path,
         exact_target_kind="controller-result",
-        current_canonical_snapshot_path=canonical_path,
-        current_canonical_snapshot_kind="canonical-scene-snapshot",
+        current_canonical_snapshot_path=canonical_before_path,
+        current_canonical_snapshot_kind=canonical_before_kind,
+        dependency_paths=[item.path for item in dependencies],
+        dependency_kinds=[item.role for item in dependencies],
         allow_disabled_experimental=True,
     )
     if eligibility["eligibility"] != "passed":
@@ -1488,27 +1508,21 @@ def _advance_geometry_with_policy(
     authorization_artifact = ApprovalArtifact.model_validate(
         authorization["authorization_artifact"]
     )
-    result_payload = run_autonomy_v2(
+    result_payload = _run_autonomy_v2_with_policy(
         job_id,
         session_id,
         max_actions=1,
         quality_submission=quality_submission,
         allow_disabled_experimental=True,
-    )
-    after_status = get_autonomy_v2_status(job_id, session_id)
-    after_artifact = ApprovalArtifact.model_validate(after_status["state_artifact"])
-    receipt = publish_policy_decision_receipt(
-        job_id,
-        session_id,
         policy_authorization_path=authorization_artifact.path,
-        canonical_snapshot_after_path=canonical_path,
-        canonical_snapshot_after_kind="canonical-scene-snapshot",
-        outcome="applied",
-        action_result_path=after_artifact.path,
-        action_result_kind="autonomy-v2-state",
-        allow_disabled_experimental=True,
     )
-    return {**result_payload, "routine_policy_decision": receipt}
+    actions = result_payload.get("actions")
+    if not isinstance(actions, list) or len(actions) != 1:
+        raise RuntimeError("geometry policy execution did not return one exact action")
+    action = actions[0]
+    if not isinstance(action, dict) or "routine_policy_decision" not in action:
+        raise RuntimeError("geometry promotion produced no PolicyDecisionReceipt")
+    return result_payload
 
 
 def _advance_quality_with_policy(
@@ -1571,28 +1585,24 @@ def _advance_quality_with_policy(
     authorization_artifact = ApprovalArtifact.model_validate(
         authorization["authorization_artifact"]
     )
-    result_payload = run_autonomy_v2(
+    result_payload = _run_autonomy_v2_with_policy(
         job_id,
         session_id,
         max_actions=1,
         quality_submission=submission,
         allow_disabled_experimental=True,
+        policy_authorization_path=authorization_artifact.path,
     )
     _root, after, _after_artifact = _latest_state_artifact(job_id, session_id)
     if after.sequence <= state.sequence or after.quality_terminal is None:
         raise RuntimeError("IQ policy action did not publish its exact quality terminal")
-    decision = publish_policy_decision_receipt(
-        job_id,
-        session_id,
-        policy_authorization_path=authorization_artifact.path,
-        canonical_snapshot_after_path=canonical_path,
-        canonical_snapshot_after_kind="canonical-quality-snapshot",
-        outcome="applied",
-        action_result_path=after.quality_terminal.path,
-        action_result_kind=after.quality_terminal.kind,
-        allow_disabled_experimental=True,
-    )
-    return {**result_payload, "routine_policy_decision": decision}
+    actions = result_payload.get("actions")
+    if not isinstance(actions, list) or len(actions) != 1:
+        raise RuntimeError("quality policy execution did not return one exact action")
+    action = actions[0]
+    if not isinstance(action, dict) or "routine_policy_decision" not in action:
+        raise RuntimeError("quality acceptance produced no PolicyDecisionReceipt")
+    return result_payload
 
 
 def get_one_prompt_status(job_id: str, session_id: str) -> dict[str, object]:

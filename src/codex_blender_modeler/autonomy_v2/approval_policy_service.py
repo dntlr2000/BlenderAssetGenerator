@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, TypeVar
@@ -72,6 +75,21 @@ _GATE_TRANSFORMATIONS: dict[RoutineGateKind, BoundedTransformationKind | None] =
 _INTERACTIVE_ROUTINE_GATES = frozenset(
     {"review_bundle_terminal", "technical_retry", "rollback"}
 )
+_DEPENDENCY_REQUIRED_GATES = frozenset(
+    {
+        "geometry_candidate_promotion",
+        "structural_candidate_promotion",
+        "bounded_parametric_revision",
+        "bounded_material_identity_split",
+        "material_candidate_promotion",
+        "material_quality_acknowledgement",
+        "iq_quality_acceptance",
+        "optimization_plan_authorization",
+        "package_acknowledgement",
+        "review_bundle_terminal",
+        "imagegen_candidate_adoption",
+    }
+)
 
 
 def _utc_now(value: datetime | None = None) -> datetime:
@@ -90,6 +108,98 @@ def _approval_root(root: Path, session_id: str) -> Path:
         root,
         root / "production" / "autonomy_v2" / session_id / "approval_envelope",
         must_exist=False,
+    )
+
+
+@contextmanager
+def _policy_decision_guard(root: Path, session_id: str) -> Iterator[None]:
+    """Serialize single-use policy authorization issuance and consumption on this host."""
+
+    guard_path = ensure_contained_production_path(
+        root,
+        _approval_root(root, session_id) / ".policy-decision.lock.guard",
+        must_exist=False,
+    )
+    os.makedirs(native_io_path(guard_path.parent), exist_ok=True)
+    descriptor = os.open(native_io_path(guard_path), os.O_CREAT | os.O_RDWR, 0o600)
+    locked = False
+    try:
+        if sys.platform == "win32":
+            import msvcrt
+
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            try:
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            except OSError as exc:
+                raise RuntimeError(
+                    "another AQ policy authorization transition is already in progress"
+                ) from exc
+        else:
+            import fcntl
+
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except OSError as exc:
+                raise RuntimeError(
+                    "another AQ policy authorization transition is already in progress"
+                ) from exc
+        locked = True
+        yield
+    finally:
+        if locked:
+            if sys.platform == "win32":
+                import msvcrt
+
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_UNLCK, 1)
+            else:
+                import fcntl
+
+                fcntl.flock(descriptor, fcntl.LOCK_UN)
+        os.close(descriptor)
+
+
+def _require_nonterminal_policy_session(job_id: str, session_id: str) -> None:
+    """Reject new policy authority after the exact AQ session reached a terminal state."""
+
+    from .controller_bridge import get_autonomy_v2_status
+
+    status = get_autonomy_v2_status(job_id, session_id)
+    state = status["state"]
+    if not isinstance(state, dict):
+        raise ValueError("AQ v2 status returned no strict state projection")
+    if state.get("status") in {"completed", "blocked", "failed", "cancelled"} or (
+        state.get("phase") == "terminal" or state.get("next_action") == "none"
+    ):
+        raise PermissionError("terminal AQ session cannot issue or reuse policy authority")
+
+
+def policy_authorization_required(
+    job_id: str,
+    session_id: str,
+    gate_kind: RoutineGateKind,
+) -> bool:
+    """Report whether a complete noninteractive envelope requires policy for this gate."""
+
+    root = job_dir(job_id)
+    approval_root = _approval_root(root, session_id)
+    envelope_path = approval_root / "envelope.json"
+    support_paths = (
+        approval_root / "policy_profile.json",
+        approval_root / "approval_budget.json",
+        envelope_path,
+    )
+    if not any(os.path.exists(native_io_path(path)) for path in support_paths):
+        return False
+    if not all(os.path.isfile(native_io_path(path)) for path in support_paths):
+        raise PermissionError("AQ session has an incomplete Approval Envelope boundary")
+    boundary = _load_approval_boundary(job_id, session_id)
+    envelope = boundary[8]
+    return (
+        envelope.approval_mode != "interactive"
+        and gate_kind in envelope.allowed_routine_gate_kinds
     )
 
 
@@ -620,10 +730,50 @@ def _current_budget_and_receipt(
             or receipt.session_id != envelope.session_id
         ):
             raise ValueError("AQ policy decision receipt chain is stale or spliced")
-        _validate_policy_receipt_authorization(root, receipt)
+        _validate_policy_receipt_authorization(
+            root,
+            receipt,
+            require_current_canonical=False,
+        )
         current_budget = receipt.budget_after
         previous_artifact = artifact
     return current_budget, previous_artifact
+
+
+def _assert_no_unconsumed_policy_authorization(root: Path, session_id: str) -> None:
+    """Block a new eligibility cycle until every issued authorization has a decision."""
+
+    decisions_root = _approval_root(root, session_id) / "decisions"
+    consumed: set[tuple[str, str, int]] = set()
+    if os.path.isdir(native_io_path(decisions_root)):
+        for decision_path in sorted(decisions_root.glob("*.json")):
+            receipt, _artifact = _decision_receipt_from_path(root, decision_path)
+            consumed.add(
+                (
+                    receipt.policy_authorization.path,
+                    receipt.policy_authorization.sha256,
+                    receipt.policy_authorization.byte_size,
+                )
+            )
+    authorizations_root = _approval_root(root, session_id) / "authorizations"
+    if not os.path.isdir(native_io_path(authorizations_root)):
+        return
+    for path in sorted(authorizations_root.glob("*.json")):
+        artifact = approval_artifact_for(
+            root,
+            path,
+            artifact_id=path.stem,
+            kind="aqv2-routine-policy-authorization",
+        )
+        authorization = _load_model(root, artifact, AQV2RoutinePolicyAuthorization)
+        expected_path = authorizations_root / f"{authorization.authorization_id}.json"
+        if path.resolve() != expected_path.resolve():
+            raise PermissionError("policy authorization is outside its canonical host path")
+        binding = (artifact.path, artifact.sha256, artifact.byte_size)
+        if binding not in consumed:
+            raise PermissionError(
+                "issued policy authorization has no PolicyDecisionReceipt"
+            )
 
 
 def _decision_receipt_from_path(
@@ -635,6 +785,24 @@ def _decision_receipt_from_path(
     safe = ensure_contained_production_path(root, path, must_exist=True)
     with open(native_io_path(safe), "rb") as handle:
         receipt = AQV2PolicyDecisionReceipt.model_validate_json(handle.read())
+    expected_id = _stable_id(
+        "policy-receipt",
+        {
+            "authorization": receipt.policy_authorization.sha256,
+            "outcome": receipt.outcome,
+            "canonical_after": receipt.canonical_snapshot_after.sha256,
+            "result": (
+                None if receipt.action_result is None else receipt.action_result.sha256
+            ),
+        },
+    )
+    expected_name = f"{receipt.budget_after.routine_policy_authorizations:04d}.json"
+    if (
+        receipt.contract_id != receipt.receipt_id
+        or receipt.receipt_id != expected_id
+        or safe.name != expected_name
+    ):
+        raise ValueError("AQ policy decision receipt identity or ordinal is noncanonical")
     artifact = approval_artifact_for(
         root,
         safe,
@@ -647,9 +815,26 @@ def _decision_receipt_from_path(
 def _validate_policy_receipt_authorization(
     root: Path,
     receipt: AQV2PolicyDecisionReceipt,
+    *,
+    require_current_canonical: bool,
 ) -> None:
-    """Revalidate a receipt's exact issued authorization and eligibility report."""
+    """Replay immutable policy sources and optionally require current canonical aliases."""
 
+    artifacts = [
+        receipt.policy_authorization,
+        receipt.eligibility_report,
+        receipt.exact_target_artifact,
+        *([] if receipt.action_result is None else [receipt.action_result]),
+    ]
+    if require_current_canonical:
+        artifacts.extend(
+            [
+                receipt.canonical_snapshot_before,
+                receipt.canonical_snapshot_after,
+            ]
+        )
+    for artifact in artifacts:
+        validate_approval_artifact(root, artifact)
     authorization = _load_model(
         root,
         receipt.policy_authorization,
@@ -660,18 +845,237 @@ def _validate_policy_receipt_authorization(
         receipt.eligibility_report,
         AQV2RoutineGateEligibilityReport,
     )
+    authorization_path = validate_approval_artifact(root, receipt.policy_authorization)
+    eligibility_path = validate_approval_artifact(root, receipt.eligibility_report)
+    expected_authorization_path = (
+        _approval_root(root, receipt.session_id)
+        / "authorizations"
+        / f"{authorization.authorization_id}.json"
+    )
+    expected_eligibility_path = (
+        _approval_root(root, receipt.session_id)
+        / "eligibility"
+        / f"{eligibility.report_id}.json"
+    )
+    identity = (
+        receipt.job_id,
+        receipt.workflow_id,
+        receipt.dispatch_id,
+        receipt.session_id,
+    )
     if (
-        authorization.eligibility_report != receipt.eligibility_report
+        (
+            authorization.job_id,
+            authorization.workflow_id,
+            authorization.dispatch_id,
+            authorization.session_id,
+        )
+        != identity
+        or (
+            eligibility.job_id,
+            eligibility.workflow_id,
+            eligibility.dispatch_id,
+            eligibility.session_id,
+        )
+        != identity
+        or authorization_path.resolve() != expected_authorization_path.resolve()
+        or eligibility_path.resolve() != expected_eligibility_path.resolve()
+        or eligibility.report_id != _expected_eligibility_id(eligibility)
+        or authorization.root_authorization != receipt.root_authorization
+        or eligibility.root_authorization != receipt.root_authorization
+        or authorization.policy_profile != receipt.policy_profile
+        or eligibility.policy_profile != receipt.policy_profile
+        or authorization.approval_envelope != receipt.approval_envelope
+        or eligibility.approval_envelope != receipt.approval_envelope
+        or authorization.eligibility_report != receipt.eligibility_report
         or authorization.gate_kind != receipt.gate_kind
         or authorization.exact_target_artifact != receipt.exact_target_artifact
+        or authorization.current_canonical_snapshot
+        != receipt.canonical_snapshot_before
+        or authorization.previous_receipt != receipt.previous_receipt
         or authorization.budget_before != receipt.budget_before
         or authorization.budget_after != receipt.budget_after
         or eligibility.gate_kind != receipt.gate_kind
         or eligibility.exact_target_artifact != receipt.exact_target_artifact
+        or eligibility.current_canonical_snapshot
+        != receipt.canonical_snapshot_before
+        or eligibility.previous_receipt != receipt.previous_receipt
         or eligibility.budget_before != receipt.budget_before
         or eligibility.budget_after != receipt.budget_after
+        or receipt.created_at < authorization.created_at
+        or receipt.consumed_at != receipt.created_at
     ):
         raise ValueError("policy receipt differs from its authorization or eligibility")
+    _validate_policy_action_result_binding(
+        root,
+        receipt,
+        require_current_canonical=require_current_canonical,
+    )
+
+
+def _same_artifact_bytes(left: object, right: object) -> bool:
+    """Compare supported artifact records by exact contained path, digest, and size."""
+
+    return (
+        getattr(left, "path", None),
+        getattr(left, "sha256", None),
+        getattr(left, "byte_size", None),
+    ) == (
+        getattr(right, "path", None),
+        getattr(right, "sha256", None),
+        getattr(right, "byte_size", None),
+    )
+
+
+def _validate_geometry_policy_result(
+    root: Path,
+    receipt: AQV2PolicyDecisionReceipt,
+    *,
+    require_current_canonical: bool,
+) -> None:
+    """Bind an applied geometry decision to its candidate and promoted final artifacts."""
+
+    from .candidate_validation_models import GeometryCandidateValidationReceiptV2
+    from .models import AutonomyStateV2
+
+    if receipt.action_result is None:
+        raise ValueError("applied geometry policy decision has no action result")
+    result_path = validate_approval_artifact(root, receipt.action_result)
+    geometry: GeometryCandidateValidationReceiptV2 | None = None
+    try:
+        geometry = GeometryCandidateValidationReceiptV2.model_validate_json(
+            result_path.read_bytes()
+        )
+    except ValueError as geometry_error:
+        state = AutonomyStateV2.model_validate_json(result_path.read_bytes())
+        identity = (
+            receipt.job_id,
+            receipt.workflow_id,
+            receipt.dispatch_id,
+            receipt.session_id,
+        )
+        if (
+            state.job_id,
+            state.workflow_id,
+            state.dispatch_id,
+            state.session_id,
+        ) != identity:
+            raise ValueError(
+                "geometry policy action state belongs to another session"
+            ) from geometry_error
+        candidates = [
+            item
+            for item in state.provenance
+            if item.kind == "geometry_candidate_validation_receipt"
+        ]
+        if len(candidates) != 1:
+            raise ValueError(
+                "geometry policy action state lacks one exact promotion receipt"
+            ) from geometry_error
+        geometry_path = validate_v2_artifact(root, candidates[0])
+        geometry = GeometryCandidateValidationReceiptV2.model_validate_json(
+            geometry_path.read_bytes()
+        )
+    identity = (
+        receipt.job_id,
+        receipt.workflow_id,
+        receipt.dispatch_id,
+        receipt.session_id,
+    )
+    if (
+        (
+            geometry.job_id,
+            geometry.workflow_id,
+            geometry.dispatch_id,
+            geometry.session_id,
+        )
+        != identity
+        or not _same_artifact_bytes(
+            geometry.controller_result,
+            receipt.exact_target_artifact,
+        )
+        or not _same_artifact_bytes(
+            geometry.canonical_scene_spec,
+            receipt.canonical_snapshot_after,
+        )
+    ):
+        raise ValueError("geometry policy result differs from target or final artifact")
+    mutable_canonical_artifacts = (
+        geometry.canonical_modeling_plan,
+        geometry.canonical_scene_spec,
+        geometry.canonical_blend,
+        geometry.canonical_geometry_snapshot,
+    )
+    for artifact in geometry.provenance:
+        if not require_current_canonical and any(
+            _same_artifact_bytes(artifact, canonical)
+            for canonical in mutable_canonical_artifacts
+        ):
+            continue
+        validate_v2_artifact(root, artifact)
+
+
+def _validate_material_policy_result(
+    root: Path,
+    receipt: AQV2PolicyDecisionReceipt,
+) -> None:
+    """Bind an applied material decision to its exact canonical plan and scene evidence."""
+
+    from .material_phase_models import MaterialPhaseReceiptV2
+
+    if receipt.action_result is None:
+        raise ValueError("applied material policy decision has no action result")
+    result_path = validate_approval_artifact(root, receipt.action_result)
+    material = MaterialPhaseReceiptV2.model_validate_json(result_path.read_bytes())
+    identity = (
+        receipt.job_id,
+        receipt.workflow_id,
+        receipt.dispatch_id,
+        receipt.session_id,
+    )
+    if (
+        (
+            material.job_id,
+            material.workflow_id,
+            material.dispatch_id,
+            material.session_id,
+        )
+        != identity
+        or material.canonical_scene_snapshot.sha256
+        != receipt.canonical_snapshot_after.sha256
+        or material.canonical_scene_snapshot.byte_size
+        != receipt.canonical_snapshot_after.byte_size
+    ):
+        raise ValueError("material policy result differs from its exact final artifact")
+    for artifact in material.provenance:
+        validate_v2_artifact(root, artifact)
+
+
+def _validate_policy_action_result_binding(
+    root: Path,
+    receipt: AQV2PolicyDecisionReceipt,
+    *,
+    require_current_canonical: bool,
+) -> None:
+    """Rehash applied action results and enforce gate-specific final-artifact bindings."""
+
+    if receipt.outcome != "applied":
+        if receipt.canonical_snapshot_after.sha256 != receipt.canonical_snapshot_before.sha256:
+            raise ValueError("non-applied policy decision changed its canonical snapshot")
+        return
+    if receipt.action_result is None:
+        raise ValueError("applied policy decision requires an action result")
+    if receipt.gate_kind in {
+        "geometry_candidate_promotion",
+        "structural_candidate_promotion",
+    }:
+        _validate_geometry_policy_result(
+            root,
+            receipt,
+            require_current_canonical=require_current_canonical,
+        )
+    elif receipt.gate_kind == "material_candidate_promotion":
+        _validate_material_policy_result(root, receipt)
 
 
 def _stable_id(prefix: str, payload: object) -> str:
@@ -729,7 +1133,7 @@ def _gate_specific_forbidden_conditions(
     """Recompute typed gate prerequisites from exact target and dependency bytes."""
 
     if gate_kind in {"geometry_candidate_promotion", "structural_candidate_promotion"}:
-        return _validate_geometry_gate_target(root, target)
+        return _validate_geometry_gate_target(root, target, dependencies, envelope)
     if gate_kind == "bounded_parametric_revision":
         return _validate_parametric_gate_target(root, target)
     if gate_kind == "bounded_material_identity_split":
@@ -754,12 +1158,23 @@ def _gate_specific_forbidden_conditions(
     return ["UNKNOWN_ROUTINE_GATE"]
 
 
-def _validate_geometry_gate_target(root: Path, target: ApprovalArtifact) -> list[str]:
-    """Accept only host-valid completed controller or passed geometry receipt evidence."""
+def _validate_geometry_gate_target(
+    root: Path,
+    target: ApprovalArtifact,
+    dependencies: list[ApprovalArtifact],
+    envelope: AutonomyApprovalEnvelope,
+) -> list[str]:
+    """Require same-session controller sources or receipt sources as exact dependencies."""
 
     from ..production.controller_executor.models import ControllerResult
     from .candidate_validation_models import GeometryCandidateValidationReceiptV2
 
+    identity = (
+        envelope.job_id,
+        envelope.workflow_id,
+        envelope.dispatch_id,
+        envelope.session_id,
+    )
     try:
         result = _load_model(root, target, ControllerResult)
     except ValueError:
@@ -767,12 +1182,70 @@ def _validate_geometry_gate_target(root: Path, target: ApprovalArtifact) -> list
             receipt = _load_model(root, target, GeometryCandidateValidationReceiptV2)
         except ValueError:
             return ["GEOMETRY_TARGET_NOT_HOST_VALIDATED"]
-        if receipt.status != "passed" or receipt.controller_canonical_write:
+        if (
+            receipt.status != "passed"
+            or receipt.controller_canonical_write
+            or (
+                receipt.job_id,
+                receipt.workflow_id,
+                receipt.dispatch_id,
+                receipt.session_id,
+            )
+            != identity
+        ):
             return ["GEOMETRY_VALIDATION_NOT_PASSED"]
+        expected = [
+            receipt.root_authorization,
+            receipt.controller_result,
+            receipt.controller_request,
+            receipt.phase_tool_profile,
+            receipt.controller_completion,
+            receipt.candidate_modeling_plan,
+            receipt.candidate_scene_spec_v03,
+            receipt.compiled_scene_spec,
+            receipt.candidate_blend,
+            receipt.canonical_scene_spec,
+            receipt.canonical_blend,
+        ]
+        if not _dependencies_match_exact_artifacts(dependencies, expected):
+            return ["GEOMETRY_DEPENDENCY_BINDING_MISMATCH"]
         return []
-    if result.status != "completed" or not result.canonical_unchanged:
+    if (
+        result.status != "completed"
+        or not result.canonical_unchanged
+        or (
+            result.job_id,
+            result.workflow_id,
+            result.dispatch_id,
+            result.session_id,
+        )
+        != identity
+    ):
         return ["GEOMETRY_CONTROLLER_RESULT_NOT_COMPLETED"]
+    expected_controller_artifacts = [result.request, result.tool_profile, *result.outputs]
+    if not _dependencies_match_exact_artifacts(dependencies, expected_controller_artifacts):
+        return ["GEOMETRY_DEPENDENCY_BINDING_MISMATCH"]
     return []
+
+
+def _dependencies_match_exact_artifacts(
+    dependencies: list[ApprovalArtifact],
+    expected: list[Any],
+) -> bool:
+    """Compare a dependency set with exact typed sources without accepting sibling copies."""
+
+    observed = {
+        (item.path, item.sha256, item.byte_size) for item in dependencies
+    }
+    required = {
+        (
+            str(item.path),
+            str(item.sha256),
+            int(item.byte_size),
+        )
+        for item in expected
+    }
+    return len(dependencies) == len(expected) and observed == required
 
 
 def _validate_parametric_gate_target(root: Path, target: ApprovalArtifact) -> list[str]:
@@ -1170,6 +1643,7 @@ def evaluate_routine_gate_eligibility(
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ Approval Envelope remains disabled_experimental")
+    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -1197,6 +1671,10 @@ def evaluate_routine_gate_eligibility(
     dependency_kinds = dependency_kinds or []
     if len(dependency_paths) != len(dependency_kinds):
         raise ValueError("dependency paths and kinds must have equal length")
+    if gate_kind in _DEPENDENCY_REQUIRED_GATES and not dependency_paths:
+        raise ValueError(
+            f"{gate_kind} requires at least one exact dependency artifact"
+        )
     target_path = (
         Path(exact_target_path)
         if Path(exact_target_path).is_absolute()
@@ -1238,6 +1716,7 @@ def evaluate_routine_gate_eligibility(
         envelope,
         envelope_artifact,
     )
+    _assert_no_unconsumed_policy_authorization(root, session_id)
     observed_at = _utc_now(created_at)
     suffix = f"{current_budget.routine_policy_authorizations + 1:04d}"
     budget_after = _budget_after_gate(
@@ -1359,6 +1838,11 @@ def _validate_current_eligibility(
     ]:
         validate_approval_artifact(root, artifact)
     if (
+        report.gate_kind in _DEPENDENCY_REQUIRED_GATES
+        and not report.dependency_artifacts
+    ):
+        raise PermissionError("routine eligibility omits required dependency artifacts")
+    if (
         report.job_id != envelope.job_id
         or report.workflow_id != envelope.workflow_id
         or report.dispatch_id != envelope.dispatch_id
@@ -1421,10 +1905,32 @@ def authorize_routine_gate(
     allow_disabled_experimental: bool = False,
     created_at: datetime | None = None,
 ) -> dict[str, object]:
-    """Issue one exact single-use policy authorization only for current passed eligibility."""
+    """Serialize and issue one exact authorization for current passed eligibility."""
+
+    root = job_dir(job_id)
+    with _policy_decision_guard(root, session_id):
+        return _authorize_routine_gate_unlocked(
+            job_id,
+            session_id,
+            eligibility_report_path=eligibility_report_path,
+            allow_disabled_experimental=allow_disabled_experimental,
+            created_at=created_at,
+        )
+
+
+def _authorize_routine_gate_unlocked(
+    job_id: str,
+    session_id: str,
+    *,
+    eligibility_report_path: str | Path,
+    allow_disabled_experimental: bool = False,
+    created_at: datetime | None = None,
+) -> dict[str, object]:
+    """Issue one exact authorization while the policy decision guard is held."""
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ Approval Envelope remains disabled_experimental")
+    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -1470,6 +1976,7 @@ def authorize_routine_gate(
         envelope,
         envelope_artifact,
     )
+    _assert_no_unconsumed_policy_authorization(root, session_id)
     _validate_current_eligibility(
         root,
         session_id,
@@ -1569,6 +2076,7 @@ def _validated_current_policy_authorization(
 ]:
     """Replay one canonical issued authorization and prove that it is still unused."""
 
+    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -1727,7 +2235,40 @@ def publish_policy_decision_receipt(
     allow_disabled_experimental: bool = False,
     created_at: datetime | None = None,
 ) -> dict[str, object]:
-    """Consume one current authorization exactly once and publish its immutable result."""
+    """Serialize one exact single-use authorization consumption and immutable result."""
+
+    root = job_dir(job_id)
+    with _policy_decision_guard(root, session_id):
+        return _publish_policy_decision_receipt_unlocked(
+            job_id,
+            session_id,
+            policy_authorization_path=policy_authorization_path,
+            canonical_snapshot_after_path=canonical_snapshot_after_path,
+            canonical_snapshot_after_kind=canonical_snapshot_after_kind,
+            outcome=outcome,
+            action_result_path=action_result_path,
+            action_result_kind=action_result_kind,
+            decision_reasons=decision_reasons,
+            allow_disabled_experimental=allow_disabled_experimental,
+            created_at=created_at,
+        )
+
+
+def _publish_policy_decision_receipt_unlocked(
+    job_id: str,
+    session_id: str,
+    *,
+    policy_authorization_path: str | Path,
+    canonical_snapshot_after_path: str | Path,
+    canonical_snapshot_after_kind: str,
+    outcome: str,
+    action_result_path: str | Path | None = None,
+    action_result_kind: str | None = None,
+    decision_reasons: list[str] | None = None,
+    allow_disabled_experimental: bool = False,
+    created_at: datetime | None = None,
+) -> dict[str, object]:
+    """Consume one authorization while the policy decision guard is held."""
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ Approval Envelope remains disabled_experimental")
@@ -1827,6 +2368,11 @@ def publish_policy_decision_receipt(
         decision_reasons=decision_reasons or list(authorization.decision_reasons),
         consumed_at=observed_at,
     )
+    _validate_policy_receipt_authorization(
+        root,
+        receipt,
+        require_current_canonical=True,
+    )
     receipt_artifact = _write_immutable_model(
         root,
         decisions_root
@@ -1842,6 +2388,77 @@ def publish_policy_decision_receipt(
         "authorization_consumed_once": True,
         "is_user_approval": False,
         "canonical_corruption": False,
+    }
+
+
+def get_applied_policy_decision_receipt(
+    job_id: str,
+    session_id: str,
+    *,
+    policy_authorization_path: str | Path,
+    action_result_path: str | Path,
+) -> dict[str, object]:
+    """Replay the unique applied decision binding one authorization to one exact result."""
+
+    root = job_dir(job_id)
+    authorization_path = (
+        Path(policy_authorization_path)
+        if Path(policy_authorization_path).is_absolute()
+        else root / policy_authorization_path
+    )
+    with open(native_io_path(authorization_path), "rb") as handle:
+        authorization = AQV2RoutinePolicyAuthorization.model_validate_json(handle.read())
+    expected_authorization_path = (
+        _approval_root(root, session_id)
+        / "authorizations"
+        / f"{authorization.authorization_id}.json"
+    )
+    if authorization_path.resolve() != expected_authorization_path.resolve():
+        raise PermissionError("policy authorization is outside its canonical host path")
+    authorization_artifact = approval_artifact_for(
+        root,
+        authorization_path,
+        artifact_id=authorization.authorization_id,
+        kind="aqv2-routine-policy-authorization",
+    )
+    result_path = (
+        Path(action_result_path)
+        if Path(action_result_path).is_absolute()
+        else root / action_result_path
+    )
+    result_binding = approval_artifact_for(
+        root,
+        result_path,
+        artifact_id=_stable_id("action-result", str(action_result_path)),
+        kind="policy-action-result",
+    )
+    matches: list[tuple[AQV2PolicyDecisionReceipt, ApprovalArtifact]] = []
+    decisions_root = _approval_root(root, session_id) / "decisions"
+    if os.path.isdir(native_io_path(decisions_root)):
+        for decision_path in sorted(decisions_root.glob("*.json")):
+            receipt, artifact = _decision_receipt_from_path(root, decision_path)
+            _validate_policy_receipt_authorization(
+                root,
+                receipt,
+                require_current_canonical=True,
+            )
+            if (
+                receipt.policy_authorization == authorization_artifact
+                and receipt.action_result is not None
+                and _same_artifact_bytes(receipt.action_result, result_binding)
+            ):
+                matches.append((receipt, artifact))
+    if len(matches) != 1 or matches[0][0].outcome != "applied":
+        raise PermissionError(
+            "canonical action has no unique applied PolicyDecisionReceipt"
+        )
+    receipt, artifact = matches[0]
+    return {
+        "status": "applied",
+        "receipt": receipt.model_dump(mode="json"),
+        "receipt_artifact": artifact.model_dump(mode="json"),
+        "authorization_consumed_once": True,
+        "is_user_approval": False,
     }
 
 

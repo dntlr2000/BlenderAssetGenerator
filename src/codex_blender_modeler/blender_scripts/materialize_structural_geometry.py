@@ -239,43 +239,141 @@ def _v02_source_intent(
     return source_intent, policies
 
 
-def _ensure_v02_loop_uvs(mesh: bpy.types.Mesh) -> tuple[list[list[float]], bool]:
-    """Preserve authored loop UVs or create one deterministic planar fallback."""
+def _operator_keywords(operator: object, candidates: dict[str, Any]) -> dict[str, Any]:
+    """Filter bounded UV operator arguments against the running Blender API."""
 
+    identifiers = {item.identifier for item in operator.get_rna_type().properties}
+    return {name: value for name, value in candidates.items() if name in identifiers}
+
+
+def _unwrap_declared_uv_seams(obj: bpy.types.Object) -> None:
+    """Create one deterministic packed UV layout from validated seam declarations."""
+
+    if bpy.context.mode != "OBJECT":
+        bpy.ops.object.mode_set(mode="OBJECT")
+    bpy.ops.object.select_all(action="DESELECT")
+    obj.hide_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    try:
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        if not bpy.ops.uv.unwrap.poll():
+            raise RuntimeError("UV unwrap operator is unavailable in the active context")
+        unwrap_result = bpy.ops.uv.unwrap(
+            **_operator_keywords(
+                bpy.ops.uv.unwrap,
+                {
+                    "method": "ANGLE_BASED",
+                    "fill_holes": True,
+                    "correct_aspect": True,
+                    "use_subsurf_data": False,
+                    "margin": 0.02,
+                },
+            )
+        )
+        if "FINISHED" not in unwrap_result:
+            raise RuntimeError(f"UV unwrap returned {sorted(unwrap_result)}")
+        if not bpy.ops.uv.pack_islands.poll():
+            raise RuntimeError("UV pack operator is unavailable in the active context")
+        pack_result = bpy.ops.uv.pack_islands(
+            **_operator_keywords(
+                bpy.ops.uv.pack_islands,
+                {
+                    "rotate": True,
+                    "scale": True,
+                    "margin": 0.02,
+                },
+            )
+        )
+        if "FINISHED" not in pack_result:
+            raise RuntimeError(f"UV pack returned {sorted(pack_result)}")
+    finally:
+        if bpy.context.mode != "OBJECT":
+            bpy.ops.object.mode_set(mode="OBJECT")
+
+
+def _degenerate_uv_triangle_count(
+    mesh: bpy.types.Mesh,
+    layer: bpy.types.MeshUVLoopLayer,
+) -> int:
+    """Count loop triangles whose active UV coordinates have effectively zero area."""
+
+    mesh.calc_loop_triangles()
+    count = 0
+    for triangle in mesh.loop_triangles:
+        first, second, third = (layer.data[index].uv for index in triangle.loops)
+        area_twice = abs(
+            (second.x - first.x) * (third.y - first.y)
+            - (second.y - first.y) * (third.x - first.x)
+        )
+        if area_twice <= 1.0e-12:
+            count += 1
+    return count
+
+
+def _ensure_v02_loop_uvs(
+    obj: bpy.types.Object,
+) -> tuple[list[list[float]], str]:
+    """Preserve authored UVs or generate seam-aware/legacy fallback loop UVs."""
+
+    mesh = obj.data
     layer = mesh.uv_layers.active
-    generated = layer is None
+    generation = "preserved"
     if layer is None:
         layer = mesh.uv_layers.new(name="UVMap")
-        coordinates = [
-            [float(vertex.co[axis]) for axis in range(3)] for vertex in mesh.vertices
-        ]
-        extents = [
-            max(item[axis] for item in coordinates)
-            - min(item[axis] for item in coordinates)
-            for axis in range(3)
-        ]
-        axes = sorted(range(3), key=lambda axis: (-extents[axis], axis))[:2]
-        bounds = [
-            (
-                min(item[axis] for item in coordinates),
-                max(item[axis] for item in coordinates),
-            )
-            for axis in axes
-        ]
-        for loop in mesh.loops:
-            vertex = mesh.vertices[loop.vertex_index].co
-            uv = []
-            for axis, (minimum, maximum) in zip(axes, bounds, strict=True):
-                span = maximum - minimum
-                uv.append(0.5 if span <= 1.0e-12 else (float(vertex[axis]) - minimum) / span)
-            layer.data[loop.index].uv = uv
+        mesh.uv_layers.active = layer
+        layer.active_render = True
+        if any(edge.use_seam for edge in mesh.edges):
+            _unwrap_declared_uv_seams(obj)
+            layer = mesh.uv_layers.active
+            if layer is None:
+                raise RuntimeError("declared-seam UV unwrap removed the active UV layer")
+            generation = "seam_unwrap"
+            degenerate_count = _degenerate_uv_triangle_count(mesh, layer)
+            if degenerate_count:
+                raise RuntimeError(
+                    "declared-seam UV unwrap produced "
+                    f"{degenerate_count} degenerate triangles"
+                )
+        else:
+            generation = "planar_fallback"
+        if generation == "planar_fallback":
+            coordinates = [
+                [float(vertex.co[axis]) for axis in range(3)]
+                for vertex in mesh.vertices
+            ]
+            extents = [
+                max(item[axis] for item in coordinates)
+                - min(item[axis] for item in coordinates)
+                for axis in range(3)
+            ]
+            axes = sorted(range(3), key=lambda axis: (-extents[axis], axis))[:2]
+            bounds = [
+                (
+                    min(item[axis] for item in coordinates),
+                    max(item[axis] for item in coordinates),
+                )
+                for axis in axes
+            ]
+            for loop in mesh.loops:
+                vertex = mesh.vertices[loop.vertex_index].co
+                uv = []
+                for axis, (minimum, maximum) in zip(axes, bounds, strict=True):
+                    span = maximum - minimum
+                    uv.append(
+                        0.5
+                        if span <= 1.0e-12
+                        else (float(vertex[axis]) - minimum) / span
+                    )
+                layer.data[loop.index].uv = uv
     result = []
     for item in layer.data:
         uv = [float(item.uv[0]), float(item.uv[1])]
         if not all(math.isfinite(value) for value in uv):
             raise RuntimeError("materialized MeshPayload 0.2 contains non-finite loop UVs")
         result.append(uv)
-    return result, generated
+    return result, generation
 
 
 def _mesh_payload_v02(
@@ -292,7 +390,7 @@ def _mesh_payload_v02(
         raise RuntimeError("MeshPayload 0.2 material ID is not stable")
     mesh = obj.data
     mesh.update(calc_edges=True)
-    loop_uvs, generated_uvs = _ensure_v02_loop_uvs(mesh)
+    loop_uvs, uv_generation = _ensure_v02_loop_uvs(obj)
     source_intent, policies = _v02_source_intent(candidate)
     material = bpy.data.materials.new(name=material_id)
     material["cbm_material_id"] = material_id
@@ -300,7 +398,7 @@ def _mesh_payload_v02(
     for polygon in mesh.polygons:
         polygon.material_index = 0
     findings = json.loads(str(obj.get("cbm_structural_findings", "[]")))
-    if generated_uvs:
+    if uv_generation == "planar_fallback":
         findings.append(
             {
                 "code": "generated_planar_uv_fallback",
@@ -308,6 +406,17 @@ def _mesh_payload_v02(
                 "message": (
                     "No structural UV evidence existed; materialization generated one "
                     "deterministic planar UVMap without unwrap-quality claims."
+                ),
+            }
+        )
+    elif uv_generation == "seam_unwrap":
+        findings.append(
+            {
+                "code": "generated_declared_seam_uv",
+                "severity": "info",
+                "message": (
+                    "Materialization generated one deterministic packed UVMap from "
+                    "the candidate's validated seam declarations."
                 ),
             }
         )

@@ -807,6 +807,48 @@ def test_material_phase_promotes_only_after_compile_and_rebuild(
     assert recovered_artifact.sha256 == artifact.sha256
 
 
+def test_material_policy_decision_failure_rolls_back_canonical_promotion(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Restore canonical material bytes when PolicyDecisionReceipt publication fails."""
+
+    root, plan, budget, state, result, baseline_sha = _fixture(tmp_path, monkeypatch)
+    import codex_blender_modeler.autonomy_v2.approval_policy_service as policy_service
+    import codex_blender_modeler.autonomy_v2.material_phase_service as service
+
+    def reject_decision(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Simulate a fail-closed host decision writer after candidate promotion."""
+
+        raise PermissionError("PolicyDecisionReceipt unavailable")
+
+    monkeypatch.setattr(
+        policy_service,
+        "publish_policy_decision_receipt",
+        reject_decision,
+    )
+    with pytest.raises(MaterialPhaseError, match="rollback evidence"):
+        service._validate_and_promote_material_controller_result_v2(
+            root,
+            plan,
+            budget,
+            state,
+            result,
+            policy_authorization_path=(
+                f"production/autonomy_v2/{plan.session_id}/approval_envelope/"
+                "authorizations/fixture.json"
+            ),
+            canonical_lock_held=False,
+        )
+    assert sha256_file(root / "analysis" / "material_plan.json") == baseline_sha
+    assert list(root.rglob("rollback_receipt.json"))
+    assert not list(
+        root.glob(
+            f"production/autonomy_v2/{plan.session_id}/approval_envelope/decisions/*.json"
+        )
+    )
+
+
 def test_material_phase_accepts_only_an_explicit_authorized_profile_override(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,

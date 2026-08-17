@@ -8,6 +8,7 @@ SKIP_LEGACY_GATES=0
 SKIP_VISION=0
 SKIP_TEXTURE_BAKE=0
 OUTPUT_ROOT=""
+PYTEST_ROOT=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run-blender) RUN_BLENDER=1; shift ;;
@@ -18,6 +19,9 @@ while [[ $# -gt 0 ]]; do
     --output-root)
       [[ $# -ge 2 ]] || { echo "--output-root requires a path" >&2; exit 2; }
       OUTPUT_ROOT="$2"; shift 2 ;;
+    --pytest-root)
+      [[ $# -ge 2 ]] || { echo "--pytest-root requires a path" >&2; exit 2; }
+      PYTEST_ROOT="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
@@ -27,8 +31,10 @@ if [[ -z "$OUTPUT_ROOT" ]]; then
   OUTPUT_ROOT="${TMPDIR:-/tmp}/aqg-$$"
 fi
 mkdir -p "$OUTPUT_ROOT"
-# Keep pytest fixtures outside the repository and independent of a long report path.
-PYTEST_ROOT="${TMPDIR:-/tmp}/aqp-$$"
+# Accept an exact short pytest root while retaining the established default.
+if [[ -z "$PYTEST_ROOT" ]]; then
+  PYTEST_ROOT="${TMPDIR:-/tmp}/aqp-$$"
+fi
 mkdir -p "$PYTEST_ROOT"
 BENCHMARK_REPORT="$OUTPUT_ROOT/autonomous_quality_benchmark.json"
 BENCHMARK_V02_REPORT="$OUTPUT_ROOT/autonomous_quality_benchmark_v02.json"
@@ -120,6 +126,7 @@ FOCUSED_TESTS=(
   tests/test_material_identity_split_service.py
   tests/test_material_identity_split_transaction.py
   tests/test_material_identity_split_public.py
+  tests/test_activation_readiness.py
   tests/test_no_job_specific_framework_literals.py
   tests/test_autonomous_quality_benchmarks_v02.py
   tests/test_repository_catalog.py
@@ -127,6 +134,7 @@ FOCUSED_TESTS=(
   tests/test_ci_workflows.py
 )
 uv run python scripts/check_no_job_specific_framework_literals.py
+uv run python scripts/check_activation_readiness_contract.py
 uv run pytest -q --basetemp "$PYTEST_ROOT/f" "${FOCUSED_TESTS[@]}"
 uv run ruff check .
 uv run cbm doctor

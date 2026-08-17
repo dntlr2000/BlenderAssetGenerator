@@ -72,6 +72,32 @@ class AutonomyProfileCatalogEntry:
         }
 
 
+@dataclass(frozen=True)
+class ActivationReadinessCatalogEntry:
+    """Describe one non-activating profile-readiness companion contract."""
+
+    contract_id: str
+    version: str
+    status: str
+    profile_id: str
+    source_checkpoint_required: bool
+    human_acceptance_required: bool
+    profile_activation_writer_exposed: bool
+
+    def as_dict(self) -> dict[str, object]:
+        """Project the immutable readiness entry without granting activation authority."""
+
+        return {
+            "contract_id": self.contract_id,
+            "version": self.version,
+            "status": self.status,
+            "profile_id": self.profile_id,
+            "source_checkpoint_required": self.source_checkpoint_required,
+            "human_acceptance_required": self.human_acceptance_required,
+            "profile_activation_writer_exposed": self.profile_activation_writer_exposed,
+        }
+
+
 AUTONOMY_PROFILES = (
     AutonomyProfileCatalogEntry(
         profile_id="autonomous_static_prop_v1",
@@ -127,6 +153,18 @@ AUTONOMY_PROFILES = (
         execution_policy="standard",
         output_scope="unspecified",
         notes="Registry placeholder only; not activated.",
+    ),
+)
+
+ACTIVATION_READINESS_CONTRACTS = (
+    ActivationReadinessCatalogEntry(
+        contract_id="aq_activation_readiness",
+        version="0.1.0",
+        status="disabled_experimental",
+        profile_id="autonomous_static_prop_v2",
+        source_checkpoint_required=True,
+        human_acceptance_required=True,
+        profile_activation_writer_exposed=False,
     ),
 )
 
@@ -720,6 +758,9 @@ def repository_catalog_projection(root: Path) -> dict[str, Any]:
             "structural": list(STRUCTURAL_BUILDER_KINDS),
         },
         "autonomy_profiles": [entry.as_dict() for entry in AUTONOMY_PROFILES],
+        "activation_readiness_contracts": [
+            entry.as_dict() for entry in ACTIVATION_READINESS_CONTRACTS
+        ],
         "delivery_profiles": [entry.as_dict() for entry in DELIVERY_PROFILES],
         "cli_commands": list(
             discover_cli_commands(root / "src" / "codex_blender_modeler" / "cli.py")

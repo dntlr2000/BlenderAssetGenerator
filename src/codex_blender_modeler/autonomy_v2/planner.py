@@ -67,6 +67,22 @@ def _sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
+def _dispatch_purpose(
+    *,
+    exact_request: str,
+    requested_delivery_profiles: list[DeliveryProfileId],
+) -> str:
+    """Summarize a long exact AQ request without weakening its hash binding."""
+
+    deliveries = ",".join(requested_delivery_profiles)
+    return (
+        "AQ v2 exact initial request "
+        f"sha256={_sha256_text(exact_request)}; "
+        "mode=concept; scope=static,primary_object_only; "
+        f"deliveries={deliveries}; destination=engine_neutral"
+    )
+
+
 def _controller_artifact(artifact: AQV2Artifact, *, role: str) -> ControllerArtifact:
     """Convert an exact AQ artifact into the controller executor's strict envelope."""
 
@@ -189,7 +205,10 @@ def plan_autonomous_static_prop_v2(
     production = create_asset_production_dispatch(
         normalized_request,
         reference_path=reference_path,
-        purpose=normalized_request,
+        purpose=_dispatch_purpose(
+            exact_request=exact_request,
+            requested_delivery_profiles=requested_delivery_profiles,
+        ),
         job_id=job_id,
         mode="concept",
         reference_content_scope="primary_object_only",

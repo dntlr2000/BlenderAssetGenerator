@@ -347,6 +347,16 @@ from codex_blender_modeler.packaging.models import (
     RoundTripValidation,
     TexturePackManifest,
 )
+from codex_blender_modeler.production.activation_models import (
+    ActivationAssetCandidateIndex,
+    ActivationAssetCandidateRegistry,
+    ActivationAssetEligibilityReport,
+    ActivationAssetEvidence,
+    ActivationBaseline,
+    ActivationReadinessReport,
+    ActivationSourceManifest,
+    HumanActivationAcceptance,
+)
 from codex_blender_modeler.production.controller_executor.models import (
     ControllerExecutionRequest,
     ControllerResult,
@@ -532,6 +542,19 @@ SCHEMAS = {
     "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
     "queue_lock.schema.json": QueueLock,
     "stability_report_manifest.schema.json": StabilityReportManifest,
+    # Disabled-experimental AQ activation-readiness 0.1 contracts.
+    "activation_source_manifest.schema.json": ActivationSourceManifest,
+    "activation_baseline.schema.json": ActivationBaseline,
+    "activation_readiness_report.schema.json": ActivationReadinessReport,
+    "activation_asset_evidence.schema.json": ActivationAssetEvidence,
+    "activation_asset_eligibility_report.schema.json": (
+        ActivationAssetEligibilityReport
+    ),
+    "activation_asset_candidate_registry.schema.json": (
+        ActivationAssetCandidateRegistry
+    ),
+    "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
+    "human_activation_acceptance.schema.json": HumanActivationAcceptance,
     "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
     "delegated_production_controller_plan.schema.json": DelegatedProductionControllerPlan,
     "codex_task_launch_manifest.schema.json": CodexTaskLaunchManifest,

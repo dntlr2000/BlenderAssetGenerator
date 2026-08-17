@@ -1001,6 +1001,63 @@ def _validate_existing_receipt(
     return receipt, artifact
 
 
+def _validate_geometry_policy_authority(
+    plan: AutonomyPlanV2,
+    result_artifact: AQV2Artifact,
+    policy_authorization_path: str | Path | None,
+    *,
+    require_unused: bool = True,
+) -> bool:
+    """Require policy presence and optionally replay unused geometry authority."""
+
+    from .approval_policy_service import (
+        policy_authorization_required,
+        validate_routine_policy_authorization,
+    )
+
+    required = policy_authorization_required(
+        plan.job_id,
+        plan.session_id,
+        "geometry_candidate_promotion",
+    )
+    if required and policy_authorization_path is None:
+        raise PermissionError(
+            "Approval Envelope geometry promotion requires PolicyAuthorization"
+        )
+    if not required:
+        if policy_authorization_path is not None:
+            raise PermissionError(
+                "geometry policy authorization was supplied outside a required envelope gate"
+            )
+        return False
+    if require_unused:
+        validate_routine_policy_authorization(
+            plan.job_id,
+            plan.session_id,
+            policy_authorization_path=policy_authorization_path,
+            expected_gate_kind="geometry_candidate_promotion",
+            expected_target_path=result_artifact.path,
+        )
+    return True
+
+
+def _require_geometry_policy_decision(
+    plan: AutonomyPlanV2,
+    policy_authorization_path: str | Path,
+    receipt_artifact: AQV2Artifact,
+) -> dict[str, object]:
+    """Require the unique applied decision that commits one geometry promotion receipt."""
+
+    from .approval_policy_service import get_applied_policy_decision_receipt
+
+    return get_applied_policy_decision_receipt(
+        plan.job_id,
+        plan.session_id,
+        policy_authorization_path=policy_authorization_path,
+        action_result_path=receipt_artifact.path,
+    )
+
+
 def validate_geometry_candidate_validation_receipt_v2(
     root: Path,
     plan: AutonomyPlanV2,
@@ -1029,8 +1086,9 @@ def validate_and_promote_geometry_candidate_v2(
     budget: AutonomyBudgetV2,
     state: AutonomyStateV2,
     authorization: RootAuthorizationV2,
+    policy_authorization_path: str | Path | None = None,
 ) -> tuple[GeometryCandidateValidationReceiptV2, AQV2Artifact]:
-    """Validate one geometry result in isolation, then atomically promote exact bytes."""
+    """Validate and commit geometry with its required policy decision inside the lock."""
 
     root = ensure_contained_production_path(job_root, job_root, must_exist=True)
     session = ensure_contained_production_path(root, session_root, must_exist=True)
@@ -1105,13 +1163,28 @@ def validate_and_promote_geometry_candidate_v2(
         must_exist=False,
     )
     receipt_path = validation_root / "receipt.json"
+    policy_required = _validate_geometry_policy_authority(
+        plan,
+        current_result_artifact,
+        policy_authorization_path,
+        require_unused=not os.path.isfile(native_io_path(receipt_path)),
+    )
     if os.path.isfile(native_io_path(receipt_path)):
-        return _validate_existing_receipt(
+        receipt, receipt_artifact = _validate_existing_receipt(
             root=root,
             plan=plan,
             path=receipt_path,
             expected_result=current_result_artifact,
         )
+        if policy_required:
+            if policy_authorization_path is None:  # pragma: no cover - guarded above.
+                raise RuntimeError("required geometry policy authorization disappeared")
+            _require_geometry_policy_decision(
+                plan,
+                policy_authorization_path,
+                receipt_artifact,
+            )
+        return receipt, receipt_artifact
     bundle = _validate_controller_bundle(root=root, plan=plan, state=state)
     baseline_hashes = _require_current_inputs(
         root=root,
@@ -1355,6 +1428,22 @@ def validate_and_promote_geometry_candidate_v2(
                 receipt_path,
                 receipt,
             ).model_copy(update={"kind": "geometry_candidate_validation_receipt"})
+            if policy_required:
+                if policy_authorization_path is None:  # pragma: no cover - guarded above.
+                    raise RuntimeError("required geometry policy authorization disappeared")
+                from .approval_policy_service import publish_policy_decision_receipt
+
+                publish_policy_decision_receipt(
+                    plan.job_id,
+                    plan.session_id,
+                    policy_authorization_path=policy_authorization_path,
+                    canonical_snapshot_after_path=canonical_scene.path,
+                    canonical_snapshot_after_kind="canonical-scene-snapshot",
+                    outcome="applied",
+                    action_result_path=receipt_artifact.path,
+                    action_result_kind=receipt_artifact.kind,
+                    allow_disabled_experimental=True,
+                )
         except Exception:
             for staging in staged:
                 if os.path.isfile(native_io_path(staging)):
