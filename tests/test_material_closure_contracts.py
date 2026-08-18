@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import builtins
 import hashlib
 import json
 import os
@@ -82,6 +83,21 @@ ZERO = "0" * 64
 ONE = "1" * 64
 
 
+class _StatAttributesProxy:
+    """Delegate stat metadata while overriding only Windows file attributes."""
+
+    def __init__(self, metadata: object, file_attributes: int) -> None:
+        """Bind original metadata and one explicit file-attribute value."""
+
+        self._metadata = metadata
+        self.st_file_attributes = file_attributes
+
+    def __getattr__(self, name: str) -> object:
+        """Forward every unmodified metadata field to the original result."""
+
+        return getattr(self._metadata, name)
+
+
 def test_manifest_owned_channels_and_masks_resolve_from_manifest_parent(
     tmp_path: Path,
 ) -> None:
@@ -124,15 +140,19 @@ def test_manifest_owned_dependency_rejects_escape_and_links(
     link = tmp_path / "materials" / "crystal"
     link.mkdir(parents=True)
     (link / "base.png").write_bytes(b"base")
-    original_is_link = os.path.islink
+    original_lstat = os.lstat
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
 
-    def _reports_fixture_link(path: object) -> bool:
-        """Report only the fixture directory as a link without host link privileges."""
+    def _reports_fixture_link(path: object) -> object:
+        """Report only the fixture directory as reparse-like metadata."""
 
+        metadata = original_lstat(path)
         normalized = str(path).replace("\\", "/").rstrip("/")
-        return normalized.endswith("/materials/crystal") or original_is_link(path)
+        if normalized.endswith("/materials/crystal"):
+            return _StatAttributesProxy(metadata, reparse_flag)
+        return metadata
 
-    monkeypatch.setattr(os.path, "islink", _reports_fixture_link)
+    monkeypatch.setattr(os, "lstat", _reports_fixture_link)
     with pytest.raises(MaterialClosureCollectionError, match="MANIFEST_DEPENDENCY_LINK"):
         _resolve_manifest_owned_dependency_path(
             tmp_path,
@@ -150,12 +170,14 @@ def test_manifest_dependency_link_check_detects_windows_reparse_point(
     fixture = tmp_path / "junction"
     fixture.mkdir()
     original_lstat = os.lstat
+    calls: list[str] = []
 
     def _reported_reparse(path: object) -> object:
         """Return fixture metadata with the Windows reparse bit set."""
 
         metadata = original_lstat(path)
         normalized = str(path).replace("\\", "/").rstrip("/")
+        calls.append(normalized)
         if not normalized.endswith("/junction"):
             return metadata
         return SimpleNamespace(
@@ -166,8 +188,170 @@ def test_manifest_dependency_link_check_detects_windows_reparse_point(
             )
         )
 
+    def _forbid_islink(_path: object) -> bool:
+        """Reject the redundant high-level link query removed by the repair."""
+
+        raise AssertionError("link detection must use the single lstat result")
+
     monkeypatch.setattr(os, "lstat", _reported_reparse)
+    monkeypatch.setattr(os.path, "islink", _forbid_islink)
     assert _is_manifest_dependency_link_like(fixture)
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("entry_kind", ["file", "directory"])
+def test_manifest_dependency_link_check_rejects_regular_entries(
+    tmp_path: Path,
+    entry_kind: str,
+) -> None:
+    """Treat ordinary files and directories as non-link dependencies."""
+
+    fixture = tmp_path / entry_kind
+    if entry_kind == "file":
+        fixture.write_bytes(b"regular")
+    else:
+        fixture.mkdir()
+    assert not _is_manifest_dependency_link_like(fixture)
+
+
+def test_manifest_dependency_link_check_detects_posix_symlink_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Treat POSIX symbolic-link mode metadata as link-like on every host OS."""
+
+    regular = os.lstat(tmp_path)
+    symlink_metadata = _StatAttributesProxy(
+        os.stat_result(
+            (
+                stat.S_IFLNK | 0o777,
+                regular.st_ino,
+                regular.st_dev,
+                regular.st_nlink,
+                regular.st_uid,
+                regular.st_gid,
+                regular.st_size,
+                regular.st_atime,
+                regular.st_mtime,
+                regular.st_ctime,
+            )
+        ),
+        0,
+    )
+    calls = 0
+
+    def _reported_symlink(_path: object) -> object:
+        """Return one complete stat result carrying POSIX symlink mode bits."""
+
+        nonlocal calls
+        calls += 1
+        return symlink_metadata
+
+    monkeypatch.setattr(os, "lstat", _reported_symlink)
+    assert _is_manifest_dependency_link_like(tmp_path / "posix-link")
+    assert calls == 1
+
+
+def test_manifest_dependency_link_check_uses_windows_reparse_fallback(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recognize the canonical 0x400 reparse bit when stat omits its constant."""
+
+    monkeypatch.delattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", raising=False)
+    monkeypatch.setattr(
+        os,
+        "lstat",
+        lambda _path: SimpleNamespace(st_file_attributes=0x400),
+    )
+    assert _is_manifest_dependency_link_like(tmp_path / "fallback-reparse")
+
+
+def test_manifest_dependency_link_check_uses_regular_mode_when_bit_is_clear(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Return false for regular mode metadata with no Windows reparse bit."""
+
+    metadata = _StatAttributesProxy(os.lstat(tmp_path), 0)
+    monkeypatch.setattr(os, "lstat", lambda _path: metadata)
+    assert not _is_manifest_dependency_link_like(tmp_path / "regular-mode")
+
+
+def test_manifest_dependency_link_check_preserves_missing_result(tmp_path: Path) -> None:
+    """Keep the established false result for a path that does not exist."""
+
+    assert not _is_manifest_dependency_link_like(tmp_path / "missing")
+
+
+def test_manifest_dependency_link_check_rejects_malformed_metadata(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Expose malformed non-reparse metadata instead of treating it as safe."""
+
+    monkeypatch.setattr(
+        os,
+        "lstat",
+        lambda _path: SimpleNamespace(st_file_attributes=0),
+    )
+    with pytest.raises(AttributeError, match="st_mode"):
+        _is_manifest_dependency_link_like(tmp_path / "malformed")
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(PermissionError("denied"), id="permission-error"),
+        pytest.param(OSError("unexpected"), id="unexpected-os-error"),
+    ],
+)
+def test_manifest_dependency_link_check_propagates_filesystem_errors(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    error: OSError,
+) -> None:
+    """Propagate access and unexpected filesystem errors as fail-closed failures."""
+
+    def _raise_error(_path: object) -> object:
+        """Raise the exact filesystem error supplied by the test case."""
+
+        raise error
+
+    monkeypatch.setattr(os, "lstat", _raise_error)
+    with pytest.raises(type(error), match=str(error)):
+        _is_manifest_dependency_link_like(tmp_path / "unreadable")
+
+
+def test_manifest_dependency_link_check_never_follows_or_opens_target(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Use exactly one lstat without resolving, statting, or opening the target."""
+
+    metadata = _StatAttributesProxy(os.lstat(tmp_path), 0)
+    calls = 0
+
+    def _reported_regular(_path: object) -> object:
+        """Return ordinary metadata while counting non-following reads."""
+
+        nonlocal calls
+        calls += 1
+        return metadata
+
+    def _forbid_follow(*_args: object, **_kwargs: object) -> object:
+        """Reject any operation that could follow or open the candidate target."""
+
+        raise AssertionError("link detection must not follow or open the target")
+
+    monkeypatch.setattr(os, "lstat", _reported_regular)
+    monkeypatch.setattr(os, "stat", _forbid_follow)
+    monkeypatch.setattr(os.path, "islink", _forbid_follow)
+    monkeypatch.setattr(Path, "resolve", _forbid_follow)
+    monkeypatch.setattr(Path, "open", _forbid_follow)
+    monkeypatch.setattr(builtins, "open", _forbid_follow)
+    assert not _is_manifest_dependency_link_like(tmp_path / "ordinary")
+    assert calls == 1
 
 
 def _bound() -> dict[str, object]:

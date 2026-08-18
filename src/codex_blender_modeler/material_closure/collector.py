@@ -102,17 +102,18 @@ _TYPED_IMAGEGEN_MODELS: dict[str, tuple[type[Any], ...]] = {
 
 
 def _is_manifest_dependency_link_like(path: Path) -> bool:
-    """Detect symlinks and Windows junction/reparse points without following them."""
+    """Detect link-like metadata with one non-following filesystem read."""
 
     native = native_io_path(path)
-    if os.path.islink(native):
-        return True
     try:
         metadata = os.lstat(native)
     except FileNotFoundError:
         return False
     attributes = getattr(metadata, "st_file_attributes", 0)
-    return bool(attributes & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0))
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400)
+    if attributes & reparse_flag:
+        return True
+    return stat.S_ISLNK(metadata.st_mode)
 
 
 def sha256_file(path: Path) -> str:
