@@ -5,6 +5,7 @@ import json
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import cli as cli_module
@@ -33,10 +34,13 @@ def test_codex_imagegen_cli_is_additive_and_requires_both_plan_opt_ins() -> None
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert EXPECTED_COMMANDS <= set(result.stdout.split())
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
     plan_help = CliRunner().invoke(app, ["codex-imagegen-plan", "--help"])
     assert plan_help.exit_code == 0
-    assert "--enable-v2" in plan_help.stdout
+    assert_cli_help_contract(
+        plan_help.stdout,
+        required=("--enable-v2", "--disable-v2"),
+    )
     parameters = inspect.signature(mcp_server.plan_codex_imagegen).parameters
     assert parameters["enable_v2"].default is False
     assert parameters["allow_disabled_experimental"].default is False

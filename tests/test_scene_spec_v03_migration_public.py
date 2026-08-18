@@ -8,6 +8,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import cli, mcp_server
@@ -182,7 +183,7 @@ def test_cli_and_mcp_expose_exact_hash_migration_boundary(
     assert "awaiting_exact_plan_hash" in plan_result.stdout
     apply_help = runner.invoke(app, ["scene-spec-v03-migration-apply", "--help"])
     assert apply_help.exit_code == 0
-    assert "--exact-plan-sha256" in apply_help.stdout
+    assert_cli_help_contract(apply_help.stdout, required=("--exact-plan-sha256",))
 
     monkeypatch.setattr(
         mcp_server,

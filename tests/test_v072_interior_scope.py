@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from jsonschema import Draft202012Validator
 from typer.testing import CliRunner
 
@@ -611,8 +612,7 @@ def test_v072_interior_cli_and_mcp_surface_is_explicit() -> None:
 
     help_result = CliRunner().invoke(app, ["--help"])
     assert help_result.exit_code == 0
-    for command in INTERIOR_CLI_COMMANDS:
-        assert command in help_result.stdout
+    assert_cli_help_contract(help_result.stdout, required=INTERIOR_CLI_COMMANDS)
 
     with (ROOT / ".codex" / "config.toml").open("rb") as handle:
         config = tomllib.load(handle)

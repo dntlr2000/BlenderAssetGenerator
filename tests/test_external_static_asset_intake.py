@@ -8,6 +8,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler.cli import app
@@ -167,7 +168,7 @@ def test_external_intake_public_surface_and_schemas_are_registered() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert CLI_COMMANDS <= set(result.stdout.split())
+    assert_cli_help_contract(result.stdout, required=CLI_COMMANDS)
     with (ROOT / ".codex" / "config.toml").open("rb") as handle:
         config = tomllib.load(handle)
     enabled = set(config["mcp_servers"]["blender_modeler"]["enabled_tools"])

@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from pydantic import ValidationError
 from typer.testing import CliRunner
 
@@ -66,8 +67,7 @@ def test_material_closure_cli_and_mcp_surfaces_are_complete() -> None:
 
     result = CliRunner().invoke(cli.app, ["--help"])
     assert result.exit_code == 0
-    for command in CLI_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=CLI_COMMANDS)
     for tool in MCP_TOOLS:
         assert callable(getattr(mcp_server, tool))
 

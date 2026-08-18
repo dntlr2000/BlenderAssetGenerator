@@ -4,6 +4,7 @@ import inspect
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.main import get_command
 from typer.testing import CliRunner
 
@@ -46,8 +47,7 @@ def test_v08_cli_commands_are_registered() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in EXPECTED_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
 
 
 def test_v08_resume_requires_an_explicit_failed_retry_flag() -> None:
@@ -55,8 +55,10 @@ def test_v08_resume_requires_an_explicit_failed_retry_flag() -> None:
 
     result = CliRunner().invoke(app, ["workflow-resume", "--help"])
     assert result.exit_code == 0
-    assert "--max-host-steps" in result.stdout
-    assert "--retry-failed" in result.stdout
+    assert_cli_help_contract(
+        result.stdout,
+        required=("--max-host-steps", "--retry-failed"),
+    )
 
 
 def test_v08_background_policy_is_available_without_powershell() -> None:

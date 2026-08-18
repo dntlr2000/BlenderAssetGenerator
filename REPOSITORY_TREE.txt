@@ -922,6 +922,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/workspace.py
   tests/blender_scripts/create_external_static_asset_fixture.py
   tests/blender_scripts/probe_portable_json_long_path.py
+  tests/cli_help_support.py
   tests/fixtures/integrated_quality_v02/masks.json
   tests/test_activation_readiness.py
   tests/test_advanced_material_handoff_v02.py
@@ -987,6 +988,7 @@ BlenderAssetGenerator/
   tests/test_candidate_review.py
   tests/test_canonical_scene_spec_writes.py
   tests/test_ci_workflows.py
+  tests/test_cli_help_support.py
   tests/test_codex_image_material_authoring_v021.py
   tests/test_codex_image_material_loop_blender.py
   tests/test_codex_image_material_loop_contracts.py

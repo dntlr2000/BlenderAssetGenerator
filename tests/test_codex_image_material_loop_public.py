@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import autonomy_v2, codex_imagegen, material_authoring, mcp_server
@@ -163,12 +164,14 @@ def test_material_loop_cli_and_mcp_surfaces_are_additive_and_opt_in() -> None:
 
     root_help = CliRunner().invoke(app, ["--help"])
     assert root_help.exit_code == 0
-    assert all(command in root_help.stdout for command in EXPECTED_COMMANDS)
+    assert_cli_help_contract(root_help.stdout, required=EXPECTED_COMMANDS)
     for command in EXPECTED_COMMANDS:
         help_result = CliRunner().invoke(app, [command, "--help"])
         assert help_result.exit_code == 0
-        assert "--enable-v2" in help_result.stdout
-        assert "--enable-imagegen" in help_result.stdout
+        assert_cli_help_contract(
+            help_result.stdout,
+            required=("--enable-v2", "--enable-imagegen"),
+        )
     for tool_name in EXPECTED_MCP_TOOLS:
         parameters = inspect.signature(getattr(mcp_server, tool_name)).parameters
         assert parameters["enable_v2"].default is False

@@ -6,6 +6,7 @@ import inspect
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import mcp_server
@@ -84,8 +85,8 @@ def test_approval_envelope_cli_help_is_complete() -> None:
     runner = CliRunner()
     root_help = runner.invoke(app, ["--help"])
     assert root_help.exit_code == 0
+    assert_cli_help_contract(root_help.stdout, required=CLI_COMMANDS)
     for command in CLI_COMMANDS:
-        assert command in root_help.stdout
         command_help = runner.invoke(app, [command, "--help"])
         assert command_help.exit_code == 0, command_help.stdout
 

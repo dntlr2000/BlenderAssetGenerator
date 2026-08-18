@@ -3,6 +3,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler.cli import app
@@ -38,8 +39,7 @@ def test_v07_cli_commands_are_registered() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in EXPECTED_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
 
 
 def test_v07_cli_exposes_explicit_profile_and_package_controls() -> None:
@@ -63,25 +63,34 @@ def test_v07_cli_exposes_explicit_profile_and_package_controls() -> None:
     assert convert_help.exit_code == 0
     assert package_help.exit_code == 0
     assert validate_help.exit_code == 0
-    assert "--consolidation" in profile_help.stdout
-    assert "--max-draw-calls" in profile_help.stdout
-    assert "--budget-enforcement" in profile_help.stdout
-    assert "--lod-mode" in profile_help.stdout
-    assert "--collision-strategy" in profile_help.stdout
-    assert "--profile" in optimize_help.stdout
-    assert "--run-id" in optimize_help.stdout
-    assert "--approved-plan-sha256" in optimize_help.stdout
-    assert "--run-id" in plan_help.stdout
-    assert "--plan-sha256" in approve_help.stdout
-    assert "--approval-note" in approve_help.stdout
-    assert "--conversion-id" in convert_help.stdout
-    assert "--resolution" in convert_help.stdout
-    assert "--margin-px" in convert_help.stdout
-    assert "--render-device" in convert_help.stdout
-    assert "--package-id" in package_help.stdout
-    assert "--material-conversion-id" in package_help.stdout
-    assert "--include-colliders" in package_help.stdout
-    assert "--bounds-tolerance-m" in validate_help.stdout
+    assert_cli_help_contract(
+        profile_help.stdout,
+        required=(
+            "--consolidation",
+            "--max-draw-calls",
+            "--budget-enforcement",
+            "--lod-mode",
+            "--collision-strategy",
+        ),
+    )
+    assert_cli_help_contract(
+        optimize_help.stdout,
+        required=("--profile", "--run-id", "--approved-plan-sha256"),
+    )
+    assert_cli_help_contract(plan_help.stdout, required=("--run-id",))
+    assert_cli_help_contract(
+        approve_help.stdout,
+        required=("--plan-sha256", "--approval-note"),
+    )
+    assert_cli_help_contract(
+        convert_help.stdout,
+        required=("--conversion-id", "--resolution", "--margin-px", "--render-device"),
+    )
+    assert_cli_help_contract(
+        package_help.stdout,
+        required=("--package-id", "--material-conversion-id", "--include-colliders"),
+    )
+    assert_cli_help_contract(validate_help.stdout, required=("--bounds-tolerance-m",))
 
 
 def test_v07_mcp_tools_are_explicitly_whitelisted() -> None:
@@ -116,5 +125,7 @@ def test_export_pdf_scope_exposes_immutable_run_and_package_selection() -> None:
 
     result = CliRunner().invoke(app, ["report-pdf", "--help"])
     assert result.exit_code == 0
-    assert "--optimization-run-id" in result.output
-    assert "--package-id" in result.output
+    assert_cli_help_contract(
+        result.output,
+        required=("--optimization-run-id", "--package-id"),
+    )

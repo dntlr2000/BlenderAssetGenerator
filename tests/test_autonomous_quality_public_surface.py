@@ -7,8 +7,10 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
+from codex_blender_modeler import cli as cli_module
 from codex_blender_modeler import mcp_server
 from codex_blender_modeler.autonomy.profiles import get_autonomy_profile_status
 from codex_blender_modeler.cli import app
@@ -67,14 +69,19 @@ def test_autonomous_quality_cli_surface_is_discoverable_and_bounded() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in EXPECTED_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
     for command in ("autonomy-advance", "autonomy-run", "autonomy-resume"):
         help_result = CliRunner().invoke(app, [command, "--help"])
         assert help_result.exit_code == 0
-        assert "--retry-failed" not in help_result.stdout
+        forbidden = ["--retry-failed"]
+        if command == "autonomy-advance":
+            forbidden.append("--max-actions")
+        assert_cli_help_contract(help_result.stdout, forbidden=forbidden)
     run_help = CliRunner().invoke(app, ["autonomy-run", "--help"])
-    assert "--max-actions" in run_help.stdout
+    assert_cli_help_contract(run_help.stdout, required=("--max-actions",))
+    assert inspect.signature(cli_module.autonomy_run_command).parameters[
+        "max_actions"
+    ].default == 8
 
 
 def test_autonomous_quality_mcp_surface_is_allowlisted_and_one_action_bounded() -> None:
@@ -123,7 +130,13 @@ def test_v2_public_plan_requires_explicit_experimental_opt_in() -> None:
 
     cli_help = CliRunner().invoke(app, ["autonomy-v2-plan", "--help"])
     assert cli_help.exit_code == 0
-    assert "--enable-v2" in cli_help.stdout
+    assert_cli_help_contract(
+        cli_help.stdout,
+        required=("--enable-v2", "--disable-v2"),
+    )
+    assert inspect.signature(cli_module.autonomy_v2_plan_command).parameters[
+        "experimental_opt_in"
+    ].default is False
     parameters = inspect.signature(mcp_server.plan_autonomous_quality_v2).parameters
     assert "experimental_opt_in" in parameters
     assert parameters["experimental_opt_in"].default is False

@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from jsonschema import Draft202012Validator
 from PIL import Image
 from typer.testing import CliRunner
@@ -713,13 +714,15 @@ def test_interior_qa_public_surface_and_allowlist_are_available() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in (
-        "interior-qa-plan",
-        "interior-qa-plan-approve",
-        "interior-qa-run",
-        "interior-qa-status",
-    ):
-        assert command in result.output
+    assert_cli_help_contract(
+        result.output,
+        required=(
+            "interior-qa-plan",
+            "interior-qa-plan-approve",
+            "interior-qa-run",
+            "interior-qa-status",
+        ),
+    )
     config = tomllib.loads((ROOT / ".codex" / "config.toml").read_text(encoding="utf-8"))
     enabled = set(config["mcp_servers"]["blender_modeler"]["enabled_tools"])
     assert {

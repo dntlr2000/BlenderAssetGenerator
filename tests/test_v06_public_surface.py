@@ -3,6 +3,7 @@ from __future__ import annotations
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.main import get_command
 from typer.testing import CliRunner
 
@@ -58,8 +59,7 @@ def test_v06_cli_commands_are_registered() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in EXPECTED_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
 
 
 def test_visual_qa_exposes_explicit_advisory_target_handoff() -> None:
@@ -67,10 +67,15 @@ def test_visual_qa_exposes_explicit_advisory_target_handoff() -> None:
 
     result = CliRunner().invoke(app, ["visual-qa", "--help"])
     assert result.exit_code == 0
-    assert "--target-image" in result.stdout
-    assert "--target-model" in result.stdout
-    assert "--target-allowed-root" in result.stdout
-    assert "--target-prompt-file" in result.stdout
+    assert_cli_help_contract(
+        result.stdout,
+        required=(
+            "--target-image",
+            "--target-model",
+            "--target-allowed-root",
+            "--target-prompt-file",
+        ),
+    )
 
 
 def test_pdf_report_exposes_scope_run_and_output_controls() -> None:
@@ -78,9 +83,10 @@ def test_pdf_report_exposes_scope_run_and_output_controls() -> None:
 
     result = CliRunner().invoke(app, ["report-pdf", "--help"])
     assert result.exit_code == 0
-    assert "--scope" in result.stdout
-    assert "--qa-run-id" in result.stdout
-    assert "--output" in result.stdout
+    assert_cli_help_contract(
+        result.stdout,
+        required=("--scope", "--qa-run-id", "--output"),
+    )
 
 
 def test_pdf_report_rejects_invalid_scope_before_job_access() -> None:
@@ -134,7 +140,7 @@ def test_visual_convergence_cli_exposes_exact_plan_and_bounded_budgets() -> None
     }
     assert "--render-engine" in run_options
     assert "--render-device" in run_options
-    assert "at most one" in run.stdout.lower()
+    assert_cli_help_contract(run.stdout.lower(), required=("at most one",))
     assert "at most one" in (mcp_module.run_visual_convergence.__doc__ or "").lower()
     assert cancel.exit_code == 0
     cancel_command = get_command(app).commands["qa-convergence-cancel"]

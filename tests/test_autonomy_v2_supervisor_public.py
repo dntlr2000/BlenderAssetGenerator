@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import autonomy_v2, mcp_server
@@ -61,18 +62,20 @@ def test_v2_supervisor_surface_is_additive_disabled_and_allowlisted() -> None:
 
     root_help = CliRunner().invoke(app, ["--help"])
     assert root_help.exit_code == 0
-    assert all(command in root_help.stdout for command in V2_COMMANDS)
+    assert_cli_help_contract(root_help.stdout, required=V2_COMMANDS)
 
     advance_help = CliRunner().invoke(app, ["autonomy-v2-advance", "--help"])
     run_help = CliRunner().invoke(app, ["autonomy-v2-run", "--help"])
     assert advance_help.exit_code == 0
     assert run_help.exit_code == 0
     for result in (advance_help, run_help):
-        assert "--quality-submission" in result.stdout
-        assert "--enable-v2" in result.stdout
-        assert "--retry-failed" not in result.stdout
-    assert "--max-actions" not in advance_help.stdout
-    assert "--max-actions" in run_help.stdout
+        assert_cli_help_contract(
+            result.stdout,
+            required=("--quality-submission", "--enable-v2"),
+            forbidden=("--retry-failed",),
+        )
+    assert_cli_help_contract(advance_help.stdout, forbidden=("--max-actions",))
+    assert_cli_help_contract(run_help.stdout, required=("--max-actions",))
 
     with (ROOT / ".codex" / "config.toml").open("rb") as handle:
         config = tomllib.load(handle)
@@ -158,8 +161,10 @@ def test_v1_supervisor_signatures_and_response_projection_are_unchanged(
     for command in ("autonomy-advance", "autonomy-run"):
         help_result = CliRunner().invoke(app, [command, "--help"])
         assert help_result.exit_code == 0
-        assert "--quality-submission" not in help_result.stdout
-        assert "--enable-v2" not in help_result.stdout
+        assert_cli_help_contract(
+            help_result.stdout,
+            forbidden=("--quality-submission", "--enable-v2"),
+        )
 
     advance_response = {key: None for key in LEGACY_STATUS_KEYS}
     run_response = {

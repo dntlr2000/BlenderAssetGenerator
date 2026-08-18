@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from PIL import Image
 from pydantic import ValidationError
 from typer.testing import CliRunner
@@ -1833,9 +1834,14 @@ def test_multiview_sanity_commands_and_mcp_tools_are_allowlisted() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    assert "qa-assembly-sanity-plan" in result.output
-    assert "qa-assembly-sanity-run" in result.output
-    assert "qa-diagnose" in result.output
+    assert_cli_help_contract(
+        result.output,
+        required=(
+            "qa-assembly-sanity-plan",
+            "qa-assembly-sanity-run",
+            "qa-diagnose",
+        ),
+    )
     root = Path(__file__).resolve().parents[1]
     with (root / ".codex" / "config.toml").open("rb") as handle:
         config = tomllib.load(handle)

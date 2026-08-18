@@ -6,6 +6,7 @@ import inspect
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import cli, material_identity_split_public, mcp_server
@@ -36,8 +37,7 @@ def test_material_identity_split_cli_and_mcp_surfaces_are_complete() -> None:
 
     result = CliRunner().invoke(cli.app, ["--help"])
     assert result.exit_code == 0
-    for command in CLI_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=CLI_COMMANDS)
     for tool in MCP_TOOLS:
         assert callable(getattr(mcp_server, tool))
 
@@ -108,4 +108,3 @@ def test_preapproval_and_request_surfaces_do_not_accept_approval_payloads() -> N
         parameters = inspect.signature(function).parameters
         assert "approval_path" not in parameters
         assert "explicit_user_decision_observed" not in parameters
-

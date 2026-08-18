@@ -4,6 +4,7 @@ import inspect
 import tomllib
 from pathlib import Path
 
+from cli_help_support import assert_cli_help_contract
 from typer.testing import CliRunner
 
 from codex_blender_modeler import mcp_server
@@ -66,8 +67,7 @@ def test_v09_cli_commands_are_registered() -> None:
 
     result = CliRunner().invoke(app, ["--help"])
     assert result.exit_code == 0
-    for command in EXPECTED_COMMANDS:
-        assert command in result.stdout
+    assert_cli_help_contract(result.stdout, required=EXPECTED_COMMANDS)
 
 
 def test_v09_failed_requeue_requires_an_explicit_flag() -> None:
@@ -75,7 +75,7 @@ def test_v09_failed_requeue_requires_an_explicit_flag() -> None:
 
     result = CliRunner().invoke(app, ["queue-requeue", "--help"])
     assert result.exit_code == 0
-    assert "--retry-failed" in result.stdout
+    assert_cli_help_contract(result.stdout, required=("--retry-failed",))
 
 
 def test_production_controller_cannot_receive_approval_or_retry_authority() -> None:
@@ -83,12 +83,16 @@ def test_production_controller_cannot_receive_approval_or_retry_authority() -> N
 
     result = CliRunner().invoke(app, ["production-advance", "--help"])
     assert result.exit_code == 0
-    assert "--retry-failed" not in result.stdout
-    assert "--handoff-plan-sha256" not in result.stdout
+    assert_cli_help_contract(
+        result.stdout,
+        forbidden=("--retry-failed", "--handoff-plan-sha256"),
+    )
     binding = CliRunner().invoke(app, ["production-bind-task", "--help"])
     assert binding.exit_code == 0
-    assert "--confirm-tool-profile" in binding.stdout
-    assert "--tool-profile-sha256" in binding.stdout
+    assert_cli_help_contract(
+        binding.stdout,
+        required=("--confirm-tool-profile", "--tool-profile-sha256"),
+    )
 
 
 def test_production_dispatch_cli_uses_unambiguous_compact_option_names() -> None:
@@ -96,30 +100,32 @@ def test_production_dispatch_cli_uses_unambiguous_compact_option_names() -> None
 
     result = CliRunner().invoke(app, ["production-dispatch", "--help"])
     assert result.exit_code == 0
-    for option in (
-        "--reference",
-        "--content-scope",
-        "--subject",
-        "--policy",
-        "--ctrl-mode",
-        "--dest-kind",
-        "--dest-name",
-        "--dest-version",
-        "--dest-pipeline",
-        "--handoff",
-        "--host-limit",
-        "--qa-limit",
-        "--texture-limit",
-        "--triangle-limit",
-        "--provider-limit",
-        "--convergence",
-        "--target-direct",
-        "--target-iou",
-        "--min-gain",
-        "--min-confidence",
-        "--conv-iters",
-    ):
-        assert option in result.stdout
+    assert_cli_help_contract(
+        result.stdout,
+        required=(
+            "--reference",
+            "--content-scope",
+            "--subject",
+            "--policy",
+            "--ctrl-mode",
+            "--dest-kind",
+            "--dest-name",
+            "--dest-version",
+            "--dest-pipeline",
+            "--handoff",
+            "--host-limit",
+            "--qa-limit",
+            "--texture-limit",
+            "--triangle-limit",
+            "--provider-limit",
+            "--convergence",
+            "--target-direct",
+            "--target-iou",
+            "--min-gain",
+            "--min-confidence",
+            "--conv-iters",
+        ),
+    )
 
 
 def test_production_dispatch_mcp_exposes_bounded_convergence_inputs() -> None:

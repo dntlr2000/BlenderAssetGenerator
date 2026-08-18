@@ -5,6 +5,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import pytest
+from cli_help_support import assert_cli_help_contract
 from jsonschema import Draft202012Validator
 from pydantic import ValidationError
 from typer.testing import CliRunner
@@ -472,8 +473,10 @@ def test_surface_detail_schemas_and_public_surface_are_available() -> None:
             assert schema == SurfaceDetailValidationReport.model_json_schema()
     help_result = CliRunner().invoke(app, ["--help"])
     assert help_result.exit_code == 0
-    assert "validate-surface-details" in help_result.stdout
-    assert "surface-detail-status" in help_result.stdout
+    assert_cli_help_contract(
+        help_result.stdout,
+        required=("validate-surface-details", "surface-detail-status"),
+    )
     config_text = (ROOT / ".codex" / "config.toml").read_text(encoding="utf-8")
     assert '"validate_surface_details"' in config_text
     assert '"get_surface_detail_status"' in config_text
