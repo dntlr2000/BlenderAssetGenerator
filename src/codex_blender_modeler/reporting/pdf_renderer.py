@@ -88,12 +88,12 @@ def _register_report_fonts() -> dict[str, str]:
             "bold": bold_name,
             "source": f"embedded:{regular_path.name}",
         }
-    if "HYGoThic-Medium" not in pdfmetrics.getRegisteredFontNames():
-        pdfmetrics.registerFont(UnicodeCIDFont("HYGoThic-Medium"))
+    if "HYGothic-Medium" not in pdfmetrics.getRegisteredFontNames():
+        pdfmetrics.registerFont(UnicodeCIDFont("HYGothic-Medium"))
     return {
-        "regular": "HYGoThic-Medium",
-        "bold": "HYGoThic-Medium",
-        "source": "cid-fallback:HYGoThic-Medium",
+        "regular": "HYGothic-Medium",
+        "bold": "HYGothic-Medium",
+        "source": "cid-fallback:HYGothic-Medium",
     }
 
 

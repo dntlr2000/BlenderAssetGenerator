@@ -9,6 +9,7 @@ from jsonschema import Draft202012Validator
 from PIL import Image
 from pypdf import PdfReader
 
+import codex_blender_modeler.reporting.pdf_renderer as pdf_renderer
 from codex_blender_modeler.build_provenance import collect_build_provenance
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
@@ -59,6 +60,23 @@ def _write_png(path: Path, color: tuple[int, int, int]) -> None:
 
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (96, 64), color).save(path)
+
+
+def test_pdf_font_fallback_uses_supported_korean_cid(monkeypatch) -> None:
+    """Use ReportLab's portable Korean CID face when no system font is installed."""
+
+    def no_local_font_candidates() -> list[tuple[Path, Path | None]]:
+        """Force the platform-independent CID fallback for this unit test."""
+
+        return []
+
+    monkeypatch.setattr(pdf_renderer, "_font_candidates", no_local_font_candidates)
+
+    assert pdf_renderer._register_report_fonts() == {
+        "regular": "HYGothic-Medium",
+        "bold": "HYGothic-Medium",
+        "source": "cid-fallback:HYGothic-Medium",
+    }
 
 
 def test_report_source_schema_rejects_absolute_and_traversal_paths() -> None:

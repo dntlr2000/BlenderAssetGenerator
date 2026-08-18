@@ -559,6 +559,51 @@ def _pipeline(scene_spec_path: Path, *, constraint_failures: list[int] | None = 
     return run, heights
 
 
+def _install_pipeline_stubs(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    convergence_pipeline: Any,
+    rollback_pipeline: Any,
+) -> dict[str, int]:
+    """Install separate deterministic main and rollback pipelines without Blender."""
+
+    from codex_blender_modeler.auto_revision import convergence_session, service
+
+    calls = {"convergence": 0, "rollback": 0}
+
+    def run_convergence(
+        job_id: str,
+        root: Path,
+        render_engine: str,
+        render_device: str,
+    ) -> dict[str, Any]:
+        """Route the active convergence build through its selected test pipeline."""
+
+        calls["convergence"] += 1
+        return convergence_pipeline(job_id, root, render_engine, render_device)
+
+    def run_rollback(
+        job_id: str,
+        root: Path,
+        render_engine: str,
+        render_device: str,
+    ) -> dict[str, Any]:
+        """Route the restored-baseline rebuild through its selected test pipeline."""
+
+        calls["rollback"] += 1
+        return rollback_pipeline(job_id, root, render_engine, render_device)
+
+    def reject_blender(*_args: Any, **_kwargs: Any) -> None:
+        """Fail immediately if a non-Blender unit test escapes into Blender."""
+
+        raise AssertionError("non-Blender pipeline fixture invoked run_blender")
+
+    monkeypatch.setattr(convergence_session, "_run_job_pipeline", run_convergence)
+    monkeypatch.setattr(service, "_run_job_pipeline", run_rollback)
+    monkeypatch.setattr(service, "run_blender", reject_blender)
+    return calls
+
+
 def _post_qa_sequence(
     root: Path,
     scene_spec_path: Path,
@@ -884,7 +929,11 @@ def test_spatial_iteration_uses_five_view_result_as_acceptance_veto(
     )
     _plan_and_approve(run_id, target=0.7, max_iterations=1)
     pipeline, _heights = _pipeline(scene_spec)
-    monkeypatch.setattr(convergence_session, "_run_job_pipeline", pipeline)
+    pipeline_calls = _install_pipeline_stubs(
+        monkeypatch,
+        convergence_pipeline=pipeline,
+        rollback_pipeline=pipeline,
+    )
     monkeypatch.setattr(
         convergence_session,
         "_run_post_visual_qa",
@@ -914,6 +963,10 @@ def test_spatial_iteration_uses_five_view_result_as_acceptance_veto(
     )
     assert receipt["structural_multiview_status"] == structural_status
     assert result["termination_reason"] == termination_reason
+    assert pipeline_calls == {
+        "convergence": 1,
+        "rollback": 1 if structural_status == "regressed" else 0,
+    }
     assert sha256_file(scene_spec) == (
         comparison_result_sha256[0]
         if structural_status == "passed"
@@ -1572,14 +1625,14 @@ def test_build_contract_change_during_pipeline_rolls_back_canonical_scene(
 ) -> None:
     """Restore canonical geometry when a pipeline mutates another build-contract source."""
 
-    from codex_blender_modeler.auto_revision import convergence_session
-
     root, scene_spec, run_id = _job_fixture(
         tmp_path,
         monkeypatch,
         material_plan=True,
     )
     baseline_hash = sha256_file(scene_spec)
+    material_plan = root / "analysis" / "material_plan.json"
+    baseline_material_hash = sha256_file(material_plan)
     _plan_and_approve(run_id, target=0.8)
     base_pipeline, _heights = _pipeline(scene_spec)
 
@@ -1598,10 +1651,10 @@ def test_build_contract_change_during_pipeline_rolls_back_canonical_scene(
         dependency.write_text(json.dumps(payload, indent=2), encoding="utf-8")
         return result
 
-    monkeypatch.setattr(
-        convergence_session,
-        "_run_job_pipeline",
-        tampering_pipeline,
+    pipeline_calls = _install_pipeline_stubs(
+        monkeypatch,
+        convergence_pipeline=tampering_pipeline,
+        rollback_pipeline=base_pipeline,
     )
 
     with pytest.raises(
@@ -1611,6 +1664,105 @@ def test_build_contract_change_during_pipeline_rolls_back_canonical_scene(
         run_job_visual_convergence("convergence_asset", "session-fixture")
 
     assert sha256_file(scene_spec) == baseline_hash
+    assert pipeline_calls == {"convergence": 1, "rollback": 1}
+    assert sha256_file(material_plan) != baseline_material_hash
+    assert "mid-pipeline external material mutation" in json.loads(
+        material_plan.read_text(encoding="utf-8")
+    )["global_notes"]
+    rollback = json.loads(
+        (
+            root
+            / "qa"
+            / "convergence"
+            / "session-fixture"
+            / "staging"
+            / "001"
+            / "rollback_report.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert rollback["rollback_ok"] is True
+    assert rollback["status"] == "restored"
+    assert rollback["restored_scene_spec_sha256"] == baseline_hash
+    assert rollback["expected_scene_spec_sha256"] == baseline_hash
+    assert rollback["input_hashes_unchanged"] is True
+    assert rollback["rebuild_requested"] is True
+    assert rollback["rebuild_error"] is None
+    assert "build inputs changed" in rollback["reason"]
+    assert not (
+        root
+        / "qa"
+        / "convergence"
+        / "session-fixture"
+        / "iterations"
+        / "001"
+        / "receipt.json"
+    ).exists()
+
+
+def test_rollback_rebuild_failure_remains_restore_incomplete(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Reject a canonical rollback whose restored-baseline rebuild still fails."""
+
+    root, scene_spec, run_id = _job_fixture(tmp_path, monkeypatch)
+    baseline_hash = sha256_file(scene_spec)
+    _plan_and_approve(run_id, target=0.8)
+    base_pipeline, _heights = _pipeline(scene_spec)
+
+    def failing_convergence_pipeline(
+        job_id: str,
+        job_root: Path,
+        render_engine: str,
+        render_device: str,
+    ) -> dict[str, Any]:
+        """Fail after the promoted candidate has entered the derived pipeline."""
+
+        base_pipeline(job_id, job_root, render_engine, render_device)
+        raise RuntimeError("mock convergence pipeline failure")
+
+    def failing_rollback_pipeline(
+        _job_id: str,
+        _job_root: Path,
+        _render_engine: str,
+        _render_device: str,
+    ) -> dict[str, Any]:
+        """Simulate a genuine restored-baseline rebuild failure."""
+
+        raise RuntimeError("mock rollback rebuild failure")
+
+    pipeline_calls = _install_pipeline_stubs(
+        monkeypatch,
+        convergence_pipeline=failing_convergence_pipeline,
+        rollback_pipeline=failing_rollback_pipeline,
+    )
+
+    with pytest.raises(
+        RuntimeError,
+        match="rollback did not fully restore and rebuild the baseline",
+    ):
+        run_job_visual_convergence("convergence_asset", "session-fixture")
+
+    rollback = json.loads(
+        (
+            root
+            / "qa"
+            / "convergence"
+            / "session-fixture"
+            / "staging"
+            / "001"
+            / "rollback_report.json"
+        ).read_text(encoding="utf-8")
+    )
+    assert pipeline_calls == {"convergence": 1, "rollback": 1}
+    assert sha256_file(scene_spec) == baseline_hash
+    assert rollback["rollback_ok"] is False
+    assert rollback["status"] == "restore_incomplete"
+    assert rollback["restored_scene_spec_sha256"] == baseline_hash
+    assert rollback["expected_scene_spec_sha256"] == baseline_hash
+    assert rollback["input_hashes_unchanged"] is True
+    assert rollback["rebuild_requested"] is True
+    assert rollback["rebuild_error"] == "RuntimeError: mock rollback rebuild failure"
     assert not (
         root
         / "qa"

@@ -228,7 +228,10 @@ def test_convergence_cli_rejects_invalid_path_limit_json_before_job_access() -> 
         ],
     )
     assert result.exit_code != 0
-    assert "--path-limit-json item 1" in result.output
+    assert_cli_help_contract(
+        result.output,
+        required=("--path-limit-json item 1",),
+    )
 
 
 def test_v06_mcp_tools_are_whitelisted() -> None:
