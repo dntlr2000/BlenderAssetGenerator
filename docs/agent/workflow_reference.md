@@ -221,6 +221,17 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
    non-synthetic geometry continuation. Rebuild downstream material closure and appearance approval
    from the new canonical state.
 
+## Skill Orchestration entry flows
+
+- `$standard-asset-cycle` plans one `skill_runs/<run-id>` bundle and uses existing V0.8
+  workflow children. New assets use `full + preview_only` through QA; package is explicit.
+- `$aq-one-prompt-orchestrator` binds one new AQ v2 One-Prompt plan and remains
+  `disabled_experimental` without explicit delegation and opt-in.
+- Use the existing workflow/AQ completion, approval, controller, IQ and retry surfaces at
+  every exposed boundary, then resume the same skill run. Do not edit adapter state.
+- `skill-trace` validates snapshot, route, before/after state, and receipt-chain hashes; it
+  never approves or executes work.
+
 ## Testing
 
 - Dependencies: `uv sync --extra dev`
@@ -260,6 +271,7 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 - `blender/`, `renders/`, `reports/`, `bakes/`, and non-package exports: derived artifacts
 - `output/pdf/`: derived user-facing PDF reports and provenance manifests; never canonical inputs
 - `workflows/`: immutable orchestration contracts, attempts, approvals, and derived state; never a replacement for canonical stage contracts
+- `skill_runs/`: immutable skill registry/resources, child bindings, routes, state snapshots and receipts plus derived adapter state; never canonical or approval authority
 - `production/dispatches/`: immutable dispatcher, client-launch, task-binding, advisory assignment, controller-transition, and postflight-audit evidence; never a source of approval authority
 - `reports/v09/`: repository-owned environment probes and read-only workspace audits with relative paths only
 - `.cbm/queue/`: operational single-worker queue, locks, leases, and immutable dispatch receipts; never canonical asset data

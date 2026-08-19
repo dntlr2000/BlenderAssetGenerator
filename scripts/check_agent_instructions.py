@@ -59,6 +59,7 @@ REQUIRED_LEAF_AGENTS = (
     "src/codex_blender_modeler/handoff/AGENTS.md",
     "src/codex_blender_modeler/orchestration/AGENTS.md",
     "src/codex_blender_modeler/production/AGENTS.md",
+    "src/codex_blender_modeler/skill_orchestration/AGENTS.md",
     "src/codex_blender_modeler/blender_scripts/AGENTS.md",
 )
 

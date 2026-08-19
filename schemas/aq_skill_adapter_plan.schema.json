@@ -1,0 +1,83 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind the AQ entry skill to one existing immutable One-Prompt plan.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "bundle_manifest": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "one_prompt_plan": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "profile_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "run_id",
+    "job_id",
+    "session_id",
+    "bundle_manifest",
+    "one_prompt_plan",
+    "created_at"
+  ],
+  "title": "AQSkillAdapterPlan",
+  "type": "object"
+}

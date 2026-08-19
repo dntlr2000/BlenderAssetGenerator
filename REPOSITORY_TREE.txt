@@ -1,14 +1,25 @@
 BlenderAssetGenerator/
+  .agents/skills/aq-delivery-stage/SKILL.md
+  .agents/skills/aq-geometry-stage/SKILL.md
+  .agents/skills/aq-material-closure/SKILL.md
+  .agents/skills/aq-material-stage/SKILL.md
+  .agents/skills/aq-one-prompt-orchestrator/SKILL.md
+  .agents/skills/aq-quality-stage/SKILL.md
+  .agents/skills/aq-recovery-stage/SKILL.md
+  .agents/skills/aq-reference-stage/SKILL.md
   .agents/skills/blender-build/SKILL.md
   .agents/skills/blueprint-calibration/SKILL.md
   .agents/skills/guarded-visual-revision/SKILL.md
   .agents/skills/material-authoring/SKILL.md
   .agents/skills/measured-constraints/SKILL.md
+  .agents/skills/portable-asset-delivery/SKILL.md
   .agents/skills/quick-reference-model/SKILL.md
   .agents/skills/reference-analysis/SKILL.md
   .agents/skills/reference-to-scene/SKILL.md
   .agents/skills/reference-visual-qa/SKILL.md
+  .agents/skills/registry.json
   .agents/skills/shader-authoring/SKILL.md
+  .agents/skills/standard-asset-cycle/SKILL.md
   .agents/skills/texture-authoring/SKILL.md
   .agents/skills/texture-baking/SKILL.md
   .agents/skills/visual-qa/SKILL.md
@@ -49,6 +60,7 @@ BlenderAssetGenerator/
   GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md
   GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md
   GETTING_STARTED_KO.md
+  GETTING_STARTED_SKILL_ORCHESTRATION_KO.md
   GETTING_STARTED_V04_KO.md
   GETTING_STARTED_V06_KO.md
   GETTING_STARTED_V07_KO.md
@@ -73,6 +85,10 @@ BlenderAssetGenerator/
   README.md
   REPOSITORY_TREE.txt
   ROADMAP_V1_KO.md
+  SKILL_ORCHESTRATION_ARCHITECTURE_KO.md
+  SKILL_ORCHESTRATION_KPI_KO.md
+  SKILL_ORCHESTRATION_MIGRATION_KO.md
+  SKILL_ORCHESTRATION_TEST_PLAN_KO.md
   SURFACE_DETAIL_ROUTING_KO.md
   TEST_PLAN_AQ_APPROVAL_ENVELOPE_KO.md
   TEST_PLAN_AQ_V02_KO.md
@@ -96,6 +112,7 @@ BlenderAssetGenerator/
   VERIFICATION_KO.md
   VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md
   VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md
+  VERIFICATION_SKILL_ORCHESTRATION_KO.md
   VERIFICATION_V06_KO.md
   VERIFICATION_V073_KO.md
   VERIFICATION_V074_KO.md
@@ -172,6 +189,8 @@ BlenderAssetGenerator/
   schemas/advanced_material_handoff_plan.schema.json
   schemas/advanced_material_handoff_receipt.schema.json
   schemas/advanced_material_handoff_request.schema.json
+  schemas/aq_skill_adapter_plan.schema.json
+  schemas/aq_skill_adapter_state.schema.json
   schemas/aq_v2_approval_budget.schema.json
   schemas/aq_v2_approval_telemetry_report.schema.json
   schemas/aq_v2_consolidated_escalation_request.schema.json
@@ -303,6 +322,7 @@ BlenderAssetGenerator/
   schemas/geometry_intent_survival_report.schema.json
   schemas/geometry_multiview_visual_review.schema.json
   schemas/geometry_stage_snapshot_v02.schema.json
+  schemas/guarded_revision_continuation.schema.json
   schemas/handoff_report_manifest.schema.json
   schemas/historical_session_autonomy_eligibility_report.schema.json
   schemas/host_attempt_failure.schema.json
@@ -397,6 +417,7 @@ BlenderAssetGenerator/
   schemas/material_identity_split_shadow_build_receipt.schema.json
   schemas/material_identity_split_status_projection.schema.json
   schemas/material_identity_split_transaction_state.schema.json
+  schemas/material_impact_report.schema.json
   schemas/material_mapping.schema.json
   schemas/material_neutral_preview_manifest.schema.json
   schemas/material_plan.schema.json
@@ -463,7 +484,15 @@ BlenderAssetGenerator/
   schemas/semantic_reference_mask_promotion_receipt.schema.json
   schemas/semantic_reference_mask_registry_status.schema.json
   schemas/shader_recipe.schema.json
+  schemas/skill_bundle_manifest.schema.json
+  schemas/skill_execution_receipt.schema.json
+  schemas/skill_registry.schema.json
+  schemas/skill_route_decision.schema.json
   schemas/stability_report_manifest.schema.json
+  schemas/standard_composite_run_plan.schema.json
+  schemas/standard_composite_run_state.schema.json
+  schemas/standard_composite_run_terminal.schema.json
+  schemas/standard_composite_stage_binding.schema.json
   schemas/standard_custom_mesh_payload.schema.json
   schemas/structural_candidate_manifest.schema.json
   schemas/structural_candidate_plan.schema.json
@@ -887,6 +916,10 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/repository_catalog.py
   src/codex_blender_modeler/revision.py
   src/codex_blender_modeler/shader_recipe_runtime.py
+  src/codex_blender_modeler/skill_orchestration/AGENTS.md
+  src/codex_blender_modeler/skill_orchestration/__init__.py
+  src/codex_blender_modeler/skill_orchestration/models.py
+  src/codex_blender_modeler/skill_orchestration/service.py
   src/codex_blender_modeler/stabilization/__init__.py
   src/codex_blender_modeler/stabilization/archive_models.py
   src/codex_blender_modeler/stabilization/locks.py
@@ -1065,6 +1098,8 @@ BlenderAssetGenerator/
   tests/test_scene_spec_v03_migration_public.py
   tests/test_scene_validation_modifier_order.py
   tests/test_shader_recipe_runtime.py
+  tests/test_skill_orchestration.py
+  tests/test_skill_orchestration_public_surface.py
   tests/test_standard_custom_mesh.py
   tests/test_surface_detail_policy.py
   tests/test_surface_detail_uv_runtime.py

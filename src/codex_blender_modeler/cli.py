@@ -223,6 +223,20 @@ from .qa import (
 )
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan, sha256_file
+from .skill_orchestration import (
+    cancel_aq_one_prompt_skill,
+    cancel_standard_asset_cycle,
+    get_aq_one_prompt_skill_status,
+    get_skill_catalog,
+    get_skill_execution_trace,
+    get_standard_asset_cycle_status,
+    plan_aq_one_prompt_skill,
+    plan_standard_asset_cycle,
+    resume_aq_one_prompt_skill,
+    resume_standard_asset_cycle,
+    run_aq_one_prompt_skill,
+    run_standard_asset_cycle,
+)
 from .stabilization import (
     archive_workspace_job,
     audit_workspace_state,
@@ -3440,6 +3454,269 @@ def autonomy_v2_one_prompt_cancel_command(
         session_id,
         reason=reason,
         allow_disabled_experimental=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("skill-catalog")
+def skill_catalog_command() -> None:
+    """Read the strict live skill registry without creating execution authority."""
+
+    console.print_json(json.dumps(get_skill_catalog(), ensure_ascii=False))
+
+
+@app.command("skill-trace")
+def skill_trace_command(job_id: str, run_id: str) -> None:
+    """Validate one run-owned skill bundle, route set, and receipt chain."""
+
+    console.print_json(
+        json.dumps(get_skill_execution_trace(job_id, run_id), ensure_ascii=False)
+    )
+
+
+@app.command("standard-asset-cycle-plan")
+def standard_asset_cycle_plan_command(
+    request: str,
+    job_id: Annotated[str, typer.Option("--job-id")],
+    goal: Annotated[str, typer.Option("--goal")],
+    reference_path: Annotated[Path | None, typer.Option("--reference")] = None,
+    stage_policy: Annotated[str, typer.Option("--stage-policy")] = "smart",
+    max_qa_revision_iterations: Annotated[
+        int,
+        typer.Option("--max-qa-revisions", min=0, max=5),
+    ] = 1,
+    profile_id: Annotated[str, typer.Option("--profile-id")] = "portable_gltf",
+    mode: Annotated[str, typer.Option("--mode")] = "concept",
+    reference_content_scope: Annotated[
+        str | None,
+        typer.Option("--reference-content-scope"),
+    ] = None,
+    target_subject: Annotated[str | None, typer.Option("--target-subject")] = None,
+    revision_strategy: Annotated[
+        str,
+        typer.Option("--revision-strategy"),
+    ] = "candidate_review",
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Plan one traceable Standard cycle over existing V0.8 child workflows."""
+
+    result = plan_standard_asset_cycle(
+        request,
+        goal=goal,
+        job_id=job_id,
+        reference_path=reference_path,
+        stage_policy=stage_policy,
+        max_qa_revision_iterations=max_qa_revision_iterations,
+        profile_id=profile_id,
+        mode=mode,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+        revision_strategy=revision_strategy,
+        run_id=run_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("standard-asset-cycle-run")
+def standard_asset_cycle_run_command(
+    job_id: str,
+    run_id: str,
+    max_host_steps: Annotated[int, typer.Option("--max-host-steps", min=1, max=64)] = 8,
+    max_stage_transitions: Annotated[
+        int,
+        typer.Option("--max-stage-transitions", min=1, max=8),
+    ] = 4,
+    retry_failed: Annotated[bool, typer.Option("--retry-failed")] = False,
+) -> None:
+    """Advance Standard children until the next agent, approval, failure, or terminal."""
+
+    result = run_standard_asset_cycle(
+        job_id,
+        run_id,
+        max_host_steps=max_host_steps,
+        max_stage_transitions=max_stage_transitions,
+        retry_failed=retry_failed,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("standard-asset-cycle-resume")
+def standard_asset_cycle_resume_command(
+    job_id: str,
+    run_id: str,
+    max_host_steps: Annotated[int, typer.Option("--max-host-steps", min=1, max=64)] = 8,
+    max_stage_transitions: Annotated[
+        int,
+        typer.Option("--max-stage-transitions", min=1, max=8),
+    ] = 4,
+    retry_failed: Annotated[bool, typer.Option("--retry-failed")] = False,
+) -> None:
+    """Resume the same Standard bundle, child bindings, and immutable receipt chain."""
+
+    result = resume_standard_asset_cycle(
+        job_id,
+        run_id,
+        max_host_steps=max_host_steps,
+        max_stage_transitions=max_stage_transitions,
+        retry_failed=retry_failed,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("standard-asset-cycle-status")
+def standard_asset_cycle_status_command(job_id: str, run_id: str) -> None:
+    """Read one Standard composite projection without advancing a child workflow."""
+
+    console.print_json(
+        json.dumps(
+            get_standard_asset_cycle_status(job_id, run_id),
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("standard-asset-cycle-cancel")
+def standard_asset_cycle_cancel_command(
+    job_id: str,
+    run_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+) -> None:
+    """Cancel future Standard child work without deleting accumulated evidence."""
+
+    result = cancel_standard_asset_cycle(job_id, run_id, reason=reason)
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-one-prompt-skill-plan")
+def aq_one_prompt_skill_plan_command(
+    request: str,
+    reference_path: Annotated[str, typer.Option("--reference")],
+    target_subject: Annotated[str, typer.Option("--target-subject")],
+    deliveries: Annotated[str, typer.Option("--deliveries")] = "portable_gltf",
+    approval_mode: Annotated[str, typer.Option("--approval-mode")] = "autonomous",
+    delegate_routine_actions: Annotated[
+        bool,
+        typer.Option("--delegate-routine-actions/--no-delegate-routine-actions"),
+    ] = False,
+    provider_scopes: Annotated[str, typer.Option("--provider-scopes")] = "local_only",
+    job_id: Annotated[str | None, typer.Option("--job-id")] = None,
+    controller_execution_mode: Annotated[
+        str,
+        typer.Option("--controller-mode"),
+    ] = "desktop_in_session",
+    destination_hint: Annotated[
+        str,
+        typer.Option("--destination-hint"),
+    ] = "engine_neutral",
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+    run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+) -> None:
+    """Plan the disabled AQ stage adapter over one exact One-Prompt session."""
+
+    result = plan_aq_one_prompt_skill(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=_parse_required_csv(
+            deliveries,
+            option_name="--deliveries",
+        ),
+        approval_mode=approval_mode,
+        explicit_autonomy_delegation_observed=delegate_routine_actions,
+        allowed_provider_scopes=_parse_required_csv(
+            provider_scopes,
+            option_name="--provider-scopes",
+        ),
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        experimental_opt_in=experimental_opt_in,
+        run_id=run_id,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-one-prompt-skill-run")
+def aq_one_prompt_skill_run_command(
+    job_id: str,
+    run_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=128)] = 32,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Advance one AQ adapter slice through the existing One-Prompt supervisor."""
+
+    result = run_aq_one_prompt_skill(
+        job_id,
+        run_id,
+        max_actions=max_actions,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        experimental_opt_in=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-one-prompt-skill-resume")
+def aq_one_prompt_skill_resume_command(
+    job_id: str,
+    run_id: str,
+    max_actions: Annotated[int, typer.Option("--max-actions", min=1, max=128)] = 32,
+    quality_submission: Annotated[
+        Path | None,
+        typer.Option("--quality-submission"),
+    ] = None,
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Resume the exact AQ plan, state, budget, assignment, and skill snapshots."""
+
+    result = resume_aq_one_prompt_skill(
+        job_id,
+        run_id,
+        max_actions=max_actions,
+        quality_submission=_load_quality_submission_payload(quality_submission),
+        experimental_opt_in=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+@app.command("aq-one-prompt-skill-status")
+def aq_one_prompt_skill_status_command(job_id: str, run_id: str) -> None:
+    """Read the AQ skill adapter and underlying One-Prompt status without execution."""
+
+    console.print_json(
+        json.dumps(get_aq_one_prompt_skill_status(job_id, run_id), ensure_ascii=False)
+    )
+
+
+@app.command("aq-one-prompt-skill-cancel")
+def aq_one_prompt_skill_cancel_command(
+    job_id: str,
+    run_id: str,
+    reason: Annotated[str, typer.Option("--reason")],
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Cancel the exact AQ One-Prompt session while retaining adapter evidence."""
+
+    result = cancel_aq_one_prompt_skill(
+        job_id,
+        run_id,
+        reason=reason,
+        experimental_opt_in=experimental_opt_in,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 

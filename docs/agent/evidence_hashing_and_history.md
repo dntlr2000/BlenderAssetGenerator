@@ -13,4 +13,16 @@ the source graph in place. Preflight, preview, approval, controller and promotio
 that same closure digest. Retry supersession preserves the original plan and approval as
 history while making executability explicitly false.
 
+Skill Orchestration plans copy the exact registry, every authorized SKILL.md/supporting
+resource, and each mutable underlying state used by a route or receipt into the run-owned
+`skill_runs/<run-id>/` tree. Route decisions bind the before snapshot; execution receipts
+bind immutable before/after snapshots and the previous receipt SHA-256. Later live skill or
+underlying state changes do not rewrite history. Any snapshot, route, receipt, or chain
+mutation fails closed.
+
+A Standard QA repair continuation additionally binds the exact source QA report,
+revision candidates, RevisionPlan, consumed user approval, application report, optional
+accepted convergence, and before/after SceneSpec hashes. A bare SceneSpec hash change is
+never continuation evidence.
+
 Primary rules: CBM-INV-022, CBM-INV-025..034, CBM-INV-047..052, CBM-INV-059..066, CBM-INV-071, CBM-INV-080, CBM-INV-082..088, CBM-INV-095, CBM-INV-104, CBM-INV-107..112, CBM-INV-114..121, CBM-INV-125, CBM-INV-128..150, CBM-INV-152..166, CBM-INV-171..192.

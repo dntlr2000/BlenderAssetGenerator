@@ -9,6 +9,7 @@ from PIL import Image
 
 from codex_blender_modeler.orchestration.models import WorkflowState
 from codex_blender_modeler.orchestration.service import plan_workflow
+from codex_blender_modeler.skill_orchestration import plan_standard_asset_cycle
 from codex_blender_modeler.stabilization import (
     WorkspaceRelocationPlan,
     archive_workspace_job,
@@ -155,6 +156,55 @@ def test_nonterminal_and_locked_workspaces_fail_closed(
     lock_path.write_text("{}\n", encoding="utf-8")
     with pytest.raises(RuntimeError, match="active lock"):
         plan_workspace_archive("locked_asset")
+
+
+def test_archive_rejects_nonterminal_standard_skill_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Reject relocation when V0.8 is terminal but its Standard composite is not."""
+
+    workspace, _archive = _isolated_roots(monkeypatch, tmp_path)
+    planned = plan_standard_asset_cycle(
+        "Create this bounded reference asset through QA.",
+        goal="new_asset_to_qa",
+        job_id="active_skill_asset",
+        reference_path=_reference(tmp_path / "active-skill.png"),
+        run_id="active-standard-skill",
+    )
+    workflow_id = planned["current_workflow"]["workflow_id"]
+    workflow_root = workspace / "active_skill_asset" / "workflows" / workflow_id
+    state = WorkflowState.model_validate_json(
+        (workflow_root / "state.json").read_text(encoding="utf-8")
+    ).model_copy(
+        update={
+            "status": "completed",
+            "milestone": "completed",
+            "current_step_id": None,
+            "next_action": None,
+            "waiting_gate": None,
+        }
+    )
+    (workflow_root / "state.json").write_text(
+        state.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    (workspace / "active_skill_asset" / "workflows" / "latest.json").write_text(
+        json.dumps(
+            {
+                "schema_version": "0.8.0",
+                "job_id": "active_skill_asset",
+                "workflow_id": workflow_id,
+                "status": "completed",
+                "updated_at": state.updated_at.isoformat(),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RuntimeError, match="nonterminal Standard skill run"):
+        plan_workspace_archive("active_skill_asset")
 
 
 def test_archive_plan_crash_adopts_exact_already_moved_tree(

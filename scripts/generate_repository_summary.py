@@ -254,6 +254,7 @@ def render_readme_summary_block(summary: dict[str, Any]) -> str:
     builders = catalog["builders"]
     profiles = catalog["autonomy_profiles"]
     deliveries = catalog["delivery_profiles"]
+    skills = catalog["skill_orchestration"]
     mcp = catalog["mcp"]
     verification = summary["verification"]
     active_profiles = [
@@ -288,6 +289,9 @@ def render_readme_summary_block(summary: dict[str, Any]) -> str:
         "- Existing delivery outputs: " + (", ".join(outputs) or "none"),
         "- Experimental delivery roles: "
         + (", ".join(experimental_outputs) or "none"),
+        "- Skill orchestration entrypoints: " + ", ".join(skills["entry_skills"]),
+        f"- Registered project skills: {len(skills['skills'])}",
+        "- Skill registry SHA-256: " + stable_json_sha256(skills),
         f"- CLI commands: {len(catalog['cli_commands'])}",
         "- CLI registry SHA-256: " + stable_json_sha256(catalog["cli_commands"]),
         f"- MCP server tools: {len(mcp['server_tools'])}",

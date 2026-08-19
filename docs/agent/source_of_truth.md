@@ -25,12 +25,14 @@
     guarded transaction and post-apply continuation evidence; never a substitute for canonical files.
 21. reports/v09/ — privacy-safe probe and read-only audit evidence.
 22. .cbm/queue/ — operational single-worker state, never canonical asset source.
-23. blend files, renders, PDFs, bakes, and exports — derived artifacts, never the canonical fix.
+23. skill_runs/ — Skill Orchestration registry/resource snapshots, child bindings, route decisions,
+    receipts, and derived adapter state; never canonical or approval authority.
+24. blend files, renders, PDFs, bakes, and exports — derived artifacts, never the canonical fix.
 
 For job_kind external_static_asset, intake/external_asset_manifest.json and its exact source, dependency, approval, normalization, validation, blend, material, and shader hashes replace the reference-analysis/SceneSpec branch. It never creates a placeholder SceneSpec.
 
 ## Version dispatch
 
-Project is 0.9.0 and canonical SceneSpec is 0.2.0. Derived-only SceneSpec V03 is 0.3.0. Material Identity Split is an additive `0.1.0` companion and does not change either version. Existing V0.4–V0.9 and AQ/IQ 0.1 loaders retain their meaning. Companion contracts select strict loaders by exact schema_version and profile/session binding; absence is not automatic migration.
+Project is 0.9.0 and canonical SceneSpec is 0.2.0. Derived-only SceneSpec V03 is 0.3.0. Material Identity Split and Skill Orchestration are additive `0.1.0` companions and do not change either version. Existing V0.4–V0.9 and AQ/IQ 0.1 loaders retain their meaning. Companion contracts select strict loaders by exact schema_version and profile/session binding; absence is not automatic migration. A skill run snapshots its registry and transitive resources, then resumes from those exact bytes; the live skill directory is not historical run authority.
 
 Relevant exact rules: CBM-INV-001..019, CBM-INV-025..035, CBM-INV-045..048, CBM-INV-059..066, CBM-INV-099, CBM-INV-107..112, CBM-INV-134, CBM-INV-145..150, CBM-INV-166, CBM-INV-174..192.

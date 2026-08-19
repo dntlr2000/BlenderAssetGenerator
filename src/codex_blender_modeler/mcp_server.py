@@ -326,6 +326,40 @@ from .qa import (
 )
 from .reporting import generate_job_pdf_report, report_output_dir
 from .revision import apply_revision_plan as apply_guarded_revision
+from .skill_orchestration import (
+    cancel_aq_one_prompt_skill as cancel_aq_one_prompt_skill_internal,
+)
+from .skill_orchestration import (
+    cancel_standard_asset_cycle as cancel_standard_asset_cycle_internal,
+)
+from .skill_orchestration import (
+    get_aq_one_prompt_skill_status as get_aq_one_prompt_skill_status_internal,
+)
+from .skill_orchestration import get_skill_catalog as get_skill_catalog_internal
+from .skill_orchestration import (
+    get_skill_execution_trace as get_skill_execution_trace_internal,
+)
+from .skill_orchestration import (
+    get_standard_asset_cycle_status as get_standard_asset_cycle_status_internal,
+)
+from .skill_orchestration import (
+    plan_aq_one_prompt_skill as plan_aq_one_prompt_skill_internal,
+)
+from .skill_orchestration import (
+    plan_standard_asset_cycle as plan_standard_asset_cycle_internal,
+)
+from .skill_orchestration import (
+    resume_aq_one_prompt_skill as resume_aq_one_prompt_skill_internal,
+)
+from .skill_orchestration import (
+    resume_standard_asset_cycle as resume_standard_asset_cycle_internal,
+)
+from .skill_orchestration import (
+    run_aq_one_prompt_skill as run_aq_one_prompt_skill_internal,
+)
+from .skill_orchestration import (
+    run_standard_asset_cycle as run_standard_asset_cycle_internal,
+)
 from .stabilization import (
     audit_workspace_state as audit_workspace_state_internal,
 )
@@ -365,6 +399,7 @@ from .versioning import (
     PROJECT_VERSION,
     REFERENCE_SCHEMA_VERSION,
     SCENE_SPEC_VERSION,
+    SKILL_ORCHESTRATION_SCHEMA_VERSION,
     STABILIZATION_SCHEMA_VERSION,
     VISUAL_QA_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
@@ -749,6 +784,7 @@ def get_modeling_capabilities() -> dict:
         "portable_asset_schema_version": PORTABLE_ASSET_SCHEMA_VERSION,
         "interior_scope_schema_version": INTERIOR_SCOPE_SCHEMA_VERSION,
         "workflow_schema_version": WORKFLOW_SCHEMA_VERSION,
+        "skill_orchestration_schema_version": SKILL_ORCHESTRATION_SCHEMA_VERSION,
         "stabilization_schema_version": STABILIZATION_SCHEMA_VERSION,
         "destination_handoff_schema_version": DESTINATION_HANDOFF_SCHEMA_VERSION,
         "external_static_asset_schema_version": EXTERNAL_STATIC_ASSET_SCHEMA_VERSION,
@@ -909,6 +945,28 @@ def get_modeling_capabilities() -> dict:
             ],
             "destination_default": "unspecified",
             "engine_adapters": "not installed; stop at V0.7 portable package",
+        },
+        "skill_orchestration": {
+            "contract_version": SKILL_ORCHESTRATION_SCHEMA_VERSION,
+            "entry_skills": [
+                "standard-asset-cycle",
+                "aq-one-prompt-orchestrator",
+            ],
+            "standard_goals": [
+                "new_asset_to_qa",
+                "polish_existing_to_qa",
+                "material_refresh_to_qa",
+                "qa_repair_cycle",
+                "full_cycle_to_package",
+            ],
+            "stage_policies": ["smart", "force_all"],
+            "current_route_projection": True,
+            "guarded_revision_continuation": "exact consumed V0.6 evidence required",
+            "v09_audit_and_archive_boundary": True,
+            "aq_profile_status": "disabled_experimental",
+            "snapshot_resume": True,
+            "canonical_write_authority": False,
+            "approval_authority": False,
         },
         "stabilization": {
             "environment_probe": "reuses hash-bound Blender evidence without rerunning it",
@@ -1107,6 +1165,202 @@ def get_modeling_capabilities() -> dict:
             "Single-view concept reconstruction remains approximate without scale/camera anchors.",
         ],
     }
+
+
+@mcp.tool()
+def get_skill_catalog() -> dict:
+    """Read the strict project skill DAG without creating an execution bundle."""
+
+    return get_skill_catalog_internal()
+
+
+@mcp.tool()
+def get_skill_execution_trace(job_id: str, run_id: str) -> dict:
+    """Validate one immutable skill bundle, route set, and receipt chain."""
+
+    return get_skill_execution_trace_internal(job_id, run_id)
+
+
+@mcp.tool()
+def plan_standard_asset_cycle(
+    request: str,
+    job_id: str,
+    goal: str,
+    reference_path: str | None = None,
+    stage_policy: str = "smart",
+    max_qa_revision_iterations: int = 1,
+    profile_id: str = "portable_gltf",
+    mode: str = "concept",
+    reference_content_scope: str | None = None,
+    target_subject: str | None = None,
+    revision_strategy: str = "candidate_review",
+    run_id: str | None = None,
+) -> dict:
+    """Plan one Standard V0.4-V0.7 composite over immutable V0.8 children."""
+
+    return plan_standard_asset_cycle_internal(
+        request,
+        job_id=job_id,
+        goal=goal,
+        reference_path=reference_path,
+        stage_policy=stage_policy,
+        max_qa_revision_iterations=max_qa_revision_iterations,
+        profile_id=profile_id,
+        mode=mode,
+        reference_content_scope=reference_content_scope,
+        target_subject=target_subject,
+        revision_strategy=revision_strategy,
+        run_id=run_id,
+    )
+
+
+@mcp.tool()
+def run_standard_asset_cycle(
+    job_id: str,
+    run_id: str,
+    max_host_steps: int = 8,
+    max_stage_transitions: int = 4,
+    retry_failed: bool = False,
+) -> dict:
+    """Advance Standard children and stop at every existing meaningful boundary."""
+
+    return run_standard_asset_cycle_internal(
+        job_id,
+        run_id,
+        max_host_steps=max_host_steps,
+        max_stage_transitions=max_stage_transitions,
+        retry_failed=retry_failed,
+    )
+
+
+@mcp.tool()
+def resume_standard_asset_cycle(
+    job_id: str,
+    run_id: str,
+    max_host_steps: int = 8,
+    max_stage_transitions: int = 4,
+    retry_failed: bool = False,
+) -> dict:
+    """Resume the same Standard bundle, child workflows, and receipt chain."""
+
+    return resume_standard_asset_cycle_internal(
+        job_id,
+        run_id,
+        max_host_steps=max_host_steps,
+        max_stage_transitions=max_stage_transitions,
+        retry_failed=retry_failed,
+    )
+
+
+@mcp.tool()
+def get_standard_asset_cycle_status(job_id: str, run_id: str) -> dict:
+    """Read one Standard composite state without advancing a V0.8 workflow."""
+
+    return get_standard_asset_cycle_status_internal(job_id, run_id)
+
+
+@mcp.tool()
+def cancel_standard_asset_cycle(job_id: str, run_id: str, reason: str) -> dict:
+    """Cancel future Standard child work while preserving all evidence."""
+
+    return cancel_standard_asset_cycle_internal(job_id, run_id, reason=reason)
+
+
+@mcp.tool()
+def plan_aq_one_prompt_skill(
+    request: str,
+    reference_path: str,
+    target_subject: str,
+    requested_delivery_profiles: list[str],
+    approval_mode: str = "autonomous",
+    explicit_autonomy_delegation_observed: bool = False,
+    allowed_provider_scopes: list[str] | None = None,
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    destination_hint: str = "engine_neutral",
+    experimental_opt_in: bool = False,
+    run_id: str | None = None,
+) -> dict:
+    """Plan the disabled AQ stage adapter only after explicit delegation and opt-in."""
+
+    return plan_aq_one_prompt_skill_internal(
+        request,
+        reference_path=reference_path,
+        target_subject=target_subject,
+        requested_delivery_profiles=requested_delivery_profiles,
+        approval_mode=approval_mode,
+        explicit_autonomy_delegation_observed=(
+            explicit_autonomy_delegation_observed
+        ),
+        allowed_provider_scopes=allowed_provider_scopes,
+        job_id=job_id,
+        controller_execution_mode=controller_execution_mode,
+        destination_hint=destination_hint,
+        experimental_opt_in=experimental_opt_in,
+        run_id=run_id,
+    )
+
+
+@mcp.tool()
+def run_aq_one_prompt_skill(
+    job_id: str,
+    run_id: str,
+    max_actions: int = 32,
+    quality_submission: dict | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Advance a bounded AQ stage-adapter slice through the One-Prompt host."""
+
+    return run_aq_one_prompt_skill_internal(
+        job_id,
+        run_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        experimental_opt_in=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def resume_aq_one_prompt_skill(
+    job_id: str,
+    run_id: str,
+    max_actions: int = 32,
+    quality_submission: dict | None = None,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Resume the exact AQ plan, budget, assignment, snapshots, and receipts."""
+
+    return resume_aq_one_prompt_skill_internal(
+        job_id,
+        run_id,
+        max_actions=max_actions,
+        quality_submission=quality_submission,
+        experimental_opt_in=experimental_opt_in,
+    )
+
+
+@mcp.tool()
+def get_aq_one_prompt_skill_status(job_id: str, run_id: str) -> dict:
+    """Read the AQ adapter and underlying One-Prompt state without execution."""
+
+    return get_aq_one_prompt_skill_status_internal(job_id, run_id)
+
+
+@mcp.tool()
+def cancel_aq_one_prompt_skill(
+    job_id: str,
+    run_id: str,
+    reason: str,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Cancel the underlying One-Prompt session without deleting adapter evidence."""
+
+    return cancel_aq_one_prompt_skill_internal(
+        job_id,
+        run_id,
+        reason=reason,
+        experimental_opt_in=experimental_opt_in,
+    )
 
 
 @mcp.tool()

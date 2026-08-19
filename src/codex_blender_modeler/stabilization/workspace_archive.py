@@ -242,7 +242,9 @@ def _reject_active_locks(root: Path) -> None:
                 raise ValueError("workspace contains a symlink or junction")
             if entry.is_dir(follow_symlinks=False):
                 pending.append(member)
-            elif entry.is_file(follow_symlinks=False) and entry.name.endswith(".lock.json"):
+            elif entry.is_file(follow_symlinks=False) and (
+                entry.name.endswith(".lock.json") or entry.name.endswith(".lock")
+            ):
                 raise RuntimeError(f"workspace has an active lock file: {entry.name}")
 
 
@@ -252,6 +254,11 @@ def _validate_terminal_boundary(job_id: str, *, allow_failed: bool) -> _Workspac
     # Import at the execution boundary so production models can import stabilization
     # contracts without initializing the workspace-archive service recursively.
     from ..production.service import get_asset_production_dispatch_status
+    from ..skill_orchestration import (
+        get_aq_one_prompt_skill_status,
+        get_skill_execution_trace,
+        get_standard_asset_cycle_status,
+    )
 
     settings = get_settings()
     root = _absolute_lexical(settings.workspace_root / validate_job_id(job_id))
@@ -307,6 +314,33 @@ def _validate_terminal_boundary(job_id: str, *, allow_failed: bool) -> _Workspac
         for item in queue.entries
     ):
         raise RuntimeError("job still has an active local workflow queue entry")
+    skill_runs_root = root / "skill_runs"
+    if os.path.lexists(native_io_path(skill_runs_root)):
+        if _is_link_like(skill_runs_root) or not os.path.isdir(
+            native_io_path(skill_runs_root)
+        ):
+            raise ValueError("skill run root is invalid")
+        with os.scandir(native_io_path(skill_runs_root)) as iterator:
+            skill_run_ids = sorted(
+                entry.name for entry in iterator if entry.is_dir(follow_symlinks=False)
+            )
+        for skill_run_id in skill_run_ids:
+            trace = get_skill_execution_trace(job_id, skill_run_id)
+            bundle = trace.get("bundle")
+            if not isinstance(bundle, dict):
+                raise ValueError("skill trace omitted its exact bundle")
+            entry_skill = bundle.get("entry_skill_id")
+            if entry_skill == "standard-asset-cycle":
+                skill_status = get_standard_asset_cycle_status(job_id, skill_run_id)
+                if not isinstance(skill_status.get("terminal"), dict):
+                    raise RuntimeError("job still has a nonterminal Standard skill run")
+            elif entry_skill == "aq-one-prompt-orchestrator":
+                skill_status = get_aq_one_prompt_skill_status(job_id, skill_run_id)
+                one_prompt = skill_status.get("one_prompt")
+                if not isinstance(one_prompt, dict) or one_prompt.get("status") != "terminal":
+                    raise RuntimeError("job still has a nonterminal AQ skill run")
+            else:
+                raise ValueError("skill trace has an unsupported entry skill")
     production_root = root / "production"
     for autonomy_name in ("autonomy", "autonomy_v2"):
         autonomy_root = production_root / autonomy_name

@@ -3,12 +3,18 @@
 from __future__ import annotations
 
 import ast
+import json
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 CATALOG_SCHEMA_VERSION = "0.1.0"
+SKILL_REGISTRY_SCHEMA_VERSION = "0.1.0"
+SKILL_ENTRYPOINTS = (
+    "standard-asset-cycle",
+    "aq-one-prompt-orchestrator",
+)
 
 LEGACY_BUILDER_KINDS = (
     "curve",
@@ -590,6 +596,59 @@ def load_project_enabled_mcp_tools(
     return frozenset(enabled)
 
 
+def load_skill_registry_catalog(root: Path) -> dict[str, Any]:
+    """Load and structurally validate the tracked Skill Orchestration registry."""
+
+    path = root / ".agents" / "skills" / "registry.json"
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(raw, dict):
+        raise ValueError("skill registry must be a JSON object")
+    skills = raw.get("skills")
+    entries = raw.get("entry_skills")
+    if not isinstance(skills, list) or not isinstance(entries, list):
+        raise ValueError("skill registry requires skills and entry_skills arrays")
+    if any(not isinstance(item, dict) for item in skills):
+        raise ValueError("skill registry entries must be JSON objects")
+    skill_map = {str(item.get("skill_id", "")): item for item in skills}
+    if "" in skill_map or len(skill_map) != len(skills):
+        raise ValueError("skill registry IDs must be non-empty and unique")
+    if any(entry not in skill_map for entry in entries):
+        raise ValueError("skill registry entrypoint references an unknown skill")
+    for skill_id, item in skill_map.items():
+        dependencies = item.get("dependencies", [])
+        if not isinstance(dependencies, list) or any(
+            dependency not in skill_map for dependency in dependencies
+        ):
+            raise ValueError(f"skill {skill_id} has invalid dependencies")
+        declared_paths = [item.get("skill_path"), *item.get("supporting_resources", [])]
+        for declared in declared_paths:
+            if not isinstance(declared, str):
+                raise ValueError(f"skill {skill_id} has a non-string resource path")
+            candidate = (root / declared).resolve()
+            if root.resolve() not in candidate.parents or not candidate.is_file():
+                raise ValueError(f"skill {skill_id} resource is missing or escapes the repo")
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(skill_id: str) -> None:
+        """Traverse one registry dependency branch and reject a cycle."""
+
+        if skill_id in visiting:
+            raise ValueError(f"skill dependency cycle includes {skill_id}")
+        if skill_id in visited:
+            return
+        visiting.add(skill_id)
+        for dependency in skill_map[skill_id].get("dependencies", []):
+            visit(str(dependency))
+        visiting.remove(skill_id)
+        visited.add(skill_id)
+
+    for skill_id in skill_map:
+        visit(skill_id)
+    return raw
+
+
 def discover_literal_dict_keys(path: Path, variable_name: str) -> frozenset[str]:
     """Read literal string keys from one module-level registry assignment."""
 
@@ -633,6 +692,11 @@ def validate_repository_catalog(root: Path) -> tuple[str, ...]:
     """Return deterministic drift findings for pure registries and tool surfaces."""
 
     findings: list[str] = []
+    skill_registry = load_skill_registry_catalog(root)
+    if skill_registry["schema_version"] != SKILL_REGISTRY_SCHEMA_VERSION:
+        findings.append("skill registry schema version differs from 0.1.0")
+    if tuple(skill_registry["entry_skills"]) != SKILL_ENTRYPOINTS:
+        findings.append("skill registry entrypoints differ from the approved public pair")
     legacy_source = discover_literal_dict_keys(
         root / "src" / "codex_blender_modeler" / "blender_scripts" / "builders" / "registry.py",
         "_BUILDERS",
@@ -762,6 +826,7 @@ def repository_catalog_projection(root: Path) -> dict[str, Any]:
             entry.as_dict() for entry in ACTIVATION_READINESS_CONTRACTS
         ],
         "delivery_profiles": [entry.as_dict() for entry in DELIVERY_PROFILES],
+        "skill_orchestration": load_skill_registry_catalog(root),
         "cli_commands": list(
             discover_cli_commands(root / "src" / "codex_blender_modeler" / "cli.py")
         ),

@@ -136,7 +136,9 @@ else
   uv sync --frozen --extra dev --extra vision
 fi
 
-uv run pytest
+PYTEST_ROOT="$PWD/.t/v9p-$$-$(date -u +%H%M%S)"
+mkdir -p "$PYTEST_ROOT"
+uv run pytest --basetemp "$PYTEST_ROOT"
 uv run ruff check .
 uv run cbm doctor
 

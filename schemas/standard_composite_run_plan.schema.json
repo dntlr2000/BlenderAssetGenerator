@@ -1,0 +1,172 @@
+{
+  "$defs": {
+    "MaterialImpactSnapshot": {
+      "additionalProperties": false,
+      "description": "Freeze material-sensitive canonical inputs at one Standard boundary.",
+      "properties": {
+        "scene_spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modeling_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scene_inventory": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "MaterialImpactSnapshot",
+      "type": "object"
+    },
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Plan one bounded Standard cycle without replacing V0.8 workflow authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "request_text": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Request Text",
+      "type": "string"
+    },
+    "goal": {
+      "enum": [
+        "new_asset_to_qa",
+        "polish_existing_to_qa",
+        "material_refresh_to_qa",
+        "qa_repair_cycle",
+        "full_cycle_to_package"
+      ],
+      "title": "Goal",
+      "type": "string"
+    },
+    "stage_policy": {
+      "default": "smart",
+      "enum": [
+        "smart",
+        "force_all"
+      ],
+      "title": "Stage Policy",
+      "type": "string"
+    },
+    "max_qa_revision_iterations": {
+      "default": 1,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Max Qa Revision Iterations",
+      "type": "integer"
+    },
+    "profile_id": {
+      "default": "portable_gltf",
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "bundle_manifest": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "initial_material_snapshot": {
+      "$ref": "#/$defs/MaterialImpactSnapshot"
+    },
+    "initial_stage_binding": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "run_id",
+    "job_id",
+    "request_text",
+    "goal",
+    "bundle_manifest",
+    "initial_material_snapshot",
+    "initial_stage_binding",
+    "created_at"
+  ],
+  "title": "StandardCompositeRunPlan",
+  "type": "object"
+}

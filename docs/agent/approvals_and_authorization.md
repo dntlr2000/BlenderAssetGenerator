@@ -22,4 +22,12 @@ authorize reference/subject/content-scope expansion, geometry/UV changes, materi
 MaterialPlan promotion, package or destination writes. Generic workflow approval,
 MaterialAppearanceApproval and test fixture authority cannot replace it.
 
+Skill Orchestration `0.1.0` grants no canonical write, promotion, rollback, retry, user
+approval, or AQ policy authority. A public entry-skill invocation selects only the exact
+registry-declared transitive instruction bundle. Every V0.8 generic/specialized approval,
+guarded revision, failed retry, V0.7 optimization approval, AQ RootAuthorization and
+single-use policy decision remains independently required at its existing host boundary.
+`GuardedRevisionContinuation` only revalidates an already consumed exact V0.6 user
+approval; it cannot create, broaden, replace, or reuse that approval.
+
 Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.

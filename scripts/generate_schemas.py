@@ -404,6 +404,20 @@ from codex_blender_modeler.reference_evidence.models import (
     ReferenceEvidenceRunResult,
 )
 from codex_blender_modeler.reporting.models import HumanReportManifest
+from codex_blender_modeler.skill_orchestration.models import (
+    AQSkillAdapterPlan,
+    AQSkillAdapterState,
+    GuardedRevisionContinuation,
+    MaterialImpactReport,
+    SkillBundleManifest,
+    SkillExecutionReceipt,
+    SkillRegistry,
+    SkillRouteDecision,
+    StandardCompositeRunPlan,
+    StandardCompositeRunState,
+    StandardCompositeRunTerminal,
+    StandardCompositeStageBinding,
+)
 from codex_blender_modeler.stabilization.archive_models import (
     WorkspaceRelocationPlan,
     WorkspaceRelocationReceipt,
@@ -534,6 +548,19 @@ SCHEMAS = {
     "workflow_step_completion.schema.json": WorkflowStepCompletion,
     "workflow_attempt.schema.json": WorkflowAttempt,
     "workflow_lock.schema.json": WorkflowLock,
+    # Skill Orchestration 0.1 snapshots and projections never replace host authority.
+    "skill_registry.schema.json": SkillRegistry,
+    "skill_bundle_manifest.schema.json": SkillBundleManifest,
+    "skill_route_decision.schema.json": SkillRouteDecision,
+    "skill_execution_receipt.schema.json": SkillExecutionReceipt,
+    "material_impact_report.schema.json": MaterialImpactReport,
+    "guarded_revision_continuation.schema.json": GuardedRevisionContinuation,
+    "standard_composite_run_plan.schema.json": StandardCompositeRunPlan,
+    "standard_composite_stage_binding.schema.json": StandardCompositeStageBinding,
+    "standard_composite_run_state.schema.json": StandardCompositeRunState,
+    "standard_composite_run_terminal.schema.json": StandardCompositeRunTerminal,
+    "aq_skill_adapter_plan.schema.json": AQSkillAdapterPlan,
+    "aq_skill_adapter_state.schema.json": AQSkillAdapterState,
     "environment_probe.schema.json": EnvironmentProbeReport,
     "workspace_audit.schema.json": WorkspaceAuditReport,
     "workspace_relocation_plan.schema.json": WorkspaceRelocationPlan,

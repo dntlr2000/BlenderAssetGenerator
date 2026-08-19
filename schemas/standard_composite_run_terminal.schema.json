@@ -1,0 +1,163 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    },
+    "UnderlyingExecutionBinding": {
+      "additionalProperties": false,
+      "description": "Bind one trace event to an existing V0.8 or AQ state machine.",
+      "properties": {
+        "execution_kind": {
+          "enum": [
+            "workflow_v08",
+            "aq_one_prompt_v01"
+          ],
+          "title": "Execution Kind",
+          "type": "string"
+        },
+        "execution_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Execution Id",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "status": {
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "next_action": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Action"
+        }
+      },
+      "required": [
+        "execution_kind",
+        "execution_id",
+        "state",
+        "status"
+      ],
+      "title": "UnderlyingExecutionBinding",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Close one Standard composite run without rewriting any child workflow.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "terminal_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Terminal Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "final_state": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "terminal_type": {
+      "enum": [
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Terminal Type",
+      "type": "string"
+    },
+    "final_workflow": {
+      "$ref": "#/$defs/UnderlyingExecutionBinding"
+    },
+    "stage_bindings": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "minItems": 1,
+      "title": "Stage Bindings",
+      "type": "array"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Approval Authority",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "terminal_id",
+    "run_id",
+    "job_id",
+    "plan",
+    "final_state",
+    "terminal_type",
+    "final_workflow",
+    "stage_bindings",
+    "reason",
+    "created_at"
+  ],
+  "title": "StandardCompositeRunTerminal",
+  "type": "object"
+}

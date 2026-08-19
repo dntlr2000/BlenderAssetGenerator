@@ -2,13 +2,13 @@
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
   "status": "reported",
-  "verified_at": "2026-08-14T16:14:56Z",
-  "test_count": 1809,
+  "verified_at": "2026-08-19T13:49:42Z",
+  "test_count": 1947,
   "skipped_count": 63,
   "warning_count": 8,
   "final_verification": {
     "status": "passed_with_declared_scope_limits",
-    "pytest_passed": 1809,
+    "pytest_passed": 1947,
     "pytest_skipped": 63,
     "pytest_warnings": 8,
     "ruff_status": "passed"
@@ -218,6 +218,32 @@
       "evidence_root": "verification/evidence/material_identity_split_20260814",
       "scope": "Paired SceneSpec and ModelingPlan scope-change planning, actual Blender shadow build/inspect/validate, specialized non-authoritative ApprovalRequest, guarded transaction and recovery mechanics, and canonical non-mutation before explicit user scope approval"
     },
+    "skill_orchestration_0_1": {
+      "status": "passed_with_declared_activation_limits",
+      "recorded_on": "2026-08-19",
+      "focused_regression_passed": 170,
+      "focused_regression_skipped": 2,
+      "full_pytest_passed": 1947,
+      "full_pytest_skipped": 63,
+      "full_pytest_warnings": 8,
+      "aq_gate_passed": 914,
+      "aq_gate_skipped": 26,
+      "aq_gate_warnings": 8,
+      "v09_isolated_gate_passed": true,
+      "blender_compatibility_passed": true,
+      "blender": "5.0.1",
+      "registered_skill_count": 23,
+      "entry_skill_count": 2,
+      "new_skill_validation_passed": 10,
+      "aq_v2_profile_status": "disabled_experimental",
+      "profile_activation_performed": false,
+      "campaign_created": false,
+      "actual_standard_composite_asset_verified": false,
+      "actual_aq_skill_adapter_asset_verified": false,
+      "human_review_status": "not_reviewed",
+      "verification_record": "VERIFICATION_SKILL_ORCHESTRATION_KO.md",
+      "scope": "State-driven Standard and AQ skill routing, immutable skill snapshots, exact route and receipt chains, guarded revision continuation, public CLI/MCP parity, V0.9 audit/archive integration, and isolated Blender package/handoff compatibility"
+    },
     "v07": {
       "status": "historical_passed",
       "recorded_on": "2026-08-11",
@@ -252,11 +278,13 @@
     "autonomous_static_prop_v2_codex_imagegen": "disabled_experimental"
   },
   "ci_status": {
-    "local_python_ci_equivalent": "passed_with_actual_blender_preapproval_and_declared_authorization_limits",
+    "local_python_ci_equivalent": "passed_with_skill_orchestration_gates_and_declared_activation_limits",
     "github_hosted_python_ci": "not_run",
     "self_hosted_blender_ci": "not_run"
   },
   "limitations": [
+    "Skill Orchestration 0.1 has not completed a real user asset through the Standard composite V0.4-to-V0.6 cycle or an AQ v2 material-closure-to-IQ-to-delivery cycle; current evidence covers host contracts, deterministic fixtures, and isolated V0.9 packaging/handoff compatibility.",
+    "The V0.9 isolated gate uses an automated fixture approval only inside its isolated package smoke; it is not user approval for a production asset and is not reusable authority.",
     "The Material Identity Split actual-asset run stops at framework_ready_for_explicit_scope_approval. ApprovalRequest is not user approval; no approval consumption, ApplyIntent, canonical write, repair session, controller, promotion, MaterialPhaseReceiptV2, IQ transition, package, or destination write was executed.",
     "Material Identity Split post-apply authority refresh and downstream material repair are mechanism-tested only; they remain unverified with an actual specialized user approval.",
     "The 2026-08-14 Material Closure full regression and actual Blender smoke stop before user appearance approval; they do not prove an authorized controller-to-promotion-to-IQ success path.",

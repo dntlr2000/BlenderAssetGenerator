@@ -22,4 +22,11 @@ paired SceneSpec/ModelingPlan diff and isolated Blender shadow, then stops at an
 Canonical apply is host-only under the canonical lock. It never invokes a controller and never starts
 downstream material repair, IQ, packaging or destination work automatically.
 
+The AQ skill entry is an adapter over the existing One-Prompt session, not another AQ
+controller. It routes only from exact current state/controller-profile/closure evidence,
+keeps `autonomous_static_prop_v2` disabled by default, and cannot create a Codex task or
+continue after app exit. The separate recovery stage classifies technical failures without
+creating user approval; genuine escalation and current-task controller/IQ input boundaries
+remain visible stops.
+
 Primary rules: CBM-INV-045..066, CBM-INV-072..112, CBM-INV-151..192.

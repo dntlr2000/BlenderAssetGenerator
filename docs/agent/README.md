@@ -22,6 +22,7 @@ A lower layer may narrow authority but may not broaden it. RULE_POLICY declarati
 | Blender builders, subprocesses, render/build provenance | blender_execution.md |
 | optimization, packages, roundtrip, handoff | packaging_and_handoff.md |
 | AQ, production dispatch, controller, phase tools | autonomy_safety.md |
+| skill registry, bundle snapshots, Standard/AQ adapters, execution trace | source_of_truth.md, evidence_hashing_and_history.md, approvals_and_authorization.md, autonomy_safety.md |
 | tests, CI, verification claims, registries | testing_and_verification.md |
 | material identity scope change, paired preapproval/apply | approvals_and_authorization.md, autonomy_safety.md, source_of_truth.md |
 | step-by-step V0.4–V0.9 procedures | workflow_reference.md |

@@ -1,0 +1,175 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Project the current child workflow and next safe composite action.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "status": {
+      "enum": [
+        "planned",
+        "running",
+        "waiting_for_agent",
+        "waiting_for_approval",
+        "waiting_for_external_revision",
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "current_stage_binding": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "stage_bindings": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "minItems": 1,
+      "title": "Stage Bindings",
+      "type": "array"
+    },
+    "material_impact_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "qa_revision_iterations": {
+      "default": 0,
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Qa Revision Iterations",
+      "type": "integer"
+    },
+    "qa_revision_source_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Qa Revision Source Run Id"
+    },
+    "qa_baseline_scene_spec_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Qa Baseline Scene Spec Sha256"
+    },
+    "qa_revision_evidence": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "maxItems": 5,
+      "title": "Qa Revision Evidence",
+      "type": "array"
+    },
+    "next_action": {
+      "anyOf": [
+        {
+          "maxLength": 1000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Action"
+    },
+    "receipt_chain_head_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Receipt Chain Head Sha256"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "job_id",
+    "plan",
+    "status",
+    "stage_bindings",
+    "updated_at"
+  ],
+  "title": "StandardCompositeRunState",
+  "type": "object"
+}

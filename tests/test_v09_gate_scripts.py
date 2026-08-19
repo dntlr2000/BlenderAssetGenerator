@@ -32,6 +32,8 @@ def test_v09_windows_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "test_blender_external_intake_splits_materials_and_strips_scripts" in text
     assert '@("passed", "warning")' in text
     assert '$V08Arguments = @()' in text
+    assert '".t/v9p-${PytestStamp}-$PID"' in text
+    assert "Invoke-Uv run pytest --basetemp $PytestRoot" in text
     assert "Remove-Item" not in text.replace(
         "Remove-Item Env:CBM_WORKSPACE_ROOT -ErrorAction SilentlyContinue",
         "",
@@ -59,5 +61,7 @@ def test_v09_posix_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "test_blender_external_intake_splits_materials_and_strips_scripts" in text
     assert 'in {"passed","warning"}' in text
     assert "V08_ARGS=()" in text
+    assert 'PYTEST_ROOT="$PWD/.t/v9p-' in text
+    assert 'uv run pytest --basetemp "$PYTEST_ROOT"' in text
     assert "${RUN_STAMP,,}" not in text
     assert "rm -" not in text

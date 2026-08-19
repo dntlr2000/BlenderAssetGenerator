@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "SkillDefinition": {
+      "additionalProperties": false,
+      "description": "Declare one bounded project skill and its fixed routing authority.",
+      "properties": {
+        "skill_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Skill Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "active",
+            "compatibility",
+            "disabled_experimental"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "role": {
+          "enum": [
+            "entrypoint",
+            "stage",
+            "leaf"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "skill_path": {
+          "title": "Skill Path",
+          "type": "string"
+        },
+        "supporting_resources": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supporting Resources",
+          "type": "array"
+        },
+        "execution_modes": {
+          "items": {
+            "enum": [
+              "standard",
+              "aq"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Execution Modes",
+          "type": "array"
+        },
+        "dependencies": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Dependencies",
+          "type": "array"
+        },
+        "route_keys": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Route Keys",
+          "type": "array"
+        },
+        "allowed_tools": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allowed Tools",
+          "type": "array"
+        }
+      },
+      "required": [
+        "skill_id",
+        "status",
+        "role",
+        "description",
+        "skill_path",
+        "execution_modes"
+      ],
+      "title": "SkillDefinition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Publish the complete project skill DAG and its two public entrypoints.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "registry_id": {
+      "const": "cbm-skill-registry",
+      "default": "cbm-skill-registry",
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "project_version": {
+      "const": "0.9.0",
+      "default": "0.9.0",
+      "title": "Project Version",
+      "type": "string"
+    },
+    "entry_skills": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Entry Skills",
+      "type": "array"
+    },
+    "skills": {
+      "items": {
+        "$ref": "#/$defs/SkillDefinition"
+      },
+      "minItems": 1,
+      "title": "Skills",
+      "type": "array"
+    }
+  },
+  "required": [
+    "entry_skills",
+    "skills"
+  ],
+  "title": "SkillRegistry",
+  "type": "object"
+}

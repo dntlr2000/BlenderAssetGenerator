@@ -1,0 +1,140 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one externally applied exact V0.6 revision before composite QA resumes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "continuation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Continuation Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "iteration": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Iteration",
+      "type": "integer"
+    },
+    "source_qa_run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Source Qa Run Id",
+      "type": "string"
+    },
+    "baseline_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Baseline Scene Spec Sha256",
+      "type": "string"
+    },
+    "result_scene_spec_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Result Scene Spec Sha256",
+      "type": "string"
+    },
+    "source_visual_qa_report": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "candidates": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "revision_plan": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "consumed_user_approval": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "application_report": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "convergence_report": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "application_status": {
+      "enum": [
+        "accepted",
+        "applied_unverified"
+      ],
+      "title": "Application Status",
+      "type": "string"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Approval Authority",
+      "type": "boolean"
+    },
+    "validated_at": {
+      "format": "date-time",
+      "title": "Validated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "continuation_id",
+    "run_id",
+    "job_id",
+    "iteration",
+    "source_qa_run_id",
+    "baseline_scene_spec_sha256",
+    "result_scene_spec_sha256",
+    "source_visual_qa_report",
+    "candidates",
+    "revision_plan",
+    "consumed_user_approval",
+    "application_report",
+    "application_status",
+    "validated_at"
+  ],
+  "title": "GuardedRevisionContinuation",
+  "type": "object"
+}

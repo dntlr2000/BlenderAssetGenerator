@@ -28,4 +28,11 @@ points, exact rollback, at most one technical recovery retry, post-apply stale-a
 7/7 CLI/MCP parity and zero approval/canonical/controller side effects in the real preapproval node.
 Test-only approval is mechanism evidence and cannot certify a production apply.
 
+Skill Orchestration tests additionally require strict schema parity, exactly two public
+entry skills, an acyclic mode-isolated dependency graph, unique routes, real project-enabled
+MCP tool names, registry/resource snapshot containment and tamper rejection, receipt-chain
+continuity, Standard approval/retry preservation, smart/force-all material impact behavior,
+consumed guarded-revision continuation binding, V0.9 audit/archive compatibility, and
+disabled-by-default AQ routing. Fixture success does not activate AQ v2 or prove visual quality.
+
 Primary rules: CBM-INV-014..027, CBM-INV-034, CBM-INV-043, CBM-INV-059..066, CBM-INV-121, CBM-INV-127..145, CBM-INV-161, CBM-INV-165..166, CBM-INV-180..192.

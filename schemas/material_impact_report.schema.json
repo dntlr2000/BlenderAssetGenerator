@@ -1,0 +1,154 @@
+{
+  "$defs": {
+    "MaterialImpactSnapshot": {
+      "additionalProperties": false,
+      "description": "Freeze material-sensitive canonical inputs at one Standard boundary.",
+      "properties": {
+        "scene_spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "modeling_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scene_inventory": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SkillArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "MaterialImpactSnapshot",
+      "type": "object"
+    },
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Explain whether a completed geometry stage requires fresh V0.5 work.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "stage_policy": {
+      "enum": [
+        "smart",
+        "force_all"
+      ],
+      "title": "Stage Policy",
+      "type": "string"
+    },
+    "before": {
+      "$ref": "#/$defs/MaterialImpactSnapshot"
+    },
+    "after": {
+      "$ref": "#/$defs/MaterialImpactSnapshot"
+    },
+    "material_authoring_required": {
+      "title": "Material Authoring Required",
+      "type": "boolean"
+    },
+    "changed_inputs": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Changed Inputs",
+      "type": "array"
+    },
+    "reasons": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Reasons",
+      "type": "array"
+    },
+    "evaluated_at": {
+      "format": "date-time",
+      "title": "Evaluated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "run_id",
+    "job_id",
+    "stage_policy",
+    "before",
+    "after",
+    "material_authoring_required",
+    "changed_inputs",
+    "reasons",
+    "evaluated_at"
+  ],
+  "title": "MaterialImpactReport",
+  "type": "object"
+}

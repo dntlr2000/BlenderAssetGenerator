@@ -24,6 +24,7 @@
 | Autonomous Quality v2 / Integrated Quality 0.2 | `0.2.0` additive overlay; `disabled_experimental` |
 | AQ Approval Envelope | strict additive `0.3.0`; routine policy authority, approval budget, escalation, telemetry; `disabled_experimental` |
 | AQ One-Prompt Supervisor | strict additive `0.1.0`; bounded current-task run/resume/terminal; `disabled_experimental` |
+| Skill Orchestration | additive `0.1.0`; 2 public entry skills, 23-skill registry, snapshot/route/receipt trace; AQ entry remains `disabled_experimental` |
 | Codex Built-in ImageGen companion | core `0.1.0`, adoption `0.2.0`, MaterialAuthoring `0.2.1`; `disabled_experimental` |
 | Codex ImageGen Material Loop | additive strict `0.1.0`; native/semantic/controller/promotion/IQ bridge; `disabled_experimental` |
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
@@ -75,6 +76,14 @@ controller output이 필요하면 request-owned assignment를 남기고 `waiting
 repository는 Codex task를 spawn하지 않으며 앱 종료 뒤 background 실행을 주장하지 않습니다. 같은
 state, budget, assignment를 검증한 뒤에만 resume합니다. 목적지 Unity/Unreal 프로젝트는 수정하지
 않습니다.
+
+## Skill Orchestration 0.1
+
+사용자용 진입점은 `$standard-asset-cycle`과 `$aq-one-prompt-orchestrator` 두 개입니다. Standard entry는 새 자산의 V0.4→V0.5→V0.6 또는 기존 자산의 immutable V0.8 child workflow들을 하나의 composite run으로 관리하며, package는 명시적 goal에서만 V0.7로 이어집니다. `smart` stage policy는 exact `MaterialImpactReport`로 V0.5 재실행 여부를 판단하고, canonical geometry/material 변경 뒤에는 항상 fresh V0.6 QA를 계획합니다.
+
+AQ entry는 기존 One-Prompt state를 reference/geometry/material/closure/quality/delivery/recovery skill로 유일하게 route합니다. AQ v2 활성 상태나 approval 의미는 바꾸지 않습니다. 각 run은 registry와 transitive `SKILL.md` bundle을 snapshot하고 exact source-state route decision 및 before/after receipt chain을 남깁니다. 이 trace는 canonical write와 approval authority를 갖지 않습니다.
+
+구조는 [Skill Orchestration 아키텍처](SKILL_ORCHESTRATION_ARCHITECTURE_KO.md), 실행은 [시작 가이드](GETTING_STARTED_SKILL_ORCHESTRATION_KO.md), 호환성은 [마이그레이션](SKILL_ORCHESTRATION_MIGRATION_KO.md), 검증 범위는 [검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md)을 참조합니다.
 
 현재 machine-readable KPI에는 여섯 자산 유형·일곱 run의 대표 계약 fixture가 있습니다. 이는 실제
 Blender 자산 E2E, 사람 품질 검토 또는 profile activation 증거가 아닙니다. 실제 상태와 명령은
@@ -132,6 +141,9 @@ Blender 자산 E2E, 사람 품질 검토 또는 profile activation 증거가 아
   consolidated escalation, telemetry와 framework-vs-job-local 분류를 제공합니다.
 - AQ One-Prompt Supervisor `0.1.0`: 기존 AQ v2 state machine을 바꾸지 않고 geometry에서
   delivery/review까지 bounded current-task 실행·중단·동일 상태 resume·cancel을 제공합니다.
+- Skill Orchestration `0.1.0`: 두 public entry skill, 23-skill DAG registry, run-owned
+  SKILL.md snapshot, exact state route decision, hash-chained execution receipt와 Standard
+  composite/AQ adapter를 제공합니다. 기존 host 승인·promotion·rollback 권위는 바꾸지 않습니다.
 
 현재 구현하지 않았거나 지원을 주장하지 않는 범위:
 
@@ -161,6 +173,7 @@ BlenderAssetGenerator/
 │  ├─ interior_qa/                   V0.6 실내 다각도 구조 검사
 │  ├─ optimization/, packaging/      V0.7 derived portable asset
 │  ├─ orchestration/                 V0.8 workflow state machine
+│  ├─ skill_orchestration/           additive skill registry snapshot과 Standard/AQ adapter
 │  ├─ production/                    V0.9 client-mediated dispatch와 single-writer controller
 │  ├─ reference_evidence/            AQ mask 후보와 camera hypothesis companion
 │  ├─ structural_geometry/           opt-in SceneSpec V03와 derived-only migration
@@ -1100,15 +1113,18 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy
 - Experimental delivery roles: portable_fbx, review_only
-- CLI commands: 163
-- CLI registry SHA-256: 223ffda56243c578fea92e75931af44cf82c6afcce9401779677a1872b7529f9
-- MCP server tools: 154
-- MCP server registry SHA-256: ac78b9e33ebd202047d606db5091211f467d45470646df1588bec3a94cd6a7e1
-- Project-enabled MCP tools: 153
-- Project-enabled MCP SHA-256: 1adecbb32ddcb500555b347dc9a1de485421dabb554f65148ef15edbc9d16525
+- Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
+- Registered project skills: 23
+- Skill registry SHA-256: 921ffb990fd83aaaa70c89d94765aaa4b9b2842feab5e501de22a97bfa6702c4
+- CLI commands: 175
+- CLI registry SHA-256: ccf176755726526b9ca7f533e40cc603ad73e1a52a3c5ccbcce5f0c88822a1ea
+- MCP server tools: 166
+- MCP server registry SHA-256: 3995a137f65bf5002c3f0c8e8e2a7f1cca3d637ed8c61e6792dbe8816c4164b2
+- Project-enabled MCP tools: 165
+- Project-enabled MCP SHA-256: 8ced2f908dc087eeadba7f94881d4d09baded8d98c7a8f17dd836c1948be78c2
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1809
+- Latest reported test count: 1947
 - Verification summary: verification/latest_summary.json (reported)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

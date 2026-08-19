@@ -63,6 +63,7 @@ SUBDIRS = [
     "qa/interior/runs",
     "qa/cache/generated_targets",
     "workflows",
+    "skill_runs",
     "handoffs",
 ]
 SOURCE_KINDS = {"reference", "front", "right", "top", "blueprint", "cad"}

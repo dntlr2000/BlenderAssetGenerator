@@ -2743,6 +2743,78 @@ def _audit_destination_handoffs(
     return count, valid, status, findings
 
 
+def _audit_skill_runs(root: Path, job_id: str) -> list[AuditFinding]:
+    """Validate every Skill Orchestration bundle, state, and receipt chain read-only."""
+
+    # Import at the audit boundary so Skill Orchestration can reuse V0.8/AQ services
+    # without making the stabilization package part of its execution dependency graph.
+    from ..skill_orchestration import (
+        get_aq_one_prompt_skill_status,
+        get_skill_execution_trace,
+        get_standard_asset_cycle_status,
+    )
+
+    skill_root = root / "skill_runs"
+    if not skill_root.exists():
+        return []
+    if _is_link_like(skill_root) or not skill_root.is_dir():
+        return [
+            _finding(
+                "SKILL_RUN_ROOT_INVALID",
+                "error",
+                "Skill Orchestration evidence root is missing, linked, or not a directory.",
+                job_id=job_id,
+                path=_workspace_relative(skill_root),
+                remediation="Preserve the evidence and create a new valid skill run.",
+            )
+        ]
+    findings: list[AuditFinding] = []
+    for run_root in sorted(skill_root.iterdir(), key=lambda item: item.name.casefold()):
+        if not run_root.is_dir() or _is_link_like(run_root):
+            if run_root.name != "latest.json" and _is_link_like(run_root):
+                findings.append(
+                    _finding(
+                        "SKILL_RUN_LINKED",
+                        "error",
+                        "A Skill Orchestration run directory is link-like.",
+                        job_id=job_id,
+                        path=_workspace_relative(run_root),
+                        remediation="Preserve the evidence and create a new contained run.",
+                    )
+                )
+            continue
+        try:
+            trace = get_skill_execution_trace(job_id, run_root.name)
+            bundle = trace.get("bundle")
+            if not isinstance(bundle, dict):
+                raise ValueError("skill trace omitted its bundle")
+            entry_skill = bundle.get("entry_skill_id")
+            if entry_skill == "standard-asset-cycle":
+                get_standard_asset_cycle_status(job_id, run_root.name)
+            elif entry_skill == "aq-one-prompt-orchestrator":
+                get_aq_one_prompt_skill_status(job_id, run_root.name)
+            else:
+                raise ValueError("skill trace has an unsupported entry skill")
+        except Exception as exc:  # noqa: BLE001 - audit must retain all corrupt jobs.
+            findings.append(
+                _finding(
+                    "SKILL_RUN_INVALID",
+                    "error",
+                    (
+                        "Skill Orchestration evidence failed strict validation: "
+                        f"{type(exc).__name__}."
+                    ),
+                    job_id=job_id,
+                    path=_workspace_relative(run_root),
+                    remediation=(
+                        "Preserve the failed run and create a new run; "
+                        "do not repair history in place."
+                    ),
+                )
+            )
+    return findings
+
+
 def _audit_job(
     root: Path,
     scan_counter: list[int],
@@ -2917,6 +2989,7 @@ def _audit_job(
 
     findings.extend(_scan_job_files(root, job_id, scan_counter, scan_limit))
     findings.extend(_audit_external_static_asset_intake(root, job_id, metadata))
+    findings.extend(_audit_skill_runs(root, job_id))
     if scan_counter[0] <= scan_limit:
         findings.extend(_audit_production_dispatches(root, job_id))
     findings.extend(_audit_latest_workflow(root, job_id))
