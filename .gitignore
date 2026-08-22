@@ -28,6 +28,7 @@ build/
 /.t
 /.codex_test
 /.codex_tmp
+/.codex-temp/
 /.codex-test-tmp
 /.test-tmp-root-multiview-integration
 /.test-tmp-root-orchestration-escalated

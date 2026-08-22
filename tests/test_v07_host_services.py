@@ -11,6 +11,7 @@ from codex_blender_modeler.optimization.io import latest_complete_run_id, run_di
 from codex_blender_modeler.optimization.models import Bounds3D
 from codex_blender_modeler.optimization.profiles import create_builtin_profile
 from codex_blender_modeler.optimization.service import initialize_asset_profile
+from codex_blender_modeler.packaging.models import PackageFile
 from codex_blender_modeler.packaging.service import (
     _bounded_resolution,
     _bounds_error,
@@ -24,6 +25,9 @@ from codex_blender_modeler.packaging.service import (
     _require_collider_export,
     _roundtrip_object_sets_match,
     _verify_package_receipts,
+    _verify_static_checksum_manifest,
+    _write_static_checksum_manifest,
+    accept_portable_package,
     validate_asset_package,
 )
 from codex_blender_modeler.workspace import sha256_file
@@ -297,6 +301,52 @@ def test_package_receipts_reject_changed_size_hash_and_declared_root(tmp_path: P
         _verify_package_receipts(root, package_root, package, manifest_path)
 
 
+def test_static_checksum_manifest_covers_every_other_package_receipt(
+    tmp_path: Path,
+) -> None:
+    """Bind every lean payload file to one deterministic checksum sidecar."""
+
+    root = tmp_path / "job"
+    package_root = root / "exports" / "packages" / "portable_gltf" / "package-001"
+    package_root.mkdir(parents=True)
+    primary = package_root / "portable_asset.glb"
+    metadata = package_root / "metadata.json"
+    primary.write_bytes(b"portable asset")
+    metadata.write_text("{}", encoding="utf-8")
+    checksum_path = _write_static_checksum_manifest(package_root)
+    receipts = [
+        PackageFile(
+            id="primary",
+            kind="primary_asset",
+            path=primary.relative_to(root).as_posix(),
+            sha256=sha256_file(primary),
+            byte_size=primary.stat().st_size,
+            media_type="model/gltf-binary",
+        ),
+        PackageFile(
+            id="metadata",
+            kind="metadata",
+            path=metadata.relative_to(root).as_posix(),
+            sha256=sha256_file(metadata),
+            byte_size=metadata.stat().st_size,
+            media_type="application/json",
+        ),
+        PackageFile(
+            id="checksums",
+            kind="other",
+            path=checksum_path.relative_to(root).as_posix(),
+            sha256=sha256_file(checksum_path),
+            byte_size=checksum_path.stat().st_size,
+            media_type="text/plain",
+        ),
+    ]
+
+    _verify_static_checksum_manifest(root, package_root, checksum_path, receipts)
+    checksum_path.write_text("0" * 64 + "  wrong.glb\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="differs from package receipts"):
+        _verify_static_checksum_manifest(root, package_root, checksum_path, receipts)
+
+
 def test_roundtrip_bounds_require_nonempty_exact_object_sets_and_aggregate_match() -> None:
     """Reject zero/partial object matches and measure the complete aggregate bounds."""
 
@@ -361,6 +411,41 @@ def test_delivery_mapping_is_package_relative_and_preserves_stable_identity(
     assert mapping["objects"][0]["collider"] is False
 
 
+def test_static_delivery_mapping_omits_disabled_feature_fields(tmp_path: Path) -> None:
+    """Keep lean consumer mapping free of disabled delivery feature metadata."""
+
+    staging = tmp_path / "package"
+    staging.mkdir()
+    primary = staging / "portable_asset_case.glb"
+    primary.write_bytes(b"asset")
+    profile = create_builtin_profile("portable_asset_case", "portable_gltf", "static_prop")
+    mapping = _delivery_mapping(
+        "portable_asset_case",
+        "run-001",
+        profile,
+        primary,
+        staging,
+        {
+            "objects": [
+                {
+                    "name": "portable_asset_case",
+                    "semantic_id": "asset.body",
+                    "instance_index": 0,
+                    "asset_role": "render",
+                    "material_ids": ["mat.body"],
+                }
+            ]
+        },
+        content_mode="static_payload",
+    )
+
+    serialized = json.dumps(mapping, sort_keys=True).casefold()
+    assert mapping["primary_asset"] == "portable_asset_case.glb"
+    assert "lod" not in serialized
+    assert "collider" not in serialized
+    assert "collision" not in serialized
+
+
 def test_roundtrip_validation_failure_cleans_staging_directory(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -404,6 +489,115 @@ def test_roundtrip_validation_failure_cleans_staging_directory(
     roundtrip = run_root / "roundtrip"
     assert not (roundtrip / "package-001").exists()
     assert not list(roundtrip.glob(".package-001.*.tmp"))
+
+
+def test_package_acceptance_revalidates_exact_hashes_and_is_single_use(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Publish one immutable acceptance only for the exact passed package and round trip."""
+
+    root = tmp_path / "job"
+    package_id = "static-package-001"
+    package_root = root / "exports" / "packages" / "portable_gltf" / package_id
+    package_root.mkdir(parents=True)
+    manifest_path = package_root / "package_manifest.json"
+    manifest_path.write_text('{"candidate":"static"}', encoding="utf-8")
+    run_root = root / "optimization" / "runs" / "run-001"
+    roundtrip_root = run_root / "roundtrip" / package_id
+    roundtrip_root.mkdir(parents=True)
+    inventory_path = roundtrip_root / "roundtrip_evidence.json"
+    inventory_path.write_text('{"clean_import":true}', encoding="utf-8")
+    roundtrip_path = roundtrip_root / "roundtrip_validation.json"
+    roundtrip_path.write_text('{"status":"passed"}', encoding="utf-8")
+    manifest_sha256 = sha256_file(manifest_path)
+    roundtrip_sha256 = sha256_file(roundtrip_path)
+    source = SimpleNamespace(source_fingerprint="1" * 64, build_fingerprint="2" * 64)
+    package = SimpleNamespace(
+        job_id="portable_asset_case",
+        profile_id="portable_gltf",
+        package_id=package_id,
+        run_id="run-001",
+        status="complete",
+        content_mode="static_payload",
+        source=source,
+        semantic_ids=["asset.body"],
+        material_ids=["mat.body"],
+    )
+    validation = SimpleNamespace(
+        job_id="portable_asset_case",
+        run_id="run-001",
+        package_id=package_id,
+        profile_id="portable_gltf",
+        package_manifest=SimpleNamespace(
+            path=manifest_path.relative_to(root).as_posix(),
+            sha256=manifest_sha256,
+        ),
+        imported_inventory=SimpleNamespace(
+            path=inventory_path.relative_to(root).as_posix(),
+            sha256=sha256_file(inventory_path),
+        ),
+        status="passed",
+        ok=True,
+        failed=0,
+        errors=[],
+        bounds=SimpleNamespace(passed=True),
+        semantic_id_coverage=1.0,
+        material_id_coverage=1.0,
+        expected_semantic_ids=["asset.body"],
+        expected_material_ids=["mat.body"],
+    )
+    monkeypatch.setattr(
+        "codex_blender_modeler.packaging.service.load_feature_config",
+        lambda: SimpleNamespace(features=SimpleNamespace(portable_asset_core=True)),
+    )
+    monkeypatch.setattr("codex_blender_modeler.packaging.service.job_dir", lambda _job: root)
+    monkeypatch.setattr(
+        "codex_blender_modeler.packaging.service.load_model",
+        lambda path, _model: validation if path == roundtrip_path else package,
+    )
+    monkeypatch.setattr(
+        "codex_blender_modeler.packaging.service._verify_package_receipts",
+        lambda *_: {},
+    )
+    monkeypatch.setattr(
+        "codex_blender_modeler.packaging.service._verify_static_payload_provenance",
+        lambda *_: None,
+    )
+    monkeypatch.setattr(
+        "codex_blender_modeler.packaging.service.require_unchanged_source",
+        lambda *_: None,
+    )
+
+    receipt = accept_portable_package(
+        "portable_asset_case",
+        package_id,
+        package_manifest_sha256=manifest_sha256,
+        roundtrip_validation_sha256=roundtrip_sha256,
+        approval_note="Exact package and clean-import hashes approved.",
+    )
+
+    receipt_path = run_root / "package_acceptances" / package_id / "acceptance.json"
+    assert receipt.status == "accepted"
+    assert receipt.package_manifest_sha256 == manifest_sha256
+    assert receipt.roundtrip_validation_sha256 == roundtrip_sha256
+    assert receipt_path.is_file()
+    with pytest.raises(FileExistsError, match="already consumed"):
+        accept_portable_package(
+            "portable_asset_case",
+            package_id,
+            package_manifest_sha256=manifest_sha256,
+            roundtrip_validation_sha256=roundtrip_sha256,
+            approval_note="Exact package and clean-import hashes approved.",
+        )
+    with pytest.raises(ValueError, match="manifest SHA-256"):
+        accept_portable_package(
+            "portable_asset_case",
+            package_id,
+            package_manifest_sha256="0" * 64,
+            roundtrip_validation_sha256=roundtrip_sha256,
+            approval_note="Wrong package hash.",
+        )
 
 
 def test_bake_required_shader_recipe_requires_current_manifest_report(

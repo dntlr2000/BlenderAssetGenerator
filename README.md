@@ -627,6 +627,31 @@ clean-import round trip을 수행합니다. 목적 엔진 shader parity는 여�
 않습니다. 자세한 절차는 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
 참조하세요.
 
+정확한 delivery scope가 생성 형상뿐 아니라 비활성 delivery metadata도 제외하도록
+요구하면, 해당 AssetProfile이 derived level을 비활성화하고 physics proxy 전략을
+사용하지 않는 경우에만 lean 정적 payload를 만들 수 있습니다. 기본 package 동작은
+계속 `full_evidence`이며 다음 모드는 명시적 opt-in입니다.
+
+```powershell
+uv run cbm asset-package <job-id> `
+  --profile portable_gltf `
+  --run-id <approved-run-id> `
+  --package-id <fresh-package-id> `
+  --material-conversion-id <conversion-id> `
+  --exclude-colliders `
+  --content-mode static_payload `
+  --primary-asset-stem <job-id>
+```
+
+이 package는 대표 파일명을 `<job-id>.glb`로 통일하고, 전체 최적화·재질 증거는 기존
+run에 보존한 채 hash-only provenance, package 내부 clean-import 결과와
+`checksums.sha256`만 포함합니다. 게시 후 `asset-validate` clean import는 여전히 별도로
+통과해야 하며 destination project를 수정하거나 엔진 shader parity를 주장하지 않습니다.
+기술 복구로 기존 workflow package 경로 밖에 fresh immutable 후보가 생긴 경우에는 기존
+final gate를 재결박하지 않습니다. `asset-package-accept`에 exact package manifest와
+post-publication clean-import SHA-256을 함께 제공하면, host가 둘을 다시 검증한 뒤 package
+바깥의 run-owned 경로에 single-use acceptance receipt를 기록합니다.
+
 ## Asset Production Dispatcher와 Delegated Controller
 
 새 레퍼런스의 경로, 사용 목적, 모델링 범위와 선택적 목적지 힌트를 한 번에 주면
@@ -1116,12 +1141,12 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
 - Skill registry SHA-256: 921ffb990fd83aaaa70c89d94765aaa4b9b2842feab5e501de22a97bfa6702c4
-- CLI commands: 175
-- CLI registry SHA-256: ccf176755726526b9ca7f533e40cc603ad73e1a52a3c5ccbcce5f0c88822a1ea
-- MCP server tools: 166
-- MCP server registry SHA-256: 3995a137f65bf5002c3f0c8e8e2a7f1cca3d637ed8c61e6792dbe8816c4164b2
-- Project-enabled MCP tools: 165
-- Project-enabled MCP SHA-256: 8ced2f908dc087eeadba7f94881d4d09baded8d98c7a8f17dd836c1948be78c2
+- CLI commands: 176
+- CLI registry SHA-256: c29eff9782f38833edd659d1ba51cee1741c015f61d27c5879f3c2ff3d355732
+- MCP server tools: 167
+- MCP server registry SHA-256: f9a5f854e9372ac3d38e245190a8b0d105171579e5d11b12c374085bab1da235
+- Project-enabled MCP tools: 166
+- Project-enabled MCP SHA-256: e45073e35a43c1e011661cb8481630ee0732a71fefcd3853a233179916253870
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
 - Latest reported test count: 1947

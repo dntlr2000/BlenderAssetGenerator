@@ -17,6 +17,7 @@ from ..optimization.models import (
     JobRelativePath,
     PortableMaterialContractArtifact,
     PortableProfile,
+    Sha256,
     SourceProvenance,
     StableId,
     V07StrictModel,
@@ -148,6 +149,42 @@ class PackageFile(V07StrictModel):
     media_type: str
 
 
+class StaticPayloadProvenance(V07StrictModel):
+    """Bind one lean static payload to its verified V0.7 source evidence by hash."""
+
+    schema_version: Literal["0.7.0"] = SCHEMA_VERSION
+    kind: Literal["static_payload_provenance"] = "static_payload_provenance"
+    job_id: JobId
+    run_id: StableId
+    profile_id: PortableProfile
+    source_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    build_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    profile_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    optimization_plan_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    material_conversion_id: StableId | None = None
+    material_conversion_sha256: str | None = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{64}$",
+    )
+    export_evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    texture_pack_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    clean_import_evidence_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    primary_asset: JobRelativePath
+    created_at: datetime
+    canonical_unchanged: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_primary_name(self) -> StaticPayloadProvenance:
+        """Require the representative static payload filename to match the job ID."""
+
+        primary = PurePosixPath(self.primary_asset)
+        if primary.name != f"{self.job_id}{primary.suffix}":
+            raise ValueError("static payload primary filename must match job_id")
+        if (self.material_conversion_id is None) != (self.material_conversion_sha256 is None):
+            raise ValueError("static payload material conversion ID and hash must appear together")
+        return self
+
+
 class ExportPackageManifest(V07StrictModel):
     """Provide the authoritative immutable receipt for one portable asset package."""
 
@@ -157,7 +194,9 @@ class ExportPackageManifest(V07StrictModel):
     run_id: StableId
     profile_id: PortableProfile
     source: SourceProvenance
-    optimization_plan: HashedArtifact
+    content_mode: Literal["full_evidence", "static_payload"] = "full_evidence"
+    optimization_plan: HashedArtifact | None = None
+    package_provenance: HashedArtifact | None = None
     material_conversion: PortableMaterialContractArtifact | None = None
     source_manifests: list[HashedArtifact] = Field(default_factory=list)
     status: Literal["planned", "building", "complete", "failed"] = "planned"
@@ -179,8 +218,28 @@ class ExportPackageManifest(V07StrictModel):
     def validate_manifest(self) -> ExportPackageManifest:
         """Enforce profile format, unique receipts, dependency safety, and lifecycle state."""
 
-        if self.optimization_plan.kind != "optimization_plan":
-            raise ValueError("optimization_plan must use kind=optimization_plan")
+        if self.content_mode == "full_evidence":
+            if self.optimization_plan is None:
+                raise ValueError("full_evidence package requires optimization_plan")
+            if self.optimization_plan.kind != "optimization_plan":
+                raise ValueError("optimization_plan must use kind=optimization_plan")
+            if self.package_provenance is not None:
+                raise ValueError("full_evidence package cannot use package_provenance")
+        else:
+            if self.optimization_plan is not None or self.material_conversion is not None:
+                raise ValueError(
+                    "static_payload package must replace embedded optimization and "
+                    "material receipts with package_provenance"
+                )
+            if self.package_provenance is None or self.package_provenance.kind != "other":
+                raise ValueError("static_payload package requires package_provenance")
+            prohibited_source_kinds = {"lod_manifest", "collision_manifest"}
+            if any(artifact.kind in prohibited_source_kinds for artifact in self.source_manifests):
+                raise ValueError("static_payload package cannot embed disabled-feature manifests")
+            if any(item.kind in {"lod", "collider"} for item in self.files):
+                raise ValueError(
+                    "static_payload package cannot contain derived-level or physics files"
+                )
         if (
             self.material_conversion is not None
             and self.material_conversion.kind != "portable_material_conversion_manifest"
@@ -204,20 +263,15 @@ class ExportPackageManifest(V07StrictModel):
             raise ValueError("package material IDs must be unique")
         package_parts = PurePosixPath(self.package_root).parts
         contained_paths = [
-            self.optimization_plan.path,
-            *(
-                [self.material_conversion.path]
-                if self.material_conversion is not None
-                else []
-            ),
+            *([self.optimization_plan.path] if self.optimization_plan is not None else []),
+            *([self.package_provenance.path] if self.package_provenance is not None else []),
+            *([self.material_conversion.path] if self.material_conversion is not None else []),
             *(item.path for item in self.source_manifests),
             *(item.path for item in self.files),
         ]
         for path in contained_paths:
             parts = PurePosixPath(path).parts
-            if parts[: len(package_parts)] != package_parts or len(parts) <= len(
-                package_parts
-            ):
+            if parts[: len(package_parts)] != package_parts or len(parts) <= len(package_parts):
                 raise ValueError(
                     "package receipts and metadata snapshots must stay below package_root"
                 )
@@ -234,6 +288,23 @@ class ExportPackageManifest(V07StrictModel):
                 raise ValueError(
                     f"profile {self.profile_id} primary file must use {expected_suffix}"
                 )
+            if (
+                self.content_mode == "static_payload"
+                and PurePosixPath(primary.path).name != f"{self.job_id}{expected_suffix}"
+            ):
+                raise ValueError(
+                    "static_payload primary filename must use the representative job ID"
+                )
+        if self.content_mode == "static_payload":
+            basenames = {PurePosixPath(item.path).name for item in self.files}
+            if "checksums.sha256" not in basenames:
+                raise ValueError("static_payload package requires checksums.sha256")
+            if "roundtrip_evidence.json" not in basenames:
+                raise ValueError("static_payload package requires embedded clean-import evidence")
+            if self.package_provenance is not None and self.package_provenance.path not in {
+                item.path for item in self.files
+            }:
+                raise ValueError("static_payload package_provenance must also be a package file")
         if self.status == "planned":
             if self.files or self.primary_file_id or self.completed_at or self.errors:
                 raise ValueError("planned package manifest cannot contain build results")
@@ -386,4 +457,54 @@ class RoundTripValidation(V07StrictModel):
         elif self.status == "error":
             if self.ok or not self.errors:
                 raise ValueError("round-trip error status requires errors and ok=false")
+        return self
+
+
+class PortablePackageAcceptance(V07StrictModel):
+    """Record one exact user acceptance after immutable package and clean-import verification."""
+
+    schema_version: Literal["0.7.0"] = SCHEMA_VERSION
+    acceptance_id: StableId
+    job_id: JobId
+    run_id: StableId
+    package_id: StableId
+    profile_id: PortableProfile
+    content_mode: Literal["full_evidence", "static_payload"]
+    source_fingerprint: Sha256
+    build_fingerprint: Sha256
+    package_manifest_path: JobRelativePath
+    package_manifest_sha256: Sha256
+    roundtrip_validation_path: JobRelativePath
+    roundtrip_validation_sha256: Sha256
+    clean_import_status: Literal["passed"] = "passed"
+    bounds_passed: Literal[True] = True
+    semantic_id_coverage: Literal[1.0] = 1.0
+    material_id_coverage: Literal[1.0] = 1.0
+    approved_by: Literal["user"] = "user"
+    approval_note: str = Field(min_length=1, max_length=2000)
+    approved_at: datetime
+    single_use: Literal[True] = True
+    consumed: Literal[True] = True
+    consumed_at: datetime
+    canonical_unchanged: Literal[True] = True
+    destination_project_modified: Literal[False] = False
+    status: Literal["accepted"] = "accepted"
+
+    @model_validator(mode="after")
+    def validate_exact_evidence_paths(self) -> PortablePackageAcceptance:
+        """Bind acceptance to the canonical package and round-trip locations only."""
+
+        expected_manifest = (
+            f"exports/packages/{self.profile_id}/{self.package_id}/package_manifest.json"
+        )
+        expected_roundtrip = (
+            f"optimization/runs/{self.run_id}/roundtrip/{self.package_id}/"
+            "roundtrip_validation.json"
+        )
+        if self.package_manifest_path != expected_manifest:
+            raise ValueError("package acceptance manifest path does not match its identity")
+        if self.roundtrip_validation_path != expected_roundtrip:
+            raise ValueError("package acceptance round-trip path does not match its identity")
+        if self.approved_at != self.consumed_at:
+            raise ValueError("package acceptance must consume approval at publication time")
         return self

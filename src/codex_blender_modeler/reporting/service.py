@@ -255,8 +255,7 @@ def _resolve_portable_package(
         matches = [path for path in candidates if path.name == normalized]
     if len(matches) > 1:
         raise ValueError(
-            f"Portable package ID is ambiguous across profiles: {requested}; "
-            "use profile/package-id"
+            f"Portable package ID is ambiguous across profiles: {requested}; use profile/package-id"
         )
     if not matches:
         warnings.append(f"Portable package is missing: {requested}")
@@ -368,26 +367,39 @@ def _collect_export_sources(
                 f"{optimization_run_id} != {manifest_run_id}"
             )
         if package_dir is not None:
-            snapshot_pairs = [
-                ("asset_profile", "metadata/asset_profile.json"),
-                ("optimization_plan", "metadata/optimization_plan.json"),
-                ("mesh_preflight_report", "metadata/mesh_preflight_report.json"),
-                ("lod_manifest", "metadata/lod_manifest.json"),
-                ("collision_manifest", "metadata/collision_manifest.json"),
-                ("uv_manifest", "metadata/uv_manifest.json"),
-                ("asset_cost_report", "metadata/asset_cost_report.json"),
-            ]
+            static_payload = package_manifest.get("content_mode") == "static_payload"
+            snapshot_pairs = (
+                [
+                    ("static_payload_provenance", "metadata/package_provenance.json"),
+                    ("static_payload_mapping", "metadata/delivery_mapping.json"),
+                    (
+                        "static_payload_embedded_roundtrip",
+                        "clean_import/roundtrip_evidence.json",
+                    ),
+                ]
+                if static_payload
+                else [
+                    ("asset_profile", "metadata/asset_profile.json"),
+                    ("optimization_plan", "metadata/optimization_plan.json"),
+                    ("mesh_preflight_report", "metadata/mesh_preflight_report.json"),
+                    ("lod_manifest", "metadata/lod_manifest.json"),
+                    ("collision_manifest", "metadata/collision_manifest.json"),
+                    ("uv_manifest", "metadata/uv_manifest.json"),
+                    ("asset_cost_report", "metadata/asset_cost_report.json"),
+                ]
+            )
             optional_review_snapshots = [
                 ("review_plan", "metadata/review_plan.json"),
                 ("optimization_review", "metadata/optimization_review.json"),
                 ("optimization_approval", "metadata/optimization_approval.json"),
             ]
-            snapshot_pairs.extend(
-                (key, relative)
-                for key, relative in optional_review_snapshots
-                if (package_dir / relative).is_file()
-            )
-            if isinstance(package_manifest.get("material_conversion"), dict):
+            if not static_payload:
+                snapshot_pairs.extend(
+                    (key, relative)
+                    for key, relative in optional_review_snapshots
+                    if (package_dir / relative).is_file()
+                )
+            if not static_payload and isinstance(package_manifest.get("material_conversion"), dict):
                 snapshot_pairs.extend(
                     [
                         (
@@ -468,17 +480,13 @@ def _collect_export_sources(
             _collect_json_source(
                 root,
                 "roundtrip_validation",
-                run_dir
-                / "roundtrip"
-                / resolved_package_id
-                / "roundtrip_validation.json",
+                run_dir / "roundtrip" / resolved_package_id / "roundtrip_validation.json",
                 documents,
                 sources,
             )
             if "roundtrip_validation" not in documents:
                 warnings.append(
-                    "Portable package has no round-trip validation: "
-                    f"{resolved_package_id}"
+                    f"Portable package has no round-trip validation: {resolved_package_id}"
                 )
     return resolved_run_id, resolved_package_id
 
@@ -497,13 +505,9 @@ def _collect_destination_handoff_sources(
     profile_id = package.get("profile_id")
     if not package_id or not isinstance(profile_id, str):
         return None
-    handoffs_root = (
-        root / "exports" / "destination_handoffs" / profile_id / package_id
-    )
+    handoffs_root = root / "exports" / "destination_handoffs" / profile_id / package_id
     if not handoffs_root.is_dir():
-        warnings.append(
-            f"No V0.9 Codex Destination Handoff is available for package: {package_id}"
-        )
+        warnings.append(f"No V0.9 Codex Destination Handoff is available for package: {package_id}")
         return None
     candidates = sorted(
         path
@@ -543,9 +547,7 @@ def _collect_destination_handoff_sources(
             _collect_json_source(root, key, path, documents, sources)
         return envelope.name
     if candidates:
-        warnings.append(
-            f"No valid V0.9 destination handoff remains for package: {package_id}"
-        )
+        warnings.append(f"No valid V0.9 destination handoff remains for package: {package_id}")
     return None
 
 
@@ -667,10 +669,7 @@ def _collect_exact_assembly_sanity_run(
             ),
         }
         for name, (relative_path, digest) in expected.items():
-            if (
-                relative_path != _job_relative(root, paths[name])
-                or digest != current_hashes[name]
-            ):
+            if relative_path != _job_relative(root, paths[name]) or digest != current_hashes[name]:
                 warnings.append(
                     "Skipped assembly sanity evidence whose bundle path/hash binding "
                     f"changed: {name}"
@@ -756,9 +755,7 @@ def _collect_exact_assembly_sanity_run(
             expected_job_id=root.name,
             expected_run_id=run_id,
         )
-        documents["geometry_multiview_visual_review"] = visual_review.model_dump(
-            mode="json"
-        )
+        documents["geometry_multiview_visual_review"] = visual_review.model_dump(mode="json")
         collected_sources.append(
             _source_record(root, "geometry_multiview_visual_review", visual_review_path)
         )
@@ -944,10 +941,7 @@ def _collect_qa_companion_sources(
     identity_is_current = (
         bundle.job_id == request.job_id == report.job_id == root.name
         and bundle.qa_run_id == request.qa_run_id == report.qa_run_id == run_id
-        and bundle.diagnostic_id
-        == request.diagnostic_id
-        == report.diagnostic_id
-        == diagnostic_id
+        and bundle.diagnostic_id == request.diagnostic_id == report.diagnostic_id == diagnostic_id
         and report.request_path == expected_request_path
         and report.request_sha256 == bundle.diagnostic_request_sha256
         and bundle.visual_qa_report_path == _job_relative(root, visual_report_path)
@@ -1161,9 +1155,7 @@ def collect_job_report_payload(
             if not assembly_sanity_views and companion_views:
                 assembly_sanity_views = companion_views
                 assembly_report = documents.get("assembly_sanity_report") or {}
-                resolved_assembly_sanity_run_id = str(
-                    assembly_report.get("run_id") or ""
-                ) or None
+                resolved_assembly_sanity_run_id = str(assembly_report.get("run_id") or "") or None
         resolved_interior_qa_run_id, interior_qa_run_dir = _resolve_interior_qa_run(
             root,
             interior_qa_run_id,
@@ -1191,10 +1183,7 @@ def collect_job_report_payload(
                     documents,
                     sources,
                 )
-    if (
-        scope in {"qa", "export", "full"}
-        and background_quality_report_path is not None
-    ):
+    if scope in {"qa", "export", "full"} and background_quality_report_path is not None:
         quality_path = _safe_job_file(
             root,
             root / background_quality_report_path,

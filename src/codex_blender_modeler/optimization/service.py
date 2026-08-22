@@ -135,6 +135,14 @@ def asset_status(job_id: str) -> dict[str, Any]:
         if package_root.is_dir()
         else []
     )
+    package_acceptances = (
+        sorted(
+            path.relative_to(root).as_posix()
+            for path in run_root.glob("*/package_acceptances/*/acceptance.json")
+        )
+        if run_root.is_dir()
+        else []
+    )
     return {
         "schema_version": "0.7.0",
         "job_id": job_id,
@@ -144,4 +152,5 @@ def asset_status(job_id: str) -> dict[str, Any]:
         "runs": runs,
         "run_reviews": run_reviews,
         "package_manifests": packages,
+        "package_acceptances": package_acceptances,
     }

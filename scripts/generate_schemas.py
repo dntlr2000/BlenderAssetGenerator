@@ -344,7 +344,9 @@ from codex_blender_modeler.orchestration.models import (
 )
 from codex_blender_modeler.packaging.models import (
     ExportPackageManifest,
+    PortablePackageAcceptance,
     RoundTripValidation,
+    StaticPayloadProvenance,
     TexturePackManifest,
 )
 from codex_blender_modeler.production.activation_models import (
@@ -529,6 +531,8 @@ SCHEMAS = {
     "portable_material_conversion_manifest.schema.json": PortableMaterialConversionManifest,
     "texture_pack_manifest.schema.json": TexturePackManifest,
     "export_package_manifest.schema.json": ExportPackageManifest,
+    "portable_package_acceptance.schema.json": PortablePackageAcceptance,
+    "static_payload_provenance.schema.json": StaticPayloadProvenance,
     "roundtrip_validation.schema.json": RoundTripValidation,
     "interior_scope.schema.json": InteriorScope,
     "interior_scope_approval.schema.json": InteriorScopeApproval,
@@ -574,12 +578,8 @@ SCHEMAS = {
     "activation_baseline.schema.json": ActivationBaseline,
     "activation_readiness_report.schema.json": ActivationReadinessReport,
     "activation_asset_evidence.schema.json": ActivationAssetEvidence,
-    "activation_asset_eligibility_report.schema.json": (
-        ActivationAssetEligibilityReport
-    ),
-    "activation_asset_candidate_registry.schema.json": (
-        ActivationAssetCandidateRegistry
-    ),
+    "activation_asset_eligibility_report.schema.json": (ActivationAssetEligibilityReport),
+    "activation_asset_candidate_registry.schema.json": (ActivationAssetCandidateRegistry),
     "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
     "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
@@ -589,14 +589,10 @@ SCHEMAS = {
     "codex_task_binding.schema.json": CodexTaskBinding,
     "codex_task_binding_receipt.schema.json": CodexTaskBindingReceipt,
     "delegated_work_assignment.schema.json": DelegatedWorkAssignment,
-    "delegated_production_advance_receipt.schema.json": (
-        DelegatedProductionAdvanceReceipt
-    ),
+    "delegated_production_advance_receipt.schema.json": (DelegatedProductionAdvanceReceipt),
     "delegated_production_state.schema.json": DelegatedProductionState,
     "production_convergence_binding.schema.json": ProductionConvergenceBinding,
-    "production_postflight_audit_receipt.schema.json": (
-        ProductionPostflightAuditReceipt
-    ),
+    "production_postflight_audit_receipt.schema.json": (ProductionPostflightAuditReceipt),
     "destination_handoff_plan.schema.json": DestinationHandoffPlan,
     "destination_context.schema.json": DestinationContext,
     "assembly_manifest.schema.json": AssemblyManifest,
@@ -674,9 +670,7 @@ SCHEMAS = {
     "integrated_quality_v02_reentry.schema.json": ReentryDecisionV02,
     # MaterialGraph runtime evidence consumes, but never replaces, MaterialGraphSpec 0.1.
     "material_graph_runtime_plan.schema.json": NormalizedMaterialGraphPlan,
-    "material_graph_runtime_dependency_manifest.schema.json": (
-        MaterialGraphDependencyManifest
-    ),
+    "material_graph_runtime_dependency_manifest.schema.json": (MaterialGraphDependencyManifest),
     "material_graph_runtime_compile_request.schema.json": MaterialGraphCompileRequest,
     "material_graph_runtime_compile_report.schema.json": MaterialGraphCompileReport,
     "material_graph_runtime_inventory.schema.json": NormalizedMaterialNodeInventory,
@@ -702,20 +696,14 @@ SCHEMAS = {
     "autonomy_v02_plan.schema.json": AutonomyPlanV2,
     "autonomy_v02_state.schema.json": AutonomyStateV2,
     "autonomy_v02_cancellation.schema.json": AutonomyCancellationV2,
-    "autonomy_v02_geometry_authoring_completion.schema.json": (
-        GeometryAuthoringCompletionV2
-    ),
+    "autonomy_v02_geometry_authoring_completion.schema.json": (GeometryAuthoringCompletionV2),
     "autonomy_v02_geometry_candidate_validation_receipt.schema.json": (
         GeometryCandidateValidationReceiptV2
     ),
-    "autonomy_v02_material_controller_completion.schema.json": (
-        MaterialControllerCompletionV2
-    ),
+    "autonomy_v02_material_controller_completion.schema.json": (MaterialControllerCompletionV2),
     "autonomy_v02_material_promotion_intent.schema.json": MaterialPromotionIntentV2,
     "autonomy_v02_material_phase_receipt.schema.json": MaterialPhaseReceiptV2,
-    "autonomy_v02_material_rollback_receipt.schema.json": (
-        MaterialPhaseRollbackReceiptV2
-    ),
+    "autonomy_v02_material_rollback_receipt.schema.json": (MaterialPhaseRollbackReceiptV2),
     "autonomy_v02_material_closure_promotion_boundary.schema.json": (
         MaterialClosurePromotionBoundaryV2
     ),
@@ -728,17 +716,11 @@ SCHEMAS = {
     # Optional AQ v2 Approval Envelope 0.3 and one-prompt companion evidence.
     "autonomy_approval_envelope.schema.json": AutonomyApprovalEnvelope,
     "autonomy_approval_policy_profile.schema.json": AutonomyApprovalPolicyProfile,
-    "aq_v2_routine_gate_eligibility_report.schema.json": (
-        AQV2RoutineGateEligibilityReport
-    ),
-    "aq_v2_routine_policy_authorization.schema.json": (
-        AQV2RoutinePolicyAuthorization
-    ),
+    "aq_v2_routine_gate_eligibility_report.schema.json": (AQV2RoutineGateEligibilityReport),
+    "aq_v2_routine_policy_authorization.schema.json": (AQV2RoutinePolicyAuthorization),
     "aq_v2_policy_decision_receipt.schema.json": AQV2PolicyDecisionReceipt,
     "aq_v2_approval_budget.schema.json": AQV2ApprovalBudget,
-    "aq_v2_consolidated_escalation_request.schema.json": (
-        AQV2ConsolidatedEscalationRequest
-    ),
+    "aq_v2_consolidated_escalation_request.schema.json": (AQV2ConsolidatedEscalationRequest),
     "aq_v2_escalation_decision.schema.json": AQV2EscalationDecision,
     "aq_v2_approval_telemetry_report.schema.json": AQV2ApprovalTelemetryReport,
     "aq_v2_technical_failure_report.schema.json": AQV2TechnicalFailureReport,
@@ -768,29 +750,21 @@ SCHEMAS = {
         MaterialAppearanceApprovalConsumptionReceipt
     ),
     "material_attempt_state.schema.json": MaterialAttemptState,
-    "material_canonical_material_plan_absence.schema.json": (
-        MaterialCanonicalMaterialPlanAbsence
-    ),
+    "material_canonical_material_plan_absence.schema.json": (MaterialCanonicalMaterialPlanAbsence),
     "material_canonical_snapshot.schema.json": MaterialCanonicalSnapshot,
     "material_state_consistency_report.schema.json": MaterialStateConsistencyReport,
     "aq_v2_status_projection.schema.json": AQV2StatusProjection,
     "material_framework_failure_report.schema.json": MaterialFrameworkFailureReport,
     "incident_state_discrepancy_report.schema.json": IncidentStateDiscrepancyReport,
-    "material_retry_supersession_receipt.schema.json": (
-        MaterialRetrySupersessionReceipt
-    ),
+    "material_retry_supersession_receipt.schema.json": (MaterialRetrySupersessionReceipt),
     "material_retry_approval_absence.schema.json": MaterialRetryApprovalAbsence,
     "material_repair_session_plan.schema.json": MaterialRepairSessionPlan,
     "material_repair_source_binding.schema.json": MaterialRepairSourceBinding,
     "material_rollback_restoration_observation.schema.json": (
         MaterialRollbackRestorationObservation
     ),
-    "material_session_supersession_receipt.schema.json": (
-        MaterialSessionSupersessionReceipt
-    ),
-    "job_specific_recovery_source_inventory.schema.json": (
-        JobSpecificRecoverySourceInventory
-    ),
+    "material_session_supersession_receipt.schema.json": (MaterialSessionSupersessionReceipt),
+    "job_specific_recovery_source_inventory.schema.json": (JobSpecificRecoverySourceInventory),
     # Material Identity Split 0.1.0 stops at a specialized explicit approval request.
     "material_identity_split_plan.schema.json": MaterialIdentitySplitPlan,
     "material_identity_split_modeling_plan_diff_report.schema.json": (
@@ -805,18 +779,14 @@ SCHEMAS = {
     "material_identity_split_binding_derivative_receipt.schema.json": (
         MaterialIdentitySplitMaterialBindingDerivativeReceipt
     ),
-    "material_identity_split_invariant_report.schema.json": (
-        MaterialIdentitySplitInvariantReport
-    ),
+    "material_identity_split_invariant_report.schema.json": (MaterialIdentitySplitInvariantReport),
     "material_identity_split_preapproval_report.schema.json": (
         MaterialIdentitySplitPreapprovalReport
     ),
     "material_identity_split_preapproval_failure.schema.json": (
         MaterialIdentitySplitPreapprovalFailure
     ),
-    "material_identity_split_approval_request.schema.json": (
-        MaterialIdentitySplitApprovalRequest
-    ),
+    "material_identity_split_approval_request.schema.json": (MaterialIdentitySplitApprovalRequest),
     "material_identity_split_root_scope_approval.schema.json": (
         MaterialIdentitySplitRootScopeApproval
     ),
@@ -834,12 +804,8 @@ SCHEMAS = {
         MaterialIdentitySplitTransactionState
     ),
     "material_identity_split_apply_receipt.schema.json": MaterialIdentitySplitApplyReceipt,
-    "material_identity_split_rollback_receipt.schema.json": (
-        MaterialIdentitySplitRollbackReceipt
-    ),
-    "material_identity_split_recovery_receipt.schema.json": (
-        MaterialIdentitySplitRecoveryReceipt
-    ),
+    "material_identity_split_rollback_receipt.schema.json": (MaterialIdentitySplitRollbackReceipt),
+    "material_identity_split_recovery_receipt.schema.json": (MaterialIdentitySplitRecoveryReceipt),
     "material_identity_split_geometry_continuation_receipt.schema.json": (
         MaterialIdentitySplitGeometryContinuationReceipt
     ),
@@ -847,18 +813,14 @@ SCHEMAS = {
         MaterialIdentitySplitStatusProjection
     ),
     # Codex built-in ImageGen is a controller-mediated additive AQ v2 overlay.
-    "codex_builtin_image_provider_profile.schema.json": (
-        CodexBuiltinImageProviderProfile
-    ),
+    "codex_builtin_image_provider_profile.schema.json": (CodexBuiltinImageProviderProfile),
     "codex_image_generation_budget.schema.json": CodexImageGenerationBudget,
     "codex_image_generation_plan.schema.json": CodexImageGenerationPlan,
     "codex_image_generation_assignment.schema.json": CodexImageGenerationAssignment,
     "codex_image_generation_completion.schema.json": CodexImageGenerationCompletion,
     "codex_generated_image_evidence.schema.json": CodexGeneratedImageEvidence,
     "codex_image_generation_candidate.schema.json": CodexImageGenerationCandidate,
-    "codex_image_generation_quality_report.schema.json": (
-        CodexImageGenerationQualityReport
-    ),
+    "codex_image_generation_quality_report.schema.json": (CodexImageGenerationQualityReport),
     "codex_image_generation_selection.schema.json": CodexImageGenerationSelection,
     "codex_image_generation_terminal.schema.json": CodexImageGenerationTerminal,
     "image_to_material_adoption.schema.json": ImageToMaterialAdoption,
@@ -883,9 +845,7 @@ SCHEMAS = {
         CodexImageNormalizedMaterialAuthoringReceiptV010
     ),
     # ImageGen material-loop closure keeps staging, controller, and host authority distinct.
-    "image_generated_material_bridge_plan_0_1_0.schema.json": (
-        ImageGeneratedMaterialBridgePlan
-    ),
+    "image_generated_material_bridge_plan_0_1_0.schema.json": (ImageGeneratedMaterialBridgePlan),
     "image_generated_material_controller_input_0_1_0.schema.json": (
         ImageGeneratedMaterialControllerInput
     ),
@@ -901,12 +861,8 @@ SCHEMAS = {
     "image_generated_material_neutral_preview_0_1_0.schema.json": (
         ImageGeneratedMaterialNeutralPreview
     ),
-    "imagegen_native_normalization_plan_0_1_0.schema.json": (
-        ImageGenNativeNormalizationPlan
-    ),
-    "imagegen_native_normalization_receipt_0_1_0.schema.json": (
-        ImageGenNativeNormalizationReceipt
-    ),
+    "imagegen_native_normalization_plan_0_1_0.schema.json": (ImageGenNativeNormalizationPlan),
+    "imagegen_native_normalization_receipt_0_1_0.schema.json": (ImageGenNativeNormalizationReceipt),
     "codex_image_semantic_review_0_1_0.schema.json": CodexImageSemanticReview,
     "codex_image_candidate_ranking_evidence_0_1_0.schema.json": (
         CodexImageCandidateRankingEvidence
@@ -914,9 +870,7 @@ SCHEMAS = {
     "codex_image_companion_selection_receipt_0_1_0.schema.json": (
         CodexImageCompanionSelectionReceipt
     ),
-    "codex_image_material_loop_terminal_0_1_0.schema.json": (
-        CodexImageMaterialLoopTerminal
-    ),
+    "codex_image_material_loop_terminal_0_1_0.schema.json": (CodexImageMaterialLoopTerminal),
     "codex_image_material_loop_state_0_1_0.schema.json": CodexImageMaterialLoopState,
     "codex_image_native_output_adoption_receipt_0_1_0.schema.json": (
         CodexImageNativeOutputAdoptionReceipt
@@ -927,9 +881,7 @@ SCHEMAS = {
     "codex_image_v05_exact_adoption_preflight_receipt_0_1_0.schema.json": (
         CodexImageV05ExactAdoptionPreflightReceipt
     ),
-    "codex_image_v05_controller_blueprint_0_1_0.schema.json": (
-        CodexImageV05ControllerBlueprint
-    ),
+    "codex_image_v05_controller_blueprint_0_1_0.schema.json": (CodexImageV05ControllerBlueprint),
     "codex_image_v05_bridge_receipt_0_1_0.schema.json": CodexImageV05BridgeReceipt,
     "codex_image_v05_canonical_material_absence_0_1_0.schema.json": (
         CodexImageV05CanonicalMaterialAbsence

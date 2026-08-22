@@ -453,6 +453,7 @@ BlenderAssetGenerator/
   schemas/policy_gate_target.schema.json
   schemas/portable_material_conversion_manifest.schema.json
   schemas/portable_material_conversion_plan.schema.json
+  schemas/portable_package_acceptance.schema.json
   schemas/production_convergence_binding.schema.json
   schemas/production_postflight_audit_receipt.schema.json
   schemas/production_resource_receipt.schema.json
@@ -494,6 +495,7 @@ BlenderAssetGenerator/
   schemas/standard_composite_run_terminal.schema.json
   schemas/standard_composite_stage_binding.schema.json
   schemas/standard_custom_mesh_payload.schema.json
+  schemas/static_payload_provenance.schema.json
   schemas/structural_candidate_manifest.schema.json
   schemas/structural_candidate_plan.schema.json
   schemas/structural_geometry_candidate.schema.json

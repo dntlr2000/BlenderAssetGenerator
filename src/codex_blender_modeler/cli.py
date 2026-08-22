@@ -199,7 +199,7 @@ from .orchestration import (
     plan_workflow as plan_orchestrated_workflow,
 )
 from .orchestration.models import WorkflowBudgets
-from .packaging import package_asset, validate_asset_package
+from .packaging import accept_portable_package, package_asset, validate_asset_package
 from .packaging.material_conversion import convert_portable_materials
 from .production import (
     advance_delegated_production_controller,
@@ -385,8 +385,7 @@ def _require_codex_image_material_loop_opt_in(
 def _read_contained_json_model(
     job_id: str,
     path: Path,
-    model_type: type[ImageGeneratedMaterialBridgePlan]
-    | type[ImageGenNativeNormalizationPlan],
+    model_type: type[ImageGeneratedMaterialBridgePlan] | type[ImageGenNativeNormalizationPlan],
 ) -> ImageGeneratedMaterialBridgePlan | ImageGenNativeNormalizationPlan:
     """Strict-parse one job-contained JSON model without accepting linked paths."""
 
@@ -452,8 +451,8 @@ def _promote_and_finalize_codex_image_material(
 ) -> dict[str, object]:
     """Use existing host authority, fixed preview, and companion finalization in order."""
 
-    root, plan, budget, state, result_artifact = (
-        _load_codex_image_material_promotion_inputs(job_id, session_id)
+    root, plan, budget, state, result_artifact = _load_codex_image_material_promotion_inputs(
+        job_id, session_id
     )
     receipt, receipt_artifact = promote_codex_image_material_loop(
         root,
@@ -476,9 +475,7 @@ def _promote_and_finalize_codex_image_material(
         media_type="application/json",
     )
     loop_status = get_codex_image_material_loop_status(root, session_id)
-    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(
-        loop_status["bridge_plan"]
-    )
+    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(loop_status["bridge_plan"])
     preview, preview_artifact = render_promoted_codex_image_material_preview(
         root,
         material_phase_receipt=codex_receipt,
@@ -573,9 +570,7 @@ def _codex_image_material_semantic_status(
 
     root = job_dir(job_id)
     loop_status = get_codex_image_material_loop_status(root, session_id)
-    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(
-        loop_status["bridge_plan"]
-    )
+    bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(loop_status["bridge_plan"])
     review = load_codex_image_model(
         root,
         bridge_plan.semantic_review,
@@ -1949,6 +1944,11 @@ def asset_package(
     include_colliders: Annotated[
         bool, typer.Option("--include-colliders/--exclude-colliders")
     ] = True,
+    content_mode: Annotated[str, typer.Option("--content-mode")] = "full_evidence",
+    primary_asset_stem: Annotated[
+        str | None,
+        typer.Option("--primary-asset-stem"),
+    ] = None,
 ) -> None:
     """Build one immutable portable package from a complete optimization run."""
 
@@ -1959,6 +1959,8 @@ def asset_package(
         package_id=package_id,
         material_conversion_id=material_conversion_id,
         include_colliders=include_colliders,
+        content_mode=content_mode,  # type: ignore[arg-type]
+        primary_asset_stem=primary_asset_stem,
     )
     console.print_json(result.model_dump_json())
 
@@ -2009,6 +2011,34 @@ def asset_validate(
     console.print_json(result.model_dump_json())
     if not result.ok:
         raise typer.Exit(code=2)
+
+
+@app.command("asset-package-accept")
+def asset_package_accept(
+    job_id: str,
+    package_id: Annotated[str, typer.Option("--package-id")],
+    package_manifest_sha256: Annotated[
+        str,
+        typer.Option("--package-manifest-sha256"),
+    ],
+    clean_import_sha256: Annotated[
+        str,
+        typer.Option("--clean-import-sha256"),
+    ],
+    approval_note: Annotated[str, typer.Option("--approval-note")],
+    profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
+) -> None:
+    """Consume exact user approval for one passed immutable portable package."""
+
+    result = accept_portable_package(
+        job_id,
+        package_id,
+        profile_id=profile,
+        package_manifest_sha256=package_manifest_sha256,
+        roundtrip_validation_sha256=clean_import_sha256,
+        approval_note=approval_note,
+    )
+    console.print_json(result.model_dump_json())
 
 
 @app.command("asset-status")
@@ -2156,9 +2186,7 @@ def autonomy_profile_status_command(
 ) -> None:
     """List the sole verified autonomy profile and disabled experimental entries."""
 
-    console.print_json(
-        json.dumps(get_autonomy_profile_status(profile_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_autonomy_profile_status(profile_id), ensure_ascii=False))
 
 
 @app.command("autonomy-v2-profile-status")
@@ -2373,8 +2401,7 @@ def codex_imagegen_adopt_command(
         typer.Option(
             "--exact-text-evidence",
             help=(
-                "Contained ExactSignageTextEvidence 0.2.1 JSON used only while "
-                "preparing adoption."
+                "Contained ExactSignageTextEvidence 0.2.1 JSON used only while preparing adoption."
             ),
         ),
     ] = None,
@@ -2673,9 +2700,7 @@ def codex_imagegen_native_normalize_command(
             native_output_id=str(native_output_id),
             ordinal=ordinal,
             output_role=output_role,  # type: ignore[arg-type]
-            receipt_contract_id=(
-                receipt_contract_id or f"{native_output_id}-native-adoption"
-            ),
+            receipt_contract_id=(receipt_contract_id or f"{native_output_id}-native-adoption"),
         )
     elif action == "prepare":
         if session_id is None or adoption_receipt is None or normalization_plan is None:
@@ -2685,9 +2710,7 @@ def codex_imagegen_native_normalize_command(
             session_id=session_id,
             adoption_receipt_path=adoption_receipt,
             normalization_plan_path=normalization_plan,
-            receipt_contract_id=(
-                receipt_contract_id or f"{normalization_plan.stem}-receipt"
-            ),
+            receipt_contract_id=(receipt_contract_id or f"{normalization_plan.stem}-receipt"),
         )
     elif action == "execute":
         if normalization_plan is None:
@@ -3140,9 +3163,7 @@ def autonomy_v2_plan_command(
     controller_execution_mode: Annotated[
         str, typer.Option("--controller-mode")
     ] = "desktop_in_session",
-    destination_hint: Annotated[
-        str, typer.Option("--destination-hint")
-    ] = "engine_neutral",
+    destination_hint: Annotated[str, typer.Option("--destination-hint")] = "engine_neutral",
     experimental_opt_in: Annotated[
         bool,
         typer.Option("--enable-v2/--disable-v2"),
@@ -3188,9 +3209,7 @@ def _load_quality_submission_payload(path: Path | None) -> dict[str, object] | N
 def aq_approval_envelope_plan_command(
     job_id: str,
     session_id: str,
-    initial_user_request_sha256: Annotated[
-        str, typer.Option("--initial-user-request-sha256")
-    ],
+    initial_user_request_sha256: Annotated[str, typer.Option("--initial-user-request-sha256")],
     approval_mode: Annotated[str, typer.Option("--approval-mode")] = "autonomous",
     delegate_routine_actions: Annotated[
         bool,
@@ -3203,9 +3222,7 @@ def aq_approval_envelope_plan_command(
             help="Comma-separated: local_only,codex_builtin_imagegen",
         ),
     ] = "local_only",
-    max_identity_splits: Annotated[
-        int, typer.Option("--max-identity-splits", min=0, max=8)
-    ] = 4,
+    max_identity_splits: Annotated[int, typer.Option("--max-identity-splits", min=0, max=8)] = 4,
     experimental_opt_in: Annotated[
         bool,
         typer.Option("--enable-v2/--disable-v2"),
@@ -3246,15 +3263,9 @@ def aq_policy_eligibility_command(
     target_path: Annotated[str, typer.Option("--target")],
     target_kind: Annotated[str, typer.Option("--target-kind")],
     canonical_snapshot_path: Annotated[str, typer.Option("--canonical-snapshot")],
-    canonical_snapshot_kind: Annotated[
-        str, typer.Option("--canonical-snapshot-kind")
-    ],
-    dependency_paths: Annotated[
-        list[str] | None, typer.Option("--dependency-path")
-    ] = None,
-    dependency_kinds: Annotated[
-        list[str] | None, typer.Option("--dependency-kind")
-    ] = None,
+    canonical_snapshot_kind: Annotated[str, typer.Option("--canonical-snapshot-kind")],
+    dependency_paths: Annotated[list[str] | None, typer.Option("--dependency-path")] = None,
+    dependency_kinds: Annotated[list[str] | None, typer.Option("--dependency-kind")] = None,
     experimental_opt_in: Annotated[
         bool,
         typer.Option("--enable-v2/--disable-v2"),
@@ -3302,18 +3313,14 @@ def aq_policy_authorize_command(
 def aq_escalation_status_command(job_id: str, session_id: str) -> None:
     """Read one consolidated genuine-decision request without creating approval."""
 
-    console.print_json(
-        json.dumps(get_escalation_status(job_id, session_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_escalation_status(job_id, session_id), ensure_ascii=False))
 
 
 @app.command("aq-approval-telemetry")
 def aq_approval_telemetry_command(job_id: str, session_id: str) -> None:
     """Read immutable approval-minimization telemetry for one AQ v2 session."""
 
-    console.print_json(
-        json.dumps(get_approval_telemetry(job_id, session_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_approval_telemetry(job_id, session_id), ensure_ascii=False))
 
 
 @app.command("autonomy-v2-one-prompt-plan")
@@ -3344,9 +3351,7 @@ def autonomy_v2_one_prompt_plan_command(
     controller_execution_mode: Annotated[
         str, typer.Option("--controller-mode")
     ] = "desktop_in_session",
-    destination_hint: Annotated[
-        str, typer.Option("--destination-hint")
-    ] = "engine_neutral",
+    destination_hint: Annotated[str, typer.Option("--destination-hint")] = "engine_neutral",
     experimental_opt_in: Annotated[
         bool,
         typer.Option("--enable-v2/--disable-v2"),
@@ -3432,9 +3437,7 @@ def autonomy_v2_one_prompt_resume_command(
 def autonomy_v2_one_prompt_status_command(job_id: str, session_id: str) -> None:
     """Read one-prompt state without executing, spawning, or migrating work."""
 
-    console.print_json(
-        json.dumps(get_one_prompt_status(job_id, session_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_one_prompt_status(job_id, session_id), ensure_ascii=False))
 
 
 @app.command("autonomy-v2-one-prompt-cancel")
@@ -3469,9 +3472,7 @@ def skill_catalog_command() -> None:
 def skill_trace_command(job_id: str, run_id: str) -> None:
     """Validate one run-owned skill bundle, route set, and receipt chain."""
 
-    console.print_json(
-        json.dumps(get_skill_execution_trace(job_id, run_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_skill_execution_trace(job_id, run_id), ensure_ascii=False))
 
 
 @app.command("standard-asset-cycle-plan")
@@ -3848,9 +3849,7 @@ def autonomy_plan_command(
         target_subject=target_subject,
         job_id=job_id,
         controller_execution_mode=controller_execution_mode,
-        include_destination_handoff_envelope=(
-            include_destination_handoff_envelope
-        ),
+        include_destination_handoff_envelope=(include_destination_handoff_envelope),
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 
@@ -3875,9 +3874,7 @@ def autonomy_bind_command(
         session_id,
         external_task_id=external_task_id,
         external_host_id=external_host_id,
-        enforced_controller_tool_profile_sha256=(
-            enforced_controller_tool_profile_sha256
-        ),
+        enforced_controller_tool_profile_sha256=(enforced_controller_tool_profile_sha256),
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 
@@ -3888,9 +3885,7 @@ def autonomy_status_command(job_id: str, session_id: str) -> None:
 
     from .autonomy.service import get_autonomy_status
 
-    console.print_json(
-        json.dumps(get_autonomy_status(job_id, session_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(get_autonomy_status(job_id, session_id), ensure_ascii=False))
 
 
 @app.command("autonomy-advance")
@@ -3899,9 +3894,7 @@ def autonomy_advance_command(job_id: str, session_id: str) -> None:
 
     from .autonomy.service import advance_autonomy
 
-    console.print_json(
-        json.dumps(advance_autonomy(job_id, session_id), ensure_ascii=False)
-    )
+    console.print_json(json.dumps(advance_autonomy(job_id, session_id), ensure_ascii=False))
 
 
 @app.command("autonomy-run")
@@ -3962,20 +3955,12 @@ def autonomy_cancel_command(
 def integrated_quality_run_command(
     job_id: str,
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
-    quality_profile_path: Annotated[
-        str | None, typer.Option("--quality-profile")
-    ] = None,
+    quality_profile_path: Annotated[str | None, typer.Option("--quality-profile")] = None,
     qa_report_path: Annotated[str | None, typer.Option("--qa-report")] = None,
     validation_path: Annotated[str | None, typer.Option("--validation")] = None,
-    material_validation_path: Annotated[
-        str | None, typer.Option("--material-validation")
-    ] = None,
-    material_fidelity_path: Annotated[
-        str | None, typer.Option("--material-fidelity")
-    ] = None,
-    mesh_preflight_path: Annotated[
-        str | None, typer.Option("--mesh-preflight")
-    ] = None,
+    material_validation_path: Annotated[str | None, typer.Option("--material-validation")] = None,
+    material_fidelity_path: Annotated[str | None, typer.Option("--material-fidelity")] = None,
+    mesh_preflight_path: Annotated[str | None, typer.Option("--mesh-preflight")] = None,
     roundtrip_path: Annotated[str | None, typer.Option("--roundtrip")] = None,
 ) -> None:
     """Write an immutable four-axis companion report from explicit existing evidence."""
@@ -4016,21 +4001,15 @@ def production_dispatch_command(
     purpose: Annotated[str, typer.Option("--purpose")],
     job_id: Annotated[str | None, typer.Option("--job-id")] = None,
     mode: Annotated[str, typer.Option("--mode")] = "concept",
-    reference_content_scope: Annotated[
-        str, typer.Option("--content-scope")
-    ] = "full_reference",
+    reference_content_scope: Annotated[str, typer.Option("--content-scope")] = "full_reference",
     target_subject: Annotated[str | None, typer.Option("--subject")] = None,
     execution_policy: Annotated[str, typer.Option("--policy")] = "standard",
-    controller_execution_mode: Annotated[
-        str, typer.Option("--ctrl-mode")
-    ] = "client_mediated",
+    controller_execution_mode: Annotated[str, typer.Option("--ctrl-mode")] = "client_mediated",
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     destination: Annotated[str, typer.Option("--dest-kind")] = "unspecified",
     destination_name: Annotated[str | None, typer.Option("--dest-name")] = None,
     destination_version: Annotated[str | None, typer.Option("--dest-version")] = None,
-    destination_render_pipeline: Annotated[
-        str | None, typer.Option("--dest-pipeline")
-    ] = None,
+    destination_render_pipeline: Annotated[str | None, typer.Option("--dest-pipeline")] = None,
     include_destination_handoff: Annotated[
         bool,
         typer.Option("--handoff/--no-handoff"),
@@ -4041,12 +4020,8 @@ def production_dispatch_command(
         int, typer.Option("--texture-limit", min=16, max=8192)
     ] = 2048,
     max_lod0_triangles: Annotated[int | None, typer.Option("--triangle-limit", min=1)] = None,
-    external_provider_budget: Annotated[
-        int, typer.Option("--provider-limit", min=0, max=100)
-    ] = 0,
-    convergence_mode: Annotated[
-        str, typer.Option("--convergence")
-    ] = "disabled",
+    external_provider_budget: Annotated[int, typer.Option("--provider-limit", min=0, max=100)] = 0,
+    convergence_mode: Annotated[str, typer.Option("--convergence")] = "disabled",
     convergence_target_direct_score: Annotated[
         float | None, typer.Option("--target-direct", min=0.0, max=1.0)
     ] = None,
@@ -4059,9 +4034,7 @@ def production_dispatch_command(
     convergence_minimum_candidate_confidence: Annotated[
         float, typer.Option("--min-confidence", min=0.0, max=1.0)
     ] = 0.8,
-    convergence_max_iterations: Annotated[
-        int, typer.Option("--conv-iters", min=1, max=5)
-    ] = 3,
+    convergence_max_iterations: Annotated[int, typer.Option("--conv-iters", min=1, max=5)] = 3,
 ) -> None:
     """Create a V0.8 workflow and an explicit production-controller bundle."""
 
@@ -4090,9 +4063,7 @@ def production_dispatch_command(
         convergence_target_direct_score=convergence_target_direct_score,
         convergence_target_silhouette_iou=convergence_target_silhouette_iou,
         convergence_minimum_iteration_gain=convergence_minimum_iteration_gain,
-        convergence_minimum_candidate_confidence=(
-            convergence_minimum_candidate_confidence
-        ),
+        convergence_minimum_candidate_confidence=(convergence_minimum_candidate_confidence),
         convergence_max_iterations=convergence_max_iterations,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
@@ -4123,9 +4094,7 @@ def production_bind_task_command(
         external_task_id=external_task_id,
         external_host_id=external_host_id,
         client_tool_policy_enforced=confirm_controller_tool_policy,
-        enforced_controller_tool_profile_sha256=(
-            enforced_controller_tool_profile_sha256
-        ),
+        enforced_controller_tool_profile_sha256=(enforced_controller_tool_profile_sha256),
     )
     console.print_json(binding.model_dump_json())
 

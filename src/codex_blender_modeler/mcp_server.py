@@ -290,6 +290,9 @@ from .orchestration import reconcile_workflow as reconcile_workflow_internal
 from .orchestration import resume_workflow as resume_workflow_internal
 from .orchestration.models import WorkflowBudgets
 from .packaging import (
+    accept_portable_package as accept_portable_package_internal,
+)
+from .packaging import (
     package_asset as package_asset_internal,
 )
 from .packaging import (
@@ -446,9 +449,7 @@ def _require_codex_image_material_loop_opt_in(
     """Require both disabled-profile opt-ins before any material-loop mutation."""
 
     if not enable_v2 or not enable_imagegen:
-        raise PermissionError(
-            "both enable_v2 and enable_imagegen are required for this action"
-        )
+        raise PermissionError("both enable_v2 and enable_imagegen are required for this action")
 
 
 def _contained_material_loop_json_path(job_id: str, supplied_path: str) -> Path:
@@ -549,14 +550,12 @@ def _promote_and_finalize_codex_image_material_internal(
     )
     status = get_material_loop_status(root, session_id)
     bridge_plan = ImageGeneratedMaterialBridgePlan.model_validate(status["bridge_plan"])
-    preview, preview_artifact = (
-        render_material_loop_preview(
-            root,
-            material_phase_receipt=codex_receipt,
-            preview_id=f"material-preview-{session_id}",
-            material_id=bridge_plan.target_material_ids[0],
-            size=preview_size,
-        )
+    preview, preview_artifact = render_material_loop_preview(
+        root,
+        material_phase_receipt=codex_receipt,
+        preview_id=f"material-preview-{session_id}",
+        material_id=bridge_plan.target_material_ids[0],
+        size=preview_size,
     )
     finalized = finalize_material_loop_promotion(
         root,
@@ -1289,9 +1288,7 @@ def plan_aq_one_prompt_skill(
         target_subject=target_subject,
         requested_delivery_profiles=requested_delivery_profiles,
         approval_mode=approval_mode,
-        explicit_autonomy_delegation_observed=(
-            explicit_autonomy_delegation_observed
-        ),
+        explicit_autonomy_delegation_observed=(explicit_autonomy_delegation_observed),
         allowed_provider_scopes=allowed_provider_scopes,
         job_id=job_id,
         controller_execution_mode=controller_execution_mode,
@@ -1711,9 +1708,7 @@ def plan_autonomous_quality(
         target_subject=target_subject,
         job_id=job_id,
         controller_execution_mode=controller_execution_mode,
-        include_destination_handoff_envelope=(
-            include_destination_handoff_envelope
-        ),
+        include_destination_handoff_envelope=(include_destination_handoff_envelope),
     )
 
 
@@ -1853,9 +1848,7 @@ def adopt_codex_imagegen(
         material_strategy=material_strategy,
         direct_channels=direct_channels,
         exact_text_evidence_path=(
-            None
-            if exact_text_evidence_path is None
-            else Path(exact_text_evidence_path)
+            None if exact_text_evidence_path is None else Path(exact_text_evidence_path)
         ),
     )
 
@@ -2058,16 +2051,10 @@ def normalize_codex_imagegen_native_output(
             native_output_id=str(native_output_id),
             ordinal=ordinal,
             output_role=output_role,  # type: ignore[arg-type]
-            receipt_contract_id=(
-                receipt_contract_id or f"{native_output_id}-native-adoption"
-            ),
+            receipt_contract_id=(receipt_contract_id or f"{native_output_id}-native-adoption"),
         )
     if action == "prepare":
-        if (
-            session_id is None
-            or adoption_receipt_path is None
-            or normalization_plan_path is None
-        ):
+        if session_id is None or adoption_receipt_path is None or normalization_plan_path is None:
             raise ValueError("native preparation requires session, adoption, and plan")
         return prepare_native_output_internal(
             job_id=job_id,
@@ -2219,9 +2206,7 @@ def plan_aq_approval_envelope(
         session_id,
         approval_mode=approval_mode,  # type: ignore[arg-type]
         initial_user_request_sha256=initial_user_request_sha256,
-        explicit_autonomy_delegation_observed=(
-            explicit_autonomy_delegation_observed
-        ),
+        explicit_autonomy_delegation_observed=(explicit_autonomy_delegation_observed),
         allowed_provider_scopes=allowed_provider_scopes,  # type: ignore[arg-type]
         max_identity_splits=max_identity_splits,
         allow_disabled_experimental=experimental_opt_in,
@@ -2317,9 +2302,7 @@ def plan_autonomy_v2_one_prompt(
         target_subject=target_subject,
         requested_delivery_profiles=requested_delivery_profiles,
         approval_mode=approval_mode,  # type: ignore[arg-type]
-        explicit_autonomy_delegation_observed=(
-            explicit_autonomy_delegation_observed
-        ),
+        explicit_autonomy_delegation_observed=(explicit_autonomy_delegation_observed),
         allowed_provider_scopes=allowed_provider_scopes,  # type: ignore[arg-type]
         job_id=job_id,
         controller_execution_mode=controller_execution_mode,
@@ -2414,9 +2397,7 @@ def bind_autonomy_controller(
         session_id,
         external_task_id=external_task_id,
         external_host_id=external_host_id,
-        enforced_controller_tool_profile_sha256=(
-            enforced_controller_tool_profile_sha256
-        ),
+        enforced_controller_tool_profile_sha256=(enforced_controller_tool_profile_sha256),
     )
 
 
@@ -2626,9 +2607,7 @@ def create_asset_production_dispatch(
         convergence_target_direct_score=convergence_target_direct_score,
         convergence_target_silhouette_iou=convergence_target_silhouette_iou,
         convergence_minimum_iteration_gain=convergence_minimum_iteration_gain,
-        convergence_minimum_candidate_confidence=(
-            convergence_minimum_candidate_confidence
-        ),
+        convergence_minimum_candidate_confidence=(convergence_minimum_candidate_confidence),
         convergence_max_iterations=convergence_max_iterations,
     )
 
@@ -2652,9 +2631,7 @@ def bind_asset_production_task(
         external_task_id=external_task_id,
         external_host_id=external_host_id,
         client_tool_policy_enforced=client_tool_policy_enforced,
-        enforced_controller_tool_profile_sha256=(
-            enforced_controller_tool_profile_sha256
-        ),
+        enforced_controller_tool_profile_sha256=(enforced_controller_tool_profile_sha256),
     ).model_dump(mode="json")
 
 
@@ -3883,6 +3860,8 @@ def build_portable_package(
     package_id: str | None = None,
     material_conversion_id: str | None = None,
     include_colliders: bool = True,
+    content_mode: str = "full_evidence",
+    primary_asset_stem: str | None = None,
 ) -> dict:
     """Build one immutable engine-neutral package from a complete optimization run."""
 
@@ -3893,6 +3872,8 @@ def build_portable_package(
         package_id=package_id,
         material_conversion_id=material_conversion_id,
         include_colliders=include_colliders,
+        content_mode=content_mode,  # type: ignore[arg-type]
+        primary_asset_stem=primary_asset_stem,
     ).model_dump(mode="json")
 
 
@@ -3941,6 +3922,27 @@ def validate_portable_package(
         package_id,
         profile_id=profile_id,
         bounds_tolerance_m=bounds_tolerance_m,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def accept_portable_package(
+    job_id: str,
+    package_id: str,
+    package_manifest_sha256: str,
+    clean_import_sha256: str,
+    approval_note: str,
+    profile_id: str = "portable_gltf",
+) -> dict:
+    """Consume one exact user approval for a passed immutable portable package."""
+
+    return accept_portable_package_internal(
+        job_id,
+        package_id,
+        profile_id=profile_id,
+        package_manifest_sha256=package_manifest_sha256,
+        roundtrip_validation_sha256=clean_import_sha256,
+        approval_note=approval_note,
     ).model_dump(mode="json")
 
 

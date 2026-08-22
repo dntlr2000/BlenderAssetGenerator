@@ -1,0 +1,131 @@
+{
+  "additionalProperties": false,
+  "description": "Bind one lean static payload to its verified V0.7 source evidence by hash.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "kind": {
+      "const": "static_payload_provenance",
+      "default": "static_payload_provenance",
+      "title": "Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "profile_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Sha256",
+      "type": "string"
+    },
+    "optimization_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Optimization Plan Sha256",
+      "type": "string"
+    },
+    "material_conversion_id": {
+      "anyOf": [
+        {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Material Conversion Id"
+    },
+    "material_conversion_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Material Conversion Sha256"
+    },
+    "export_evidence_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Export Evidence Sha256",
+      "type": "string"
+    },
+    "texture_pack_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Texture Pack Sha256",
+      "type": "string"
+    },
+    "clean_import_evidence_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Clean Import Evidence Sha256",
+      "type": "string"
+    },
+    "primary_asset": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Primary Asset",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "profile_id",
+    "source_fingerprint",
+    "build_fingerprint",
+    "profile_sha256",
+    "optimization_plan_sha256",
+    "export_evidence_sha256",
+    "texture_pack_sha256",
+    "clean_import_evidence_sha256",
+    "primary_asset",
+    "created_at"
+  ],
+  "title": "StaticPayloadProvenance",
+  "type": "object"
+}

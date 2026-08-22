@@ -282,8 +282,36 @@
     "source": {
       "$ref": "#/$defs/SourceProvenance"
     },
+    "content_mode": {
+      "default": "full_evidence",
+      "enum": [
+        "full_evidence",
+        "static_payload"
+      ],
+      "title": "Content Mode",
+      "type": "string"
+    },
     "optimization_plan": {
-      "$ref": "#/$defs/HashedArtifact"
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "package_provenance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "material_conversion": {
       "anyOf": [
@@ -420,7 +448,6 @@
     "run_id",
     "profile_id",
     "source",
-    "optimization_plan",
     "package_root",
     "created_at"
   ],

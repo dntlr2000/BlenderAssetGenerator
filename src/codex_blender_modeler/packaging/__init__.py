@@ -11,12 +11,19 @@ from .models import (
     ExportPackageManifest,
     PackageFile,
     PackedTexture,
+    PortablePackageAcceptance,
     RoundTripCheck,
     RoundTripValidation,
+    StaticPayloadProvenance,
     TextureChannelMapping,
     TexturePackManifest,
 )
-from .service import package_asset, profile_id_to_format, validate_asset_package
+from .service import (
+    accept_portable_package,
+    package_asset,
+    profile_id_to_format,
+    validate_asset_package,
+)
 from .texture_packing import (
     PORTABLE_PBR_CHANNELS,
     RAW_CHANNEL_COLOR_SPACES,
@@ -32,14 +39,17 @@ __all__ = [
     "PackageFile",
     "PORTABLE_PBR_CHANNELS",
     "PackedTexture",
+    "PortablePackageAcceptance",
     "RAW_CHANNEL_COLOR_SPACES",
     "RoundTripCheck",
     "RoundTripValidation",
+    "StaticPayloadProvenance",
     "TextureChannelMapping",
     "TexturePackManifest",
     "TexturePackingError",
     "TexturePackingResult",
     "build_portable_texture_package",
+    "accept_portable_package",
     "convert_portable_materials",
     "load_portable_material_conversion",
     "material_conversion_directory",

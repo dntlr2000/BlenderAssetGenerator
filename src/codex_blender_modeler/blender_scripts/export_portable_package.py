@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import shutil
 import struct
 import sys
@@ -33,6 +34,13 @@ PORTABLE_OBJECT_PROPERTIES = frozenset(
         "cbm_collider_strategy",
     }
 )
+STATIC_PAYLOAD_OBJECT_PROPERTIES = frozenset(
+    {
+        "cbm_id",
+        "cbm_instance_index",
+        "cbm_asset_role",
+    }
+)
 PORTABLE_MATERIAL_PROPERTIES = frozenset({"cbm_id"})
 PORTABLE_ATLAS_UV_DEFAULT = "CBMPortableAtlas"
 LIGHTMAP_UV_DEFAULT = "LightmapUV"
@@ -48,6 +56,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--manifest", required=True)
     parser.add_argument("--package-root")
     parser.add_argument("--include-colliders", action="store_true")
+    parser.add_argument("--static-payload", action="store_true")
+    parser.add_argument("--asset-name")
     parser.add_argument("--expected-plan-sha256")
     parser.add_argument("--expected-material-conversion-plan-sha256")
     parser.add_argument("--expected-input-blend-sha256", required=True)
@@ -74,18 +84,11 @@ def verify_derived_scene(
     source_fingerprint = scene.get("cbm_portable_source_build_fingerprint")
     if not source_fingerprint:
         raise RuntimeError("Optimized scene has no embedded canonical build fingerprint")
-    conversion_plan_sha256 = str(
-        scene.get("cbm_portable_material_conversion_plan_sha256", "")
-    )
+    conversion_plan_sha256 = str(scene.get("cbm_portable_material_conversion_plan_sha256", ""))
     if expected_material_conversion_plan_sha256:
         if not conversion_plan_sha256:
-            raise RuntimeError(
-                "Portable scene has no embedded material-conversion-plan hash"
-            )
-        if (
-            expected_material_conversion_plan_sha256.lower()
-            != conversion_plan_sha256.lower()
-        ):
+            raise RuntimeError("Portable scene has no embedded material-conversion-plan hash")
+        if expected_material_conversion_plan_sha256.lower() != conversion_plan_sha256.lower():
             raise RuntimeError(
                 "Requested material-conversion-plan hash does not match portable scene"
             )
@@ -93,9 +96,7 @@ def verify_derived_scene(
         "plan_sha256": plan_sha256,
         "material_conversion_plan_sha256": conversion_plan_sha256 or None,
         "source_build_fingerprint": str(source_fingerprint),
-        "source_scene_spec_sha256": scene.get(
-            "cbm_portable_source_scene_spec_sha256"
-        ),
+        "source_scene_spec_sha256": scene.get("cbm_portable_source_scene_spec_sha256"),
         "source_kind": scene.get("cbm_portable_source_kind") or "scene_spec",
         "source_external_manifest_sha256": scene.get(
             "cbm_portable_source_external_manifest_sha256"
@@ -108,17 +109,9 @@ def object_source_tags(source: bpy.types.Object) -> set[str]:
 
     raw_tags = source.get("cbm_tags", "")
     if isinstance(raw_tags, str):
-        return {
-            item.strip().casefold()
-            for item in raw_tags.split(",")
-            if item.strip()
-        }
+        return {item.strip().casefold() for item in raw_tags.split(",") if item.strip()}
     if isinstance(raw_tags, (list, tuple)):
-        return {
-            str(item).strip().casefold()
-            for item in raw_tags
-            if str(item).strip()
-        }
+        return {str(item).strip().casefold() for item in raw_tags if str(item).strip()}
     return set()
 
 
@@ -137,10 +130,7 @@ def select_portable_objects(include_colliders: bool) -> list[bpy.types.Object]:
             NON_RENDER_BOOLEAN_TAG in object_source_tags(obj)
             or (
                 str(obj.get("cbm_asset_role", "")) in {"render", "lod"}
-                and (
-                    bool(obj.hide_render)
-                    or bool(obj.get("cbm_source_hide_render", False))
-                )
+                and (bool(obj.hide_render) or bool(obj.get("cbm_source_hide_render", False)))
             )
         )
     )
@@ -163,6 +153,39 @@ def select_portable_objects(include_colliders: bool) -> list[bpy.types.Object]:
     return selected
 
 
+def normalize_static_payload_objects(
+    selected: list[bpy.types.Object],
+    asset_name: str,
+) -> None:
+    """Remove disabled-feature identity and assign deterministic consumer-facing names."""
+
+    if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{0,63}", asset_name):
+        raise ValueError("Static payload asset name must be one safe lowercase job ID")
+    invalid = [
+        obj.name
+        for obj in selected
+        if str(obj.get("cbm_asset_role", "")) != "render"
+        or obj.get("cbm_lod_level") not in {None, 0}
+        or obj.get("cbm_collider_strategy") not in {None, "", "none"}
+    ]
+    if invalid:
+        raise RuntimeError(
+            "Static payload mode requires only base render objects without physics "
+            f"proxies: {sorted(invalid)}"
+        )
+    width = max(4, len(str(len(selected))))
+    for index, obj in enumerate(selected, start=1):
+        target_name = asset_name if len(selected) == 1 else f"{asset_name}_{index:0{width}d}"
+        obj.name = target_name
+        if obj.name != target_name:
+            raise RuntimeError(f"Static payload object name is not unique: {target_name!r}")
+        if obj.type == "MESH" and obj.data is not None:
+            obj.data.name = f"{target_name}_mesh"
+        for key in ("cbm_lod_level", "cbm_collider_strategy"):
+            if key in obj:
+                del obj[key]
+
+
 def _uv_layer_snapshots(mesh: bpy.types.Mesh) -> list[dict[str, Any]]:
     """Copy UV names, flags, and per-loop coordinates before collection reordering."""
 
@@ -172,9 +195,7 @@ def _uv_layer_snapshots(mesh: bpy.types.Mesh) -> list[dict[str, Any]]:
             {
                 "name": str(layer.name),
                 "active_render": bool(layer.active_render),
-                "coordinates": [
-                    (float(loop.uv.x), float(loop.uv.y)) for loop in layer.data
-                ],
+                "coordinates": [(float(loop.uv.x), float(loop.uv.y)) for loop in layer.data],
             }
         )
     return snapshots
@@ -222,9 +243,7 @@ def _verify_portable_tangent_basis(
             if not all(value == value and abs(value) != float("inf") for value in (*values, sign)):
                 invalid += 1
         if invalid:
-            raise RuntimeError(
-                f"{obj.name!r} has {invalid} invalid tangent loops on {uv_set!r}"
-            )
+            raise RuntimeError(f"{obj.name!r} has {invalid} invalid tangent loops on {uv_set!r}")
     finally:
         freer = getattr(mesh, "free_tangents", None)
         if freer is not None:
@@ -236,6 +255,7 @@ def normalize_portable_uv_bindings(
     *,
     material_conversion_plan_sha256: str | None,
     export_format: str,
+    static_payload: bool = False,
 ) -> dict[str, Any]:
     """Promote the portable atlas to UV0 for FBX or glTF material interchange."""
 
@@ -247,9 +267,7 @@ def normalize_portable_uv_bindings(
             "reason": "format_has_no_portable_uv0_contract",
         }
     atlas_uv_set = str(
-        bpy.context.scene.get(
-            "cbm_portable_material_atlas_uv", PORTABLE_ATLAS_UV_DEFAULT
-        )
+        bpy.context.scene.get("cbm_portable_material_atlas_uv", PORTABLE_ATLAS_UV_DEFAULT)
     )
     if not atlas_uv_set:
         raise RuntimeError("Portable material conversion did not declare an atlas UV set")
@@ -264,21 +282,16 @@ def normalize_portable_uv_bindings(
             snapshots = _uv_layer_snapshots(mesh)
             by_name = {str(item["name"]): item for item in snapshots}
             if atlas_uv_set not in by_name:
-                raise RuntimeError(
-                    f"{obj.name!r} is missing portable atlas UV {atlas_uv_set!r}"
-                )
+                raise RuntimeError(f"{obj.name!r} is missing portable atlas UV {atlas_uv_set!r}")
             ordered_names = [atlas_uv_set]
             if LIGHTMAP_UV_DEFAULT in by_name:
                 ordered_names.append(LIGHTMAP_UV_DEFAULT)
-            ordered_names.extend(
-                name for name in by_name if name not in set(ordered_names)
-            )
+            ordered_names.extend(name for name in by_name if name not in set(ordered_names))
             _replace_uv_layers(mesh, [by_name[name] for name in ordered_names])
             actual_names = [str(layer.name) for layer in mesh.uv_layers]
             if actual_names != ordered_names or not mesh.uv_layers[0].active_render:
                 raise RuntimeError(
-                    f"Portable UV ordering verification failed for {obj.name!r}: "
-                    f"{actual_names}"
+                    f"Portable UV ordering verification failed for {obj.name!r}: {actual_names}"
                 )
             mesh_records[mesh_key] = {
                 "uv_layers": actual_names,
@@ -294,9 +307,7 @@ def normalize_portable_uv_bindings(
                 "object_name": str(obj.name),
                 "semantic_id": str(obj.get("cbm_id", "")),
                 "asset_role": str(obj.get("cbm_asset_role", "")),
-                "material_ids": list(
-                    object_inventory(obj, include_topology=False)["material_ids"]
-                ),
+                "material_ids": list(object_inventory(obj, include_topology=False)["material_ids"]),
                 "required_uv_set": atlas_uv_set,
                 "required_uv_channel_index": 0,
                 "tangent_uv_set": atlas_uv_set,
@@ -316,7 +327,7 @@ def normalize_portable_uv_bindings(
         "status": "verified",
         "export_format": export_format,
         "verification_basis": "blender_uv0_and_tangent_preflight",
-        "scope": "all_render_and_lod_objects",
+        "scope": ("all_render_objects" if static_payload else "all_render_and_lod_objects"),
         "required_uv_set": atlas_uv_set,
         "required_uv_channel_index": 0,
         "destination_semantic": "TEXCOORD_0",
@@ -380,9 +391,7 @@ def _material_texture_bindings(material: dict[str, Any]) -> list[dict[str, Any]]
                 raise RuntimeError("Exported glTF TextureInfo is not an object")
             texture_index = value.get("index")
             if type(texture_index) is not int:
-                raise RuntimeError(
-                    "Exported glTF TextureInfo has no exact integer texture index"
-                )
+                raise RuntimeError("Exported glTF TextureInfo has no exact integer texture index")
             extensions = value.get("extensions", {})
             if not isinstance(extensions, dict):
                 raise RuntimeError("Exported glTF TextureInfo extensions are malformed")
@@ -390,14 +399,10 @@ def _material_texture_bindings(material: dict[str, Any]) -> list[dict[str, Any]]
             if not isinstance(transform, dict):
                 raise RuntimeError("Exported glTF texture-transform extension is malformed")
             tex_coord = (
-                transform.get("texCoord")
-                if "texCoord" in transform
-                else value.get("texCoord", 0)
+                transform.get("texCoord") if "texCoord" in transform else value.get("texCoord", 0)
             )
             if type(tex_coord) is not int:
-                raise RuntimeError(
-                    "Exported glTF TextureInfo has no exact integer texCoord"
-                )
+                raise RuntimeError("Exported glTF TextureInfo has no exact integer texCoord")
             bindings.append(
                 {
                     "slot": ".".join(path),
@@ -480,8 +485,7 @@ def verify_gltf_texture_coordinate_binding(
                 raise RuntimeError("Exported glTF material references an invalid texture index")
             if tex_coord != 0:
                 raise RuntimeError(
-                    "Exported glTF portable material does not bind every texture to "
-                    "TEXCOORD_0"
+                    "Exported glTF portable material does not bind every texture to TEXCOORD_0"
                 )
             records.append(
                 {
@@ -536,9 +540,7 @@ def verify_gltf_texture_coordinate_binding(
     if not primitive_records:
         raise RuntimeError("Exported glTF has no textured mesh primitive")
     if referenced_materials != expected_material_indices:
-        raise RuntimeError(
-            "Exported glTF leaves one or more portable materials unreferenced"
-        )
+        raise RuntimeError("Exported glTF leaves one or more portable materials unreferenced")
     verified = copy.deepcopy(contract)
     verified.update(
         {
@@ -568,6 +570,8 @@ def _retain_custom_properties(owner: Any, allowed: frozenset[str]) -> int:
 
 def sanitize_export_custom_properties(
     selected: list[bpy.types.Object],
+    *,
+    allowed_object_properties: frozenset[str] = PORTABLE_OBJECT_PROPERTIES,
 ) -> dict[str, int]:
     """Strip path-bearing authoring metadata while retaining portable identity fields."""
 
@@ -579,9 +583,7 @@ def sanitize_export_custom_properties(
     materials: set[bpy.types.Material] = set()
     meshes: set[bpy.types.Mesh] = set()
     for obj in selected:
-        counts["object"] += _retain_custom_properties(
-            obj, PORTABLE_OBJECT_PROPERTIES
-        )
+        counts["object"] += _retain_custom_properties(obj, allowed_object_properties)
         if obj.type == "MESH" and obj.data is not None:
             meshes.add(obj.data)
         for slot in obj.material_slots:
@@ -590,9 +592,7 @@ def sanitize_export_custom_properties(
     for mesh in meshes:
         counts["mesh"] += _retain_custom_properties(mesh, frozenset())
     for material in materials:
-        counts["material"] += _retain_custom_properties(
-            material, PORTABLE_MATERIAL_PROPERTIES
-        )
+        counts["material"] += _retain_custom_properties(material, PORTABLE_MATERIAL_PROPERTIES)
     return counts
 
 
@@ -638,9 +638,7 @@ def selected_image_dependencies(selected: list[bpy.types.Object]) -> list[Path]:
                 image = getattr(node, "image", None)
                 if image is None or image.packed_file is not None or not image.filepath:
                     continue
-                source = Path(
-                    bpy.path.abspath(image.filepath, library=image.library)
-                ).resolve()
+                source = Path(bpy.path.abspath(image.filepath, library=image.library)).resolve()
                 if not source.is_file():
                     raise FileNotFoundError(
                         f"Selected material image dependency is missing: {source}"
@@ -712,9 +710,7 @@ def sanitize_fbx_absolute_paths(path: Path, absolute_paths: list[Path]) -> int:
         occurrences = data.count(original)
         if not occurrences:
             continue
-        data = bytearray(
-            data.replace(original, _same_length_relative_path(original))
-        )
+        data = bytearray(data.replace(original, _same_length_relative_path(original)))
         rewritten += occurrences
     leftovers = [value for value in encoded_paths if value in data]
     if leftovers:
@@ -725,11 +721,17 @@ def sanitize_fbx_absolute_paths(path: Path, absolute_paths: list[Path]) -> int:
 
 
 def export_object_inventory(
-    obj: bpy.types.Object, format_name: str
+    obj: bpy.types.Object,
+    format_name: str,
+    *,
+    static_payload: bool = False,
 ) -> dict[str, Any]:
     """Describe only the topology and identity semantics serialized by one format."""
 
     record = object_inventory(obj)
+    if static_payload:
+        record.pop("lod_level", None)
+        record.pop("collider_strategy", None)
     if format_name != "obj" or obj.type != "MESH":
         return record
     topology = record.get("topology")
@@ -777,9 +779,7 @@ def normalize_gltf_serialization_topology(
         mesh.calc_loop_triangles()
         polygons_before = len(mesh.polygons)
         triangles_before = len(mesh.loop_triangles)
-        non_tri_faces_before = sum(
-            1 for polygon in mesh.polygons if len(polygon.vertices) != 3
-        )
+        non_tri_faces_before = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
         if non_tri_faces_before:
             editable = bmesh.new()
             try:
@@ -798,13 +798,9 @@ def normalize_gltf_serialization_topology(
         mesh.calc_loop_triangles()
         polygons_after = len(mesh.polygons)
         triangles_after = len(mesh.loop_triangles)
-        remaining_non_tri_faces = sum(
-            1 for polygon in mesh.polygons if len(polygon.vertices) != 3
-        )
+        remaining_non_tri_faces = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
         if remaining_non_tri_faces:
-            raise RuntimeError(
-                f"glTF serialization mesh remains non-triangular: {obj.name}"
-            )
+            raise RuntimeError(f"glTF serialization mesh remains non-triangular: {obj.name}")
         if triangles_after != triangles_before or polygons_after != triangles_after:
             raise RuntimeError(
                 f"glTF serialization triangulation changed triangle identity: {obj.name}"
@@ -826,18 +822,10 @@ def normalize_gltf_serialization_topology(
         "policy": "in_memory_pre_evidence_triangulation",
         "object_count": len(mesh_objects),
         "unique_mesh_count": len(records),
-        "triangulated_mesh_count": sum(
-            1 for record in records if record["non_tri_faces_before"]
-        ),
-        "non_tri_face_count_before": sum(
-            int(record["non_tri_faces_before"]) for record in records
-        ),
-        "triangle_count_before": sum(
-            int(record["triangles_before"]) for record in records
-        ),
-        "triangle_count_after": sum(
-            int(record["triangles_after"]) for record in records
-        ),
+        "triangulated_mesh_count": sum(1 for record in records if record["non_tri_faces_before"]),
+        "non_tri_face_count_before": sum(int(record["non_tri_faces_before"]) for record in records),
+        "triangle_count_before": sum(int(record["triangles_before"]) for record in records),
+        "triangle_count_after": sum(int(record["triangles_after"]) for record in records),
         "records": records,
     }
 
@@ -961,9 +949,7 @@ def format_warnings(format_name: str) -> list[str]:
 
     warnings: list[str] = []
     if format_name == "obj":
-        warnings.append(
-            "OBJ cannot preserve CBM custom semantic properties during round-trip."
-        )
+        warnings.append("OBJ cannot preserve CBM custom semantic properties during round-trip.")
         warnings.append(
             "OBJ preserves only the active render UV set; additional derived UV layers "
             "remain available only in the optimized Blender scene."
@@ -997,11 +983,7 @@ def main() -> None:
     args = parse_args()
     output = Path(args.output).expanduser().resolve()
     manifest_path = Path(args.manifest).expanduser().resolve()
-    root = (
-        Path(args.package_root).expanduser().resolve()
-        if args.package_root
-        else output.parent
-    )
+    root = Path(args.package_root).expanduser().resolve() if args.package_root else output.parent
     root.mkdir(parents=True, exist_ok=True)
     portable_path(output, root)
     portable_path(manifest_path, root)
@@ -1009,6 +991,12 @@ def main() -> None:
         raise FileExistsError(f"Portable export already exists: {output}")
     if manifest_path.exists() and not args.overwrite:
         raise FileExistsError(f"Package manifest already exists: {manifest_path}")
+    if args.static_payload and not args.asset_name:
+        raise ValueError("Static payload export requires --asset-name")
+    if args.asset_name and not args.static_payload:
+        raise ValueError("--asset-name is valid only with --static-payload")
+    if args.static_payload and args.include_colliders:
+        raise ValueError("Static payload export cannot include physics proxies")
 
     source_provenance = scene_source_provenance(bpy.context.scene)
     input_blend = Path(bpy.data.filepath).resolve()
@@ -1020,13 +1008,14 @@ def main() -> None:
         args.expected_material_conversion_plan_sha256,
     )
     selected = select_portable_objects(args.include_colliders)
+    if args.static_payload:
+        normalize_static_payload_objects(selected, str(args.asset_name))
     uv_binding_contract = (
         normalize_portable_uv_bindings(
             selected,
-            material_conversion_plan_sha256=derivative.get(
-                "material_conversion_plan_sha256"
-            ),
+            material_conversion_plan_sha256=derivative.get("material_conversion_plan_sha256"),
             export_format=args.format,
+            static_payload=bool(args.static_payload),
         )
         if args.format in {"fbx", "glb", "gltf"}
         else {
@@ -1034,10 +1023,14 @@ def main() -> None:
             "reason": "format_has_no_portable_uv0_contract",
         }
     )
-    serialization_topology = normalize_gltf_serialization_topology(
-        selected, args.format
+    serialization_topology = normalize_gltf_serialization_topology(selected, args.format)
+    allowed_object_properties = (
+        STATIC_PAYLOAD_OBJECT_PROPERTIES if args.static_payload else PORTABLE_OBJECT_PROPERTIES
     )
-    sanitization = sanitize_export_custom_properties(selected)
+    sanitization = sanitize_export_custom_properties(
+        selected,
+        allowed_object_properties=allowed_object_properties,
+    )
     if args.format == "obj":
         normalize_obj_material_names(selected)
     before = {path.resolve() for path in root.rglob("*") if path.is_file()}
@@ -1084,7 +1077,7 @@ def main() -> None:
         "format": args.format,
         "operator": operator,
         "primary_file": portable_path(output, root),
-        "include_colliders": bool(args.include_colliders),
+        "content_mode": ("static_payload" if args.static_payload else "full_evidence"),
         "source": {
             **source_provenance,
             **derivative,
@@ -1092,8 +1085,12 @@ def main() -> None:
         },
         "runtime": {"blender_version": bpy.app.version_string},
         "custom_property_sanitization": {
-            "policy": "portable_identity_whitelist",
-            "allowed_object_properties": sorted(PORTABLE_OBJECT_PROPERTIES),
+            "policy": (
+                "static_identity_whitelist"
+                if args.static_payload
+                else "portable_identity_whitelist"
+            ),
+            "allowed_object_properties": sorted(allowed_object_properties),
             "allowed_material_properties": sorted(PORTABLE_MATERIAL_PROPERTIES),
             "removed_property_counts": sanitization,
         },
@@ -1103,22 +1100,27 @@ def main() -> None:
         "coordinate_contract": coordinate_contract(args.format),
         "uv_binding_contract": uv_binding_contract,
         "serialization_topology": serialization_topology,
-        "objects": [export_object_inventory(obj, args.format) for obj in selected],
-        "semantic_ids": sorted(
-            {str(obj.get("cbm_id")) for obj in selected if obj.get("cbm_id")}
-        ),
+        "objects": [
+            export_object_inventory(
+                obj,
+                args.format,
+                static_payload=bool(args.static_payload),
+            )
+            for obj in selected
+        ],
+        "semantic_ids": sorted({str(obj.get("cbm_id")) for obj in selected if obj.get("cbm_id")}),
         "material_ids": sorted(
             {
                 material_id
                 for obj in selected
-                for material_id in object_inventory(obj, include_topology=False)[
-                    "material_ids"
-                ]
+                for material_id in object_inventory(obj, include_topology=False)["material_ids"]
             }
         ),
         "files": files,
         "warnings": format_warnings(args.format),
     }
+    if not args.static_payload:
+        manifest["include_colliders"] = bool(args.include_colliders)
     write_json(manifest_path, manifest)
     print(
         "CBM_ASSET_PACKAGE_OK "

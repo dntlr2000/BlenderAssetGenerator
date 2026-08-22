@@ -138,6 +138,8 @@ Use this separate V0.6 path only when an approved InteriorScope already contains
 15. Accept only when dependency checks pass, bounds remain within tolerance, and semantic/material coverage matches the profile's declared capabilities.
 16. Generate the `export` PDF scope alongside—not instead of—the profile, review plan, review, approval, preflight, cost, optimization, package, and round-trip JSON evidence.
 17. Defer engine-specific import settings, prefab/actor creation, material reconstruction, and runtime shader conversion until the destination engine is explicitly chosen.
+18. When an exact delivery scope forbids disabled-feature metadata as well as generated geometry, use the opt-in `static_payload` content mode only after the profile proves those features disabled. Keep full receipts outside the package under their existing immutable run paths, include the hash-only provenance bridge, embedded staging clean-import evidence, and checksum sidecar, then still run the normal fresh post-publication round trip.
+19. If immutable technical recovery produces a fresh package outside the original workflow package path, never repoint or reuse the stale final gate. Consume exact user approval through `asset-package-accept` using both the package-manifest and post-publication round-trip SHA-256 values; preserve the single-use receipt under the owning optimization run and leave the package and destination project unchanged.
 
 ## Human-readable PDF reporting workflow
 

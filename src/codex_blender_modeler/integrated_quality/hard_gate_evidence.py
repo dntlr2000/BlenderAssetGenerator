@@ -799,7 +799,8 @@ def _package_checks(
         return failed, failed
     nested_artifacts = [
         *package.source.artifacts(),
-        package.optimization_plan,
+        *([package.optimization_plan] if package.optimization_plan is not None else []),
+        *([package.package_provenance] if package.package_provenance is not None else []),
         *([package.material_conversion] if package.material_conversion is not None else []),
         *package.source_manifests,
     ]
@@ -1118,8 +1119,7 @@ def apply_hard_gate_results(
                 f"{item.gate_id}: {item.message}" for item in gates if item.blocking
             ],
             "reentry": [
-                current_reentry[key].model_dump(mode="python")
-                for key in sorted(current_reentry)
+                current_reentry[key].model_dump(mode="python") for key in sorted(current_reentry)
             ],
         }
     )

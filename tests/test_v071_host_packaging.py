@@ -18,7 +18,11 @@ from codex_blender_modeler.optimization.models import (
     SourceProvenance,
 )
 from codex_blender_modeler.packaging import material_conversion as conversion_service
-from codex_blender_modeler.packaging.models import ExportPackageManifest, PackageFile
+from codex_blender_modeler.packaging.models import (
+    ExportPackageManifest,
+    PackageFile,
+    StaticPayloadProvenance,
+)
 from codex_blender_modeler.workspace import sha256_file
 
 NOW = datetime(2026, 7, 17, 12, 0, tzinfo=UTC)
@@ -32,6 +36,170 @@ def test_fbx_package_uses_model_filename_without_changing_other_formats() -> Non
     assert packaging_service._primary_asset_filename("fbx") == "model.fbx"
     assert packaging_service._primary_asset_filename("glb") == "asset.glb"
     assert packaging_service._primary_asset_filename("obj") == "asset.obj"
+    assert (
+        packaging_service._primary_asset_filename("glb", "collectible_cloth_01")
+        == "collectible_cloth_01.glb"
+    )
+
+
+def test_static_payload_contract_uses_hash_only_provenance_and_exact_asset_name() -> None:
+    """Allow a lean static payload only with checksums, clean import, and job naming."""
+
+    package_root = "exports/packages/portable_gltf/static-package"
+    provenance_path = f"{package_root}/metadata/package_provenance.json"
+    primary_path = f"{package_root}/portable_asset.glb"
+    common = {
+        "sha256": "9" * 64,
+        "byte_size": 128,
+        "media_type": "application/json",
+    }
+    package = ExportPackageManifest(
+        package_id="static-package",
+        job_id="portable_asset",
+        run_id="run-001",
+        profile_id="portable_gltf",
+        source=_source(),
+        content_mode="static_payload",
+        package_provenance=_artifact(
+            "static-provenance",
+            "other",
+            provenance_path,
+            "9" * 64,
+        ),
+        status="complete",
+        package_root=package_root,
+        files=[
+            PackageFile(
+                id="primary-glb",
+                kind="primary_asset",
+                path=primary_path,
+                sha256="7" * 64,
+                byte_size=4096,
+                media_type="model/gltf-binary",
+            ),
+            PackageFile(
+                id="static-provenance-file",
+                kind="metadata",
+                path=provenance_path,
+                **common,
+            ),
+            PackageFile(
+                id="clean-import-file",
+                kind="metadata",
+                path=f"{package_root}/clean_import/roundtrip_evidence.json",
+                **common,
+            ),
+            PackageFile(
+                id="checksum-file",
+                kind="other",
+                path=f"{package_root}/checksums.sha256",
+                sha256="8" * 64,
+                byte_size=64,
+                media_type="text/plain",
+            ),
+        ],
+        primary_file_id="primary-glb",
+        semantic_ids=["asset.body"],
+        material_ids=["mat.body"],
+        created_at=NOW,
+        completed_at=NOW,
+    )
+    assert package.optimization_plan is None
+    assert package.material_conversion is None
+    assert package.content_mode == "static_payload"
+
+    provenance = StaticPayloadProvenance(
+        job_id="portable_asset",
+        run_id="run-001",
+        profile_id="portable_gltf",
+        source_fingerprint="1" * 64,
+        build_fingerprint="2" * 64,
+        profile_sha256="3" * 64,
+        optimization_plan_sha256="4" * 64,
+        material_conversion_id="conversion-001",
+        material_conversion_sha256="5" * 64,
+        export_evidence_sha256="6" * 64,
+        texture_pack_sha256="7" * 64,
+        clean_import_evidence_sha256="8" * 64,
+        primary_asset="portable_asset.glb",
+        created_at=NOW,
+    )
+    assert provenance.primary_asset == "portable_asset.glb"
+
+
+def test_static_payload_contract_rejects_legacy_name_or_disabled_feature_receipt() -> None:
+    """Fail closed when a lean payload reintroduces generic naming or feature metadata."""
+
+    package_root = "exports/packages/portable_gltf/static-package"
+    base = {
+        "package_id": "static-package",
+        "job_id": "portable_asset",
+        "run_id": "run-001",
+        "profile_id": "portable_gltf",
+        "source": _source(),
+        "content_mode": "static_payload",
+        "package_provenance": _artifact(
+            "static-provenance",
+            "other",
+            f"{package_root}/metadata/package_provenance.json",
+        ),
+        "status": "complete",
+        "package_root": package_root,
+        "files": [
+            PackageFile(
+                id="primary-glb",
+                kind="primary_asset",
+                path=f"{package_root}/asset.glb",
+                sha256="7" * 64,
+                byte_size=4096,
+                media_type="model/gltf-binary",
+            ),
+            PackageFile(
+                id="static-provenance-file",
+                kind="metadata",
+                path=f"{package_root}/metadata/package_provenance.json",
+                sha256="8" * 64,
+                byte_size=128,
+                media_type="application/json",
+            ),
+            PackageFile(
+                id="clean-import-file",
+                kind="metadata",
+                path=f"{package_root}/clean_import/roundtrip_evidence.json",
+                sha256="9" * 64,
+                byte_size=128,
+                media_type="application/json",
+            ),
+            PackageFile(
+                id="checksum-file",
+                kind="other",
+                path=f"{package_root}/checksums.sha256",
+                sha256="a" * 64,
+                byte_size=64,
+                media_type="text/plain",
+            ),
+        ],
+        "primary_file_id": "primary-glb",
+        "semantic_ids": ["asset.body"],
+        "material_ids": ["mat.body"],
+        "created_at": NOW,
+        "completed_at": NOW,
+    }
+    with pytest.raises(ValidationError, match="representative job ID"):
+        ExportPackageManifest.model_validate(base)
+
+    base["files"][0] = base["files"][0].model_copy(
+        update={"path": f"{package_root}/portable_asset.glb"}
+    )
+    base["source_manifests"] = [
+        _artifact(
+            "derived-level-manifest",
+            "lod_manifest",
+            f"{package_root}/metadata/derived-level.json",
+        )
+    ]
+    with pytest.raises(ValidationError, match="disabled-feature manifests"):
+        ExportPackageManifest.model_validate(base)
 
 
 def test_material_conversion_staging_name_stays_short_for_windows() -> None:
@@ -142,9 +310,7 @@ def _conversion_outputs(root: Path) -> list[PortableChannelOutput]:
                 channel=channel,
                 path=path.relative_to(root).as_posix(),
                 sha256=sha256_file(path),
-                color_space=(
-                    "sRGB" if channel in {"base_color", "emission"} else "Non-Color"
-                ),
+                color_space=("sRGB" if channel in {"base_color", "emission"} else "Non-Color"),
                 resolution=(4, 4),
                 material_ids=MATERIAL_IDS,
             )
@@ -173,9 +339,7 @@ def test_global_conversion_texture_receipts_preserve_materials_and_color_space(
         conversion,
     )
 
-    by_channel = {
-        receipt.mappings[0].source_channel: receipt for receipt in receipts
-    }
+    by_channel = {receipt.mappings[0].source_channel: receipt for receipt in receipts}
     assert sorted(by_channel) == sorted(CHANNELS)
     assert all(receipt.material_ids == MATERIAL_IDS for receipt in receipts)
     assert by_channel["base_color"].color_space == "sRGB"

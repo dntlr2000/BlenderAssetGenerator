@@ -10,7 +10,7 @@ import stat
 import struct
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid4
 
 from PIL import Image
@@ -60,8 +60,10 @@ from .models import (
     ExportPackageManifest,
     PackageFile,
     PackedTexture,
+    PortablePackageAcceptance,
     RoundTripCheck,
     RoundTripValidation,
+    StaticPayloadProvenance,
     TextureChannelMapping,
     TexturePackManifest,
 )
@@ -78,6 +80,7 @@ MEDIA_TYPES = {
     ".jpg": "image/jpeg",
     ".jpeg": "image/jpeg",
     ".json": "application/json",
+    ".sha256": "text/plain",
 }
 COLOR_SPACES = {
     "base_color": "sRGB",
@@ -98,6 +101,21 @@ ABSOLUTE_PATH_AUDIT_SUFFIXES = {
     ".json",
     ".mtl",
     ".obj",
+}
+STATIC_FEATURE_TOKEN_PATTERN = re.compile(
+    r"(?i)(?:__lod[0-9]+|cbm_lod_level|cbm_collider_strategy|"
+    r"(?<![A-Za-z0-9])lod(?:[0-9]+)?(?![A-Za-z0-9])|"
+    r"(?<![A-Za-z0-9])colliders?(?![A-Za-z0-9])|"
+    r"(?<![A-Za-z0-9])collision(?![A-Za-z0-9]))"
+)
+STATIC_PAYLOAD_AUDIT_SUFFIXES = {
+    ".fbx",
+    ".glb",
+    ".gltf",
+    ".json",
+    ".mtl",
+    ".obj",
+    ".sha256",
 }
 
 
@@ -313,8 +331,7 @@ def _raw_pbr_sidecar_channels(
                 f"Raw PBR sidecar channel path must be relative: {material_id}.{channel}"
             )
         if legacy_path is None and (
-            not isinstance(sha256_value, str)
-            or not re.fullmatch(r"[0-9a-f]{64}", sha256_value)
+            not isinstance(sha256_value, str) or not re.fullmatch(r"[0-9a-f]{64}", sha256_value)
         ):
             raise RuntimeError(
                 f"Raw PBR sidecar channel SHA-256 is invalid: {material_id}.{channel}"
@@ -491,9 +508,7 @@ def _optimization_authorization_paths(run_root: Path) -> dict[str, Path]:
     user_approval = run_root / "optimization_approval.json"
     policy_authorization = run_root / "optimization_policy_authorization.json"
     if user_approval.is_file() and policy_authorization.is_file():
-        raise RuntimeError(
-            "Optimization run mixes user approval and policy authorization evidence"
-        )
+        raise RuntimeError("Optimization run mixes user approval and policy authorization evidence")
     if not user_approval.is_file() and not policy_authorization.is_file():
         raise RuntimeError("Optimization review and approval evidence is incomplete")
     selected = dict(common)
@@ -549,18 +564,14 @@ def _verify_optimization_authorization_evidence(
             or approval.used_at is None
             or plan.approved_at != approval.approved_at
         ):
-            raise RuntimeError(
-                "Optimization review approval does not match the completed run"
-            )
+            raise RuntimeError("Optimization review approval does not match the completed run")
         return paths
 
     from ..autonomy.authorization import validate_policy_authorization
     from ..autonomy.models import PolicyAuthorization
 
     policy_path = paths["optimization_policy_authorization"]
-    authorization = PolicyAuthorization.model_validate_json(
-        policy_path.read_text(encoding="utf-8")
-    )
+    authorization = PolicyAuthorization.model_validate_json(policy_path.read_text(encoding="utf-8"))
     validate_policy_authorization(
         root,
         authorization,
@@ -577,9 +588,7 @@ def _verify_optimization_authorization_evidence(
         or authorization.consumed_at is None
         or plan.approved_at != authorization.consumed_at
     ):
-        raise RuntimeError(
-            "Optimization policy authorization does not match the completed run"
-        )
+        raise RuntimeError("Optimization policy authorization does not match the completed run")
     return paths
 
 
@@ -657,11 +666,15 @@ def _snapshot_package_metadata(
     profile: AssetProfile,
     staging_root: Path,
     material_conversion: MaterialConversionSelection | None = None,
+    *,
+    content_mode: Literal["full_evidence", "static_payload"] = "full_evidence",
 ) -> dict[str, Path]:
-    """Copy immutable optimization and optional material-conversion receipts."""
+    """Copy full receipts or reserve only a lean static metadata directory."""
 
     metadata_root = staging_root / "metadata"
     _mkdir_long_path_safe(metadata_root, parents=True, exist_ok=False)
+    if content_mode == "static_payload":
+        return {}
     sources = {
         "asset_profile": profile_path(root, profile.profile_id),
         "optimization_plan": run_root / "optimization_plan.json",
@@ -1564,6 +1577,8 @@ def _delivery_mapping(
     primary: Path,
     staging_root: Path,
     raw_export: dict[str, Any],
+    *,
+    content_mode: Literal["full_evidence", "static_payload"] = "full_evidence",
 ) -> dict[str, Any]:
     """Build a package-relative consumer mapping from Blender export evidence."""
 
@@ -1575,20 +1590,22 @@ def _delivery_mapping(
         role = str(record.get("asset_role") or "authoring")
         instance_index = record.get("instance_index")
         lod_level = record.get("lod_level")
-        stable_parts = [semantic_id, str(instance_index), role, str(lod_level)]
+        stable_parts = [semantic_id, str(instance_index), role]
+        if content_mode == "full_evidence":
+            stable_parts.append(str(lod_level))
         export_key = "|".join(stable_parts) if semantic_id else f"name:{record.get('name')}"
-        objects.append(
-            {
-                "export_key": export_key,
-                "name": str(record.get("name") or f"object-{index:04d}"),
-                "semantic_id": semantic_id or None,
-                "instance_index": instance_index,
-                "asset_role": role,
-                "lod_level": lod_level,
-                "collider": role == "collider",
-                "material_ids": sorted(str(value) for value in record.get("material_ids", [])),
-            }
-        )
+        mapped = {
+            "export_key": export_key,
+            "name": str(record.get("name") or f"object-{index:04d}"),
+            "semantic_id": semantic_id or None,
+            "instance_index": instance_index,
+            "asset_role": role,
+            "material_ids": sorted(str(value) for value in record.get("material_ids", [])),
+        }
+        if content_mode == "full_evidence":
+            mapped["lod_level"] = lod_level
+            mapped["collider"] = role == "collider"
+        objects.append(mapped)
     return {
         "schema_version": "0.7.0",
         "kind": "portable_delivery_mapping",
@@ -1634,6 +1651,58 @@ def _package_file(
     )
 
 
+def _write_static_checksum_manifest(staging_root: Path) -> Path:
+    """Write deterministic hashes for every static payload file created so far."""
+
+    target = staging_root / "checksums.sha256"
+    files = [
+        path
+        for path in _iter_package_files_long_path_safe(staging_root)
+        if path.name not in {"checksums.sha256", "package_manifest.json"}
+    ]
+    lines = [
+        f"{sha256_file(path)}  {path.resolve().relative_to(staging_root.resolve()).as_posix()}"
+        for path in files
+    ]
+    with open(native_io_path(target), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
+    return target
+
+
+def _verify_static_checksum_manifest(
+    root: Path,
+    package_root: Path,
+    checksum_path: Path,
+    receipts: list[PackageFile],
+) -> None:
+    """Require the static checksum sidecar to match every other tracked package file."""
+
+    expected: dict[str, str] = {}
+    for receipt in receipts:
+        path = resolve_inside(root, receipt.path, f"package file {receipt.id}")
+        if path.name == checksum_path.name:
+            continue
+        relative = path.resolve().relative_to(package_root.resolve()).as_posix()
+        expected[relative] = receipt.sha256
+    actual: dict[str, str] = {}
+    with open(native_io_path(checksum_path), encoding="utf-8") as handle:
+        for line_number, raw_line in enumerate(handle, start=1):
+            line = raw_line.rstrip("\r\n")
+            if not line:
+                continue
+            digest, separator, relative = line.partition("  ")
+            if (
+                not separator
+                or not re.fullmatch(r"[0-9a-f]{64}", digest)
+                or not relative
+                or relative in actual
+            ):
+                raise RuntimeError(f"Static checksum manifest has an invalid line: {line_number}")
+            actual[relative] = digest
+    if actual != expected:
+        raise RuntimeError("Static checksum manifest differs from package receipts")
+
+
 def _absolute_path_audit_payloads(path: Path, data: bytes) -> list[tuple[str, str]]:
     """Decode only text-bearing regions so binary geometry bytes cannot mimic paths."""
 
@@ -1653,6 +1722,30 @@ def _absolute_path_audit_payloads(path: Path, data: bytes) -> list[tuple[str, st
     if path.suffix.lower() in {".bin", ".fbx"} and b"\x00" in data:
         payloads.append(("utf16le", data.decode("utf-16le", errors="ignore")))
     return payloads
+
+
+def _static_payload_feature_metadata_findings(
+    paths: list[Path],
+    package_root: Path,
+) -> list[str]:
+    """Reject disabled-feature names or serialized settings from a lean static payload."""
+
+    findings: set[str] = set()
+    resolved_root = package_root.resolve()
+    for path in paths:
+        label = path.resolve().relative_to(resolved_root).as_posix()
+        if STATIC_FEATURE_TOKEN_PATTERN.search(label):
+            findings.add(f"{label}:path")
+        if path.suffix.lower() not in STATIC_PAYLOAD_AUDIT_SUFFIXES:
+            continue
+        for encoding, text in _absolute_path_audit_payloads(
+            path,
+            _read_package_bytes_long_path_safe(path),
+        ):
+            match = STATIC_FEATURE_TOKEN_PATTERN.search(text)
+            if match:
+                findings.add(f"{label}:{encoding}:{match.start()}")
+    return sorted(findings)
 
 
 def _embedded_absolute_path_findings(paths: list[Path], package_root: Path) -> list[str]:
@@ -1739,14 +1832,176 @@ def _verify_package_receipts(
     )
     if unexpected_receipts:
         raise RuntimeError(f"Portable package receipts have no files: {unexpected_receipts}")
+    if getattr(package, "content_mode", "full_evidence") == "static_payload":
+        checksum_paths = [path for path in verified.values() if path.name == "checksums.sha256"]
+        if len(checksum_paths) != 1:
+            raise RuntimeError("Static payload requires one tracked checksum manifest")
+        _verify_static_checksum_manifest(
+            root,
+            package_root,
+            checksum_paths[0],
+            package.files,
+        )
     return verified
 
 
-def _primary_asset_filename(primary_format: str) -> str:
-    """Choose the stable package filename expected by each interchange format."""
+def _primary_asset_filename(
+    primary_format: str,
+    asset_stem: str | None = None,
+) -> str:
+    """Choose the legacy filename or one validated asset-specific package name."""
 
     normalized = primary_format.strip().lower()
+    if asset_stem is not None:
+        validate_filesystem_id(asset_stem, "primary_asset_stem")
+        return f"{asset_stem}.{normalized}"
     return "model.fbx" if normalized == "fbx" else f"asset.{normalized}"
+
+
+def _run_static_payload_clean_import(
+    profile: AssetProfile,
+    primary: Path,
+    raw_export: Path,
+    staging_root: Path,
+    *,
+    bounds_tolerance_m: float = 0.0001,
+) -> Path:
+    """Validate the staged static model before immutable package publication."""
+
+    validation_root = staging_root / "clean_import"
+    _mkdir_long_path_safe(validation_root, parents=True, exist_ok=False)
+    output = validation_root / "roundtrip_evidence.json"
+    primary_sha256 = sha256_file(primary)
+    run_blender(
+        "validate_export_roundtrip.py",
+        [
+            "--format",
+            profile.primary_format,
+            "--input",
+            str(primary),
+            "--expected",
+            str(raw_export),
+            "--output",
+            str(output),
+            "--package-root",
+            str(staging_root),
+            "--bounds-tolerance",
+            str(bounds_tolerance_m),
+        ],
+        factory_startup=True,
+    )
+    if sha256_file(primary) != primary_sha256:
+        raise RuntimeError("Static payload primary asset changed during clean import")
+    with open(native_io_path(output), encoding="utf-8") as handle:
+        result = json.load(handle)
+    if not isinstance(result, dict) or not result.get("ok"):
+        raise RuntimeError("Static payload clean import did not report ok=true")
+    return output
+
+
+def _write_static_payload_provenance(
+    root: Path,
+    run_root: Path,
+    profile: AssetProfile,
+    plan: OptimizationPlan,
+    material_conversion: MaterialConversionSelection | None,
+    staging_root: Path,
+    primary: Path,
+    raw_export: Path,
+    texture_path: Path,
+    clean_import_path: Path,
+) -> Path:
+    """Write a lean hash-only bridge to full evidence retained outside the package."""
+
+    conversion_path = (
+        material_conversion.directory / "conversion_manifest.json"
+        if material_conversion is not None
+        else None
+    )
+    provenance = StaticPayloadProvenance(
+        job_id=profile.job_id,
+        run_id=run_root.name,
+        profile_id=profile.profile_id,
+        source_fingerprint=plan.source.source_fingerprint,
+        build_fingerprint=plan.source.build_fingerprint,
+        profile_sha256=sha256_file(profile_path(root, profile.profile_id)),
+        optimization_plan_sha256=sha256_file(run_root / "optimization_plan.json"),
+        material_conversion_id=(
+            material_conversion.conversion_id if material_conversion is not None else None
+        ),
+        material_conversion_sha256=(
+            sha256_file(conversion_path) if conversion_path is not None else None
+        ),
+        export_evidence_sha256=sha256_file(raw_export),
+        texture_pack_sha256=sha256_file(texture_path),
+        clean_import_evidence_sha256=sha256_file(clean_import_path),
+        primary_asset=primary.resolve().relative_to(staging_root.resolve()).as_posix(),
+        created_at=utc_now(),
+    )
+    target = staging_root / "metadata" / "package_provenance.json"
+    write_model(target, provenance)
+    return target
+
+
+def _verify_static_payload_provenance(
+    root: Path,
+    package_root: Path,
+    package: ExportPackageManifest,
+) -> StaticPayloadProvenance:
+    """Revalidate the lean package bridge against retained run-owned source hashes."""
+
+    artifact = package.package_provenance
+    if artifact is None:
+        raise RuntimeError("Static payload has no package provenance receipt")
+    path = resolve_inside(root, artifact.path, "static payload provenance")
+    if not path.is_file() or sha256_file(path) != artifact.sha256:
+        raise RuntimeError("Static payload provenance is missing or changed")
+    provenance = load_model(path, StaticPayloadProvenance)
+    run_root = run_directory(root, package.run_id)
+    plan_path = run_root / "optimization_plan.json"
+    if (
+        provenance.job_id != package.job_id
+        or provenance.run_id != package.run_id
+        or provenance.profile_id != package.profile_id
+        or provenance.source_fingerprint != package.source.source_fingerprint
+        or provenance.build_fingerprint != package.source.build_fingerprint
+        or sha256_file(plan_path) != provenance.optimization_plan_sha256
+        or sha256_file(profile_path(root, package.profile_id)) != provenance.profile_sha256
+    ):
+        raise RuntimeError("Static payload provenance differs from retained V0.7 evidence")
+    if provenance.material_conversion_id is not None:
+        conversion_path = (
+            root
+            / "optimization"
+            / "material_conversions"
+            / package.run_id
+            / provenance.material_conversion_id
+            / "conversion_manifest.json"
+        )
+        if (
+            not conversion_path.is_file()
+            or sha256_file(conversion_path) != provenance.material_conversion_sha256
+        ):
+            raise RuntimeError("Static payload material provenance is missing or changed")
+    local_hashes = {
+        "export_evidence_sha256": package_root / "export_evidence.json",
+        "texture_pack_sha256": package_root / "texture_pack_manifest.json",
+        "clean_import_evidence_sha256": (package_root / "clean_import" / "roundtrip_evidence.json"),
+    }
+    for field_name, local_path in local_hashes.items():
+        if not local_path.is_file() or sha256_file(local_path) != getattr(
+            provenance,
+            field_name,
+        ):
+            raise RuntimeError(f"Static payload local provenance changed: {field_name}")
+    primary_receipt = next(item for item in package.files if item.id == package.primary_file_id)
+    primary_path = resolve_inside(root, primary_receipt.path, "static primary asset")
+    if (
+        primary_path.resolve().relative_to(package_root.resolve()).as_posix()
+        != provenance.primary_asset
+    ):
+        raise RuntimeError("Static payload primary asset differs from provenance")
+    return provenance
 
 
 def package_asset(
@@ -1757,6 +2012,8 @@ def package_asset(
     package_id: str | None = None,
     material_conversion_id: str | None = None,
     include_colliders: bool = True,
+    content_mode: Literal["full_evidence", "static_payload"] = "full_evidence",
+    primary_asset_stem: str | None = None,
 ) -> ExportPackageManifest:
     """Build one immutable package from a verified optimization and material run."""
 
@@ -1767,6 +2024,16 @@ def package_asset(
     profile = load_asset_profile(root, profile_id)
     if plan.profile_id != profile.profile_id:
         raise ValueError("Optimization plan and requested package profiles do not match")
+    if content_mode not in {"full_evidence", "static_payload"}:
+        raise ValueError("Unsupported package content_mode")
+    if content_mode == "static_payload":
+        if profile.lod.enabled or profile.collision.strategy != "none":
+            raise ValueError("static_payload requires disabled derived levels and physics policy")
+        if include_colliders:
+            raise ValueError("static_payload requires include_colliders=false")
+        if primary_asset_stem not in {None, job_id}:
+            raise ValueError("static_payload primary_asset_stem must equal job_id")
+        primary_asset_stem = job_id
     _require_collider_export(profile, include_colliders)
     require_unchanged_source(plan.source, root, job_id)
     _load_run_manifests(run_root, plan)
@@ -1798,7 +2065,10 @@ def package_asset(
     _mkdir_long_path_safe(staging_root, parents=False, exist_ok=False)
     try:
         extension = profile.primary_format
-        primary = staging_root / _primary_asset_filename(extension)
+        primary = staging_root / _primary_asset_filename(
+            extension,
+            primary_asset_stem,
+        )
         raw_export = staging_root / "export_evidence.json"
         export_blend = (
             material_conversion.portable_blend
@@ -1814,6 +2084,7 @@ def package_asset(
             profile,
             staging_root,
             material_conversion,
+            content_mode=content_mode,
         )
         args = [
             "--format",
@@ -1838,6 +2109,8 @@ def package_asset(
             )
         if include_colliders and profile.collision.strategy != "none":
             args.append("--include-colliders")
+        if content_mode == "static_payload":
+            args.extend(["--static-payload", "--asset-name", job_id])
         run_blender(
             "export_portable_package.py",
             args,
@@ -1857,6 +2130,7 @@ def package_asset(
                 primary,
                 staging_root,
                 raw,
+                content_mode=content_mode,
             ),
         )
         texture_manifest = _texture_manifest(
@@ -1870,6 +2144,27 @@ def package_asset(
         )
         texture_path = staging_root / "texture_pack_manifest.json"
         write_model(texture_path, texture_manifest)
+        static_provenance_path: Path | None = None
+        if content_mode == "static_payload":
+            clean_import_path = _run_static_payload_clean_import(
+                profile,
+                primary,
+                raw_export,
+                staging_root,
+            )
+            static_provenance_path = _write_static_payload_provenance(
+                root,
+                run_root,
+                profile,
+                plan,
+                material_conversion,
+                staging_root,
+                primary,
+                raw_export,
+                texture_path,
+                clean_import_path,
+            )
+            _write_static_checksum_manifest(staging_root)
         staged_files = _iter_package_files_long_path_safe(staging_root)
         absolute_path_findings = _embedded_absolute_path_findings(staged_files, staging_root)
         if absolute_path_findings:
@@ -1885,39 +2180,6 @@ def package_asset(
         primary_receipt = next(item for item in files if item.kind == "primary_asset")
         source_manifests = [
             HashedArtifact(
-                id=f"manifest.lod.{selected}",
-                kind="lod_manifest",
-                path=_future_path(
-                    root,
-                    final_root,
-                    staging_root,
-                    snapshots["lod_manifest"],
-                ),
-                sha256=sha256_file(snapshots["lod_manifest"]),
-            ),
-            HashedArtifact(
-                id=f"manifest.collision.{selected}",
-                kind="collision_manifest",
-                path=_future_path(
-                    root,
-                    final_root,
-                    staging_root,
-                    snapshots["collision_manifest"],
-                ),
-                sha256=sha256_file(snapshots["collision_manifest"]),
-            ),
-            HashedArtifact(
-                id=f"manifest.uv.{selected}",
-                kind="uv_manifest",
-                path=_future_path(
-                    root,
-                    final_root,
-                    staging_root,
-                    snapshots["uv_manifest"],
-                ),
-                sha256=sha256_file(snapshots["uv_manifest"]),
-            ),
-            HashedArtifact(
                 id=f"manifest.texture_pack.{selected}",
                 kind="texture_pack_manifest",
                 path=_future_path(
@@ -1929,7 +2191,43 @@ def package_asset(
                 sha256=sha256_file(texture_path),
             ),
         ]
-        if "asset_cost_report" in snapshots:
+        if content_mode == "full_evidence":
+            source_manifests[0:0] = [
+                HashedArtifact(
+                    id=f"manifest.lod.{selected}",
+                    kind="lod_manifest",
+                    path=_future_path(
+                        root,
+                        final_root,
+                        staging_root,
+                        snapshots["lod_manifest"],
+                    ),
+                    sha256=sha256_file(snapshots["lod_manifest"]),
+                ),
+                HashedArtifact(
+                    id=f"manifest.collision.{selected}",
+                    kind="collision_manifest",
+                    path=_future_path(
+                        root,
+                        final_root,
+                        staging_root,
+                        snapshots["collision_manifest"],
+                    ),
+                    sha256=sha256_file(snapshots["collision_manifest"]),
+                ),
+                HashedArtifact(
+                    id=f"manifest.uv.{selected}",
+                    kind="uv_manifest",
+                    path=_future_path(
+                        root,
+                        final_root,
+                        staging_root,
+                        snapshots["uv_manifest"],
+                    ),
+                    sha256=sha256_file(snapshots["uv_manifest"]),
+                ),
+            ]
+        if content_mode == "full_evidence" and "asset_cost_report" in snapshots:
             source_manifests.append(
                 HashedArtifact(
                     id=f"report.asset_cost.{selected}",
@@ -1955,7 +2253,7 @@ def package_asset(
                 ),
                 sha256=sha256_file(snapshots["material_conversion_manifest"]),
             )
-            if material_conversion is not None
+            if material_conversion is not None and content_mode == "full_evidence"
             else None
         )
         conversion_losses = sorted(
@@ -1976,14 +2274,8 @@ def package_asset(
                 for warning in entry.warnings
             }
         )
-        now = utc_now()
-        manifest = ExportPackageManifest(
-            package_id=chosen_package_id,
-            job_id=job_id,
-            run_id=selected,
-            profile_id=profile.profile_id,
-            source=plan.source,
-            optimization_plan=HashedArtifact(
+        optimization_receipt = (
+            HashedArtifact(
                 id=f"plan.{selected}",
                 kind="optimization_plan",
                 path=_future_path(
@@ -1993,7 +2285,35 @@ def package_asset(
                     snapshots["optimization_plan"],
                 ),
                 sha256=sha256_file(snapshots["optimization_plan"]),
-            ),
+            )
+            if content_mode == "full_evidence"
+            else None
+        )
+        package_provenance_receipt = (
+            HashedArtifact(
+                id=f"provenance.static.{selected}",
+                kind="other",
+                path=_future_path(
+                    root,
+                    final_root,
+                    staging_root,
+                    static_provenance_path,
+                ),
+                sha256=sha256_file(static_provenance_path),
+            )
+            if static_provenance_path is not None
+            else None
+        )
+        now = utc_now()
+        manifest = ExportPackageManifest(
+            package_id=chosen_package_id,
+            job_id=job_id,
+            run_id=selected,
+            profile_id=profile.profile_id,
+            source=plan.source,
+            content_mode=content_mode,
+            optimization_plan=optimization_receipt,
+            package_provenance=package_provenance_receipt,
             material_conversion=conversion_receipt,
             source_manifests=source_manifests,
             status="complete",
@@ -2027,6 +2347,16 @@ def package_asset(
         )
         if manifest_path_findings:
             raise RuntimeError("Portable package manifest contains an absolute path")
+        if content_mode == "static_payload":
+            static_findings = _static_payload_feature_metadata_findings(
+                _iter_package_files_long_path_safe(staging_root),
+                staging_root,
+            )
+            if static_findings:
+                raise RuntimeError(
+                    "Static payload contains disabled-feature metadata markers in: "
+                    f"{static_findings}"
+                )
         require_unchanged_source(plan.source, root, job_id)
         os.replace(staging_root, final_root)
         return manifest
@@ -2334,6 +2664,16 @@ def validate_asset_package(
             "Portable package contains embedded absolute-path markers "
             f"({len(absolute_path_findings)}) in: {affected}"
         )
+    if getattr(package, "content_mode", "full_evidence") == "static_payload":
+        static_findings = _static_payload_feature_metadata_findings(
+            [*verified_receipts.values(), manifest_path],
+            package_root,
+        )
+        if static_findings:
+            raise RuntimeError(
+                f"Static payload contains disabled-feature metadata markers in: {static_findings}"
+            )
+        _verify_static_payload_provenance(root, package_root, package)
     primary_receipt = next(item for item in package.files if item.id == package.primary_file_id)
     primary = verified_receipts[primary_receipt.id]
     run_root = run_directory(root, package.run_id)
@@ -2397,6 +2737,147 @@ def validate_asset_package(
             expected_parent=validation_parent,
         )
         raise
+
+
+def accept_portable_package(
+    job_id: str,
+    package_id: str,
+    *,
+    profile_id: str = "portable_gltf",
+    package_manifest_sha256: str,
+    roundtrip_validation_sha256: str,
+    approval_note: str,
+) -> PortablePackageAcceptance:
+    """Consume one exact user approval only after revalidating package and clean import."""
+
+    if not load_feature_config().features.portable_asset_core:
+        raise RuntimeError("portable_asset_core is disabled in cbm.toml")
+    profile_id_to_format(profile_id)
+    validate_filesystem_id(package_id, "package_id")
+    if re.fullmatch(r"[0-9a-f]{64}", package_manifest_sha256) is None:
+        raise ValueError("package_manifest_sha256 must be lowercase SHA-256")
+    if re.fullmatch(r"[0-9a-f]{64}", roundtrip_validation_sha256) is None:
+        raise ValueError("roundtrip_validation_sha256 must be lowercase SHA-256")
+    note = approval_note.strip()
+    if not note:
+        raise ValueError("approval_note must not be empty")
+
+    root = job_dir(job_id)
+    package_root = resolve_inside(
+        root / "exports" / "packages" / profile_id,
+        package_id,
+        "portable package",
+    )
+    manifest_path = package_root / "package_manifest.json"
+    if not manifest_path.is_file():
+        raise FileNotFoundError(manifest_path)
+    if sha256_file(manifest_path) != package_manifest_sha256:
+        raise ValueError("Package manifest SHA-256 does not match the exact user approval")
+    package = load_model(manifest_path, ExportPackageManifest)
+    if (
+        package.job_id != job_id
+        or package.profile_id != profile_id
+        or package.package_id != package_id
+        or package.status != "complete"
+    ):
+        raise ValueError("Package manifest identity or completion state does not match")
+
+    verified_receipts = _verify_package_receipts(root, package_root, package, manifest_path)
+    absolute_path_findings = _embedded_absolute_path_findings(
+        [*verified_receipts.values(), manifest_path], package_root
+    )
+    if absolute_path_findings:
+        raise RuntimeError("Portable package contains embedded absolute-path markers")
+    if package.content_mode == "static_payload":
+        static_findings = _static_payload_feature_metadata_findings(
+            [*verified_receipts.values(), manifest_path],
+            package_root,
+        )
+        if static_findings:
+            raise RuntimeError(
+                f"Static payload contains disabled-feature metadata markers in: {static_findings}"
+            )
+        _verify_static_payload_provenance(root, package_root, package)
+    require_unchanged_source(package.source, root, job_id)
+
+    run_root = run_directory(root, package.run_id)
+    roundtrip_path = run_root / "roundtrip" / package_id / "roundtrip_validation.json"
+    if not roundtrip_path.is_file():
+        raise FileNotFoundError(roundtrip_path)
+    if sha256_file(roundtrip_path) != roundtrip_validation_sha256:
+        raise ValueError("Round-trip SHA-256 does not match the exact user approval")
+    validation = load_model(roundtrip_path, RoundTripValidation)
+    if (
+        validation.job_id != job_id
+        or validation.run_id != package.run_id
+        or validation.package_id != package_id
+        or validation.profile_id != profile_id
+    ):
+        raise ValueError("Round-trip validation identity does not match the package")
+    expected_manifest_path = job_relative(root, manifest_path)
+    if (
+        validation.package_manifest.path != expected_manifest_path
+        or validation.package_manifest.sha256 != package_manifest_sha256
+    ):
+        raise ValueError("Round-trip validation does not bind the approved package manifest")
+    imported_inventory = resolve_inside(
+        root,
+        validation.imported_inventory.path,
+        "round-trip inventory",
+    )
+    if (
+        not imported_inventory.is_file()
+        or sha256_file(imported_inventory) != validation.imported_inventory.sha256
+    ):
+        raise RuntimeError("Round-trip imported inventory is missing or changed")
+    expected_semantic_ids = [] if profile_id == "obj_legacy" else sorted(package.semantic_ids)
+    if (
+        validation.status != "passed"
+        or not validation.ok
+        or validation.failed != 0
+        or validation.errors
+        or not validation.bounds.passed
+        or validation.semantic_id_coverage != 1.0
+        or validation.material_id_coverage != 1.0
+        or validation.expected_semantic_ids != expected_semantic_ids
+        or validation.expected_material_ids != sorted(package.material_ids)
+    ):
+        raise RuntimeError("Package clean-import evidence is not acceptance-eligible")
+
+    accepted_at = utc_now()
+    acceptance = PortablePackageAcceptance(
+        acceptance_id=f"package.acceptance.{package_manifest_sha256[:24]}",
+        job_id=job_id,
+        run_id=package.run_id,
+        package_id=package_id,
+        profile_id=package.profile_id,
+        content_mode=package.content_mode,
+        source_fingerprint=package.source.source_fingerprint,
+        build_fingerprint=package.source.build_fingerprint,
+        package_manifest_path=expected_manifest_path,
+        package_manifest_sha256=package_manifest_sha256,
+        roundtrip_validation_path=job_relative(root, roundtrip_path),
+        roundtrip_validation_sha256=roundtrip_validation_sha256,
+        approved_by="user",
+        approval_note=note,
+        approved_at=accepted_at,
+        consumed_at=accepted_at,
+    )
+    acceptance_path = (
+        run_root / "package_acceptances" / package_id / "acceptance.json"
+    )
+    acceptance_path.parent.mkdir(parents=True, exist_ok=True)
+    serialized = acceptance.model_dump_json(indent=2) + "\n"
+    try:
+        with acceptance_path.open("x", encoding="utf-8", newline="\n") as handle:
+            handle.write(serialized)
+            handle.flush()
+            os.fsync(handle.fileno())
+    except FileExistsError as exc:
+        raise FileExistsError(
+            f"Package approval was already consumed: {acceptance_path}"
+        ) from exc
+    return acceptance
 
 
 def profile_id_to_format(profile_id: str) -> str:

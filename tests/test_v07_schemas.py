@@ -22,7 +22,9 @@ from codex_blender_modeler.optimization.models import (
 )
 from codex_blender_modeler.packaging.models import (
     ExportPackageManifest,
+    PortablePackageAcceptance,
     RoundTripValidation,
+    StaticPayloadProvenance,
     TexturePackManifest,
 )
 
@@ -45,6 +47,8 @@ def test_v07_contract_schemas_are_current_and_valid_draft_2020_12() -> None:
         "portable_material_conversion_manifest.schema.json": PortableMaterialConversionManifest,
         "texture_pack_manifest.schema.json": TexturePackManifest,
         "export_package_manifest.schema.json": ExportPackageManifest,
+        "portable_package_acceptance.schema.json": PortablePackageAcceptance,
+        "static_payload_provenance.schema.json": StaticPayloadProvenance,
         "roundtrip_validation.schema.json": RoundTripValidation,
     }
     for filename, model in contracts.items():

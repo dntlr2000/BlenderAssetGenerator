@@ -1,0 +1,176 @@
+{
+  "additionalProperties": false,
+  "description": "Record one exact user acceptance after immutable package and clean-import verification.",
+  "properties": {
+    "schema_version": {
+      "const": "0.7.0",
+      "default": "0.7.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "acceptance_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Acceptance Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "enum": [
+        "portable_gltf",
+        "fbx_interchange",
+        "obj_legacy"
+      ],
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "content_mode": {
+      "enum": [
+        "full_evidence",
+        "static_payload"
+      ],
+      "title": "Content Mode",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "package_manifest_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Package Manifest Path",
+      "type": "string"
+    },
+    "package_manifest_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Package Manifest Sha256",
+      "type": "string"
+    },
+    "roundtrip_validation_path": {
+      "minLength": 1,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+      "title": "Roundtrip Validation Path",
+      "type": "string"
+    },
+    "roundtrip_validation_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Roundtrip Validation Sha256",
+      "type": "string"
+    },
+    "clean_import_status": {
+      "const": "passed",
+      "default": "passed",
+      "title": "Clean Import Status",
+      "type": "string"
+    },
+    "bounds_passed": {
+      "const": true,
+      "default": true,
+      "title": "Bounds Passed",
+      "type": "boolean"
+    },
+    "semantic_id_coverage": {
+      "const": 1.0,
+      "default": 1.0,
+      "title": "Semantic Id Coverage",
+      "type": "number"
+    },
+    "material_id_coverage": {
+      "const": 1.0,
+      "default": 1.0,
+      "title": "Material Id Coverage",
+      "type": "number"
+    },
+    "approved_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Approved By",
+      "type": "string"
+    },
+    "approval_note": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Approval Note",
+      "type": "string"
+    },
+    "approved_at": {
+      "format": "date-time",
+      "title": "Approved At",
+      "type": "string"
+    },
+    "single_use": {
+      "const": true,
+      "default": true,
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "consumed": {
+      "const": true,
+      "default": true,
+      "title": "Consumed",
+      "type": "boolean"
+    },
+    "consumed_at": {
+      "format": "date-time",
+      "title": "Consumed At",
+      "type": "string"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "destination_project_modified": {
+      "const": false,
+      "default": false,
+      "title": "Destination Project Modified",
+      "type": "boolean"
+    },
+    "status": {
+      "const": "accepted",
+      "default": "accepted",
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "acceptance_id",
+    "job_id",
+    "run_id",
+    "package_id",
+    "profile_id",
+    "content_mode",
+    "source_fingerprint",
+    "build_fingerprint",
+    "package_manifest_path",
+    "package_manifest_sha256",
+    "roundtrip_validation_path",
+    "roundtrip_validation_sha256",
+    "approval_note",
+    "approved_at",
+    "consumed_at"
+  ],
+  "title": "PortablePackageAcceptance",
+  "type": "object"
+}

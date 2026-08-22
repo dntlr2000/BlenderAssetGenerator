@@ -18,6 +18,7 @@ EXPECTED_COMMANDS = {
     "asset-optimize",
     "asset-material-convert",
     "asset-package",
+    "asset-package-accept",
     "asset-validate",
     "asset-status",
 }
@@ -30,6 +31,7 @@ EXPECTED_MCP_TOOLS = {
     "convert_portable_materials",
     "build_portable_package",
     "validate_portable_package",
+    "accept_portable_package",
     "get_portable_asset_status",
 }
 
@@ -56,6 +58,7 @@ def test_v07_cli_exposes_explicit_profile_and_package_controls() -> None:
         env={"COLUMNS": "180"},
     )
     validate_help = CliRunner().invoke(app, ["asset-validate", "--help"])
+    accept_help = CliRunner().invoke(app, ["asset-package-accept", "--help"])
     assert profile_help.exit_code == 0
     assert optimize_help.exit_code == 0
     assert plan_help.exit_code == 0
@@ -63,6 +66,7 @@ def test_v07_cli_exposes_explicit_profile_and_package_controls() -> None:
     assert convert_help.exit_code == 0
     assert package_help.exit_code == 0
     assert validate_help.exit_code == 0
+    assert accept_help.exit_code == 0
     assert_cli_help_contract(
         profile_help.stdout,
         required=(
@@ -91,6 +95,14 @@ def test_v07_cli_exposes_explicit_profile_and_package_controls() -> None:
         required=("--package-id", "--material-conversion-id", "--include-colliders"),
     )
     assert_cli_help_contract(validate_help.stdout, required=("--bounds-tolerance-m",))
+    assert_cli_help_contract(
+        accept_help.stdout,
+        required=(
+            "--package-manifest-sha256",
+            "--clean-import-sha256",
+            "--approval-note",
+        ),
+    )
 
 
 def test_v07_mcp_tools_are_explicitly_whitelisted() -> None:

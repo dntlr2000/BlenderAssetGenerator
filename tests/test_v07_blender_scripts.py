@@ -359,8 +359,7 @@ def test_prepare_script_enforces_lod_budget_on_derived_geometry_only() -> None:
     assert "CBM_LOD{level}_BUDGET_CORRECTION" in source
     assert "LOD{level} triangle budget remains exceeded" in source
     assert source.index("target.data = source.data.copy()") < source.index(
-        "triangulated_faces, removed_zero_area_faces = "
-        "normalize_derived_lod_for_budget("
+        "triangulated_faces, removed_zero_area_faces = normalize_derived_lod_for_budget("
     )
 
 
@@ -429,7 +428,7 @@ def test_fbx_export_promotes_portable_atlas_to_uv0_and_exports_tangents() -> Non
     assert '"use_tspace": True' in source
     assert "Blender FBX exporter exposes no tangent-space export option" in source
     assert source.index("normalize_portable_uv_bindings(") < source.index(
-        "sanitize_export_custom_properties(selected)"
+        "sanitization = sanitize_export_custom_properties("
     )
 
 
@@ -544,9 +543,7 @@ def test_gltf_uv0_file_verifier_rejects_incomplete_or_mismatched_evidence(
 def test_roundtrip_hard_gates_portable_uv_binding_and_loop_association() -> None:
     """Keep strict FBX identity and explicit glTF semantic-binding verification."""
 
-    source = (SCRIPT_ROOT / "validate_export_roundtrip.py").read_text(
-        encoding="utf-8"
-    )
+    source = (SCRIPT_ROOT / "validate_export_roundtrip.py").read_text(encoding="utf-8")
     assert "vertex_uv_binding_fingerprint_preserved" in source
     assert "def portable_uv_binding_readiness" in source
     assert "portable material UV0/tangent binding failed" in source
@@ -574,13 +571,9 @@ def test_roundtrip_uv_policy_rejects_manifest_cli_and_contract_format_confusion(
     }
     expected = {
         "asset_role": "render",
-        "topology": {
-            "uv_layers": [{"name": "CBMPortableAtlas", "active_render": True}]
-        },
+        "topology": {"uv_layers": [{"name": "CBMPortableAtlas", "active_render": True}]},
     }
-    actual = {
-        "topology": {"uv_layers": [{"name": "UVMap", "active_render": True}]}
-    }
+    actual = {"topology": {"uv_layers": [{"name": "UVMap", "active_render": True}]}}
     uv_readiness = {
         "summary_tolerance": 1e-5,
         "layers": [
@@ -630,9 +623,23 @@ def test_portable_export_sanitizes_authoring_metadata_before_export() -> None:
     """Portable primary files retain stable IDs but exclude authoring-only metadata."""
 
     source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
-    assert "sanitize_export_custom_properties(selected)" in source
+    assert "sanitization = sanitize_export_custom_properties(" in source
+    assert "allowed_object_properties=allowed_object_properties" in source
     assert 'PORTABLE_MATERIAL_PROPERTIES = frozenset({"cbm_id"})' in source
-    assert '"policy": "portable_identity_whitelist"' in source
+    assert 'else "portable_identity_whitelist"' in source
+
+
+def test_static_payload_export_removes_base_level_identity_and_uses_asset_name() -> None:
+    """Require the opt-in lean exporter to remove disabled-feature serialization."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assert 'parser.add_argument("--static-payload", action="store_true")' in source
+    assert 'parser.add_argument("--asset-name")' in source
+    assert "def normalize_static_payload_objects" in source
+    assert "obj.name = target_name" in source
+    assert 'for key in ("cbm_lod_level", "cbm_collider_strategy"):' in source
+    assert 'record.pop("lod_level", None)' in source
+    assert 'record.pop("collider_strategy", None)' in source
 
 
 def test_roundtrip_tangent_calculation_errors_fail_validation() -> None:

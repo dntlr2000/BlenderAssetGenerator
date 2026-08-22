@@ -163,6 +163,7 @@ enabled_tools = [
   "convert_portable_materials",
   "build_portable_package",
   "validate_portable_package",
+  "accept_portable_package",
   "get_portable_asset_status",
   "plan_destination_handoff",
   "generate_destination_handoff",

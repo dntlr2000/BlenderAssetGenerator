@@ -131,11 +131,7 @@ def match_records(
     available = list(actual)
     for expected_record in expected:
         match = next(
-            (
-                item
-                for item in available
-                if _record_key(item) == _record_key(expected_record)
-            ),
+            (item for item in available if _record_key(item) == _record_key(expected_record)),
             None,
         )
         if match is None and format_name == "obj":
@@ -234,8 +230,7 @@ def tangent_readiness(obj: bpy.types.Object) -> dict[str, Any]:
         {
             str(node.uv_map)
             for slot in obj.material_slots
-            if slot.material is not None
-            and slot.material.node_tree is not None
+            if slot.material is not None and slot.material.node_tree is not None
             for node in slot.material.node_tree.nodes
             if node.type == "NORMAL_MAP" and str(getattr(node, "uv_map", ""))
         }
@@ -302,17 +297,26 @@ def tangent_readiness(obj: bpy.types.Object) -> dict[str, Any]:
     }
 
 
-def imported_object_record(obj: bpy.types.Object) -> dict[str, Any]:
-    """Add runtime normal and tangent readiness to one imported object inventory."""
+def imported_object_record(
+    obj: bpy.types.Object,
+    *,
+    static_payload: bool = False,
+) -> dict[str, Any]:
+    """Add runtime readiness and optionally remove disabled static-feature fields."""
 
     record = object_inventory(obj)
+    if static_payload:
+        record.pop("lod_level", None)
+        record.pop("collider_strategy", None)
+        custom = record.get("custom_properties")
+        if isinstance(custom, dict):
+            custom.pop("cbm_lod_level", None)
+            custom.pop("cbm_collider_strategy", None)
     topology = record.get("topology", {})
     record["runtime_readiness"] = {
         "face_normals": {
             "status": (
-                "ready"
-                if int(topology.get("invalid_normal_face_count", 0)) == 0
-                else "failed"
+                "ready" if int(topology.get("invalid_normal_face_count", 0)) == 0 else "failed"
             ),
             "invalid_face_count": int(topology.get("invalid_normal_face_count", 0)),
             "custom_normal_equivalence_verified": False,
@@ -393,11 +397,7 @@ def uv_coordinate_readiness(
             and actual_layer.get("vertex_uv_binding_fingerprint") is not None
             else None
         )
-        identity_ready = (
-            name_matches and active_render_matches
-            if enforce_layer_identity
-            else True
-        )
+        identity_ready = name_matches and active_render_matches if enforce_layer_identity else True
         layer_ready = (
             non_finite == 0
             and identity_ready
@@ -431,9 +431,7 @@ def uv_coordinate_readiness(
                 "bounds_max_abs_error": bounds_error,
                 "total_area_abs_error": area_error,
                 "coordinate_multiset_fingerprint_preserved": fingerprint_matches,
-                "vertex_uv_binding_fingerprint_preserved": (
-                    binding_fingerprint_matches
-                ),
+                "vertex_uv_binding_fingerprint_preserved": (binding_fingerprint_matches),
             }
         )
     loop_association_verified = bool(layers) and all(
@@ -441,11 +439,7 @@ def uv_coordinate_readiness(
     )
     return {
         "status": (
-            "summary_ready"
-            if summary_ready
-            else "failed"
-            if summary_failed
-            else "unverified"
+            "summary_ready" if summary_ready else "failed" if summary_failed else "unverified"
         ),
         "layer_count": len(layers),
         "summary_tolerance": tolerance,
@@ -488,8 +482,7 @@ def portable_uv_binding_readiness(
         return {"status": "failed", "reason": "missing_glTF_export_contract_format"}
     if (
         format_name in {"glb", "gltf"}
-        and contract.get("verification_basis")
-        == "gltf_material_textureinfo_texcoord0"
+        and contract.get("verification_basis") == "gltf_material_textureinfo_texcoord0"
     ):
         summary_layers = list(uv_readiness.get("layers", []))
         summary = summary_layers[0] if summary_layers else {}
@@ -498,13 +491,10 @@ def portable_uv_binding_readiness(
         area_error = summary.get("total_area_abs_error")
         actual_uv0_name = actual_uv0.get("name")
         checks = {
-            "file_texture_binding_verified": bool(
-                contract.get("file_metadata_verified")
-            ),
+            "file_texture_binding_verified": bool(contract.get("file_metadata_verified")),
             "expected_uv0_name": expected_uv0.get("name") == required_name,
             "expected_uv0_active_render": bool(expected_uv0.get("active_render")),
-            "actual_uv0_present": isinstance(actual_uv0_name, str)
-            and bool(actual_uv0_name),
+            "actual_uv0_present": isinstance(actual_uv0_name, str) and bool(actual_uv0_name),
             "actual_uv0_active_render": bool(actual_uv0.get("active_render")),
             "tangent_uv0": tangent.get("uv_set") == actual_uv0_name,
             "tangent_status": tangent.get("status") == "ready",
@@ -522,9 +512,7 @@ def portable_uv_binding_readiness(
             "destination_semantic": "TEXCOORD_0",
             "imported_uv_set": actual_uv0_name,
             "tangent_uv_set": tangent.get("uv_set"),
-            "loop_association_verified": bool(
-                uv_readiness.get("loop_association_verified")
-            ),
+            "loop_association_verified": bool(uv_readiness.get("loop_association_verified")),
             "checks": checks,
         }
     association_verified = bool(uv_readiness.get("loop_association_verified"))
@@ -584,16 +572,12 @@ def main() -> None:
         not math.isfinite(args.triangle_relative_tolerance)
         or args.triangle_relative_tolerance < 0.0
     ):
-        raise ValueError(
-            "Triangle relative tolerance must be a finite non-negative number"
-        )
+        raise ValueError("Triangle relative tolerance must be a finite non-negative number")
     package_root = Path(args.package_root).expanduser().resolve()
     if not package_root.is_dir():
         raise NotADirectoryError(package_root)
     input_path = _require_inside(Path(args.input), package_root, "Primary asset")
-    expected_path = _require_inside(
-        Path(args.expected), package_root, "Export evidence"
-    )
+    expected_path = _require_inside(Path(args.expected), package_root, "Export evidence")
     output_path = Path(args.output).expanduser().resolve()
     if not input_path.is_file():
         raise FileNotFoundError(input_path)
@@ -604,11 +588,12 @@ def main() -> None:
         raise ValueError("Expected report is not V0.7 portable export evidence")
     if expected_manifest.get("format") != args.format:
         raise ValueError("Requested round-trip format differs from package manifest")
+    static_payload = expected_manifest.get("content_mode") == "static_payload"
 
     clear_scene()
     operator = import_asset(args.format, input_path)
     actual_records = [
-        imported_object_record(obj)
+        imported_object_record(obj, static_payload=static_payload)
         for obj in sorted(bpy.context.scene.objects, key=lambda item: item.name)
         if obj.type == "MESH"
     ]
@@ -619,12 +604,12 @@ def main() -> None:
         "material_conversion_plan_sha256"
     )
     uv_contract = expected_manifest.get("uv_binding_contract", {})
-    if conversion_plan_sha256 and args.format in {"fbx", "glb", "gltf"} and (
-        not isinstance(uv_contract, dict) or uv_contract.get("status") != "verified"
+    if (
+        conversion_plan_sha256
+        and args.format in {"fbx", "glb", "gltf"}
+        and (not isinstance(uv_contract, dict) or uv_contract.get("status") != "verified")
     ):
-        errors.append(
-            "Portable material conversion has no verified export UV0 binding contract"
-        )
+        errors.append("Portable material conversion has no verified export UV0 binding contract")
     coordinate = coordinate_readiness(expected_manifest)
     if coordinate["status"] == "failed":
         errors.append("Export coordinate declaration differs from the V0.7 contract")
@@ -649,14 +634,10 @@ def main() -> None:
     portable_binding_records: list[dict[str, Any]] = []
     for expected_record, actual_record in matches:
         bounds_error = max_bbox_error(expected_record, actual_record)
-        expected_triangles = int(
-            expected_record.get("topology", {}).get("triangles_estimated", 0)
-        )
-        actual_triangles = int(
-            actual_record.get("topology", {}).get("triangles_estimated", 0)
-        )
-        triangle_relative_error = (
-            abs(actual_triangles - expected_triangles) / max(expected_triangles, 1)
+        expected_triangles = int(expected_record.get("topology", {}).get("triangles_estimated", 0))
+        actual_triangles = int(actual_record.get("topology", {}).get("triangles_estimated", 0))
+        triangle_relative_error = abs(actual_triangles - expected_triangles) / max(
+            expected_triangles, 1
         )
         expected_materials = set(expected_record.get("material_ids", []))
         actual_materials = set(actual_record.get("material_ids", []))
@@ -667,9 +648,7 @@ def main() -> None:
             actual_record,
             enforce_layer_identity=args.format == "fbx",
         )
-        face_normal_readiness = actual_record.get("runtime_readiness", {}).get(
-            "face_normals", {}
-        )
+        face_normal_readiness = actual_record.get("runtime_readiness", {}).get("face_normals", {})
         tangent = actual_record.get("runtime_readiness", {}).get("tangents", {})
         portable_binding = portable_uv_binding_readiness(
             expected_manifest,
@@ -707,47 +686,41 @@ def main() -> None:
         elif tangent.get("status") == "unverified":
             tangent_unverified_objects.append(str(actual_record["name"]))
         if uv_readiness.get("status") == "failed":
-            errors.append(
-                f"{actual_record['name']}: imported UV coordinate readiness failed"
-            )
+            errors.append(f"{actual_record['name']}: imported UV coordinate readiness failed")
         elif uv_readiness.get("status") == "unverified":
             uv_unverified_objects.append(str(actual_record["name"]))
         if not bool(uv_readiness.get("loop_association_verified")):
             uv_association_unverified_objects.append(str(actual_record["name"]))
         if portable_binding.get("status") == "failed":
-            errors.append(
-                f"{actual_record['name']}: portable material UV0/tangent binding failed"
-            )
+            errors.append(f"{actual_record['name']}: portable material UV0/tangent binding failed")
         if portable_binding.get("status") != "not_applicable":
             portable_binding_records.append(
                 {"object_name": str(actual_record["name"]), **portable_binding}
             )
-        comparisons.append(
-            {
-                "expected_name": expected_record["name"],
-                "actual_name": actual_record["name"],
-                "semantic_id": expected_record.get("semantic_id"),
-                "asset_role": expected_record.get("asset_role"),
-                "lod_level": expected_record.get("lod_level"),
-                "bounds_max_abs_error_m": round(bounds_error, 9),
-                "triangles_expected": expected_triangles,
-                "triangles_actual": actual_triangles,
-                "triangle_relative_error": round(triangle_relative_error, 9),
-                "material_ids_preserved": expected_materials == actual_materials,
-                "uv_layer_count_expected": expected_uv_count,
-                "uv_layer_count_actual": actual_uv_count,
-                "uv_coordinate_readiness": uv_readiness,
-                "face_normal_readiness": face_normal_readiness,
-                "tangent_readiness": tangent,
-                "portable_uv_binding": portable_binding,
-            }
-        )
+        comparison = {
+            "expected_name": expected_record["name"],
+            "actual_name": actual_record["name"],
+            "semantic_id": expected_record.get("semantic_id"),
+            "asset_role": expected_record.get("asset_role"),
+            "bounds_max_abs_error_m": round(bounds_error, 9),
+            "triangles_expected": expected_triangles,
+            "triangles_actual": actual_triangles,
+            "triangle_relative_error": round(triangle_relative_error, 9),
+            "material_ids_preserved": expected_materials == actual_materials,
+            "uv_layer_count_expected": expected_uv_count,
+            "uv_layer_count_actual": actual_uv_count,
+            "uv_coordinate_readiness": uv_readiness,
+            "face_normal_readiness": face_normal_readiness,
+            "tangent_readiness": tangent,
+            "portable_uv_binding": portable_binding,
+        }
+        if not static_payload:
+            comparison["lod_level"] = expected_record.get("lod_level")
+        comparisons.append(comparison)
 
     texture_findings = texture_path_findings(package_root)
     if texture_findings["missing"]:
-        errors.append(
-            "Missing imported textures: " + ", ".join(texture_findings["missing"])
-        )
+        errors.append("Missing imported textures: " + ", ".join(texture_findings["missing"]))
     if texture_findings["outside"]:
         errors.append(
             "Imported texture paths escape the package root: "
@@ -787,8 +760,7 @@ def main() -> None:
         )
     if tangent_unverified_objects:
         warnings.append(
-            "Tangent readiness could not be verified for: "
-            + ", ".join(tangent_unverified_objects)
+            "Tangent readiness could not be verified for: " + ", ".join(tangent_unverified_objects)
         )
     if uv_unverified_objects:
         warnings.append(
@@ -846,12 +818,12 @@ def main() -> None:
                     if portable_binding_records
                     else "not_applicable"
                 ),
-                "required_uv_set": expected_manifest.get(
-                    "uv_binding_contract", {}
-                ).get("required_uv_set"),
-                "required_uv_channel_index": expected_manifest.get(
-                    "uv_binding_contract", {}
-                ).get("required_uv_channel_index"),
+                "required_uv_set": expected_manifest.get("uv_binding_contract", {}).get(
+                    "required_uv_set"
+                ),
+                "required_uv_channel_index": expected_manifest.get("uv_binding_contract", {}).get(
+                    "required_uv_channel_index"
+                ),
                 "verified_object_count": sum(
                     item.get("status") == "verified" for item in portable_binding_records
                 ),
@@ -869,9 +841,7 @@ def main() -> None:
             "missing_texture_count": len(texture_findings["missing"]),
             "outside_texture_path_count": len(texture_findings["outside"]),
             "absolute_texture_path_count": len(texture_findings["absolute"]),
-            "package_absolute_texture_path_count": len(
-                texture_findings["package_absolute"]
-            ),
+            "package_absolute_texture_path_count": len(texture_findings["package_absolute"]),
             "invalid_texture_path_count": len(texture_findings["invalid"]),
             "invalid_normal_object_count": len(invalid_normal_objects),
             "tangent_unverified_object_count": len(tangent_unverified_objects),
