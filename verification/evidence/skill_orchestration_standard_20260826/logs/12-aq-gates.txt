@@ -1,0 +1,112 @@
+Checked 51 packages in 82ms
+OK: no known job-specific framework literals
+{
+  "gate": "activation_readiness_contract",
+  "contract_version": "0.1.0",
+  "status": "passed",
+  "profile_status": "disabled_experimental",
+  "profile_activation_performed": false,
+  "campaign_created": false,
+  "findings": []
+}
+....................s................................................... [  7%]
+..............s......................................................... [ 15%]
+........................................................s............... [ 22%]
+..........s...........................................s................. [ 30%]
+.......................................ss...............s............... [ 38%]
+....................s......s..........ssssssss................s......... [ 45%]
+........................................................................ [ 53%]
+.........ssss........................................................... [ 61%]
+........................................................................ [ 68%]
+.......................................................s................ [ 76%]
+........................................................................ [ 84%]
+...................s.................................................... [ 91%]
+............................................................s........... [ 99%]
+.....                                                                    [100%]
+============================== warnings summary ===============================
+tests/test_reference_evidence_aq.py::test_auto_segmentation_always_retains_pillow_fallback
+tests/test_autonomy_aq.py::test_plan_binds_exact_request_and_stops_for_controller
+tests/test_autonomy_aq.py::test_tampered_transition_budget_fails_closed
+tests/test_autonomy_aq.py::test_receiptless_candidate_assignment_is_adopted
+  E:\Playground\BlenderAssetGenerator\src\codex_blender_modeler\reference_evidence\segmentation.py:158: DeprecationWarning: 'mode' parameter is deprecated and will be removed in Pillow 13 (2026-10-15)
+    mask=Image.fromarray(adaptive, mode="L"),
+
+tests/test_reference_evidence_aq.py::test_auto_segmentation_always_retains_pillow_fallback
+tests/test_autonomy_aq.py::test_plan_binds_exact_request_and_stops_for_controller
+tests/test_autonomy_aq.py::test_tampered_transition_budget_fails_closed
+tests/test_autonomy_aq.py::test_receiptless_candidate_assignment_is_adopted
+  E:\Playground\BlenderAssetGenerator\src\codex_blender_modeler\reference_evidence\segmentation.py:201: DeprecationWarning: 'mode' parameter is deprecated and will be removed in Pillow 13 (2026-10-15)
+    mask=Image.fromarray(foreground, mode="L"),
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+915 passed, 26 skipped, 8 warnings in 205.72s (0:03:25)
+All checks passed!
+                         Codex Blender Modeler doctor                          
++-----------------------------------------------------------------------------+
+| Check      | Value                                                 | Status |
+|------------+-------------------------------------------------------+--------|
+| Repository | E:\Playground\BlenderAssetGenerator                   | OK     |
+| Workspace  | E:\Playground\BlenderAssetGenerator\workspaces        | OK     |
+| Blender    | C:\Program Files\Blender Foundation\Blender           | OK     |
+|            | 5.0\blender.exe                                       |        |
+| Codex      | codex                                                 | OK     |
++-----------------------------------------------------------------------------+
+E:\Playground\BlenderAssetGenerator\c826f12\aq\autonomous_quality_benchmark.json
+E:\Playground\BlenderAssetGenerator\c826f12\aq\autonomous_quality_benchmark_v02.json
+warning: in the working copy of '.agents/skills/material-authoring/SKILL.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.agents/skills/standard-asset-cycle/SKILL.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.agents/skills/texture-authoring/SKILL.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'FILE_MANIFEST.sha256', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'GETTING_STARTED_SKILL_ORCHESTRATION_KO.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'README.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'REPOSITORY_TREE.txt', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'SKILL_ORCHESTRATION_ARCHITECTURE_KO.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'SKILL_ORCHESTRATION_TEST_PLAN_KO.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'SURFACE_DETAIL_ROUTING_KO.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/agent/approvals_and_authorization.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/agent/evidence_hashing_and_history.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'docs/agent/workflow_reference.md', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'pyproject.toml', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/generate_schemas.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/run_v07_gates.ps1', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/run_v07_gates.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/run_v08_gates.ps1', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/run_v08_gates.sh', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'scripts/run_v09_gates.ps1', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/auto_revision/candidate_review_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/autonomy/material_rounds.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/blender_scripts/build_scene.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/blender_scripts/export_portable_package.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/build_provenance.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/cli.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/material_manifest.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/mcp_server.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/orchestration/planner.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/orchestration/service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/qa/camera_probe_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/qa/diagnostic_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/qa/diagnostics.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/qa/multiview_sanity.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/qa/request.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/skill_orchestration/__init__.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/skill_orchestration/models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/skill_orchestration/service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'src/codex_blender_modeler/texturing/models.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_autonomy_material_rounds_aq.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_build_provenance.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_candidate_review.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_material_manifest.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_qa_diagnostic_service.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_qa_multiview_sanity.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_skill_orchestration.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_skill_orchestration_public_surface.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v05_material_contracts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v05_texture_contracts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v071_gate_scripts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v07_blender_scripts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v08_artifact_lifecycle.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v08_gate_scripts.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v08_orchestration.py', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'tests/test_v09_gate_scripts.py', LF will be replaced by CRLF the next time Git touches it
+AQ 0.1 gates and AQ 0.2 host/smoke checks completed; v2 remains disabled_experimental: E:\Playground\BlenderAssetGenerator\c826f12\aq

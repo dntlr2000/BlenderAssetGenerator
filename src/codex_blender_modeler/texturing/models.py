@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import PurePosixPath
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -14,6 +14,7 @@ TextureChannelName = Literal[
     "opacity",
     "emission",
 ]
+Sha256 = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 
 
 class StrictModel(BaseModel):
@@ -51,7 +52,10 @@ class TextureProvenance(StrictModel):
     prompt: str | None = None
     seed: int | None = None
     source_hashes: list[str] = Field(default_factory=list)
-    generated_sha256: dict[str, str] = Field(default_factory=dict)
+    generated_sha256: dict[TextureChannelName, Sha256] = Field(
+        default_factory=dict,
+        exclude_if=lambda value: not value,
+    )
     license: str | None = None
 
 
@@ -147,7 +151,7 @@ class TextureManifest(StrictModel):
 
     @model_validator(mode="after")
     def validate_manifest(self) -> TextureManifest:
-        """Validate resolution, source composition, and channel color spaces."""
+        """Validate source composition, channels, spatial bindings, and provenance."""
 
         if any(value < 1 or value > 8192 for value in self.resolution):
             raise ValueError("resolution values must be in [1, 8192]")
@@ -171,6 +175,22 @@ class TextureManifest(StrictModel):
             expected = "sRGB" if name in {"base_color", "emission"} else "Non-Color"
             if channel.color_space not in {None, expected}:
                 raise ValueError(f"Channel {name} color_space must be {expected}")
+        if (
+            self.provenance is not None
+            and "generated_sha256" in self.provenance.model_fields_set
+        ):
+            image_channels = {
+                name for name, channel in self.channels.items() if channel.source == "image"
+            }
+            generated_channels = set(self.provenance.generated_sha256)
+            if generated_channels != image_channels:
+                missing = sorted(image_channels - generated_channels)
+                unexpected = sorted(generated_channels - image_channels)
+                raise ValueError(
+                    "TextureManifest provenance.generated_sha256 keys must exactly match "
+                    "image-backed channels; "
+                    f"missing={missing}, unexpected={unexpected}"
+                )
         if len(self.surface_detail_ids) != len(set(self.surface_detail_ids)):
             raise ValueError("TextureManifest surface_detail_ids must be unique")
         binding_ids = [binding.detail_id for binding in self.surface_detail_bindings]

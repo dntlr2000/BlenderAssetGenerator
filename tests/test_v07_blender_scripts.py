@@ -7,7 +7,8 @@ import os
 import subprocess
 import sys
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -452,8 +453,62 @@ def test_gltf_export_triangulates_serialization_meshes_before_evidence() -> None
     assert 'if format_name not in {"glb", "gltf"}:' in source
     assert 'quad_method="FIXED"' in source
     assert 'ngon_method="EAR_CLIP"' in source
+    assert "source_normal_records = _capture_polygon_corner_normals(mesh)" in source
+    assert "normal_records = _capture_bmesh_triangle_corner_normals(" in source
+    assert "editable.faces.layers.int.remove(source_face_layer)" in source
+    assert "_restore_triangulated_corner_normals(mesh, normal_records)" in source
+    assert "mesh.normals_split_custom_set(restored)" in source
     assert source.index(assignment) < source.index("operator = export_selected(")
     assert '"serialization_topology": serialization_topology' in source
+
+
+def test_gltf_triangle_key_preserves_winding_and_ignores_cyclic_rotation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Match triangulated faces after loop rotation without masking reversed winding."""
+
+    module = load_export_script(monkeypatch)
+    baseline = module._cyclic_triangle_key((4, 9, 2))
+    assert module._cyclic_triangle_key((9, 2, 4)) == baseline
+    assert module._cyclic_triangle_key((2, 4, 9)) == baseline
+    assert module._cyclic_triangle_key((4, 2, 9)) != baseline
+
+
+def test_gltf_normal_projection_uses_written_bmesh_diagonal(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Transfer quad corner normals onto the exact triangles emitted by BMesh."""
+
+    module = load_export_script(monkeypatch)
+    layer = object()
+    face_a = MagicMock(material_index=3)
+    face_a.verts = tuple(SimpleNamespace(index=index) for index in (0, 1, 3))
+    face_a.__getitem__.return_value = 7
+    face_b = MagicMock(material_index=3)
+    face_b.verts = tuple(SimpleNamespace(index=index) for index in (1, 2, 3))
+    face_b.__getitem__.return_value = 7
+    faces = MagicMock()
+    faces.__iter__.return_value = iter((face_a, face_b))
+    editable = MagicMock()
+    editable.faces = faces
+    source_normals = {
+        index: (float(index), float(index + 10), float(index + 20))
+        for index in range(4)
+    }
+
+    records = module._capture_bmesh_triangle_corner_normals(
+        editable,
+        layer,
+        {7: (3, source_normals)},
+    )
+
+    assert set(records) == {
+        (module._cyclic_triangle_key((0, 1, 3)), 3),
+        (module._cyclic_triangle_key((1, 2, 3)), 3),
+    }
+    assert records[(module._cyclic_triangle_key((0, 1, 3)), 3)] == [
+        {index: source_normals[index] for index in (0, 1, 3)}
+    ]
 
 
 def test_non_gltf_export_skips_serialization_triangulation(

@@ -182,6 +182,7 @@ def _append_build_cycle(
                 tool="build_scene",
                 depends_on=[dependency],
                 outputs=[_artifact(f"{prefix}.blend", "blender/scene.blend")],
+                parameters={"material_plan_mode": "scene_spec_only"},
             ),
             _step(
                 render_id,
@@ -332,6 +333,7 @@ def _append_geometry_multiview_review(
                 "run_id": run_id,
                 "resolution": 384,
                 "review_policy": "exterior_geometry_review_v2",
+                "material_plan_mode": "scene_spec_only",
             },
             instructions=[
                 "Use temporary front, right, top, rear, and oblique cameras only.",

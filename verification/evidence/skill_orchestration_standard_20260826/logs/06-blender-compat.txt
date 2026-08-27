@@ -1,0 +1,59 @@
+CBM_BLENDER_VERSION=5.0.1
+CBM_RENDER_ENGINE=BLENDER_EEVEE
+CBM_RENDER_DEVICE=DEFAULT
+CBM_COLOR_MANAGEMENT_LOOK=AgX - Medium High Contrast
+INFO Draco mesh compression is available, use library at C:\Program 
+Files\Blender Foundation\Blender 
+5.0\5.0\scripts\addons_core\io_scene_gltf2\extern_draco.dll
+23:44:01 | INFO: Starting glTF 2.0 export
+23:44:01 | INFO: Extracting primitive: Cube.001
+23:44:01 | INFO: Primitives created: 1
+23:44:01 | INFO: Finished glTF 2.0 export in 0.012552499771118164 s
+
+Info: File exported successfully
+
+FBX export starting... 
+'E:\\Playground\\BlenderAssetGenerator\\reports\\compat_exports\\compat.fbx'
+export finished in 0.0043 sec.
+CBM_COMPAT_OK 
+output=E:\Playground\BlenderAssetGenerator\reports\blender_compatibility.json
+Blender 5.0.1 (hash a3db93c5b259 built 2025-12-16 01:32:30)
+Writing to 
+E:\Playground\BlenderAssetGenerator\reports\compat_exports\compat.obj
+OBJ export of 'compat.obj' took 8.47 ms
+
+Blender quit
+{
+  "ok": true,
+  "blender_version": "5.0.1",
+  "python_version": "3.11.13 (main, Sep 23 2025, 09:08:45) [MSC v.1929 64 bit (AMD64)]",
+  "render_engine": "BLENDER_EEVEE",
+  "color_management_look": "AgX - Medium High Contrast",
+  "operators": {
+    "gltf": true,
+    "fbx": true,
+    "obj_modern": true,
+    "obj_legacy": true
+  },
+  "smoke_exports": {
+    "glb": {
+      "ok": true,
+      "path": "E:\\Playground\\BlenderAssetGenerator\\reports\\compat_exports\\compat.glb",
+      "exists": true,
+      "size_bytes": 1744
+    },
+    "obj": {
+      "ok": true,
+      "path": "E:\\Playground\\BlenderAssetGenerator\\reports\\compat_exports\\compat.obj",
+      "exists": true,
+      "size_bytes": 921
+    },
+    "fbx": {
+      "ok": true,
+      "path": "E:\\Playground\\BlenderAssetGenerator\\reports\\compat_exports\\compat.fbx",
+      "exists": true,
+      "size_bytes": 11820
+    }
+  }
+}
+EXIT_CODE=0

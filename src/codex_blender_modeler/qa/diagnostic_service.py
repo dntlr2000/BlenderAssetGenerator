@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,7 +18,7 @@ from ..background_quality.roles import assignment_roles, derive_background_role_
 from ..blender_artifacts import write_json_atomic
 from ..models import SceneSpec
 from ..reference_scope import reference_content_scope_from_metadata
-from ..workspace import file_exists, job_dir, load_job, sha256_file
+from ..workspace import file_exists, job_dir, load_job, native_io_path, sha256_file
 from .camera_probe_service import (
     artifact_publication_lease,
     run_bounded_camera_probes,
@@ -63,6 +64,34 @@ _RUN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
 _DEFAULT_DIAGNOSTIC_ID = "camera-geometry-v1"
 
 
+def _read_utf8(path: Path) -> str:
+    """Read one QA diagnostic artifact through Windows extended-length I/O."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _mkdir_native(path: Path, *, parents: bool, exist_ok: bool) -> None:
+    """Create one QA diagnostic directory without the legacy Windows path limit."""
+
+    native = native_io_path(path)
+    if parents:
+        os.makedirs(native, exist_ok=exist_ok)
+        return
+    try:
+        os.mkdir(native)
+    except FileExistsError:
+        if not exist_ok:
+            raise
+
+
+def _directory_children(path: Path) -> list[Path]:
+    """Enumerate direct diagnostic children through extended-length directory I/O."""
+
+    with os.scandir(native_io_path(path)) as iterator:
+        return [path / entry.name for entry in iterator]
+
+
 def _validate_id(value: str, label: str) -> str:
     """Reject traversal and nonportable identifiers before creating evidence paths."""
 
@@ -75,18 +104,18 @@ def _next_diagnostic_attempt_root(diagnostic_root: Path) -> Path:
     """Create the next immutable numbered attempt below one terminal diagnostic root."""
 
     attempts_root = diagnostic_root / "attempts"
-    attempts_root.mkdir(parents=True, exist_ok=True)
+    _mkdir_native(attempts_root, parents=True, exist_ok=True)
     indexes = [
         int(match.group(1))
-        for path in attempts_root.iterdir()
-        if path.is_dir()
+        for path in _directory_children(attempts_root)
+        if os.path.isdir(native_io_path(path))
         and (match := re.fullmatch(r"attempt-([0-9]{3})", path.name)) is not None
     ]
     next_index = max(indexes, default=0) + 1
     if next_index > 999:
         raise RuntimeError("QA diagnostic attempt budget is exhausted")
     attempt_root = attempts_root / f"attempt-{next_index:03d}"
-    attempt_root.mkdir(parents=False, exist_ok=False)
+    _mkdir_native(attempt_root, parents=False, exist_ok=False)
     return attempt_root
 
 
@@ -158,9 +187,7 @@ def validate_qa_diagnostic_bundle(
         resolved_bundle.relative_to(resolved_root)
     except ValueError as exc:
         raise ValueError("QA diagnostic bundle escapes the job workspace") from exc
-    bundle = QADiagnosticBundleManifest.model_validate_json(
-        resolved_bundle.read_text(encoding="utf-8")
-    )
+    bundle = QADiagnosticBundleManifest.model_validate_json(_read_utf8(resolved_bundle))
     expected_bundle = (
         resolved_root
         / "qa"
@@ -184,10 +211,8 @@ def validate_qa_diagnostic_bundle(
         bundle.diagnostic_report_sha256,
         "report",
     )
-    request = QADiagnosticRequest.model_validate_json(
-        request_path.read_text(encoding="utf-8")
-    )
-    report_payload = json.loads(report_path.read_text(encoding="utf-8"))
+    request = QADiagnosticRequest.model_validate_json(_read_utf8(request_path))
+    report_payload = json.loads(_read_utf8(report_path))
     report = QADiagnosticReport.model_validate(report_payload)
     if (
         request.job_id != bundle.job_id
@@ -285,7 +310,7 @@ def validate_qa_diagnostic_bundle(
             "semantic-mask manifest snapshot",
         )
         semantic_manifest = SemanticReferenceMaskManifest.model_validate_json(
-            snapshot_path.read_text(encoding="utf-8")
+            _read_utf8(snapshot_path)
         )
         visual_request = exact_sources[1]
         if (
@@ -314,8 +339,8 @@ def validate_qa_diagnostic_bundle(
         bundle.camera_probe_manifest_sha256,
         "camera-probe manifest",
     )
-    probe_plan = json.loads(probe_plan_path.read_text(encoding="utf-8"))
-    probe_manifest = json.loads(probe_manifest_path.read_text(encoding="utf-8"))
+    probe_plan = json.loads(_read_utf8(probe_plan_path))
+    probe_manifest = json.loads(_read_utf8(probe_manifest_path))
     strict_probe_contract = probe_plan.get("terminal_contract") == "camera_probe_terminal_v2"
     if request.camera_role_map_path is not None:
         expected_role_map_hash = request.camera_role_map_sha256
@@ -456,13 +481,13 @@ def validate_qa_diagnostic_bundle(
             "assembly multi-view manifest",
         )
         assembly_plan = AssemblySanityPlan.model_validate_json(
-            assembly_plan_path.read_text(encoding="utf-8")
+            _read_utf8(assembly_plan_path)
         )
         assembly_report = AssemblySanityReport.model_validate_json(
-            assembly_report_path.read_text(encoding="utf-8")
+            _read_utf8(assembly_report_path)
         )
         assembly_manifest = AssemblySanityRenderManifest.model_validate_json(
-            assembly_manifest_path.read_text(encoding="utf-8")
+            _read_utf8(assembly_manifest_path)
         )
         if (
             assembly_plan.job_id != bundle.job_id
@@ -564,11 +589,9 @@ def _load_exact_qa_sources(
     ):
         if not file_exists(path):
             raise FileNotFoundError(f"{label} is missing from QA run {qa_run_id}: {path}")
-    request = VisualQARequest.model_validate_json(request_path.read_text(encoding="utf-8"))
-    report = VisualQAReport.model_validate_json(report_path.read_text(encoding="utf-8"))
-    manifest = RenderPassManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
-    )
+    request = VisualQARequest.model_validate_json(_read_utf8(request_path))
+    report = VisualQAReport.model_validate_json(_read_utf8(report_path))
+    manifest = RenderPassManifest.model_validate_json(_read_utf8(manifest_path))
     scene_spec_path = root / "analysis" / "scene_spec.json"
     validated_manifest = validate_visual_qa_request(
         request,
@@ -609,9 +632,7 @@ def _load_exact_qa_sources(
     reference_mask_manifest_path = run_dir / "reference_mask_manifest.json"
     if not file_exists(reference_mask_manifest_path):
         raise FileNotFoundError("canonical QA reference-mask manifest is missing")
-    reference_mask_manifest = json.loads(
-        reference_mask_manifest_path.read_text(encoding="utf-8")
-    )
+    reference_mask_manifest = json.loads(_read_utf8(reference_mask_manifest_path))
     if (
         reference_mask_manifest.get("reference_sha256") != request.reference_sha256
         or reference_mask_manifest.get("output_sha256")
@@ -646,7 +667,7 @@ def _assembly_evidence_from_multiview(
     relative = str(multiview["report_path"])
     digest = str(multiview["report_sha256"])
     path = _require_bound_file(root, relative, digest, "assembly multi-view report")
-    report = AssemblySanityReport.model_validate_json(path.read_text(encoding="utf-8"))
+    report = AssemblySanityReport.model_validate_json(_read_utf8(path))
     checks = report.assembly_evaluation.get("checks", [])
     if not isinstance(checks, list):
         raise ValueError("assembly multi-view report has malformed evaluated checks")
@@ -702,7 +723,7 @@ def _assembly_evidence_from_multiview(
 def _semantic_role_map(path: Path) -> dict[str, str]:
     """Load workflow-owned QA roles used to label semantic shape evidence."""
 
-    role_map = BackgroundRoleMap.model_validate_json(path.read_text(encoding="utf-8"))
+    role_map = BackgroundRoleMap.model_validate_json(_read_utf8(path))
     return {item.object_id: item.role for item in role_map.assignments}
 
 
@@ -748,9 +769,9 @@ def _load_current_semantic_manifest(
 
     manifest_path = root / "analysis" / "masks" / "semantic_manifest.json"
     manifest = SemanticReferenceMaskManifest.model_validate_json(
-        manifest_path.read_text(encoding="utf-8")
+        _read_utf8(manifest_path)
     )
-    spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
+    spec = SceneSpec.model_validate_json(_read_utf8(scene_spec_path))
     if (
         manifest.job_id != job_id
         or spec.job_id != job_id
@@ -1014,7 +1035,7 @@ def _assembly_multiview_eligible(root: Path) -> bool:
     path = root / "analysis" / "modeling_plan.json"
     if not file_exists(path):
         return False
-    plan = ModelingPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    plan = ModelingPlan.model_validate_json(_read_utf8(path))
     targets = [item for item in plan.objects if item.assembly_role in {"root", "attached"}]
     return (
         plan.assembly_consistency_policy == "spatial_v1"
@@ -1223,7 +1244,7 @@ def _run_job_visual_diagnostics_locked(
         reference_path,
     ) = _load_exact_qa_sources(root, job_id, selected_qa_run)
     scene_spec_path = root / "analysis" / "scene_spec.json"
-    spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
+    spec = SceneSpec.model_validate_json(_read_utf8(scene_spec_path))
     if (
         spec.job_id != job_id
         or sha256_file(scene_spec_path) != visual_request.scene_spec_sha256
@@ -1248,11 +1269,9 @@ def _run_job_visual_diagnostics_locked(
     )
     bundle_path = diagnostic_root / "bundle_manifest.json"
     if file_exists(bundle_path):
-        QADiagnosticBundleManifest.model_validate_json(
-            bundle_path.read_text(encoding="utf-8")
-        )
+        QADiagnosticBundleManifest.model_validate_json(_read_utf8(bundle_path))
         raise FileExistsError(f"immutable QA diagnostic already exists: {diagnostic_root}")
-    diagnostic_root.mkdir(parents=True, exist_ok=True)
+    _mkdir_native(diagnostic_root, parents=True, exist_ok=True)
     artifact_root = _next_diagnostic_attempt_root(diagnostic_root)
     try:
         (

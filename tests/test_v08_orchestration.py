@@ -1194,6 +1194,11 @@ def test_background_preview_plan_skips_only_generic_review_gates(
         "exterior_geometry_review_v2"
     )
     assert geometry_review["parameters"]["resolution"] == 384
+    assert geometry_review["parameters"]["material_plan_mode"] == "scene_spec_only"
+    geometry_build = next(
+        item for item in steps if item["step_id"] == "background_geometry.build"
+    )
+    assert geometry_build["parameters"]["material_plan_mode"] == "scene_spec_only"
     visual_review = next(
         item
         for item in steps
@@ -1233,6 +1238,56 @@ def test_background_preview_plan_skips_only_generic_review_gates(
     assert plan["terminal_step_id"].endswith(".report")
 
 
+@pytest.mark.parametrize(
+    ("phase", "expected_mode"),
+    [("geometry", "scene_spec_only"), ("material", "current")],
+)
+def test_legacy_build_steps_select_phase_safe_material_plan_mode(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    phase: str,
+    expected_mode: str,
+) -> None:
+    """Route old immutable build steps through the phase-safe material boundary."""
+
+    request = orchestration_service.WorkflowRequest(
+        workflow_id="wf-material-boundary",
+        job_id="material_boundary_asset",
+        raw_request="Exercise one legacy build step.",
+        requested_scope="full",
+        budgets=orchestration_service.WorkflowBudgets(
+            max_qa_iterations=1,
+            max_texture_resolution=512,
+        ),
+        created_at=datetime.now(UTC),
+    )
+    step = orchestration_service.WorkflowStep(
+        step_id=f"{phase}.build",
+        title="Build scene",
+        phase=phase,  # type: ignore[arg-type]
+        execution_mode="host",
+        tool_name="build_scene",
+    )
+    selected: list[tuple[str, str]] = []
+
+    def capture_build(job_id: str, *, material_plan_mode: str = "current") -> None:
+        """Capture the selected build mode without invoking Blender."""
+
+        selected.append((job_id, material_plan_mode))
+
+    monkeypatch.setattr(orchestration_service, "_build_scene", capture_build)
+
+    orchestration_service._execute_host_tool(
+        tmp_path,
+        tmp_path / "workflow",
+        request,
+        step,
+        input_fingerprint="a" * 64,
+    )
+
+    assert selected == [("material_boundary_asset", expected_mode)]
+
+
 def _write_fake_geometry_multiview_outputs(root: Path, step: WorkflowStep) -> None:
     """Write schema-valid run-owned outputs for orchestration-only unit tests."""
 
@@ -1261,6 +1316,7 @@ def _write_fake_geometry_multiview_outputs(root: Path, step: WorkflowStep) -> No
         source_blend_path="blender/scene.blend",
         source_blend_sha256=sha256_file(root / "blender" / "scene.blend"),
         build_fingerprint="a" * 64,
+        material_plan_mode=str(step.parameters.get("material_plan_mode", "current")),
         source_fingerprint="b" * 64,
         review_policy="exterior_geometry_review_v2",
         assembly_frame=modeling_plan["assembly_frame"],
@@ -2651,6 +2707,7 @@ def test_geometry_multiview_host_step_forwards_exact_workflow_run(
         "plan_job_id": "geometry_review_asset",
         "run_id": run_id,
         "resolution": 384,
+        "material_plan_mode": "scene_spec_only",
         "run_job_id": "geometry_review_asset",
         "selected_run_id": run_id,
         "plan_sha256": "a" * 64,

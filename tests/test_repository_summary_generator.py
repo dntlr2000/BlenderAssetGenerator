@@ -59,6 +59,49 @@ def test_git_blob_policy_uses_index_lf_payload(tmp_path: Path) -> None:
     assert b"FILE_MANIFEST.sha256" not in manifest
 
 
+def test_raw_verification_log_whitespace_policy_is_byte_preserving_and_narrow(
+    tmp_path: Path,
+) -> None:
+    """Preserve raw log bytes while keeping non-log evidence under whitespace checks."""
+
+    generator = _load_generator()
+    _git(tmp_path, "init", "-q")
+    (tmp_path / ".gitattributes").write_bytes((ROOT / ".gitattributes").read_bytes())
+
+    log_path = (
+        tmp_path
+        / "verification"
+        / "evidence"
+        / "fixture"
+        / "logs"
+        / "terminal.txt"
+    )
+    log_path.parent.mkdir(parents=True)
+    raw_log = b"terminal output with spaces   \r\nnext line\r\n"
+    log_path.write_bytes(raw_log)
+    _git(tmp_path, "add", ".gitattributes", log_path.relative_to(tmp_path).as_posix())
+    _git(tmp_path, "diff", "--cached", "--check")
+
+    entries = generator.git_index_entries(tmp_path)
+    log_relative_path = log_path.relative_to(tmp_path).as_posix()
+    log_entry = next(entry for entry in entries if entry.path == log_relative_path)
+    assert generator.git_blob_bytes(tmp_path, log_entry.object_id) == raw_log
+
+    evidence_path = tmp_path / "verification" / "evidence" / "fixture" / "README.md"
+    evidence_path.write_bytes(b"non-log evidence with spaces   \n")
+    _git(tmp_path, "add", evidence_path.relative_to(tmp_path).as_posix())
+    result = subprocess.run(
+        ["git", "diff", "--cached", "--check"],
+        cwd=tmp_path,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "verification/evidence/fixture/README.md" in result.stdout
+
+
 def test_readme_markers_are_replaced_deterministically() -> None:
     """Replace one generated block without duplicating markers or surrounding text."""
 

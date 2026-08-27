@@ -8,6 +8,7 @@ import runpy
 import tomllib
 from pathlib import Path
 
+import typer
 from cli_help_support import assert_cli_help_contract
 from jsonschema import Draft202012Validator
 from typer.testing import CliRunner
@@ -27,6 +28,8 @@ from codex_blender_modeler.skill_orchestration.models import (
     StandardCompositeRunState,
     StandardCompositeRunTerminal,
     StandardCompositeStageBinding,
+    StandardQualityDispositionRecord,
+    StandardQualityDispositionRequest,
 )
 from codex_blender_modeler.versioning import (
     PROJECT_VERSION,
@@ -73,6 +76,8 @@ SCHEMA_MODELS = {
     "standard_composite_stage_binding.schema.json": StandardCompositeStageBinding,
     "standard_composite_run_state.schema.json": StandardCompositeRunState,
     "standard_composite_run_terminal.schema.json": StandardCompositeRunTerminal,
+    "standard_quality_disposition_request.schema.json": StandardQualityDispositionRequest,
+    "standard_quality_disposition_record.schema.json": StandardQualityDispositionRecord,
     "aq_skill_adapter_plan.schema.json": AQSkillAdapterPlan,
     "aq_skill_adapter_state.schema.json": AQSkillAdapterState,
 }
@@ -99,6 +104,43 @@ def test_skill_mcp_tools_are_callable_and_project_allowlisted() -> None:
     assert MCP_TOOLS <= enabled
     for tool_name in MCP_TOOLS:
         assert callable(getattr(mcp_server, tool_name))
+
+
+def test_standard_resume_exposes_exact_guarded_technical_recovery() -> None:
+    """Expose failed-state recovery without adding a new unsnapshotted entry tool."""
+
+    runner = CliRunner()
+    help_result = runner.invoke(
+        app,
+        ["standard-asset-cycle-resume", "--help"],
+        terminal_width=240,
+    )
+    assert help_result.exit_code == 0
+    command = typer.main.get_command(app).commands["standard-asset-cycle-resume"]
+    option_names = {
+        option
+        for parameter in command.params
+        for option in getattr(parameter, "opts", ())
+    }
+    assert "--recover-failed-to-guarded-geometry" in option_names
+    assert "--failed-state-sha256" in option_names
+    assert "--recovery-reason" in option_names
+    assert "--reroute-candidate-to-manual-guarded" in option_names
+    assert "--candidate-state-sha256" in option_names
+    assert "--reroute-reason" in option_names
+    assert "--quality-disposition" in option_names
+    assert "--quality-disposition-fingerprint" in option_names
+    assert "--quality-disposition-note" in option_names
+    parameters = inspect.signature(mcp_server.resume_standard_asset_cycle).parameters
+    assert parameters["recover_failed_to_guarded_geometry"].default is False
+    assert parameters["failed_state_sha256"].default is None
+    assert parameters["recovery_reason"].default is None
+    assert parameters["reroute_candidate_to_manual_guarded"].default is False
+    assert parameters["candidate_state_sha256"].default is None
+    assert parameters["reroute_reason"].default is None
+    assert parameters["quality_disposition"].default is None
+    assert parameters["quality_disposition_fingerprint"].default is None
+    assert parameters["quality_disposition_note"].default is None
 
 
 def test_registry_tool_allowlists_reference_real_enabled_mcp_tools() -> None:

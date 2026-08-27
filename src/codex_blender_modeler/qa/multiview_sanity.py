@@ -37,6 +37,7 @@ AssemblySanityReviewPolicy = Literal[
     "assembly_structural_v1",
     "exterior_geometry_review_v2",
 ]
+AssemblySanityMaterialPlanMode = Literal["current", "scene_spec_only"]
 GeometryReviewScope = Literal[
     "geometry_recipe",
     "semantic_recomposition",
@@ -227,6 +228,7 @@ class AssemblySanityPlan(StrictModel):
     source_blend_path: str
     source_blend_sha256: str = Field(pattern=SHA256_PATTERN)
     build_fingerprint: str = Field(pattern=SHA256_PATTERN)
+    material_plan_mode: AssemblySanityMaterialPlanMode = "current"
     source_fingerprint: str = Field(pattern=SHA256_PATTERN)
     review_policy: AssemblySanityReviewPolicy = "assembly_structural_v1"
     assembly_frame: AssemblyFrame
@@ -757,8 +759,9 @@ def plan_job_assembly_multiview_sanity(
     *,
     run_id: str | None = None,
     resolution: int = 384,
+    material_plan_mode: AssemblySanityMaterialPlanMode = "current",
 ) -> dict[str, Any]:
-    """Write one immutable v2 five-view plan for an authored spatial asset."""
+    """Write one immutable five-view plan under an exact material-plan boundary."""
 
     root = job_dir(job_id)
     metadata = load_job(job_id)
@@ -784,6 +787,7 @@ def plan_job_assembly_multiview_sanity(
         job_id,
         scene_spec_path=scene_path,
         validate_surface_details=False,
+        material_plan_mode=material_plan_mode,
     )
     selected_run_id = _validate_run_id(run_id or _new_run_id())
     run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
@@ -798,6 +802,8 @@ def plan_job_assembly_multiview_sanity(
         "build_fingerprint": provenance["fingerprint"],
         "reference_sources": [item.model_dump(mode="json") for item in sources],
     }
+    if material_plan_mode != "current":
+        source_payload["material_plan_mode"] = material_plan_mode
     plan = AssemblySanityPlan(
         job_id=job_id,
         run_id=selected_run_id,
@@ -808,6 +814,7 @@ def plan_job_assembly_multiview_sanity(
         source_blend_path=_job_relative(root, blend_path),
         source_blend_sha256=source_payload["source_blend_sha256"],
         build_fingerprint=str(provenance["fingerprint"]),
+        material_plan_mode=material_plan_mode,
         source_fingerprint=stable_json_digest(source_payload),
         review_policy="exterior_geometry_review_v2",
         assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
@@ -845,8 +852,9 @@ def plan_job_assembly_multiview_sanity_for_sources(
     blend_path: Path,
     run_id: str,
     resolution: int = 384,
+    material_plan_mode: AssemblySanityMaterialPlanMode = "current",
 ) -> dict[str, Any]:
-    """Plan five-view structural evidence for one isolated job-contained candidate pair."""
+    """Plan isolated five-view evidence under an exact material-plan boundary."""
 
     root = job_dir(job_id).resolve()
     metadata = load_job(job_id)
@@ -876,6 +884,7 @@ def plan_job_assembly_multiview_sanity_for_sources(
         job_id,
         scene_spec_path=scene_path,
         validate_surface_details=False,
+        material_plan_mode=material_plan_mode,
     )
     selected_run_id = _validate_run_id(run_id)
     run_dir = root / "qa" / "assembly_sanity" / "runs" / selected_run_id
@@ -890,6 +899,8 @@ def plan_job_assembly_multiview_sanity_for_sources(
         "build_fingerprint": provenance["fingerprint"],
         "reference_sources": [item.model_dump(mode="json") for item in sources],
     }
+    if material_plan_mode != "current":
+        source_payload["material_plan_mode"] = material_plan_mode
     plan = AssemblySanityPlan(
         job_id=job_id,
         run_id=selected_run_id,
@@ -900,6 +911,7 @@ def plan_job_assembly_multiview_sanity_for_sources(
         source_blend_path=_job_relative(root, source_blend),
         source_blend_sha256=source_payload["source_blend_sha256"],
         build_fingerprint=str(provenance["fingerprint"]),
+        material_plan_mode=material_plan_mode,
         source_fingerprint=stable_json_digest(source_payload),
         review_policy="exterior_geometry_review_v2",
         assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
@@ -951,6 +963,7 @@ def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, 
         plan.job_id,
         scene_spec_path=scene_path,
         validate_surface_details=False,
+        material_plan_mode=plan.material_plan_mode,
     )
     if provenance["fingerprint"] != plan.build_fingerprint:
         raise RuntimeError("assembly sanity build fingerprint is stale")
@@ -962,6 +975,8 @@ def _require_current_sources(root: Path, plan: AssemblySanityPlan) -> dict[str, 
         "build_fingerprint": plan.build_fingerprint,
         "reference_sources": [item.model_dump(mode="json") for item in plan.reference_sources],
     }
+    if plan.material_plan_mode != "current":
+        source_payload["material_plan_mode"] = plan.material_plan_mode
     if stable_json_digest(source_payload) != plan.source_fingerprint:
         raise RuntimeError("assembly sanity source fingerprint is internally inconsistent")
     scene_spec = SceneSpec.model_validate_json(scene_path.read_text(encoding="utf-8"))

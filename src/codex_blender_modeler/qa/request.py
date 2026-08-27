@@ -100,8 +100,9 @@ def validate_visual_qa_request(
     job_root: Path | None = None,
     surface_detail_inventory_path: Path | None = None,
     validate_surface_details: bool = True,
+    validate_build_fingerprint: bool = True,
 ) -> RenderPassManifest:
-    """Reject stale canonical or isolated QA requests before downstream decisions."""
+    """Validate immutable QA evidence and optionally require current build inputs."""
 
     paths_and_hashes = [
         (Path(request.reference_path), request.reference_sha256, "reference"),
@@ -132,7 +133,7 @@ def validate_visual_qa_request(
         raise ValueError("render-pass manifest camera fingerprint does not match request")
     if manifest.scene_spec_sha256 not in {None, request.scene_spec_sha256}:
         raise ValueError("render-pass manifest SceneSpec hash does not match request")
-    if manifest.build_fingerprint != _current_build_fingerprint(
+    if validate_build_fingerprint and manifest.build_fingerprint != _current_build_fingerprint(
         scene_spec_path,
         request.job_id,
         job_root=job_root,

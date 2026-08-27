@@ -61,7 +61,12 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 1. Verify job status and modeling capabilities.
 2. Ensure reference analysis exists.
 3. Author/update SceneSpec and geometry payloads.
-4. Run `build_scene`.
+4. Run `build_scene`. V0.8 geometry steps bind `material_plan_mode=scene_spec_only`
+   in both the build and five-view plan so a failed downstream V0.5 contract cannot
+   become a hidden V0.4 dependency. This mode still generates ModelingPlan-required
+   UVs, records the mode in build provenance, and never rewrites or accepts the old
+   MaterialPlan. Material, QA, baking, and packaging continue to use `current` and
+   fail closed on any invalid manifest.
 5. Run `render_preview`.
 6. Run `inspect_scene`.
 7. Run `validate_scene`.
@@ -74,7 +79,7 @@ Supported policies are `visible_only`, `proxy`, `measured`, and `authored`; `dis
 2. Create `analysis/material_plan.json` and one whitelisted ShaderRecipe per stable material ID.
 3. Record observed/inferred properties, mapping mode, real-world scale, texture strategy, export profiles, and bake requirements.
 4. Keep Base Color in sRGB and all data channels in Non-Color space.
-5. Generated textures must record provider, version/model, prompt, seed, channel hashes, and rights notes; never overwrite without an explicit flag.
+5. Generated textures must record provider, version/model, prompt, seed, channel hashes, and rights notes; never overwrite without an explicit flag. When `provenance.generated_sha256` is present, its keys exactly equal the image-backed TextureManifest channels and every value matches the current file SHA-256. Placement masks retain `placement.mask_sha256`, reports retain their dedicated hash fields, and neither belongs in the channel map. Legacy/import manifests that omit `generated_sha256` remain readable but gain no inferred hash declaration.
 6. Generate or preserve UV only when `mapping.mode=uv`; do not silently UV-project Object/Generated/triplanar materials.
 7. Build from SceneSpec plus the optional material plan; absence of a plan must preserve the legacy SceneSpec appearance.
 8. Run host contract validation, Blender material inspection, and fixed sphere/plane swatch renders.
@@ -231,6 +236,35 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
   `disabled_experimental` without explicit delegation and opt-in.
 - Use the existing workflow/AQ completion, approval, controller, IQ and retry surfaces at
   every exposed boundary, then resume the same skill run. Do not edit adapter state.
+- A Standard technical host failure may continue through the existing resume surface only
+  when the caller binds the exact failed-state SHA-256. The adapter preserves the failed
+  receipt and canonical SceneSpec snapshot, appends a `manual_guarded` `revise_asset` child,
+  never retries the failed step, and creates no technical approval request. An older
+  untouched recovery child that was incorrectly placed in the bounded `candidate_review`
+  envelope may be hash-bound, cancelled with an immutable receipt, and followed by one
+  `manual_guarded` child. An attempted candidate otherwise fails closed. The sole evaluated
+  exception requires an exact nonpromotable decision with direct improvement, no silhouette
+  regression, only authored V0.5 surface-detail binding blockers, no promotion approval, and
+  an unchanged canonical baseline. Preserve that decision and cancellation receipt, carry
+  only the same source-QA candidate operations into a new exact `detailed_geometry` gate,
+  and require fresh V0.5 and V0.6 after application.
+- A completed geometry child's exact five-view visual review is a downstream barrier when
+  `v04_reentry` is `recommended` or `required`. Do not plan or run material or QA work;
+  append at most one bounded `manual_guarded` V0.4 correction. If an older run already
+  planned an untouched material child, preserve it as cancelled with an exact receipt and
+  append that correction. A started material child fails closed, and a rejected bounded
+  correction publishes a blocked terminal instead of looping. This technical reroute does
+  not create approval; the correction proposal still requires its own exact specialized
+  geometry approval.
+- Each completed geometry binding owns a distinct immutable material snapshot and
+  `MaterialImpactReport`. The first binding retains the legacy singleton paths; later
+  correction bindings use their stage ordinal so replay cannot overwrite or conflict with
+  prior material-impact evidence.
+- A `full_cycle_to_package` run stops after consumed exact `qa.review` and publishes one
+  hash-bound human quality-disposition request. `accepted` may plan a fresh V0.7 child but
+  grants no optimization or package approval. `needs_revision` may enter only the remaining
+  guarded revision budget; exhausted budget publishes a safe terminal. A previously planned
+  unapproved optimization review is cancelled with an immutable receipt before this boundary.
 - `skill-trace` validates snapshot, route, before/after state, and receipt-chain hashes; it
   never approves or executes work.
 

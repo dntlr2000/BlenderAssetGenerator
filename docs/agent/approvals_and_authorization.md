@@ -29,5 +29,10 @@ guarded revision, failed retry, V0.7 optimization approval, AQ RootAuthorization
 single-use policy decision remains independently required at its existing host boundary.
 `GuardedRevisionContinuation` only revalidates an already consumed exact V0.6 user
 approval; it cannot create, broaden, replace, or reuse that approval.
+A full-cycle Standard run additionally records a separate human quality disposition bound
+to the completed QA receipt, exact VisualQAReport, consumed `qa.review`, and current
+SceneSpec snapshot. QA acknowledgement is not quality acceptance. `accepted` selects
+only the V0.7 planning route and does not replace optimization or final-package approval;
+`needs_revision` selects only the remaining guarded budget or a safe terminal.
 
 Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.

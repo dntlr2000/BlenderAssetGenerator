@@ -22,7 +22,10 @@ else
   uv sync --frozen --extra dev --extra vision
 fi
 
-uv run pytest
+# Keep nested fixtures below a short repository-local path on every platform.
+PYTEST_ROOT="$PWD/.t/v8p-$(date -u +%H%M%S)-$$"
+mkdir -p "$PYTEST_ROOT"
+uv run pytest --basetemp "$PYTEST_ROOT"
 uv run ruff check .
 uv run cbm doctor
 

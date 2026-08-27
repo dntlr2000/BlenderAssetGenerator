@@ -42,10 +42,29 @@ from codex_blender_modeler.qa.multiview_sanity import (
     AssemblySanityViewCoverage,
     GeometryReviewAssessment,
 )
-from codex_blender_modeler.workspace import create_job, sha256_file
+from codex_blender_modeler.workspace import (
+    create_job,
+    file_exists,
+    native_io_path,
+    sha256_file,
+)
 
 JOB_ID = "diagnostic_service_test"
 QA_RUN_ID = "qa-run-001"
+
+
+def _read_text_native(path: Path) -> str:
+    """Read one diagnostic fixture through Windows extended-length path I/O."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _write_text_native(path: Path, content: str) -> None:
+    """Write one diagnostic fixture through Windows extended-length path I/O."""
+
+    with open(native_io_path(path), "w", encoding="utf-8") as handle:
+        handle.write(content)
 
 
 def _scene_spec(*, explicit_qa_role: bool = True) -> SceneSpec:
@@ -718,7 +737,7 @@ def test_full_reference_uses_only_an_explicit_semantic_subject_union(
 
     union_path = Path(str(captured["primary_reference_mask_path"]))
     assert captured["primary_reference_mask_source"] == "semantic_primary_supporting_union"
-    assert union_path.is_file()
+    assert file_exists(union_path)
     assert captured["primary_reference_mask_sha256"] == sha256_file(union_path)
     report = QADiagnosticReport.model_validate_json(
         Path(result["report"]).read_text(encoding="utf-8")
@@ -781,9 +800,9 @@ def test_later_semantic_registration_does_not_stale_attempt_owned_evidence(
     )
     assert bundle.diagnostic_id == "semantic-snapshot-stability"
 
-    request_payload = json.loads(Path(result["request"]).read_text(encoding="utf-8"))
+    request_payload = json.loads(_read_text_native(Path(result["request"])))
     snapshot = root / request_payload["semantic_reference_manifest_path"]
-    snapshot.write_text(snapshot.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    _write_text_native(snapshot, _read_text_native(snapshot) + "\n")
     with pytest.raises(ValueError, match="semantic-mask manifest"):
         service.validate_qa_diagnostic_bundle(root, bundle_path)
 

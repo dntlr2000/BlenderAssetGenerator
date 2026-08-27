@@ -1,0 +1,2 @@
+OK: agent instructions (root=9057 bytes, files=18, invariants=192)
+EXIT_CODE=0

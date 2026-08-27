@@ -25,6 +25,8 @@
 - `force_all`의 V0.5 강제 실행
 - material 변경 뒤 fresh QA
 - guarded revision의 source QA, candidate, plan, consumed approval, application/convergence, 전후 SceneSpec hash와 QA iteration 1..5 budget
+- consumed `qa.review` 뒤 별도 exact human quality disposition, stale fingerprint 거부, accepted 전 V0.7 미생성, exhausted needs_revision safe terminal
+- direct 개선·silhouette 비회귀 candidate가 오직 stale V0.5 surface-detail binding 때문에 nonpromotable일 때만 exact state hash·무승격승인·unchanged canonical을 검증한 manual guarded reroute, 동일 QA 연산 승인, fresh V0.5/V0.6 강제
 - full-cycle V0.7 approval과 clean-import boundary 보존
 - cancel은 child/trace evidence를 삭제하지 않음
 

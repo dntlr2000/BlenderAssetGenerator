@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pytest
 
+from codex_blender_modeler.autonomy import material_rounds as material_rounds_module
 from codex_blender_modeler.autonomy.authorization import (
     artifact_for,
     authorize_policy_gate,
@@ -269,6 +270,38 @@ def _policy(
     grant_path = session_root / "policy_authorizations" / "material-round-01.json"
     _write(grant_path, grant)
     return artifact_for(root, grant_path)
+
+
+def test_material_candidate_directory_publication_retries_transient_windows_denial(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Retry one transient atomic directory denial without weakening destination checks."""
+
+    source = tmp_path / "candidate.staging"
+    destination = tmp_path / "candidate"
+    source.mkdir()
+    (source / "completion.json").write_text("{}\n", encoding="utf-8")
+    original_replace = material_rounds_module.os.replace
+    attempts = 0
+
+    def transient_replace(source_path: str, destination_path: str) -> None:
+        """Deny the first publication attempt and then execute the real atomic rename."""
+
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise PermissionError("simulated transient material candidate denial")
+        original_replace(source_path, destination_path)
+
+    monkeypatch.setattr(material_rounds_module.os, "replace", transient_replace)
+    monkeypatch.setattr(material_rounds_module, "sleep", lambda _seconds: None)
+
+    material_rounds_module._replace_directory_with_retry(source, destination)
+
+    assert attempts == 2
+    assert not source.exists()
+    assert (destination / "completion.json").is_file()
 
 
 def test_material_round_selects_exact_portable_candidate_with_measured_local_maps(

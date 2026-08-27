@@ -53,6 +53,8 @@ resume은 live `.agents/skills/`가 아니라 이 snapshot을 재검증합니다
 
 `qa_repair_cycle`은 QA 뒤 자동 수정하지 않습니다. 해당 QA run의 candidate·RevisionPlan·소비된 user approval·application report와 선택적 convergence를 다시 검증한 `GuardedRevisionContinuation`이 현재 SceneSpec 결과 hash와 일치할 때만 같은 composite가 새 QA child를 계획합니다. 단순 SceneSpec 파일 변경은 continuation 권한이 아닙니다. 기본 revision budget은 1, 최대 5입니다.
 
+`full_cycle_to_package`는 exact `qa.review` 완료 뒤에도 바로 V0.7을 계획하지 않습니다. 완료 QA receipt, VisualQAReport, 소비된 `qa.review`, 현재 SceneSpec snapshot에 결속된 별도 human quality disposition에서 멈춥니다. `accepted`는 새 V0.7 계획만 허용하고 optimization/final-package 승인을 대신하지 않습니다. `needs_revision`은 남은 guarded revision budget만 사용하며, budget이 없으면 안전한 terminal을 게시합니다. Candidate evaluation이 direct score를 개선하고 silhouette을 회귀시키지 않았지만 geometry 변경으로 기존 V0.5 surface-detail binding만 stale해져 nonpromotable인 경우, promotion approval이 없고 canonical baseline이 그대로일 때에 한해 decision과 취소 receipt를 보존하고 동일 QA-candidate 연산을 새 `manual_guarded` `detailed_geometry` 경계로 옮깁니다. 적용 뒤에는 fresh V0.5와 V0.6을 강제합니다.
+
 V0.9 read-only audit는 skill bundle, adapter state, route/receipt chain과 guarded continuation의 모든 exact artifact를 검증합니다. 종료되지 않은 skill run이 있는 job은 workspace archive 대상이 아닙니다.
 
 ## AQ route

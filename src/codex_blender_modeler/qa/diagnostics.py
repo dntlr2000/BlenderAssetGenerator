@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 
-from ..workspace import file_exists, sha256_file
+from ..workspace import file_exists, native_io_path, sha256_file
 from .camera_attribution import AttributionThresholds, attribute_camera_geometry
 from .diagnostic_models import (
     AssemblyDiagnosticEvidence,
@@ -16,6 +16,13 @@ from .diagnostic_models import (
     SemanticShapeMetrics,
 )
 from .semantic_shape import compare_semantic_masks
+
+
+def _read_utf8(path: Path) -> str:
+    """Read one diagnostic request through Windows extended-length path I/O."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
 
 
 def _resolve_job_relative_path(job_root: Path, value: str) -> Path:
@@ -114,9 +121,7 @@ def load_qa_diagnostic_request(
     relative_request_path = _job_relative_path(job_root, request_path)
     if not file_exists(request_path):
         raise FileNotFoundError(f"QA diagnostic request does not exist: {request_path}")
-    request = QADiagnosticRequest.model_validate_json(
-        request_path.read_text(encoding="utf-8")
-    )
+    request = QADiagnosticRequest.model_validate_json(_read_utf8(request_path))
     if not relative_request_path.startswith(f"{request.artifact_root}/"):
         raise ValueError("QA diagnostic request must live inside its artifact_root")
     _verify_request_sources(job_root, request)

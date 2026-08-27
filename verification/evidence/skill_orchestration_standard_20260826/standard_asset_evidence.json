@@ -1,0 +1,314 @@
+{
+  "schema_version": "0.1.0",
+  "evidence_id": "skill-orchestration-standard-20260826",
+  "project_version": "0.9.0",
+  "recorded_at": "2026-08-26T18:25:26Z",
+  "status": "passed_with_declared_quality_and_format_limits",
+  "scope": "Fresh source gates plus exact Standard E2E evidence for item_plastic_standard_canary_01 and collectible_cloth_01; AQ is audited for readiness only.",
+  "source_verification": {
+    "uv_sync": {
+      "status": "passed",
+      "package_count": 51,
+      "log": "logs/01-uv-sync.txt"
+    },
+    "ruff": {
+      "status": "passed",
+      "sandbox_attempt_status": "passed_with_inaccessible_preserved_scratch_warnings",
+      "host_retry_status": "passed",
+      "logs": [
+        "logs/02-ruff.txt",
+        "logs/02b-ruff-host-retry.txt"
+      ]
+    },
+    "focused_pytest": {
+      "status": "passed_after_technical_host_retry",
+      "passed": 180,
+      "skipped": 0,
+      "warnings": 0,
+      "failed_sandbox_attempt": {
+        "exit_code": 1,
+        "reason": "Windows sandbox denied pytest basetemp cleanup with WinError 5.",
+        "log": "logs/03-focused-pytest.txt"
+      },
+      "successful_host_retry_log": "logs/03b-focused-pytest-host-retry.txt"
+    },
+    "full_pytest": {
+      "status": "passed",
+      "passed": 1987,
+      "skipped": 63,
+      "warnings": 8,
+      "warning_scope": "Eight Pillow mode deprecation warnings.",
+      "log": "logs/04-full-pytest.txt"
+    },
+    "doctor": {
+      "status": "passed",
+      "blender_detected": "5.0",
+      "log": "logs/05-doctor.txt"
+    },
+    "blender_compatibility": {
+      "status": "passed",
+      "blender": "5.0.1",
+      "blender_python": "3.11.13",
+      "formats": [
+        "GLB",
+        "FBX",
+        "OBJ"
+      ],
+      "log": "logs/06-blender-compat.txt"
+    },
+    "agent_instruction_checker": {
+      "status": "passed",
+      "instruction_file_count": 18,
+      "invariant_count": 192,
+      "log": "logs/07-agent-instructions.txt"
+    },
+    "repository_projection": {
+      "status": "passed_after_preserved_technical_and_contract_retries",
+      "system_python_attempt": {
+        "status": "failed",
+        "reason": "System Python lacked the project pydantic dependency.",
+        "log": "logs/13-repository-summary.txt"
+      },
+      "frozen_uv_retry": {
+        "status": "passed",
+        "write": "passed",
+        "check": "passed",
+        "real_git_index_changed": false,
+        "log": "logs/13b-repository-summary-uv-retry.txt"
+      },
+      "focused_contract_attempt": {
+        "status": "failed",
+        "passed": 5,
+        "failed": 1,
+        "reason": "The initial latest-summary top-level status exceeded the public projection enum.",
+        "log": "logs/15-repository-summary-pytest.txt"
+      },
+      "corrected_focused_contract_retry": {
+        "status": "passed",
+        "passed": 6,
+        "failed": 0,
+        "log": "logs/15b-repository-summary-pytest.txt"
+      }
+    },
+    "post_projection_validation": {
+      "json_kpi_check": "passed",
+      "ruff": "passed",
+      "agent_instruction_checker": "passed",
+      "git_diff_check": "passed_with_line_ending_notices_and_zero_whitespace_errors",
+      "logs": [
+        "logs/14b-json-kpi-check.txt",
+        "logs/16-final-ruff.txt",
+        "logs/17-final-agent-instructions.txt",
+        "logs/18-final-diff-check.txt"
+      ]
+    },
+    "v07_isolated_gate": {
+      "status": "passed_with_declared_format_warnings",
+      "full_pytest_passed": 1987,
+      "full_pytest_skipped": 63,
+      "full_pytest_warnings": 8,
+      "package_and_clean_import_formats": [
+        "GLB",
+        "FBX",
+        "OBJ"
+      ],
+      "log": "logs/09-v07-gates.txt"
+    },
+    "v08_isolated_gate": {
+      "status": "passed",
+      "full_pytest_passed": 1987,
+      "full_pytest_skipped": 63,
+      "full_pytest_warnings": 8,
+      "preview_fixture_status": "completed_at_declared_review_boundary",
+      "portable_fixture_status": "completed",
+      "log": "logs/10-v08-gates.txt"
+    },
+    "v09_isolated_gate": {
+      "status": "passed",
+      "full_pytest_passed": 1987,
+      "full_pytest_skipped": 63,
+      "full_pytest_warnings": 8,
+      "blender": "5.0.1",
+      "package_clean_import_handoff_queue_audit": "passed",
+      "log": "logs/11-v09-gates.txt"
+    },
+    "aq_readiness_gate": {
+      "status": "passed",
+      "passed": 915,
+      "skipped": 26,
+      "warnings": 8,
+      "profile_status": "disabled_experimental",
+      "profile_activation_performed": false,
+      "campaign_created": false,
+      "run_blender": false,
+      "actual_aq_asset_execution_started": false,
+      "log": "logs/12-aq-gates.txt"
+    }
+  },
+  "assets": {
+    "item_plastic_standard_canary_01": {
+      "classification": "accepted Standard canary with declared silhouette limitation",
+      "run_id": "item-plastic-standard-canary-01-run",
+      "terminal_type": "completed",
+      "terminal_sha256": "18c294735e1e85986e247e20c76782ebb47d8d793a754fe808fcb7d649e6523e",
+      "final_state_sha256": "28dec62d2a10f03643910c089b4616fc442d7795fa69cc4b023e2dd8d13dbfa5",
+      "workflow_id": "wf-20260825t133457z-aa3218b9",
+      "underlying_terminal_sha256": "6f993b4307a1a1093976e452bc15333919f24dd9e90dc9f809b61a30262ce143",
+      "quality": {
+        "baseline_overall_direct_score": 0.744321,
+        "final_overall_direct_score": 0.795028,
+        "baseline_silhouette_iou": 0.674717,
+        "final_silhouette_iou": 0.718917,
+        "qa_run_id": "v08-d33330a6-qa",
+        "qa_report_sha256": "e6133205d324ffc198fae08154e701cdd6c56de11802d970921fcfd55a696e9c",
+        "remaining_finding": "direct.global_silhouette",
+        "remaining_finding_severity": "high",
+        "request_fingerprint": "3ea78a47aed5d8d007490a369e745367ba7534f2d6a77a17e36dff5e5d4f30f3",
+        "disposition": "accepted",
+        "disposition_sha256": "a24e48f17149da39fad6b6348e99390611a41a314d15b48b13a1f531c0424092",
+        "human_decision_observed": true
+      },
+      "canonical_source": {
+        "scene_spec_sha256": "3ed91596fc7731592558a8a0a08c5ad6b3c33ede3caca287584cbffb1d78f0e9",
+        "material_plan_sha256": "e9d4c0afaff63a5b8282462ee6c309481fac540d22caa60fd9f91a562951b831",
+        "blend_sha256": "a70be15fc800c24eb2723c5900db000d1a14b4d459fabac484ef122b4eb72867",
+        "texture_manifest_sha256": "8fc95cd6e45d3f49b0fc89d967860dd967558177a550498cc6bc640ce4df018f"
+      },
+      "package": {
+        "package_id": "v08-aa3218b9-package",
+        "manifest_sha256": "4833a6ffe9bdc66e267607a60e20340cbd4ef4f2b26ffe77b05e8718bd789fc8",
+        "glb_sha256": "a2b10b2364b406f05e7246235b8f79cfbcdc6cff134fd849bf17618b101714ee",
+        "roundtrip_validation_sha256": "083fb7efadbeea294e15c765c934563cc5e60896be53124a554b61b65e2f0fb7",
+        "missing_dependency_count": 0,
+        "absolute_path_count": 0,
+        "semantic_id_coverage": 1.0,
+        "material_id_coverage": 1.0,
+        "bounds_max_abs_error_m": 0.0,
+        "clean_import_passed": 1,
+        "clean_import_warnings": 6,
+        "clean_import_failed": 0,
+        "final_approval_fingerprint": "8a361cd0da7310292e325e909a2b9c030de3e7c3456713cb279c2e1aa60a64f5"
+      }
+    },
+    "collectible_cloth_01": {
+      "classification": "accepted and packaged Standard composite asset with declared silhouette, UV, and roundtrip limitations",
+      "run_id": "collectible-cloth-01-final-kpi-r1",
+      "terminal_type": "completed",
+      "plan_sha256": "f7bbb42ffa6367841632afac1eb770ff08101a1a9feae609434a40849251e8b2",
+      "terminal_sha256": "da81e8de1100268ace51b536033d54ef8c3f9ac57f663499fe78531153d50bee",
+      "final_state_sha256": "b1379cd51e5e4ca3f07c55bfd63a03c40a66d92535bed0fdd92a6629fe4d83ba",
+      "workflow_id": "wf-20260826t084811z-9643d4d2",
+      "underlying_terminal_sha256": "7ae1a69d673699a5992a6067c571afdc209b1ef976a8a0a74171215cd5a66034",
+      "quality": {
+        "baseline_overall_direct_score": 0.861737,
+        "final_overall_direct_score": 0.862142,
+        "overall_direct_score_delta": 0.000405,
+        "baseline_silhouette_iou": 0.784956,
+        "final_silhouette_iou": 0.812281,
+        "silhouette_iou_delta": 0.027325,
+        "qa_run_id": "v08-984ec6b0-qa",
+        "qa_report_sha256": "962bc2744be02953c53d81ba19e27ca747b3838be5dfabd22f3ef0e0feadaf37",
+        "canonical_pass_count": 7,
+        "surface_details_declared": 2,
+        "surface_details_texture_bound": 2,
+        "remaining_finding": "direct.global_silhouette",
+        "remaining_finding_severity": "medium",
+        "request_fingerprint": "d44875814eebc79cdda46ca957c8d1f7554e8282bf9e160d45f10dd7bd8b7ef0",
+        "disposition": "accepted",
+        "disposition_sha256": "664e79f9bdda08cc064f5dcc030092a4288ffa8d70d18c9ad770b75bb60f434f",
+        "human_decision_observed": true
+      },
+      "assembly_advisory": {
+        "run_id": "v06-984ec6b0-post-material-assembly",
+        "view_count": 5,
+        "pass_count": 20,
+        "structural_status": "passed",
+        "visual_outcome": "visually_coherent",
+        "reference_comparison_status": "unscorable",
+        "v04_reentry": "not_indicated",
+        "plan_sha256": "2327bb6705388705354d7852d321af56332b2d5a345760324a8e939220fd6174",
+        "render_manifest_sha256": "c60d4ca4bd6e8beb848bb1cb1d38258e738955637d64d3d43bd62d4886e92cc1",
+        "report_sha256": "37e19761c6febab9a33405c0fb663c67959b3fced0911d5a33c44f20d9e246c0",
+        "visual_review_sha256": "6cb37720a56bdcee1d3287aa614f11aedf49663fe75b06e1f8b4d6c02406de70"
+      },
+      "canonical_source": {
+        "scene_spec_sha256": "b61f7fead07d5aedeed6ed1cd7b0026aa143af8ae287bff93cef04033eef6531",
+        "geometry_payload_sha256": "2e0c4b6f23117c03f0733e01c08d4260918387a8268b28ac221820324f1034db",
+        "material_plan_sha256": "85a5b01d7db7c56eeabd80a03af37f62965e87dbcf74bf85851a5648c2088460",
+        "blend_sha256": "38634299862f6e8b93855bfca00dce771ac74545fe5705d392fce79369b35be4",
+        "texture_manifest_sha256": "fe8f3adf10c4070b91ecc971e752685ff08732d46ec228ef151f707cdc49e53f",
+        "retained_degenerate_uv_triangle_count": 1152,
+        "degenerate_uv_evidence_sha256": "71108117a09cacd10739503e4322e125657ec1958c5959ffac873f4bc570ddb2"
+      },
+      "package": {
+        "package_id": "v08-9643d4d2-package",
+        "optimization_review_fingerprint": "eb14df87961a6ef19ec217385d6107ed154f4aa8aeccc48cacc58beca6687a7f",
+        "optimization_approval_sha256": "d7b315d7c9af7d49873a669c1f5cf0a443aff59b69b10fb30224b2c046062c52",
+        "manifest_sha256": "866e70cc4e423eccab3d3e2a72f74b1871f892a8f361ea5a0f2058a5eee0527f",
+        "glb_sha256": "a79c91f68f1a76c642a1ddfd59bf423f18b9e49a28aebaf1edc10bee3d970edc",
+        "glb_byte_size": 6444204,
+        "roundtrip_validation_sha256": "458bff0599caad5cc59f6c2519e479d1edaac52ee97e4fec21991078654bba74",
+        "missing_dependency_count": 0,
+        "absolute_path_count": 0,
+        "semantic_id_coverage": 1.0,
+        "material_id_coverage": 1.0,
+        "bounds_max_abs_error_m": 0.0,
+        "clean_import_passed": 1,
+        "clean_import_warnings": 6,
+        "clean_import_failed": 0,
+        "final_approval_fingerprint": "26fce62ce1cbd1075b310bc4aa455108b72c166577537f5cb1210e8f42d247bf"
+      },
+      "technical_retry_history": {
+        "reason": "Two sandbox package attempts failed on Windows OpenImageIO temporary-file access; the exact host retry succeeded.",
+        "attempt_sha256": [
+          "8f6c8cd1ddee3eb2fbdeb81bdb8bacb79cfcca5979eaa67f97849733c2dc40e9",
+          "6b3805cf211435216d5252b906ca093f57697ad30b6fe0e4cb93346d6daa5316",
+          "366b30b09dacb45c3f40e0878cb06cdc75016c75de0878725918026573262560"
+        ],
+        "successful_attempt": 3
+      }
+    }
+  },
+  "aq_readiness": {
+    "verdict": "ready",
+    "reason": "Fresh source, V0.7, V0.8, V0.9, Blender compatibility, instruction, and AQ contract gates pass, and two exact Standard assets have completed human-reviewed package lineages.",
+    "profile_status": "disabled_experimental",
+    "actual_aq_skill_adapter_asset_verified": false,
+    "actual_aq_asset_execution_started": false,
+    "profile_activation_performed": false,
+    "campaign_created": false,
+    "next_boundary": "A separate explicit AQ opt-in and exact asset/session authority are required before any actual AQ execution."
+  },
+  "declared_limitations": [
+    "The plastic canary retains a user-accepted high direct.global_silhouette finding and is not a perfect quality pass.",
+    "The cloth asset retains a user-accepted medium direct.global_silhouette finding and 1,152 degenerate UV triangles in the evaluated UV mesh.",
+    "Both GLB clean-import reports retain six declared axis, units, custom-normal, tangent, and UV verification warnings.",
+    "The five-view cloth assembly diagnostic is advisory and unscorable for reference similarity; canonical similarity comes only from the seven-pass V0.6 report.",
+    "AQ v2 remains disabled_experimental and no actual AQ adapter asset, profile activation, campaign, or AQ Blender execution occurred.",
+    "Unity and Unreal destination runtime parity remain unverified; no destination project was modified."
+  ],
+  "logs": [
+    {"path": "logs/01-uv-sync.txt", "bytes": 42, "sha256": "545ebcfdc35d297b50f0940d5ff9edb0338d8cf70050298bb6f9ff625239bccb"},
+    {"path": "logs/02-ruff.txt", "bytes": 579, "sha256": "b8849a62a4344be069f94e670f6cf4ace2c863e14e7fa102401eee4cd7ec6ac0"},
+    {"path": "logs/02b-ruff-host-retry.txt", "bytes": 33, "sha256": "b7a95b77a9305361ba44b2c76e61746124328622feecf010b7981ac8d869c8a4"},
+    {"path": "logs/03-focused-pytest.txt", "bytes": 5578, "sha256": "189ef454c965ea8ece2ee3d7b73aea4d8a244af0d88f5893f1c443dc0f37de42"},
+    {"path": "logs/03b-focused-pytest-host-retry.txt", "bytes": 1087, "sha256": "567d09d9c90b21ec500cc3472785be2851ea131102e16899f235c24d0f89467d"},
+    {"path": "logs/04-full-pytest.txt", "bytes": 18128, "sha256": "3e2630f5c48053d0cb08ace2f52e856b6a0a83bdd458b6697ecabea4fcf52321"},
+    {"path": "logs/05-doctor.txt", "bytes": 823, "sha256": "70f85a66f404885ee0009aba26638c0d21b5920263fabbaabfab9a5ad102daf9"},
+    {"path": "logs/06-blender-compat.txt", "bytes": 1913, "sha256": "f13cd87c19d256199dbec3c6e73b805920fc660d72474abb0886d8af92a8bc3f"},
+    {"path": "logs/07-agent-instructions.txt", "bytes": 81, "sha256": "60c72d34feb18ae8ed35e796922bea8bece84dbb1d41d66be656062d54a72a23"},
+    {"path": "logs/09-v07-gates.txt", "bytes": 307531, "sha256": "59f03664336f6afe62a89687bbe3c9b72e69fe2d8a9e06634e7af4455f190cd9"},
+    {"path": "logs/10-v08-gates.txt", "bytes": 178043, "sha256": "ac93d76d7908ee87d8b4db82d08fa5b845989fb9033d3d72bf8ed8548bec8b93"},
+    {"path": "logs/11-v09-gates.txt", "bytes": 225709, "sha256": "1ca7f5e1cc7090786e62cd495eb191f0cfc1b6da411cf444ee1ff765acb0c8f9"},
+    {"path": "logs/12-aq-gates.txt", "bytes": 11312, "sha256": "0848a517501b2265b368e9ab9cd9ebce54203a13ce25686c33d419d8e5e434c9"},
+    {"path": "logs/13-repository-summary.txt", "bytes": 112671, "sha256": "90429ee913b0a7f57ffbfcdb17f8cb3efc173e44f74ce8fb054ca17c885ac615"},
+    {"path": "logs/13b-repository-summary-uv-retry.txt", "bytes": 119319, "sha256": "a7956736ffe6662cbae66298eb7e3bd0a63dfeb861dac29db9fdefeb4036f93e"},
+    {"path": "logs/14-json-kpi-check.txt", "bytes": 238, "sha256": "7a6c5d59d159ff29ad576d4c6d50a7aed73e8b97f34b9d9f2e99cc7dbc8c9f26"},
+    {"path": "logs/14b-json-kpi-check.txt", "bytes": 259, "sha256": "0e1dc3980dd8627b8df2c41b5988f62cfb2408045440b0fe410b522567d79207"},
+    {"path": "logs/15-repository-summary-pytest.txt", "bytes": 1368, "sha256": "972835a9d44f35fd0a2727662cd72c4d022458d92d647b43353b7fad640648b1"},
+    {"path": "logs/15b-repository-summary-pytest.txt", "bytes": 437, "sha256": "199387ad2c5e8b5be08f2be56bb6ce9519f48af29443694bd8a6941c5c06dd66"},
+    {"path": "logs/16-final-ruff.txt", "bytes": 33, "sha256": "b7a95b77a9305361ba44b2c76e61746124328622feecf010b7981ac8d869c8a4"},
+    {"path": "logs/17-final-agent-instructions.txt", "bytes": 81, "sha256": "60c72d34feb18ae8ed35e796922bea8bece84dbb1d41d66be656062d54a72a23"},
+    {"path": "logs/18-final-diff-check.txt", "bytes": 7635, "sha256": "e84e3b7a104480f22dd89678ae6e01b5622cb438abb13239daef1eb1495596ea"}
+  ]
+}

@@ -234,6 +234,15 @@
       "title": "Build Fingerprint",
       "type": "string"
     },
+    "material_plan_mode": {
+      "default": "current",
+      "enum": [
+        "current",
+        "scene_spec_only"
+      ],
+      "title": "Material Plan Mode",
+      "type": "string"
+    },
     "source_fingerprint": {
       "pattern": "^[0-9a-f]{64}$",
       "title": "Source Fingerprint",

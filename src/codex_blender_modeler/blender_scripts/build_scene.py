@@ -47,6 +47,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--spec", required=True)
     parser.add_argument("--job-root")
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--material-plan-mode",
+        choices=("current", "scene_spec_only"),
+        default="current",
+    )
     parser.add_argument("--render-engine", choices=("eevee", "cycles"), default="eevee")
     parser.add_argument("--render-device", choices=("auto", "cpu", "gpu"), default="auto")
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
@@ -54,7 +59,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    """Build one canonical scene and apply optional V0.5 mapping contracts."""
+    """Build one canonical scene under the requested explicit material-plan boundary."""
 
     args = parse_args()
     spec_path = Path(args.spec).expanduser().resolve()
@@ -75,14 +80,23 @@ def main() -> None:
         scene_spec_path=spec_path,
         # The host CLI/MCP validates SceneSpec and InteriorScope before Blender starts.
         validate_contracts=False,
+        material_plan_mode=args.material_plan_mode,
     )
     assembly_contract = load_assembly_contract(job_root)
 
     clear_scene()
     configure_render(args.render_engine, args.render_device)
     collection = ensure_collection("CBM_Generated")
-    shader_recipes = load_runtime_shader_recipes(job_root, str(spec["job_id"]))
-    material_mappings = load_runtime_material_mappings(job_root, str(spec["job_id"]))
+    shader_recipes = (
+        load_runtime_shader_recipes(job_root, str(spec["job_id"]))
+        if args.material_plan_mode == "current"
+        else {}
+    )
+    material_mappings = (
+        load_runtime_material_mappings(job_root, str(spec["job_id"]))
+        if args.material_plan_mode == "current"
+        else {}
+    )
     surface_detail_uv_requirements = load_surface_detail_uv_requirements(job_root)
     material_ids = {str(material["id"]) for material in spec["materials"]}
     unknown_recipe_ids = sorted(set(shader_recipes) - material_ids)

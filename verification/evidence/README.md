@@ -18,6 +18,9 @@
 - [`material_identity_split_20260814/`](material_identity_split_20260814/): shared material scope-change의 paired
   SceneSpec/ModelingPlan, 실제 Blender 5.0.1 shadow preapproval, ApprovalRequest와 zero-side-effect 경계를
   기록한 compact index.
+- [`skill_orchestration_standard_20260826/`](skill_orchestration_standard_20260826/): fresh source/V0.7/V0.8/V0.9/AQ
+  readiness 게이트의 원본 stdout과 플라스틱 canary·천 복합 자산의 exact human-accepted Standard
+  package/clean-import 해시 기준선.
 
 원본 pytest basetemp, 캐시, 중간 실패 실행, 중복 `.blend`, 전체 render pass는 저장소에
 복사하지 않았다. 따라서 이 묶음은 당시 pytest stdout 전체를 재현하는 archive가 아니다.
@@ -25,5 +28,6 @@
 현재 release를 다시 인증하려면 해당 gate를 새 격리 경로에서 재실행해야 한다.
 
 모든 포함 파일은 원본에서 바이트 단위로 복사됐고, 저장소의
-`FILE_MANIFEST.sha256`이 각 파일의 SHA-256을 결속한다. 이 디렉터리 내부에는 절대 호스트
-경로를 기록하지 않는다.
+`FILE_MANIFEST.sha256`이 각 파일의 SHA-256을 결속한다. 과거 compact snapshot은 저장소 상대
+경로만 기록한다. `skill_orchestration_standard_20260826`의 원본 stdout은 실패 attempt와 실행 환경을
+감사할 수 있도록 로컬 절대 경로도 보존하며, 이를 portable package 경로로 재사용하지 않는다.

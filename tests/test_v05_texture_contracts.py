@@ -81,6 +81,92 @@ def test_compatibility_facade_preserves_resolved_image_behavior(tmp_path: Path) 
     assert Path(manifest["channels"]["base_color"]["resolved_path"]).is_file()
 
 
+@pytest.mark.parametrize(
+    "generated_sha256",
+    [
+        {},
+        {
+            "base_color": "a" * 64,
+            "derivative_report": "b" * 64,
+        },
+    ],
+)
+def test_texture_contract_requires_exact_generated_image_channel_keys(
+    tmp_path: Path,
+    generated_sha256: dict[str, str],
+) -> None:
+    """Reject incomplete or non-channel generation maps in the shared strict model."""
+
+    payload = {
+        "schema_version": "0.5.0",
+        "material_id": "mat.test",
+        "uv_set": "UVMap",
+        "intended_scale_m": 1.0,
+        "resolution": [64, 64],
+        "source_type": "image",
+        "channels": {
+            "base_color": {
+                "source": "image",
+                "path": "base.png",
+                "color_space": "sRGB",
+            }
+        },
+        "procedural": {},
+        "provenance": {
+            "provider": "fixture",
+            "generated_sha256": generated_sha256,
+        },
+    }
+    path = tmp_path / "texture_manifest.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="generated_sha256|image-backed"):
+        load_texture_manifest(path)
+
+    if "derivative_report" in generated_sha256:
+        assert _schema_errors(payload)
+
+
+def test_texture_contract_preserves_legacy_import_without_generated_hashes(
+    tmp_path: Path,
+) -> None:
+    """Keep a provenance-bearing import readable when it never declared channel hashes."""
+
+    path = tmp_path / "texture_manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "material_id": "mat.imported",
+                "uv_set": "Object",
+                "intended_scale_m": 1.0,
+                "resolution": [32, 32],
+                "source_type": "image",
+                "channels": {
+                    "base_color": {
+                        "source": "image",
+                        "path": "imported.png",
+                        "color_space": "sRGB",
+                    }
+                },
+                "procedural": {},
+                "provenance": {
+                    "provider": "legacy_import",
+                    "source_hashes": ["legacy-source-id"],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    manifest = load_texture_manifest(path)
+
+    assert manifest.provenance is not None
+    assert manifest.provenance.generated_sha256 == {}
+    serialized = manifest.model_dump(mode="json")
+    assert "generated_sha256" not in serialized["provenance"]
+    assert not _schema_errors(serialized)
+
+
 def test_texture_contract_rejects_wrong_data_color_space(tmp_path: Path) -> None:
     """Data channels cannot be interpreted as display color."""
 

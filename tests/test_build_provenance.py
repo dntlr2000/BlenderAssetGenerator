@@ -14,6 +14,7 @@ from codex_blender_modeler.build_provenance import (
 )
 from codex_blender_modeler.models import CameraSpec
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
+from codex_blender_modeler.shader_recipe_runtime import ShaderRecipeRuntimeError
 
 
 def _provenance_job(tmp_path: Path) -> tuple[Path, Path, Path, Path]:
@@ -151,6 +152,35 @@ def test_build_provenance_tracks_every_external_build_input(tmp_path: Path) -> N
     assert require_matching_build_provenance(
         canonical_json_text(provenance), provenance["fingerprint"]
     ) == provenance
+
+
+def test_scene_spec_only_provenance_excludes_invalid_current_material_plan(
+    tmp_path: Path,
+) -> None:
+    """Keep V0.4 geometry builds isolated from a failed downstream V0.5 manifest."""
+
+    root, _, _, _ = _provenance_job(tmp_path)
+    manifest_path = root / "textures" / "mat.test" / "texture_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["provenance"] = {
+        "provider": "fixture",
+        "generated_sha256": {"derivative_report": "d" * 64},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    with pytest.raises(ShaderRecipeRuntimeError, match="generated_sha256"):
+        collect_build_provenance(root, "provenance_test")
+
+    isolated = collect_build_provenance(
+        root,
+        "provenance_test",
+        material_plan_mode="scene_spec_only",
+    )
+
+    assert isolated["material_plan_mode"] == "scene_spec_only"
+    assert isolated["material_plan_path"] is None
+    assert isolated["material_plan_sha256"] is None
+    assert isolated["materials"] == {}
 
 
 @pytest.mark.parametrize("source", ["recipe", "geometry", "texture"])

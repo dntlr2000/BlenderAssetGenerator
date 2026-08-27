@@ -449,6 +449,7 @@ def validate_candidate_review_decision(
                 inventory_artifact.path,
             ),
             validate_surface_details=False,
+            validate_build_fingerprint=require_current_sources,
         )
         if (
             sha256_file(_resolve_job_relative(root, manifest_artifact.path))

@@ -224,10 +224,49 @@ def _resolve_job_path(root: Path, relative: str) -> Path:
     return candidate
 
 
+def _path_exists(path: Path) -> bool:
+    """Check one orchestration path through Windows extended-length I/O semantics."""
+
+    return os.path.exists(native_io_path(path))
+
+
+def _path_is_file(path: Path) -> bool:
+    """Check one regular orchestration file without the legacy Windows path limit."""
+
+    return os.path.isfile(native_io_path(path))
+
+
+def _path_is_dir(path: Path) -> bool:
+    """Check one orchestration directory without the legacy Windows path limit."""
+
+    return os.path.isdir(native_io_path(path))
+
+
+def _read_utf8(path: Path) -> str:
+    """Read one orchestration contract through its extended-length native filename."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _json_files(directory: Path) -> list[Path]:
+    """Enumerate direct JSON children deterministically through native directory I/O."""
+
+    if not _path_is_dir(directory):
+        return []
+    with os.scandir(native_io_path(directory)) as iterator:
+        names = [
+            entry.name
+            for entry in iterator
+            if entry.is_file(follow_symlinks=False) and entry.name.endswith(".json")
+        ]
+    return [directory / name for name in sorted(names)]
+
+
 def _write_immutable(path: Path, payload: dict[str, Any]) -> None:
     """Write one immutable workflow contract and reject accidental overwrite."""
 
-    if path.exists():
+    if _path_exists(path):
         raise FileExistsError(f"Immutable workflow artifact already exists: {path}")
     write_json_atomic(path, payload)
 
@@ -235,9 +274,9 @@ def _write_immutable(path: Path, payload: dict[str, Any]) -> None:
 def _load_model(path: Path, model_type: type[Any]) -> Any:
     """Load one required strict workflow model from UTF-8 JSON."""
 
-    if not path.is_file():
+    if not _path_is_file(path):
         raise FileNotFoundError(path)
-    return model_type.model_validate_json(path.read_text(encoding="utf-8"))
+    return model_type.model_validate_json(_read_utf8(path))
 
 
 def _profile_from_request(request_text: str, profile_id: str) -> str:
@@ -931,19 +970,22 @@ def _artifact_digest(path: Path) -> str:
 def _copy_artifact_immutable(source: Path, destination: Path) -> None:
     """Snapshot one file or directory without permitting evidence replacement."""
 
-    if destination.exists():
+    source_native = native_io_path(source)
+    destination_native = native_io_path(destination)
+    if os.path.exists(destination_native):
         raise OrchestrationArtifactConflict(
             f"Immutable workflow snapshot already exists: {destination}"
         )
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(destination.parent), exist_ok=True)
     temporary = destination.parent / f".{destination.name}.{uuid4().hex}.tmp"
-    if source.is_file():
-        shutil.copy2(source, temporary)
-        os.replace(temporary, destination)
+    temporary_native = native_io_path(temporary)
+    if os.path.isfile(source_native):
+        shutil.copy2(source_native, temporary_native)
+        os.replace(temporary_native, destination_native)
         return
-    if source.is_dir():
-        shutil.copytree(source, temporary)
-        os.replace(temporary, destination)
+    if os.path.isdir(source_native):
+        shutil.copytree(source_native, temporary_native)
+        os.replace(temporary_native, destination_native)
         return
     raise FileNotFoundError(source)
 
@@ -1001,7 +1043,7 @@ def _verify_dependency_sources(
             supersedes_known_source = requirement.source_path in latest
             snapshot = _resolve_job_path(root, requirement.path)
             attempt_root = workflow_root / "attempts" / candidate_step.step_id
-            was_published = snapshot.exists() and attempt_root.is_dir()
+            was_published = _path_exists(snapshot) and _path_is_dir(attempt_root)
             # A successful earlier sibling may intentionally replace a shared mutable
             # source before the current step, such as detail.render before detail.inspect.
             if is_dependency_source or (supersedes_known_source and was_published):
@@ -1009,7 +1051,7 @@ def _verify_dependency_sources(
     for source_relative, requirement in latest.items():
         source = _resolve_job_path(root, source_relative)
         snapshot = _resolve_job_path(root, requirement.path)
-        if not source.exists() or not snapshot.exists():
+        if not _path_exists(source) or not _path_exists(snapshot):
             raise OrchestrationArtifactConflict(
                 "orchestration_artifact_conflict: planned source or snapshot is missing "
                 f"for {source_relative}"
@@ -1313,7 +1355,7 @@ def _inspect_artifact(
     """Inspect artifact integrity independently from currency and semantic verification."""
 
     path = _resolve_job_path(root, requirement.path)
-    if not path.exists():
+    if not _path_exists(path):
         return ArtifactFreshness(
             artifact_id=requirement.artifact_id,
             path=requirement.path,
@@ -1323,14 +1365,18 @@ def _inspect_artifact(
             reason="Required artifact does not exist.",
         )
     if requirement.acceptance == "nonempty_directory":
-        valid = path.is_dir() and any(path.iterdir())
+        if _path_is_dir(path):
+            with os.scandir(native_io_path(path)) as iterator:
+                valid = next(iterator, None) is not None
+        else:
+            valid = False
         payload = None
     else:
-        valid = path.is_file()
+        valid = _path_is_file(path)
         payload = None
         if valid and requirement.acceptance in {"valid_json", "json_ok"}:
             try:
-                payload = json.loads(path.read_text(encoding="utf-8"))
+                payload = json.loads(_read_utf8(path))
                 valid = isinstance(payload, dict)
                 if valid:
                     _validate_known_json_contract(root, requirement, payload)
@@ -1348,7 +1394,7 @@ def _inspect_artifact(
         return ArtifactFreshness(
             artifact_id=requirement.artifact_id,
             path=requirement.path,
-            sha256=_artifact_digest(path) if path.is_file() else None,
+            sha256=_artifact_digest(path) if _path_is_file(path) else None,
             integrity="corrupt",
             currency="unknown",
             verification="unverified",
@@ -1551,7 +1597,7 @@ def _load_completion(
     """Load an optional agent/manual completion marker without accepting alternate paths."""
 
     path = _completion_path(workflow_root, step.step_id)
-    return _load_model(path, WorkflowStepCompletion) if path.is_file() else None
+    return _load_model(path, WorkflowStepCompletion) if _path_is_file(path) else None
 
 
 def _load_approval(
@@ -1561,7 +1607,7 @@ def _load_approval(
     """Load an optional exact generic-gate approval receipt."""
 
     path = _approval_path(workflow_root, step.step_id)
-    return _load_model(path, WorkflowApproval) if path.is_file() else None
+    return _load_model(path, WorkflowApproval) if _path_is_file(path) else None
 
 
 _POLICY_GATE_BY_WORKFLOW_GATE = {
@@ -1589,7 +1635,7 @@ def _load_policy_authorization(
     if gate_kind is None:
         return None
     path = workflow_root / "policy_authorizations" / f"{step.step_id}.json"
-    if not path.is_file():
+    if not _path_is_file(path):
         return None
     from ..autonomy.authorization import validate_policy_authorization
     from ..autonomy.models import PolicyAuthorization, PolicyGateTarget
@@ -1630,9 +1676,7 @@ def _matching_succeeded_attempt(
     """Find the immutable host receipt matching the exact current lifecycle evidence."""
 
     attempt_root = workflow_root / "attempts" / step.step_id
-    if not attempt_root.is_dir():
-        return None
-    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+    for path in reversed(_json_files(attempt_root)):
         try:
             attempt = _load_model(path, WorkflowAttempt)
         except (OSError, ValueError):
@@ -1659,9 +1703,7 @@ def _matching_interrupted_attempt(
     """Find an exact recovered interruption that may authorize terminal adoption."""
 
     attempt_root = workflow_root / "attempts" / step.step_id
-    if not attempt_root.is_dir():
-        return None
-    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+    for path in reversed(_json_files(attempt_root)):
         try:
             attempt = _load_model(path, WorkflowAttempt)
         except (OSError, ValueError):
@@ -1697,9 +1739,7 @@ def _matching_geometry_multiview_recovery_attempt(
     """
 
     attempt_root = workflow_root / "attempts" / step.step_id
-    if not attempt_root.is_dir():
-        return None
-    for path in sorted(attempt_root.glob("*.json"), reverse=True):
+    for path in reversed(_json_files(attempt_root)):
         try:
             attempt = _load_model(path, WorkflowAttempt)
         except (OSError, ValueError):
@@ -2556,16 +2596,25 @@ def approve_workflow_gate(
         return updated
 
 
-def _build_scene(job_id: str) -> None:
-    """Build canonical scene through the same deterministic Blender entry point as CLI/MCP."""
+def _build_scene(
+    job_id: str,
+    *,
+    material_plan_mode: str = "current",
+) -> None:
+    """Build canonical geometry with either current V0.5 inputs or SceneSpec-only material."""
 
     root = job_dir(job_id)
     spec = root / "analysis" / "scene_spec.json"
     load_scene_spec(spec)
     validate_job_interior_scope(job_id, write_report=True)
+    if material_plan_mode not in {"current", "scene_spec_only"}:
+        raise ValueError(f"Unsupported build material-plan mode: {material_plan_mode!r}")
+    arguments = ["--spec", str(spec), "--output", str(root / "blender" / "scene.blend")]
+    if material_plan_mode != "current":
+        arguments.extend(["--material-plan-mode", material_plan_mode])
     run_blender(
         "build_scene.py",
-        ["--spec", str(spec), "--output", str(root / "blender" / "scene.blend")],
+        arguments,
     )
 
 
@@ -2950,6 +2999,20 @@ def _verify_revision_modeling_plan_binding(root: Path, step: WorkflowStep) -> No
         )
 
 
+def _step_material_plan_mode(step: Any, *, fallback: str) -> str:
+    """Resolve an explicit or legacy phase-safe material-plan boundary for one host step."""
+
+    material_plan_mode = step.parameters.get("material_plan_mode")
+    if material_plan_mode is None:
+        phase = getattr(step, "phase", None)
+        material_plan_mode = "scene_spec_only" if phase == "geometry" else fallback
+    if material_plan_mode not in {"current", "scene_spec_only"}:
+        raise ValueError(
+            "host step material_plan_mode must be 'current' or 'scene_spec_only'"
+        )
+    return material_plan_mode
+
+
 def _execute_host_tool(
     root: Path,
     workflow_root: Path,
@@ -3001,7 +3064,8 @@ def _execute_host_tool(
             raise OrchestrationArtifactConflict(f"orchestration_artifact_conflict: {exc}") from exc
         return
     if tool == "build_scene":
-        _build_scene(request.job_id)
+        material_plan_mode = _step_material_plan_mode(step, fallback="current")
+        _build_scene(request.job_id, material_plan_mode=material_plan_mode)
         return
     if tool == "render_preview":
         _render_preview(request.job_id)
@@ -3171,6 +3235,11 @@ def _execute_host_tool(
         )
         return
     if tool == "run_geometry_multiview_review":
+        material_plan_mode = _step_material_plan_mode(
+            step,
+            fallback="scene_spec_only",
+        )
+        has_explicit_material_plan_mode = "material_plan_mode" in step.parameters
         run_id = str(step.parameters["run_id"])
         run_root = root / "qa" / "assembly_sanity" / "runs" / run_id
         plan_path = run_root / "plan.json"
@@ -3198,6 +3267,10 @@ def _execute_host_tool(
                 partial_plan.job_id != request.job_id
                 or partial_plan.run_id != run_id
                 or partial_plan.review_policy != step.parameters.get("review_policy")
+                or (
+                    has_explicit_material_plan_mode
+                    and partial_plan.material_plan_mode != material_plan_mode
+                )
                 or partial_plan.resolution
                 != (
                     int(step.parameters.get("resolution", 384)),
@@ -3239,9 +3312,16 @@ def _execute_host_tool(
                             "multi-view terminal could not be safely recovered"
                         ) from recovery_exc
                 else:
-                    if adopted_plan.review_policy != step.parameters.get(
-                        "review_policy"
-                    ) or adopted_report.review_policy != step.parameters.get("review_policy"):
+                    if (
+                        adopted_plan.review_policy
+                        != step.parameters.get("review_policy")
+                        or adopted_report.review_policy
+                        != step.parameters.get("review_policy")
+                        or (
+                            has_explicit_material_plan_mode
+                            and adopted_plan.material_plan_mode != material_plan_mode
+                        )
+                    ):
                         raise OrchestrationArtifactConflict(
                             "orchestration_artifact_conflict: recovered geometry multi-view "
                             "policy differs from the workflow plan"
@@ -3308,6 +3388,7 @@ def _execute_host_tool(
             request.job_id,
             run_id=run_id,
             resolution=int(step.parameters.get("resolution", 384)),
+            material_plan_mode=material_plan_mode,
         )
         if Path(str(planned["plan"])).resolve() != plan_path.resolve() or planned.get(
             "review_policy"

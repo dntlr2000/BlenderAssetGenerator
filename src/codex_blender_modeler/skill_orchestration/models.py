@@ -45,6 +45,7 @@ StandardGoal = Literal[
     "full_cycle_to_package",
 ]
 StagePolicy = Literal["smart", "force_all"]
+HumanQualityDisposition = Literal["accepted", "needs_revision"]
 
 
 class SkillStrictModel(BaseModel):
@@ -304,6 +305,47 @@ class MaterialImpactReport(SkillStrictModel):
         return self
 
 
+class StandardTechnicalRecoveryBinding(SkillStrictModel):
+    """Bind one failed Standard child to a guarded geometry continuation."""
+
+    recovery_id: PortableId
+    recovery_sequence: int = Field(ge=1, le=8)
+    recovery_kind: Literal["guarded_geometry_continuation"] = (
+        "guarded_geometry_continuation"
+    )
+    failed_stage_binding: SkillArtifact
+    failed_workflow_state: SkillArtifact
+    failed_execution_receipt: SkillArtifact
+    failed_step_id: PortableId
+    failed_input_fingerprint: Sha256
+    failure_reason_code: Literal["host_failure"] = "host_failure"
+    canonical_scene_spec_snapshot: SkillArtifact
+    recovery_reason: str = Field(min_length=1, max_length=1000)
+    technical_failure: Literal[True] = True
+    user_approval_requested: Literal[False] = False
+    canonical_write_authority: Literal[False] = False
+    approval_authority: Literal[False] = False
+    created_at: datetime
+
+
+class StandardManualGuardedRerouteBinding(SkillStrictModel):
+    """Bind one untouched ineligible child to its manual guarded replacement."""
+
+    reroute_id: PortableId
+    reroute_sequence: int = Field(ge=1, le=8)
+    reroute_kind: Literal["manual_guarded_correction"] = "manual_guarded_correction"
+    source_stage_binding: SkillArtifact
+    source_workflow_state: SkillArtifact
+    cancelled_workflow_state: SkillArtifact
+    cancellation_receipt: SkillArtifact
+    reroute_reason: str = Field(min_length=1, max_length=1000)
+    technical_failure: Literal[True] = True
+    user_approval_requested: Literal[False] = False
+    canonical_write_authority: Literal[False] = False
+    approval_authority: Literal[False] = False
+    created_at: datetime
+
+
 class StandardCompositeStageBinding(SkillStrictModel):
     """Bind one Standard composite stage to one immutable V0.8 child workflow."""
 
@@ -316,8 +358,26 @@ class StandardCompositeStageBinding(SkillStrictModel):
     skill_id: PortableId
     workflow_id: PortableId
     workflow_plan: SkillArtifact
+    technical_recovery: StandardTechnicalRecoveryBinding | None = None
+    technical_reroute: StandardManualGuardedRerouteBinding | None = None
     created_reason: str = Field(min_length=1, max_length=1000)
     created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_technical_recovery_boundary(self) -> StandardCompositeStageBinding:
+        """Restrict technical recovery and reroute evidence to guarded geometry."""
+
+        if self.technical_recovery is not None and self.technical_reroute is not None:
+            raise ValueError("a Standard stage cannot be both recovery and reroute")
+        if self.technical_recovery is None and self.technical_reroute is None:
+            return self
+        if self.ordinal < 2:
+            raise ValueError("technical continuation cannot replace the initial child binding")
+        if self.stage_kind != "geometry" or self.skill_id != "guarded-visual-revision":
+            raise ValueError("technical continuation must create guarded geometry")
+        if self.technical_reroute is not None and self.ordinal < 2:
+            raise ValueError("manual guarded reroute requires a prior candidate child")
+        return self
 
 
 class StandardCompositeRunPlan(SkillStrictModel):
@@ -375,6 +435,66 @@ class GuardedRevisionContinuation(SkillStrictModel):
         return self
 
 
+class StandardQualityDispositionRequest(SkillStrictModel):
+    """Bind one human quality decision to exact completed V0.6 evidence."""
+
+    schema_version: Literal["0.1.0"] = SCHEMA_VERSION
+    request_id: PortableId
+    sequence: int = Field(ge=1, le=6)
+    run_id: PortableId
+    job_id: JobId
+    qa_source_stage_binding: SkillArtifact
+    completed_qa_state: SkillArtifact
+    source_visual_qa_report: SkillArtifact
+    canonical_scene_spec_snapshot: SkillArtifact
+    source_qa_run_id: PortableId
+    qa_review_input_fingerprint: Sha256
+    qa_review_completion_fingerprint: Sha256
+    qa_review_approval_id: PortableId
+    direct_score: float = Field(ge=0, le=1)
+    silhouette_iou: float = Field(ge=0, le=1)
+    high_finding_ids: list[str] = Field(default_factory=list)
+    recommended_disposition: HumanQualityDisposition
+    allowed_dispositions: tuple[Literal["accepted"], Literal["needs_revision"]] = (
+        "accepted",
+        "needs_revision",
+    )
+    human_decision_required: Literal[True] = True
+    canonical_write_authority: Literal[False] = False
+    approval_authority: Literal[False] = False
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_quality_recommendation(self) -> StandardQualityDispositionRequest:
+        """Recommend revision exactly when high-severity direct QA findings remain."""
+
+        if len(self.high_finding_ids) != len(set(self.high_finding_ids)):
+            raise ValueError("quality-disposition high finding IDs must be unique")
+        expected = "needs_revision" if self.high_finding_ids else "accepted"
+        if self.recommended_disposition != expected:
+            raise ValueError("quality-disposition recommendation differs from QA findings")
+        return self
+
+
+class StandardQualityDispositionRecord(SkillStrictModel):
+    """Record one exact single-use human quality decision without approval authority."""
+
+    schema_version: Literal["0.1.0"] = SCHEMA_VERSION
+    disposition_id: PortableId
+    sequence: int = Field(ge=1, le=6)
+    run_id: PortableId
+    job_id: JobId
+    request: SkillArtifact
+    request_fingerprint: Sha256
+    disposition: HumanQualityDisposition
+    user_note: str = Field(min_length=1, max_length=1000)
+    human_decision_observed: Literal[True] = True
+    single_use: Literal[True] = True
+    canonical_write_authority: Literal[False] = False
+    approval_authority: Literal[False] = False
+    recorded_at: datetime
+
+
 class StandardCompositeRunState(SkillStrictModel):
     """Project the current child workflow and next safe composite action."""
 
@@ -387,6 +507,7 @@ class StandardCompositeRunState(SkillStrictModel):
         "running",
         "waiting_for_agent",
         "waiting_for_approval",
+        "waiting_for_quality_disposition",
         "waiting_for_external_revision",
         "completed",
         "blocked",
@@ -400,6 +521,12 @@ class StandardCompositeRunState(SkillStrictModel):
     qa_revision_source_run_id: PortableId | None = None
     qa_baseline_scene_spec_sha256: Sha256 | None = None
     qa_revision_evidence: list[SkillArtifact] = Field(default_factory=list, max_length=5)
+    quality_disposition_requests: list[SkillArtifact] = Field(
+        default_factory=list,
+        max_length=6,
+    )
+    quality_dispositions: list[SkillArtifact] = Field(default_factory=list, max_length=6)
+    current_quality_disposition_request: SkillArtifact | None = None
     next_action: str | None = Field(default=None, max_length=1000)
     receipt_chain_head_sha256: Sha256 | None = None
     updated_at: datetime
@@ -419,6 +546,28 @@ class StandardCompositeRunState(SkillStrictModel):
             {(item.path, item.sha256) for item in self.qa_revision_evidence}
         ):
             raise ValueError("QA revision evidence must be unique")
+        request_count = len(self.quality_disposition_requests)
+        disposition_count = len(self.quality_dispositions)
+        if disposition_count > request_count or request_count - disposition_count > 1:
+            raise ValueError("quality-disposition requests and records are noncontiguous")
+        waiting_for_quality = self.status == "waiting_for_quality_disposition"
+        if waiting_for_quality != (self.current_quality_disposition_request is not None):
+            raise ValueError("only a quality-disposition wait may carry its current request")
+        if waiting_for_quality:
+            if request_count != disposition_count + 1:
+                raise ValueError("quality-disposition wait requires one unconsumed request")
+            if self.current_quality_disposition_request != self.quality_disposition_requests[-1]:
+                raise ValueError("current quality-disposition request must be the latest request")
+        elif request_count != disposition_count:
+            raise ValueError("every prior quality-disposition request requires one record")
+        if request_count != len(
+            {(item.path, item.sha256) for item in self.quality_disposition_requests}
+        ):
+            raise ValueError("quality-disposition requests must be unique")
+        if disposition_count != len(
+            {(item.path, item.sha256) for item in self.quality_dispositions}
+        ):
+            raise ValueError("quality-disposition records must be unique")
         terminal = self.status in {"completed", "blocked", "cancelled"}
         if terminal == (self.current_stage_binding is not None):
             raise ValueError("terminal and resumable Standard states require opposite bindings")

@@ -56,6 +56,17 @@ def _valid_payload() -> dict:
     }
 
 
+def _actual_image_hashes(root: Path, payload: dict) -> dict[str, str]:
+    """Hash every image-backed channel created by the shared manifest fixture."""
+
+    manifest_dir = root / "textures" / "mat.test"
+    return {
+        name: hashlib.sha256((manifest_dir / channel["path"]).read_bytes()).hexdigest()
+        for name, channel in payload["channels"].items()
+        if channel["source"] == "image"
+    }
+
+
 def test_missing_manifest_preserves_legacy_material_behavior(tmp_path: Path) -> None:
     """A null manifest must keep existing SceneSpec materials valid."""
 
@@ -84,6 +95,123 @@ def test_valid_hybrid_manifest_resolves_channels_and_color_spaces(tmp_path: Path
     assert manifest["procedural"]["coordinate_uv_set"] == "World"
     assert manifest["procedural"]["coordinate_scale_m"] == 0.75
     assert Path(manifest["channels"]["base_color"]["resolved_path"]).is_file()
+
+
+def test_manifest_accepts_exact_generated_channel_hashes(tmp_path: Path) -> None:
+    """Accept a generation map that exactly hashes every image-backed channel."""
+
+    payload = _valid_payload()
+    path = _write_manifest(tmp_path, payload)
+    payload["provenance"] = {
+        "provider": "fixture",
+        "generated_sha256": _actual_image_hashes(tmp_path, payload),
+    }
+    payload["procedural"]["derivative_report"] = {
+        "path": "reports/material_derivative.json",
+        "sha256": "d" * 64,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    manifest, _ = load_material_manifest(
+        {
+            "id": "mat.test",
+            "texture_manifest": "textures/mat.test/texture_manifest.json",
+        },
+        tmp_path,
+    )
+
+    assert manifest is not None
+    assert set(manifest["provenance"]["generated_sha256"]) == {
+        "base_color",
+        "roughness",
+    }
+    assert "derivative_report" in manifest["procedural"]
+
+
+@pytest.mark.parametrize("unexpected_key", ["detail_mask", "derivative_report"])
+def test_manifest_rejects_non_channel_generated_hash_keys(
+    tmp_path: Path,
+    unexpected_key: str,
+) -> None:
+    """Keep placement-mask and report hashes out of generated channel provenance."""
+
+    payload = _valid_payload()
+    path = _write_manifest(tmp_path, payload)
+    generated = _actual_image_hashes(tmp_path, payload)
+    generated[unexpected_key] = "d" * 64
+    payload["provenance"] = {
+        "provider": "fixture",
+        "generated_sha256": generated,
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(MaterialManifestError, match="exactly match image-backed channels"):
+        load_material_manifest(
+            {
+                "id": "mat.test",
+                "texture_manifest": "textures/mat.test/texture_manifest.json",
+            },
+            tmp_path,
+        )
+
+
+def test_manifest_rejects_missing_or_stale_generated_channel_hashes(
+    tmp_path: Path,
+) -> None:
+    """Require complete generation maps and exact current image-channel bytes."""
+
+    payload = _valid_payload()
+    path = _write_manifest(tmp_path, payload)
+    generated = _actual_image_hashes(tmp_path, payload)
+    payload["provenance"] = {
+        "provider": "fixture",
+        "generated_sha256": {"base_color": generated["base_color"]},
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    with pytest.raises(MaterialManifestError, match=r"missing=\['roughness'\]"):
+        load_material_manifest(
+            {
+                "id": "mat.test",
+                "texture_manifest": "textures/mat.test/texture_manifest.json",
+            },
+            tmp_path,
+        )
+
+    payload["provenance"]["generated_sha256"] = generated
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    (path.parent / "base.png").write_bytes(b"changed-base")
+    with pytest.raises(MaterialManifestError, match="differs from the actual channel file"):
+        load_material_manifest(
+            {
+                "id": "mat.test",
+                "texture_manifest": "textures/mat.test/texture_manifest.json",
+            },
+            tmp_path,
+        )
+
+
+def test_manifest_keeps_legacy_import_provenance_without_hash_map_readable(
+    tmp_path: Path,
+) -> None:
+    """Preserve imports that predate optional generated channel hash declarations."""
+
+    payload = _valid_payload()
+    payload["provenance"] = {
+        "provider": "legacy_import",
+        "source_hashes": ["source-evidence-with-legacy-shape"],
+    }
+    _write_manifest(tmp_path, payload)
+
+    manifest, _ = load_material_manifest(
+        {
+            "id": "mat.test",
+            "texture_manifest": "textures/mat.test/texture_manifest.json",
+        },
+        tmp_path,
+    )
+
+    assert manifest is not None
+    assert "generated_sha256" not in manifest["provenance"]
 
 
 @pytest.mark.parametrize(

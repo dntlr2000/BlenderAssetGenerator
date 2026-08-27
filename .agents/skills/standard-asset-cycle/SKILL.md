@@ -14,5 +14,7 @@ description: Run one traceable Standard asset cycle across V0.4 geometry, V0.5 m
 7. Always rerun V0.6 after a canonical geometry or material change.
 8. Stop at every agent, generic approval, specialized approval, failed-retry, budget, and cancellation boundary exposed by V0.8.
 9. Never infer a user approval or retry authorization from this skill invocation.
-10. Resume from the run-owned skill snapshots and receipt chain, even when live SKILL.md files later change.
-
+10. For `full_cycle_to_package`, stop after exact `qa.review` completion for a separate hash-bound human quality disposition; only `accepted` may plan V0.7, while `needs_revision` may use only the remaining guarded revision budget.
+11. Resume from the run-owned skill snapshots and receipt chain, even when live SKILL.md files later change.
+12. When an exact host failure must be superseded by geometry correction, use only the hash-bound guarded-geometry recovery option on the existing resume surface; preserve the failed child, do not retry it, route the fresh V0.4 child through `manual_guarded`, and create no technical user-approval request.
+13. If an older untouched recovery child was incorrectly planned as `candidate_review` for custom-mesh redesign, bind its exact state hash, cancel it with an immutable receipt, and append one `manual_guarded` replacement through the same resume surface. Never reroute an attempted or completed candidate except an exact completed evaluation that improved direct score without silhouette regression, is nonpromotable solely because the geometry change stales authored V0.5 surface-detail bindings, has no promotion approval, and leaves the canonical baseline unchanged. Preserve that decision and cancellation receipt, require a new exact `detailed_geometry` approval for the same QA-candidate operations, then force fresh V0.5 and V0.6 evidence.

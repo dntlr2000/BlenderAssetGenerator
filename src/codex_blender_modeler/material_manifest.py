@@ -163,6 +163,54 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
     return result
 
 
+def _validate_generated_channel_hashes(
+    raw: dict[str, Any],
+    channels: dict[str, dict[str, Any]],
+) -> None:
+    """Verify an explicitly declared generation map against every image channel byte."""
+
+    provenance = raw.get("provenance")
+    if not isinstance(provenance, dict) or "generated_sha256" not in provenance:
+        return
+    declared = provenance.get("generated_sha256")
+    if not isinstance(declared, dict):
+        raise MaterialManifestError(
+            "provenance.generated_sha256 must be an object when declared"
+        )
+    if any(not isinstance(name, str) for name in declared):
+        raise MaterialManifestError(
+            "provenance.generated_sha256 keys must be channel names"
+        )
+    image_channels = {
+        name for name, channel in channels.items() if channel["source"] == "image"
+    }
+    declared_channels = set(declared)
+    if declared_channels != image_channels:
+        missing = sorted(image_channels - declared_channels)
+        unexpected = sorted(declared_channels - image_channels)
+        raise MaterialManifestError(
+            "provenance.generated_sha256 keys must exactly match image-backed channels; "
+            f"missing={missing}, unexpected={unexpected}"
+        )
+    for name in sorted(image_channels):
+        expected = declared[name]
+        if not isinstance(expected, str) or _SHA256_PATTERN.fullmatch(expected) is None:
+            raise MaterialManifestError(
+                f"provenance.generated_sha256.{name} must be lowercase SHA-256"
+            )
+        resolved_path = Path(str(channels[name]["resolved_path"]))
+        try:
+            actual = hashlib.sha256(resolved_path.read_bytes()).hexdigest()
+        except OSError as exc:
+            raise MaterialManifestError(
+                f"Image channel {name} could not be hashed: {resolved_path}"
+            ) from exc
+        if actual != expected:
+            raise MaterialManifestError(
+                f"provenance.generated_sha256.{name} differs from the actual channel file"
+            )
+
+
 def _validate_surface_detail_bindings(
     raw: dict[str, Any],
     *,
@@ -450,6 +498,7 @@ def load_material_manifest(
                 f"Image file reused with conflicting color spaces: {resolved_path} "
                 f"({previous} vs {color_space} for {name})"
             )
+    _validate_generated_channel_hashes(raw, result["channels"])
     result["procedural"] = _validate_runtime_procedural(
         result["channels"], raw.get("procedural", {})
     )

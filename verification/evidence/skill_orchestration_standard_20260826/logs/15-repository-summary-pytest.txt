@@ -1,0 +1,27 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: E:\Playground\BlenderAssetGenerator
+configfile: pyproject.toml
+plugins: anyio-4.14.1
+collected 6 items
+
+tests\test_repository_summary_generator.py ...F..                        [100%]
+
+================================== FAILURES ===================================
+_________________ test_current_summary_builds_without_blender _________________
+
+    def test_current_summary_builds_without_blender() -> None:
+        """Build current catalog JSON while verification evidence remains explicit."""
+    
+        generator = _load_generator()
+        summary = generator.build_repository_summary(ROOT)
+    
+        assert summary["catalog"]["catalog_findings"] == []
+>       assert summary["verification"]["status"] in {"unavailable", "reported", "passed"}
+E       AssertionError: assert 'passed_with_declared_scope_limits' in {'passed', 'reported', 'unavailable'}
+
+tests\test_repository_summary_generator.py:110: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_repository_summary_generator.py::test_current_summary_builds_without_blender
+======================== 1 failed, 5 passed in 11.44s =========================
+EXIT_CODE=1

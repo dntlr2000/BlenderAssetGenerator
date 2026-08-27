@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import math
 import re
 import shutil
 import struct
@@ -751,6 +752,148 @@ def export_object_inventory(
     return record
 
 
+def _cyclic_triangle_key(vertices: Any) -> tuple[int, int, int]:
+    """Canonicalize one oriented triangle across cyclic loop-order rotations."""
+
+    values = tuple(int(value) for value in vertices)
+    if len(values) != 3 or len(set(values)) != 3:
+        raise RuntimeError("glTF serialization encountered an invalid triangle")
+    rotations = tuple(values[index:] + values[:index] for index in range(3))
+    return min(rotations)
+
+
+def _mesh_corner_normals(mesh: bpy.types.Mesh) -> list[Any]:
+    """Copy one finite loop-aligned evaluated normal vector from the source mesh."""
+
+    mesh.update()
+    normals = getattr(mesh, "corner_normals", None)
+    if normals is not None and len(normals) == len(mesh.loops):
+        values = [item.vector.copy() for item in normals]
+    else:
+        values = [None] * len(mesh.loops)
+        for polygon in mesh.polygons:
+            for loop_index in polygon.loop_indices:
+                values[loop_index] = polygon.normal.copy()
+    if any(value is None for value in values):
+        raise RuntimeError("glTF serialization could not resolve every corner normal")
+    if any(
+        not all(math.isfinite(float(value[index])) for index in range(3))
+        for value in values
+    ):
+        raise RuntimeError("glTF serialization encountered a non-finite corner normal")
+    return values
+
+
+def _capture_polygon_corner_normals(
+    mesh: bpy.types.Mesh,
+) -> dict[int, tuple[int, dict[int, tuple[float, float, float]]]]:
+    """Capture each source polygon's evaluated normal at every original vertex."""
+
+    corner_normals = _mesh_corner_normals(mesh)
+    records: dict[int, tuple[int, dict[int, tuple[float, float, float]]]] = {}
+    for polygon in mesh.polygons:
+        by_vertex: dict[int, tuple[float, float, float]] = {}
+        for vertex_index, loop_index in zip(
+            polygon.vertices,
+            polygon.loop_indices,
+            strict=True,
+        ):
+            vertex_key = int(vertex_index)
+            if vertex_key in by_vertex:
+                raise RuntimeError(
+                    "glTF serialization source polygon repeats a corner vertex"
+                )
+            normal = corner_normals[loop_index]
+            by_vertex[vertex_key] = tuple(
+                float(normal[index]) for index in range(3)
+            )
+        if len(by_vertex) < 3:
+            raise RuntimeError("glTF serialization encountered an invalid source polygon")
+        records[int(polygon.index)] = (int(polygon.material_index), by_vertex)
+    return records
+
+
+def _capture_bmesh_triangle_corner_normals(
+    editable: Any,
+    source_face_layer: Any,
+    source_records: dict[int, tuple[int, dict[int, tuple[float, float, float]]]],
+) -> dict[tuple[tuple[int, int, int], int], list[dict[int, tuple[float, float, float]]]]:
+    """Project source polygon normals onto the exact BMesh triangles being written."""
+
+    editable.verts.index_update()
+    editable.faces.index_update()
+    records: dict[
+        tuple[tuple[int, int, int], int],
+        list[dict[int, tuple[float, float, float]]],
+    ] = {}
+    for face in editable.faces:
+        if len(face.verts) != 3:
+            raise RuntimeError("glTF serialization BMesh remains non-triangular")
+        source_polygon_index = int(face[source_face_layer])
+        source_record = source_records.get(source_polygon_index)
+        if source_record is None:
+            raise RuntimeError(
+                "glTF serialization triangulation lost source polygon identity"
+            )
+        source_material_index, source_normals = source_record
+        if int(face.material_index) != source_material_index:
+            raise RuntimeError(
+                "glTF serialization triangulation changed source material identity"
+            )
+        vertices = tuple(int(vertex.index) for vertex in face.verts)
+        try:
+            by_vertex = {vertex: source_normals[vertex] for vertex in vertices}
+        except KeyError as exc:
+            raise RuntimeError(
+                "glTF serialization triangulation introduced a source polygon corner"
+            ) from exc
+        key = (_cyclic_triangle_key(vertices), source_material_index)
+        records.setdefault(key, []).append(by_vertex)
+    return records
+
+
+def _restore_triangulated_corner_normals(
+    mesh: bpy.types.Mesh,
+    records: dict[
+        tuple[tuple[int, int, int], int],
+        list[dict[int, tuple[float, float, float]]],
+    ],
+) -> None:
+    """Restore captured evaluated normals after deterministic physical triangulation."""
+
+    mesh.calc_loop_triangles()
+    remaining = {key: list(values) for key, values in records.items()}
+    restored: list[tuple[float, float, float] | None] = [None] * len(mesh.loops)
+    for triangle in mesh.loop_triangles:
+        polygon = mesh.polygons[triangle.polygon_index]
+        key = (_cyclic_triangle_key(triangle.vertices), int(polygon.material_index))
+        candidates = remaining.get(key)
+        if not candidates:
+            raise RuntimeError(
+                "glTF serialization triangulation changed oriented triangle identity"
+            )
+        by_vertex = candidates.pop(0)
+        for vertex_index, loop_index in zip(
+            triangle.vertices,
+            triangle.loops,
+            strict=True,
+        ):
+            try:
+                restored[loop_index] = by_vertex[int(vertex_index)]
+            except KeyError as exc:
+                raise RuntimeError(
+                    "glTF serialization triangulation changed triangle corners"
+                ) from exc
+    if any(values for values in remaining.values()) or any(
+        normal is None for normal in restored
+    ):
+        raise RuntimeError(
+            "glTF serialization triangulation did not preserve every source corner normal"
+        )
+    mesh.normals_split_custom_set(restored)
+    mesh.update()
+
+
 def normalize_gltf_serialization_topology(
     objects: list[bpy.types.Object], format_name: str
 ) -> dict[str, Any]:
@@ -781,9 +924,17 @@ def normalize_gltf_serialization_topology(
         triangles_before = len(mesh.loop_triangles)
         non_tri_faces_before = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
         if non_tri_faces_before:
+            source_normal_records = _capture_polygon_corner_normals(mesh)
             editable = bmesh.new()
             try:
                 editable.from_mesh(mesh)
+                editable.faces.ensure_lookup_table()
+                editable.faces.index_update()
+                source_face_layer = editable.faces.layers.int.new(
+                    "cbm_source_polygon_index"
+                )
+                for face in editable.faces:
+                    face[source_face_layer] = int(face.index)
                 faces = [face for face in editable.faces if len(face.verts) != 3]
                 bmesh.ops.triangulate(
                     editable,
@@ -791,10 +942,17 @@ def normalize_gltf_serialization_topology(
                     quad_method="FIXED",
                     ngon_method="EAR_CLIP",
                 )
+                normal_records = _capture_bmesh_triangle_corner_normals(
+                    editable,
+                    source_face_layer,
+                    source_normal_records,
+                )
+                editable.faces.layers.int.remove(source_face_layer)
                 editable.to_mesh(mesh)
             finally:
                 editable.free()
             mesh.update()
+            _restore_triangulated_corner_normals(mesh, normal_records)
         mesh.calc_loop_triangles()
         polygons_after = len(mesh.polygons)
         triangles_after = len(mesh.loop_triangles)

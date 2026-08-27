@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one human quality decision to exact completed V0.6 evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "request_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "sequence": {
+      "maximum": 6,
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "qa_source_stage_binding": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "completed_qa_state": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "source_visual_qa_report": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "canonical_scene_spec_snapshot": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "source_qa_run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Source Qa Run Id",
+      "type": "string"
+    },
+    "qa_review_input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qa Review Input Fingerprint",
+      "type": "string"
+    },
+    "qa_review_completion_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Qa Review Completion Fingerprint",
+      "type": "string"
+    },
+    "qa_review_approval_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Qa Review Approval Id",
+      "type": "string"
+    },
+    "direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Direct Score",
+      "type": "number"
+    },
+    "silhouette_iou": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Silhouette Iou",
+      "type": "number"
+    },
+    "high_finding_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "High Finding Ids",
+      "type": "array"
+    },
+    "recommended_disposition": {
+      "enum": [
+        "accepted",
+        "needs_revision"
+      ],
+      "title": "Recommended Disposition",
+      "type": "string"
+    },
+    "allowed_dispositions": {
+      "default": [
+        "accepted",
+        "needs_revision"
+      ],
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "const": "accepted",
+          "type": "string"
+        },
+        {
+          "const": "needs_revision",
+          "type": "string"
+        }
+      ],
+      "title": "Allowed Dispositions",
+      "type": "array"
+    },
+    "human_decision_required": {
+      "const": true,
+      "default": true,
+      "title": "Human Decision Required",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Approval Authority",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "sequence",
+    "run_id",
+    "job_id",
+    "qa_source_stage_binding",
+    "completed_qa_state",
+    "source_visual_qa_report",
+    "canonical_scene_spec_snapshot",
+    "source_qa_run_id",
+    "qa_review_input_fingerprint",
+    "qa_review_completion_fingerprint",
+    "qa_review_approval_id",
+    "direct_score",
+    "silhouette_iou",
+    "recommended_disposition",
+    "created_at"
+  ],
+  "title": "StandardQualityDispositionRequest",
+  "type": "object"
+}

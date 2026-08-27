@@ -383,7 +383,18 @@ def test_candidate_review_evaluates_then_promotes_only_after_exact_approval(
     report_result = generate_candidate_review_pdf("candidate_service_asset", "trial-01")
     assert Path(report_result["pdf"]).is_file()
     assert Path(report_result["manifest"]).is_file()
-    status = get_candidate_review_status("candidate_service_asset", "trial-01")
+    def stale_build_fingerprint(*_args: object, **_kwargs: object) -> str:
+        """Simulate later material inputs while preserving immutable review evidence."""
+
+        return "f" * 64
+
+    with monkeypatch.context() as historical_context:
+        historical_context.setattr(
+            "codex_blender_modeler.qa.request._current_build_fingerprint",
+            stale_build_fingerprint,
+        )
+        status = get_candidate_review_status("candidate_service_asset", "trial-01")
+    assert status["decision_valid"] is True
     assert status["review_pdf_manifest_valid"] is True
 
     approval = approve_candidate_review(

@@ -60,3 +60,12 @@ def test_v08_gates_cover_bounded_background_plans() -> None:
         assert "preview_only" in source
         assert "optimization_plan" in source
         assert "portable.final_approval" in source
+
+
+def test_v08_gates_use_short_repository_local_pytest_roots() -> None:
+    """Keep deeply nested orchestration fixtures inside the ignored short test root."""
+
+    for path in (POWERSHELL_GATE, SHELL_GATE):
+        source = _source(path)
+        assert "--basetemp" in source
+        assert ".t/v8p-" in source

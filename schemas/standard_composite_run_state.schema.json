@@ -50,6 +50,7 @@
         "running",
         "waiting_for_agent",
         "waiting_for_approval",
+        "waiting_for_quality_disposition",
         "waiting_for_external_revision",
         "completed",
         "blocked",
@@ -129,6 +130,33 @@
       "maxItems": 5,
       "title": "Qa Revision Evidence",
       "type": "array"
+    },
+    "quality_disposition_requests": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "maxItems": 6,
+      "title": "Quality Disposition Requests",
+      "type": "array"
+    },
+    "quality_dispositions": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "maxItems": 6,
+      "title": "Quality Dispositions",
+      "type": "array"
+    },
+    "current_quality_disposition_request": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "next_action": {
       "anyOf": [

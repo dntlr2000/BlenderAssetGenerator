@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, Literal
 
 from .blender_scripts.standard_custom_mesh_runtime import (
     validate_standard_custom_mesh_payload,
@@ -19,6 +19,7 @@ CAMERA_FINGERPRINT_FIELDS = (
     "ortho_scale",
     "resolution",
 )
+BuildMaterialPlanMode = Literal["current", "scene_spec_only"]
 
 
 class BuildProvenanceError(RuntimeError):
@@ -468,10 +469,15 @@ def collect_build_provenance(
     validate_contracts: bool = True,
     validate_surface_details: bool = True,
     surface_detail_inventory_path: Path | None = None,
+    material_plan_mode: BuildMaterialPlanMode = "current",
 ) -> dict[str, Any]:
-    """Collect build inputs with optional contract and isolated inventory validation."""
+    """Collect exact build inputs under one explicit material-plan selection boundary."""
 
     root = job_root.expanduser().resolve()
+    if material_plan_mode not in {"current", "scene_spec_only"}:
+        raise BuildProvenanceError(
+            f"Unsupported build material-plan mode: {material_plan_mode!r}"
+        )
     spec_path = (
         scene_spec_path.expanduser().resolve()
         if scene_spec_path is not None
@@ -570,7 +576,7 @@ def collect_build_provenance(
                     material_plan_path = root / "analysis" / "material_plan.json"
                     material_plan = (
                         load_material_plan(material_plan_path)
-                        if material_plan_path.is_file()
+                        if material_plan_mode == "current" and material_plan_path.is_file()
                         else None
                     )
                     surface_report = validate_surface_detail_contract(
@@ -598,8 +604,15 @@ def collect_build_provenance(
     if not isinstance(camera, dict):
         raise BuildProvenanceError("SceneSpec camera must be an object")
 
-    runtime_recipes = load_runtime_shader_recipes(root, job_id)
+    runtime_recipes = (
+        load_runtime_shader_recipes(root, job_id)
+        if material_plan_mode == "current"
+        else {}
+    )
     plan_path = root / "analysis" / "material_plan.json"
+    selected_plan_path = (
+        plan_path if material_plan_mode == "current" and plan_path.is_file() else None
+    )
     materials: dict[str, dict[str, Any]] = {}
     for material_id, runtime in sorted(runtime_recipes.items()):
         recipe_value = runtime.get("cbm_recipe_path")
@@ -641,11 +654,17 @@ def collect_build_provenance(
         "geometry_payloads_sha256": _geometry_payload_hashes(root, scene_spec),
         "camera_fingerprint": camera_contract_fingerprint(camera),
         "material_plan_path": (
-            _relative_path(root, plan_path, "material plan") if plan_path.is_file() else None
+            _relative_path(root, selected_plan_path, "material plan")
+            if selected_plan_path is not None
+            else None
         ),
-        "material_plan_sha256": sha256_file(plan_path) if plan_path.is_file() else None,
+        "material_plan_sha256": (
+            sha256_file(selected_plan_path) if selected_plan_path is not None else None
+        ),
         "materials": materials,
     }
+    if material_plan_mode != "current":
+        payload["material_plan_mode"] = material_plan_mode
     interior_contracts = _optional_interior_contract_hashes(root)
     if interior_contracts is not None:
         payload["interior_contracts"] = interior_contracts

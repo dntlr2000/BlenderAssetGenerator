@@ -54,3 +54,20 @@ def test_v071_gates_use_distinct_deterministic_conversion_ids() -> None:
         assert all(identifier in source for identifier in expected)
         assert source.count("v071-gltf-smoke-materials") >= 2
         assert "conversion_manifest.json" in source
+
+
+def test_v071_gates_use_short_repository_local_pytest_roots() -> None:
+    """Keep deeply nested gate fixtures inside the ignored short-path test root."""
+
+    for path in (POWERSHELL_GATE, SHELL_GATE):
+        source = _source(path)
+        assert "--basetemp" in source
+        assert ".t/v7p-" in source
+
+
+def test_v071_windows_gate_hashes_without_module_autoloading() -> None:
+    """Use the .NET SHA-256 primitive instead of an optional PowerShell cmdlet."""
+
+    source = _source(POWERSHELL_GATE)
+    assert "[System.Security.Cryptography.SHA256]::Create()" in source
+    assert "Get-FileHash" not in source

@@ -269,7 +269,19 @@
         },
         "generated_sha256": {
           "additionalProperties": {
+            "pattern": "^[0-9a-f]{64}$",
             "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ]
           },
           "title": "Generated Sha256",
           "type": "object"

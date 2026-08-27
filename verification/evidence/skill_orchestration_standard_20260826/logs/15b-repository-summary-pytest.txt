@@ -1,0 +1,11 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: E:\Playground\BlenderAssetGenerator
+configfile: pyproject.toml
+plugins: anyio-4.14.1
+collected 6 items
+
+tests\test_repository_summary_generator.py ......                        [100%]
+
+============================== 6 passed in 2.93s ==============================
+EXIT_CODE=0

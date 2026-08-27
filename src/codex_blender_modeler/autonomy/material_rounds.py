@@ -8,6 +8,7 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from time import sleep
 from typing import Any
 from uuid import uuid4
 
@@ -44,6 +45,7 @@ _STRATEGIES: tuple[MaterialCandidateStrategy, ...] = (
     "portable_pbr_v05",
     "faithful_v05",
 )
+_DIRECTORY_PUBLICATION_RETRY_DELAYS_SECONDS = (0.05, 0.15)
 
 
 def _utc_now() -> datetime:
@@ -84,6 +86,25 @@ def _write_bytes(path: Path, content: bytes) -> None:
     os.makedirs(native_io_path(path.parent), exist_ok=True)
     with open(native_io_path(path), "wb") as handle:
         handle.write(content)
+
+
+def _replace_directory_with_retry(source: Path, destination: Path) -> None:
+    """Retry only transient Windows publication denial while preserving fail-closed state."""
+
+    attempts = len(_DIRECTORY_PUBLICATION_RETRY_DELAYS_SECONDS) + 1
+    for attempt in range(attempts):
+        try:
+            os.replace(native_io_path(source), native_io_path(destination))
+            return
+        except PermissionError:
+            retry_available = attempt < len(
+                _DIRECTORY_PUBLICATION_RETRY_DELAYS_SECONDS
+            )
+            source_unchanged = os.path.isdir(native_io_path(source))
+            destination_absent = not os.path.exists(native_io_path(destination))
+            if not retry_available or not source_unchanged or not destination_absent:
+                raise
+            sleep(_DIRECTORY_PUBLICATION_RETRY_DELAYS_SECONDS[attempt])
 
 
 def _relative(root: Path, path: Path) -> str:
@@ -684,7 +705,7 @@ def _publish_candidate(
     )
     _write_bytes(staging / "completion.json", _json_bytes(completion))
     os.makedirs(native_io_path(candidate_root.parent), exist_ok=True)
-    os.replace(native_io_path(staging), native_io_path(candidate_root))
+    _replace_directory_with_retry(staging, candidate_root)
     return completion, artifact_for(root, completion_path)
 
 

@@ -133,6 +133,13 @@ ordered polygon-corner UV hash는 polygon/loop 순서, vertex 위치와 UV의 ex
 directory 안의 exact SHA-256 mask를 사용할 수 있습니다. spatial channel은 실제 image
 channel이어야 하며, localized material은 parent 외 다른 object와 공유할 수 없습니다.
 
+`provenance.generated_sha256`를 선언할 때 key 집합은 `channels` 중 `source=image`인
+channel 이름과 정확히 같아야 하고, 각 값은 해당 실제 파일의 현재 SHA-256과 일치해야
+합니다. placement mask는 계속 `placement.mask_sha256`, derivative/bake report는 각
+report의 전용 `sha256` 필드에 기록하며 mask나 report 이름을 channel hash map에 섞지
+않습니다. 해당 필드가 없던 legacy/import manifest는 계속 읽을 수 있지만 hash 선언을
+추론하거나 자동 생성하지 않습니다.
+
 ID만 적고 실제 맵에 디테일을 만들지 않는 것은 허용되지 않습니다. Host 검증은 ID,
 경로, hash, UV, node topology, sampling과 채널 계약을 확인하지만 `uv_rect`가 의미상
 올바른 면을 골랐는지까지 자동 증명하지는 않습니다. swatch와 preview 검토는 계속

@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record one exact single-use human quality decision without approval authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "disposition_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Disposition Id",
+      "type": "string"
+    },
+    "sequence": {
+      "maximum": 6,
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "request_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Fingerprint",
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "accepted",
+        "needs_revision"
+      ],
+      "title": "Disposition",
+      "type": "string"
+    },
+    "user_note": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "User Note",
+      "type": "string"
+    },
+    "human_decision_observed": {
+      "const": true,
+      "default": true,
+      "title": "Human Decision Observed",
+      "type": "boolean"
+    },
+    "single_use": {
+      "const": true,
+      "default": true,
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Approval Authority",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "disposition_id",
+    "sequence",
+    "run_id",
+    "job_id",
+    "request",
+    "request_fingerprint",
+    "disposition",
+    "user_note",
+    "recorded_at"
+  ],
+  "title": "StandardQualityDispositionRecord",
+  "type": "object"
+}

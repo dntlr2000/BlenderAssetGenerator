@@ -39,7 +39,7 @@ uv run cbm standard-asset-cycle-plan `
   --stage-policy smart
 ```
 
-모든 단계를 강제로 새로 수행하려면 `--stage-policy force_all`을 사용합니다. package까지 필요할 때만 `--goal full_cycle_to_package`를 선택합니다. V0.7 optimization-plan approval은 별도로 유지됩니다.
+모든 단계를 강제로 새로 수행하려면 `--stage-policy force_all`을 사용합니다. package까지 필요할 때만 `--goal full_cycle_to_package`를 선택합니다. 이 goal은 exact `qa.review` 뒤 표시되는 `quality_disposition fingerprint`에 대해 `accepted` 또는 `needs_revision`을 별도로 기록해야 하며, 그 뒤에도 V0.7 optimization-plan approval은 별도로 유지됩니다.
 
 ## 4. QA repair cycle
 

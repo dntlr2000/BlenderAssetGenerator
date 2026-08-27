@@ -3,3 +3,6 @@
 
 # Preserve immutable verification snapshots byte-for-byte, including small PDFs and JSON receipts.
 verification/evidence/** -text
+
+# Preserve raw terminal-log whitespace without weakening checks for other evidence files.
+verification/evidence/**/logs/** whitespace=-blank-at-eol,-blank-at-eof,-space-before-tab

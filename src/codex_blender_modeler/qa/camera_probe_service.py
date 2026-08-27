@@ -42,6 +42,31 @@ SemanticProbeMask = tuple[Path, str, float]
 _TERMINAL_CONTRACT = "camera_probe_terminal_v2"
 
 
+def _read_utf8(path: Path) -> str:
+    """Read one camera-probe artifact through Windows extended-length I/O."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
+def _mkdir_native(path: Path) -> None:
+    """Create one camera-probe directory tree without legacy path truncation."""
+
+    os.makedirs(native_io_path(path), exist_ok=True)
+
+
+def _path_is_file(path: Path) -> bool:
+    """Check a camera-probe file through its native extended-length filename."""
+
+    return os.path.isfile(native_io_path(path))
+
+
+def _unlink_native(path: Path) -> None:
+    """Remove one owned publication lease through extended-length path I/O."""
+
+    os.unlink(native_io_path(path))
+
+
 def _utc_now() -> datetime:
     """Return a timezone-aware timestamp for evidence publication leases."""
 
@@ -52,7 +77,7 @@ def _read_publication_lease(path: Path) -> dict[str, Any]:
     """Load one strict publication lease or fail closed on malformed ownership data."""
 
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(_read_utf8(path))
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise RuntimeError(
             f"Evidence publication lease exists but is unreadable: {path}"
@@ -88,7 +113,7 @@ def _archive_stale_publication_lease(path: Path, payload: Mapping[str, Any]) -> 
     """Archive one expired lease before another writer acquires the evidence scope."""
 
     history = path.parent / "stale_leases"
-    history.mkdir(parents=True, exist_ok=True)
+    _mkdir_native(history)
     stamp = _utc_now().strftime("%Y%m%dT%H%M%S.%fZ")
     destination = history / f"{stamp}_{payload['lease_id']}.json"
     os.replace(native_io_path(path), native_io_path(destination))
@@ -108,7 +133,7 @@ def artifact_publication_lease(
     if ttl_seconds < 30 or ttl_seconds > 86400:
         raise ValueError("evidence publication lease TTL must be within [30, 86400]")
     scope = scope_root.expanduser().resolve()
-    scope.mkdir(parents=True, exist_ok=True)
+    _mkdir_native(scope)
     lease_path = scope / ".publication_lease.json"
     now = _utc_now()
     payload: dict[str, Any] = {
@@ -151,21 +176,21 @@ def artifact_publication_lease(
     try:
         yield payload
     finally:
-        if not lease_path.is_file():
+        if not _path_is_file(lease_path):
             raise RuntimeError("Evidence publication lease disappeared before release")
         current = _read_publication_lease(lease_path)
         if current["lease_id"] != payload["lease_id"]:
             raise RuntimeError(
                 "Evidence publication lease ownership changed; refusing to release it"
             )
-        lease_path.unlink()
+        _unlink_native(lease_path)
 
 
 def write_json_exclusive(path: Path, payload: Mapping[str, Any]) -> None:
     """Create one terminal JSON artifact exactly once without overwrite semantics."""
 
     destination = path.expanduser().resolve()
-    destination.parent.mkdir(parents=True, exist_ok=True)
+    _mkdir_native(destination.parent)
     encoded = (json.dumps(dict(payload), indent=2, ensure_ascii=False) + "\n").encode(
         "utf-8"
     )
@@ -673,8 +698,8 @@ def validate_camera_probe_terminal_evidence(
     _require_current_hash(resolved_manifest, manifest_sha256, "terminal render manifest")
     _require_current_hash(resolved_role_map, role_map_sha256, "terminal role map")
     try:
-        plan = json.loads(resolved_plan.read_text(encoding="utf-8"))
-        manifest = json.loads(resolved_manifest.read_text(encoding="utf-8"))
+        plan = json.loads(_read_utf8(resolved_plan))
+        manifest = json.loads(_read_utf8(resolved_manifest))
     except json.JSONDecodeError as exc:
         raise ValueError("camera probe terminal evidence is invalid JSON") from exc
     if not isinstance(plan, dict) or not isinstance(manifest, dict):
@@ -724,7 +749,7 @@ def validate_camera_probe_terminal_evidence(
         if plan_deltas != _probe_deltas(len(plan_deltas) - 1):
             raise ValueError("strict camera probe plan changed its deterministic delta family")
         role_map = BackgroundRoleMap.model_validate_json(
-            resolved_role_map.read_text(encoding="utf-8")
+            _read_utf8(resolved_role_map)
         )
         selected_ids = sorted(
             semantic_id
@@ -914,7 +939,7 @@ def run_bounded_camera_probes(
         root / "qa" / "runs" / qa_run_id / "diagnostics" / diagnostic_id
     ).resolve()
     _validate_diagnostic_artifact_root(artifact_root, expected_artifact_root)
-    spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
+    spec = SceneSpec.model_validate_json(_read_utf8(scene_spec_path))
     if spec.job_id != job_id:
         raise ValueError("camera diagnostic SceneSpec belongs to another job")
     reference_ids = {source.id for source in spec.sources if source.kind == "reference"}
@@ -1046,7 +1071,7 @@ def run_bounded_camera_probes(
         _require_current_hash(path, expected_sha256, f"semantic mask {semantic_id}")
     if not file_exists(manifest_path):
         raise RuntimeError("bounded camera diagnostics did not create a render manifest")
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(_read_utf8(manifest_path))
     expected = (
         manifest.get("schema_version") == "0.6.0"
         and manifest.get("diagnostic_kind") == "bounded_camera_probe"

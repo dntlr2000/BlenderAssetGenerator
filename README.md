@@ -79,14 +79,19 @@ state, budget, assignment를 검증한 뒤에만 resume합니다. 목적지 Unit
 
 ## Skill Orchestration 0.1
 
-사용자용 진입점은 `$standard-asset-cycle`과 `$aq-one-prompt-orchestrator` 두 개입니다. Standard entry는 새 자산의 V0.4→V0.5→V0.6 또는 기존 자산의 immutable V0.8 child workflow들을 하나의 composite run으로 관리하며, package는 명시적 goal에서만 V0.7로 이어집니다. `smart` stage policy는 exact `MaterialImpactReport`로 V0.5 재실행 여부를 판단하고, canonical geometry/material 변경 뒤에는 항상 fresh V0.6 QA를 계획합니다.
+사용자용 진입점은 `$standard-asset-cycle`과 `$aq-one-prompt-orchestrator` 두 개입니다. Standard entry는 새 자산의 V0.4→V0.5→V0.6 또는 기존 자산의 immutable V0.8 child workflow들을 하나의 composite run으로 관리하며, package는 명시적 goal에서만 V0.7로 이어집니다. `smart` stage policy는 exact `MaterialImpactReport`로 V0.5 재실행 여부를 판단하고, canonical geometry/material 변경 뒤에는 항상 fresh V0.6 QA를 계획합니다. 정확한 host failure를 geometry correction으로 대체해야 할 때는 기존 resume surface의 failed-state SHA-256 결속 recovery만 허용하며, 실패 child와 receipt는 보존하고 새 `manual_guarded` `revise_asset` child를 추가합니다. 실행되지 않은 legacy candidate 오라우팅은 exact state hash와 취소 receipt로 보존한 뒤 `manual_guarded` child로 교정할 수 있습니다. 평가된 candidate는 원칙적으로 재라우팅하지 않지만, direct score가 개선되고 silhouette이 회귀하지 않았으며 오직 geometry 변경으로 authored V0.5 surface-detail binding이 stale해져 nonpromotable이고 promotion approval이 없으며 canonical baseline이 그대로인 경우에는 동일 QA-candidate 연산만 새 `detailed_geometry` 승인 경계로 옮길 수 있습니다. 이 예외는 기존 decision과 취소 receipt를 보존하고 적용 뒤 fresh V0.5·V0.6을 강제합니다. 완료된 geometry child의 exact 5-view review가 V0.4 재진입을 요구하거나 권고하면 material/QA는 진행하지 않고 bounded `manual_guarded` correction을 한 번만 추가합니다. 이미 오계획됐지만 untouched인 material child는 exact 취소 receipt와 함께 보존하며, 시작된 material child 또는 재교정 실패는 loop 없이 fail-closed terminal로 끝납니다. 이 기술적 reroute는 승인을 만들지 않으며 새 geometry proposal은 별도 exact specialized approval을 요구합니다.
+
+V0.8 geometry build와 그 five-view structural review는 계획에 `material_plan_mode=scene_spec_only`를 결속합니다. 따라서 복구 대상인 실패한 V0.5 MaterialPlan을 고치거나 완화하지 않고도 V0.4 geometry를 검증할 수 있으며, 후속 V0.5 material build·QA·bake·package 경로는 계속 current MaterialPlan과 TextureManifest를 엄격하게 검증합니다.
 
 AQ entry는 기존 One-Prompt state를 reference/geometry/material/closure/quality/delivery/recovery skill로 유일하게 route합니다. AQ v2 활성 상태나 approval 의미는 바꾸지 않습니다. 각 run은 registry와 transitive `SKILL.md` bundle을 snapshot하고 exact source-state route decision 및 before/after receipt chain을 남깁니다. 이 trace는 canonical write와 approval authority를 갖지 않습니다.
 
 구조는 [Skill Orchestration 아키텍처](SKILL_ORCHESTRATION_ARCHITECTURE_KO.md), 실행은 [시작 가이드](GETTING_STARTED_SKILL_ORCHESTRATION_KO.md), 호환성은 [마이그레이션](SKILL_ORCHESTRATION_MIGRATION_KO.md), 검증 범위는 [검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md)을 참조합니다.
 
-현재 machine-readable KPI에는 여섯 자산 유형·일곱 run의 대표 계약 fixture가 있습니다. 이는 실제
-Blender 자산 E2E, 사람 품질 검토 또는 profile activation 증거가 아닙니다. 실제 상태와 명령은
+현재 machine-readable KPI에는 대표 계약 fixture와 함께 두 실제 Standard 자산의 exact
+human-reviewed E2E가 기록됩니다. 플라스틱 canary는 high silhouette 한계를 수용한 상태이고, 천
+복합 자산은 fresh V0.5/V0.6과 승인된 GLB package/clean import까지 완료했습니다. AQ는 진입
+준비성만 `ready`이며 v2 profile은 계속 `disabled_experimental`이고 실제 AQ 자산 실행은 시작하지
+않았습니다. 실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
 [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
 [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는
 [AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)를 참조합니다.
@@ -1149,8 +1154,8 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Project-enabled MCP SHA-256: e45073e35a43c1e011661cb8481630ee0732a71fefcd3853a233179916253870
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 1947
-- Verification summary: verification/latest_summary.json (reported)
+- Latest reported test count: 1987
+- Verification summary: verification/latest_summary.json (passed)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.
 <!-- CBM:REPOSITORY_SUMMARY:END -->

@@ -15,6 +15,19 @@ function Invoke-Uv {
     }
 }
 
+# Hashes one gate artifact without relying on optional PowerShell module autoloading.
+function Get-Sha256([string]$Path) {
+    $Stream = [System.IO.File]::OpenRead($Path)
+    $Hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($Hasher.ComputeHash($Stream))).Replace("-", "").ToLowerInvariant()
+    }
+    finally {
+        $Hasher.Dispose()
+        $Stream.Dispose()
+    }
+}
+
 # Runs one profile through cost-aware optimization, material conversion, package, and round trip.
 function Invoke-PortableProfileGate(
     [string]$Profile,
@@ -30,7 +43,7 @@ function Invoke-PortableProfileGate(
         --profile $Profile --run-id $RunId
     $PlanPath = Join-Path $SmokeWorkspace `
         "geometry_showcase/optimization/runs/$RunId/review_plan.json"
-    $PlanHash = (Get-FileHash -Algorithm SHA256 $PlanPath).Hash.ToLowerInvariant()
+    $PlanHash = Get-Sha256 $PlanPath
     Invoke-Uv run cbm asset-plan-approve geometry_showcase `
         --run-id $RunId --plan-sha256 $PlanHash `
         --approval-note "Automated isolated V0.7.4 integration fixture approval."
@@ -63,7 +76,11 @@ else {
     Invoke-Uv sync --frozen --extra dev --extra vision
 }
 
-Invoke-Uv run pytest
+# Keeps deeply nested Windows fixtures below a short repository-local path.
+$PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
+$PytestRoot = Join-Path (Get-Location) ".t/v7p-${PytestStamp}-$PID"
+New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
+Invoke-Uv run pytest --basetemp $PytestRoot
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 if (-not $SkipCompatibility) {

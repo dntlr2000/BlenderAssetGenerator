@@ -11,6 +11,6 @@ description: Plan stable V0.5 material identities, mappings, texture sources, an
 4. For each material, record shader family, mapping mode, real-world scale, texture strategy, export profiles, confidence, and assumptions.
 5. Prefer procedural or reusable tiled sources for terrain and architecture; use unique image maps only where the evidence requires them.
 6. Keep Blender master appearance separate from GLTF/Unity-safe output requirements.
-7. For deterministic source maps, select a documented family preset and preserve provider/version/model/prompt/seed plus channel hashes in TextureManifest.
+7. For deterministic source maps, select a documented family preset and preserve provider/version/model/prompt/seed. If `provenance.generated_sha256` is declared, its keys must exactly equal the image-backed TextureManifest channel names and every value must match the actual channel file SHA-256. Keep placement-mask hashes in `placement.mask_sha256` and report hashes in their existing dedicated report fields; never add mask or report names to the channel hash map. Legacy/import manifests may omit `generated_sha256`.
 8. Validate material contracts and Blender node graphs, then render fixed sphere and plane swatches.
 9. Stop for approval before baking or replacing approved material identities.

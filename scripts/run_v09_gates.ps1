@@ -17,6 +17,19 @@ function Invoke-Uv {
     }
 }
 
+# Hashes one gate artifact without relying on optional PowerShell module autoloading.
+function Get-Sha256([string]$Path) {
+    $Stream = [System.IO.File]::OpenRead($Path)
+    $Hasher = [System.Security.Cryptography.SHA256]::Create()
+    try {
+        return ([System.BitConverter]::ToString($Hasher.ComputeHash($Stream))).Replace("-", "").ToLowerInvariant()
+    }
+    finally {
+        $Hasher.Dispose()
+        $Stream.Dispose()
+    }
+}
+
 # Builds one real GLB package and validates a movable Codex handoff in the isolated workspace.
 function Invoke-DestinationHandoffGate {
     $RunId = "v09-handoff-smoke-run"
@@ -40,7 +53,7 @@ function Invoke-DestinationHandoffGate {
         --profile portable_gltf --run-id $RunId
     $ReviewPlan = Join-Path $SmokeWorkspace `
         "geometry_showcase/optimization/runs/$RunId/review_plan.json"
-    $ReviewHash = (Get-FileHash -Algorithm SHA256 $ReviewPlan).Hash.ToLowerInvariant()
+    $ReviewHash = Get-Sha256 $ReviewPlan
     Invoke-Uv run cbm asset-plan-approve geometry_showcase `
         --run-id $RunId --plan-sha256 $ReviewHash `
         --approval-note "Automated isolated V0.9 handoff integration approval."
@@ -59,14 +72,12 @@ function Invoke-DestinationHandoffGate {
 
     $PackageManifest = Join-Path $SmokeWorkspace `
         "geometry_showcase/exports/packages/portable_gltf/$PackageId/package_manifest.json"
-    $PackageHashBefore = `
-        (Get-FileHash -Algorithm SHA256 $PackageManifest).Hash.ToLowerInvariant()
+    $PackageHashBefore = Get-Sha256 $PackageManifest
     Invoke-Uv run cbm handoff-plan geometry_showcase `
         --profile portable_gltf --package-id $PackageId --handoff-id $HandoffId
     $HandoffPlan = Join-Path $SmokeWorkspace `
         "geometry_showcase/handoffs/$HandoffId/handoff_plan.json"
-    $HandoffPlanHash = `
-        (Get-FileHash -Algorithm SHA256 $HandoffPlan).Hash.ToLowerInvariant()
+    $HandoffPlanHash = Get-Sha256 $HandoffPlan
     Invoke-Uv run cbm handoff-generate geometry_showcase `
         --handoff-id $HandoffId --plan-sha256 $HandoffPlanHash
     Invoke-Uv run cbm handoff-validate geometry_showcase `
@@ -83,8 +94,7 @@ function Invoke-DestinationHandoffGate {
     $HandoffPdf = Join-Path $Envelope "codex_handoff/handoff_report.pdf"
     $HandoffPdfManifest = `
         Join-Path $Envelope "codex_handoff/handoff_report.manifest.json"
-    $PackageHashAfter = `
-        (Get-FileHash -Algorithm SHA256 $PackageManifest).Hash.ToLowerInvariant()
+    $PackageHashAfter = Get-Sha256 $PackageManifest
     # Known non-blocking round-trip limitations produce status=warning while ok remains true.
     if (-not $Validation.ok -or $Validation.status -notin @("passed", "warning") -or `
         -not (Test-Path $HandoffManifest) -or -not (Test-Path $HandoffPdf) -or `

@@ -419,6 +419,8 @@ from codex_blender_modeler.skill_orchestration.models import (
     StandardCompositeRunState,
     StandardCompositeRunTerminal,
     StandardCompositeStageBinding,
+    StandardQualityDispositionRecord,
+    StandardQualityDispositionRequest,
 )
 from codex_blender_modeler.stabilization.archive_models import (
     WorkspaceRelocationPlan,
@@ -563,6 +565,8 @@ SCHEMAS = {
     "standard_composite_stage_binding.schema.json": StandardCompositeStageBinding,
     "standard_composite_run_state.schema.json": StandardCompositeRunState,
     "standard_composite_run_terminal.schema.json": StandardCompositeRunTerminal,
+    "standard_quality_disposition_request.schema.json": StandardQualityDispositionRequest,
+    "standard_quality_disposition_record.schema.json": StandardQualityDispositionRecord,
     "aq_skill_adapter_plan.schema.json": AQSkillAdapterPlan,
     "aq_skill_adapter_state.schema.json": AQSkillAdapterState,
     "environment_probe.schema.json": EnvironmentProbeReport,

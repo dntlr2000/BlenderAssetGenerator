@@ -495,6 +495,8 @@ BlenderAssetGenerator/
   schemas/standard_composite_run_terminal.schema.json
   schemas/standard_composite_stage_binding.schema.json
   schemas/standard_custom_mesh_payload.schema.json
+  schemas/standard_quality_disposition_record.schema.json
+  schemas/standard_quality_disposition_request.schema.json
   schemas/static_payload_provenance.schema.json
   schemas/structural_candidate_manifest.schema.json
   schemas/structural_candidate_plan.schema.json
@@ -1273,6 +1275,30 @@ BlenderAssetGenerator/
   verification/evidence/imagegen_material_loop_20260813/command-log.txt
   verification/evidence/material_closure_stabilization_20260814/README.md
   verification/evidence/material_identity_split_20260814/README.md
+  verification/evidence/skill_orchestration_standard_20260826/README.md
+  verification/evidence/skill_orchestration_standard_20260826/logs/01-uv-sync.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/02-ruff.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/02b-ruff-host-retry.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/03-focused-pytest.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/03b-focused-pytest-host-retry.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/04-full-pytest.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/05-doctor.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/06-blender-compat.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/07-agent-instructions.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/09-v07-gates.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/10-v08-gates.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/11-v09-gates.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/12-aq-gates.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/13-repository-summary.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/13b-repository-summary-uv-retry.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/14-json-kpi-check.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/14b-json-kpi-check.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/15-repository-summary-pytest.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/15b-repository-summary-pytest.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/16-final-ruff.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/17-final-agent-instructions.txt
+  verification/evidence/skill_orchestration_standard_20260826/logs/18-final-diff-check.txt
+  verification/evidence/skill_orchestration_standard_20260826/standard_asset_evidence.json
   verification/evidence/v07_20260811/README.md
   verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/fbx_interchange/v07-fbx-smoke-package/package_manifest.json
   verification/evidence/v07_20260811/workspaces/geometry_showcase/exports/packages/obj_legacy/v07-obj-smoke-package/package_manifest.json

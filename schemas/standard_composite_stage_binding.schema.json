@@ -20,6 +20,188 @@
       ],
       "title": "SkillArtifact",
       "type": "object"
+    },
+    "StandardManualGuardedRerouteBinding": {
+      "additionalProperties": false,
+      "description": "Bind one untouched ineligible child to its manual guarded replacement.",
+      "properties": {
+        "reroute_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Reroute Id",
+          "type": "string"
+        },
+        "reroute_sequence": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Reroute Sequence",
+          "type": "integer"
+        },
+        "reroute_kind": {
+          "const": "manual_guarded_correction",
+          "default": "manual_guarded_correction",
+          "title": "Reroute Kind",
+          "type": "string"
+        },
+        "source_stage_binding": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "source_workflow_state": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "cancelled_workflow_state": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "cancellation_receipt": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "reroute_reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reroute Reason",
+          "type": "string"
+        },
+        "technical_failure": {
+          "const": true,
+          "default": true,
+          "title": "Technical Failure",
+          "type": "boolean"
+        },
+        "user_approval_requested": {
+          "const": false,
+          "default": false,
+          "title": "User Approval Requested",
+          "type": "boolean"
+        },
+        "canonical_write_authority": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Write Authority",
+          "type": "boolean"
+        },
+        "approval_authority": {
+          "const": false,
+          "default": false,
+          "title": "Approval Authority",
+          "type": "boolean"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reroute_id",
+        "reroute_sequence",
+        "source_stage_binding",
+        "source_workflow_state",
+        "cancelled_workflow_state",
+        "cancellation_receipt",
+        "reroute_reason",
+        "created_at"
+      ],
+      "title": "StandardManualGuardedRerouteBinding",
+      "type": "object"
+    },
+    "StandardTechnicalRecoveryBinding": {
+      "additionalProperties": false,
+      "description": "Bind one failed Standard child to a guarded geometry continuation.",
+      "properties": {
+        "recovery_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Recovery Id",
+          "type": "string"
+        },
+        "recovery_sequence": {
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Recovery Sequence",
+          "type": "integer"
+        },
+        "recovery_kind": {
+          "const": "guarded_geometry_continuation",
+          "default": "guarded_geometry_continuation",
+          "title": "Recovery Kind",
+          "type": "string"
+        },
+        "failed_stage_binding": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "failed_workflow_state": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "failed_execution_receipt": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "failed_step_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Failed Step Id",
+          "type": "string"
+        },
+        "failed_input_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Failed Input Fingerprint",
+          "type": "string"
+        },
+        "failure_reason_code": {
+          "const": "host_failure",
+          "default": "host_failure",
+          "title": "Failure Reason Code",
+          "type": "string"
+        },
+        "canonical_scene_spec_snapshot": {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        "recovery_reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Recovery Reason",
+          "type": "string"
+        },
+        "technical_failure": {
+          "const": true,
+          "default": true,
+          "title": "Technical Failure",
+          "type": "boolean"
+        },
+        "user_approval_requested": {
+          "const": false,
+          "default": false,
+          "title": "User Approval Requested",
+          "type": "boolean"
+        },
+        "canonical_write_authority": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Write Authority",
+          "type": "boolean"
+        },
+        "approval_authority": {
+          "const": false,
+          "default": false,
+          "title": "Approval Authority",
+          "type": "boolean"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "recovery_id",
+        "recovery_sequence",
+        "failed_stage_binding",
+        "failed_workflow_state",
+        "failed_execution_receipt",
+        "failed_step_id",
+        "failed_input_fingerprint",
+        "canonical_scene_spec_snapshot",
+        "recovery_reason",
+        "created_at"
+      ],
+      "title": "StandardTechnicalRecoveryBinding",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -74,6 +256,28 @@
     },
     "workflow_plan": {
       "$ref": "#/$defs/SkillArtifact"
+    },
+    "technical_recovery": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StandardTechnicalRecoveryBinding"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "technical_reroute": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/StandardManualGuardedRerouteBinding"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "created_reason": {
       "maxLength": 1000,

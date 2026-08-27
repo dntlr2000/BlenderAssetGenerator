@@ -25,4 +25,10 @@ revision candidates, RevisionPlan, consumed user approval, application report, o
 accepted convergence, and before/after SceneSpec hashes. A bare SceneSpec hash change is
 never continuation evidence.
 
+A Standard full-cycle quality-disposition request snapshots the exact current SceneSpec
+and binds the completed QA receipt state, VisualQAReport, and consumed `qa.review`
+fingerprints. Its artifact SHA-256 is the single-use decision fingerprint. Every request
+and human disposition remains append-only across fresh QA iterations; a premature
+unapproved V0.7 review is preserved as cancelled evidence rather than repaired in place.
+
 Primary rules: CBM-INV-022, CBM-INV-025..034, CBM-INV-047..052, CBM-INV-059..066, CBM-INV-071, CBM-INV-080, CBM-INV-082..088, CBM-INV-095, CBM-INV-104, CBM-INV-107..112, CBM-INV-114..121, CBM-INV-125, CBM-INV-128..150, CBM-INV-152..166, CBM-INV-171..192.

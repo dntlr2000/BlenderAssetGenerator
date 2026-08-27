@@ -1,0 +1,8 @@
+latest_status=passed_with_declared_scope_limits
+latest_tests=1987
+actual_standard=True
+actual_aq=False
+aq_profile=disabled_experimental
+evidence_status=passed_with_declared_quality_and_format_limits
+aq_readiness=ready
+EXIT_CODE=0

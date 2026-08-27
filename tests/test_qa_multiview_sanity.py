@@ -337,11 +337,13 @@ def test_geometry_multiview_defers_surface_detail_binding_validation(
     _seed_job(tmp_path, monkeypatch)
     original = sanity.collect_build_provenance
     validation_flags: list[bool] = []
+    material_plan_modes: list[str] = []
 
     def capture_provenance(*args: Any, **kwargs: Any) -> dict[str, Any]:
         """Record the selective validation policy while preserving real provenance checks."""
 
         validation_flags.append(bool(kwargs.get("validate_surface_details", True)))
+        material_plan_modes.append(str(kwargs.get("material_plan_mode", "current")))
         return original(*args, **kwargs)
 
     monkeypatch.setattr(sanity, "collect_build_provenance", capture_provenance)
@@ -349,6 +351,10 @@ def test_geometry_multiview_defers_surface_detail_binding_validation(
         JOB_ID,
         run_id="weapon-v04-before-v05",
         resolution=128,
+        material_plan_mode="scene_spec_only",
+    )
+    plan = AssemblySanityPlan.model_validate_json(
+        Path(planned["plan"]).read_text(encoding="utf-8")
     )
     monkeypatch.setattr(sanity, "run_blender", _mock_renderer())
 
@@ -360,6 +366,8 @@ def test_geometry_multiview_defers_surface_detail_binding_validation(
 
     assert validation_flags
     assert validation_flags == [False] * len(validation_flags)
+    assert material_plan_modes == ["scene_spec_only"] * len(material_plan_modes)
+    assert plan.material_plan_mode == "scene_spec_only"
 
 
 def test_unpublished_plan_recovery_removes_only_known_atomic_temp(

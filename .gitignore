@@ -96,6 +96,13 @@ build/
 /.s1/
 /.s2/
 
+# Per-goal short repository-local scratch roots; never treat fixture AGENTS.md
+# files inside these roots as project instructions or generated catalog input.
+/c[0-9][0-9]*/
+/g[0-9][0-9]*/
+/p[0-9][0-9]*/
+/t[0-9][0-9]*/
+
 # Local tool/runtime logs and test-only output.
 /.codex_runtime/
 /NVIDIA Corporation/

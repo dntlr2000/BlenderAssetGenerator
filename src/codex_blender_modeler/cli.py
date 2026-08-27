@@ -3551,6 +3551,42 @@ def standard_asset_cycle_resume_command(
         typer.Option("--max-stage-transitions", min=1, max=8),
     ] = 4,
     retry_failed: Annotated[bool, typer.Option("--retry-failed")] = False,
+    recover_failed_to_guarded_geometry: Annotated[
+        bool,
+        typer.Option("--recover-failed-to-guarded-geometry"),
+    ] = False,
+    failed_state_sha256: Annotated[
+        str | None,
+        typer.Option("--failed-state-sha256"),
+    ] = None,
+    recovery_reason: Annotated[
+        str | None,
+        typer.Option("--recovery-reason"),
+    ] = None,
+    reroute_candidate_to_manual_guarded: Annotated[
+        bool,
+        typer.Option("--reroute-candidate-to-manual-guarded"),
+    ] = False,
+    candidate_state_sha256: Annotated[
+        str | None,
+        typer.Option("--candidate-state-sha256"),
+    ] = None,
+    reroute_reason: Annotated[
+        str | None,
+        typer.Option("--reroute-reason"),
+    ] = None,
+    quality_disposition: Annotated[
+        str | None,
+        typer.Option("--quality-disposition"),
+    ] = None,
+    quality_disposition_fingerprint: Annotated[
+        str | None,
+        typer.Option("--quality-disposition-fingerprint"),
+    ] = None,
+    quality_disposition_note: Annotated[
+        str | None,
+        typer.Option("--quality-disposition-note"),
+    ] = None,
 ) -> None:
     """Resume the same Standard bundle, child bindings, and immutable receipt chain."""
 
@@ -3560,6 +3596,15 @@ def standard_asset_cycle_resume_command(
         max_host_steps=max_host_steps,
         max_stage_transitions=max_stage_transitions,
         retry_failed=retry_failed,
+        recover_failed_to_guarded_geometry=recover_failed_to_guarded_geometry,
+        failed_state_sha256=failed_state_sha256,
+        recovery_reason=recovery_reason,
+        reroute_candidate_to_manual_guarded=reroute_candidate_to_manual_guarded,
+        candidate_state_sha256=candidate_state_sha256,
+        reroute_reason=reroute_reason,
+        quality_disposition=quality_disposition,
+        quality_disposition_fingerprint=quality_disposition_fingerprint,
+        quality_disposition_note=quality_disposition_note,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 

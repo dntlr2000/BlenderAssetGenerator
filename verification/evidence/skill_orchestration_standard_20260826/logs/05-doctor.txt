@@ -1,0 +1,11 @@
+                         Codex Blender Modeler doctor                          
++-----------------------------------------------------------------------------+
+| Check      | Value                                                 | Status |
+|------------+-------------------------------------------------------+--------|
+| Repository | E:\Playground\BlenderAssetGenerator                   | OK     |
+| Workspace  | E:\Playground\BlenderAssetGenerator\workspaces        | OK     |
+| Blender    | C:\Program Files\Blender Foundation\Blender           | OK     |
+|            | 5.0\blender.exe                                       |        |
+| Codex      | codex                                                 | OK     |
++-----------------------------------------------------------------------------+
+EXIT_CODE=0

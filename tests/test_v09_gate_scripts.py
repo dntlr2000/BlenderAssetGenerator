@@ -65,3 +65,11 @@ def test_v09_posix_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert 'uv run pytest --basetemp "$PYTEST_ROOT"' in text
     assert "${RUN_STAMP,,}" not in text
     assert "rm -" not in text
+
+
+def test_v09_windows_gate_hashes_without_module_autoloading() -> None:
+    """Use the .NET SHA-256 primitive for every exact Windows gate binding."""
+
+    text = _script("run_v09_gates.ps1")
+    assert "[System.Security.Cryptography.SHA256]::Create()" in text
+    assert "Get-FileHash" not in text

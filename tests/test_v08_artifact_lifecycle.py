@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -43,7 +44,7 @@ from codex_blender_modeler.qa.models import (
     VisualQAReport,
     VisualQARequest,
 )
-from codex_blender_modeler.workspace import sha256_file
+from codex_blender_modeler.workspace import native_io_path, sha256_file
 
 ROOT = Path(__file__).resolve().parents[1]
 PASS_KINDS = [
@@ -57,12 +58,75 @@ PASS_KINDS = [
 ]
 
 
+def _mkdir_native(path: Path, *, exist_ok: bool) -> None:
+    """Create a test fixture directory through the Windows long-path form."""
+
+    os.makedirs(native_io_path(path), exist_ok=exist_ok)
+
+
+def _write_bytes_native(path: Path, content: bytes) -> None:
+    """Write fixture bytes through the Windows long-path form."""
+
+    with open(native_io_path(path), "wb") as handle:
+        handle.write(content)
+
+
+def _write_text_native(path: Path, content: str) -> None:
+    """Write UTF-8 fixture text through the Windows long-path form."""
+
+    with open(native_io_path(path), "w", encoding="utf-8") as handle:
+        handle.write(content)
+
+
+def _read_text_native(path: Path) -> str:
+    """Read UTF-8 fixture text through the Windows long-path form."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
+
+
 def _image(path: Path) -> Path:
     """Create one deterministic exterior reference image."""
 
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.new("RGB", (48, 32), (60, 110, 170)).save(path)
     return path
+
+
+@pytest.mark.parametrize("artifact_kind", ["file", "directory"])
+def test_workflow_snapshot_copy_supports_extended_windows_paths(
+    tmp_path: Path,
+    artifact_kind: str,
+) -> None:
+    """Publish immutable file and directory snapshots beyond legacy Windows path limits."""
+
+    source = tmp_path / "source"
+    destination = (
+        tmp_path
+        / ("workflow-" + "a" * 80)
+        / ("snapshot-" + "b" * 80)
+        / "artifacts"
+        / "s"
+        / "reference_analysis.json"
+    )
+    anticipated_temporary = destination.parent / (
+        f".{destination.name}.{'0' * 32}.tmp"
+    )
+    assert len(str(anticipated_temporary)) > 260
+    if artifact_kind == "file":
+        source.write_bytes(b"workflow-snapshot")
+    else:
+        source.mkdir()
+        (source / "evidence.json").write_text(
+            '{"status":"complete"}\n',
+            encoding="utf-8",
+        )
+
+    orchestration_service._copy_artifact_immutable(source, destination)
+
+    assert orchestration_service._artifact_digest(destination) == (
+        orchestration_service._artifact_digest(source)
+    )
 
 
 def _plan_step(root: Path, workflow_id: str, step_id: str) -> dict:
@@ -322,14 +386,14 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
     attempt_root = diagnostic_root / "attempts" / "attempt-001"
     probe_root = attempt_root / "camera_probes"
     render_root = probe_root / "renders" / "baseline"
-    render_root.mkdir(parents=True, exist_ok=False)
+    _mkdir_native(render_root, exist_ok=False)
     role_map_path = attempt_root / "role_map.json"
-    role_map_path.write_text('{"fixture":"diagnostic-role-map"}\n', encoding="utf-8")
+    _write_text_native(role_map_path, '{"fixture":"diagnostic-role-map"}\n')
     role_map_sha256 = sha256_file(role_map_path)
     passes: list[dict[str, str]] = []
     for kind in ("silhouette", "object_id"):
         path = render_root / f"{kind}.png"
-        path.write_bytes(kind.encode("utf-8"))
+        _write_bytes_native(path, kind.encode("utf-8"))
         passes.append(
             {
                 "kind": kind,
@@ -352,9 +416,9 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         ],
     }
     probe_plan_path = probe_root / "plan.json"
-    probe_plan_path.write_text(
+    _write_text_native(
+        probe_plan_path,
         json.dumps(probe_plan, indent=2) + "\n",
-        encoding="utf-8",
     )
     probe_manifest = {
         "schema_version": "0.6.0",
@@ -367,9 +431,9 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         "probes": [{"probe_id": "baseline", "passes": passes}],
     }
     probe_manifest_path = probe_root / "render_manifest.json"
-    probe_manifest_path.write_text(
+    _write_text_native(
+        probe_manifest_path,
         json.dumps(probe_manifest, indent=2) + "\n",
-        encoding="utf-8",
     )
     diagnostic_request = QADiagnosticRequest(
         job_id=request.job_id,
@@ -394,9 +458,9 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         max_camera_probes=1,
     )
     diagnostic_request_path = attempt_root / "request.json"
-    diagnostic_request_path.write_text(
+    _write_text_native(
+        diagnostic_request_path,
         diagnostic_request.model_dump_json(indent=2) + "\n",
-        encoding="utf-8",
     )
     probe_result = CameraProbeResult(
         probe_id="baseline",
@@ -436,9 +500,9 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         generated_at=datetime.now(UTC),
     )
     diagnostic_report_path = attempt_root / "report.json"
-    diagnostic_report_path.write_text(
+    _write_text_native(
+        diagnostic_report_path,
         diagnostic_report.model_dump_json(indent=2) + "\n",
-        encoding="utf-8",
     )
     bundle = QADiagnosticBundleManifest(
         job_id=request.job_id,
@@ -459,9 +523,9 @@ def _write_qa_diagnostics(root: Path, request, step) -> None:
         assembly_multiview=AssemblyMultiviewBundleEvidence(status="not_requested"),
         created_at=datetime.now(UTC),
     )
-    (diagnostic_root / "bundle_manifest.json").write_text(
+    _write_text_native(
+        diagnostic_root / "bundle_manifest.json",
         bundle.model_dump_json(indent=2) + "\n",
-        encoding="utf-8",
     )
 
 
@@ -889,11 +953,11 @@ def test_nested_diagnostic_pass_tampering_remains_an_artifact_conflict(
     assert state.status == "completed"
     diagnostic_step = _plan_step(root, state.workflow_id, "qa.diagnostics")
     bundle_path = root / str(diagnostic_step["outputs"][0]["path"])
-    bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+    bundle = json.loads(_read_text_native(bundle_path))
     manifest_path = root / str(bundle["camera_probe_manifest_path"])
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(_read_text_native(manifest_path))
     pass_path = root / str(manifest["probes"][0]["passes"][0]["path"])
-    pass_path.write_bytes(b"unexpected external mutation")
+    _write_bytes_native(pass_path, b"unexpected external mutation")
 
     blocked = reconcile_workflow(state.job_id, state.workflow_id)
 
@@ -1165,15 +1229,15 @@ def test_interior_qa_approval_identity_survives_expected_consumption(
     assert orchestration_service._specialized_approval_valid(root, step, artifacts)
 
 
-def test_material_promotion_hashes_manifest_relative_image_channels(
-    monkeypatch: pytest.MonkeyPatch,
+def _write_image_material_promotion_fixture(
     tmp_path: Path,
-) -> None:
-    """Bind promoted image materials to manifest-relative channel file hashes."""
+    *,
+    job_id: str,
+    workflow_id: str,
+    add_non_channel_hash: bool = False,
+) -> tuple[Path, Path, Path, str, str]:
+    """Create one isolated authored image candidate and its canonical SceneSpec."""
 
-    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
-    job_id = "image_dependency_asset"
-    workflow_id = "wf-image-dependency"
     root = tmp_path / job_id
     scene = json.loads(
         (ROOT / "examples" / "measured_box" / "scene_spec.seed.json").read_text(
@@ -1190,39 +1254,48 @@ def test_material_promotion_hashes_manifest_relative_image_channels(
     channel_path = texture_root / "base_color.png"
     Image.new("RGB", (8, 8), (30, 90, 160)).save(channel_path)
     manifest_path = texture_root / "texture_manifest.json"
-    manifest_path.write_text(
-        json.dumps(
-            {
-                "schema_version": "0.5.0",
-                "material_id": "mat.box",
-                "uv_set": "UVMap",
-                "intended_scale_m": 1.0,
-                "resolution": [8, 8],
-                "source_type": "image",
-                "channels": {
-                    "base_color": {
-                        "source": "image",
-                        "path": "base_color.png",
-                        "color_space": "sRGB",
-                        "strength": 1.0,
-                    }
-                },
-                "procedural": {},
+    manifest_payload = {
+        "schema_version": "0.5.0",
+        "material_id": "mat.box",
+        "uv_set": "UVMap",
+        "intended_scale_m": 1.0,
+        "resolution": [8, 8],
+        "source_type": "image",
+        "channels": {
+            "base_color": {
+                "source": "image",
+                "path": "base_color.png",
+                "color_space": "sRGB",
+                "strength": 1.0,
+            }
+        },
+        "procedural": {},
+    }
+    if add_non_channel_hash:
+        report_path = texture_root / "derivative_report.json"
+        report_path.write_text('{"fixture":true}\n', encoding="utf-8")
+        report_hash = sha256_file(report_path)
+        manifest_payload["procedural"] = {
+            "derivative_report": {
+                "path": "textures/mat.box/derivative_report.json",
+                "sha256": report_hash,
+            }
+        }
+        manifest_payload["provenance"] = {
+            "provider": "fixture",
+            "generated_sha256": {
+                "base_color": sha256_file(channel_path),
+                "derivative_report": report_hash,
             },
-            indent=2,
-        )
-        + "\n",
+        }
+    manifest_path.write_text(
+        json.dumps(manifest_payload, indent=2) + "\n",
         encoding="utf-8",
     )
-    candidate = (
-        root
-        / "workflows"
-        / workflow_id
-        / "artifacts"
-        / "m"
-        / "authored"
-        / "material_plan.json"
+    candidate_relative = (
+        f"workflows/{workflow_id}/artifacts/m/authored/material_plan.json"
     )
+    candidate = root / candidate_relative
     candidate.parent.mkdir(parents=True)
     candidate.write_text(
         json.dumps(
@@ -1257,14 +1330,32 @@ def test_material_promotion_hashes_manifest_relative_image_channels(
         + "\n",
         encoding="utf-8",
     )
+    receipt_relative = f"workflows/{workflow_id}/artifacts/m/promotion.json"
+    return root, channel_path, manifest_path, candidate_relative, receipt_relative
+
+
+def test_material_promotion_hashes_manifest_relative_image_channels(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Bind promoted image materials to manifest-relative channel file hashes."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    job_id = "image_dependency_asset"
+    workflow_id = "wf-image-dependency"
+    root, channel_path, manifest_path, candidate_relative, receipt_relative = (
+        _write_image_material_promotion_fixture(
+            tmp_path,
+            job_id=job_id,
+            workflow_id=workflow_id,
+        )
+    )
 
     receipt = promote_workflow_material_candidate(
         job_id,
         workflow_id,
-        candidate_plan_path=(
-            f"workflows/{workflow_id}/artifacts/m/authored/material_plan.json"
-        ),
-        receipt_path=f"workflows/{workflow_id}/artifacts/m/promotion.json",
+        candidate_plan_path=candidate_relative,
+        receipt_path=receipt_relative,
         input_fingerprint="1" * 64,
     )
 
@@ -1272,3 +1363,40 @@ def test_material_promotion_hashes_manifest_relative_image_channels(
         "textures/mat.box/base_color.png": sha256_file(channel_path),
         "textures/mat.box/texture_manifest.json": sha256_file(manifest_path),
     }
+
+
+def test_material_promotion_rejects_non_channel_hash_without_canonical_side_effects(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Fail an incident-shaped manifest before archive, journal, or canonical writes."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    job_id = "image_hash_atomicity_asset"
+    workflow_id = "wf-image-hash-atomicity"
+    root, _channel_path, _manifest_path, candidate_relative, receipt_relative = (
+        _write_image_material_promotion_fixture(
+            tmp_path,
+            job_id=job_id,
+            workflow_id=workflow_id,
+            add_non_channel_hash=True,
+        )
+    )
+    canonical_path = root / "analysis" / "material_plan.json"
+    canonical_bytes = b'{"fixture":"pre-incident-canonical"}\n'
+    canonical_path.write_bytes(canonical_bytes)
+
+    with pytest.raises(RuntimeError, match="failed strict contract validation"):
+        promote_workflow_material_candidate(
+            job_id,
+            workflow_id,
+            candidate_plan_path=candidate_relative,
+            receipt_path=receipt_relative,
+            input_fingerprint="2" * 64,
+        )
+
+    receipt_path = root / receipt_relative
+    assert canonical_path.read_bytes() == canonical_bytes
+    assert not receipt_path.exists()
+    assert not receipt_path.with_name(".promotion.pending").exists()
+    assert not (root / "history" / "materials").exists()

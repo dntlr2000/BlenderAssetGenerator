@@ -1239,6 +1239,15 @@ def resume_standard_asset_cycle(
     max_host_steps: int = 8,
     max_stage_transitions: int = 4,
     retry_failed: bool = False,
+    recover_failed_to_guarded_geometry: bool = False,
+    failed_state_sha256: str | None = None,
+    recovery_reason: str | None = None,
+    reroute_candidate_to_manual_guarded: bool = False,
+    candidate_state_sha256: str | None = None,
+    reroute_reason: str | None = None,
+    quality_disposition: str | None = None,
+    quality_disposition_fingerprint: str | None = None,
+    quality_disposition_note: str | None = None,
 ) -> dict:
     """Resume the same Standard bundle, child workflows, and receipt chain."""
 
@@ -1248,6 +1257,15 @@ def resume_standard_asset_cycle(
         max_host_steps=max_host_steps,
         max_stage_transitions=max_stage_transitions,
         retry_failed=retry_failed,
+        recover_failed_to_guarded_geometry=recover_failed_to_guarded_geometry,
+        failed_state_sha256=failed_state_sha256,
+        recovery_reason=recovery_reason,
+        reroute_candidate_to_manual_guarded=reroute_candidate_to_manual_guarded,
+        candidate_state_sha256=candidate_state_sha256,
+        reroute_reason=reroute_reason,
+        quality_disposition=quality_disposition,
+        quality_disposition_fingerprint=quality_disposition_fingerprint,
+        quality_disposition_note=quality_disposition_note,
     )
 
 

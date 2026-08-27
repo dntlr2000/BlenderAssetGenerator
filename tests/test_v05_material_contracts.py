@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
@@ -55,6 +56,40 @@ def _write_procedural_manifest(root: Path) -> str:
         encoding="utf-8",
     )
     return relative
+
+
+def _write_hashed_image_manifest(root: Path) -> tuple[str, Path, dict]:
+    """Write one image manifest whose generation map initially matches its channel."""
+
+    relative = "textures/mat.image/texture_manifest.json"
+    path = root / relative
+    path.parent.mkdir(parents=True)
+    channel_bytes = b"material-contract-image"
+    (path.parent / "base_color.png").write_bytes(channel_bytes)
+    payload = {
+        "schema_version": "0.5.0",
+        "material_id": "mat.image",
+        "uv_set": "UVMap",
+        "intended_scale_m": 1.0,
+        "resolution": [32, 32],
+        "source_type": "image",
+        "channels": {
+            "base_color": {
+                "source": "image",
+                "path": "base_color.png",
+                "color_space": "sRGB",
+            }
+        },
+        "procedural": {},
+        "provenance": {
+            "provider": "fixture",
+            "generated_sha256": {
+                "base_color": hashlib.sha256(channel_bytes).hexdigest(),
+            },
+        },
+    }
+    path.write_text(json.dumps(payload), encoding="utf-8")
+    return relative, path, payload
 
 
 def test_material_plan_and_shader_recipe_round_trip(tmp_path: Path) -> None:
@@ -121,6 +156,51 @@ def test_material_contract_validation_matches_scene_ids(tmp_path: Path) -> None:
     assert report.failed == 0
     assert report.passed == 4
     _assert_schema("material_validation.schema.json", report.model_dump(mode="json"))
+
+
+@pytest.mark.parametrize("failure_kind", ["non_channel_key", "stale_channel"])
+def test_material_contract_validation_rejects_invalid_generated_channel_hashes(
+    tmp_path: Path,
+    failure_kind: str,
+) -> None:
+    """Surface provenance hash failures before Blender or canonical promotion."""
+
+    manifest_relative, manifest_path, payload = _write_hashed_image_manifest(tmp_path)
+    if failure_kind == "non_channel_key":
+        payload["provenance"]["generated_sha256"]["derivative_report"] = "d" * 64
+    else:
+        payload["provenance"]["generated_sha256"]["base_color"] = "0" * 64
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+    plan = MaterialPlan(
+        job_id="material_test",
+        stage="authored",
+        materials=[
+            MaterialPlanItem(
+                material_id="mat.image",
+                label="Image",
+                texture_strategy="image",
+                mapping={
+                    "mode": "uv",
+                    "uv_set": "UVMap",
+                    "real_world_scale_m": 1.0,
+                },
+                texture_manifest=manifest_relative,
+            )
+        ],
+    )
+    scene_spec = {
+        "job_id": "material_test",
+        "materials": [{"id": "mat.image", "texture_manifest": manifest_relative}],
+    }
+
+    report = validate_material_contracts(plan, scene_spec, tmp_path)
+
+    assert not report.ok
+    manifest_check = next(
+        check for check in report.checks if check.id == "texture_manifest:mat.image"
+    )
+    assert manifest_check.status == "failed"
+    assert "generated_sha256" in manifest_check.message
 
 
 def test_material_contract_validation_rejects_recipe_traversal(tmp_path: Path) -> None:
