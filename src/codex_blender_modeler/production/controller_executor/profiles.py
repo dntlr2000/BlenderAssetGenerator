@@ -95,8 +95,9 @@ def build_phase_tool_profile(
     allowed_output_paths: list[str],
     created_at: datetime,
     supporting_client_enforced: bool = False,
+    contract_id_suffix: str | None = None,
 ) -> PhaseToolProfile:
-    """Build one exact job-bound phase profile from the pure authoritative catalog."""
+    """Build one exact job-bound phase profile, optionally scoped to one execution."""
 
     catalog = phase_tool_profile_catalog()
     if profile_id not in catalog:
@@ -110,8 +111,11 @@ def build_phase_tool_profile(
         "catalog": entry,
     }
     digest = stable_json_digest(payload)
+    contract_id = f"tool-profile-{profile_id}-{session_id}"
+    if contract_id_suffix is not None:
+        contract_id = f"{contract_id}-{contract_id_suffix}"
     return PhaseToolProfile(
-        contract_id=f"tool-profile-{profile_id}-{session_id}",
+        contract_id=contract_id,
         job_id=job_id,
         workflow_id=workflow_id,
         dispatch_id=dispatch_id,

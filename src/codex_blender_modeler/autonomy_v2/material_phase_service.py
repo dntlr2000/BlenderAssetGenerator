@@ -69,6 +69,7 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from .execution_profile_service import validate_plan_or_execution_phase_profile
 from .material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundary,
@@ -892,8 +893,25 @@ def _load_controller_material_bundle(
         kind="controller-request",
     )
     request = _read_exact_model(root, request_artifact, ControllerExecutionRequest)
+    result_profile_artifact = _controller_to_aq(
+        root,
+        result.tool_profile,
+        kind="phase-tool-profile",
+    )
     if authorized_profile_artifact is None:
-        bound_profile, bound_profile_artifact = _phase_profile_artifact(root, plan)
+        try:
+            bound_profile = validate_plan_or_execution_phase_profile(
+                root,
+                plan,
+                result_profile_artifact,
+                profile_id="material_authoring",
+                execution_id=result.execution_id,
+            )
+        except (PermissionError, ValueError) as exc:
+            raise MaterialPhaseError(
+                "controller profile is not an exact plan material profile derivation"
+            ) from exc
+        bound_profile_artifact = result_profile_artifact
     else:
         bound_profile_artifact = authorized_profile_artifact
         bound_profile = _read_exact_model(
@@ -901,11 +919,6 @@ def _load_controller_material_bundle(
             bound_profile_artifact,
             PhaseToolProfile,
         )
-    result_profile_artifact = _controller_to_aq(
-        root,
-        result.tool_profile,
-        kind="phase-tool-profile",
-    )
     if (
         result.tool_profile.path != request.tool_profile.path
         or result.tool_profile.sha256 != request.tool_profile.sha256

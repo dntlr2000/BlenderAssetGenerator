@@ -596,6 +596,11 @@ class AQV2ApprovalTelemetryReport(ApprovalV03Evidence):
     technical_repair_count: int = Field(ge=0, le=256)
     controller_invocation_count: int = Field(ge=0, le=64)
     canonical_promotion_count: int = Field(ge=0, le=32)
+    canonical_promotion_authorization_count: int = Field(default=0, ge=0, le=32)
+    canonical_promotion_count_semantics: Literal[
+        "legacy_budget_projection",
+        "executed_state_transition",
+    ] = "legacy_budget_projection"
     rollback_count: int = Field(ge=0, le=32)
     imagegen_generation_count: int = Field(ge=0, le=32)
     blender_build_count: int = Field(ge=0, le=64)

@@ -13,6 +13,9 @@ from codex_blender_modeler.autonomy_v2.delivery_service import (
     artifact_for_v2,
     write_immutable_v2_model,
 )
+from codex_blender_modeler.autonomy_v2.execution_profile_service import (
+    publish_execution_phase_profile,
+)
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
     MaterialControllerCompletionV2,
     MaterialPhaseRollbackReceiptV2,
@@ -423,7 +426,7 @@ class _FakeCompiler:
 
         graph_path = next(
             (self.root / "production" / "autonomy_v2").glob(
-                "*/controller_outputs/material_authoring/material_graph.json"
+                "*/controller_outputs/material_authoring/**/material_graph.json"
             )
         )
         graph = MaterialGraphSpec.model_validate_json(graph_path.read_bytes())
@@ -679,6 +682,7 @@ def _fixture(
     *,
     graph_extra: dict[str, object] | None = None,
     material_rounds: int = 2,
+    execution_scoped: bool = False,
 ) -> tuple[
     Path,
     AutonomyPlanV2,
@@ -728,6 +732,19 @@ def _fixture(
         session_id=session_id,
         material_rounds=material_rounds,
     )
+    if execution_scoped:
+        profile, profile_aq = publish_execution_phase_profile(
+            root,
+            plan,
+            profile_id="material_authoring",
+            execution_id="exec-material",
+        )
+        profile_controller = _controller_artifact(
+            root,
+            profile_aq.path,
+            profile_aq.artifact_id,
+            "tool_profile",
+        )
     result = _controller_result_bundle(
         root,
         job_id=job_id,
@@ -805,6 +822,30 @@ def test_material_phase_promotes_only_after_compile_and_rebuild(
     )
     assert recovered == receipt
     assert recovered_artifact.sha256 == artifact.sha256
+
+
+def test_material_phase_accepts_exact_execution_scoped_profile_derivation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Promote material output bound to a unique profile derived from the plan template."""
+
+    root, plan, budget, state, result, _baseline_sha = _fixture(
+        tmp_path,
+        monkeypatch,
+        execution_scoped=True,
+    )
+    receipt, artifact = validate_and_promote_material_controller_result_v2(
+        root,
+        plan,
+        budget,
+        state,
+        result,
+    )
+
+    assert receipt.status == "promoted"
+    assert "/exec-material/" in receipt.material_plan_candidate.path
+    assert artifact.path.endswith("/promotion_receipt.json")
 
 
 def test_material_policy_decision_failure_rolls_back_canonical_promotion(

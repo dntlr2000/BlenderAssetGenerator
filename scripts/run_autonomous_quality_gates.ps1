@@ -90,6 +90,7 @@ $FocusedTests = @(
     "tests/test_autonomy_v2_contracts.py",
     "tests/test_autonomy_v2_planner.py",
     "tests/test_autonomy_v2_controller_bridge.py",
+    "tests/test_aq_v2_canary_recovery_regression.py",
     "tests/test_autonomy_v2_candidate_validation.py",
     "tests/test_autonomy_v2_candidate_validation_blender.py",
     "tests/test_autonomy_v2_delivery_executor.py",

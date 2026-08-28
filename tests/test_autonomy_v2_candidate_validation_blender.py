@@ -31,6 +31,9 @@ from codex_blender_modeler.autonomy_v2.delivery_service import (
     artifact_for_v2,
     write_immutable_v2_model,
 )
+from codex_blender_modeler.autonomy_v2.execution_profile_service import (
+    publish_execution_phase_profile,
+)
 from codex_blender_modeler.autonomy_v2.models import (
     AutonomyStateV2,
     RootAuthorizationV2,
@@ -355,10 +358,11 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
         "aqv2_candidate_smoke",
         session_id,
     )
-    profile_artifact = next(
-        item
-        for item in plan.phase_tool_profiles
-        if item.path.endswith("/geometry_authoring.json")
+    _profile, profile_artifact = publish_execution_phase_profile(
+        root,
+        plan,
+        profile_id="geometry_authoring",
+        execution_id="exec-0002-geometry_authoring",
     )
     input_root = session_root / "smoke_inputs"
     _write_json(input_root / "assignment.json", {"phase": "geometry_authoring"})

@@ -29,6 +29,7 @@ from .approval_models import (
     HistoricalSessionAutonomyEligibilityReport,
     OnePromptTerminalType,
     ProviderScope,
+    TechnicalFailureCategory,
 )
 from .approval_policy_service import (
     _approval_root,
@@ -483,13 +484,22 @@ def publish_framework_change_justification(
             "invariants": invariants,
         },
     )
-    reasons = [
-        (
+    if public_allowed:
+        reasons = [
             "Reusable or invariant evidence satisfies the framework-change threshold."
-            if public_allowed
-            else "The issue remains job-local or reference-specific and must not expand APIs."
-        )
-    ]
+        ]
+    elif classification in {
+        "framework_invariant_violation",
+        "reusable_missing_capability",
+    }:
+        reasons = [
+            "The issue is framework-level, but current evidence does not satisfy the "
+            "public-surface change threshold."
+        ]
+    else:
+        reasons = [
+            "The issue remains job-local or reference-specific and must not expand APIs."
+        ]
     justification = FrameworkChangeJustification(
         contract_id=justification_id,
         justification_id=justification_id,
@@ -759,6 +769,18 @@ def _telemetry_budget_snapshot(
     )
 
 
+def _telemetry_promotion_counts(
+    budget: AQV2ApprovalBudget,
+    state: AutonomyStateV2,
+) -> tuple[int, int]:
+    """Separate issued promotion authority from executed canonical state changes."""
+
+    return (
+        budget.canonical_promotions,
+        state.budget_usage.canonical_promotions,
+    )
+
+
 def publish_approval_telemetry(
     job_id: str,
     session_id: str,
@@ -808,6 +830,10 @@ def publish_approval_telemetry(
         state,
         created_at=observed_at,
     )
+    promotion_authorizations, executed_promotions = _telemetry_promotion_counts(
+        consumed,
+        state,
+    )
     sources = [boundary[9], state_artifact]
     decisions_root = _approval_root(root, session_id) / "decisions"
     if os.path.isdir(native_io_path(decisions_root)):
@@ -855,7 +881,9 @@ def publish_approval_telemetry(
         ),
         technical_repair_count=consumed.technical_policy_repairs,
         controller_invocation_count=consumed.controller_invocations,
-        canonical_promotion_count=consumed.canonical_promotions,
+        canonical_promotion_count=executed_promotions,
+        canonical_promotion_authorization_count=promotion_authorizations,
+        canonical_promotion_count_semantics="executed_state_transition",
         rollback_count=consumed.rollbacks,
         imagegen_generation_count=consumed.imagegen_generations,
         blender_build_count=consumed.blender_builds,
@@ -1183,13 +1211,23 @@ def _publish_one_prompt_terminal(
     }
 
 
+def _framework_classification_for_failure(
+    category: TechnicalFailureCategory,
+) -> FrameworkChangeClassification:
+    """Map a technical terminal to its semantically matching change classification."""
+
+    if category == "repeated_framework_failure":
+        return "reusable_missing_capability"
+    return "job_local_candidate_error"
+
+
 def _publish_blocked_failure_evidence(
     job_id: str,
     session_id: str,
     state: AutonomyStateV2,
     state_artifact: ApprovalArtifact,
 ) -> tuple[ApprovalArtifact, ApprovalArtifact]:
-    """Publish technical failure and job-local classification evidence for a blocked run."""
+    """Publish technical failure and category-aligned classification evidence."""
 
     boundary, current_budget, _previous_receipt = _approval_boundary_budget(
         job_id,
@@ -1203,6 +1241,7 @@ def _publish_blocked_failure_evidence(
     for artifact in failure_sources:
         validate_approval_artifact(root, artifact)
     failure_id = f"one-prompt-technical-failure-{session_id}"
+    failure_category: TechnicalFailureCategory = "repeated_framework_failure"
     failure = AQV2TechnicalFailureReport(
         contract_id=failure_id,
         failure_id=failure_id,
@@ -1220,7 +1259,7 @@ def _publish_blocked_failure_evidence(
         policy_profile=boundary[5],
         approval_envelope=boundary[9],
         approval_budget=boundary[7],
-        category="repeated_framework_failure",
+        category=failure_category,
         current_state=state_artifact,
         failure_evidence=failure_sources,
         automatic_repair_attempted=(current_budget.technical_policy_repairs > 0),
@@ -1237,7 +1276,7 @@ def _publish_blocked_failure_evidence(
     justification_result = publish_framework_change_justification(
         job_id,
         session_id,
-        classification="job_local_candidate_error",
+        classification=_framework_classification_for_failure(failure_category),
         issue_summary=(
             state.terminal_reason
             or "The current candidate reached a fail-closed technical terminal."

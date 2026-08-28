@@ -472,6 +472,22 @@
       "title": "Canonical Promotion Count",
       "type": "integer"
     },
+    "canonical_promotion_authorization_count": {
+      "default": 0,
+      "maximum": 32,
+      "minimum": 0,
+      "title": "Canonical Promotion Authorization Count",
+      "type": "integer"
+    },
+    "canonical_promotion_count_semantics": {
+      "default": "legacy_budget_projection",
+      "enum": [
+        "legacy_budget_projection",
+        "executed_state_transition"
+      ],
+      "title": "Canonical Promotion Count Semantics",
+      "type": "string"
+    },
     "rollback_count": {
       "maximum": 32,
       "minimum": 0,

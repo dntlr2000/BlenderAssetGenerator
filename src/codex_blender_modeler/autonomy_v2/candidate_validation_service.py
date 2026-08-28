@@ -58,6 +58,7 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from .execution_profile_service import validate_plan_or_execution_phase_profile
 from .models import (
     AQV2Artifact,
     AutonomyBudgetV2,
@@ -236,18 +237,20 @@ def _validate_controller_bundle(
         != "codex_blender_modeler.production.controller_executor.profiles"
     ):
         raise PermissionError("geometry request or phase profile has an unknown producer")
-    planned_profiles = [
-        item
-        for item in plan.phase_tool_profiles
-        if item.path == result.tool_profile.path
-        and item.sha256 == result.tool_profile.sha256
-        and item.byte_size == result.tool_profile.byte_size
-    ]
-    if len(planned_profiles) != 1:
-        raise PermissionError(
-            "geometry controller used a phase profile outside the immutable AQ v2 plan"
-        )
-    validate_v2_artifact(root, planned_profiles[0])
+    validated_profile = validate_plan_or_execution_phase_profile(
+        root,
+        plan,
+        _aq_from_controller(
+            root,
+            result.tool_profile,
+            artifact_id=f"{result.execution_id}-profile-binding",
+            kind="controller_phase_tool_profile",
+        ),
+        profile_id="geometry_authoring",
+        execution_id=result.execution_id,
+    )
+    if profile != validated_profile:
+        raise PermissionError("geometry controller profile differs from its plan derivation")
     if (
         (request.job_id, request.workflow_id, request.dispatch_id, request.session_id)
         != identity
@@ -444,6 +447,19 @@ def _validate_camera_binding(root: Path, scene: SceneSpecV03) -> None:
         raise ValueError("SceneSpecV03 camera resolution is outside [1, 8192]")
 
 
+def _validate_modeling_diagnostic_bindings(modeling: Any) -> tuple[str, str]:
+    """Require portable canonical paths for both deterministic reference diagnostics."""
+
+    expected_reference_path = "analysis/reference_analysis.json"
+    expected_camera_path = "analysis/camera_solution.json"
+    if (
+        modeling.reference_analysis_path != expected_reference_path
+        or modeling.camera_solution_path != expected_camera_path
+    ):
+        raise ValueError("ModelingPlan does not bind the canonical reference diagnostics")
+    return expected_reference_path, expected_camera_path
+
+
 def _validate_candidate_contracts(
     *,
     root: Path,
@@ -478,13 +494,9 @@ def _validate_candidate_contracts(
         scope="primary_object_only",
         target_subject=authorization.target_subject,
     )
-    expected_reference_path = "analysis/reference_analysis.json"
-    expected_camera_path = "analysis/camera_solution.json"
-    if (
-        modeling.reference_analysis_path != expected_reference_path
-        or modeling.camera_solution_path != expected_camera_path
-    ):
-        raise ValueError("ModelingPlan does not bind the canonical reference diagnostics")
+    expected_reference_path, expected_camera_path = (
+        _validate_modeling_diagnostic_bindings(modeling)
+    )
     reference = ReferenceAnalysis.model_validate_json(
         (root / expected_reference_path).read_bytes()
     )
@@ -728,7 +740,7 @@ def _build_isolated_candidate(
         modeling_artifact.sha256,
     )
     modeling = ModelingPlan.model_validate_json(
-        (root / modeling_artifact.path).read_bytes()
+        Path(native_io_path(root / modeling_artifact.path)).read_bytes()
     )
     for relative in (
         modeling.reference_analysis_path,

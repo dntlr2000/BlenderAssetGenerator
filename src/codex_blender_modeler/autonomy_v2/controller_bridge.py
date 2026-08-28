@@ -47,6 +47,12 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from .execution_profile_service import (
+    execution_output_paths,
+    publish_execution_phase_profile,
+    select_plan_phase_profile,
+    validate_plan_or_execution_phase_profile,
+)
 from .material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundary,
@@ -85,6 +91,18 @@ def _controller_artifact(artifact: AQV2Artifact, *, role: str) -> ControllerArti
     return ControllerArtifact(
         artifact_id=artifact.artifact_id,
         role=role,
+        path=artifact.path,
+        sha256=artifact.sha256,
+        byte_size=artifact.byte_size,
+    )
+
+
+def _aq_artifact(artifact: ControllerArtifact, *, kind: str) -> AQV2Artifact:
+    """Project one exact controller binding into the AQ v2 artifact shape."""
+
+    return AQV2Artifact(
+        artifact_id=artifact.artifact_id,
+        kind=kind,
         path=artifact.path,
         sha256=artifact.sha256,
         byte_size=artifact.byte_size,
@@ -470,24 +488,6 @@ def _validate_controller_authority(
         raise ValueError("AQ v2 controller plan binding is inconsistent")
 
 
-def _phase_profile(
-    root: Path,
-    plan: AutonomyPlanV2,
-    profile_id: str,
-) -> tuple[PhaseToolProfile, AQV2Artifact]:
-    """Select and revalidate one plan-authorized phase profile exactly once."""
-
-    matches: list[tuple[PhaseToolProfile, AQV2Artifact]] = []
-    for artifact in plan.phase_tool_profiles:
-        path = validate_v2_artifact(root, artifact)
-        profile = PhaseToolProfile.model_validate_json(_read_native_bytes(path))
-        if profile.profile_id == profile_id:
-            matches.append((profile, artifact))
-    if len(matches) != 1:
-        raise ValueError("AQ v2 plan must contain exactly one requested phase profile")
-    return matches[0]
-
-
 def _consume_controller_budget(
     usage: BudgetUsageV2,
     budget: AutonomyBudgetV2,
@@ -572,7 +572,6 @@ def _pending_controller_request(
         raise ValueError("AQ v2 pending state is not the exact waiting transition")
 
     phase_profile_id = _required_authoring_profile(root, plan, previous)
-    profile, profile_artifact = _phase_profile(root, plan, phase_profile_id)
     execution_id = f"exec-{previous.sequence + 1:04d}-{phase_profile_id}"
     request_path = ensure_contained_production_path(
         root,
@@ -581,6 +580,17 @@ def _pending_controller_request(
     )
     request = ControllerExecutionRequest.model_validate_json(
         _read_native_bytes(request_path)
+    )
+    profile_artifact = _aq_artifact(
+        request.tool_profile,
+        kind="controller-phase-tool-profile",
+    )
+    profile = validate_plan_or_execution_phase_profile(
+        root,
+        plan,
+        profile_artifact,
+        profile_id=phase_profile_id,
+        execution_id=execution_id,
     )
     request_binding = ControllerArtifact(
         artifact_id=request.contract_id,
@@ -830,15 +840,35 @@ def execute_autonomy_v2_controller(
                 f"{phase_profile_id}"
             )
         usage = _consume_controller_budget(state.budget_usage, budget)
-        profile, profile_artifact = _phase_profile(root, plan, phase_profile_id)
+        execution_id = f"exec-{state.sequence + 1:04d}-{phase_profile_id}"
+        for artifact in [assignment, *immutable_inputs]:
+            validate_v2_artifact(root, artifact)
+        template, template_artifact = select_plan_phase_profile(
+            root,
+            plan,
+            phase_profile_id,
+        )
+        expected_paths = set((expected_output_sha256 or {}).keys())
+        template_paths = set(template.allowed_output_paths)
+        derived_paths = set(execution_output_paths(template, execution_id))
+        if expected_paths and expected_paths.issubset(template_paths):
+            profile, profile_artifact = template, template_artifact
+        else:
+            if expected_paths and not expected_paths.issubset(derived_paths):
+                raise ValueError(
+                    "expected controller output hashes are outside the plan or execution profile"
+                )
+            profile, profile_artifact = publish_execution_phase_profile(
+                root,
+                plan,
+                profile_id=phase_profile_id,
+                execution_id=execution_id,
+            )
         if not profile.allowed_output_paths:
             raise ValueError("read-only AQ v2 phase has no controller-authoring outputs")
         output_parents = {str(PurePosixPath(path).parent) for path in profile.allowed_output_paths}
         if len(output_parents) != 1:
             raise ValueError("AQ v2 phase outputs must share one isolated output root")
-        for artifact in [assignment, *immutable_inputs]:
-            validate_v2_artifact(root, artifact)
-        execution_id = f"exec-{state.sequence + 1:04d}-{phase_profile_id}"
         execution_root = ensure_contained_production_path(
             root,
             session_root / "controller_executions" / execution_id,

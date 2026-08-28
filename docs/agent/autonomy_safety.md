@@ -6,6 +6,15 @@ The authorized host/controller promotion service is the only canonical writer. S
 
 Server MCP registration, project-enabled MCP tools, and phase/controller profiles are distinct sets. Project enablement does not grant a phase authority. A phase profile may only narrow access and every intentional exclusion carries a reason. desktop_in_session provides workflow-contract enforcement only and is not an attested sandbox.
 
+AQ v2 authoring keeps each plan phase profile as an immutable authority template. New attempts
+without a pre-existing exact output projection derive a hash-bound profile below their execution
+root and insert the execution ID into the otherwise unchanged output inventory. Historical
+plan-bound profiles and material closures with already-frozen legacy output paths remain readable;
+new closures may bind the predictable execution-scoped paths. Validators accept only the exact
+plan profile or that derivation, so arbitrary relocation and in-place retry overwrite remain
+fail-closed. Approval telemetry reports policy-issued promotion authority separately from canonical
+promotions observed in the AQ state transition budget.
+
 Quality pass, review-required, package, and handoff terminals remain distinct. Missing evidence is unscorable, never an invented pass. Preserve best-known evidence on budget, plateau, cycle, rollback, or bounded failure.
 
 New AQ v2 material attempts collect one deterministic dependency closure, perform

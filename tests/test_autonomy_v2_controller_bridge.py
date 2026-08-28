@@ -257,6 +257,96 @@ def test_v2_bridge_runs_one_isolated_controller_action(
         )
 
 
+def test_v2_bridge_uses_distinct_immutable_outputs_for_geometry_retry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Preserve the rejected attempt while a corrected geometry retry publishes fresh bytes."""
+
+    job_id = "aq_v2_geometry_retry_outputs"
+    root, planned = _planned(tmp_path, monkeypatch, job_id)
+    session_id = str(planned["session_id"])
+    session_root = root / "production" / "autonomy_v2" / session_id
+    _advance_reference_boundary(root, session_id)
+    assignment, camera = _inputs(root, session_id)
+
+    first = execute_autonomy_v2_controller(
+        job_id,
+        session_id,
+        phase_profile_id="geometry_authoring",
+        assignment=assignment,
+        immutable_inputs=[camera],
+        controller=FakeControllerForTests(),
+        timeout_seconds=30,
+    )
+    first_request = ControllerExecutionRequest.model_validate_json(
+        json.dumps(first["request"])
+    )
+    first_hashes = {
+        relative: sha256_file(root / relative)
+        for relative in first_request.allowed_output_paths
+    }
+
+    rejection_path = (
+        session_root
+        / "technical_recoveries"
+        / "0001"
+        / "modeling_diagnostic_binding_failure.json"
+    )
+    write_json_atomic(
+        rejection_path,
+        {
+            "failure_category": "path_rebinding",
+            "recovery_action": "repeat_geometry_authoring_with_corrected_bindings",
+            "canonical_promotion_performed": False,
+        },
+    )
+    rejection = artifact_for_v2(
+        root,
+        rejection_path,
+        artifact_id="geometry-path-rejection-0001",
+        kind="technical_candidate_rejection",
+    )
+    retry_boundary = transition_state(
+        AutonomyStateV2.model_validate_json(json.dumps(first["state"])),
+        event="candidate_validated",
+        evidence=rejection,
+        created_at=AutonomyStateV2.model_validate_json(
+            json.dumps(first["state"])
+        ).created_at,
+        reason="technical path-only candidate rejection requires one bounded geometry reroute",
+    )
+    write_immutable_v2_model(
+        root,
+        session_root / "states" / f"{retry_boundary.sequence:04d}.json",
+        retry_boundary,
+    )
+
+    second = execute_autonomy_v2_controller(
+        job_id,
+        session_id,
+        phase_profile_id="geometry_authoring",
+        assignment=assignment,
+        immutable_inputs=[camera],
+        controller=FakeControllerForTests(),
+        timeout_seconds=30,
+    )
+    second_request = ControllerExecutionRequest.model_validate_json(
+        json.dumps(second["request"])
+    )
+
+    assert second["result"]["status"] == "completed"
+    assert set(first_request.allowed_output_paths).isdisjoint(
+        second_request.allowed_output_paths
+    )
+    assert all(first_request.execution_id in path for path in first_request.allowed_output_paths)
+    assert all(second_request.execution_id in path for path in second_request.allowed_output_paths)
+    assert {
+        relative: sha256_file(root / relative)
+        for relative in first_request.allowed_output_paths
+    } == first_hashes
+
+
 def test_public_reference_assignment_and_desktop_resume_preserve_production_anchor(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
