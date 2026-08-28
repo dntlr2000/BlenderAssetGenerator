@@ -25,6 +25,9 @@ from codex_blender_modeler.autonomy_v2.controller_bridge import (
     execute_autonomy_v2_controller,
 )
 from codex_blender_modeler.autonomy_v2.delivery_service import artifact_for_v2
+from codex_blender_modeler.autonomy_v2.execution_profile_service import (
+    publish_execution_phase_profile,
+)
 from codex_blender_modeler.autonomy_v2.models import (
     AQV2Artifact,
     AutonomyBudgetV2,
@@ -323,8 +326,11 @@ def _geometry_material_boundary(
         _JOB_ID,
         session_id,
     )
-    profile_artifact = next(
-        item for item in plan.phase_tool_profiles if item.path.endswith("/geometry_authoring.json")
+    _profile, profile_artifact = publish_execution_phase_profile(
+        root,
+        plan,
+        profile_id="geometry_authoring",
+        execution_id="exec-0002-geometry_authoring",
     )
     input_root = session_root / "vertical_inputs"
     geometry_fixtures._write_json(

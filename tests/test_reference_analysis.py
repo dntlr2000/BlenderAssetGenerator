@@ -39,6 +39,35 @@ def test_basic_reference_analysis_writes_diagnostics(tmp_path: Path, monkeypatch
     assert edge_path.exists()
     camera = load_camera_solution("building_001")
     assert camera.projection == "PERSP"
+    assert camera.azimuth_deg == 35.0
+    assert camera.elevation_deg == 28.0
+    assert camera.view_direction == (-0.506438, 0.723268, -0.469472)
+
+
+def test_positive_camera_elevation_places_orbit_above_target(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    """Guard the canary regression where an elevated pose rendered from below."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path / "workspaces"))
+    image_path = tmp_path / "canister.png"
+    Image.new("RGB", (128, 128), "white").save(image_path)
+    create_job("camera_elevation_canary", image_path, "concept", [])
+
+    analyze_job_reference(
+        "camera_elevation_canary",
+        provider="basic",
+        azimuth_deg=35.0,
+        elevation_deg=28.0,
+    )
+    camera = load_camera_solution("camera_elevation_canary")
+    target_z = 0.79
+    orbit_distance = 3.3
+    camera_z = target_z - camera.view_direction[2] * orbit_distance
+
+    assert camera.view_direction[2] < 0.0
+    assert camera_z > target_z
 
 
 def test_authored_modeling_plan_requires_unique_nonempty_objects(tmp_path: Path) -> None:

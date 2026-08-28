@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw, ImageOps
 
 from ..blender_artifacts import write_json_atomic
 from ..models import EvidenceSpec, ObjectSpec, SceneSpec
@@ -255,6 +255,44 @@ def _mask_is_trustworthy(
     return True, "evidence-seeded GrabCut passed trust checks"
 
 
+def _closed_exterior_subject(spec: SceneSpec, selected_ids: set[str] | None) -> bool:
+    """Require an explicit primary-object closed-exterior tag before filling mask holes."""
+
+    if selected_ids is None:
+        return False
+    for obj in spec.objects:
+        if obj.id not in selected_ids:
+            continue
+        tags = {str(tag).strip().lower() for tag in obj.tags}
+        if (
+            "scope:closed_exterior" in tags
+            and tags.intersection({"qa_role:primary", "role:primary"})
+        ):
+            return True
+    return False
+
+
+def _fill_enclosed_holes(mask: Image.Image) -> tuple[Image.Image, int]:
+    """Fill only background components disconnected from the mask image border."""
+
+    binary = mask.convert("L").point(lambda value: 255 if value >= 128 else 0)
+    exterior = binary.copy()
+    width, height = exterior.size
+    border_points = (
+        [(x, 0) for x in range(width)]
+        + [(x, height - 1) for x in range(width)]
+        + [(0, y) for y in range(1, max(1, height - 1))]
+        + [(width - 1, y) for y in range(1, max(1, height - 1))]
+    )
+    for point in border_points:
+        if exterior.getpixel(point) == 0:
+            ImageDraw.floodfill(exterior, point, 255, thresh=0)
+    holes = ImageOps.invert(exterior)
+    filled = ImageChops.lighter(binary, holes)
+    filled_pixel_count = filled.histogram()[255] - binary.histogram()[255]
+    return filled, filled_pixel_count
+
+
 def _mask_diagnostics(mask: Image.Image) -> dict[str, Any]:
     """Summarize binary foreground coverage and bounds for mask provenance."""
 
@@ -328,6 +366,8 @@ def prepare_run_reference_mask(
     method = "analysis_mask_fallback"
     reason = "OpenCV refinement was not attempted"
     selected = analysis_mask
+    closed_exterior_fill = _closed_exterior_subject(spec, selected_subject_ids)
+    filled_hole_pixels = 0
     try:
         candidate = _grabcut_refinement(reference, analysis_mask, seeds)
         trustworthy, reason = _mask_is_trustworthy(analysis_mask, candidate, seeds)
@@ -336,6 +376,15 @@ def prepare_run_reference_mask(
             selected = candidate
     except (RuntimeError, ValueError, OSError) as exc:
         reason = f"{type(exc).__name__}: {exc}"
+
+    if closed_exterior_fill:
+        selected, filled_hole_pixels = _fill_enclosed_holes(selected)
+        if filled_hole_pixels:
+            method = f"{method}_closed_exterior_hole_fill"
+            reason = (
+                f"{reason}; filled {filled_hole_pixels} enclosed background pixels under "
+                "explicit primary scope:closed_exterior evidence"
+            )
 
     selected.save(output_path, format="PNG", optimize=False)
     manifest: dict[str, Any] = {
@@ -355,6 +404,11 @@ def prepare_run_reference_mask(
         "output_path": output_path.name,
         "output_sha256": sha256_file(output_path),
         "output_mask_metrics": _mask_diagnostics(selected),
+        "closed_exterior_hole_fill": {
+            "authorized": closed_exterior_fill,
+            "applied": filled_hole_pixels > 0,
+            "filled_pixel_count": filled_hole_pixels,
+        },
         "seed_count": len(seeds),
         "seeds": [
             {

@@ -7,11 +7,13 @@ from .models import CameraSolution, ReferenceAnalysis
 
 
 def _direction(azimuth_deg: float, elevation_deg: float) -> tuple[float, float, float]:
+    """Convert an orbital camera pose into its normalized camera-to-target ray."""
+
     azimuth = math.radians(azimuth_deg)
     elevation = math.radians(elevation_deg)
-    x = math.cos(elevation) * math.sin(azimuth)
-    y = -math.cos(elevation) * math.cos(azimuth)
-    z = math.sin(elevation)
+    x = -math.cos(elevation) * math.sin(azimuth)
+    y = math.cos(elevation) * math.cos(azimuth)
+    z = -math.sin(elevation)
     return (round(x, 6), round(y, 6), round(z, 6))
 
 
@@ -23,6 +25,8 @@ def solve_camera(
     azimuth_deg: float | None = None,
     elevation_deg: float | None = None,
 ) -> CameraSolution:
+    """Solve one deterministic projection and camera-to-target view direction."""
+
     locked: list[str] = []
     assumptions: list[str] = []
     if projection_hint != "auto":
