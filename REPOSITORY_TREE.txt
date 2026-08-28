@@ -627,6 +627,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/delivery_executor.py
   src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
+  src/codex_blender_modeler/autonomy_v2/execution_profile_service.py
   src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/material_phase_models.py
   src/codex_blender_modeler/autonomy_v2/material_phase_service.py
@@ -975,6 +976,7 @@ BlenderAssetGenerator/
   tests/test_aq_v02_geometry.py
   tests/test_aq_v02_geometry_blender.py
   tests/test_aq_v02_schema_registry.py
+  tests/test_aq_v2_canary_recovery_regression.py
   tests/test_assembly_consistency.py
   tests/test_assembly_topology_aq.py
   tests/test_auto_revision.py
