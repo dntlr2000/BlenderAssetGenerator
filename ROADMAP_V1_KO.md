@@ -104,9 +104,9 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약과 대표 contract fixture 구현, 실제 자산 E2E 미검증 | 두 v2 profile 모두 `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강 후 동일 reference structural re-entry에서 Geometry/Material 5/5, IQ pass 4/5, source freeze 4/5 | delivery canary는 가능하지만 beauty가 silhouette proxy이고 human/delivery evidence가 없어 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| Material Closure 0.1 | additive stabilization 구현·local regression, authorized success 미검증 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
+| Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, dependency-rich authorized closure는 미검증 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
@@ -586,6 +586,33 @@ decision을 host가 재계산한 뒤 현재 canonical source와 필수
 cross-platform release matrix, canonical material preview lifecycle, 원격 CI run과 일반화된
 asset-quality 향상 주장은 profile blocker와 별개로 남은 추가 미검증 제한입니다.
 
+### 2026-08-29 실제 reference 5개 One-Prompt 캠페인
+
+서로 다른 weathered plastic, rusted metal, weathered wood, crystal/emission,
+shared-material hard-surface reference 5개로 `aq-one-prompt-orchestrator`를 실행했습니다.
+Reference, Geometry controller와 실제 Blender 승격, Material controller/graph compile/Blender 승격,
+V0.6 7-pass와 IQ 0.2까지는 모두 도달했습니다. 추가 사용자 결정과 technical user approval request,
+canonical corruption은 각각 0건이었습니다.
+
+최초 실행의 V0.6 direct score는 `0.400147`~`0.547703`, IQ boundary F-score는
+`0.017883`~`0.086636`이었고 5개 모두 required contour hard gate에서 `blocked`됐습니다. 또한
+ControllerExecutor protected inventory와 adapter orphan route 결함을 실제로 재현했습니다.
+
+이후 route/receipt exact recovery, terminal projection reconciliation, `skill_runs/` ownership 분리와
+orphan policy authorization recovery를 보강하고 동일 reference를 V0.4 structural re-entry한 R2
+캠페인을 실행했습니다. R2 V0.6 direct score는 `0.959022`~`0.991305`, IQ boundary F-score는
+`0.642257`~`1.000000`입니다. plastic/wood/crystal/laser 4개는 IQ pass와 source freeze를 게시했고
+`plan_delivery`에서 정지했으며, rust 1개는 boundary F hard gate로 safe blocked terminal이 됐습니다.
+새 adapter route/receipt는 5/5 닫혔고 pending route, 추가 사용자 결정, technical user approval,
+canonical corruption은 모두 0입니다.
+
+따라서 portable GLTF delivery/clean-import의 단일 canary는 실행할 수 있습니다. 그러나 실제 beauty는
+0.08 m 얇은 silhouette proxy여서 volumetric assembly와 surface fidelity가 production 품질에 미달하고,
+별도 human disposition과 destination parity도 없습니다. profile은 계속 `disabled_experimental`이며
+activation 판정은 NO-GO입니다. 정확한 자산·session·점수·KPI·결함과 다음 실행 조건은
+[AQ One-Prompt 실제 reference 5개 캠페인 검증](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)에
+기록합니다.
+
 상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
 [시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
 [검증 기록](VERIFICATION_AQ_V02_KO.md)을 따릅니다.
@@ -914,6 +941,7 @@ VERIFICATION_Vxx_KO.md
 - [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md)
 - [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md)
 - [AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)
+- [AQ One-Prompt 실제 reference 5개 캠페인 검증](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)
 
 현재 V0.9는 environment probe, read-only audit, reversible terminal workspace archive,
 single-worker queue, strict schemas, stability PDF와 Codex Destination Handoff를 구현했습니다.
@@ -923,37 +951,56 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 ## 17. 현재 시점의 다음 순서
 
 ```text
-0. 현재 Crystalgun explicit identity split / material repair
-   - 기존 authority로 별도 진행
-   - acceptance fixture로만 취급
-1. AQ Approval Envelope 0.3
-   - approval mode, routine policy authorization, bounded identity split, approval budget
-2. One-Prompt End-to-End Supervisor
-   - geometry → material → IQ → delivery/review
-   - genuine escalation에서만 사용자 대기
-3. 실제 자산 5~10개 Approval KPI benchmark
-   - 추가 사용자 결정 수, technical approval 수, safe terminal 비율
-4. AQ v2 local-only activation review
-5. Codex ImageGen overlay one-prompt benchmark와 activation review
-6. Standard Generated Texture Intake 0.1
+0. 2026-08-29 최초 reference 5개 캠페인 증거 고정 [완료]
+   - Geometry/Material 5/5, IQ blocked 5/5, fail-closed와 결함 증거 보존
+1. One-Prompt/skill adapter와 policy recovery P0 보강 [완료]
+   - orphan route exact recovery와 terminal projection reconciliation
+   - adapter evidence와 controller protected inventory 소유 경계 분리
+   - orphan policy authorization exact reuse/technical-failed closure
+2. 같은 5개 reference의 V0.4 structural re-entry [완료]
+   - R2 V0.6 direct `0.959022`~`0.991305`
+   - 기존 실패 job/state/route/receipt는 불변 보존
+3. 동일 reference 5개 One-Prompt R2 재캠페인 [IQ 경계까지 완료]
+   - IQ pass/source freeze 4/5, rust safe blocked 1/5
+   - adapter route/receipt closure 5/5, pending route 0
+   - 추가 사용자 결정 0, technical approval 0, canonical corruption 0
+   - pass 4개는 delivery 판단을 위해 `plan_delivery`에서 정지
+4. wood portable GLTF delivery/clean-import canary [다음]
+   - `aq_reentry_r2_03_weathered_wood_beam` source freeze만 사용
+   - package acceptance는 immutable manifest와 passed clean-import evidence로만 판정
+5. volumetric 품질 및 빠진 coverage 보강
+   - 얇은 silhouette proxy를 실제 depth/assembly 후보로 재저작
+   - rust boundary F-score 재수렴
+   - signage/decal 1개
+   - dependency-rich texture/bake Material Closure 1개
+   - 별도 human quality disposition 5/5
+6. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
+7. Codex ImageGen overlay one-prompt benchmark와 activation review
+8. Standard Generated Texture Intake 0.1
    - 수동 생성 PNG의 immutable 등록·provenance·local PBR 연결
    - Full Standard ImageGen은 반복 assignment/provenance/후보/다중 사용자 workflow 병목이 입증될 때만 조건부
-7. 실제 material benchmark
-8. Unity URP material reconstruction
-9. Architecture exterior / environment / measured 확장
-10. Interior AQ
-11. V1.0 승격 재심사
+9. 실제 material benchmark와 기존 Crystalgun acceptance fixture
+10. Unity URP material reconstruction
+11. Architecture exterior / environment / measured 확장
+12. Interior AQ
+13. V1.0 승격 재심사
 ```
 
 Material Closure와 Material Identity Split은 더 이상 반복되는 top-level 제품 마일스톤이 아니라
-Approval Envelope가 엄격한 전제 아래 호출하는 기반 capability입니다. Crystalgun의 기존
+Approval Envelope가 엄격한 전제 아래 호출하는 기반 capability입니다. 2026-08-29 캠페인의
+constant/local-only material 통과는 dependency-rich closure나 texture/bake 성공을 뜻하지 않습니다.
+Crystalgun의 기존
 ApprovalRequest에는 새 authority를 소급하지 않으며 canonical apply도 이 로드맵 변경으로 자동 실행하지
 않습니다. `Standard Codex ImageGen integration`은 필수 선행 항목에서 제거하고 좁은
 `Standard Generated Texture Intake 0.1`로 대체합니다.
 
 activation review는 구현 존재나 대표 contract fixture 통과와 별개입니다. local-only profile에는
-최소 5개 실제 자산 one-prompt E2E, 추가 사용자 결정 0 목표, technical approval 0, safe terminal 100%,
-canonical corruption 0과 rollback 무결성이 필요합니다. ImageGen overlay에는 실제 built-in ImageGen
+최소 5개 실제 자산 one-prompt E2E, adapter terminal 100%, 추가 사용자 결정 0 목표,
+technical approval 0, production 또는 usable review terminal 100%, canonical corruption 0,
+rollback 무결성과 별도 human quality disposition이 필요합니다. required hard gate `blocked`는
+fail-closed 안전성 증거이지만 usable review terminal 성공률에는 포함하지 않습니다. 최소 한 자산의
+IQ pass/source freeze와 실제 portable delivery clean-import canary도 activation review 전에 필요합니다.
+ImageGen overlay에는 실제 built-in ImageGen
 호출과 semantic/material evidence가 추가로 필요합니다. 두 profile은 그 review 전까지 계속
 `disabled_experimental`입니다. Unity URP는 engine-neutral source package를 목적 엔진에서 재구성하는
 별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.

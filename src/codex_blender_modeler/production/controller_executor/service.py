@@ -607,6 +607,10 @@ def _protected_job_inventory(
         for path in (
             request_path.parent / "result.json",
             request_path.parent / "adoption",
+            # Skill runs are host-owned routing projections. They are validated by
+            # their own immutable bundle/route/receipt chain and are never controller
+            # inputs or outputs, so adapter progress must not stale a started request.
+            root / "skill_runs",
         )
     )
     if request_path.parent.parent.name == "controller_executions":

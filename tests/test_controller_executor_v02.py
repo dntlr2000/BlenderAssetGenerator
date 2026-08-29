@@ -493,6 +493,35 @@ def test_complete_outputs_from_an_interrupted_call_are_safely_adopted(
     assert (evidence / "adopted.json").is_file()
 
 
+def test_host_skill_projection_does_not_stale_an_interrupted_controller_start(
+    tmp_path: Path,
+) -> None:
+    """Exclude host-owned skill trace progress from controller source protection."""
+
+    root, request_path, _request = _request_bundle(tmp_path)
+    interrupted = _InterruptAfterOutputController()
+    with pytest.raises(KeyboardInterrupt, match="injected process interruption"):
+        execute_controller_request(
+            job_root=root,
+            request_path=request_path,
+            controller=interrupted,
+        )
+    _write(
+        root / "skill_runs" / "aq-adapter" / "routes" / "0001.json",
+        b'{"host_projection":true}\n',
+    )
+
+    replacement = FakeControllerForTests()
+    adopted = execute_controller_request(
+        job_root=root,
+        request_path=request_path,
+        controller=replacement,
+    )
+
+    assert adopted.status == "completed"
+    assert replacement.calls == 0
+
+
 def test_stale_workspace_output_before_start_is_rejected_without_execution(
     tmp_path: Path,
 ) -> None:

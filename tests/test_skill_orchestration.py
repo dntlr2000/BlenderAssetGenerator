@@ -2127,3 +2127,119 @@ def test_aq_terminal_routes_are_unique(
     }
     selected, _reason = _aq_route_key(tmp_path, status)
     assert selected == route_key
+
+
+def test_aq_adapter_records_executor_failure_without_orphaning_its_route(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Close a routed adapter exception with one failed receipt for safe retry."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    plan_aq_one_prompt_skill(
+        "이 소품을 현재 작업 안에서 자율 제작해줘",
+        reference_path=_image(tmp_path / "aq-failure.png"),
+        target_subject="isolated static prop",
+        requested_delivery_profiles=["review_only"],
+        explicit_autonomy_delegation_observed=True,
+        job_id="skill-aq-failure",
+        experimental_opt_in=True,
+        run_id="aq-skill-failure",
+    )
+
+    def _raise_executor_failure(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Inject one bounded adapter-visible executor failure."""
+
+        raise ValueError("injected executor failure")
+
+    monkeypatch.setattr(skill_service, "run_one_prompt", _raise_executor_failure)
+    with pytest.raises(ValueError, match="injected executor failure"):
+        run_aq_one_prompt_skill(
+            "skill-aq-failure",
+            "aq-skill-failure",
+            experimental_opt_in=True,
+        )
+    trace = get_skill_execution_trace("skill-aq-failure", "aq-skill-failure")
+    assert len(trace["routes"]) == 1
+    assert len(trace["receipts"]) == 1
+    assert trace["receipts"][0]["outcome"] == "failed"
+
+
+def test_aq_adapter_recovers_one_interrupted_pending_route(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Hash-validate and receipt one route left by a process interruption."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    plan_aq_one_prompt_skill(
+        "이 소품을 현재 작업 안에서 자율 제작해줘",
+        reference_path=_image(tmp_path / "aq-interrupt.png"),
+        target_subject="isolated static prop",
+        requested_delivery_profiles=["review_only"],
+        explicit_autonomy_delegation_observed=True,
+        job_id="skill-aq-interrupt",
+        experimental_opt_in=True,
+        run_id="aq-skill-interrupt",
+    )
+
+    def _interrupt_executor(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Interrupt after route publication and before AQ state advancement."""
+
+        raise KeyboardInterrupt("injected adapter interruption")
+
+    monkeypatch.setattr(skill_service, "run_one_prompt", _interrupt_executor)
+    with pytest.raises(KeyboardInterrupt, match="injected adapter interruption"):
+        run_aq_one_prompt_skill(
+            "skill-aq-interrupt",
+            "aq-skill-interrupt",
+            experimental_opt_in=True,
+        )
+    recovered = run_aq_one_prompt_skill(
+        "skill-aq-interrupt",
+        "aq-skill-interrupt",
+        experimental_opt_in=True,
+    )
+    assert recovered["recovered_pending_route"] is True
+    trace = get_skill_execution_trace("skill-aq-interrupt", "aq-skill-interrupt")
+    assert len(trace["routes"]) == 1
+    assert len(trace["receipts"]) == 1
+    assert trace["receipts"][0]["outcome"] == "failed"
+
+
+def test_aq_adapter_reconciles_an_externally_terminalized_one_prompt(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Project an exact terminal created outside the adapter into its receipt chain."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    planned = plan_aq_one_prompt_skill(
+        "이 소품을 현재 작업 안에서 자율 제작해줘",
+        reference_path=_image(tmp_path / "aq-terminal.png"),
+        target_subject="isolated static prop",
+        requested_delivery_profiles=["review_only"],
+        explicit_autonomy_delegation_observed=True,
+        job_id="skill-aq-terminal",
+        experimental_opt_in=True,
+        run_id="aq-skill-terminal",
+    )
+    skill_service.cancel_one_prompt(
+        "skill-aq-terminal",
+        str(planned["session_id"]),
+        reason="external exact terminal fixture",
+        allow_disabled_experimental=True,
+    )
+
+    reconciled = run_aq_one_prompt_skill(
+        "skill-aq-terminal",
+        "aq-skill-terminal",
+        experimental_opt_in=True,
+    )
+    assert reconciled["status"] == "terminal"
+    assert reconciled["one_prompt"]["status"] == "terminal"
+    trace = get_skill_execution_trace("skill-aq-terminal", "aq-skill-terminal")
+    assert trace["receipts"][-1]["outcome"] == "cancelled"

@@ -37,7 +37,9 @@ from codex_blender_modeler.autonomy_v2.approval_policy_service import (
     _validate_identity_split_gate_target,
 )
 from codex_blender_modeler.autonomy_v2.approval_supervisor_service import (
+    _close_failed_policy_authorization,
     _geometry_policy_snapshot,
+    _reconcile_interrupted_policy_authorization,
 )
 from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
     _require_geometry_policy_decision,
@@ -395,6 +397,90 @@ def test_missing_policy_decision_blocks_the_next_eligibility_cycle(
             allow_disabled_experimental=True,
         )
     assert sorted(eligibility_root.glob("*.json")) == before
+
+
+def test_interrupted_policy_authorization_is_reused_or_closed_without_user_approval(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Recover an exact orphan and consume it as technical failure after action failure."""
+
+    root, base = _base_plan(tmp_path, monkeypatch, job_id="approval_orphan_recovery")
+    job_id, session_id = _enable_autonomous_envelope(base)
+    target, _canonical, authorization_path = _issue_rollback_policy(
+        root,
+        base,
+        suffix="recoverable",
+    )
+    exact_target = ApprovalArtifact.model_validate(
+        artifact_for_v2(
+            root,
+            target,
+            artifact_id="recovery-target",
+            kind="rollback-target",
+        ).model_dump(mode="python")
+    )
+    recovered = _reconcile_interrupted_policy_authorization(
+        job_id,
+        session_id,
+        gate_kind="rollback",
+        exact_target=exact_target,
+    )
+    assert recovered is not None
+    assert recovered.path == authorization_path
+    _close_failed_policy_authorization(
+        job_id,
+        session_id,
+        authorization_artifact=recovered,
+        reason="Focused test technical failure.",
+    )
+    decisions = sorted(
+        (
+            root
+            / "production"
+            / "autonomy_v2"
+            / session_id
+            / "approval_envelope"
+            / "decisions"
+        ).glob("*.json")
+    )
+    assert len(decisions) == 1
+    assert json.loads(decisions[0].read_text(encoding="utf-8"))["outcome"] == (
+        "technical_failed"
+    )
+    _second_target, _canonical, _second_authorization = _issue_rollback_policy(
+        root,
+        base,
+        suffix="stale",
+    )
+    replacement_target = (
+        root / "production" / "autonomy_v2" / session_id / "replacement-target.json"
+    )
+    write_json_atomic(replacement_target, {"replacement": True})
+    replacement = ApprovalArtifact.model_validate(
+        artifact_for_v2(
+            root,
+            replacement_target,
+            artifact_id="replacement-target",
+            kind="rollback-target",
+        ).model_dump(mode="python")
+    )
+    assert (
+        _reconcile_interrupted_policy_authorization(
+            job_id,
+            session_id,
+            gate_kind="rollback",
+            exact_target=replacement,
+        )
+        is None
+    )
+    decisions = sorted(decisions[0].parent.glob("*.json"))
+    assert len(decisions) == 2
+    assert all(
+        json.loads(path.read_text(encoding="utf-8"))["outcome"]
+        == "technical_failed"
+        for path in decisions
+    )
 
 
 def test_dependency_required_gate_rejects_an_empty_dependency_set(

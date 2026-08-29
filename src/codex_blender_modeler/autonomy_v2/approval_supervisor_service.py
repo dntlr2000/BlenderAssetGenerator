@@ -34,6 +34,7 @@ from .approval_models import (
 from .approval_policy_service import (
     _approval_root,
     _current_budget_and_receipt,
+    _current_unconsumed_policy_authorization,
     _decision_receipt_from_path,
     _load_approval_boundary,
     _load_base_boundary,
@@ -1495,6 +1496,69 @@ def _geometry_policy_snapshot(root: Path, job_id: str) -> tuple[Path, str]:
     return find_reference(job_id), "canonical-reference-snapshot"
 
 
+def _reconcile_interrupted_policy_authorization(
+    job_id: str,
+    session_id: str,
+    *,
+    gate_kind: str,
+    exact_target: ApprovalArtifact,
+) -> ApprovalArtifact | None:
+    """Reuse an exact orphan authorization or close a stale one as technical failure."""
+
+    pending = _current_unconsumed_policy_authorization(job_id, session_id)
+    if pending is None:
+        return None
+    authorization, artifact = pending
+    same_target = (
+        authorization.gate_kind == gate_kind
+        and authorization.exact_target_artifact.path == exact_target.path
+        and authorization.exact_target_artifact.sha256 == exact_target.sha256
+        and authorization.exact_target_artifact.byte_size == exact_target.byte_size
+    )
+    if same_target:
+        return artifact
+    publish_policy_decision_receipt(
+        job_id,
+        session_id,
+        policy_authorization_path=artifact.path,
+        canonical_snapshot_after_path=authorization.current_canonical_snapshot.path,
+        canonical_snapshot_after_kind=authorization.current_canonical_snapshot.kind,
+        outcome="technical_failed",
+        decision_reasons=[
+            "Recovered an interrupted routine action before a different exact target."
+        ],
+        allow_disabled_experimental=True,
+    )
+    return None
+
+
+def _close_failed_policy_authorization(
+    job_id: str,
+    session_id: str,
+    *,
+    authorization_artifact: ApprovalArtifact,
+    reason: str,
+) -> None:
+    """Consume one still-unused authorization after an ordinary technical exception."""
+
+    pending = _current_unconsumed_policy_authorization(job_id, session_id)
+    if pending is None:
+        return
+    authorization, artifact = pending
+    if artifact != authorization_artifact:
+        raise ValueError("technical failure found a different unconsumed authorization")
+    publish_policy_decision_receipt(
+        job_id,
+        session_id,
+        policy_authorization_path=artifact.path,
+        canonical_snapshot_after_path=authorization.current_canonical_snapshot.path,
+        canonical_snapshot_after_kind=authorization.current_canonical_snapshot.kind,
+        outcome="technical_failed",
+        decision_reasons=[reason],
+        allow_disabled_experimental=True,
+    )
+
+
 def _advance_geometry_with_policy(
     job_id: str,
     session_id: str,
@@ -1523,38 +1587,62 @@ def _advance_geometry_with_policy(
         job_id,
     )
     dependencies = [result.request, result.tool_profile, *result.outputs]
-    eligibility = evaluate_routine_gate_eligibility(
+    exact_target = approval_artifact_for(
+        root,
+        result_path,
+        artifact_id="geometry-policy-target",
+        kind="controller-result",
+    )
+    authorization_artifact = _reconcile_interrupted_policy_authorization(
         job_id,
         session_id,
         gate_kind="geometry_candidate_promotion",
-        exact_target_path=result_path,
-        exact_target_kind="controller-result",
-        current_canonical_snapshot_path=canonical_before_path,
-        current_canonical_snapshot_kind=canonical_before_kind,
-        dependency_paths=[item.path for item in dependencies],
-        dependency_kinds=[item.role for item in dependencies],
-        allow_disabled_experimental=True,
+        exact_target=exact_target,
     )
-    if eligibility["eligibility"] != "passed":
-        raise PermissionError("geometry candidate failed deterministic policy eligibility")
-    report_artifact = ApprovalArtifact.model_validate(eligibility["report_artifact"])
-    authorization = authorize_routine_gate(
-        job_id,
-        session_id,
-        eligibility_report_path=report_artifact.path,
-        allow_disabled_experimental=True,
-    )
-    authorization_artifact = ApprovalArtifact.model_validate(
-        authorization["authorization_artifact"]
-    )
-    result_payload = _run_autonomy_v2_with_policy(
-        job_id,
-        session_id,
-        max_actions=1,
-        quality_submission=quality_submission,
-        allow_disabled_experimental=True,
-        policy_authorization_path=authorization_artifact.path,
-    )
+    if authorization_artifact is None:
+        eligibility = evaluate_routine_gate_eligibility(
+            job_id,
+            session_id,
+            gate_kind="geometry_candidate_promotion",
+            exact_target_path=result_path,
+            exact_target_kind="controller-result",
+            current_canonical_snapshot_path=canonical_before_path,
+            current_canonical_snapshot_kind=canonical_before_kind,
+            dependency_paths=[item.path for item in dependencies],
+            dependency_kinds=[item.role for item in dependencies],
+            allow_disabled_experimental=True,
+        )
+        if eligibility["eligibility"] != "passed":
+            raise PermissionError(
+                "geometry candidate failed deterministic policy eligibility"
+            )
+        report_artifact = ApprovalArtifact.model_validate(eligibility["report_artifact"])
+        authorization = authorize_routine_gate(
+            job_id,
+            session_id,
+            eligibility_report_path=report_artifact.path,
+            allow_disabled_experimental=True,
+        )
+        authorization_artifact = ApprovalArtifact.model_validate(
+            authorization["authorization_artifact"]
+        )
+    try:
+        result_payload = _run_autonomy_v2_with_policy(
+            job_id,
+            session_id,
+            max_actions=1,
+            quality_submission=quality_submission,
+            allow_disabled_experimental=True,
+            policy_authorization_path=authorization_artifact.path,
+        )
+    except Exception:
+        _close_failed_policy_authorization(
+            job_id,
+            session_id,
+            authorization_artifact=authorization_artifact,
+            reason="Geometry policy action ended in an ordinary technical exception.",
+        )
+        raise
     actions = result_payload.get("actions")
     if not isinstance(actions, list) or len(actions) != 1:
         raise RuntimeError("geometry policy execution did not return one exact action")
@@ -1598,40 +1686,56 @@ def _advance_quality_with_policy(
         ApprovalArtifact.model_validate(item.model_dump(mode="python"))
         for item in submission.quality_evidence
     ]
-    eligibility = evaluate_routine_gate_eligibility(
+    authorization_artifact = _reconcile_interrupted_policy_authorization(
         job_id,
         session_id,
         gate_kind="iq_quality_acceptance",
-        exact_target_path=report_artifact.path,
-        exact_target_kind=report_artifact.kind,
-        current_canonical_snapshot_path=canonical_path,
-        current_canonical_snapshot_kind="canonical-quality-snapshot",
-        dependency_paths=[item.path for item in dependencies],
-        dependency_kinds=[item.kind for item in dependencies],
-        allow_disabled_experimental=True,
+        exact_target=report_artifact,
     )
-    if eligibility["eligibility"] != "passed":
-        raise PermissionError("IQ 0.2 report failed deterministic policy acceptance")
-    eligibility_artifact = ApprovalArtifact.model_validate(
-        eligibility["report_artifact"]
-    )
-    authorization = authorize_routine_gate(
-        job_id,
-        session_id,
-        eligibility_report_path=eligibility_artifact.path,
-        allow_disabled_experimental=True,
-    )
-    authorization_artifact = ApprovalArtifact.model_validate(
-        authorization["authorization_artifact"]
-    )
-    result_payload = _run_autonomy_v2_with_policy(
-        job_id,
-        session_id,
-        max_actions=1,
-        quality_submission=submission,
-        allow_disabled_experimental=True,
-        policy_authorization_path=authorization_artifact.path,
-    )
+    if authorization_artifact is None:
+        eligibility = evaluate_routine_gate_eligibility(
+            job_id,
+            session_id,
+            gate_kind="iq_quality_acceptance",
+            exact_target_path=report_artifact.path,
+            exact_target_kind=report_artifact.kind,
+            current_canonical_snapshot_path=canonical_path,
+            current_canonical_snapshot_kind="canonical-quality-snapshot",
+            dependency_paths=[item.path for item in dependencies],
+            dependency_kinds=[item.kind for item in dependencies],
+            allow_disabled_experimental=True,
+        )
+        if eligibility["eligibility"] != "passed":
+            raise PermissionError("IQ 0.2 report failed deterministic policy acceptance")
+        eligibility_artifact = ApprovalArtifact.model_validate(
+            eligibility["report_artifact"]
+        )
+        authorization = authorize_routine_gate(
+            job_id,
+            session_id,
+            eligibility_report_path=eligibility_artifact.path,
+            allow_disabled_experimental=True,
+        )
+        authorization_artifact = ApprovalArtifact.model_validate(
+            authorization["authorization_artifact"]
+        )
+    try:
+        result_payload = _run_autonomy_v2_with_policy(
+            job_id,
+            session_id,
+            max_actions=1,
+            quality_submission=submission,
+            allow_disabled_experimental=True,
+            policy_authorization_path=authorization_artifact.path,
+        )
+    except Exception:
+        _close_failed_policy_authorization(
+            job_id,
+            session_id,
+            authorization_artifact=authorization_artifact,
+            reason="IQ policy action ended in an ordinary technical exception.",
+        )
+        raise
     _root, after, _after_artifact = _latest_state_artifact(job_id, session_id)
     if after.sequence <= state.sequence or after.quality_terminal is None:
         raise RuntimeError("IQ policy action did not publish its exact quality terminal")

@@ -178,6 +178,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
     assert "tests/test_activation_readiness.py" in powershell
     assert "tests/test_activation_readiness.py" in bash
     assert "PytestRoot" in powershell
+    assert 'Join-Path (Get-Location) ".b"' in powershell
     assert "--pytest-root" in bash
     for token in expected_env:
         assert token not in python_commands

@@ -4301,21 +4301,47 @@ def _aq_binding(
     )
 
 
+def _aq_binding_from_snapshot(
+    root: Path,
+    session_id: str,
+    state_artifact: SkillArtifact,
+    *,
+    status: str,
+) -> UnderlyingExecutionBinding:
+    """Bind an orphan route's exact AQ snapshot without inventing newer state."""
+
+    path = _validate_artifact(root, state_artifact)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("AQ route source snapshot must contain one state object")
+    next_action = payload.get("next_action")
+    return UnderlyingExecutionBinding(
+        execution_kind="aq_one_prompt_v01",
+        execution_id=session_id,
+        state=state_artifact,
+        status=status,
+        next_action=str(next_action) if next_action else None,
+    )
+
+
 def _aq_outcome(status: dict[str, object]) -> str:
     """Classify one One-Prompt result without inventing a new terminal meaning."""
 
     value = str(status.get("status", ""))
     state, _artifact = _aq_base_state(status)
     state_status = str(state.get("status", ""))
+    terminal_outcome = {
+        "completed": "completed",
+        "partial": "completed",
+        "review_required": "completed",
+        "blocked": "blocked",
+        "failed": "failed",
+        "cancelled": "cancelled",
+    }.get(state_status)
+    if terminal_outcome is not None:
+        return terminal_outcome
     if value == "terminal":
-        return {
-            "completed": "completed",
-            "partial": "completed",
-            "review_required": "completed",
-            "blocked": "blocked",
-            "failed": "failed",
-            "cancelled": "cancelled",
-        }.get(state_status, "completed")
+        return "completed"
     if value == "waiting_for_controller":
         return "waiting_for_controller"
     if value == "genuine_escalation":
@@ -4325,6 +4351,124 @@ def _aq_outcome(status: dict[str, object]) -> str:
     if value.startswith("waiting_for_integrated_quality"):
         return "waiting_for_controller"
     return "advanced"
+
+
+def _snapshot_aq_state_exact(
+    root: Path,
+    run_root: Path,
+    *,
+    sequence: int,
+    label: str,
+    source_artifact: SkillArtifact,
+) -> SkillArtifact:
+    """Publish or exactly adopt one crash-surviving AQ state snapshot."""
+
+    source = _validate_artifact(root, source_artifact)
+    target = run_root / "underlying" / f"{sequence:04d}-{label}.json"
+    if target.is_file():
+        if target.read_bytes() != source.read_bytes():
+            raise ValueError("pending AQ snapshot differs from the current exact source")
+        return _artifact_for(root, target)
+    publish_bytes_create_once(target, source.read_bytes())
+    return _artifact_for(root, target)
+
+
+def _load_pending_aq_route(
+    root: Path,
+    run_root: Path,
+    *,
+    run_id: str,
+    job_id: str,
+    bundle: SkillBundleManifest,
+    registry: SkillRegistry,
+    source_public_status: str,
+) -> tuple[SkillArtifact, SkillRouteDecision] | None:
+    """Validate and return the sole receipt-less AQ route after an interruption."""
+
+    route_root = run_root / "routes"
+    receipt_root = run_root / "receipts"
+    route_paths = sorted(route_root.glob("*.json")) if route_root.is_dir() else []
+    receipt_paths = sorted(receipt_root.glob("*.json")) if receipt_root.is_dir() else []
+    if len(route_paths) == len(receipt_paths):
+        return None
+    if len(route_paths) != len(receipt_paths) + 1:
+        raise ValueError("AQ skill run has more than one pending route")
+    sequence = len(receipt_paths) + 1
+    route_path = route_paths[-1]
+    if route_path.name != f"{sequence:04d}.json":
+        raise ValueError("pending AQ route sequence is noncontiguous")
+    route_artifact = _artifact_for(root, route_path)
+    route = _load_model(root, route_artifact, SkillRouteDecision)
+    expected_source = run_root / "underlying" / f"{sequence:04d}-before.json"
+    if (
+        route.decision_id != f"route-{run_id}-{sequence:04d}"
+        or (route.run_id, route.job_id, route.execution_mode) != (run_id, job_id, "aq")
+        or route.bundle_manifest != _artifact_for(root, run_root / "bundle.json")
+        or route.source_state != _artifact_for(root, expected_source)
+    ):
+        raise ValueError("pending AQ route identity or source binding is stale")
+    source_state = json.loads(
+        _validate_artifact(root, route.source_state).read_text(encoding="utf-8")
+    )
+    if not isinstance(source_state, dict):
+        raise ValueError("pending AQ route source is not an AQ state object")
+    source_status = {
+        "status": source_public_status,
+        "base_autonomy": {
+            "state": source_state,
+            "state_artifact": route.source_state.model_dump(mode="json"),
+        },
+    }
+    expected_key, expected_reason = _aq_route_key(root, source_status)
+    expected_skill = _route_from_registry(
+        bundle,
+        registry,
+        execution_mode="aq",
+        route_key=expected_key,
+    )
+    if (
+        route.stage_key != expected_key
+        or route.selected_skill_id != expected_skill
+        or route.reason != expected_reason
+    ):
+        raise ValueError("pending AQ route differs from its exact source state")
+    return route_artifact, route
+
+
+def _update_aq_adapter_state(
+    root: Path,
+    run_root: Path,
+    adapter_state: AQSkillAdapterState,
+    *,
+    after_status: dict[str, object],
+    after_snapshot: SkillArtifact,
+    receipt: SkillArtifact,
+    bundle: SkillBundleManifest,
+    registry: SkillRegistry,
+) -> AQSkillAdapterState:
+    """Refresh the derived adapter projection from one receipt-backed AQ observation."""
+
+    after_key, _after_reason = _aq_route_key(root, after_status)
+    after_skill = _route_from_registry(
+        bundle,
+        registry,
+        execution_mode="aq",
+        route_key=after_key,
+    )
+    after_state, _after_artifact = _aq_base_state(after_status)
+    updated = adapter_state.model_copy(
+        update={
+            "status": str(after_status.get("status", "unknown")),
+            "current_stage_key": after_key,
+            "current_skill_id": after_skill,
+            "source_state": after_snapshot,
+            "next_action": str(after_state.get("next_action", "")) or None,
+            "receipt_chain_head_sha256": receipt.sha256,
+            "updated_at": _utc_now(),
+        }
+    )
+    _write_aq_state(run_root, updated)
+    return updated
 
 
 def _load_aq_run(
@@ -4471,10 +4615,66 @@ def run_aq_one_prompt_skill(
     with _skill_run_lock(run_root):
         root, run_root, plan, adapter_state = _load_aq_run(job_id, run_id)
         before_status = get_one_prompt_status(job_id, plan.session_id)
-        if str(before_status.get("status")) == "terminal":
-            return get_aq_one_prompt_skill_status(job_id, run_id)
         sequence = _receipt_sequence(run_root)
-        before_snapshot = _snapshot_underlying_state(
+        bundle, registry = _load_bundle(root, run_root)
+        pending = _load_pending_aq_route(
+            root,
+            run_root,
+            run_id=run_id,
+            job_id=job_id,
+            bundle=bundle,
+            registry=registry,
+            source_public_status=adapter_state.status,
+        )
+        if pending is not None:
+            route, decision = pending
+            after_snapshot = _snapshot_aq_state_exact(
+                root,
+                run_root,
+                sequence=sequence,
+                label="after-recovery",
+                source_artifact=_aq_source_artifact(root, before_status),
+            )
+            source_unchanged = decision.source_state.sha256 == after_snapshot.sha256
+            receipt = _publish_execution_receipt(
+                root,
+                run_root,
+                run_id=run_id,
+                job_id=job_id,
+                sequence=sequence,
+                route=route,
+                before=_aq_binding_from_snapshot(
+                    root,
+                    plan.session_id,
+                    decision.source_state,
+                    status=adapter_state.status,
+                ),
+                after=_aq_binding(
+                    plan.session_id,
+                    after_snapshot,
+                    before_status,
+                ),
+                outcome="failed" if source_unchanged else _aq_outcome(before_status),
+            )
+            _update_aq_adapter_state(
+                root,
+                run_root,
+                adapter_state,
+                after_status=before_status,
+                after_snapshot=after_snapshot,
+                receipt=receipt,
+                bundle=bundle,
+                registry=registry,
+            )
+            response = get_aq_one_prompt_skill_status(job_id, run_id)
+            response["recovered_pending_route"] = True
+            return response
+        if (
+            str(before_status.get("status")) == "terminal"
+            and adapter_state.status == "terminal"
+        ):
+            return get_aq_one_prompt_skill_status(job_id, run_id)
+        before_snapshot = _snapshot_aq_state_exact(
             root,
             run_root,
             sequence=sequence,
@@ -4482,7 +4682,6 @@ def run_aq_one_prompt_skill(
             source_artifact=_aq_source_artifact(root, before_status),
         )
         route_key, route_reason = _aq_route_key(root, before_status)
-        bundle, registry = _load_bundle(root, run_root)
         selected_skill = _route_from_registry(
             bundle, registry, execution_mode="aq", route_key=route_key
         )
@@ -4498,20 +4697,86 @@ def run_aq_one_prompt_skill(
             source_state=before_snapshot,
             reason=route_reason,
         )
+        if str(before_status.get("status")) == "terminal":
+            after_snapshot = _snapshot_aq_state_exact(
+                root,
+                run_root,
+                sequence=sequence,
+                label="after",
+                source_artifact=_aq_source_artifact(root, before_status),
+            )
+            receipt = _publish_execution_receipt(
+                root,
+                run_root,
+                run_id=run_id,
+                job_id=job_id,
+                sequence=sequence,
+                route=route,
+                before=_aq_binding(plan.session_id, before_snapshot, before_status),
+                after=_aq_binding(plan.session_id, after_snapshot, before_status),
+                outcome=_aq_outcome(before_status),
+            )
+            _update_aq_adapter_state(
+                root,
+                run_root,
+                adapter_state,
+                after_status=before_status,
+                after_snapshot=after_snapshot,
+                receipt=receipt,
+                bundle=bundle,
+                registry=registry,
+            )
+            return get_aq_one_prompt_skill_status(job_id, run_id)
         executor = (
             resume_one_prompt
             if adapter_state.receipt_chain_head_sha256 is not None
             else run_one_prompt
         )
-        result = executor(
-            job_id,
-            plan.session_id,
-            max_actions=max_actions,
-            quality_submission=quality_submission,
-            allow_disabled_experimental=True,
-        )
+        try:
+            result = executor(
+                job_id,
+                plan.session_id,
+                max_actions=max_actions,
+                quality_submission=quality_submission,
+                allow_disabled_experimental=True,
+            )
+        except Exception:
+            after_status = get_one_prompt_status(job_id, plan.session_id)
+            after_snapshot = _snapshot_aq_state_exact(
+                root,
+                run_root,
+                sequence=sequence,
+                label="after",
+                source_artifact=_aq_source_artifact(root, after_status),
+            )
+            receipt = _publish_execution_receipt(
+                root,
+                run_root,
+                run_id=run_id,
+                job_id=job_id,
+                sequence=sequence,
+                route=route,
+                before=_aq_binding(plan.session_id, before_snapshot, before_status),
+                after=_aq_binding(plan.session_id, after_snapshot, after_status),
+                outcome=(
+                    "failed"
+                    if before_snapshot.sha256 == after_snapshot.sha256
+                    else _aq_outcome(after_status)
+                ),
+            )
+            _update_aq_adapter_state(
+                root,
+                run_root,
+                adapter_state,
+                after_status=after_status,
+                after_snapshot=after_snapshot,
+                receipt=receipt,
+                bundle=bundle,
+                registry=registry,
+            )
+            raise
         after_status = get_one_prompt_status(job_id, plan.session_id)
-        after_snapshot = _snapshot_underlying_state(
+        after_snapshot = _snapshot_aq_state_exact(
             root,
             run_root,
             sequence=sequence,
@@ -4529,23 +4794,16 @@ def run_aq_one_prompt_skill(
             after=_aq_binding(plan.session_id, after_snapshot, after_status),
             outcome=_aq_outcome(after_status),
         )
-        after_key, _after_reason = _aq_route_key(root, after_status)
-        after_skill = _route_from_registry(
-            bundle, registry, execution_mode="aq", route_key=after_key
+        _update_aq_adapter_state(
+            root,
+            run_root,
+            adapter_state,
+            after_status=after_status,
+            after_snapshot=after_snapshot,
+            receipt=receipt,
+            bundle=bundle,
+            registry=registry,
         )
-        after_state, _after_artifact = _aq_base_state(after_status)
-        adapter_state = adapter_state.model_copy(
-            update={
-                "status": str(after_status.get("status", "unknown")),
-                "current_stage_key": after_key,
-                "current_skill_id": after_skill,
-                "source_state": after_snapshot,
-                "next_action": str(after_state.get("next_action", "")) or None,
-                "receipt_chain_head_sha256": receipt.sha256,
-                "updated_at": _utc_now(),
-            }
-        )
-        _write_aq_state(run_root, adapter_state)
         response = get_aq_one_prompt_skill_status(job_id, run_id)
         response["last_one_prompt_result"] = result
         return response

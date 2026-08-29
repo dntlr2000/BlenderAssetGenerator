@@ -44,7 +44,9 @@ $OutputRoot = [System.IO.Path]::GetFullPath($OutputRoot)
 New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 # Allow an exact repository-local short path for Windows nested evidence fixtures.
 if (-not $PytestRoot) {
-    $PytestRoot = Join-Path (Get-Location) ".t/aqp-$PID"
+    # Deep ImageGen material-loop fixtures can otherwise exceed Windows MAX_PATH.
+    # Keep this root distinct from TEMP/TMP because pytest clears --basetemp.
+    $PytestRoot = Join-Path (Get-Location) ".b"
 }
 $PytestRoot = [System.IO.Path]::GetFullPath($PytestRoot)
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null

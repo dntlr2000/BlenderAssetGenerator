@@ -740,8 +740,11 @@ def _current_budget_and_receipt(
     return current_budget, previous_artifact
 
 
-def _assert_no_unconsumed_policy_authorization(root: Path, session_id: str) -> None:
-    """Block a new eligibility cycle until every issued authorization has a decision."""
+def _unconsumed_policy_authorizations(
+    root: Path,
+    session_id: str,
+) -> list[tuple[AQV2RoutinePolicyAuthorization, ApprovalArtifact]]:
+    """Return canonical issued authorizations that have no decision receipt yet."""
 
     decisions_root = _approval_root(root, session_id) / "decisions"
     consumed: set[tuple[str, str, int]] = set()
@@ -757,7 +760,8 @@ def _assert_no_unconsumed_policy_authorization(root: Path, session_id: str) -> N
             )
     authorizations_root = _approval_root(root, session_id) / "authorizations"
     if not os.path.isdir(native_io_path(authorizations_root)):
-        return
+        return []
+    pending: list[tuple[AQV2RoutinePolicyAuthorization, ApprovalArtifact]] = []
     for path in sorted(authorizations_root.glob("*.json")):
         artifact = approval_artifact_for(
             root,
@@ -771,9 +775,40 @@ def _assert_no_unconsumed_policy_authorization(root: Path, session_id: str) -> N
             raise PermissionError("policy authorization is outside its canonical host path")
         binding = (artifact.path, artifact.sha256, artifact.byte_size)
         if binding not in consumed:
-            raise PermissionError(
-                "issued policy authorization has no PolicyDecisionReceipt"
-            )
+            pending.append((authorization, artifact))
+    return pending
+
+
+def _assert_no_unconsumed_policy_authorization(root: Path, session_id: str) -> None:
+    """Block a new eligibility cycle until every issued authorization has a decision."""
+
+    if _unconsumed_policy_authorizations(root, session_id):
+        raise PermissionError("issued policy authorization has no PolicyDecisionReceipt")
+
+
+def _current_unconsumed_policy_authorization(
+    job_id: str,
+    session_id: str,
+) -> tuple[AQV2RoutinePolicyAuthorization, ApprovalArtifact] | None:
+    """Replay the sole crash-interrupted authorization at the current canonical boundary."""
+
+    root = job_dir(job_id)
+    pending = _unconsumed_policy_authorizations(root, session_id)
+    if not pending:
+        return None
+    if len(pending) != 1:
+        raise ValueError("AQ policy history contains multiple unconsumed authorizations")
+    authorization, artifact = pending[0]
+    _root, validated, validated_artifact, _report = (
+        _validated_current_policy_authorization(
+            job_id,
+            session_id,
+            policy_authorization_path=artifact.path,
+        )
+    )
+    if validated != authorization or validated_artifact != artifact:
+        raise ValueError("unconsumed policy authorization changed during replay")
+    return validated, validated_artifact
 
 
 def _decision_receipt_from_path(

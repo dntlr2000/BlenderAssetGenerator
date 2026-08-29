@@ -29,7 +29,10 @@ build/
 /.codex_test
 /.codex_tmp
 /.codex-temp/
+/.codex_temp/
+/.codex_validation/
 /.codex-test-tmp
+/PlaygroundBlenderAssetGenerator.*/
 /.test-tmp-root-multiview-integration
 /.test-tmp-root-orchestration-escalated
 /.test-tmp-root-orchestration-escalated2
