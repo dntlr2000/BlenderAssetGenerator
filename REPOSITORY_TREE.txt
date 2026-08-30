@@ -543,6 +543,7 @@ BlenderAssetGenerator/
   scripts/run_advisory_target_smoke.py
   scripts/run_autonomous_quality_gates.ps1
   scripts/run_autonomous_quality_gates.sh
+  scripts/run_pytest_acl_safe.py
   scripts/run_v04_gates.ps1
   scripts/run_v04_gates.sh
   scripts/run_v04_mcp_regressions.py
@@ -1085,6 +1086,7 @@ BlenderAssetGenerator/
   tests/test_packaging_long_paths_aq.py
   tests/test_pdf_reporting.py
   tests/test_procedural_pbr_provider.py
+  tests/test_pytest_acl_safe_runner.py
   tests/test_qa_camera_geometry_attribution.py
   tests/test_qa_camera_probe_service.py
   tests/test_qa_diagnostic_models.py
