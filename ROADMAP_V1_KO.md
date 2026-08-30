@@ -993,13 +993,22 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
    - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
    - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
-7. 빠진 activation coverage 보강 [입력/권한 대기]
-   - 현재 candidate exact beauty의 별도 human quality disposition 0/5
-   - plastic/rust/laser contour 재수렴과 crystal fresh delivery
-   - isolated immutable signage/decal reference 1개
-   - 별도 authorization과 bake contract가 있는 dependency-rich Material Closure 1개
+7. 검증 가능한 activation coverage 마감 [실행 대기]
+   - 현재 candidate exact beauty 5개의 진단용 human quality disposition
+   - 최종 clean baseline 이후 새 job 5개에서 plastic/rust/laser contour 재수렴, wood 재현, crystal fresh delivery
+   - 새 candidate exact beauty 5개의 최종 human quality disposition과 baseline-bound Index/Readiness 재평가
+   - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
+     누락을 숨기지 않고 명시적 input/authority blocker로 이월
 8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
+   [완료: `da44e3e6bf985ad6e5673bce1ff01582252c7e53`의 NO-GO 기준선]
+   - source manifest `activation-source-2f0c9ca37d46915cf9d42712`
+   - baseline `activation-baseline-8e341815e74247cd3ca389da`
+   - candidate 0/5와 blocker 8개를 누락하지 않은 readiness
+   - 7번 마감 캠페인은 결과를 추적 문서에 소급 기록하지 않고, 실행 전에 생성할 새 clean baseline에 결합
 9. Codex ImageGen overlay one-prompt benchmark와 activation review
+   - 7번의 5개 세션이 모두 bounded terminal이고 미해결 local framework 결함이 없을 때 시작 가능
+   - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
+   - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유
 10. Standard Generated Texture Intake 0.1
    - 수동 생성 PNG의 immutable 등록·provenance·local PBR 연결
    - Full Standard ImageGen은 반복 assignment/provenance/후보/다중 사용자 workflow 병목이 입증될 때만 조건부
@@ -1028,5 +1037,14 @@ ImageGen overlay에는 실제 built-in ImageGen
 호출과 semantic/material evidence가 추가로 필요합니다. 두 profile은 그 review 전까지 계속
 `disabled_experimental`입니다. Unity URP는 engine-neutral source package를 목적 엔진에서 재구성하는
 별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
+
+7번에서 9번으로 넘어가는 경계는 AQ base profile 활성화와 별개입니다. 현재 5개 결과와 새 5개 결과의
+exact human disposition, 새 clean baseline에 결합된 세션 terminal, adapter/recovery closure, IQ/package
+증거와 Activation Index/Readiness를 모두 run-owned 기계 JSON으로 고정합니다. 품질 `needs_revision`은
+정확한 safe terminal로 남아 있고 최소 한 개의 새 candidate가 IQ/source freeze와 portable delivery를
+완료했다면 ImageGen overlay 실험 자체를 막지 않습니다. 반대로 parser/controller/recovery/package 같은
+local framework 결함이 남아 있으면 9번을 시작하지 않고, 수정 commit과 새 baseline 뒤 영향받은 job을
+새로 실행합니다. supporting-client closed loop, controller sandbox attestation, destination runtime parity,
+signage/decal 입력과 bake-bound authorization은 해제되기 전까지 base activation blocker로 계속 표시합니다.
 
 현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt `0.1.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 각 companion 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

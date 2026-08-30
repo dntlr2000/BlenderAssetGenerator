@@ -405,18 +405,38 @@ Unity/Unreal runtime parity 증거가 아닙니다.
    supporting-client closed loop, controller sandbox attestation, destination runtime parity blocker가
    남아 있습니다. 단일 local GLTF canary는 이 blocker를 해제하지 않습니다.
 
-다음 실행 순서는 다음과 같습니다.
+기존 결함 보강과 첫 clean activation snapshot은 다음과 같이 완료했습니다.
 
-1. recovery 수정 checkpoint commit `e375d84386af68544bac043c3b0e875b693e22b4`를 유지합니다.
-2. 현재 source/tests/docs를 전체 gate로 검증하고 clean commit에 고정합니다.
-3. 그 clean commit에서 새 ActivationSourceManifest/Baseline/Index를 생성하되, 미충족 항목을
-   누락하거나 pass로 바꾸지 않고 NO-GO readiness를 게시합니다.
-4. 현재 candidate set의 exact beauty 5개에 대해 별도 human disposition을 받습니다.
-5. plastic/rust/laser contour를 fresh candidate에서 수렴시키고 crystal delivery를 fresh run으로 재검증합니다.
-6. 사용자가 제공한 isolated immutable signage/decal reference와 별도 authorization/bake contract가 있는
-   texture dependency로 각각 1개 canary를 수행합니다.
-7. supporting-client closed loop, controller sandbox attestation, destination runtime parity까지 exact
-   evidence가 갖춰진 뒤에만 human Activation acceptance와 profile enablement를 다시 검토합니다.
+1. recovery 수정 checkpoint `e375d84386af68544bac043c3b0e875b693e22b4` 이후 adapter terminal/recovery,
+   package parser, package-local temporary ACL, UV serializer 결함을 보강했습니다.
+2. 동일 reference의 structural R2, volumetric R5, tuned wood R8 이력은 수정하지 않고 보존했습니다.
+3. clean commit `da44e3e6bf985ad6e5673bce1ff01582252c7e53`에서 source manifest
+   `activation-source-2f0c9ca37d46915cf9d42712`, baseline
+   `activation-baseline-8e341815e74247cd3ca389da`, empty candidate index와 NO-GO readiness를
+   게시했습니다. 이 snapshot은 candidate 부족과 blocker 8개를 숨기지 않습니다.
+
+다음 bounded closure는 아래 순서를 고정합니다.
+
+1. 로드맵과 이 검증 기록이 stale step 설명 대신 run-owned machine decision을 가리키도록 먼저 갱신하고,
+   전체 gate를 통과한 최종 clean commit에서 새 ActivationSourceManifest/Baseline을 생성합니다.
+2. 현재 candidate set의 exact beauty 5개에 대해 진단용 human disposition을 별도로 받습니다. R2 판정은
+   재사용하지 않으며 이 판정은 수정 방향만 정합니다.
+3. 새 baseline 이후 새로운 job 5개를 만듭니다. plastic/rust/laser는 V0.4 structural re-entry부터,
+   wood는 R8 구조 재현부터, crystal은 fresh IQ/delivery까지 One-Prompt 예산 안에서 실행합니다.
+4. 새 candidate beauty 5개에 대해 최종 human disposition을 다시 받고, exact artifact와 baseline에
+   결합된 Eligibility/Registry/Index/Readiness 및 campaign decision을 append-only로 게시합니다.
+5. 다섯 세션이 completed 또는 명시적 safe terminal이고 pending adapter/recovery가 없으며 미해결 local
+   framework 결함이 없고, 최소 한 새 candidate가 IQ/source freeze와 portable delivery를 완료하면
+   base activation NO-GO와 별개로 ImageGen overlay 9단계를 `disabled_experimental` 상태에서 시작할 수
+   있습니다. 품질 `needs_revision`은 base eligibility에 포함하지 않지만 bounded experimental 진입을
+   자동으로 막지는 않습니다.
+6. isolated immutable signage/decal reference, 별도 authorization/bake contract가 있는 dependency-rich
+   texture closure, supporting-client closed loop, controller sandbox attestation, destination runtime parity는
+   exact evidence가 생기기 전까지 base activation blocker로 보존합니다.
+
+캠페인 중 source/framework 결함이 발견되면 세션 이력을 고치지 않습니다. 수정 commit과 새 baseline을
+생성한 뒤 영향받은 job을 새 ID로 다시 실행합니다. 캠페인 결과는 추적 문서에 소급 삽입하지 않고 정확한
+run-owned `reports/activation_readiness/.../campaign_decision.json`에서 상태를 소유합니다.
 
 ## 9. 주요 authoritative evidence
 
