@@ -11,6 +11,9 @@ from codex_blender_modeler.autonomy.models import (
     BudgetUsage,
     PolicyAuthorization,
 )
+from codex_blender_modeler.autonomy_v2.approval_models import (
+    AQV2RoutinePolicyAuthorization,
+)
 from codex_blender_modeler.background_quality.models import BackgroundQualityReport
 from codex_blender_modeler.optimization.io import load_model, write_model
 from codex_blender_modeler.optimization.models import (
@@ -634,4 +637,90 @@ def test_packaging_accepts_one_exact_policy_path_and_rejects_mixed_or_tampered(
     )
     policy_path.write_text(tampered.model_dump_json(indent=2) + "\n", encoding="utf-8")
     with pytest.raises(RuntimeError, match="does not match"):
+        _verify_optimization_authorization_evidence(root, run_root, approved_plan)
+
+
+def test_packaging_accepts_exact_aq_v2_policy_snapshot(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep AQ 0.3 policy authority distinct while accepting its exact run snapshot."""
+
+    root, run_id, _profile_path = _prepare_review_fixture(tmp_path, monkeypatch)
+    review = plan_asset_optimization(
+        "review_case",
+        profile_id="portable_gltf",
+        run_id=run_id,
+    )
+    run_root = root / "optimization" / "runs" / run_id
+    reviewed_plan = load_model(run_root / "review_plan.json", OptimizationPlan)
+    now = datetime(2026, 8, 29, tzinfo=UTC)
+    approved_plan = OptimizationPlan.model_validate(
+        reviewed_plan.model_copy(
+            update={"status": "approved", "approved_at": now}
+        ).model_dump(mode="json")
+    )
+    session_id = "aqv2-test"
+    authorization_id = "policy-auth-test"
+    policy_bytes = b'{"schema_version":"0.3.0","exact":"aq-v2-policy"}\n'
+    policy_path = run_root / "optimization_policy_authorization.json"
+    policy_path.write_bytes(policy_bytes)
+    canonical_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / session_id
+        / "approval_envelope"
+        / "authorizations"
+        / f"{authorization_id}.json"
+    )
+    canonical_path.parent.mkdir(parents=True)
+    canonical_path.write_bytes(policy_bytes)
+    parsed = SimpleNamespace(
+        session_id=session_id,
+        authorization_id=authorization_id,
+        job_id="review_case",
+        exact_target_artifact=SimpleNamespace(
+            path=(run_root / "review_plan.json").relative_to(root).as_posix(),
+            sha256=review.plan_sha256,
+        ),
+        created_at=now,
+    )
+    monkeypatch.setattr(
+        AQV2RoutinePolicyAuthorization,
+        "model_validate_json",
+        staticmethod(lambda *_args, **_kwargs: parsed),
+    )
+    validation_calls: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def record_validation(*args: object, **kwargs: object) -> None:
+        """Record exact AQ authorization replay without weakening the production checks."""
+
+        validation_calls.append((args, kwargs))
+
+    monkeypatch.setattr(
+        "codex_blender_modeler.autonomy_v2.approval_policy_service."
+        "validate_routine_policy_authorization",
+        record_validation,
+    )
+
+    selected = _verify_optimization_authorization_evidence(
+        root,
+        run_root,
+        approved_plan,
+    )
+
+    assert selected["optimization_policy_authorization"] == policy_path
+    assert validation_calls == [
+        (
+            ("review_case", session_id),
+            {
+                "policy_authorization_path": canonical_path.resolve(),
+                "expected_gate_kind": "optimization_plan_authorization",
+                "expected_target_path": (run_root / "review_plan.json"),
+            },
+        )
+    ]
+    canonical_path.write_bytes(b'{"schema_version":"0.3.0","changed":true}\n')
+    with pytest.raises(RuntimeError, match="snapshot differs"):
         _verify_optimization_authorization_evidence(root, run_root, approved_plan)

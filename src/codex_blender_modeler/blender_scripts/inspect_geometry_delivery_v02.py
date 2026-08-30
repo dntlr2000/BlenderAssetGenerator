@@ -100,6 +100,20 @@ def _vector(values: Any, size: int) -> list[float]:
     return [_round(values[index]) for index in range(size)]
 
 
+def _uv_vector(values: Any) -> list[float]:
+    """Quantize UVs at glTF float precision while retaining layout-sensitive binding."""
+
+    result: list[float] = []
+    for index in range(2):
+        number = float(values[index])
+        if not math.isfinite(number):
+            raise RuntimeError("delivery geometry contains a non-finite UV coordinate")
+        quantum = 0.00001
+        rounded = round(round(number / quantum) * quantum, 5)
+        result.append(0.0 if rounded == 0.0 else rounded)
+    return result
+
+
 def _normal_vector(values: Any) -> list[float]:
     """Quantize one unit normal within Blender interchange serialization precision."""
 
@@ -258,7 +272,7 @@ def _triangle_records(obj: bpy.types.Object) -> dict[str, list[object]]:
             corners.append(
                 {
                     "position": _vector(position, 3),
-                    "uv": _vector(uv_data[loop_index].uv, 2),
+                    "uv": _uv_vector(uv_data[loop_index].uv),
                     "normal": _normal_vector(normal),
                 }
             )

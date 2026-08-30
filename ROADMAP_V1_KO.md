@@ -104,9 +104,9 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강 후 동일 reference structural re-entry에서 Geometry/Material 5/5, IQ pass 4/5, source freeze 4/5 | delivery canary는 가능하지만 beauty가 silhouette proxy이고 human/delivery evidence가 없어 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강, 동일 reference volumetric R5 Geometry/Material 5/5·IQ pass 1/5, fresh R8 wood portable GLTF delivery 통과 | 새 beauty human disposition 0/5, signage/decal·authorized dependency-rich closure 미검증이므로 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, dependency-rich authorized closure는 미검증 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
+| Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, 기존 crystal dependency closure는 identity preflight에서 안전 실패, 새 authorized bake-bound closure는 입력 부재로 미실행 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
 
@@ -606,10 +606,27 @@ orphan policy authorization recovery를 보강하고 동일 reference를 V0.4 st
 새 adapter route/receipt는 5/5 닫혔고 pending route, 추가 사용자 결정, technical user approval,
 canonical corruption은 모두 0입니다.
 
-따라서 portable GLTF delivery/clean-import의 단일 canary는 실행할 수 있습니다. 그러나 실제 beauty는
-0.08 m 얇은 silhouette proxy여서 volumetric assembly와 surface fidelity가 production 품질에 미달하고,
-별도 human disposition과 destination parity도 없습니다. profile은 계속 `disabled_experimental`이며
-activation 판정은 NO-GO입니다. 정확한 자산·session·점수·KPI·결함과 다음 실행 조건은
+portable GLTF delivery/clean-import의 단일 wood canary를 실행했지만 R2 source freeze에 approved
+ShaderRecipe가 없어 package 생성 전에 fail-closed 종료했습니다. 실제 beauty는 0.08 m 얇은 silhouette
+proxy여서 volumetric assembly와 surface fidelity가 production 품질에 미달하며, exact R2 beauty 5개에
+대한 별도 human disposition도 모두 `needs_revision`으로 기록했습니다. future volumetric beauty에는 이
+판정을 재사용하지 않습니다.
+
+이후 같은 reference 5개를 depth-bearing R5 후보로 fresh 실행했습니다. Geometry/Material/V0.6/IQ는
+5/5 도달했고 adapter route/receipt도 5/5 terminal로 닫혔지만, IQ pass/source freeze는 crystal 1/5뿐이며
+plastic/rust/wood/laser는 required contour hard gate에서 `blocked`됐습니다. crystal delivery는 Approval
+Envelope 0.3 packaging parser 결함을 재현해 technical terminal로 끝났습니다.
+
+같은 wood reference의 R6/R7/R8 fresh canary를 통해 package-local GLTF temporary ACL과 clean-import UV
+serializer tolerance 결함을 수정했습니다. R8은 exact ShaderRecipe와 source freeze에서 portable GLTF
+package 26개 파일, absolute path 0, missing dependency 0, round-trip clean import와 geometry survival을
+통과해 `production_ready=true`로 완료했습니다. 이 결과는 단일 local GLTF canary이며 destination parity
+증거가 아닙니다.
+
+signage/decal은 isolated immutable input이 없고, dependency-rich texture/bake closure는 새 job에 이전할
+별도 authorization과 bake contract가 없어 실행하지 않았습니다. 현재 volumetric candidate 5개의 exact
+human disposition도 0/5입니다. profile은 계속 `disabled_experimental`이며 activation 판정은 NO-GO입니다.
+정확한 자산·session·점수·KPI·결함과 다음 실행 조건은
 [AQ One-Prompt 실제 reference 5개 캠페인 검증](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)에
 기록합니다.
 
@@ -965,25 +982,32 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - adapter route/receipt closure 5/5, pending route 0
    - 추가 사용자 결정 0, technical approval 0, canonical corruption 0
    - pass 4개는 delivery 판단을 위해 `plan_delivery`에서 정지
-4. wood portable GLTF delivery/clean-import canary [다음]
-   - `aq_reentry_r2_03_weathered_wood_beam` source freeze만 사용
-   - package acceptance는 immutable manifest와 passed clean-import evidence로만 판정
-5. volumetric 품질 및 빠진 coverage 보강
-   - 얇은 silhouette proxy를 실제 depth/assembly 후보로 재저작
-   - rust boundary F-score 재수렴
-   - signage/decal 1개
-   - dependency-rich texture/bake Material Closure 1개
-   - 별도 human quality disposition 5/5
-6. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
-7. Codex ImageGen overlay one-prompt benchmark와 activation review
-8. Standard Generated Texture Intake 0.1
+4. R2 human quality disposition [완료]
+   - 제시된 exact beauty SHA-256 5개 모두 `needs_revision`
+   - machine IQ outcome과 분리하며 future volumetric candidate에 재사용하지 않음
+5. 동일 reference volumetric R5 캠페인 [완료, 품질 기준 미달]
+   - Geometry/Material/V0.6/IQ 5/5, adapter terminal 5/5
+   - IQ pass/source freeze 1/5, required hard-gate blocked 4/5
+   - crystal delivery technical failure는 새 parser 회귀로 고정
+6. wood portable GLTF delivery/clean-import canary [R8 통과]
+   - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
+   - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
+   - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
+7. 빠진 activation coverage 보강 [입력/권한 대기]
+   - 현재 candidate exact beauty의 별도 human quality disposition 0/5
+   - plastic/rust/laser contour 재수렴과 crystal fresh delivery
+   - isolated immutable signage/decal reference 1개
+   - 별도 authorization과 bake contract가 있는 dependency-rich Material Closure 1개
+8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
+9. Codex ImageGen overlay one-prompt benchmark와 activation review
+10. Standard Generated Texture Intake 0.1
    - 수동 생성 PNG의 immutable 등록·provenance·local PBR 연결
    - Full Standard ImageGen은 반복 assignment/provenance/후보/다중 사용자 workflow 병목이 입증될 때만 조건부
-9. 실제 material benchmark와 기존 Crystalgun acceptance fixture
-10. Unity URP material reconstruction
-11. Architecture exterior / environment / measured 확장
-12. Interior AQ
-13. V1.0 승격 재심사
+11. 실제 material benchmark와 기존 Crystalgun acceptance fixture
+12. Unity URP material reconstruction
+13. Architecture exterior / environment / measured 확장
+14. Interior AQ
+15. V1.0 승격 재심사
 ```
 
 Material Closure와 Material Identity Split은 더 이상 반복되는 top-level 제품 마일스톤이 아니라

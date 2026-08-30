@@ -273,6 +273,84 @@ def _write_next_state(
     )
 
 
+def _fail_current_policy_action(
+    job_id: str,
+    session_id: str,
+    *,
+    failure_evidence_path: str | Path,
+    failure_evidence_kind: str,
+    expected_next_action: Literal["validate_candidate", "run_integrated_quality"],
+    reason: str,
+    allow_disabled_experimental: bool = False,
+) -> dict[str, object]:
+    """Append one failed AQ state after an exact companion policy action failed safely."""
+
+    root, session_root, plan, _budget, _state, _state_artifact = _session_bundle(
+        job_id,
+        session_id,
+    )
+    _require_execution_opt_in(
+        root,
+        plan,
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
+    with autonomy_session_lock(
+        root,
+        session_root,
+        owner_id="aqv2-policy-technical-failure",
+        ttl_seconds=900,
+    ):
+        root, session_root, plan, _budget, state, state_artifact = _session_bundle(
+            job_id,
+            session_id,
+        )
+        _require_execution_opt_in(
+            root,
+            plan,
+            allow_disabled_experimental=allow_disabled_experimental,
+        )
+        failure_path = (
+            Path(failure_evidence_path)
+            if Path(failure_evidence_path).is_absolute()
+            else root / failure_evidence_path
+        )
+        failure_evidence = artifact_for_v2(
+            root,
+            failure_path,
+            artifact_id=f"policy-technical-failure-{state.sequence + 1:04d}",
+            kind=failure_evidence_kind,
+        )
+        if state.status == "failed" and state.next_action == "none":
+            if not state.provenance or state.provenance[-1].sha256 != failure_evidence.sha256:
+                raise ValueError("AQ v2 failed state belongs to different technical evidence")
+            return {
+                "advanced": False,
+                "outcome": "technical_failure_already_recorded",
+                "next_action": "none",
+                "state": state.model_dump(mode="json"),
+                "state_artifact": state_artifact.model_dump(mode="json"),
+            }
+        if state.next_action != expected_next_action:
+            raise ValueError(
+                "AQ v2 technical failure no longer matches its policy action boundary"
+            )
+        next_state = transition_state(
+            state,
+            event="failed",
+            evidence=failure_evidence,
+            created_at=datetime.now(UTC),
+            reason=reason,
+        )
+        next_artifact = _write_next_state(root, session_root, next_state)
+        return {
+            "advanced": True,
+            "outcome": "technical_failure_recorded",
+            "next_action": "none",
+            "state": next_state.model_dump(mode="json"),
+            "state_artifact": next_artifact.model_dump(mode="json"),
+        }
+
+
 def _production_state(
     plan: AutonomyPlanV2,
 ) -> DelegatedProductionState:

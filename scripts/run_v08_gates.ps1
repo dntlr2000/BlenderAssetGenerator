@@ -27,7 +27,7 @@ else {
 $PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
 $PytestRoot = Join-Path (Get-Location) ".t/v8p-${PytestStamp}-$PID"
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
-Invoke-Uv run pytest --basetemp $PytestRoot
+Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 

@@ -4,10 +4,14 @@ import argparse
 import copy
 import json
 import math
+import os
 import re
 import shutil
 import struct
 import sys
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -46,6 +50,60 @@ PORTABLE_MATERIAL_PROPERTIES = frozenset({"cbm_id"})
 PORTABLE_ATLAS_UV_DEFAULT = "CBMPortableAtlas"
 LIGHTMAP_UV_DEFAULT = "LightmapUV"
 NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"
+
+
+def _portable_temp_mkdir_mode(path: Any, mode: int, temp_root: Path) -> int:
+    """Use inherited Windows ACLs only for glTF exporter's package-local temp children."""
+
+    if sys.platform != "win32" or mode != 0o700:
+        return mode
+    try:
+        candidate = Path(path).resolve(strict=False)
+    except (OSError, TypeError, ValueError):
+        return mode
+    return 0o777 if candidate.is_relative_to(temp_root) else mode
+
+
+@contextmanager
+def portable_gltf_temp_environment(package_root: Path) -> Iterator[None]:
+    """Keep Blender glTF image encoding in a package-local Windows-compatible temp root."""
+
+    if sys.platform != "win32":
+        yield
+        return
+
+    temp_root = (package_root / ".cbm_gltf_temp").resolve()
+    if temp_root.exists():
+        raise FileExistsError(f"Portable glTF temp root already exists: {temp_root}")
+    temp_root.mkdir(mode=0o777)
+    original_tempdir = tempfile.tempdir
+    original_mkdir = os.mkdir
+    completed = False
+
+    def inherited_acl_mkdir(
+        path: Any,
+        mode: int = 0o777,
+        *,
+        dir_fd: int | None = None,
+    ) -> None:
+        """Translate only package-local 0o700 temp children to inherited Windows ACLs."""
+
+        effective_mode = _portable_temp_mkdir_mode(path, mode, temp_root)
+        if dir_fd is None:
+            original_mkdir(path, effective_mode)
+        else:
+            original_mkdir(path, effective_mode, dir_fd=dir_fd)
+
+    tempfile.tempdir = str(temp_root)
+    os.mkdir = inherited_acl_mkdir
+    try:
+        yield
+        completed = True
+    finally:
+        os.mkdir = original_mkdir
+        tempfile.tempdir = original_tempdir
+        if completed:
+            temp_root.rmdir()
 
 
 def parse_args() -> argparse.Namespace:
@@ -1006,7 +1064,8 @@ def export_gltf(path: Path, binary: bool) -> str:
         "export_apply": False,
         "export_yup": True,
     }
-    operator(**operator_kwargs(operator, candidates))
+    with portable_gltf_temp_environment(path.parent):
+        operator(**operator_kwargs(operator, candidates))
     return "bpy.ops.export_scene.gltf"
 
 

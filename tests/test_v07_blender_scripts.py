@@ -444,6 +444,48 @@ def test_glb_export_verifies_file_level_texcoord0_and_tangent_attributes() -> No
     assert 'if args.format in {"glb", "gltf"}:' in source
 
 
+def test_windows_gltf_temp_environment_inherits_package_acl(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Avoid Python 3.13+ restrictive temp ACLs only inside a glTF package transaction."""
+
+    module = load_export_script(monkeypatch)
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    package_root = tmp_path / "package"
+    package_root.mkdir()
+    original_tempdir = module.tempfile.tempdir
+    original_mkdir = module.os.mkdir
+
+    with module.portable_gltf_temp_environment(package_root):
+        temp_root = (package_root / ".cbm_gltf_temp").resolve()
+        child = temp_root / "encoded-image"
+        assert module.tempfile.tempdir == str(temp_root)
+        assert module.os.mkdir is not original_mkdir
+        module.os.mkdir(child, 0o700)
+        assert child.is_dir()
+        child.rmdir()
+
+    assert module.os.mkdir is original_mkdir
+    assert module.tempfile.tempdir == original_tempdir
+    assert not (package_root / ".cbm_gltf_temp").exists()
+
+
+def test_windows_gltf_temp_mode_does_not_broaden_unrelated_paths(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Preserve requested modes outside the exact package-local glTF temp root."""
+
+    module = load_export_script(monkeypatch)
+    monkeypatch.setattr(module.sys, "platform", "win32")
+    temp_root = (tmp_path / "package" / ".cbm_gltf_temp").resolve()
+
+    assert module._portable_temp_mkdir_mode(temp_root / "child", 0o700, temp_root) == 0o777
+    assert module._portable_temp_mkdir_mode(tmp_path / "outside", 0o700, temp_root) == 0o700
+    assert module._portable_temp_mkdir_mode(temp_root / "child", 0o755, temp_root) == 0o755
+
+
 def test_gltf_export_triangulates_serialization_meshes_before_evidence() -> None:
     """Keep glTF topology evidence aligned with the exporter-triangulated payload."""
 

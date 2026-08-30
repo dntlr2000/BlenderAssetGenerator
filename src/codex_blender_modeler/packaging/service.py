@@ -567,10 +567,61 @@ def _verify_optimization_authorization_evidence(
             raise RuntimeError("Optimization review approval does not match the completed run")
         return paths
 
+    policy_path = paths["optimization_policy_authorization"]
+    raw_authorization = json.loads(
+        _read_package_bytes_long_path_safe(policy_path).decode("utf-8")
+    )
+    expected_target = paths["review_plan"].resolve().relative_to(root.resolve()).as_posix()
+    if raw_authorization.get("schema_version") == "0.3.0":
+        from ..autonomy_v2.approval_models import AQV2RoutinePolicyAuthorization
+        from ..autonomy_v2.approval_policy_service import (
+            validate_routine_policy_authorization,
+        )
+
+        authorization_v2 = AQV2RoutinePolicyAuthorization.model_validate_json(
+            json.dumps(raw_authorization)
+        )
+        canonical_path = resolve_inside(
+            root,
+            (
+                Path("production")
+                / "autonomy_v2"
+                / authorization_v2.session_id
+                / "approval_envelope"
+                / "authorizations"
+                / f"{authorization_v2.authorization_id}.json"
+            ),
+            "AQ v2 optimization policy authorization",
+        )
+        if (
+            not os.path.isfile(native_io_path(canonical_path))
+            or _read_package_bytes_long_path_safe(canonical_path)
+            != _read_package_bytes_long_path_safe(policy_path)
+        ):
+            raise RuntimeError(
+                "AQ v2 optimization policy snapshot differs from canonical authority"
+            )
+        validate_routine_policy_authorization(
+            plan.job_id,
+            authorization_v2.session_id,
+            policy_authorization_path=canonical_path,
+            expected_gate_kind="optimization_plan_authorization",
+            expected_target_path=paths["review_plan"],
+        )
+        if (
+            authorization_v2.job_id != plan.job_id
+            or authorization_v2.exact_target_artifact.path != expected_target
+            or authorization_v2.exact_target_artifact.sha256 != review_plan_sha256
+            or plan.approved_at != authorization_v2.created_at
+        ):
+            raise RuntimeError(
+                "AQ v2 optimization policy authorization does not match the completed run"
+            )
+        return paths
+
     from ..autonomy.authorization import validate_policy_authorization
     from ..autonomy.models import PolicyAuthorization
 
-    policy_path = paths["optimization_policy_authorization"]
     authorization = PolicyAuthorization.model_validate_json(policy_path.read_text(encoding="utf-8"))
     validate_policy_authorization(
         root,
@@ -581,7 +632,6 @@ def _verify_optimization_authorization_evidence(
         expected_gate_kind="optimization_plan",
         expected_input_fingerprint=authorization.workflow_input_fingerprint,
     )
-    expected_target = paths["review_plan"].resolve().relative_to(root.resolve()).as_posix()
     if (
         authorization.target_artifact.path != expected_target
         or authorization.target_artifact.sha256 != review_plan_sha256

@@ -33,7 +33,10 @@ def test_v09_windows_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert '@("passed", "warning")' in text
     assert '$V08Arguments = @()' in text
     assert '".t/v9p-${PytestStamp}-$PID"' in text
-    assert "Invoke-Uv run pytest --basetemp $PytestRoot" in text
+    assert (
+        "Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot"
+        in text
+    )
     assert "Remove-Item" not in text.replace(
         "Remove-Item Env:CBM_WORKSPACE_ROOT -ErrorAction SilentlyContinue",
         "",

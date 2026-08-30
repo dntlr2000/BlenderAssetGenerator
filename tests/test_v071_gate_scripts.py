@@ -63,6 +63,8 @@ def test_v071_gates_use_short_repository_local_pytest_roots() -> None:
         source = _source(path)
         assert "--basetemp" in source
         assert ".t/v7p-" in source
+        if path.suffix == ".ps1":
+            assert "scripts/run_pytest_acl_safe.py" in source
 
 
 def test_v071_windows_gate_hashes_without_module_autoloading() -> None:

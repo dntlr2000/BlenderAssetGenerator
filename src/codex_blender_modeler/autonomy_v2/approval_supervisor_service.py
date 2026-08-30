@@ -7,7 +7,7 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ..blender_artifacts import native_io_path
 from ..workspace import find_reference, job_dir
@@ -20,6 +20,7 @@ from .approval_models import (
     AQV2EscalationDecision,
     AQV2OnePromptRunPlan,
     AQV2OnePromptRunTerminal,
+    AQV2PolicyDecisionReceipt,
     AQV2TechnicalFailureReport,
     AutonomyApprovalPolicyProfile,
     EscalationDecisionItem,
@@ -60,6 +61,7 @@ from .models import AutonomyStateV2
 from .planner import plan_autonomous_static_prop_v2
 from .supervisor_service import (
     QualitySubmissionV2,
+    _fail_current_policy_action,
     _run_autonomy_v2_with_policy,
     run_autonomy_v2,
 )
@@ -1538,16 +1540,16 @@ def _close_failed_policy_authorization(
     *,
     authorization_artifact: ApprovalArtifact,
     reason: str,
-) -> None:
-    """Consume one still-unused authorization after an ordinary technical exception."""
+) -> ApprovalArtifact | None:
+    """Consume one still-unused authorization and return its technical-failure receipt."""
 
     pending = _current_unconsumed_policy_authorization(job_id, session_id)
     if pending is None:
-        return
+        return None
     authorization, artifact = pending
     if artifact != authorization_artifact:
         raise ValueError("technical failure found a different unconsumed authorization")
-    publish_policy_decision_receipt(
+    result = publish_policy_decision_receipt(
         job_id,
         session_id,
         policy_authorization_path=artifact.path,
@@ -1555,6 +1557,42 @@ def _close_failed_policy_authorization(
         canonical_snapshot_after_kind=authorization.current_canonical_snapshot.kind,
         outcome="technical_failed",
         decision_reasons=[reason],
+        allow_disabled_experimental=True,
+    )
+    return ApprovalArtifact.model_validate(result["receipt_artifact"])
+
+
+def _terminalize_failed_policy_action(
+    job_id: str,
+    session_id: str,
+    *,
+    decision_artifact: ApprovalArtifact,
+    expected_gate_kind: str,
+    expected_next_action: Literal["validate_candidate", "run_integrated_quality"],
+    reason: str,
+) -> dict[str, object]:
+    """Bind a technical policy receipt to one append-only failed AQ base state."""
+
+    root = job_dir(job_id)
+    validate_approval_artifact(root, decision_artifact)
+    decision = _load_model(root, decision_artifact, AQV2PolicyDecisionReceipt)
+    if (
+        decision.job_id != job_id
+        or decision.session_id != session_id
+        or decision.outcome != "technical_failed"
+        or decision.gate_kind != expected_gate_kind
+        or decision.action_result is not None
+        or decision.canonical_snapshot_before.sha256
+        != decision.canonical_snapshot_after.sha256
+    ):
+        raise ValueError("policy technical-failure receipt differs from the failed action")
+    return _fail_current_policy_action(
+        job_id,
+        session_id,
+        failure_evidence_path=decision_artifact.path,
+        failure_evidence_kind=decision_artifact.kind,
+        expected_next_action=expected_next_action,
+        reason=reason,
         allow_disabled_experimental=True,
     )
 
@@ -1636,12 +1674,22 @@ def _advance_geometry_with_policy(
             policy_authorization_path=authorization_artifact.path,
         )
     except Exception:
-        _close_failed_policy_authorization(
+        failure_reason = "Geometry policy action ended in an ordinary technical exception."
+        decision_artifact = _close_failed_policy_authorization(
             job_id,
             session_id,
             authorization_artifact=authorization_artifact,
-            reason="Geometry policy action ended in an ordinary technical exception.",
+            reason=failure_reason,
         )
+        if decision_artifact is not None:
+            _terminalize_failed_policy_action(
+                job_id,
+                session_id,
+                decision_artifact=decision_artifact,
+                expected_gate_kind="geometry_candidate_promotion",
+                expected_next_action="validate_candidate",
+                reason=failure_reason,
+            )
         raise
     actions = result_payload.get("actions")
     if not isinstance(actions, list) or len(actions) != 1:
@@ -1729,12 +1777,22 @@ def _advance_quality_with_policy(
             policy_authorization_path=authorization_artifact.path,
         )
     except Exception:
-        _close_failed_policy_authorization(
+        failure_reason = "IQ policy action ended in an ordinary technical exception."
+        decision_artifact = _close_failed_policy_authorization(
             job_id,
             session_id,
             authorization_artifact=authorization_artifact,
-            reason="IQ policy action ended in an ordinary technical exception.",
+            reason=failure_reason,
         )
+        if decision_artifact is not None:
+            _terminalize_failed_policy_action(
+                job_id,
+                session_id,
+                decision_artifact=decision_artifact,
+                expected_gate_kind="iq_quality_acceptance",
+                expected_next_action="run_integrated_quality",
+                reason=failure_reason,
+            )
         raise
     _root, after, _after_artifact = _latest_state_artifact(job_id, session_id)
     if after.sequence <= state.sequence or after.quality_terminal is None:

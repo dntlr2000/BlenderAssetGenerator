@@ -40,13 +40,15 @@ from codex_blender_modeler.autonomy_v2.approval_supervisor_service import (
     _close_failed_policy_authorization,
     _geometry_policy_snapshot,
     _reconcile_interrupted_policy_authorization,
+    _terminalize_failed_policy_action,
 )
 from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
     _require_geometry_policy_decision,
     _validate_geometry_policy_authority,
 )
 from codex_blender_modeler.autonomy_v2.delivery_service import artifact_for_v2
-from codex_blender_modeler.autonomy_v2.models import AutonomyPlanV2
+from codex_blender_modeler.autonomy_v2.models import AutonomyPlanV2, AutonomyStateV2
+from codex_blender_modeler.autonomy_v2.transitions import transition_state
 from codex_blender_modeler.blender_artifacts import sha256_file, write_json_atomic
 from codex_blender_modeler.production.controller_executor.models import (
     ControllerArtifact,
@@ -428,12 +430,13 @@ def test_interrupted_policy_authorization_is_reused_or_closed_without_user_appro
     )
     assert recovered is not None
     assert recovered.path == authorization_path
-    _close_failed_policy_authorization(
+    decision = _close_failed_policy_authorization(
         job_id,
         session_id,
         authorization_artifact=recovered,
         reason="Focused test technical failure.",
     )
+    assert decision is not None
     decisions = sorted(
         (
             root
@@ -481,6 +484,84 @@ def test_interrupted_policy_authorization_is_reused_or_closed_without_user_appro
         == "technical_failed"
         for path in decisions
     )
+
+
+def test_policy_technical_failure_appends_a_terminal_base_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Close a failed exact policy action without leaving AQ running or rewriting history."""
+
+    root, base = _base_plan(tmp_path, monkeypatch, job_id="approval_policy_terminal")
+    job_id, session_id = _enable_autonomous_envelope(base)
+    target, _canonical, authorization_path = _issue_rollback_policy(
+        root,
+        base,
+        suffix="terminal",
+    )
+    states_root = root / "production" / "autonomy_v2" / session_id / "states"
+    initial_path = states_root / "0000.json"
+    initial_sha256 = sha256_file(initial_path)
+    initial = AutonomyStateV2.model_validate_json(initial_path.read_bytes())
+    reference = artifact_for_v2(
+        root,
+        root / str(base["root_authorization"]["primary_reference"]["path"]),  # type: ignore[index]
+        artifact_id="policy-terminal-reference",
+        kind="reference",
+    )
+    reference_ready = transition_state(
+        initial,
+        event="reference_ready",
+        evidence=reference,
+        created_at=datetime.now(UTC),
+    )
+    write_json_atomic(states_root / "0001.json", reference_ready.model_dump(mode="json"))
+    target_artifact = artifact_for_v2(
+        root,
+        target,
+        artifact_id="policy-terminal-target",
+        kind="rollback-target",
+    )
+    candidate_ready = transition_state(
+        reference_ready,
+        event="controller_output_ready",
+        evidence=target_artifact,
+        created_at=datetime.now(UTC),
+    )
+    write_json_atomic(states_root / "0002.json", candidate_ready.model_dump(mode="json"))
+    authorization = _reconcile_interrupted_policy_authorization(
+        job_id,
+        session_id,
+        gate_kind="rollback",
+        exact_target=ApprovalArtifact.model_validate(
+            target_artifact.model_dump(mode="python")
+        ),
+    )
+    assert authorization is not None
+    decision = _close_failed_policy_authorization(
+        job_id,
+        session_id,
+        authorization_artifact=authorization,
+        reason="Focused failed action.",
+    )
+    assert decision is not None
+
+    recovered = _terminalize_failed_policy_action(
+        job_id,
+        session_id,
+        decision_artifact=decision,
+        expected_gate_kind="rollback",
+        expected_next_action="validate_candidate",
+        reason="Focused failed action.",
+    )
+
+    final = AutonomyStateV2.model_validate_json(json.dumps(recovered["state"]))
+    assert final.status == "failed"
+    assert final.phase == "terminal"
+    assert final.next_action == "none"
+    assert final.terminal_reason == "Focused failed action."
+    assert final.provenance[-1].path == decision.path
+    assert sha256_file(initial_path) == initial_sha256
 
 
 def test_dependency_required_gate_rejects_an_empty_dependency_set(

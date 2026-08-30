@@ -628,6 +628,31 @@ def test_delivery_normal_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -
     assert flipped != baseline
 
 
+def test_delivery_uv_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Absorb glTF float noise without hiding material-visible UV displacement."""
+
+    monkeypatch.setitem(sys.modules, "bpy", types.ModuleType("bpy"))
+    script_path = (
+        Path("src")
+        / "codex_blender_modeler"
+        / "blender_scripts"
+        / "inspect_geometry_delivery_v02.py"
+    ).resolve()
+    spec = importlib.util.spec_from_file_location(
+        "test_inspect_geometry_delivery_uv_v02",
+        script_path,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    baseline = module._uv_vector((0.0078125, 0.4921875))
+    serializer_noise = module._uv_vector((0.0078129, 0.4921871))
+    visible_drift = module._uv_vector((0.0078325, 0.4921875))
+    assert serializer_noise == baseline
+    assert visible_drift != baseline
+
+
 @pytest.mark.parametrize(
     ("schema_name", "model"),
     [

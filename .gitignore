@@ -26,6 +26,8 @@ build/
 /tmp
 /.tmp
 /.t
+/.b/
+/.b[0-9a-z]/
 /.codex_test
 /.codex_tmp
 /.codex-temp/

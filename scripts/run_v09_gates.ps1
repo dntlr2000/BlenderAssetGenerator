@@ -195,7 +195,7 @@ else {
 $PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
 $PytestRoot = Join-Path (Get-Location) ".t/v9p-${PytestStamp}-$PID"
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
-Invoke-Uv run pytest --basetemp $PytestRoot
+Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 
@@ -207,7 +207,8 @@ if (-not $SkipCompatibility -and -not $SkipV07) {
     $PreviousExternalIntakeSmoke = $env:CBM_RUN_EXTERNAL_INTAKE_SMOKE
     try {
         $env:CBM_RUN_EXTERNAL_INTAKE_SMOKE = "1"
-        Invoke-Uv run pytest -q `
+        Invoke-Uv run python scripts/run_pytest_acl_safe.py -q `
+            --basetemp (Join-Path $PytestRoot "external") `
             tests/test_external_static_asset_intake.py::test_blender_external_intake_splits_materials_and_strips_scripts
     }
     finally {

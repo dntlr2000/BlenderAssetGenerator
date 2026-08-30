@@ -155,12 +155,14 @@ $FocusedTests = @(
 )
 Invoke-Uv run python scripts/check_no_job_specific_framework_literals.py
 Invoke-Uv run python scripts/check_activation_readiness_contract.py
-Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "f") @FocusedTests
+Invoke-Uv run python scripts/run_pytest_acl_safe.py `
+    -q --basetemp (Join-Path $PytestRoot "f") @FocusedTests
 Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 
 if (-not $SkipFullRegression) {
-    Invoke-Uv run pytest --basetemp (Join-Path $PytestRoot "a")
+    Invoke-Uv run python scripts/run_pytest_acl_safe.py `
+        --basetemp (Join-Path $PytestRoot "a")
 }
 
 $BenchmarkArguments = @(
@@ -213,7 +215,8 @@ if ($RunBlender) {
         $env:CBM_RUN_MATERIAL_CLOSURE_BLENDER_SMOKE = "1"
         $env:CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE = "1"
         Invoke-Uv run cbm blender-compat
-        Invoke-Uv run pytest -q --basetemp (Join-Path $PytestRoot "b") `
+        Invoke-Uv run python scripts/run_pytest_acl_safe.py `
+            -q --basetemp (Join-Path $PytestRoot "b") `
             tests/test_autonomous_structural_geometry_blender.py `
             tests/test_autonomous_quality_blender_evidence.py::test_blender_scale_assembly_and_topology_evidence `
             tests/test_blender_companion_service.py::test_static_prop_authoring_companions_are_hash_bound_and_read_only `
