@@ -938,6 +938,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/standard_custom_mesh.py
   src/codex_blender_modeler/standard_custom_mesh_candidate.py
   src/codex_blender_modeler/structural_geometry/__init__.py
+  src/codex_blender_modeler/structural_geometry/composition_geometry.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_survival_v02.py

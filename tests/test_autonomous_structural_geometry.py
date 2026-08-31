@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from codex_blender_modeler.structural_geometry.composition_geometry import (
+    build_balanced_component_union,
+)
 from codex_blender_modeler.structural_geometry.mesh_math import (
     build_loft_mesh,
     build_multi_loop_side_mesh,
@@ -399,6 +402,73 @@ def test_boolean_tree_requires_complete_non_reusing_topology() -> None:
     invalid["operations"][2]["right_id"] = "a"
     with pytest.raises(ValidationError, match="consumed exactly once|unavailable"):
         BooleanTreeGeometry.model_validate_json(json.dumps(invalid))
+
+
+def test_component_union_builds_one_balanced_exact_tree_deterministically() -> None:
+    """Group seven disconnected profile parts into one bounded Boolean materialization."""
+
+    components = [
+        {
+            "id": f"part.{index}",
+            "geometry": {
+                "kind": "profile_extrude",
+                "profile": [[-0.4, -0.3], [0.4, -0.3], [0.4, 0.3], [-0.4, 0.3]],
+                "depth": 0.2,
+                "axis": "Y",
+                "cap": True,
+            },
+            "transform": {"location": [float(index) * 1.25, 0.0, 0.0]},
+        }
+        for index in range(7)
+    ]
+    first = build_balanced_component_union(
+        components,
+        operation_id_prefix="laser.dark_parts",
+    )
+    second = build_balanced_component_union(
+        components,
+        operation_id_prefix="laser.dark_parts",
+    )
+
+    assert first == second
+    assert len(first.operands) == 7
+    assert len(first.operations) == 6
+    assert first.root_id == first.operations[-1].id
+    assert {item.operation for item in first.operations} == {"UNION"}
+    assert {item.solver for item in first.operations} == {"EXACT"}
+    assert [item.id for item in first.operations[:3]] == [
+        "laser.dark_parts.01",
+        "laser.dark_parts.02",
+        "laser.dark_parts.03",
+    ]
+
+
+@pytest.mark.parametrize("component_count", [1, 33])
+def test_component_union_rejects_out_of_contract_cardinality(
+    component_count: int,
+) -> None:
+    """Reject a component group that cannot fit the bounded Boolean-tree contract."""
+
+    components = [
+        {
+            "id": f"part.{index}",
+            "geometry": _primitive(),
+        }
+        for index in range(component_count)
+    ]
+    with pytest.raises(ValueError, match="between two and 32"):
+        build_balanced_component_union(components)
+
+
+def test_component_union_rejects_generated_operation_id_collision() -> None:
+    """Fail closed when a component identity collides with a generated union node."""
+
+    components = [
+        {"id": "component_union.01", "geometry": _primitive()},
+        {"id": "part.other", "geometry": _primitive()},
+    ]
+    with pytest.raises(ValueError, match="collides with an operand"):
+        build_balanced_component_union(components)
 
 
 def test_boolean_mesh_payload_rejects_an_empty_result() -> None:

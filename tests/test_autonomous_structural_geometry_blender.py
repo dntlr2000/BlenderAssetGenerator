@@ -17,6 +17,9 @@ from codex_blender_modeler.autonomy.candidate_evaluator import (
 from codex_blender_modeler.autonomy.models import CandidateAuthoringAssignment
 from codex_blender_modeler.blender_runner import BlenderRunError
 from codex_blender_modeler.models import SceneSpec
+from codex_blender_modeler.structural_geometry.composition_geometry import (
+    build_balanced_component_union,
+)
 from codex_blender_modeler.structural_geometry.models import StructuralGeometryCandidate
 from codex_blender_modeler.structural_geometry.relief_geometry import (
     build_beveled_relief_loft,
@@ -132,6 +135,28 @@ def _candidates() -> list[tuple[str, dict[str, Any]]]:
     ]
 
 
+def _connected_component_count(faces: list[list[int]]) -> int:
+    """Count vertex-connected mesh components without relying on Blender scene state."""
+
+    adjacency: dict[int, set[int]] = {}
+    for face in faces:
+        for index, first in enumerate(face):
+            second = face[(index + 1) % len(face)]
+            adjacency.setdefault(first, set()).add(second)
+            adjacency.setdefault(second, set()).add(first)
+    unseen = set(adjacency)
+    count = 0
+    while unseen:
+        count += 1
+        pending = [unseen.pop()]
+        while pending:
+            current = pending.pop()
+            neighbors = adjacency[current] & unseen
+            pending.extend(neighbors)
+            unseen.difference_update(neighbors)
+    return count
+
+
 @pytest.mark.parametrize(("kind", "geometry"), _candidates())
 def test_structural_builder_materializes_in_blender(
     tmp_path,
@@ -167,6 +192,50 @@ def test_structural_builder_materializes_in_blender(
     assert payload.semantic_id == f"asset.{kind}"
     assert payload.vertices
     assert payload.faces
+
+
+def test_balanced_component_union_materializes_disconnected_parts_once(
+    tmp_path: Path,
+) -> None:
+    """Preserve six closed disconnected parts in one exact Boolean-tree materialization."""
+
+    geometry = build_balanced_component_union(
+        [
+            {
+                "id": f"assembly.part.{index}",
+                "geometry": {
+                    "kind": "profile_extrude",
+                    "profile": [
+                        [-0.35, -0.25],
+                        [0.35, -0.25],
+                        [0.35, 0.25],
+                        [-0.35, 0.25],
+                    ],
+                    "depth": 0.2,
+                    "axis": "Y",
+                    "cap": True,
+                },
+                "transform": {"location": [float(index) * 1.1, 0.0, 0.0]},
+            }
+            for index in range(6)
+        ],
+        operation_id_prefix="assembly.union",
+    )
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "balanced_component_union",
+        candidate=StructuralGeometryCandidate(
+            semantic_id="assembly.dark_parts",
+            geometry=geometry,
+        ),
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+    )
+
+    assert payload.builder_kind == "boolean_tree"
+    assert payload.semantic_id == "assembly.dark_parts"
+    assert _connected_component_count(payload.faces) == 6
 
 
 def test_beveled_relief_loft_materializes_in_blender(tmp_path: Path) -> None:

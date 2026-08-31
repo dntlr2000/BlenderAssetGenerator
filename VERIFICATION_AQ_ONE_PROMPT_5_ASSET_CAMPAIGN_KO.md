@@ -2,11 +2,14 @@
 
 ## 1. 판정
 
-2026-08-31 현재 기존 volumetric R5/R8 이후 Stage 9 준비 R1~R4가 append-only로 추가되었습니다.
-최신 R4는 **IQ pass/source freeze 4/5, rust safe blocked 1/5, V0.7 승인 대기 4/5, R4 exact
-beauty human disposition 0/5, activation NO-GO**입니다. R3 exact beauty 5개에 기록한
-`needs_revision`은 R4 수정 방향을 허용했지만 R4 beauty의 판정으로 재사용하지 않았습니다. 아래
-2~9절은 R5/R8까지의 선행 검증 이력을 보존하며, 최신 상태와 다음 순서는 10절이 소유합니다.
+2026-08-31 현재 기존 volumetric R5/R8 이후 Stage 9 준비 R1~R5B가 append-only로 추가되었습니다.
+R4 exact beauty는 **`needs_revision` 5/5**, current clean baseline은
+`activation-baseline-4de9c955ee1e3716a4b14b49`입니다. 첫 18-object R5 Laser는 고정 build budget을
+초과해 safe technical terminal로 닫혔고, 이를 결속한 11-object R5B는 **V0.6/IQ/source freeze pass,
+추가 사용자 결정 0, technical approval 0, canonical corruption 0, exact beauty `needs_revision` 1/1,
+activation NO-GO**입니다. R3/R4의 `needs_revision`은 R5B beauty의 판정으로 재사용하지 않았습니다.
+아래 2~9절은 R5/R8까지의 선행 검증 이력을, 10절은 R1~R4 경계를 보존하며, 최신 상태와 다음 순서는
+11절이 소유합니다.
 
 - 최초 캠페인의 adapter route/receipt와 ControllerExecutor protected-inventory 결함을 수정하고,
   orphan policy authorization도 exact replay 또는 `technical_failed` receipt로 회수하도록 보강했습니다.
@@ -530,5 +533,139 @@ fresh canary로 제한한다. 순서는 다음과 같다.
 6. Laser의 단일 폐루프가 통과한 뒤에만 plastic/rust/wood/crystal에 필요한 서로 다른 capability를
    정의하고 최종 5-reference 캠페인의 진입 조건을 확정한다.
 
-따라서 현재는 R4 사람 판정 전이며 delivery나 activation을 진행할 권한이 없다. Stage 9 overlay와 AQ
-base activation은 계속 별도 결정이고 둘 다 `disabled_experimental`을 유지한다.
+따라서 10절 기록 시점에는 R4 사람 판정 전이어서 delivery나 activation을 진행할 권한이 없었습니다.
+이 historical 경계는 고쳐 쓰지 않으며, 이후 exact disposition과 canary 상태는 11절이 이어서 소유합니다.
+Stage 9 overlay와 AQ base activation은 계속 별도 결정이고 둘 다 `disabled_experimental`을 유지합니다.
+
+## 11. R4 disposition, current baseline과 R5/R5B Laser canary
+
+10절의 R4 사람 판정 경계는 이후 exact 사용자 문장으로 해소했습니다. 사용자는 review request
+SHA-256 `37443f12078e8c2d152647115c3271cd7c4da30fa1ef0e04c524eb18d0ffb7d6`에 포함된
+다섯 exact beauty를 모두 `needs_revision`으로 기록하고, 별도로 확인된 0바이트 임시 lock
+`.tmp-validation/uv-4720c9a03c218abf.lock` 하나의 삭제만 승인했습니다.
+
+- disposition set ID: `stage9-prep-disposition-set-7154466146a3f399e0bbd6f8`
+- disposition set logical SHA-256:
+  `7154466146a3f399e0bbd6f80e4098de145dcbd55ee32bfd662cc32a30deffa5`
+- disposition set file SHA-256:
+  `c6508e3f35084abac3ae6cba3cc758a7a8488d8c113fabe472f2dd6b53f9f65c`
+- record count/disposition: `5` / `needs_revision`
+- 기록 시각: `2026-08-31T06:26:46.673291Z`
+- 권한 효과: R4 quality disposition만 생성; future beauty, V0.7 delivery, profile activation,
+  destination write 권한은 생성하지 않음
+
+승인된 lock 하나를 삭제한 뒤 source checkpoint는 commit
+`6572b22d45dba610e3b69468bedf4e2b34c6296c`, tree
+`c4e3ff480db0f5e52f1994471eca0572a4e2e774`, staged/unstaged/untracked source 0으로
+재검증했습니다. 기존 NO-GO snapshot은 보존하고 다음 current baseline을 새로 게시했습니다.
+
+- source manifest ID: `activation-source-26f37fa8e845482a5309e11e`
+- source manifest file SHA-256:
+  `000520bccb9839e186a642555e20434a83d5bbc250b61feb4c30bcac81b578fc`
+- baseline ID: `activation-baseline-4de9c955ee1e3716a4b14b49`
+- baseline logical SHA-256:
+  `4de9c955ee1e3716a4b14b49bc35f41f2cfa46906343c24b8d997e3e0ebc237d`
+- baseline file SHA-256:
+  `c17f02daa1bc1d5d100ea77165d506f2d89bf23a45636a85ba58ac8c82971acb`
+- validation receipts: `17`
+- readiness: `validation_blocked`, candidate `0/5`, blocker `10`, profile `disabled_experimental`
+
+### 11.1 실패한 R5 18-object canary
+
+R5는 R4 Laser의 passing outer contour를 유지하면서 17개 convex panel을 beveled relief로 바꾸고,
+primary concave shell 1개를 포함한 18-object candidate를 작성했습니다. 하지만 AQ v2 기본
+`total_blender_builds=14`에서 geometry candidate는 object별 materialization 18회와 결합 candidate build
+1회가 필요하고, 후속 material closure는 2회를 추가로 요구합니다. 따라서 이 구성은 최소 `21`회로
+처음부터 고정 예산 안에서 완료 불가능했습니다.
+
+host는 candidate 계약을 읽은 직후, validation root 생성과 실제 Blender materialization보다 먼저
+`total_blender_builds` budget을 fail-closed했습니다. 이미 작성된 controller output과 실패 state는
+append-only로 보존하고 adapter recovery를 terminal까지 닫았습니다.
+
+- campaign: `aq-stage9-prep-r5-laser-relief-canary`
+- launch SHA-256: `3dca3d704ef8de8c2b3d5908b6d8004e1c1ca58e49e3103f61fc987b61288f3d`
+- job/session: `aq_stage9_prep_r5_01_laser_relief_canary` /
+  `aqv2-20260831t062849993981z-64e9e08a`
+- technical failure SHA-256:
+  `9c294ef923fd6cbc628307ebba725b7fbb56dada877848acfd3e669260dda6d8`
+- One-Prompt terminal SHA-256:
+  `2baf2540668add024ccdb1192c97da63974dfae1099d6a2e313e0200050d0d0f`
+- terminal type/status: `blocked` / final AQ state `failed`
+- 실제 candidate materialization 0, canonical promotion 0, canonical corruption 0
+- 추가 사용자 결정 0, technical user approval request 0, destination write 0
+
+이는 host 안전 결함이 아니라 campaign object 계획과 immutable budget의 용량 계약 불일치입니다.
+역사적 R5 budget이나 terminal을 수정하거나 전역 budget을 소급 확대하지 않습니다.
+
+### 11.2 budget-bounded R5B recovery canary
+
+R5B는 실패한 R5 terminal과 같은 current baseline을 exact binding하고 새 job으로 실행했습니다. R4의
+10개 관측 panel은 모두 four-section beveled relief로 전환했지만, R5에서 추가했던 rear stock frame/pad,
+receiver collar, upper/lower rail, trigger, foregrip 7개는 이번 primitive canary에서 제외했습니다.
+primary concave shell 1개를 포함한 총 11 objects는 geometry `12` + material `2`로 고정 budget `14/14`를
+정확히 사용했습니다.
+
+- campaign: `aq-stage9-prep-r5b-laser-relief-canary`
+- launch SHA-256: `ef17c07688614f3d3dcd0ea8bf27dbb5fc49ef3b7988842bf79693a272b2cfa5`
+- campaign result SHA-256:
+  `d0374b01266e6289a3f6945ba3cd66fd32b8e00edc13b00fc1bdaaa048d1a606`
+- job/session: `aq_stage9_prep_r5b_01_laser_relief_canary` /
+  `aqv2-20260831t063616945434z-405cdbd4`
+- V0.6 direct / silhouette IoU: `0.972529` / `0.968892`
+- IQ boundary F / edge chamfer norm: `0.878564583340811` / `0.0022416958658623303`
+- IQ report SHA-256:
+  `a17f81fd68d73c2966715d214955115b6c690818c3a502f22a4d3396dd7a511a`
+- source freeze SHA-256:
+  `a0cb25e9e65013ad63c2122409b35b9b838ddb4fd8adeb2a5c12d54f5b2f04c9`
+- quality terminal SHA-256:
+  `9ead9c56040c86ab4c61bf1a61975376b2f2a400a30c59286e983fabeca4cd42`
+- delivery review SHA-256:
+  `4794a303752ae28b01fbe437b909e651d8b09b485920fa68d0c7bb790fc69826`
+- host status/next action: `delivery_pending` / `await_v07_approval`
+- additional user decisions `0`, technical user approval requests `0`, routine policy authorizations `2`,
+  delivery user approvals `0`, canonical corruption `0`
+
+현재 새 human review request와 beauty는 다음 exact bytes에 결속됩니다.
+
+- review request SHA-256:
+  `6c7e4270501b50cd6223b4f716439ba0bfa333bfde7898887c0af4ce2a9caf0b`
+- beauty SHA-256:
+  `c497f6751f3918d1665efe6c7ab5ab313388de0630eb75437f6996aa76f7cafd`
+- human disposition: exact `needs_revision` (`1/1`)
+- disposition set ID / logical SHA-256:
+  `stage9-prep-disposition-set-50800d64fbd48ce53857abb5` /
+  `50800d64fbd48ce53857abb5c06a76f474f9b6aa68cfab527d294e984d308e94`
+- disposition set file SHA-256:
+  `9d4b6347a9ff064274d8ae49997ef054b2ef6f4accea1def3b5939a948a296b4`
+- disposition record ID / logical SHA-256:
+  `stage9-prep-human-disposition-e25d886aaef661c4be215b64` /
+  `e25d886aaef661c4be215b64f5504db37272b5b1ff5431d6d64ad48c160b84da`
+- disposition record file SHA-256:
+  `497bacea2c460297c22fb7017f2c272755e24b0a839588b7ecfc145cd5f4b79a`
+- recorded at: `2026-08-31T07:46:40.675420Z`
+- authority effects: V0.7 delivery, budget expansion, package, activation, destination write 모두 `false`
+
+machine IQ pass는 beveled-relief capability와 exact contour 개선 증거이지만 production visual acceptance가
+아닙니다. 제외한 7개 assembly object 때문에 reference의 rear stock, receiver collar, rail, trigger,
+foregrip 구조가 아직 부족하다는 판정을 사용자가 exact `needs_revision`으로 확정했습니다. 이 판정은
+R5B source freeze를 delivery에 사용하거나 전역 budget을 늘리는 권한이 아닙니다.
+
+### 11.3 현재 다음 경계
+
+1. 위 R5B exact beauty의 `needs_revision` disposition을 append-only로 기록했습니다.
+2. budget accounting이나 schema version을 바꾸지 않고 기존 strict `boolean_tree` 위에
+   `build_balanced_component_union()`을 추가했습니다. 2~32개의 same-material operand만 받아 균형
+   `EXACT UNION`을 만들며, 여섯 분리 profile extrusion이 한 materialization 뒤 여섯 connected component로
+   남는 actual Blender 5.0.1 smoke가 통과했습니다. 관련 Python focused `59 passed`, 전체 Python
+   `2020 passed, 65 skipped, 8 warnings`, structural Blender 5.0.1 `11 passed`, Ruff가 통과했습니다.
+3. focused/full/Blender 회귀를 통과한 clean commit과 새 Activation baseline을 만든 뒤, 누락 assembly를
+   material identity별 composition object로 묶은 fresh Laser canary를 고정 build budget 안에서 실행합니다.
+4. 새 Laser beauty가 exact `accepted`일 때만 별도 exact V0.7 plan 승인을 받아 portable delivery canary를
+   실행합니다. 새 beauty가 다시 `needs_revision`이면 같은 결함을 렌더만 바꿔 반복하지 않습니다.
+5. exact accepted beauty와 passed package/clean-import terminal이 모두 존재한 뒤에만 새
+   Registry/Eligibility/Index/Readiness를 게시해 Activation을 재평가합니다.
+6. 단일 Laser 폐루프 전에는 5-reference 전체 캠페인과 ImageGen overlay benchmark를 시작하지 않습니다.
+
+따라서 현재 authoritative 판단은 **R5B machine canary pass, human quality needs_revision, delivery
+unauthorized, bounded composition regression 진행 중, Activation NO-GO**입니다. AQ base와 ImageGen
+overlay profile은 모두 `disabled_experimental`을 유지합니다.

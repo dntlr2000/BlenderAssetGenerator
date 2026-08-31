@@ -23,6 +23,10 @@
 - Added the current-task One-Prompt supervisor for bounded geometry → material → quality → delivery →
   terminal execution, plus status/resume/cancel. It does not spawn repository tasks, claim execution
   after app exit, write destination projects, or continue past an unverified controller boundary.
+- Added a deterministic balanced-component union constructor over the existing strict Boolean-tree
+  contract. It groups 2–32 same-material structural operands into one exact materialization without
+  changing SceneSpec versions, build-budget accounting, or arbitrary-code authority; Blender 5.0.1
+  smoke verifies disconnected closed components survive as separate mesh components.
 - Added CLI/MCP/config surfaces, Draft 2020-12 schemas and parity tests, six representative asset types
   across seven machine-readable KPI runs, and Korean architecture, test, migration, verification,
   getting-started, and KPI documents. The representative benchmark is explicitly not real Blender

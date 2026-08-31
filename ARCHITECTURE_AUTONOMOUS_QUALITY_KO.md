@@ -153,6 +153,14 @@ SceneSpec V03은 기존 여섯 geometry kind에 다음 형상을 병렬 추가�
 - `multi_loop_extrude`: outer loop, hole loop, depth, cap, side wall
 - `geometry_nodes_template`: whitelist의 `linear_instance_v1`만 허용
 
+동일 material identity를 공유하는 여러 관측 assembly 부품은 새 geometry kind나 예산 예외를
+만들지 않고 `build_balanced_component_union()`으로 하나의 bounded `boolean_tree`에 합성할 수
+있다. 이 helper는 2~32개의 이미 허용된 operand만 받아 `EXACT UNION`의 균형 tree를
+결정론적으로 만들며, operand의 stable ID와 transform을 보존한다. 서로 떨어진 폐쇄 부품도 하나의
+semantic object와 한 번의 structural materialization 안에서 별도 connected component로 남는다.
+material identity가 다른 부품은 별도 SceneSpec object로 유지해야 하며, 이 합성은 object별
+materialization budget을 우회하거나 arbitrary mesh/code 권한을 추가하지 않는다.
+
 `GeometryIntent`는 face group, sharp/crease edge, bevel weight, UV seam, smoothing,
 topology/subdivision/LOD intent를 별도 표현한다. `AssetScaleContext`는 local/assembly bounds,
 shortest dimension, projected pixel size와 texel density를 근거로 ratio와 absolute override를

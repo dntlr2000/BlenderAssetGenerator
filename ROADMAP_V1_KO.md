@@ -104,7 +104,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강, 동일 reference volumetric R5 Geometry/Material 5/5·IQ pass 1/5, fresh R8 wood portable GLTF delivery 통과 | 새 beauty human disposition 0/5, signage/decal·authorized dependency-rich closure 미검증이므로 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강, R4 exact beauty `needs_revision` 5/5 및 R5B `needs_revision` 1/1 기록, baseline-bound R5B Laser relief IQ/source freeze 통과, fresh R8 wood portable GLTF delivery 통과 | 새 composition Laser beauty·production assembly detail·signage/decal·authorized dependency-rich closure 미검증이므로 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
 | Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, 기존 crystal dependency closure는 identity preflight에서 안전 실패, 새 authorized bake-bound closure는 입력 부재로 미실행 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
@@ -632,11 +632,25 @@ human disposition도 0/5입니다. profile은 계속 `disabled_experimental`이�
 
 2026-08-31 후속 Stage 9 준비 R1~R4에서는 R3 exact beauty 5개를 모두 `needs_revision`으로
 기록한 뒤 material-identity R4를 fresh 실행했습니다. R4는 IQ/source freeze 4/5, rust blocked 1/5,
-V0.7 승인 대기 4/5지만 exact R4 human disposition은 아직 0/5입니다. Wood의 contour `1.0`이
-V0.6 high missing finding을 가린 coverage gap과 Laser의 flat-relief 한계를 확인했으므로, 다시 5개를
-반복하기 전에 신규 policy-bound V0.6 finding bridge와 bounded beveled-relief capability를 검증합니다.
-다음 실행은 clean source baseline에 결속한 Laser 단일 canary이며, exact accepted 뒤에만 delivery와
-Activation 재평가로 넘어갑니다. 기존 R1~R4 machine evidence와 disposition은 고쳐 쓰지 않습니다.
+V0.7 승인 대기 4/5였고, 사용자는 review request
+`37443f12078e8c2d152647115c3271cd7c4da30fa1ef0e04c524eb18d0ffb7d6`의 exact beauty 5개도
+모두 `needs_revision`으로 기록했습니다. Wood의 contour `1.0`이 V0.6 high missing finding을 가린
+coverage gap과 Laser의 flat-relief 한계를 확인했으므로, 다시 5개를 반복하지 않고 신규 policy-bound
+V0.6 finding bridge와 bounded beveled-relief capability를 단일 Laser canary로 분리 검증했습니다.
+
+clean commit `6572b22d45dba610e3b69468bedf4e2b34c6296c`와 tree
+`c4e3ff480db0f5e52f1994471eca0572a4e2e774`에서 source manifest
+`activation-source-26f37fa8e845482a5309e11e`, baseline
+`activation-baseline-4de9c955ee1e3716a4b14b49`를 게시했습니다. 첫 R5 Laser는 18개 object가
+고정 `total_blender_builds=14`를 초과해 실제 materialization 전에 safe technical terminal로 닫혔고,
+canonical corruption과 technical user approval request는 0입니다. 그 terminal을 exact binding한 R5B는
+R4의 10개 관측 panel을 beveled relief로 바꾼 11-object 범위에서 geometry 12 + material 2의 예산을
+정확히 사용해 V0.6 direct `0.972529`, silhouette IoU `0.968892`, IQ boundary F `0.878565`,
+chamfer `0.002242`로 pass/source freeze에 도달했습니다. exact beauty
+`c497f6751f3918d1665efe6c7ab5ab313388de0630eb75437f6996aa76f7cafd`는 `needs_revision` 1/1로
+기록됐고, R5B는 delivery unauthorized 상태를 유지합니다. Production assembly detail을 고정 예산 안에
+보완한 새 composition Laser canary와 새 exact human disposition 전에는 delivery와 Activation 재평가로
+넘어가지 않습니다. 기존 R1~R5B machine evidence와 disposition은 고쳐 쓰지 않습니다.
 
 상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
 [시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
@@ -1001,25 +1015,35 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
    - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
    - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
-7. 검증 가능한 activation coverage 마감 [R4 exact human disposition 경계]
-   - Stage 9 준비 R1/R2는 safe technical terminal, R3 exact beauty 5개는 `needs_revision` 기록 완료
-   - R4는 IQ pass/source freeze 4/5, rust blocked 1/5, V0.7 승인 대기 4/5이며 exact R4 disposition은 0/5
-   - Wood contour-only pass가 V0.6 high direct finding을 누락하지 않도록 신규 policy-bound bridge를 보강 중
-   - Laser의 flat relief를 분리 검증할 bounded beveled-relief geometry capability를 보강 중
-   - 다음 순서는 R4 exact disposition → 보강 clean commit/새 baseline → Laser 단일 fresh canary
-   - Laser exact accepted 뒤에만 V0.7 delivery canary와 baseline-bound Index/Readiness를 재평가
+7. 검증 가능한 activation coverage 마감 [R5B needs_revision 반영, composition canary 준비]
+   - Stage 9 준비 R1/R2는 safe technical terminal, R3와 R4 exact beauty는 각각 `needs_revision` 5/5 기록 완료
+   - R4는 historical IQ pass/source freeze 4/5, rust blocked 1/5이며 R4 disposition set은 future beauty에 재사용하지 않음
+   - Wood high direct finding을 policy-bound IQ 입력으로 연결하는 bridge와 bounded beveled-relief geometry capability 검증 완료
+   - R5 18-object Laser는 고정 build budget 초과를 실제 Blender materialization 전에 fail-closed하고 adapter terminal까지 닫음
+   - R5B 11-object Laser는 geometry/material/V0.6/IQ/source freeze 통과, 추가 사용자 결정 0,
+     technical approval 0, canonical corruption 0, 현재 `await_v07_approval`
+   - R5B review request `6c7e4270501b50cd6223b4f716439ba0bfa333bfde7898887c0af4ce2a9caf0b`와
+     beauty `c497f6751f3918d1665efe6c7ab5ab313388de0630eb75437f6996aa76f7cafd`는 exact
+     `needs_revision`으로 기록 완료; V0.7, budget expansion, activation 권한은 생성하지 않음
+   - 동일 material의 2~32개 구조 operand를 기존 strict `boolean_tree`의 균형 `EXACT UNION` 한 개로
+     합성하는 helper를 추가했으며, 여섯 분리 부품/한 materialization/여섯 connected component를 실제
+     Blender 5.0.1로 검증
+   - rear stock/receiver/rail/trigger/foregrip를 material identity별 composition object로 묶는 새 Laser
+     canary를 고정 `total_blender_builds=14` 안에서 실행하기 전에 clean commit과 새 baseline을 생성
    - 단일 폐루프 통과 전에는 다시 5개 전체 캠페인을 시작하지 않으며, 실패 원인별 capability를 먼저 분리
    - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
      누락을 숨기지 않고 명시적 input/authority blocker로 이월
 8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
-   [완료: `da44e3e6bf985ad6e5673bce1ff01582252c7e53`의 NO-GO 기준선]
-   - source manifest `activation-source-2f0c9ca37d46915cf9d42712`
-   - baseline `activation-baseline-8e341815e74247cd3ca389da`
-   - candidate 0/5와 blocker 8개를 누락하지 않은 readiness
-   - 기존 NO-GO snapshot은 보존하며, 현재 IQ/relief source 보강 뒤 Laser canary 전에 새 clean baseline 필요
-   - 후속 캠페인은 결과를 추적 문서에 소급 기록하지 않고 새 baseline과 run-owned decision에 결합
+   [현재 NO-GO 기준선 완료: `6572b22d45dba610e3b69468bedf4e2b34c6296c`]
+   - 이전 `da44e3e6bf985ad6e5673bce1ff01582252c7e53` NO-GO snapshot은 불변 보존
+   - current source manifest `activation-source-26f37fa8e845482a5309e11e`
+   - current baseline `activation-baseline-4de9c955ee1e3716a4b14b49`
+   - validation receipt 17개, candidate 0/5와 blocker 10개를 누락하지 않은 readiness
+   - R5/R5B는 이 baseline에 결속된 append-only 후속 campaign이며 current candidate index를 소급 변경하지 않음
+   - R5B needs_revision과 새 composition capability를 포함한 clean commit에서 baseline을 새로 만들고,
+     새 Laser exact beauty disposition 및 허가된 delivery terminal 뒤 Registry/Index/Readiness를 별도 재평가
 9. Codex ImageGen overlay one-prompt benchmark와 activation review
-   - R4 5개 세션의 exact human disposition과 Laser 단일 수정/delivery 폐루프가 완료되고 미해결 local
+   - R4 5개와 R5B disposition은 완료됐으며, 새 Laser composition 수정/delivery 폐루프가 완료되고 미해결 local
      framework 결함이 없을 때 시작 가능 여부를 재판정
    - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
    - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유

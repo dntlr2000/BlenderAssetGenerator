@@ -63,6 +63,8 @@ tests/test_assembly_topology_aq.py
 - loft open/closed, unequal resampling, cap, winding, stable face ordering
 - sweep straight/curved/closed, transported frame, scale/twist, zero-length rejection
 - Boolean tree union/difference/intersection, acyclic/full tree, empty/non-manifold 처리
+- 2~32 operand balanced component union의 결정성, ID 충돌·cardinality 거부, 한 materialization 안의
+  분리된 closed connected-component 보존
 - multi-loop outer/hole, winding, containment, self-intersection 거부
 - `linear_instance_v1` whitelist와 arbitrary GN graph 거부
 - GeometryIntent index·policy validation
@@ -74,7 +76,9 @@ tests/test_assembly_topology_aq.py
 
 ### Gate D — Blender structural materialization
 
-Blender 5.0.1 격리 디렉터리에서 다음 다섯 kind를 실제 `.blend`와 mesh payload로 만든다.
+Blender 5.0.1 격리 디렉터리에서 다음 다섯 kind를 실제 `.blend`와 mesh payload로 만들고,
+`boolean_tree`의 balanced component union은 여섯 개 분리 부품이 한 번의 materialization 뒤에도
+여섯 connected component로 남는지 별도 확인한다.
 
 - loft
 - sweep
