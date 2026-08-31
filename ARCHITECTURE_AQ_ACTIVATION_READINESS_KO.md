@@ -40,6 +40,11 @@ evidence는 machine-readable reason과 함께 제외한다.
 group으로 묶으며, 유일한 eligible canonical representative가 없거나 terminal success가
 충돌하면 group 전체를 `ambiguous`로 제외한다.
 
+IQ pass와 source freeze는 profile에 정의된 machine gate 결과일 뿐 human acceptance가 아니다.
+Activation 집계가 사람 판정을 요구할 때는 exact beauty artifact/hash에 결속된 별도 disposition
+evidence만 인정한다. 이전 revision의 disposition, machine score, source freeze 또는 delivery plan을
+새 beauty의 사람 판정으로 재사용하지 않는다.
+
 ## 쓰기 권한 경계
 
 서비스는 immutable manifest, baseline, eligibility, index, readiness evidence만

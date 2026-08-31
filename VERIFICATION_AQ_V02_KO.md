@@ -321,3 +321,53 @@ actual Blender 5.0.1 preapproval fixture 1 passed를
 [Material Closure 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)에만 추가한다.
 
 이 후속 작업으로도 두 experimental profile의 판정은 계속 `disabled_experimental`이다.
+
+## 13. 2026-08-31 V0.6 finding bridge와 Laser relief 후속
+
+Stage 9 준비 R4의 machine 결과와 beauty를 함께 재검토했다. R4 wood는 contour boundary F-score
+`1.0`으로 IQ pass/source freeze가 생성됐지만 exact V0.6 report에는 grain/knot 계열 high
+`direct_reference` missing finding 4건이 남아 있었다. 이는 contour 계산 오류가 아니라 R4 policy가
+V0.6 high finding을 IQ host 재계산의 필수 입력으로 요구하지 않은 coverage gap이다. Historical R4
+report와 source freeze는 수정하지 않았다.
+
+신규 AQ plan에만 적용되는 additive 보강은 다음과 같다.
+
+- `IntegratedQualityPolicyV02.require_v06_authoritative_high_findings` 기본값은 `false`다.
+- 새 autonomous-static-prop/geometry-repair planner만 이 값을 `true`로 고정한다.
+- host는 exact legacy V0.6 artifact bytes, job ID와 direct score를 검증하고 high
+  `direct_reference`/`constraint` finding을 deterministic하게 다시 투영한다.
+- caller가 그 finding을 생략하거나 변경하면 host-recomputed report mismatch로 거부한다.
+- generated/advisory source와 medium/low finding은 이 좁은 bridge의 승격 거부 권한에서 제외한다.
+
+R4 Laser beauty는 reference의 beveled volumetric assembly보다 camera-facing flat plate로 읽혔다. 이를
+임의 Blender script나 범용 mesh authority로 해결하지 않고, exact camera-plane outer loop를 유지하면서
+두 inset section을 추가하는 bounded four-section `LoftGeometry` helper를 추가했다. 잘못된 depth,
+bevel 또는 inset은 host에서 거부한다.
+
+현재까지 실행한 비최종 검증은 다음과 같다.
+
+| 검증 | 결과 |
+|---|---:|
+| IQ bridge/planner/delivery focused | `26 passed` |
+| IQ/schema parity focused | `12 passed` |
+| relief host contract | `17 passed` |
+| 실제 Blender 5.0.1 relief smoke | `1 passed` |
+| 관련 AQ/IQ/structural compatibility 묶음 | `136 passed, 1 skipped` |
+| repository 전체 pytest | `2016 passed, 64 skipped, 8 warnings` |
+| `cbm doctor` / `cbm blender-compat` | passed / Blender `5.0.1`, `CBM_COMPAT_OK` |
+| AQ focused gate | `931 passed, 26 skipped, 8 warnings` |
+| AQ actual Blender 5.0.1 gate | `46 passed, 1 skipped, 6 warnings` |
+| AQ 0.1 / AQ 0.2 benchmark + whitespace gate | passed / passed / `git diff --check` passed |
+
+위 repository pytest의 skip은 별도 opt-in Blender 실행 항목을 포함한다. ruff,
+instruction/summary parity와 AQ 전용 gate가 모두 통과하고 clean commit/source baseline이
+생성되기 전에는 신규 Laser canary를 실행하지 않는다. R4 exact beauty 사람 판정과 V0.7 승인은 별도
+미완료 경계다. profile은 계속 `disabled_experimental`이다.
+
+첫 AQ Blender 묶음은 기본 `.b`보다 긴 custom pytest root를 지정해 Windows nested output이 길어졌고,
+material preview manifest와 identity-split preapproval 파일을 찾지 못했다. 같은 두 smoke를 `.b/c`,
+`.b/d`에서 격리 재실행해 각각 `1 passed`를 확인했다. 또한 ImageGen delivery fixture가 새 planner
+policy 아래에서도 축약 V0.6 placeholder를 `visual_qa_report`로 제출하던 test-only contract drift를
+발견했다. fixture를 strict `VisualQAReport 0.6.0`으로 교체하고 실제 Blender delivery 1건을 격리
+통과시킨 뒤, gate의 설계 기본값인 짧은 `.b` root로 전체 AQ gate를 재실행해 위 최종 결과를 얻었다.
+첫 실패는 성공으로 재분류하지 않으며 최종 통과는 corrected fixture와 bounded path에서의 새 실행이다.

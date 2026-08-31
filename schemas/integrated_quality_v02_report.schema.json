@@ -436,6 +436,11 @@
           "title": "Require Multiview",
           "type": "boolean"
         },
+        "require_v06_authoritative_high_findings": {
+          "default": false,
+          "title": "Require V06 Authoritative High Findings",
+          "type": "boolean"
+        },
         "minimum_multiview_silhouette_stability": {
           "default": 0.7,
           "maximum": 1,

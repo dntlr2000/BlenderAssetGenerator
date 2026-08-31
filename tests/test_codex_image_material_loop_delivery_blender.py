@@ -112,6 +112,11 @@ from codex_blender_modeler.packaging.material_conversion import (
 )
 from codex_blender_modeler.packaging.service import package_asset
 from codex_blender_modeler.production.controller_executor import FakeControllerForTests
+from codex_blender_modeler.qa.models import (
+    BoundingBoxMetric,
+    DirectVisualMetrics,
+    VisualQAReport,
+)
 from codex_blender_modeler.structural_geometry.geometry_delivery_inspector_v02 import (
     inspect_delivery_geometry_stage_v02,
 )
@@ -181,6 +186,34 @@ def _write_json(path: Path, payload: object) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     write_json_atomic(path, payload)
     return path
+
+
+def _write_visual_qa_report(path: Path, *, job_id: str) -> Path:
+    """Write one strict V0.6 report suitable for the policy-bound IQ bridge."""
+
+    report = VisualQAReport(
+        job_id=job_id,
+        run_id="material-loop-delivery-v06",
+        request_sha256="a" * 64,
+        camera_fingerprint="b" * 64,
+        direct_metrics=DirectVisualMetrics(
+            scoring_version="semantic_bbox_v2",
+            silhouette_iou=0.98,
+            silhouette_union_fraction=0.4,
+            global_bbox=BoundingBoxMetric(
+                reference_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                rendered_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                center_error_norm=0.0,
+                size_error_norm=0.0,
+            ),
+            semantic_deviations=[],
+            overall_direct_score=0.98,
+        ),
+        findings=[],
+        generated_target_status="not_requested",
+        warnings=[],
+    )
+    return _write_json(path, report.model_dump(mode="json"))
 
 
 def _artifact(root: Path, path: Path, artifact_id: str, kind: str) -> AQV2Artifact:
@@ -573,9 +606,9 @@ def _build_passed_quality_submission(
     mask.save(candidate_path, format="PNG")
     reference = _artifact(root, reference_path, "material-loop-reference-mask", "reference_mask")
     candidate = _artifact(root, candidate_path, "material-loop-candidate-mask", "candidate_mask")
-    legacy_path = _write_json(
+    legacy_path = _write_visual_qa_report(
         evidence_root / "legacy_v06_report.json",
-        {"schema_version": "0.6.0", "direct_score": 0.98, "status": "passed"},
+        job_id=plan.job_id,
     )
     legacy = _artifact(root, legacy_path, "material-loop-legacy-v06", "visual_qa_report")
     contour = compare_contours_v02(

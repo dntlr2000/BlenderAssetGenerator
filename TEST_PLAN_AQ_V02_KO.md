@@ -224,6 +224,7 @@ GeometryIntentSurvivalReport를 만든다.
 | GI-09 | baked modifier/boolean | evaluated mesh와 source intent hash 결속 | 최종 topology·bounds 동등 | unverified |
 | GI-10 | duplicate-effect injection | bake+modifier 이중 적용을 build 전에 거부 | 중복 bevel/subdivision package 생성 없음 | unverified |
 | GI-11 | clean-import equivalence | 단계별 vertex/face/loop, UV, material, normal, semantic 비교 | 포맷별 손실은 loss report에 명시 | unverified |
+| GI-12 | bounded beveled-relief loft | camera-plane outer loop를 정확히 보존한 4-section loft, inset chamfer, deterministic mesh와 실제 Blender build | 잘못된 depth/bevel/inset 수용 또는 projected silhouette 변경 | host + Blender regression |
 
 authoring metadata가 포맷에 존재하지 않는다는 이유만으로 실패시키지 않는다. 단, 그 경우에는
 동일한 source에서 생성한 neutral render와 imported render, UV fingerprint, split normal,
@@ -251,6 +252,7 @@ bounds, material face coverage 중 계약이 정한 대체 evidence가 모두 �
 | IQ-15 | authoritative hard finding | exact required gate ID, `failed` outcome과 authoritative input hash 결속 | passed/missing gate에 forged hard finding 삽입 | unverified |
 | IQ-16 | raw-mask host recomputation | exact global/semantic PNG bytes로 metric·gate·finding·outcome 전체 재생성 | self-consistent forged high score 수용 | host regression |
 | IQ-17 | landmark/multi-view authority | typed host-verifiable raw receipt 없이는 required scored pass 거부 | caller 숫자를 pass authority로 사용 | host regression |
+| IQ-18 | policy-bound V0.6 high finding bridge | exact report bytes의 high `direct_reference`/`constraint` finding을 host가 재투영하고 `needs_revision`으로 닫음 | finding 생략·변조로 contour-only pass/source freeze 생성 | host regression |
 
 ### 4.4 MaterialGraphRuntime compiler
 

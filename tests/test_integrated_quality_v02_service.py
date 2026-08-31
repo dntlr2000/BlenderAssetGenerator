@@ -49,6 +49,15 @@ from codex_blender_modeler.integrated_quality.v02_semantic_metrics import (
 from codex_blender_modeler.integrated_quality.v02_service import (
     build_integrated_quality_report_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_v06_bridge import (
+    project_authoritative_v06_findings_v02,
+)
+from codex_blender_modeler.qa.models import (
+    BoundingBoxMetric,
+    DirectVisualMetrics,
+    QAFinding,
+    VisualQAReport,
+)
 
 NOW = datetime(2026, 8, 11, tzinfo=UTC)
 SHA_A = "a" * 64
@@ -56,6 +65,61 @@ SHA_B = "b" * 64
 SHA_C = "c" * 64
 SHA_D = "d" * 64
 PRODUCER = ProducerIdentityV02(name="cbm_integrated_quality_v02", version="0.2.0")
+
+
+def _v06_bridge_report() -> VisualQAReport:
+    """Build V0.6 evidence with authoritative, advisory, and non-high findings."""
+
+    return VisualQAReport(
+        job_id="prop_a",
+        run_id="run-v06-a",
+        request_sha256=SHA_A,
+        camera_fingerprint=SHA_B,
+        direct_metrics=DirectVisualMetrics(
+            scoring_version="semantic_bbox_v2",
+            silhouette_iou=0.95,
+            silhouette_union_fraction=0.5,
+            global_bbox=BoundingBoxMetric(
+                reference_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                rendered_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                center_error_norm=0,
+                size_error_norm=0,
+            ),
+            semantic_deviations=[],
+            overall_direct_score=0.95,
+        ),
+        findings=[
+            QAFinding(
+                id="direct.missing.asset-grain",
+                target_ids=["asset.grain"],
+                issue_type="missing",
+                severity="high",
+                description="Observed grain is absent from the candidate object-ID pass.",
+                evidence_sources=["direct_reference"],
+                confidence=0.9,
+            ),
+            QAFinding(
+                id="generated.other.asset-grain",
+                target_ids=["asset.grain"],
+                issue_type="other",
+                severity="high",
+                description="Generated advice is not promotion authority.",
+                evidence_sources=["generated_target"],
+                confidence=0.7,
+            ),
+            QAFinding(
+                id="direct.position.asset-body",
+                target_ids=["asset.body"],
+                issue_type="position",
+                severity="medium",
+                description="A medium deviation remains advisory to this bridge.",
+                evidence_sources=["direct_reference"],
+                confidence=0.8,
+            ),
+        ],
+        generated_target_status="not_requested",
+        warnings=[],
+    )
 
 
 def _mask(*, empty: bool = False) -> Image.Image:
@@ -255,6 +319,28 @@ def test_pass_preserves_legacy_direct_score_and_advisory_has_no_authority() -> N
     assert next(
         gate for gate in report.hard_gates if gate.gate_id == "gate.reference.contour_v02"
     ).status == "passed"
+
+
+def test_v06_bridge_preserves_authoritative_high_findings_as_revision_evidence() -> None:
+    """Keep exact high direct findings visible while excluding advisory or medium items."""
+
+    findings = project_authoritative_v06_findings_v02(
+        _v06_bridge_report(),
+        evidence_id="evidence.visual-qa-v06",
+    )
+    assert len(findings) == 1
+    assert findings[0].category == "semantic"
+    assert findings[0].target_ids == ["asset.grain"]
+    assert findings[0].evidence_ids == ["evidence.visual-qa-v06"]
+    assert findings == project_authoritative_v06_findings_v02(
+        _v06_bridge_report(),
+        evidence_id="evidence.visual-qa-v06",
+    )
+
+    report = _report(extras=findings)
+    assert report.outcome == "needs_revision"
+    assert report.quality_accepted is False
+    assert report.revision_reasons == [findings[0].finding_id]
 
 
 def test_critical_semantic_missing_blocks_before_aggregate_quality() -> None:

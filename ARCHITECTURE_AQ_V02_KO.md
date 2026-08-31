@@ -420,6 +420,20 @@ canonicalized triangulated surface multiset을 비교한다. seam/crease 같은 
 않는다. `IntegratedQuality 0.1.0` loader도 유지한다. IQ 0.2는 기존 점수를 입력 evidence로
 인용하는 companion이며 과거 점수를 재계산해 다른 의미로 덮어쓰지 않는다.
 
+`IntegratedQualityPolicyV02.require_v06_authoritative_high_findings`는 이 보존 규칙 위에 둔
+additive opt-in이다. 기본값은 `false`이므로 기존 policy/report byte의 해석과 historical IQ 결과는
+변하지 않는다. 새 `autonomous_static_prop_v2` plan과 geometry-repair plan만 이를 `true`로 고정한다.
+이때 host는 caller가 제출한 finding 목록을 신뢰하지 않고 `legacy_v06_report_sha256`이 가리키는 exact
+`VisualQAReport 0.6.0` bytes를 다시 읽어 job ID와 direct score를 검증한다. 그 report에서 severity가
+`high`이고 evidence source가 `direct_reference` 또는 `constraint`인 finding만 stable IQ finding으로
+투영한다. generated-target/advisory source와 medium/low finding은 이 좁은 bridge의 승격 거부 권한으로
+사용하지 않는다.
+
+필수 bridge finding을 caller가 생략하거나 바꾸면 host 재계산 report와 일치하지 않아 거부된다.
+따라서 contour가 threshold를 통과해도 exact V0.6 report에 권위 있는 high 누락·구조 finding이 남아
+있다면 outcome은 `needs_revision`이며 source freeze를 발행하지 않는다. 이 규칙은 과거 evidence를
+소급 수정하지 않고 새 policy-bound run에만 적용된다.
+
 ### 10.2 metric 계층
 
 Reference Fidelity:
@@ -500,7 +514,8 @@ finding은 원인 계층으로 되돌린다.
 | prohibited scope 발견 | `restricted_scope_required` |
 
 IQ 0.2의 pass는 실제 source와 profile threshold에 결속된 quality 판정이지 범용 완성도
-백분율이나 destination runtime 인증이 아니다.
+백분율이나 destination runtime 인증이 아니다. 또한 machine IQ pass/source freeze는 exact artifact에
+대한 별도 human visual disposition이나 V0.7 package 승인을 대신하지 않는다.
 
 ## 11. 품질 benchmark
 

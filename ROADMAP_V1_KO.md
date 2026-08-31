@@ -630,6 +630,14 @@ human disposition도 0/5입니다. profile은 계속 `disabled_experimental`이�
 [AQ One-Prompt 실제 reference 5개 캠페인 검증](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)에
 기록합니다.
 
+2026-08-31 후속 Stage 9 준비 R1~R4에서는 R3 exact beauty 5개를 모두 `needs_revision`으로
+기록한 뒤 material-identity R4를 fresh 실행했습니다. R4는 IQ/source freeze 4/5, rust blocked 1/5,
+V0.7 승인 대기 4/5지만 exact R4 human disposition은 아직 0/5입니다. Wood의 contour `1.0`이
+V0.6 high missing finding을 가린 coverage gap과 Laser의 flat-relief 한계를 확인했으므로, 다시 5개를
+반복하기 전에 신규 policy-bound V0.6 finding bridge와 bounded beveled-relief capability를 검증합니다.
+다음 실행은 clean source baseline에 결속한 Laser 단일 canary이며, exact accepted 뒤에만 delivery와
+Activation 재평가로 넘어갑니다. 기존 R1~R4 machine evidence와 disposition은 고쳐 쓰지 않습니다.
+
 상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
 [시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
 [검증 기록](VERIFICATION_AQ_V02_KO.md)을 따릅니다.
@@ -993,10 +1001,14 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
    - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
    - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
-7. 검증 가능한 activation coverage 마감 [실행 대기]
-   - 현재 candidate exact beauty 5개의 진단용 human quality disposition
-   - 최종 clean baseline 이후 새 job 5개에서 plastic/rust/laser contour 재수렴, wood 재현, crystal fresh delivery
-   - 새 candidate exact beauty 5개의 최종 human quality disposition과 baseline-bound Index/Readiness 재평가
+7. 검증 가능한 activation coverage 마감 [R4 exact human disposition 경계]
+   - Stage 9 준비 R1/R2는 safe technical terminal, R3 exact beauty 5개는 `needs_revision` 기록 완료
+   - R4는 IQ pass/source freeze 4/5, rust blocked 1/5, V0.7 승인 대기 4/5이며 exact R4 disposition은 0/5
+   - Wood contour-only pass가 V0.6 high direct finding을 누락하지 않도록 신규 policy-bound bridge를 보강 중
+   - Laser의 flat relief를 분리 검증할 bounded beveled-relief geometry capability를 보강 중
+   - 다음 순서는 R4 exact disposition → 보강 clean commit/새 baseline → Laser 단일 fresh canary
+   - Laser exact accepted 뒤에만 V0.7 delivery canary와 baseline-bound Index/Readiness를 재평가
+   - 단일 폐루프 통과 전에는 다시 5개 전체 캠페인을 시작하지 않으며, 실패 원인별 capability를 먼저 분리
    - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
      누락을 숨기지 않고 명시적 input/authority blocker로 이월
 8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
@@ -1004,9 +1016,11 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - source manifest `activation-source-2f0c9ca37d46915cf9d42712`
    - baseline `activation-baseline-8e341815e74247cd3ca389da`
    - candidate 0/5와 blocker 8개를 누락하지 않은 readiness
-   - 7번 마감 캠페인은 결과를 추적 문서에 소급 기록하지 않고, 실행 전에 생성할 새 clean baseline에 결합
+   - 기존 NO-GO snapshot은 보존하며, 현재 IQ/relief source 보강 뒤 Laser canary 전에 새 clean baseline 필요
+   - 후속 캠페인은 결과를 추적 문서에 소급 기록하지 않고 새 baseline과 run-owned decision에 결합
 9. Codex ImageGen overlay one-prompt benchmark와 activation review
-   - 7번의 5개 세션이 모두 bounded terminal이고 미해결 local framework 결함이 없을 때 시작 가능
+   - R4 5개 세션의 exact human disposition과 Laser 단일 수정/delivery 폐루프가 완료되고 미해결 local
+     framework 결함이 없을 때 시작 가능 여부를 재판정
    - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
    - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유
 10. Standard Generated Texture Intake 0.1

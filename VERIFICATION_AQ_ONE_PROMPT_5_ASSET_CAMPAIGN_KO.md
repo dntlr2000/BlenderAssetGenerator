@@ -2,10 +2,11 @@
 
 ## 1. 판정
 
-2026-08-30 현재 `aq-one-prompt-orchestrator`의 동일 reference 5개 volumetric 재캠페인은
-**IQ pass 1/5, source freeze 1/5, 후속 wood portable GLTF delivery 1/1 통과, 새 beauty human
-disposition 0/5, activation NO-GO**입니다. R2의 exact beauty 5개에 기록한 `needs_revision`은
-그 R2 evidence에만 유효하며 이번 후보에는 재사용하지 않았습니다.
+2026-08-31 현재 기존 volumetric R5/R8 이후 Stage 9 준비 R1~R4가 append-only로 추가되었습니다.
+최신 R4는 **IQ pass/source freeze 4/5, rust safe blocked 1/5, V0.7 승인 대기 4/5, R4 exact
+beauty human disposition 0/5, activation NO-GO**입니다. R3 exact beauty 5개에 기록한
+`needs_revision`은 R4 수정 방향을 허용했지만 R4 beauty의 판정으로 재사용하지 않았습니다. 아래
+2~9절은 R5/R8까지의 선행 검증 이력을 보존하며, 최신 상태와 다음 순서는 10절이 소유합니다.
 
 - 최초 캠페인의 adapter route/receipt와 ControllerExecutor protected-inventory 결함을 수정하고,
   orphan policy authorization도 exact replay 또는 `technical_failed` receipt로 회수하도록 보강했습니다.
@@ -481,3 +482,53 @@ R5 IQ report SHA-256:
 
 이 문서는 machine JSON을 대체하지 않습니다. 경로·SHA·state·receipt가 서로 다르면 machine JSON이
 권위입니다.
+
+## 10. 2026-08-31 Stage 9 준비 R1~R4와 현재 경계
+
+기존 R5/R8 이후 새 clean baseline
+`activation-baseline-83e2ce0614a263e622d790d9`에 결속해 Stage 9 준비 캠페인을 실행했습니다.
+R1/R2는 첫 자산의 host failure 뒤 나머지를 취소하는 안전 terminal로 닫혔고, 이 실패 이력은
+수정하지 않았습니다. R3는 다섯 beauty를 생성했으며 사용자가 그 exact hash 5개 모두를
+`needs_revision`으로 승인했습니다. 그 disposition set은 R4의 revision authority로만 사용됐고
+package 승인이나 profile activation 권한으로 확대하지 않았습니다.
+
+R4 authoritative campaign evidence:
+
+- campaign: `aq-stage9-prep-r4-material-identity-campaign`
+- launch SHA-256: `c3ba0e39dbdbb2bd03a1fc3ef4f7c2b0009e2720e0f3eb3afb20400856dfc738`
+- result SHA-256: `a63e436c7e8b9a42c9057f179eb6330e2ebfbf1a0f3d554c542345aa1e2354e3`
+- human review request SHA-256: `37443f12078e8c2d152647115c3271cd7c4da30fa1ef0e04c524eb18d0ffb7d6`
+- additional user decisions `0`, technical user approval requests `0`, destination writes `0`
+
+| R4 asset | V0.6 direct | IQ boundary F | machine outcome | exact beauty SHA-256 | 현재 경계 |
+|---|---:|---:|---|---|---|
+| plastic | `0.971514` | `0.844297` | `passed` | `e3970d5bc7ab47b0950ab93cbb5a8d4bb4baaed1166e167e9250fccd00632640` | exact human disposition + V0.7 approval 미기록 |
+| rust | `0.909899` | `0.671268` | `blocked` | `fb581cf0fa4302a360a1a50e0539c160684f6f97164de10ec82b336d33f04e47` | exact human disposition 미기록; delivery 없음 |
+| wood | `0.944595` | `1.000000` | `passed` | `a22e5dd424a1f676091a7bb50dde09362ce88f8b54fb5def4049f5a021b8f71b` | exact human disposition + V0.7 approval 미기록 |
+| crystal | `0.903000` | `0.829136` | `passed` | `0377a4a0abb9a5ad33f76e998bab961c804295ff36cd6458357bb3c03b2b8403` | exact human disposition + V0.7 approval 미기록 |
+| laser | `0.969576` | `0.804149` | `passed` | `e16ad7cff3221b167e8e08e7045e4935fb0ffaeeef08f78741a6a9cb51d629f0` | exact human disposition + V0.7 approval 미기록 |
+
+R4 machine pass는 contour/profile gate의 통과이지 production 시각 품질 acceptance가 아니다. 특히
+wood V0.6 report에는 high direct-reference missing finding이 남아 있는데 기존 R4 IQ policy가 이를
+contour 결과와 함께 필수 재계산하지 않아 F-score `1.0`만으로 source freeze가 발행됐다. 이 historical
+R4 결과는 고쳐 쓰지 않는다. 신규 AQ plan에만 V0.6 high authoritative finding bridge를 요구하는
+additive policy를 적용해 같은 생략을 fail-closed하게 만들며, old policy의 의미는 유지한다.
+
+시각 검토상 다섯 R4 candidate 모두 production bar에는 아직 미달하지만, 이는 사용자 exact disposition을
+대신하지 않는다. 반복 비용과 결함 분리를 위해 다음 실행은 다섯 자산 전체 R5가 아니라 Laser 단일
+fresh canary로 제한한다. 순서는 다음과 같다.
+
+1. 위 R4 exact beauty 5개의 human disposition을 기록한다. generic approval이나 R3 판정을 재사용하지 않는다.
+2. V0.6 finding bridge와 bounded beveled-relief geometry를 전체 gate로 검증한 clean commit에서 새
+   ActivationSourceManifest/Baseline을 만든다.
+3. Laser만 새 job/run으로 실행해 passing outer contour를 유지하면서 receiver/body/grip/sight/muzzle의
+   실제 depth와 chamfer를 검증한다. R4 canonical/history는 변경하지 않는다.
+4. 새 Laser beauty에 exact `accepted` 또는 `needs_revision` disposition을 받는다. `needs_revision`이면
+   같은 결함을 무기한 반복하지 않고 원인·개선량·retry budget을 재평가한다.
+5. Laser가 exact `accepted`일 때만 별도 exact V0.7 plan approval을 받아 portable delivery canary를
+   실행하고, 그 terminal evidence로 Activation Index/Readiness를 재평가한다.
+6. Laser의 단일 폐루프가 통과한 뒤에만 plastic/rust/wood/crystal에 필요한 서로 다른 capability를
+   정의하고 최종 5-reference 캠페인의 진입 조건을 확정한다.
+
+따라서 현재는 R4 사람 판정 전이며 delivery나 activation을 진행할 권한이 없다. Stage 9 overlay와 AQ
+base activation은 계속 별도 결정이고 둘 다 `disabled_experimental`을 유지한다.

@@ -30,6 +30,9 @@ from codex_blender_modeler.structural_geometry.models import (
     StructuralMeshPayload,
     SweepGeometry,
 )
+from codex_blender_modeler.structural_geometry.relief_geometry import (
+    build_beveled_relief_loft,
+)
 
 NOW = datetime(2026, 8, 10, 1, 2, 3, tzinfo=UTC)
 
@@ -106,6 +109,66 @@ def test_loft_resamples_unequal_sections_deterministically() -> None:
     assert first == second
     assert len(first["vertices"]) == 16
     assert len(first["faces"]) == 20
+
+
+def test_beveled_relief_loft_preserves_projection_and_adds_chamfer_sections() -> None:
+    """Keep the observed outer loop exact while adding bounded inset side relief."""
+
+    points = [
+        (0.26, 0.34),
+        (0.80, 0.24),
+        (0.88, 0.35),
+        (0.78, 0.55),
+        (0.33, 0.57),
+    ]
+    geometry = build_beveled_relief_loft(
+        points,
+        depth=0.24,
+        bevel_depth=0.035,
+        edge_inset_ratio=0.08,
+    )
+    assert [(x, z) for x, _y, z in geometry.sections[0].points] == points
+    assert [(x, z) for x, _y, z in geometry.sections[-1].points] == points
+    assert [section.points[0][1] for section in geometry.sections] == pytest.approx(
+        [-0.12, -0.085, 0.085, 0.12]
+    )
+    inset_width = max(point[0] for point in geometry.sections[1].points) - min(
+        point[0] for point in geometry.sections[1].points
+    )
+    outer_width = max(point[0] for point in geometry.sections[0].points) - min(
+        point[0] for point in geometry.sections[0].points
+    )
+    assert inset_width < outer_width
+    first = build_loft_mesh(geometry.model_dump(mode="json"))
+    second = build_loft_mesh(geometry.model_dump(mode="json"))
+    assert first == second
+    assert len(first["vertices"]) == 20
+    assert len(first["faces"]) == 21
+
+
+@pytest.mark.parametrize(
+    ("depth", "bevel_depth", "edge_inset_ratio", "message"),
+    [
+        (0.0, 0.01, 0.1, "depth must be positive"),
+        (0.2, 0.1, 0.1, "less than half"),
+        (0.2, 0.02, 0.5, "between zero and one half"),
+    ],
+)
+def test_beveled_relief_loft_rejects_unbounded_parameters(
+    depth: float,
+    bevel_depth: float,
+    edge_inset_ratio: float,
+    message: str,
+) -> None:
+    """Reject non-positive, collapsed, or over-inset relief geometry."""
+
+    with pytest.raises(ValueError, match=message):
+        build_beveled_relief_loft(
+            [(-1.0, -1.0), (1.0, -1.0), (1.0, 1.0), (-1.0, 1.0)],
+            depth=depth,
+            bevel_depth=bevel_depth,
+            edge_inset_ratio=edge_inset_ratio,
+        )
 
 
 def test_loft_winding_produces_outward_side_and_cap_normals() -> None:

@@ -432,6 +432,7 @@ class IntegratedQualityPolicyV02(IntegratedQualityV02StrictModel):
     required_landmark_ids: list[StableId] = Field(default_factory=list)
     maximum_landmark_reprojection_error_norm: float = Field(default=0.05, ge=0)
     require_multiview: bool = False
+    require_v06_authoritative_high_findings: bool = False
     minimum_multiview_silhouette_stability: float = Field(default=0.7, ge=0, le=1)
     minimum_multiview_semantic_placement: float = Field(default=0.7, ge=0, le=1)
     meaningful_gain_min: float = Field(default=0.01, gt=0, le=1)

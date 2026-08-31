@@ -39,6 +39,7 @@ from .reference_metrics import reference_alignment_axis
 from .reporting import write_integrated_quality_evidence
 from .service import build_integrated_quality_report
 from .structural_metrics import structural_integrity_axis
+from .v02_v06_bridge import project_authoritative_v06_findings_v02
 
 __all__ = [
     "AxisThreshold",
@@ -69,6 +70,7 @@ __all__ = [
     "material_fidelity_axis",
     "get_integrated_quality_status",
     "production_readiness_axis",
+    "project_authoritative_v06_findings_v02",
     "rank_quality_candidates",
     "reference_alignment_axis",
     "run_integrated_quality",

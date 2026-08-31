@@ -22,9 +22,13 @@ from ..integrated_quality.v02_models import (
     ContourEvidenceBindingV02,
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
+    QualityFindingV02,
 )
 from ..integrated_quality.v02_semantic_metrics import compare_semantic_masks_v02
 from ..integrated_quality.v02_service import build_integrated_quality_report_v02
+from ..integrated_quality.v02_v06_bridge import (
+    project_authoritative_v06_findings_v02,
+)
 from ..optimization import initialize_asset_profile, plan_asset_optimization
 from ..optimization.models import (
     OptimizationApproval,
@@ -36,6 +40,7 @@ from ..optimization.models import (
 from ..optimization.provenance import collect_source_provenance
 from ..packaging.models import ExportPackageManifest, RoundTripValidation
 from ..production.validation import ensure_contained_production_path
+from ..qa.models import VisualQAReport
 from ..structural_geometry.geometry_survival_v02 import (
     GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
@@ -362,6 +367,41 @@ def _top_level_contour_origin(report: IntegratedQualityReportV02) -> str:
     }[report.contour.authority]
 
 
+def _required_v06_quality_findings(
+    *,
+    root: Path,
+    report: IntegratedQualityReportV02,
+    quality_evidence: list[AQV2Artifact],
+    expected_policy: IntegratedQualityPolicyV02,
+) -> list[QualityFindingV02]:
+    """Rebuild policy-required V0.6 findings from the exact submitted report bytes."""
+
+    if not expected_policy.require_v06_authoritative_high_findings:
+        return []
+    if (
+        report.legacy_v06_report_sha256 is None
+        or report.legacy_v06_direct_score is None
+    ):
+        raise ValueError("IQ 0.2 policy requires exact legacy V0.6 report evidence")
+    artifact = _unique_quality_artifact(
+        quality_evidence,
+        sha256=report.legacy_v06_report_sha256,
+        label="legacy V0.6 visual QA report",
+        kind="visual_qa_report",
+    )
+    visual_report = VisualQAReport.model_validate_json(
+        validate_v2_artifact(root, artifact).read_bytes()
+    )
+    if visual_report.job_id != report.job_id:
+        raise ValueError("legacy V0.6 report belongs to a different AQ job")
+    if visual_report.direct_metrics.overall_direct_score != report.legacy_v06_direct_score:
+        raise ValueError("legacy V0.6 direct score differs from the exact report bytes")
+    return project_authoritative_v06_findings_v02(
+        visual_report,
+        evidence_id=artifact.artifact_id,
+    )
+
+
 def validate_host_recomputed_quality_report_v2(
     *,
     job_root: Path,
@@ -474,6 +514,13 @@ def validate_host_recomputed_quality_report_v2(
             "required multiview pass authority needs a host-verifiable typed input receipt"
         )
 
+    required_v06_findings = _required_v06_quality_findings(
+        root=root,
+        report=report,
+        quality_evidence=quality_evidence,
+        expected_policy=expected_policy,
+    )
+
     base = build_integrated_quality_report_v02(
         report_id=report.report_id,
         job_id=report.job_id,
@@ -494,8 +541,19 @@ def validate_host_recomputed_quality_report_v2(
         legacy_v06_direct_score=report.legacy_v06_direct_score,
     )
     base_finding_ids = {item.finding_id for item in base.findings}
+    required_v06_finding_ids = {
+        item.finding_id for item in required_v06_findings
+    }
+    if base_finding_ids.intersection(required_v06_finding_ids):
+        raise ValueError("V0.6 bridge finding IDs collide with recomputed IQ findings")
     additional_findings = [
-        item for item in report.findings if item.finding_id not in base_finding_ids
+        *required_v06_findings,
+        *[
+            item
+            for item in report.findings
+            if item.finding_id
+            not in base_finding_ids.union(required_v06_finding_ids)
+        ],
     ]
     recomputed = build_integrated_quality_report_v02(
         report_id=report.report_id,

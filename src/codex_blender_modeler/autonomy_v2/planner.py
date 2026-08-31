@@ -284,6 +284,7 @@ def plan_autonomous_static_prop_v2(
 
     quality_policy = IntegratedQualityPolicyV02(
         profile_id="autonomous_static_prop_v2",
+        require_v06_authoritative_high_findings=True,
         lexicographic_metric_priority=[
             "hard_gate_status",
             "critical_semantic_iou",
@@ -658,6 +659,7 @@ def plan_geometry_repair_session_v2(
         raise RuntimeError("AQ v2 geometry repair approval bytes changed while writing")
     quality_policy = IntegratedQualityPolicyV02(
         profile_id="autonomous_static_prop_v2",
+        require_v06_authoritative_high_findings=True,
         lexicographic_metric_priority=[
             "hard_gate_status",
             "critical_semantic_iou",

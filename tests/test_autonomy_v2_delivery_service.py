@@ -50,6 +50,15 @@ from codex_blender_modeler.integrated_quality.v02_semantic_metrics import (
 from codex_blender_modeler.integrated_quality.v02_service import (
     build_integrated_quality_report_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_v06_bridge import (
+    project_authoritative_v06_findings_v02,
+)
+from codex_blender_modeler.qa.models import (
+    BoundingBoxMetric,
+    DirectVisualMetrics,
+    QAFinding,
+    VisualQAReport,
+)
 
 NOW = datetime(2026, 8, 11, tzinfo=UTC)
 
@@ -804,6 +813,158 @@ def test_host_recomputed_iq_rejects_self_consistent_forged_high_scores(
         validate_host_recomputed_quality_report_v2(
             job_root=root,
             report=forged,
+            quality_evidence=evidence,
+            camera_artifact=camera,
+            expected_policy=policy,
+        )
+
+
+def test_host_recomputed_iq_requires_policy_bound_v06_high_findings(
+    tmp_path: Path,
+) -> None:
+    """Reject a contour-only pass that omits exact authoritative V0.6 high findings."""
+
+    root = tmp_path / "iq-v06-bridge"
+    root.mkdir()
+    camera = _file_artifact(root, "bridge-camera", "camera")
+    reference_image = Image.new("L", (32, 32), 0)
+    candidate_image = Image.new("L", (32, 32), 0)
+    ImageDraw.Draw(reference_image).rectangle((6, 8, 23, 23), fill=255)
+    ImageDraw.Draw(candidate_image).rectangle((6, 8, 23, 23), fill=255)
+    reference_path = root / "quality" / "reference.png"
+    candidate_path = root / "quality" / "candidate.png"
+    reference_path.parent.mkdir()
+    reference_image.save(reference_path)
+    candidate_image.save(candidate_path, compress_level=1)
+    reference = artifact_for_v2(
+        root,
+        reference_path,
+        artifact_id="bridge-reference",
+        kind="reference_mask",
+    )
+    candidate = artifact_for_v2(
+        root,
+        candidate_path,
+        artifact_id="bridge-candidate",
+        kind="candidate_mask",
+    )
+    contour = compare_contours_v02(
+        reference_path,
+        candidate_path,
+        reference_evidence=ContourEvidenceBindingV02(
+            evidence_id="bridge.reference.contour",
+            origin="observed",
+            authority="authoritative",
+            artifact_path=reference.path,
+            artifact_sha256=reference.sha256,
+            camera_sha256=camera.sha256,
+        ),
+        candidate_evidence_id="bridge.candidate.contour",
+        candidate_artifact_sha256=candidate.sha256,
+        candidate_camera_sha256=camera.sha256,
+    )
+    visual_report = VisualQAReport(
+        job_id="aq_v2_delivery",
+        run_id="bridge-v06",
+        request_sha256="c" * 64,
+        camera_fingerprint="d" * 64,
+        direct_metrics=DirectVisualMetrics(
+            scoring_version="semantic_bbox_v2",
+            silhouette_iou=0.95,
+            silhouette_union_fraction=0.4,
+            global_bbox=BoundingBoxMetric(
+                reference_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                rendered_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                center_error_norm=0.0,
+                size_error_norm=0.0,
+            ),
+            semantic_deviations=[],
+            overall_direct_score=0.95,
+        ),
+        findings=[
+            QAFinding(
+                id="direct.missing.asset-detail",
+                target_ids=["asset.detail"],
+                issue_type="missing",
+                severity="high",
+                description="The observed structural detail is absent.",
+                evidence_sources=["direct_reference"],
+                confidence=0.9,
+            )
+        ],
+        generated_target_status="not_requested",
+        warnings=[],
+    )
+    visual_path = root / "quality" / "visual_qa_report.json"
+    visual_path.write_text(
+        visual_report.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    visual_artifact = artifact_for_v2(
+        root,
+        visual_path,
+        artifact_id="bridge-visual-qa",
+        kind="visual_qa_report",
+    )
+    policy = IntegratedQualityPolicyV02(
+        profile_id="quality.static-prop-v02",
+        require_v06_authoritative_high_findings=True,
+    )
+    base_arguments = {
+        "report_id": "iq-v02-v06-bridge",
+        "job_id": "aq_v2_delivery",
+        "workflow_id": "wf-aq-v2-delivery",
+        "dispatch_id": "dispatch-aq-v2-delivery",
+        "source_fingerprint": "a" * 64,
+        "camera_sha256": camera.sha256,
+        "input_sha256": "b" * 64,
+        "legacy_v06_report_sha256": visual_artifact.sha256,
+        "legacy_v06_direct_score": 0.95,
+        "policy": policy,
+        "contour": contour,
+        "semantics": [],
+        "landmarks": [],
+        "multiview": MultiviewMetricV02(
+            metric_id="multiview.unavailable",
+            status="unscorable",
+            observations=[],
+            authoritative_view_count=0,
+            limitations=["optional multiview evidence was not supplied"],
+        ),
+        "advisory_metrics": [],
+        "producer": ProducerIdentityV02(
+            name="cbm_integrated_quality_v02",
+            version="0.2.0",
+        ),
+        "created_at": NOW,
+    }
+    bridge_findings = project_authoritative_v06_findings_v02(
+        visual_report,
+        evidence_id=visual_artifact.artifact_id,
+    )
+    report = build_integrated_quality_report_v02(
+        **base_arguments,
+        additional_findings=bridge_findings,
+    )
+    assert report.outcome == "needs_revision"
+    evidence = [camera, reference, candidate, visual_artifact]
+    assert (
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=report,
+            quality_evidence=evidence,
+            camera_artifact=camera,
+            expected_policy=policy,
+        )
+        == report
+    )
+
+    omitted = build_integrated_quality_report_v02(**base_arguments)
+    assert omitted.outcome == "passed"
+    with pytest.raises(ValueError, match="host-recomputed"):
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=omitted,
             quality_evidence=evidence,
             camera_artifact=camera,
             expected_policy=policy,

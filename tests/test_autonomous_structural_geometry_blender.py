@@ -18,6 +18,9 @@ from codex_blender_modeler.autonomy.models import CandidateAuthoringAssignment
 from codex_blender_modeler.blender_runner import BlenderRunError
 from codex_blender_modeler.models import SceneSpec
 from codex_blender_modeler.structural_geometry.models import StructuralGeometryCandidate
+from codex_blender_modeler.structural_geometry.relief_geometry import (
+    build_beveled_relief_loft,
+)
 from codex_blender_modeler.structural_geometry.service import (
     materialize_structural_candidate,
 )
@@ -164,6 +167,39 @@ def test_structural_builder_materializes_in_blender(
     assert payload.semantic_id == f"asset.{kind}"
     assert payload.vertices
     assert payload.faces
+
+
+def test_beveled_relief_loft_materializes_in_blender(tmp_path: Path) -> None:
+    """Materialize the Laser-style four-section relief through actual Blender."""
+
+    geometry = build_beveled_relief_loft(
+        [
+            (0.26, 0.34),
+            (0.80, 0.24),
+            (0.88, 0.35),
+            (0.78, 0.55),
+            (0.33, 0.57),
+        ],
+        depth=0.24,
+        bevel_depth=0.035,
+        edge_inset_ratio=0.08,
+    )
+    candidate = StructuralGeometryCandidate(
+        semantic_id="laser.body-panel",
+        geometry=geometry,
+    )
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "beveled-relief",
+        candidate=candidate,
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+    )
+    assert payload.builder_kind == "loft"
+    assert payload.semantic_id == "laser.body-panel"
+    assert len(payload.vertices) == 20
+    assert len(payload.faces) == 21
 
 
 def test_concave_multi_loop_discards_redundant_zero_area_cap_triangles(

@@ -788,6 +788,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/integrated_quality/v02_reentry.py
   src/codex_blender_modeler/integrated_quality/v02_semantic_metrics.py
   src/codex_blender_modeler/integrated_quality/v02_service.py
+  src/codex_blender_modeler/integrated_quality/v02_v06_bridge.py
   src/codex_blender_modeler/interior_qa/__init__.py
   src/codex_blender_modeler/interior_qa/models.py
   src/codex_blender_modeler/interior_qa/service.py
@@ -948,6 +949,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/structural_geometry/migration.py
   src/codex_blender_modeler/structural_geometry/migration_service.py
   src/codex_blender_modeler/structural_geometry/models.py
+  src/codex_blender_modeler/structural_geometry/relief_geometry.py
   src/codex_blender_modeler/structural_geometry/service.py
   src/codex_blender_modeler/structural_geometry/v02.py
   src/codex_blender_modeler/texturing/AGENTS.md

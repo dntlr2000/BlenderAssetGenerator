@@ -71,11 +71,15 @@ def test_v2_internal_plan_binds_standard_dispatch_and_phase_profiles(
     authorization = RootAuthorizationV2.model_validate_json(
         (session_root / "root_authorization.json").read_bytes()
     )
+    quality_policy = json.loads(
+        (session_root / "integrated_quality_policy.json").read_text(encoding="utf-8")
+    )
     assert plan.requested_delivery_profiles == ["portable_gltf", "portable_fbx"]
     assert len(plan.phase_tool_profiles) == 7
     assert authorization.destination_project_write is False
     assert authorization.synthetic_user_approval is False
     assert authorization.reference_content_scope == "primary_object_only"
+    assert quality_policy["require_v06_authoritative_high_findings"] is True
     for artifact in plan.provenance:
         validate_v2_artifact(root, artifact)
 
