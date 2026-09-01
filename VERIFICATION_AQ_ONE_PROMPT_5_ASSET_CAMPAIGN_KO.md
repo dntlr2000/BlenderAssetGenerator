@@ -781,28 +781,54 @@ pytest basetemp에서만 재현된 경로 길이 오탐이었고, GLTF fake-sign
 - AQ 0.2 benchmark: `10 passed`, `0 failed`, Blender case `2`, human review `not_reviewed`
 
 이 검증은 현재 소스 결함을 닫는 회귀 증거이며 R06 package를 재생성하거나 원래 failed terminal을
-변경하지 않았습니다. 또한 package acceptance, destination write 또는 profile Activation 권한도 만들지
-않습니다.
+변경하지 않았습니다. 이 회귀 실행 자체는 package acceptance, destination write 또는 profile Activation
+권한을 만들지 않았습니다.
 
 ### 12.3 현재 Activation과 다음 exact 권한 경계
 
 R5D는 새 Laser의 IQ/source freeze, exact human `accepted`, 실제 Blender package, clean import와 geometry
-survival이라는 기술 선행조건을 충족했습니다. 그러나 R06은 원래 exact plan package ID와 다른 technical
-recovery package이고, R07도 host delivery adoption을 수행하지 않았습니다. 따라서 현재 authoritative 상태는
-다음과 같습니다.
+survival이라는 기술 선행조건을 충족했습니다. R06은 원래 exact plan package ID와 다른 technical recovery
+package이므로 원래 failed delivery terminal이나 stale workflow gate를 재결박하지 않았습니다.
+
+2026-09-01 사용자는 다음 두 exact SHA-256을 package acceptance 대상으로 승인하면서 destination write와
+profile Activation은 명시적으로 제외했습니다.
+
+- package manifest:
+  `2ddcfd0e2125871e22282a3a4fd9558364bbfc673d6a8a71806e5821f0b97257`
+- post-publication round-trip:
+  `227783a4065df4283027e5ae94c91206d84c71dd2bf91df1e622913bc0bd620c`
+
+Host의 `asset-package-accept`는 exact bytes, package receipt, source freshness, clean-import identity, bounds와
+semantic/material coverage를 다시 검증한 뒤 다음 append-only receipt를 single-use로 소비했습니다.
+
+- acceptance ID: `package.acceptance.2ddcfd0e2125871e22282a3a`
+- acceptance path:
+  `workspaces/aq_stage9_prep_r5d_01_laser_perspective_canary/optimization/runs/delivery-plan-aqv2-20260831t115126214507z-605fc5bf-gltf-run/package_acceptances/r5d-recovery-r06-gltf/acceptance.json`
+- acceptance file SHA-256:
+  `c6ad1650ef9ada5e2017381da942dbad35a9222352bb599baaeba526e5cab1df`
+- acceptance time: `2026-09-01T08:09:04.856349Z`
+- `status=accepted`, `single_use=true`, `consumed=true`
+- `canonical_unchanged=true`, `destination_project_modified=false`
+- clean import/bounds pass, semantic/material coverage `1.0/1.0`
+
+승인 소비 뒤에도 원래 state `0010.json` SHA-256
+`8cd9e923fc60b5e69dc7de6af06c70005a1634471f74cc071e9a1b0b6a45d621`와 delivery terminal SHA-256
+`5c116036df12c868aebf68167332178771a264179df7e5a351a272ead51312ae`는 그대로입니다. 따라서 R07의
+아래 필드는 historical result로 불변 보존하고, 이후의 exact acceptance를 별도 권위 기록으로 해석합니다.
 
 - `technical_package_validated=true`
 - `host_delivery_adopted=false`
 - `production_package_authorized=false`
 - `profile_activation_authorized=false`
 - AQ base와 ImageGen overlay 모두 `disabled_experimental`
-- Activation 판정: **NO-GO 유지**
+- exact package acceptance: **완료**
+- destination write/runtime parity/profile Activation: **미승인**
+- Activation 판정: 새 baseline-bound machine 재평가 전까지 **NO-GO 유지**
 
-다음 단계는 새 모델링이나 package 재생성이 아닙니다. 사용자가 R06의 exact package manifest SHA-256
-`2ddcfd0e2125871e22282a3a4fd9558364bbfc673d6a8a71806e5821f0b97257`과 exact post-publication
-round-trip SHA-256
-`227783a4065df4283027e5ae94c91206d84c71dd2bf91df1e622913bc0bd620c`를 package acceptance 대상으로
-명시해야 합니다. 그 single-use host acknowledgement 뒤 full gate와 clean source commit을 기준으로 새
-ActivationSourceManifest/Baseline, Candidate Registry/Eligibility/Index/Readiness를 게시해 Stage 9 overlay
-진입 가능 여부와 AQ base NO-GO blocker를 서로 분리해 재평가합니다. package acceptance는 destination write나
-runtime parity, profile activation 승인이 아닙니다.
+다음 단계는 새 모델링이나 package 재생성이 아닙니다. package acceptance blocker는 닫혔으므로 full gate와
+최종 clean source commit을 기준으로 새 ActivationSourceManifest/Baseline, Candidate
+Registry/Eligibility/Index/Readiness를 게시합니다. 이때 R5D가 시작된 historical baseline과 새 source
+baseline의 차이, 원래 failed AQ terminal, accepted technical package를 각각 숨기지 않고 평가해야 합니다.
+그 machine evidence에서 Stage 9 overlay의 bounded experimental 진입 가능 여부와 AQ base NO-GO blocker를
+분리해 결정합니다. package acceptance는 Destination Handoff plan 승인, destination write, runtime parity 또는
+profile Activation 승인이 아닙니다.

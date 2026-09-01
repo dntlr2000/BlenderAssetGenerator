@@ -664,10 +664,21 @@ R5D는 V0.6 direct `0.946730`, IQ boundary F `0.816738`로 IQ/source freeze에 �
 n-gon tangent, adapter signature, Windows GLTF temp path, serialization topology와 UV fingerprint 경계
 결함을 각각 분리했습니다. R06 package는 26개 파일, absolute path 0, missing dependency 0, clean-import
 round-trip pass를 기록했고 R07 evidence-only revalidation은 geometry survival `known_loss`와
-`technical_package_validated=true`를 기록했습니다. 그러나 technical package
-`r5d-recovery-r06-gltf`는 아직 exact package acceptance를 거치지 않았고 기존 host delivery terminal도
-소급 변경하지 않았으므로 production package나 Activation GO가 아닙니다. 기존 R1~R07 machine evidence와
-disposition은 고쳐 쓰지 않습니다.
+`technical_package_validated=true`를 기록했습니다.
+
+2026-09-01 사용자는 technical package `r5d-recovery-r06-gltf`의 manifest SHA-256
+`2ddcfd0e2125871e22282a3a4fd9558364bbfc673d6a8a71806e5821f0b97257`과 post-publication
+round-trip SHA-256 `227783a4065df4283027e5ae94c91206d84c71dd2bf91df1e622913bc0bd620c`를
+exact package acceptance 대상으로 승인했습니다. Host는 둘을 재검증한 뒤 single-use acceptance
+`package.acceptance.2ddcfd0e2125871e22282a3a`를 소비했고, acceptance JSON의 file SHA-256은
+`c6ad1650ef9ada5e2017381da942dbad35a9222352bb599baaeba526e5cab1df`입니다. 기록은
+`canonical_unchanged=true`, `destination_project_modified=false`, clean import/bounds pass와 semantic/material
+coverage `1.0/1.0`을 보존합니다. 원래 failed state SHA-256
+`8cd9e923fc60b5e69dc7de6af06c70005a1634471f74cc071e9a1b0b6a45d621`와 delivery terminal SHA-256
+`5c116036df12c868aebf68167332178771a264179df7e5a351a272ead51312ae`는 변하지 않았고, R07의
+historical `host_delivery_adopted=false`도 소급 수정하지 않습니다. 따라서 portable GLTF package-level
+acknowledgement는 닫혔지만 destination write, runtime parity 또는 profile Activation 권한은 생기지 않았습니다.
+기존 R1~R07 machine evidence와 disposition은 고쳐 쓰지 않습니다.
 
 최종 소스 회귀에서는 Blender image API가 `\\?\` extended temp path를 직접 받지 못하는 별도 경계를
 발견해, GLTF image encoding을 process temp 아래의 짧은 고유 normal-path staging root에서 실행하도록
@@ -1040,7 +1051,7 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
    - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
    - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
-7. 검증 가능한 activation coverage 마감 [R5D visual acceptance 및 technical package 검증 완료]
+7. 검증 가능한 activation coverage 마감 [R5D visual 및 exact package acceptance 완료]
    - Stage 9 준비 R1/R2는 safe technical terminal, R3와 R4 exact beauty는 각각 `needs_revision` 5/5 기록 완료
    - R4는 historical IQ pass/source freeze 4/5, rust blocked 1/5이며 R4 disposition set은 future beauty에 재사용하지 않음
    - Wood high direct finding을 policy-bound IQ 입력으로 연결하는 bridge와 bounded beveled-relief geometry capability 검증 완료
@@ -1060,24 +1071,29 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      exact V0.7 optimization plan 승인도 기록 완료
    - 원래 host delivery 실패 terminal은 불변 보존; R01~R06 technical recovery와 R07 evidence-only
      revalidation을 거친 `r5d-recovery-r06-gltf`는 package/round-trip/geometry-survival 기술 검증 통과
-   - technical package manifest와 post-publication round-trip에 대한 exact host acceptance 전에는
-     `host_delivery_adopted=false`, `production_package_authorized=false`를 유지
-   - exact package acceptance로 단일 Laser 폐루프를 닫기 전에는 다시 5개 전체 캠페인을 시작하지 않음
+   - exact manifest/round-trip 승인 뒤 single-use package acceptance
+     `package.acceptance.2ddcfd0e2125871e22282a3a`가 소비되어 단일 Laser package 폐루프 완료
+   - acceptance는 원래 failed AQ terminal이나 R07을 소급 변경하지 않고 destination write/profile Activation도
+     승인하지 않음
+   - 새 clean source checkpoint의 Registry/Eligibility/Index/Readiness가 Stage 9 진입과 AQ base NO-GO를
+     별도 machine decision으로 재평가하기 전에는 profile 상태를 변경하지 않음
    - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
      누락을 숨기지 않고 명시적 input/authority blocker로 이월
 8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
-   [현재 NO-GO 기준선 완료: `6572b22d45dba610e3b69468bedf4e2b34c6296c`]
+   [기존 NO-GO 기준선: `6572b22d45dba610e3b69468bedf4e2b34c6296c`; R5D package acceptance 후 재평가 진행]
    - 이전 `da44e3e6bf985ad6e5673bce1ff01582252c7e53` NO-GO snapshot은 불변 보존
    - current source manifest `activation-source-26f37fa8e845482a5309e11e`
    - current baseline `activation-baseline-4de9c955ee1e3716a4b14b49`
    - validation receipt 17개, candidate 0/5와 blocker 10개를 누락하지 않은 readiness
    - R5~R5D와 delivery R01~R07은 이 baseline에 결속된 append-only 후속 evidence이며 current candidate
      index를 소급 변경하지 않음
-   - R5D accepted disposition과 delivery 기술 수정의 full gate/clean commit을 먼저 고정하고, exact package
-     acceptance 뒤 새 ActivationSourceManifest/Baseline 및 Registry/Index/Readiness를 별도 재평가
+   - R5D accepted disposition, delivery 기술 수정의 full gate/clean commit과 exact package acceptance 완료
+   - acceptance를 새 source authority로 오인하지 않고, 최종 clean documentation checkpoint에서 새
+     ActivationSourceManifest/Baseline 및 Registry/Eligibility/Index/Readiness를 append-only 재평가
 9. Codex ImageGen overlay one-prompt benchmark와 activation review
-   - R4 5개와 R5B/R5C/R5D disposition은 완료됐으며, R5D technical package의 exact host acceptance로
-     delivery 폐루프가 닫히고 미해결 local framework 결함이 없을 때 시작 가능 여부를 재판정
+   - R4 5개와 R5B/R5C/R5D disposition 및 R5D exact package acceptance는 완료
+   - 새 Activation machine evidence가 단일 Laser package 폐루프, 남은 local framework 결함과 source-baseline
+     불일치를 투명하게 분리한 뒤 `campaign_decision.json`으로 시작 가능 여부를 재판정
    - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
    - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유
 10. Standard Generated Texture Intake 0.1
