@@ -178,6 +178,26 @@ def test_v2_profile_is_parallel_and_disabled_until_full_gates() -> None:
     )
 
 
+def test_incomplete_profile_publication_cannot_use_experimental_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Fail closed when a source publication exists but is not committed and valid."""
+
+    import codex_blender_modeler.autonomy_v2.planner as planner
+
+    def pending_profile() -> dict[str, object]:
+        """Return one valid-looking but uncommitted publication projection."""
+
+        return {
+            "status": "disabled_experimental",
+            "publication_state": "pending_source_commit",
+        }
+
+    monkeypatch.setattr(planner, "autonomy_v2_profile_status", pending_profile)
+    with pytest.raises(PermissionError, match="source repair is required"):
+        planner._runtime_profile_binding(allow_disabled_experimental=True)
+
+
 def test_root_authorization_binds_dual_delivery_without_review_only() -> None:
     """GLB and FBX may be jointly authorized while review-only remains exclusive."""
 

@@ -151,7 +151,9 @@ ambiguous로 제외한다.
 `ActivationCampaignOutcomeIndex`는 위 두 정상 terminal을 별도로 세되, 5개 outcome 중 최소 1개는
 검증된 portable GLTF package와 clean import를 가진 production delivery여야 한다. profile publication은
 이 index와 정확히 다섯 reference hash를 결속한 single-use `HumanLocalActivationAcceptance` 없이는
-진행하지 않는다.
+진행하지 않는다. host writer는 exact `ready_for_profile_publication` report를 다시 검증하고 고정된
+`.codex/activation/autonomous_static_prop_v2.local.json`만 create-once로 작성한다. 이 파일이 현재 Git
+`HEAD`에 추적되고 변경이 없어질 때까지 profile은 계속 `disabled_experimental`이다.
 
 이 1차 범위는 `local_desktop_in_session`의 workflow-contract-only 경계다. desktop 실행을 sandbox
 attestation으로 표현하지 않는다. Unity/Unreal runtime parity와 supporting-client tool-policy

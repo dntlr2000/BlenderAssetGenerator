@@ -59,8 +59,8 @@ def test_v2_catalog_entries_remain_experimental() -> None:
     assert deliveries["review_only"].handoff_eligible is False
 
 
-def test_activation_readiness_catalog_never_exposes_an_activation_writer() -> None:
-    """Keep source checkpoint and human acceptance outside controller authority."""
+def test_activation_readiness_catalog_exposes_only_the_exact_source_writer() -> None:
+    """Expose the guarded writer without weakening source or human requirements."""
 
     entry = catalog.ACTIVATION_READINESS_CONTRACTS[0]
     assert entry.version == "0.1.0"
@@ -68,7 +68,7 @@ def test_activation_readiness_catalog_never_exposes_an_activation_writer() -> No
     assert entry.profile_id == "autonomous_static_prop_v2"
     assert entry.source_checkpoint_required is True
     assert entry.human_acceptance_required is True
-    assert entry.profile_activation_writer_exposed is False
+    assert entry.profile_activation_writer_exposed is True
 
 
 def test_pure_catalog_import_never_loads_bpy() -> None:

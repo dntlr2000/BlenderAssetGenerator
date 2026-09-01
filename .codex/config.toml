@@ -50,6 +50,7 @@ enabled_tools = [
   "apply_scene_spec_v03_migration",
   "plan_autonomous_quality",
   "get_autonomy_v2_profile_status",
+  "publish_local_aq_profile",
   "list_autonomy_v2_delivery_profiles",
   "get_codex_imagegen_status",
   "plan_codex_imagegen",

@@ -312,6 +312,9 @@ from .production import (
     get_asset_production_dispatch_status as get_production_dispatch_status_internal,
 )
 from .production import (
+    publish_local_activation_profile_from_path as publish_local_aq_profile_internal,
+)
+from .production import (
     record_delegated_production_step as record_production_step_internal,
 )
 from .production.controller_executor import (
@@ -1752,9 +1755,30 @@ def plan_autonomous_quality(
 
 @mcp.tool()
 def get_autonomy_v2_profile_status() -> dict:
-    """Report AQ v2 as disabled until its complete host and Blender gate is recorded."""
+    """Report AQ v2 without accepting an uncommitted local publication."""
 
     return autonomy_v2_profile_status_internal()
+
+
+@mcp.tool()
+def publish_local_aq_profile(
+    readiness_report_path: str,
+    exact_readiness_sha256: str,
+) -> dict:
+    """Create one fixed source publication from exact accepted readiness evidence."""
+
+    repository = Path.cwd().resolve(strict=True)
+    publication, artifact = publish_local_aq_profile_internal(
+        repository,
+        readiness_report_path=repository / readiness_report_path,
+        exact_readiness_sha256=exact_readiness_sha256,
+    )
+    return {
+        "publication": publication.model_dump(mode="json"),
+        "artifact": artifact.model_dump(mode="json"),
+        "profile_status": "disabled_experimental",
+        "next_action": "commit_source_publication_then_revalidate",
+    }
 
 
 @mcp.tool()

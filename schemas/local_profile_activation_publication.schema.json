@@ -1,0 +1,230 @@
+{
+  "$defs": {
+    "ActivationPublicationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable repository artifact used to activate the local profile.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationPublicationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one exact accepted campaign to the narrow local verified profile.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "publication_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Publication Id",
+      "type": "string"
+    },
+    "publication_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Publication Sha256",
+      "type": "string"
+    },
+    "source_control_path": {
+      "const": ".codex/activation/autonomous_static_prop_v2.local.json",
+      "default": ".codex/activation/autonomous_static_prop_v2.local.json",
+      "title": "Source Control Path",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "autonomous_static_prop_v2",
+      "default": "autonomous_static_prop_v2",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "profile_status": {
+      "const": "verified_active",
+      "default": "verified_active",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "activation_scope": {
+      "const": "local_desktop_in_session",
+      "default": "local_desktop_in_session",
+      "title": "Activation Scope",
+      "type": "string"
+    },
+    "reference_content_scope": {
+      "const": "primary_object_only",
+      "default": "primary_object_only",
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "supported_asset_kinds": {
+      "items": {
+        "enum": [
+          "static_hard_surface",
+          "static_prop"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Supported Asset Kinds",
+      "type": "array"
+    },
+    "supported_delivery_profiles": {
+      "items": {
+        "enum": [
+          "portable_gltf",
+          "review_only"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Supported Delivery Profiles",
+      "type": "array"
+    },
+    "source_git_commit_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Git Commit Sha",
+      "type": "string"
+    },
+    "source_git_tree_sha": {
+      "pattern": "^[0-9a-f]{40}$",
+      "title": "Source Git Tree Sha",
+      "type": "string"
+    },
+    "activation_baseline": {
+      "$ref": "#/$defs/ActivationPublicationArtifact"
+    },
+    "campaign_outcome_index": {
+      "$ref": "#/$defs/ActivationPublicationArtifact"
+    },
+    "local_readiness_report": {
+      "$ref": "#/$defs/ActivationPublicationArtifact"
+    },
+    "human_activation_acceptance": {
+      "$ref": "#/$defs/ActivationPublicationArtifact"
+    },
+    "activation_evidence": {
+      "items": {
+        "$ref": "#/$defs/ActivationPublicationArtifact"
+      },
+      "maxItems": 4,
+      "minItems": 4,
+      "title": "Activation Evidence",
+      "type": "array"
+    },
+    "distinct_primary_reference_sha256s": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Distinct Primary Reference Sha256S",
+      "type": "array"
+    },
+    "production_package_count": {
+      "minimum": 1,
+      "title": "Production Package Count",
+      "type": "integer"
+    },
+    "excluded_capabilities": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Excluded Capabilities",
+      "type": "array"
+    },
+    "future_limitations": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Future Limitations",
+      "type": "array"
+    },
+    "published_at": {
+      "format": "date-time",
+      "title": "Published At",
+      "type": "string"
+    },
+    "single_use_acceptance_consumed": {
+      "const": true,
+      "default": true,
+      "title": "Single Use Acceptance Consumed",
+      "type": "boolean"
+    },
+    "destination_write_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write Authorized",
+      "type": "boolean"
+    },
+    "is_policy_authorization": {
+      "const": false,
+      "default": false,
+      "title": "Is Policy Authorization",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "publication_id",
+    "publication_sha256",
+    "supported_asset_kinds",
+    "supported_delivery_profiles",
+    "source_git_commit_sha",
+    "source_git_tree_sha",
+    "activation_baseline",
+    "campaign_outcome_index",
+    "local_readiness_report",
+    "human_activation_acceptance",
+    "activation_evidence",
+    "distinct_primary_reference_sha256s",
+    "production_package_count",
+    "excluded_capabilities",
+    "future_limitations",
+    "published_at"
+  ],
+  "title": "LocalProfileActivationPublication",
+  "type": "object"
+}

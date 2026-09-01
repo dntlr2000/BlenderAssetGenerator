@@ -3,6 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from codex_blender_modeler.activation_profile_publication import (
+    LocalProfileActivationPublication,
+)
 from codex_blender_modeler.analysis.models import (
     AssemblyValidationReport,
     CameraSolution,
@@ -609,6 +612,9 @@ SCHEMAS = {
     "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
     "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
     "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
+    "local_profile_activation_publication.schema.json": (
+        LocalProfileActivationPublication
+    ),
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
     "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
     "delegated_production_controller_plan.schema.json": DelegatedProductionControllerPlan,

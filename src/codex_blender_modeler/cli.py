@@ -206,6 +206,7 @@ from .production import (
     bind_asset_production_task,
     create_asset_production_dispatch,
     get_asset_production_dispatch_status,
+    publish_local_activation_profile_from_path,
     record_delegated_production_step,
 )
 from .production.controller_executor import (
@@ -2192,9 +2193,44 @@ def autonomy_profile_status_command(
 
 @app.command("autonomy-v2-profile-status")
 def autonomy_v2_profile_status_command() -> None:
-    """Report the parallel AQ v2 activation state without enabling it."""
+    """Report the AQ v2 state without treating an uncommitted publication as active."""
 
     console.print_json(json.dumps(autonomy_v2_profile_status(), ensure_ascii=False))
+
+
+@app.command("activation-local-profile-publish")
+def activation_local_profile_publish_command(
+    readiness_report: Annotated[Path, typer.Option("--readiness-report")],
+    exact_readiness_sha256: Annotated[
+        str,
+        typer.Option("--exact-readiness-sha256"),
+    ],
+    root: Annotated[Path, typer.Option("--root")] = Path("."),
+) -> None:
+    """Consume one exact ready report into the fixed pending source publication."""
+
+    repository = root.expanduser().resolve(strict=True)
+    report_path = (
+        readiness_report
+        if readiness_report.is_absolute()
+        else repository / readiness_report
+    )
+    publication, artifact = publish_local_activation_profile_from_path(
+        repository,
+        readiness_report_path=report_path,
+        exact_readiness_sha256=exact_readiness_sha256,
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "publication": publication.model_dump(mode="json"),
+                "artifact": artifact.model_dump(mode="json"),
+                "profile_status": "disabled_experimental",
+                "next_action": "commit_source_publication_then_revalidate",
+            },
+            ensure_ascii=False,
+        )
+    )
 
 
 @app.command("autonomy-v2-delivery-profiles")

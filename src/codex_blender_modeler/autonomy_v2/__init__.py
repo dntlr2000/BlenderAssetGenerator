@@ -1,5 +1,11 @@
 """Public parallel Autonomous Quality 0.2 contract surface."""
 
+from ..activation_profile_publication import (
+    LocalProfileActivationPublication,
+    load_local_profile_activation_publication,
+    local_profile_publication_is_head_tracked,
+    local_profile_publication_path,
+)
 from .approval_models import (
     ApprovalArtifact,
     AQV2ApprovalBudget,
@@ -217,6 +223,7 @@ __all__ = [
     "MaterialPhaseRollbackReceiptV2",
     "MaterialPolicyAuthorizationConsumptionReceiptV03",
     "MaterialPromotionIntentV2",
+    "LocalProfileActivationPublication",
     "QualityApprovedSourceFreeze",
     "QualityReviewActionV2",
     "QualityReviewBundleV2",
@@ -257,6 +264,9 @@ __all__ = [
     "get_escalation_status",
     "get_one_prompt_status",
     "initialize_codex_image_phase",
+    "load_local_profile_activation_publication",
+    "local_profile_publication_is_head_tracked",
+    "local_profile_publication_path",
     "prepare_v07_delivery_reviews",
     "plan_autonomous_static_prop_v2",
     "plan_approval_envelope",

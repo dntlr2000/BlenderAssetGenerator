@@ -80,7 +80,7 @@ class AutonomyProfileCatalogEntry:
 
 @dataclass(frozen=True)
 class ActivationReadinessCatalogEntry:
-    """Describe one non-activating profile-readiness companion contract."""
+    """Describe one exact readiness and source-publication companion contract."""
 
     contract_id: str
     version: str
@@ -91,7 +91,7 @@ class ActivationReadinessCatalogEntry:
     profile_activation_writer_exposed: bool
 
     def as_dict(self) -> dict[str, object]:
-        """Project the immutable readiness entry without granting activation authority."""
+        """Project the writer capability without granting its human acceptance."""
 
         return {
             "contract_id": self.contract_id,
@@ -170,7 +170,7 @@ ACTIVATION_READINESS_CONTRACTS = (
         profile_id="autonomous_static_prop_v2",
         source_checkpoint_required=True,
         human_acceptance_required=True,
-        profile_activation_writer_exposed=False,
+        profile_activation_writer_exposed=True,
     ),
 )
 
@@ -688,6 +688,22 @@ def build_tool_surface_catalog(root: Path) -> ToolSurfaceCatalog:
     )
 
 
+def autonomy_profile_catalog_projection(root: Path) -> list[dict[str, object]]:
+    """Overlay only a committed AQ v2 publication onto the static profile catalog."""
+
+    from .autonomy_v2.profiles import autonomy_v2_profile_status
+
+    current_v2 = autonomy_v2_profile_status(root)
+    records = [entry.as_dict() for entry in AUTONOMY_PROFILES]
+    for record in records:
+        if record["profile_id"] == "autonomous_static_prop_v2":
+            record["status"] = current_v2["status"]
+            record["activation_scope"] = current_v2["activation_scope"]
+            record["publication_state"] = current_v2["publication_state"]
+            break
+    return records
+
+
 def validate_repository_catalog(root: Path) -> tuple[str, ...]:
     """Return deterministic drift findings for pure registries and tool surfaces."""
 
@@ -725,14 +741,17 @@ def validate_repository_catalog(root: Path) -> tuple[str, ...]:
         )
         for entry in profile_registry()
     }
-    for v2_profile in autonomy_v2_profile_catalog():
+    for v2_profile in autonomy_v2_profile_catalog(root):
         runtime_profiles[str(v2_profile["profile_id"])] = (
             str(v2_profile["status"]),
             str(v2_profile["contract_version"]),
         )
     catalog_profiles = {
-        entry.profile_id: (entry.status, entry.contract_version)
-        for entry in AUTONOMY_PROFILES
+        str(entry["profile_id"]): (
+            str(entry["status"]),
+            str(entry["contract_version"]),
+        )
+        for entry in autonomy_profile_catalog_projection(root)
     }
     if runtime_profiles != catalog_profiles:
         findings.append("autonomy profile catalog differs from runtime profile registry")
@@ -821,7 +840,7 @@ def repository_catalog_projection(root: Path) -> dict[str, Any]:
             "legacy": list(LEGACY_BUILDER_KINDS),
             "structural": list(STRUCTURAL_BUILDER_KINDS),
         },
-        "autonomy_profiles": [entry.as_dict() for entry in AUTONOMY_PROFILES],
+        "autonomy_profiles": autonomy_profile_catalog_projection(root),
         "activation_readiness_contracts": [
             entry.as_dict() for entry in ACTIVATION_READINESS_CONTRACTS
         ],

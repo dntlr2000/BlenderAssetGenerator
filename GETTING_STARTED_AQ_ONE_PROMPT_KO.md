@@ -90,6 +90,19 @@ uv run cbm aq-one-prompt-skill-reconcile-terminal <JOB_ID> <SKILL_RUN_ID> `
 이 명령은 원래 failed terminal을 완료로 바꾸지 않고 adapter projection만 append-only로 닫는다. 결과는
 `reconciled_failed_recovery`이며 Activation campaign 성공 대상으로 계산하지 않는다.
 
+5개 current-baseline outcome, production package 최소 1개와 exact human local acceptance가 모두 결속된
+readiness가 `ready_for_profile_publication`이면 다음 단일사용 경로만 profile publication을 만들 수 있다.
+
+```powershell
+uv run cbm activation-local-profile-publish `
+  --readiness-report <REPORTS_RELATIVE_LOCAL_READINESS_JSON> `
+  --exact-readiness-sha256 <EXACT_SHA256>
+```
+
+이 명령은 고정 `.codex/activation/autonomous_static_prop_v2.local.json`을 create-once로 생성하지만 즉시
+profile을 활성화하지 않는다. exact 파일을 source commit으로 고정하고 post-publication 전체 gate를 통과한
+뒤 current `HEAD`와 파일이 일치할 때만 `autonomy-v2-profile-status`가 `verified_active`를 반환한다.
+
 ## 5. controller 대기
 
 `waiting_for_controller`이면 supervisor가 request-owned assignment와 exact allowed outputs를 게시한

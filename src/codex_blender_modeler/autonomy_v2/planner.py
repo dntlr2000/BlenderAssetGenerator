@@ -33,7 +33,7 @@ from .models import (
     DeliveryProfileId,
     RootAuthorizationV2,
 )
-from .profiles import PROFILE_STATUS
+from .profiles import autonomy_v2_profile_status
 
 _PHASE_PROFILE_SPECS: tuple[tuple[str, list[str], list[str]], ...] = (
     ("reference_readonly", ["reference", "workflow-request"], []),
@@ -65,6 +65,29 @@ def _sha256_text(value: str) -> str:
     """Hash user text exactly without persisting any absolute source path."""
 
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+
+def _runtime_profile_binding(
+    *,
+    allow_disabled_experimental: bool,
+) -> tuple[str, list[AQV2Artifact]]:
+    """Resolve the profile and require committed activation evidence when active."""
+
+    projection = autonomy_v2_profile_status()
+    status = str(projection.get("status", "disabled_experimental"))
+    publication_state = str(projection.get("publication_state", "absent"))
+    if publication_state not in {"absent", "verified_active"}:
+        raise PermissionError(
+            "AQ v2 profile publication is incomplete or invalid; source repair is required"
+        )
+    if status != "verified_active":
+        if not allow_disabled_experimental:
+            raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
+        return "disabled_experimental", []
+    payload = projection.get("activation_evidence")
+    if not isinstance(payload, list) or not payload:
+        raise RuntimeError("verified AQ v2 profile has no exact activation evidence")
+    return status, [AQV2Artifact.model_validate(item) for item in payload]
 
 
 def _dispatch_purpose(
@@ -199,8 +222,9 @@ def plan_autonomous_static_prop_v2(
         "custom_unverified",
     }:
         raise ValueError("unsupported AQ v2 destination hint")
-    if PROFILE_STATUS != "verified_active" and not allow_disabled_experimental:
-        raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
+    profile_status, profile_activation_evidence = _runtime_profile_binding(
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
 
     production = create_asset_production_dispatch(
         normalized_request,
@@ -348,12 +372,12 @@ def plan_autonomous_static_prop_v2(
         session_id=session_id,
         input_sha256=stable_json_digest(profile_input),
         source_fingerprint=stable_json_digest(
-            {**profile_input, "status": PROFILE_STATUS}
+            {**profile_input, "status": profile_status}
         ),
         producer="codex_blender_modeler.autonomy_v2.planner",
         provenance=[budget_artifact, quality_policy_artifact, *phase_profiles],
         created_at=created_at,
-        status=PROFILE_STATUS,
+        status=profile_status,
         allowed_asset_kinds=["static_hard_surface", "static_prop"],
         allowed_delivery_profiles=["review_only", "portable_gltf", "portable_fbx"],
         prohibited_capabilities=[
@@ -369,6 +393,7 @@ def plan_autonomous_static_prop_v2(
             "destination_project_write",
             "synthetic_user_approval",
         ],
+        activation_evidence=profile_activation_evidence,
     )
     profile_artifact = write_immutable_v2_model(
         root,
@@ -495,7 +520,7 @@ def plan_autonomous_static_prop_v2(
         state,
     )
     return {
-        "profile_status": PROFILE_STATUS,
+        "profile_status": profile_status,
         "experimental_override_used": allow_disabled_experimental,
         "job_id": created_job_id,
         "workflow_id": workflow_id,
@@ -536,8 +561,9 @@ def plan_geometry_repair_session_v2(
     exact_request = str(approval_request)
     if not exact_request.strip():
         raise ValueError("AQ v2 geometry repair requires the exact approval request")
-    if PROFILE_STATUS != "verified_active" and not allow_disabled_experimental:
-        raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
+    profile_status, profile_activation_evidence = _runtime_profile_binding(
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
     if not target_material_changes:
         raise ValueError("AQ v2 geometry repair requires at least one exact binding change")
     root = job_dir(job_id)
@@ -721,12 +747,12 @@ def plan_geometry_repair_session_v2(
         session_id=session_id,
         input_sha256=stable_json_digest(profile_input),
         source_fingerprint=stable_json_digest(
-            {**profile_input, "status": PROFILE_STATUS}
+            {**profile_input, "status": profile_status}
         ),
         producer="codex_blender_modeler.autonomy_v2.planner",
         provenance=[budget_artifact, quality_policy_artifact, *phase_profiles],
         created_at=created_at,
-        status=PROFILE_STATUS,
+        status=profile_status,
         allowed_asset_kinds=["static_hard_surface", "static_prop"],
         allowed_delivery_profiles=["review_only", "portable_gltf", "portable_fbx"],
         prohibited_capabilities=[
@@ -742,6 +768,7 @@ def plan_geometry_repair_session_v2(
             "destination_project_write",
             "synthetic_user_approval",
         ],
+        activation_evidence=profile_activation_evidence,
     )
     profile_artifact = write_immutable_v2_model(
         root,
@@ -868,7 +895,7 @@ def plan_geometry_repair_session_v2(
         state,
     )
     return {
-        "profile_status": PROFILE_STATUS,
+        "profile_status": profile_status,
         "experimental_override_used": allow_disabled_experimental,
         "job_id": job_id,
         "workflow_id": source_plan.workflow_id,

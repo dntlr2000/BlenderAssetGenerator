@@ -62,7 +62,7 @@ from .models import (
     QualityApprovedSourceFreeze,
     RootAuthorizationV2,
 )
-from .profiles import PROFILE_STATUS, delivery_profile
+from .profiles import autonomy_v2_profile_status, delivery_profile
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
@@ -1395,8 +1395,14 @@ def create_delivery_plan(
         root_authorization_artifact=root_authorization_artifact,
     )
     freeze = _load_model(root, source_freeze_artifact, QualityApprovedSourceFreeze)
+    live_profile = autonomy_v2_profile_status()
+    live_profile_status = live_profile.get("status")
+    if live_profile.get("publication_state") not in {"absent", "verified_active"}:
+        raise PermissionError(
+            "AQ v2 profile publication is incomplete or invalid; source repair is required"
+        )
     if (
-        PROFILE_STATUS != "verified_active" or profile.status != "verified_active"
+        live_profile_status != "verified_active" or profile.status != "verified_active"
     ) and not allow_disabled_experimental:
         raise PermissionError("autonomous_static_prop_v2 is disabled_experimental")
     if (

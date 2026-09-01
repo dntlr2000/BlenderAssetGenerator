@@ -174,6 +174,9 @@ Activation focused gate는 추가로 다음을 검증한다.
 - historical `reconciled_failed_recovery`는 campaign 성공으로 계산하지 않을 것
 - local blocker, excluded capability와 future limitation을 서로 다른 machine field로 유지할 것
 - exact `HumanLocalActivationAcceptance`가 없으면 publication-ready가 되지 않을 것
+- publication writer가 exact clean baseline과 readiness hash를 재검증하고 acceptance를 한 번만 소비할 것
+- publication 파일이 untracked/modified/invalid이면 profile은 계속 disabled로 fail-closed할 것
+- 고정 publication이 current `HEAD`에 추적된 뒤에만 exact activation evidence와 함께 `verified_active`일 것
 
 ImageGen overlay는 실제 built-in invocation과 semantic/material benchmark가 추가로 필요하며 base
 local-only 5개 캠페인의 필수 capability가 아니다.

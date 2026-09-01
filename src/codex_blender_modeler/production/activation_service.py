@@ -15,6 +15,13 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
+from ..activation_profile_publication import (
+    EXCLUDED_LOCAL_CAPABILITIES,
+    FUTURE_LOCAL_LIMITATIONS,
+    LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH,
+    ActivationPublicationArtifact,
+    LocalProfileActivationPublication,
+)
 from ..blender_artifacts import (
     deterministic_json_bytes,
     native_io_path,
@@ -162,12 +169,14 @@ class ActivationValidationError(RuntimeError):
     """Signal a fail-closed activation contract or evidence mismatch."""
 
 
-def _require_disabled_activation_profile() -> dict[str, object]:
+def _require_disabled_activation_profile(
+    root: Path | None = None,
+) -> dict[str, object]:
     """Require the live AQ v2 registry to remain disabled before readiness work."""
 
     from ..autonomy_v2.profiles import autonomy_v2_profile_status
 
-    profile = autonomy_v2_profile_status()
+    profile = autonomy_v2_profile_status(root)
     if profile.get("status") != "disabled_experimental" or profile.get(
         "verified_active"
     ) is not False:
@@ -604,7 +613,7 @@ def create_activation_baseline(
     for receipt in receipts:
         if receipt.output_artifact is not None:
             _validate_artifact(repository, receipt.output_artifact)
-    _require_disabled_activation_profile()
+    _require_disabled_activation_profile(repository)
     payload: dict[str, Any] = {
         "source_manifest": source_manifest_artifact,
         "source_manifest_id": manifest.manifest_id,
@@ -1906,8 +1915,8 @@ def validate_human_local_activation_acceptance(
 
     if acceptance_artifact is None:
         raise PermissionError("local profile publication requires exact human acceptance")
-    _require_disabled_activation_profile()
     repository = root.expanduser().resolve(strict=True)
+    _require_disabled_activation_profile(repository)
     baseline = load_activation_baseline(repository, baseline_artifact)
     index = _load_contract(
         repository,
@@ -1950,6 +1959,9 @@ def validate_human_local_activation_acceptance(
     )
     if consumption.exists():
         raise PermissionError("human local activation acceptance was already consumed")
+    publication = repository / LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH
+    if os.path.lexists(native_io_path(publication)):
+        raise PermissionError("human local activation acceptance was already consumed")
     return acceptance
 
 
@@ -1968,7 +1980,7 @@ def create_local_activation_readiness_report(
     """Publish structured local readiness while separating future limitations."""
 
     repository = root.expanduser().resolve(strict=True)
-    profile = _require_disabled_activation_profile()
+    profile = _require_disabled_activation_profile(repository)
     manifest = load_activation_source_manifest(repository, source_manifest_artifact)
     baseline = load_activation_baseline(repository, baseline_artifact)
     blockers = list(validation_blockers)
@@ -2127,6 +2139,160 @@ def create_local_activation_readiness_report(
     return report, artifact
 
 
+def publish_local_activation_profile(
+    root: Path,
+    *,
+    readiness_artifact: ActivationArtifact,
+    published_at: datetime | None = None,
+) -> tuple[LocalProfileActivationPublication, ActivationArtifact]:
+    """Consume exact local acceptance into one pending source-controlled publication."""
+
+    repository = root.expanduser().resolve(strict=True)
+    _require_disabled_activation_profile(repository)
+    readiness = _load_contract(
+        repository,
+        readiness_artifact,
+        LocalActivationReadinessReport,
+    )
+    if (
+        readiness.status != "ready_for_profile_publication"
+        or readiness.validation_blockers
+        or readiness.open_requirements
+        or readiness.distinct_campaign_outcome_count != 5
+        or readiness.production_package_count < 1
+        or readiness.campaign_outcome_index is None
+        or readiness.exact_human_activation_acceptance is None
+    ):
+        raise PermissionError(
+            "local profile publication requires exact ready_for_profile_publication evidence"
+        )
+    baseline = load_activation_baseline(repository, readiness.activation_baseline)
+    campaign_index = _load_contract(
+        repository,
+        readiness.campaign_outcome_index,
+        ActivationCampaignOutcomeIndex,
+    )
+    acceptance = validate_human_local_activation_acceptance(
+        repository,
+        baseline_artifact=readiness.activation_baseline,
+        campaign_outcome_index_artifact=readiness.campaign_outcome_index,
+        acceptance_artifact=readiness.exact_human_activation_acceptance,
+        observed_at=published_at,
+    )
+    checkpoint = inspect_activation_source_checkpoint(repository)
+    if (
+        not checkpoint["working_tree_clean"]
+        or checkpoint["git_commit_sha"] != baseline.git_commit_sha
+        or checkpoint["git_tree_sha"] != baseline.git_tree_sha
+    ):
+        raise SourceCheckpointRequired(
+            "local profile publication requires the exact clean baseline source commit"
+        )
+    accepted_hashes = sorted(
+        group.primary_reference_sha256
+        for group in campaign_index.reference_groups
+        if group.counted_asset_units == 1
+    )
+    if (
+        campaign_index.source_activation_baseline != readiness.activation_baseline
+        or campaign_index.distinct_successful_asset_count != 5
+        or campaign_index.production_package_count < 1
+        or acceptance.distinct_primary_reference_sha256s != accepted_hashes
+    ):
+        raise PermissionError("local profile publication campaign binding is incomplete")
+    publication_path = ensure_contained_production_path(
+        repository,
+        repository / LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH,
+        must_exist=False,
+    )
+    if os.path.lexists(native_io_path(publication_path)):
+        raise PermissionError("local profile activation publication already exists")
+    evidence = [
+        ActivationPublicationArtifact.model_validate(
+            item.model_dump(mode="json")
+        )
+        for item in (
+            readiness.activation_baseline,
+            readiness.campaign_outcome_index,
+            readiness_artifact,
+            readiness.exact_human_activation_acceptance,
+        )
+    ]
+    payload: dict[str, Any] = {
+        "source_git_commit_sha": baseline.git_commit_sha,
+        "source_git_tree_sha": baseline.git_tree_sha,
+        "activation_baseline": evidence[0],
+        "campaign_outcome_index": evidence[1],
+        "local_readiness_report": evidence[2],
+        "human_activation_acceptance": evidence[3],
+        "activation_evidence": evidence,
+        "distinct_primary_reference_sha256s": accepted_hashes,
+        "production_package_count": campaign_index.production_package_count,
+        "supported_asset_kinds": ["static_hard_surface", "static_prop"],
+        "supported_delivery_profiles": ["portable_gltf", "review_only"],
+        "excluded_capabilities": list(EXCLUDED_LOCAL_CAPABILITIES),
+        "future_limitations": list(FUTURE_LOCAL_LIMITATIONS),
+        "published_at": _utc_now(published_at),
+    }
+    publication = _build_contract(
+        LocalProfileActivationPublication,
+        payload,
+        prefix="local-profile-publication",
+        id_field="publication_id",
+        digest_field="publication_sha256",
+    )
+    publish_bytes_create_once(
+        publication_path,
+        deterministic_json_bytes(publication.model_dump(mode="json")),
+    )
+    artifact = _artifact_for(
+        repository,
+        publication_path,
+        artifact_id=publication.publication_id,
+        kind="local_profile_activation_publication",
+    )
+    return publication, artifact
+
+
+def publish_local_activation_profile_from_path(
+    root: Path,
+    *,
+    readiness_report_path: Path,
+    exact_readiness_sha256: str,
+    published_at: datetime | None = None,
+) -> tuple[LocalProfileActivationPublication, ActivationArtifact]:
+    """Bind one exact readiness JSON path before invoking the publication writer."""
+
+    repository = root.expanduser().resolve(strict=True)
+    path = ensure_contained_production_path(
+        repository,
+        readiness_report_path,
+        must_exist=True,
+    )
+    relative = path.relative_to(repository).as_posix()
+    if not relative.startswith("reports/activation_readiness/"):
+        raise ActivationValidationError(
+            "local profile publication readiness must be below reports/activation_readiness"
+        )
+    observed_sha256 = sha256_file(path)
+    if observed_sha256 != exact_readiness_sha256:
+        raise PermissionError("local activation readiness hash differs from exact request")
+    readiness = LocalActivationReadinessReport.model_validate_json(
+        Path(native_io_path(path)).read_bytes()
+    )
+    artifact = _artifact_for(
+        repository,
+        path,
+        artifact_id=readiness.report_id,
+        kind="local_activation_readiness_report",
+    )
+    return publish_local_activation_profile(
+        repository,
+        readiness_artifact=artifact,
+        published_at=published_at,
+    )
+
+
 def validate_human_activation_acceptance(
     root: Path,
     *,
@@ -2142,8 +2308,8 @@ def validate_human_activation_acceptance(
         raise PermissionError(
             "profile activation requires exact HumanActivationAcceptance"
         )
-    _require_disabled_activation_profile()
     repository = root.expanduser().resolve(strict=True)
+    _require_disabled_activation_profile(repository)
     baseline = load_activation_baseline(repository, baseline_artifact)
     index = _load_contract(
         repository,
@@ -2205,7 +2371,7 @@ def create_activation_readiness_report(
     repository = root.expanduser().resolve(strict=True)
     blockers = sorted(set(validation_blockers))
     try:
-        _require_disabled_activation_profile()
+        _require_disabled_activation_profile(repository)
     except ActivationValidationError as exc:
         blockers = sorted(set([*blockers, str(exc)]))
     if blockers:
@@ -2291,7 +2457,11 @@ def activation_contract_capability() -> dict[str, object]:
         "local_activation_scope": "local_desktop_in_session",
         "structured_local_readiness_supported": True,
         "human_activation_acceptance_required": True,
-        "profile_activation_writer_exposed": False,
+        "profile_activation_writer_exposed": True,
+        "profile_activation_publication_path": (
+            LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH
+        ),
+        "profile_activation_requires_source_commit": True,
         "campaign_creation_supported_by_this_service": False,
         "legacy_auto_migration": False,
     }

@@ -1149,6 +1149,8 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      서로 다른 machine-readable 분류로 투영
    - supporting-client closed-loop와 controller sandbox/tool-policy attestation은 실제 current-task 실행
      증거로 닫거나 미검증 local blocker로 유지하며, `desktop_in_session` 자체를 sandbox 증거로 사용하지 않음
+   - exact `ready_for_profile_publication`과 clean baseline을 재검증하고 single-use human acceptance를 소비하는
+     고정 source publication writer를 구현; untracked/modified publication은 Activation으로 인정하지 않음
    - 기존 두 Standard 실제 자산은 공통 orchestration/host 변경의 focused regression 대상으로 재확인하되,
      새 Standard 자산 캠페인은 공통 의미가 바뀌거나 회귀가 발견되지 않는 한 1차 완성 선행 조건으로 추가하지 않음
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
@@ -1169,7 +1171,8 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - distinct current-baseline campaign outcome 5/5와 production package 최소 1개를 별도 지표로 검증
    - exact human activation acceptance 없이는 profile status를 변경하지 않음
    - 모든 local-only 필수 조건과 single-use activation authority가 통과한 경우에만
-     `autonomous_static_prop_v2`의 좁은 지원 범위를 `verified_active`로 게시
+     고정 `.codex/activation/autonomous_static_prop_v2.local.json`을 create-once로 생성하고 source commit으로
+     고정한 뒤 `autonomous_static_prop_v2`의 좁은 지원 범위를 `verified_active`로 게시
    - 조건 미달이면 `disabled_experimental`을 유지하고 실패한 자산·framework·attestation blocker를 구분해
      1차 완성 미달 사유를 게시하며 과거 terminal이나 package를 재분류하지 않음
    - Standard 완료 범위, AQ 판정, known limitation, exact source/baseline/index/readiness와 실제 검증 결과를

@@ -10,6 +10,10 @@ from typing import Any
 import pytest
 from pydantic import BaseModel
 
+from codex_blender_modeler.activation_profile_publication import (
+    LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH,
+    LocalProfileActivationPublication,
+)
 from codex_blender_modeler.autonomy_v2.profiles import autonomy_v2_profile_status
 from codex_blender_modeler.blender_artifacts import (
     deterministic_json_bytes,
@@ -51,7 +55,9 @@ from codex_blender_modeler.production import (
     evaluate_activation_asset_eligibility,
     evaluate_activation_campaign_outcome,
     load_activation_source_manifest,
+    publish_local_activation_profile,
     validate_human_activation_acceptance,
+    validate_human_local_activation_acceptance,
     write_activation_campaign_registry,
     write_activation_candidate_registry,
 )
@@ -613,6 +619,113 @@ def _campaign_eligibility_fixture(
     return report, artifact
 
 
+def _ready_local_publication_fixture(
+    tmp_path: Path,
+) -> tuple[
+    Path,
+    ActivationBaseline,
+    ActivationArtifact,
+    ActivationCampaignOutcomeIndex,
+    ActivationArtifact,
+    HumanLocalActivationAcceptance,
+    ActivationArtifact,
+    LocalActivationReadinessReport,
+    ActivationArtifact,
+]:
+    """Create exact five-outcome, package, acceptance, and ready evidence."""
+
+    root, _source, source_artifact, baseline, baseline_artifact = _baseline_fixture(
+        tmp_path
+    )
+    reports = [
+        _campaign_eligibility_fixture(
+            root,
+            baseline,
+            baseline_artifact,
+            outcome_id=f"publication-{index}",
+            reference_bytes=f"publication-reference-{index}".encode(),
+            terminal_class=(
+                "production_delivery" if index == 0 else "usable_review_terminal"
+            ),
+        )
+        for index in range(5)
+    ]
+    entries = [
+        ActivationCampaignRegistryEntry(
+            outcome_id=report.evidence.outcome_id,
+            eligibility_report=artifact,
+        )
+        for report, artifact in reports
+    ]
+    _registry, registry_artifact = write_activation_campaign_registry(
+        root,
+        entries=entries,
+        output_path=root / "reports/activation_readiness/publication-registry.json",
+        generated_at=NOW,
+    )
+    index, index_artifact = build_activation_campaign_outcome_index(
+        root,
+        registry_artifact=registry_artifact,
+        expected_baseline_artifact=baseline_artifact,
+        output_path=root / "reports/activation_readiness/publication-index.json",
+        generated_at=NOW,
+    )
+    hashes = sorted(
+        group.primary_reference_sha256
+        for group in index.reference_groups
+        if group.counted_asset_units == 1
+    )
+    acceptance_payload: dict[str, Any] = {
+        "activation_baseline": baseline_artifact,
+        "activation_baseline_id": baseline.baseline_id,
+        "activation_baseline_sha256": baseline.baseline_sha256,
+        "campaign_outcome_index": index_artifact,
+        "campaign_outcome_index_id": index.index_id,
+        "campaign_outcome_index_sha256": index.index_sha256,
+        "distinct_primary_reference_sha256s": hashes,
+        "reviewer_identity": "fixture-local-reviewer",
+        "created_at": NOW,
+        "expires_at": NOW + timedelta(hours=1),
+    }
+    acceptance = _finalize_contract(
+        HumanLocalActivationAcceptance,
+        acceptance_payload,
+        prefix="human-local-activation",
+        id_field="acceptance_id",
+        digest_field="acceptance_sha256",
+    )
+    assert isinstance(acceptance, HumanLocalActivationAcceptance)
+    acceptance_artifact = _write_model(
+        root,
+        "reports/activation_readiness/local-acceptance.json",
+        acceptance,
+        artifact_id=acceptance.acceptance_id,
+        kind="human_local_activation_acceptance",
+    )
+    readiness, readiness_artifact = create_local_activation_readiness_report(
+        root,
+        source_manifest_artifact=source_artifact,
+        baseline_artifact=baseline_artifact,
+        campaign_outcome_index_artifact=index_artifact,
+        human_acceptance_artifact=acceptance_artifact,
+        output_path=root / "reports/activation_readiness/local-ready.json",
+        generated_at=NOW,
+    )
+    assert readiness_artifact is not None
+    assert readiness.status == "ready_for_profile_publication"
+    return (
+        root,
+        baseline,
+        baseline_artifact,
+        index,
+        index_artifact,
+        acceptance,
+        acceptance_artifact,
+        readiness,
+        readiness_artifact,
+    )
+
+
 def test_policy_decision_and_dependency_are_real_eligibility_requirements(
     tmp_path: Path,
 ) -> None:
@@ -836,6 +949,174 @@ def test_campaign_outcome_index_counts_reviews_separately_from_one_package(
     ]
     assert readiness.sandbox_attested is False
     assert readiness.client_mediated_verified is False
+
+
+def test_local_profile_publication_requires_the_exact_clean_baseline(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject publication when current source differs from the accepted baseline."""
+
+    (
+        root,
+        baseline,
+        _baseline_artifact,
+        _index,
+        _index_artifact,
+        _acceptance,
+        _acceptance_artifact,
+        _readiness,
+        readiness_artifact,
+    ) = _ready_local_publication_fixture(tmp_path)
+
+    def dirty_checkpoint(_root: Path) -> dict[str, object]:
+        """Return one mismatched source checkpoint for a fail-closed test."""
+
+        return {
+            "working_tree_clean": False,
+            "git_commit_sha": baseline.git_commit_sha,
+            "git_tree_sha": baseline.git_tree_sha,
+        }
+
+    monkeypatch.setattr(
+        activation_service,
+        "inspect_activation_source_checkpoint",
+        dirty_checkpoint,
+    )
+    with pytest.raises(SourceCheckpointRequired, match="exact clean baseline"):
+        publish_local_activation_profile(
+            root,
+            readiness_artifact=readiness_artifact,
+            published_at=NOW,
+        )
+    assert (root / LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH).exists() is False
+
+
+def test_local_profile_publication_consumes_acceptance_but_waits_for_commit(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Publish once, block acceptance reuse, and remain disabled before Git commit."""
+
+    (
+        root,
+        baseline,
+        baseline_artifact,
+        index,
+        index_artifact,
+        acceptance,
+        acceptance_artifact,
+        _readiness,
+        readiness_artifact,
+    ) = _ready_local_publication_fixture(tmp_path)
+
+    def clean_checkpoint(_root: Path) -> dict[str, object]:
+        """Return the exact synthetic baseline checkpoint for publication."""
+
+        return {
+            "working_tree_clean": True,
+            "git_commit_sha": baseline.git_commit_sha,
+            "git_tree_sha": baseline.git_tree_sha,
+        }
+
+    monkeypatch.setattr(
+        activation_service,
+        "inspect_activation_source_checkpoint",
+        clean_checkpoint,
+    )
+    publication, artifact = publish_local_activation_profile(
+        root,
+        readiness_artifact=readiness_artifact,
+        published_at=NOW,
+    )
+    assert publication.profile_status == "verified_active"
+    assert publication.production_package_count == 1
+    assert artifact.path == LOCAL_PROFILE_PUBLICATION_RELATIVE_PATH
+    assert artifact.sha256 == sha256_file(root / artifact.path)
+    status = autonomy_v2_profile_status(root)
+    assert status["status"] == "disabled_experimental"
+    assert status["publication_state"] == "pending_source_commit"
+    with pytest.raises(PermissionError, match="already consumed"):
+        validate_human_local_activation_acceptance(
+            root,
+            baseline_artifact=baseline_artifact,
+            campaign_outcome_index_artifact=index_artifact,
+            acceptance_artifact=acceptance_artifact,
+            observed_at=NOW,
+        )
+    assert acceptance.distinct_primary_reference_sha256s == sorted(
+        group.primary_reference_sha256
+        for group in index.reference_groups
+        if group.counted_asset_units == 1
+    )
+    with pytest.raises(
+        PermissionError,
+        match="already consumed|already exists|not disabled",
+    ):
+        publish_local_activation_profile(
+            root,
+            readiness_artifact=readiness_artifact,
+            published_at=NOW,
+        )
+
+
+def test_committed_local_publication_exposes_exact_activation_evidence(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Project verified_active only after the publication is treated as HEAD-tracked."""
+
+    (
+        root,
+        baseline,
+        _baseline_artifact,
+        _index,
+        _index_artifact,
+        _acceptance,
+        _acceptance_artifact,
+        _readiness,
+        readiness_artifact,
+    ) = _ready_local_publication_fixture(tmp_path)
+
+    def clean_checkpoint(_root: Path) -> dict[str, object]:
+        """Return the exact synthetic baseline checkpoint for publication."""
+
+        return {
+            "working_tree_clean": True,
+            "git_commit_sha": baseline.git_commit_sha,
+            "git_tree_sha": baseline.git_tree_sha,
+        }
+
+    monkeypatch.setattr(
+        activation_service,
+        "inspect_activation_source_checkpoint",
+        clean_checkpoint,
+    )
+    publication, _artifact_record = publish_local_activation_profile(
+        root,
+        readiness_artifact=readiness_artifact,
+        published_at=NOW,
+    )
+    import codex_blender_modeler.autonomy_v2.profiles as profiles
+
+    def committed_publication(_root: Path) -> bool:
+        """Treat the isolated publication as committed for runtime projection."""
+
+        return True
+
+    monkeypatch.setattr(
+        profiles,
+        "local_profile_publication_is_head_tracked",
+        committed_publication,
+    )
+    status = autonomy_v2_profile_status(root)
+    assert status["status"] == "verified_active"
+    assert status["verified_active"] is True
+    assert status["publication_id"] == publication.publication_id
+    assert status["activation_blockers"] == []
+    assert status["activation_evidence"] == [
+        item.model_dump(mode="json") for item in publication.activation_evidence
+    ]
 
 
 def test_campaign_outcome_evaluator_fails_closed_on_unstructured_terminal(
@@ -1117,7 +1398,7 @@ def test_activation_contract_writer_rejects_workspace_input_output(
     assert forbidden.exists() is False
 
 
-def test_human_acceptance_is_required_without_exposing_an_activation_writer(
+def test_human_acceptance_is_required_by_the_fail_closed_activation_writer(
     tmp_path: Path,
 ) -> None:
     """Refuse profile activation authority when exact human acceptance is absent."""
@@ -1140,7 +1421,8 @@ def test_human_acceptance_is_required_without_exposing_an_activation_writer(
             acceptance_artifact=None,
         )
     capability = activation_contract_capability()
-    assert capability["profile_activation_writer_exposed"] is False
+    assert capability["profile_activation_writer_exposed"] is True
+    assert capability["profile_activation_requires_source_commit"] is True
     assert capability["campaign_creation_supported_by_this_service"] is False
     profile = autonomy_v2_profile_status()
     assert profile["status"] == "disabled_experimental"
@@ -1177,7 +1459,7 @@ def test_readiness_fails_closed_if_the_live_profile_is_not_disabled(
 
     import codex_blender_modeler.autonomy_v2.profiles as profiles
 
-    def active_profile() -> dict[str, object]:
+    def active_profile(_root: Path | None = None) -> dict[str, object]:
         """Return one forbidden active projection for the readiness boundary."""
 
         return {"status": "verified_active", "verified_active": True}
@@ -1220,6 +1502,9 @@ SCHEMA_MODELS = {
     "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
     "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
     "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
+    "local_profile_activation_publication.schema.json": (
+        LocalProfileActivationPublication
+    ),
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
 }
 

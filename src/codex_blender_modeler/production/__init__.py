@@ -1,5 +1,6 @@
 """Public V0.9 production dispatcher and delegated-controller surface."""
 
+from ..activation_profile_publication import LocalProfileActivationPublication
 from .activation_models import (
     ACTIVATION_CONTRACT_VERSION,
     ActivationArtifact,
@@ -43,6 +44,8 @@ from .activation_service import (
     inspect_activation_source_checkpoint,
     load_activation_baseline,
     load_activation_source_manifest,
+    publish_local_activation_profile,
+    publish_local_activation_profile_from_path,
     validate_human_activation_acceptance,
     validate_human_local_activation_acceptance,
     write_activation_campaign_registry,
@@ -107,6 +110,7 @@ __all__ = [
     "HumanActivationAcceptance",
     "HumanLocalActivationAcceptance",
     "LocalActivationReadinessReport",
+    "LocalProfileActivationPublication",
     "ProductionConvergenceBinding",
     "ProductionConvergenceRequest",
     "ProductionPostflightAuditReceipt",
@@ -127,6 +131,8 @@ __all__ = [
     "inspect_activation_source_checkpoint",
     "load_activation_baseline",
     "load_activation_source_manifest",
+    "publish_local_activation_profile",
+    "publish_local_activation_profile_from_path",
     "record_delegated_production_step",
     "validate_human_activation_acceptance",
     "validate_human_local_activation_acceptance",

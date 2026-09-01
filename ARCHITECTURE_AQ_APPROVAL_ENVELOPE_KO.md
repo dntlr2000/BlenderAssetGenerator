@@ -318,3 +318,11 @@ type은 `reconciled_failed_recovery`, `campaign_terminal_candidate=false`이고 
 profile은 이 projection 구현만으로 활성화되지 않는다. 같은 baseline의 distinct outcome 5개, package
 최소 1개, exact single-use human local acceptance와 source-controlled publication이 끝날 때까지
 `disabled_experimental`을 유지한다.
+
+publication writer는 readiness가 결속한 baseline, campaign index와 acceptance를 다시 읽고 현재 source가
+그 baseline의 clean commit/tree와 정확히 같은지 확인한다. 통과하면
+`.codex/activation/autonomous_static_prop_v2.local.json` 한 경로에만 create-once publication을 만든다.
+publication 파일 자체가 acceptance consumption marker이므로 같은 acceptance나 다른 publication으로
+덮어쓸 수 없다. 생성만 된 untracked 파일은 Activation이 아니며, current Git `HEAD`가 그 exact 파일을
+추적하고 worktree diff가 없을 때만 runtime profile projection이 `verified_active`와 네 activation evidence를
+노출한다. publication은 destination write, policy authorization 또는 제외 capability 권한을 포함하지 않는다.

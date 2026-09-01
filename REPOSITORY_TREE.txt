@@ -368,6 +368,7 @@ BlenderAssetGenerator/
   schemas/interior_scope_validation.schema.json
   schemas/job_specific_recovery_source_inventory.schema.json
   schemas/local_activation_readiness_report.schema.json
+  schemas/local_profile_activation_publication.schema.json
   schemas/local_workflow_queue.schema.json
   schemas/lod_manifest.schema.json
   schemas/material_appearance_approval.schema.json
@@ -568,6 +569,7 @@ BlenderAssetGenerator/
   scripts/verify_v04_regressions.py
   scripts/verify_v06_artifacts.py
   src/codex_blender_modeler/__init__.py
+  src/codex_blender_modeler/activation_profile_publication.py
   src/codex_blender_modeler/analysis/__init__.py
   src/codex_blender_modeler/analysis/assembly.py
   src/codex_blender_modeler/analysis/basic.py
