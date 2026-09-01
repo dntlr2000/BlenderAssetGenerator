@@ -1,0 +1,125 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record one exact human visual disposition without granting approval authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "disposition_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Disposition Id",
+      "type": "string"
+    },
+    "disposition_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Disposition Sha256",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "skill_run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Skill Run Id",
+      "type": "string"
+    },
+    "representative_beauty": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "disposition": {
+      "enum": [
+        "accepted",
+        "needs_revision"
+      ],
+      "title": "Disposition",
+      "type": "string"
+    },
+    "reviewer_identity": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Reviewer Identity",
+      "type": "string"
+    },
+    "observed_statement_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Observed Statement Sha256",
+      "type": "string"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    },
+    "is_quality_disposition": {
+      "const": true,
+      "default": true,
+      "title": "Is Quality Disposition",
+      "type": "boolean"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "disposition_id",
+    "disposition_sha256",
+    "job_id",
+    "skill_run_id",
+    "representative_beauty",
+    "disposition",
+    "reviewer_identity",
+    "observed_statement_sha256",
+    "recorded_at"
+  ],
+  "title": "ActivationHumanQualityDisposition",
+  "type": "object"
+}

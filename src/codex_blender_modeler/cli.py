@@ -232,6 +232,7 @@ from .skill_orchestration import (
     get_standard_asset_cycle_status,
     plan_aq_one_prompt_skill,
     plan_standard_asset_cycle,
+    reconcile_aq_one_prompt_skill_terminal,
     resume_aq_one_prompt_skill,
     resume_standard_asset_cycle,
     run_aq_one_prompt_skill,
@@ -3744,6 +3745,30 @@ def aq_one_prompt_skill_status_command(job_id: str, run_id: str) -> None:
     console.print_json(
         json.dumps(get_aq_one_prompt_skill_status(job_id, run_id), ensure_ascii=False)
     )
+
+
+@app.command("aq-one-prompt-skill-reconcile-terminal")
+def aq_one_prompt_skill_reconcile_terminal_command(
+    job_id: str,
+    run_id: str,
+    recovery_package_acceptance_path: Annotated[
+        list[str],
+        typer.Option("--recovery-package-acceptance-path"),
+    ],
+    experimental_opt_in: Annotated[
+        bool,
+        typer.Option("--enable-v2/--disable-v2"),
+    ] = False,
+) -> None:
+    """Close a stale failed AQ adapter from exact package-acceptance evidence."""
+
+    result = reconcile_aq_one_prompt_skill_terminal(
+        job_id,
+        run_id,
+        recovery_package_acceptance_paths=recovery_package_acceptance_path,
+        experimental_opt_in=experimental_opt_in,
+    )
+    console.print_json(json.dumps(result, ensure_ascii=False))
 
 
 @app.command("aq-one-prompt-skill-cancel")

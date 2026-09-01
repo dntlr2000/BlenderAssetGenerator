@@ -3,6 +3,7 @@
 from .models import (
     AQSkillAdapterPlan,
     AQSkillAdapterState,
+    AQSkillAdapterTerminal,
     GuardedRevisionContinuation,
     MaterialImpactReport,
     MaterialImpactSnapshot,
@@ -32,6 +33,7 @@ from .service import (
     load_skill_registry,
     plan_aq_one_prompt_skill,
     plan_standard_asset_cycle,
+    reconcile_aq_one_prompt_skill_terminal,
     resume_aq_one_prompt_skill,
     resume_standard_asset_cycle,
     run_aq_one_prompt_skill,
@@ -41,6 +43,7 @@ from .service import (
 __all__ = [
     "AQSkillAdapterPlan",
     "AQSkillAdapterState",
+    "AQSkillAdapterTerminal",
     "GuardedRevisionContinuation",
     "MaterialImpactReport",
     "MaterialImpactSnapshot",
@@ -68,6 +71,7 @@ __all__ = [
     "load_skill_registry",
     "plan_aq_one_prompt_skill",
     "plan_standard_asset_cycle",
+    "reconcile_aq_one_prompt_skill_terminal",
     "resume_aq_one_prompt_skill",
     "resume_standard_asset_cycle",
     "run_aq_one_prompt_skill",

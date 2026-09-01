@@ -24,23 +24,35 @@ from codex_blender_modeler.production import (
     ActivationAssetEvidence,
     ActivationBaseline,
     ActivationBlenderEvidence,
+    ActivationCampaignOutcomeEligibilityReport,
+    ActivationCampaignOutcomeEvidence,
+    ActivationCampaignOutcomeIndex,
+    ActivationCampaignOutcomeRegistry,
+    ActivationCampaignRegistryEntry,
     ActivationCandidateRegistryEntry,
     ActivationCommandReceipt,
     ActivationEvidenceCheck,
     ActivationEvidenceClassification,
+    ActivationHumanQualityDisposition,
     ActivationReadinessReport,
     ActivationSourceManifest,
     ActivationValidationError,
     HumanActivationAcceptance,
+    HumanLocalActivationAcceptance,
+    LocalActivationReadinessReport,
     SourceCheckpointRequired,
     activation_contract_capability,
     activation_service,
     build_activation_asset_candidate_index,
+    build_activation_campaign_outcome_index,
     create_activation_baseline,
     create_activation_readiness_report,
+    create_local_activation_readiness_report,
     evaluate_activation_asset_eligibility,
+    evaluate_activation_campaign_outcome,
     load_activation_source_manifest,
     validate_human_activation_acceptance,
+    write_activation_campaign_registry,
     write_activation_candidate_registry,
 )
 from codex_blender_modeler.production.activation_models import (
@@ -516,6 +528,91 @@ def _index_with_artifact(
     return index, _artifact_record
 
 
+def _campaign_eligibility_fixture(
+    root: Path,
+    baseline: ActivationBaseline,
+    baseline_artifact: ActivationArtifact,
+    *,
+    outcome_id: str,
+    reference_bytes: bytes,
+    terminal_class: str,
+) -> tuple[ActivationCampaignOutcomeEligibilityReport, ActivationArtifact]:
+    """Write one strict synthetic campaign report for index-only service tests."""
+
+    prefix = f"reports/activation_readiness/campaign-fixtures/{outcome_id}"
+    _write_bytes(root, f"{prefix}/reference.png", reference_bytes)
+    _write_bytes(root, f"{prefix}/adapter_terminal.json", b'{"terminal":true}\n')
+    _write_bytes(root, f"{prefix}/disposition.json", b'{"disposition":"accepted"}\n')
+    _write_bytes(root, f"{prefix}/blender_receipt.json", b'{"blender":"5.0.1"}\n')
+    evidence = ActivationCampaignOutcomeEvidence(
+        outcome_id=outcome_id,
+        job_id=f"job-{outcome_id}",
+        session_id=f"session-{outcome_id}",
+        skill_run_id=f"run-{outcome_id}",
+        source_activation_baseline=baseline_artifact,
+        source_activation_baseline_id=baseline.baseline_id,
+        source_activation_baseline_sha256=baseline.baseline_sha256,
+        primary_reference=_artifact(
+            root,
+            f"{prefix}/reference.png",
+            artifact_id=f"reference-{outcome_id}",
+            kind="primary_reference",
+        ),
+        adapter_terminal=_artifact(
+            root,
+            f"{prefix}/adapter_terminal.json",
+            artifact_id=f"terminal-{outcome_id}",
+            kind="aq_skill_adapter_terminal",
+        ),
+        terminal_class=terminal_class,
+        human_quality_disposition=_artifact(
+            root,
+            f"{prefix}/disposition.json",
+            artifact_id=f"disposition-{outcome_id}",
+            kind="human_quality_disposition",
+        ),
+        actual_blender_render_manifests=[
+            _artifact(
+                root,
+                f"{prefix}/blender_receipt.json",
+                artifact_id=f"blender-{outcome_id}",
+                kind="render_pass_manifest",
+            )
+        ],
+        additional_user_decision_count=0,
+        technical_user_approval_count=0,
+        canonical_corruption_count=0,
+        rollback_integrity_preserved=True,
+        unresolved_next_action_count=0,
+        actionable_review_action_count=(
+            1 if terminal_class == "usable_review_terminal" else 0
+        ),
+    )
+    payload: dict[str, Any] = {
+        "evidence": evidence,
+        "eligible": True,
+        "production_package_verified": terminal_class == "production_delivery",
+        "exclusion_reasons": [],
+        "generated_at": NOW,
+    }
+    report = _finalize_contract(
+        ActivationCampaignOutcomeEligibilityReport,
+        payload,
+        prefix="activation-campaign-eligibility",
+        id_field="report_id",
+        digest_field="report_sha256",
+    )
+    assert isinstance(report, ActivationCampaignOutcomeEligibilityReport)
+    artifact = _write_model(
+        root,
+        f"{prefix}/eligibility.json",
+        report,
+        artifact_id=report.report_id,
+        kind="activation_campaign_eligibility_report",
+    )
+    return report, artifact
+
+
 def test_policy_decision_and_dependency_are_real_eligibility_requirements(
     tmp_path: Path,
 ) -> None:
@@ -676,6 +773,130 @@ def test_distinct_reference_hashes_count_as_distinct_assets(tmp_path: Path) -> N
     index = _index(root, baseline_artifact, reports)
     assert index.distinct_asset_count == 2
     assert index.counted_asset_units == 2
+
+
+def test_campaign_outcome_index_counts_reviews_separately_from_one_package(
+    tmp_path: Path,
+) -> None:
+    """Count five normal terminals while retaining the strict package minimum."""
+
+    root, _source, source_artifact, baseline, baseline_artifact = _baseline_fixture(
+        tmp_path
+    )
+    reports = [
+        _campaign_eligibility_fixture(
+            root,
+            baseline,
+            baseline_artifact,
+            outcome_id=f"campaign-{index}",
+            reference_bytes=f"campaign-reference-{index}".encode(),
+            terminal_class=(
+                "production_delivery" if index == 0 else "usable_review_terminal"
+            ),
+        )
+        for index in range(5)
+    ]
+    entries = [
+        ActivationCampaignRegistryEntry(
+            outcome_id=report.evidence.outcome_id,
+            eligibility_report=artifact,
+        )
+        for report, artifact in reports
+    ]
+    registry, registry_artifact = write_activation_campaign_registry(
+        root,
+        entries=entries,
+        output_path=root / "reports/activation_readiness/campaign-registry.json",
+        generated_at=NOW,
+    )
+    assert isinstance(registry, ActivationCampaignOutcomeRegistry)
+    index, index_artifact = build_activation_campaign_outcome_index(
+        root,
+        registry_artifact=registry_artifact,
+        expected_baseline_artifact=baseline_artifact,
+        output_path=root / "reports/activation_readiness/campaign-index.json",
+        generated_at=NOW,
+    )
+    assert index.distinct_successful_asset_count == 5
+    assert index.production_delivery_count == 1
+    assert index.usable_review_terminal_count == 4
+    assert index.production_package_count == 1
+    readiness, _artifact_record = create_local_activation_readiness_report(
+        root,
+        source_manifest_artifact=source_artifact,
+        baseline_artifact=baseline_artifact,
+        campaign_outcome_index_artifact=index_artifact,
+        generated_at=NOW,
+    )
+    assert readiness.status == "ready_for_human_activation_acceptance"
+    assert readiness.distinct_campaign_outcome_count == 5
+    assert readiness.production_package_count == 1
+    assert [item.finding_id for item in readiness.open_requirements] == [
+        "exact_human_local_activation_acceptance_required"
+    ]
+    assert readiness.sandbox_attested is False
+    assert readiness.client_mediated_verified is False
+
+
+def test_campaign_outcome_evaluator_fails_closed_on_unstructured_terminal(
+    tmp_path: Path,
+) -> None:
+    """Reject index-only fixture bytes when used as authoritative terminal evidence."""
+
+    root, _source, _source_artifact, baseline, baseline_artifact = _baseline_fixture(
+        tmp_path
+    )
+    synthetic, _synthetic_artifact = _campaign_eligibility_fixture(
+        root,
+        baseline,
+        baseline_artifact,
+        outcome_id="campaign-invalid-terminal",
+        reference_bytes=b"invalid-terminal-reference",
+        terminal_class="usable_review_terminal",
+    )
+    report, _artifact_record = evaluate_activation_campaign_outcome(
+        root,
+        evidence=synthetic.evidence,
+        expected_baseline_artifact=baseline_artifact,
+        output_path=(
+            root
+            / "reports/activation_readiness/campaign-invalid-terminal-evaluated.json"
+        ),
+        generated_at=NOW,
+    )
+    assert report.eligible is False
+    assert "invalid_adapter_terminal" in {
+        item.code for item in report.exclusion_reasons
+    }
+    assert "invalid_human_quality_disposition" in {
+        item.code for item in report.exclusion_reasons
+    }
+
+
+def test_local_readiness_separates_open_requirements_from_future_limits(
+    tmp_path: Path,
+) -> None:
+    """Keep fresh-campaign work open without treating destination parity as a blocker."""
+
+    root, _source, source_artifact, _baseline, baseline_artifact = _baseline_fixture(
+        tmp_path
+    )
+    report, artifact = create_local_activation_readiness_report(
+        root,
+        source_manifest_artifact=source_artifact,
+        baseline_artifact=baseline_artifact,
+        generated_at=NOW,
+    )
+    assert artifact is None
+    assert report.status == "ready_for_fresh_campaign"
+    assert report.validation_blockers == []
+    assert len(report.open_requirements) == 3
+    assert "destination_runtime_parity_unverified" in {
+        item.finding_id for item in report.future_limitations
+    }
+    assert "codex_imagegen" in {
+        item.finding_id for item in report.excluded_capabilities
+    }
 
 
 @pytest.mark.parametrize("terminal_state", ["failed", "blocked", "cancelled", "nonterminal"])
@@ -984,6 +1205,21 @@ SCHEMA_MODELS = {
     "activation_asset_eligibility_report.schema.json": ActivationAssetEligibilityReport,
     "activation_asset_candidate_registry.schema.json": ActivationAssetCandidateRegistry,
     "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
+    "activation_human_quality_disposition.schema.json": (
+        ActivationHumanQualityDisposition
+    ),
+    "activation_campaign_outcome_evidence.schema.json": (
+        ActivationCampaignOutcomeEvidence
+    ),
+    "activation_campaign_outcome_eligibility_report.schema.json": (
+        ActivationCampaignOutcomeEligibilityReport
+    ),
+    "activation_campaign_outcome_registry.schema.json": (
+        ActivationCampaignOutcomeRegistry
+    ),
+    "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
+    "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
+    "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
 }
 

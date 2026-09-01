@@ -19,6 +19,50 @@ write 변경과 reference evidence로 해결할 수 없는 중요한 디자인 �
 
 로드맵은 구현 사실을 대신하지 않습니다. 어떤 단계가 `완료`로 바뀌려면 해당 버전의 코드, JSON 계약, 테스트 계획, 실제 Blender 통합 게이트와 검증 기록이 함께 존재해야 합니다.
 
+## 현재 1차 완성 판정 기준
+
+프로젝트 `0.9.0`의 기술 코어와 Standard skill orchestration은 구현·실자산 검증을 마쳤습니다.
+그러나 이 문서에서 말하는 **1차 완성**은 프로젝트 버전 승격이나 모든 확장 기능의 완료가 아니라,
+최초 사용자 요구였던 다음 두 사용자 진입 경로를 지원 범위 안에서 재현 가능하게 닫는 것을 뜻합니다.
+
+```text
+Standard
+한 번의 standard-asset-cycle 호출
+→ V0.4 형상
+→ V0.5 재질
+→ V0.6 QA
+→ 선택적 V0.7 package
+→ 기존 exact 사용자 승인 경계와 안전한 재개 유지
+
+AQ local-only
+한 번의 aq-one-prompt-orchestrator 호출
+→ reference
+→ geometry
+→ material/closure
+→ Integrated Quality
+→ production delivery 또는 usable review terminal
+→ 정상 범위의 추가 사용자 결정 0, technical user approval 0
+```
+
+Standard는 두 실제 자산의 composite run과 GLTF clean import를 통과했으므로 선언된 품질·형식 한계
+안에서 1차 완료로 분류합니다. AQ v2는 계약, adapter, policy, recovery와 실제 자산 실행 증거가
+존재하지만 current-baseline activation candidate가 `0/5`이고 cross-projection terminal/KPI 의미가
+아직 닫히지 않았으므로 1차 완료 전 상태입니다.
+
+AQ 1차 완성의 고정 지원 범위는 Windows 11, Blender `5.0.1`, `primary_object_only` 정적 소품,
+local/procedural PBR와 engine-neutral portable GLTF입니다. Codex ImageGen, destination project write,
+Unity/Unreal runtime parity, signage/decal, 별도 bake-bound dependency-rich material, architecture,
+interior, rig와 animation은 해당 capability를 현재 profile scope에 명시적으로 포함하고 독립 검증하기
+전까지 이 1차 완료 범위에서 제외합니다. 제외된 capability는 local-only base Activation의 필수 성공
+지표로 소급 계산하지 않습니다.
+
+`production delivery`와 `usable review terminal`은 서로 다른 정상 terminal입니다. exact
+`needs_revision` disposition은 actionable review evidence, 닫힌 adapter route/receipt, 미해결 technical
+next action 0건과 canonical 무결성을 만족할 때 usable review terminal이 될 수 있지만 visual acceptance,
+package 또는 production readiness를 뜻하지 않습니다. `blocked`, `failed`, pending approval와 단순
+`running` projection은 usable terminal로 계산하지 않습니다. revision budget이 끝난 review terminal을
+같은 evidence로 무한 반복하지 않습니다.
+
 ## 1. 버전과 작업 단계의 의미
 
 이 프로젝트에는 세 종류의 버전이 함께 존재합니다.
@@ -86,6 +130,8 @@ AQ 0.2  Additive experimental quality/delivery harness (비활성)
   ↓
 AQ 0.3  Approval Envelope + One-Prompt Supervisor (비활성)
   ↓
+AQ Base First-Completion Closure  Terminal/KPI 정합성 + current-baseline 5개 캠페인
+  ↓
 ImageGen 0.1  Optional current-Codex texture companion (비활성)
   ↓
 V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
@@ -104,8 +150,8 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약 구현, adapter/policy recovery 보강, R4 exact beauty `needs_revision` 5/5 및 R5B `needs_revision` 1/1 기록, baseline-bound R5B Laser relief IQ/source freeze 통과, fresh R8 wood portable GLTF delivery 통과 | 새 composition Laser beauty·production assembly detail·signage/decal·authorized dependency-rich closure 미검증이므로 activation NO-GO; 두 v2 profile 모두 `disabled_experimental`, 프로젝트는 `0.9.0` 유지 |
-| ImageGen 0.1 | controller-mediated companion 구현, 활성화는 별도 검증 대기 | `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약과 adapter/policy recovery 구현, 실제 다중 캠페인 수행, R5D exact beauty·portable GLTF package acceptance 완료 | 최신 clean baseline `activation-baseline-6b01a9e911e0c573d60e30ab`의 eligible candidate `0/5`; skill-run terminal/current KPI projection과 local-only Activation 기준 정합화 및 fresh 5개 캠페인 전까지 `autonomous_static_prop_v2` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
+| ImageGen 0.1 | controller-mediated companion 구현, bounded benchmark entry machine decision은 `GO` | AQ base 1차 완성과 분리된 optional overlay이며 실행 우선순위는 AQ base closeout 뒤; `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
 | Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, 기존 crystal dependency closure는 identity preflight에서 안전 실패, 새 authorized bake-bound closure는 입력 부재로 미실행 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
 | V1.0 | 승격 중단 | 재개 결정과 아래 범위 재검토 전에는 사용 금지 |
@@ -1079,23 +1125,61 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      별도 machine decision으로 재평가하기 전에는 profile 상태를 변경하지 않음
    - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
      누락을 숨기지 않고 명시적 input/authority blocker로 이월
-8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
-   [기존 NO-GO 기준선: `6572b22d45dba610e3b69468bedf4e2b34c6296c`; R5D package acceptance 후 재평가 진행]
-   - 이전 `da44e3e6bf985ad6e5673bce1ff01582252c7e53` NO-GO snapshot은 불변 보존
-   - current source manifest `activation-source-26f37fa8e845482a5309e11e`
-   - current baseline `activation-baseline-4de9c955ee1e3716a4b14b49`
-   - validation receipt 17개, candidate 0/5와 blocker 10개를 누락하지 않은 readiness
-   - R5~R5D와 delivery R01~R07은 이 baseline에 결속된 append-only 후속 evidence이며 current candidate
-     index를 소급 변경하지 않음
-   - R5D accepted disposition, delivery 기술 수정의 full gate/clean commit과 exact package acceptance 완료
-   - acceptance를 새 source authority로 오인하지 않고, 최종 clean documentation checkpoint에서 새
-     ActivationSourceManifest/Baseline 및 Registry/Eligibility/Index/Readiness를 append-only 재평가
-9. Codex ImageGen overlay one-prompt benchmark와 activation review
-   - R4 5개와 R5B/R5C/R5D disposition 및 R5D exact package acceptance는 완료
-   - 새 Activation machine evidence가 단일 Laser package 폐루프, 남은 local framework 결함과 source-baseline
-     불일치를 투명하게 분리한 뒤 `campaign_decision.json`으로 시작 가능 여부를 재판정
-   - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
-   - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유
+8. clean commit ActivationSourceManifest/Baseline 재생성과 machine reassessment [완료]
+   - source commit `9759cd4d380cb1c9a1ec0e2085e08a8c35e2657c`
+   - current source manifest `activation-source-d6390b6bea77e86b54adce38`
+   - current baseline `activation-baseline-6b01a9e911e0c573d60e30ab`
+   - current candidate index `activation-index-d76aac7a953c0dd9f217e6ef`, eligible distinct asset `0/5`
+   - current readiness `activation-readiness-13169fe71f12974fae1d609d`, status `validation_blocked`, blocker 9개
+   - R5D는 이전 baseline `activation-baseline-79b982b0609008542b4ed754`에서 시작했고 원래 AQ delivery
+     terminal이 `failed`이므로 새 baseline candidate로 소급 재결속하거나 완료로 재분류하지 않음
+   - R5D exact beauty와 technical recovery package acceptance는 별도 append-only 성공 증거로 보존
+   - `stage9-overlay-decision-e211057a1fc0ec605e748f84`는 ImageGen overlay의 bounded benchmark entry만
+     `GO`, AQ base Activation은 `NO_GO`, campaign 생성은 `false`로 판정
+   - 해당 decision의 `unresolved_local_framework_defects=0`은 선언된 R5D delivery-recovery 범위의 판정이며,
+     이후 확인된 skill-run/current-summary cross-projection 부채까지 닫았다는 뜻이 아님
+8-A. AQ Base First-Completion Closure [바로 다음]
+   - R5D 원래 failed AQ terminal과 과거 skill receipt를 수정하지 않고, exact recovery/package acceptance를
+     연결하는 append-only skill-run terminal projection을 추가하여 `running/await_v07_approval` 잔류를 해소
+   - `verification/latest_summary.json`의 historical Standard snapshot과 최신 project/AQ projection을 분리하고,
+     실제 AQ skill-adapter 실행·캠페인·current test count를 authoritative evidence에서 다시 계산
+   - 엄격한 production-package candidate index는 유지하고, production delivery와 usable review terminal을
+     함께 세는 별도 campaign outcome projection을 추가하거나 동등한 분리 계약을 마련
+   - local-only required blocker, 현재 지원 범위에서 제외된 capability, destination/future limitation을
+     서로 다른 machine-readable 분류로 투영
+   - supporting-client closed-loop와 controller sandbox/tool-policy attestation은 실제 current-task 실행
+     증거로 닫거나 미검증 local blocker로 유지하며, `desktop_in_session` 자체를 sandbox 증거로 사용하지 않음
+   - 기존 두 Standard 실제 자산은 공통 orchestration/host 변경의 focused regression 대상으로 재확인하되,
+     새 Standard 자산 캠페인은 공통 의미가 바뀌거나 회귀가 발견되지 않는 한 1차 완성 선행 조건으로 추가하지 않음
+   - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
+     실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check` 통과 후 clean commit 생성
+8-B. fresh current-baseline AQ canary와 5-reference campaign [8-A 후]
+   - 8-A clean commit에서 새 ActivationSourceManifest/Baseline/Readiness를 생성하고 profile은 계속
+     `disabled_experimental`로 유지
+   - 먼저 서로 다른 reference 중 1개를 `aq-one-prompt-orchestrator` canary로 실행
+   - canary 뒤 framework/source 변경이 없고 아래 기준을 모두 만족하면 같은 baseline의 campaign #1로 계산하고
+     나머지 4개를 실행; framework/source가 바뀌면 새 baseline에서 영향받은 campaign을 다시 시작
+   - 각 자산은 initial request 1, 추가 사용자 결정 0 목표, technical user approval 0, adapter route terminal,
+     canonical corruption 0, rollback 무결성, 실제 Blender 실행과 exact human quality disposition을 충족
+   - 정상 결과는 production delivery 또는 actionable usable review terminal이어야 하며, required hard-gate
+     `blocked`, technical `failed`, pending approval와 `running` projection은 성공 terminal에 포함하지 않음
+   - 동일 evidence의 `needs_revision`을 자동 재사용하거나 무한 반복하지 않고 bounded budget의 review terminal로 종료
+   - 최소 한 자산은 IQ pass/source freeze, portable GLTF package와 clean-import round trip을 통과
+8-C. AQ local-only Activation 재심사와 V0.9 1차 완성 closeout [8-B 후]
+   - distinct current-baseline campaign outcome 5/5와 production package 최소 1개를 별도 지표로 검증
+   - exact human activation acceptance 없이는 profile status를 변경하지 않음
+   - 모든 local-only 필수 조건과 single-use activation authority가 통과한 경우에만
+     `autonomous_static_prop_v2`의 좁은 지원 범위를 `verified_active`로 게시
+   - 조건 미달이면 `disabled_experimental`을 유지하고 실패한 자산·framework·attestation blocker를 구분해
+     1차 완성 미달 사유를 게시하며 과거 terminal이나 package를 재분류하지 않음
+   - Standard 완료 범위, AQ 판정, known limitation, exact source/baseline/index/readiness와 실제 검증 결과를
+     current aggregate와 closeout 문서에 동기화; 이는 프로젝트 `1.0.0` 승격이 아님
+9. Codex ImageGen overlay one-prompt benchmark와 activation review [8-C 뒤로 연기]
+   - 기존 `stage9-overlay-decision-e211057a1fc0ec605e748f84`의 bounded `GO`는 불변 machine evidence로 보존
+   - `stage9`라는 artifact 이름은 생성 당시 로드맵 위치를 나타내는 historical ID이며 현재 실행 우선순위를 뜻하지 않음
+   - AQ base Activation과 분리하고 `disabled_experimental`, explicit user opt-in과 별도 provider/budget authority 유지
+   - 실제 built-in ImageGen 호출, immutable candidate provenance와 semantic/material evidence를 새 baseline에서 검증
+   - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`과 새 campaign evidence가 소유
 10. Standard Generated Texture Intake 0.1
    - 수동 생성 PNG의 immutable 등록·provenance·local PBR 연결
    - Full Standard ImageGen은 반복 assignment/provenance/후보/다중 사용자 workflow 병목이 입증될 때만 조건부
@@ -1106,34 +1190,23 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
 15. V1.0 승격 재심사
 ```
 
-Material Closure와 Material Identity Split은 더 이상 반복되는 top-level 제품 마일스톤이 아니라
-Approval Envelope가 엄격한 전제 아래 호출하는 기반 capability입니다. 2026-08-29 캠페인의
-constant/local-only material 통과는 dependency-rich closure나 texture/bake 성공을 뜻하지 않습니다.
-Crystalgun의 기존
-ApprovalRequest에는 새 authority를 소급하지 않으며 canonical apply도 이 로드맵 변경으로 자동 실행하지
-않습니다. `Standard Codex ImageGen integration`은 필수 선행 항목에서 제거하고 좁은
-`Standard Generated Texture Intake 0.1`로 대체합니다.
+Material Closure와 Material Identity Split은 반복되는 top-level 제품 마일스톤이 아니라 Approval Envelope가
+엄격한 전제 아래 호출하는 기반 capability입니다. constant/local-only material 통과는 dependency-rich
+closure나 texture/bake 성공을 뜻하지 않습니다. 기존 Crystalgun ApprovalRequest에는 새 authority를
+소급하지 않으며 canonical apply도 이 로드맵 변경으로 자동 실행하지 않습니다. `Standard Codex ImageGen
+integration`은 필수 선행 항목이 아니며 좁은 `Standard Generated Texture Intake 0.1`을 별도 후속으로 유지합니다.
 
-activation review는 구현 존재나 대표 contract fixture 통과와 별개입니다. local-only profile에는
-최소 5개 실제 자산 one-prompt E2E, adapter terminal 100%, 추가 사용자 결정 0 목표,
-technical approval 0, production 또는 usable review terminal 100%, canonical corruption 0,
-rollback 무결성과 별도 human quality disposition이 필요합니다. required hard gate `blocked`는
-fail-closed 안전성 증거이지만 usable review terminal 성공률에는 포함하지 않습니다. 최소 한 자산의
-IQ pass/source freeze와 실제 portable delivery clean-import canary도 activation review 전에 필요합니다.
-ImageGen overlay에는 실제 built-in ImageGen
-호출과 semantic/material evidence가 추가로 필요합니다. 두 profile은 그 review 전까지 계속
-`disabled_experimental`입니다. Unity URP는 engine-neutral source package를 목적 엔진에서 재구성하는
-별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
+local-only AQ base Activation의 필수 지표는 8-B와 8-C가 정의합니다. destination runtime parity는
+engine-neutral local-only Activation의 필수 지표가 아니라 future destination limitation입니다. ImageGen,
+signage/decal과 bake-bound dependency-rich material도 1차 완성의 고정 profile scope에서 제외하는 동안에는
+base success count를 막지 않습니다. 단, 현재 profile/schema가 그 제외 범위를 exact하게 표현하지 못한다면
+이를 임의로 무시하지 않고 8-A에서 좁은 capability scope와 blocker 분류를 먼저 구현·검증해야 합니다.
 
-7번에서 9번으로 넘어가는 경계는 AQ base profile 활성화와 별개입니다. 현재 5개 결과와 R5B~R5D의
-exact human disposition, 새 clean baseline에 결합된 세션 terminal, adapter/recovery closure, IQ/package
-증거와 Activation Index/Readiness를 모두 run-owned 기계 JSON으로 고정합니다. 품질 `needs_revision`은
-정확한 safe terminal로 남습니다. R5D는 새 candidate의 IQ/source freeze, exact visual acceptance와
-기술적으로 검증된 portable package를 확보했지만, future artifact를 미리 승인할 수 없다는 원칙 때문에
-R06 package의 exact acceptance가 별도로 필요합니다. 그 host-only acknowledgement가 없으면 portable
-delivery 완료로 계산하지 않고 9번을 시작하지 않습니다. parser/controller/recovery/package 결함은 이번
-수정 commit과 full gate로 닫은 뒤 새 baseline에서 재평가합니다. supporting-client closed loop,
-controller sandbox attestation, destination runtime parity, signage/decal 입력과 bake-bound authorization은
-해제되기 전까지 base activation blocker로 계속 표시합니다.
+현재 `activation-readiness-13169fe71f12974fae1d609d`가 destination parity 등을 blocker로 기록한 사실은
+해당 immutable report의 역사적 의미로 보존합니다. 이 로드맵 문구만으로 report, profile status, user approval,
+policy authority 또는 Activation을 변경하지 않습니다. 1차 완성의 `desktop_in_session` 범위는 의도적으로
+`workflow_contract_only`이며 sandbox attestation을 주장하지 않습니다. supporting-client closed loop와
+controller sandbox/tool-policy attestation은 future `client_mediated` capability의 미검증 한계로 분리하고,
+그 한계를 local desktop base success count를 막는 필수 blocker로 사용하지 않습니다.
 
 현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt `0.1.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 각 companion 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.

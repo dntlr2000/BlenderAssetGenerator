@@ -355,9 +355,16 @@ from codex_blender_modeler.production.activation_models import (
     ActivationAssetEligibilityReport,
     ActivationAssetEvidence,
     ActivationBaseline,
+    ActivationCampaignOutcomeEligibilityReport,
+    ActivationCampaignOutcomeEvidence,
+    ActivationCampaignOutcomeIndex,
+    ActivationCampaignOutcomeRegistry,
+    ActivationHumanQualityDisposition,
     ActivationReadinessReport,
     ActivationSourceManifest,
     HumanActivationAcceptance,
+    HumanLocalActivationAcceptance,
+    LocalActivationReadinessReport,
 )
 from codex_blender_modeler.production.controller_executor.models import (
     ControllerExecutionRequest,
@@ -409,6 +416,7 @@ from codex_blender_modeler.reporting.models import HumanReportManifest
 from codex_blender_modeler.skill_orchestration.models import (
     AQSkillAdapterPlan,
     AQSkillAdapterState,
+    AQSkillAdapterTerminal,
     GuardedRevisionContinuation,
     MaterialImpactReport,
     SkillBundleManifest,
@@ -569,6 +577,7 @@ SCHEMAS = {
     "standard_quality_disposition_record.schema.json": StandardQualityDispositionRecord,
     "aq_skill_adapter_plan.schema.json": AQSkillAdapterPlan,
     "aq_skill_adapter_state.schema.json": AQSkillAdapterState,
+    "aq_skill_adapter_terminal.schema.json": AQSkillAdapterTerminal,
     "environment_probe.schema.json": EnvironmentProbeReport,
     "workspace_audit.schema.json": WorkspaceAuditReport,
     "workspace_relocation_plan.schema.json": WorkspaceRelocationPlan,
@@ -585,6 +594,21 @@ SCHEMAS = {
     "activation_asset_eligibility_report.schema.json": (ActivationAssetEligibilityReport),
     "activation_asset_candidate_registry.schema.json": (ActivationAssetCandidateRegistry),
     "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
+    "activation_human_quality_disposition.schema.json": (
+        ActivationHumanQualityDisposition
+    ),
+    "activation_campaign_outcome_evidence.schema.json": (
+        ActivationCampaignOutcomeEvidence
+    ),
+    "activation_campaign_outcome_eligibility_report.schema.json": (
+        ActivationCampaignOutcomeEligibilityReport
+    ),
+    "activation_campaign_outcome_registry.schema.json": (
+        ActivationCampaignOutcomeRegistry
+    ),
+    "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
+    "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
+    "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
     "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
     "delegated_production_controller_plan.schema.json": DelegatedProductionControllerPlan,

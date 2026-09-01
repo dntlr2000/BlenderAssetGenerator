@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "SkillArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one job-relative immutable artifact to its exact bytes.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "SkillArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Close one AQ adapter projection without changing its authoritative AQ terminal.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "terminal_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Terminal Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "final_state": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "final_aq_state": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "authoritative_aq_terminal": {
+      "$ref": "#/$defs/SkillArtifact"
+    },
+    "one_prompt_terminal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SkillArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "terminal_type": {
+      "enum": [
+        "production_delivery",
+        "review_bundle",
+        "genuine_escalation",
+        "blocked",
+        "cancelled",
+        "reconciled_failed_recovery"
+      ],
+      "title": "Terminal Type",
+      "type": "string"
+    },
+    "recovery_package_acceptances": {
+      "items": {
+        "$ref": "#/$defs/SkillArtifact"
+      },
+      "title": "Recovery Package Acceptances",
+      "type": "array"
+    },
+    "campaign_terminal_candidate": {
+      "title": "Campaign Terminal Candidate",
+      "type": "boolean"
+    },
+    "original_terminal_reclassified": {
+      "const": false,
+      "default": false,
+      "title": "Original Terminal Reclassified",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Approval Authority",
+      "type": "boolean"
+    },
+    "reason": {
+      "maxLength": 1000,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "terminal_id",
+    "run_id",
+    "job_id",
+    "session_id",
+    "plan",
+    "final_state",
+    "final_aq_state",
+    "authoritative_aq_terminal",
+    "terminal_type",
+    "campaign_terminal_candidate",
+    "reason",
+    "created_at"
+  ],
+  "title": "AQSkillAdapterTerminal",
+  "type": "object"
+}

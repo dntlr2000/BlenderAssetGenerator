@@ -65,6 +65,31 @@ uv run cbm autonomy-v2-one-prompt-cancel <JOB_ID> <SESSION_ID> --reason "<REASON
 실제 공개 signature는 구현·검증 기록을 권위로 한다. status는 read-only이고 run/resume은 hard action
 budget을 넘지 않는다.
 
+skill adapter를 명시적으로 사용할 때는 같은 One-Prompt host 위에서 다음 공개 표면을 사용한다.
+
+```powershell
+uv run cbm aq-one-prompt-skill-plan "<EXACT_REQUEST>" `
+  --reference <REFERENCE_PATH> `
+  --target-subject "<TARGET_SUBJECT>" `
+  --delegate-routine-actions `
+  --enable-v2
+uv run cbm aq-one-prompt-skill-run <JOB_ID> <SKILL_RUN_ID> --enable-v2
+uv run cbm aq-one-prompt-skill-resume <JOB_ID> <SKILL_RUN_ID> --enable-v2
+uv run cbm aq-one-prompt-skill-status <JOB_ID> <SKILL_RUN_ID>
+```
+
+일반 run/resume은 recovery package acceptance를 받지 않는다. 이미 만료된 historical session의 원래
+AQ delivery가 `failed`이고 이후 exact package acceptance가 존재하는 경우에만 별도 경로를 사용한다.
+
+```powershell
+uv run cbm aq-one-prompt-skill-reconcile-terminal <JOB_ID> <SKILL_RUN_ID> `
+  --recovery-package-acceptance-path <JOB_RELATIVE_ACCEPTANCE_JSON> `
+  --enable-v2
+```
+
+이 명령은 원래 failed terminal을 완료로 바꾸지 않고 adapter projection만 append-only로 닫는다. 결과는
+`reconciled_failed_recovery`이며 Activation campaign 성공 대상으로 계산하지 않는다.
+
 ## 5. controller 대기
 
 `waiting_for_controller`이면 supervisor가 request-owned assignment와 exact allowed outputs를 게시한

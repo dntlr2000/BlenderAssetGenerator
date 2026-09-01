@@ -621,3 +621,68 @@ class AQSkillAdapterState(SkillStrictModel):
     next_action: str | None = Field(default=None, max_length=1000)
     receipt_chain_head_sha256: Sha256 | None = None
     updated_at: datetime
+
+
+class AQSkillAdapterTerminal(SkillStrictModel):
+    """Close one AQ adapter projection without changing its authoritative AQ terminal."""
+
+    schema_version: Literal["0.1.0"] = SCHEMA_VERSION
+    terminal_id: PortableId
+    run_id: PortableId
+    job_id: JobId
+    session_id: PortableId
+    plan: SkillArtifact
+    final_state: SkillArtifact
+    final_aq_state: SkillArtifact
+    authoritative_aq_terminal: SkillArtifact
+    one_prompt_terminal: SkillArtifact | None = None
+    terminal_type: Literal[
+        "production_delivery",
+        "review_bundle",
+        "genuine_escalation",
+        "blocked",
+        "cancelled",
+        "reconciled_failed_recovery",
+    ]
+    recovery_package_acceptances: list[SkillArtifact] = Field(default_factory=list)
+    campaign_terminal_candidate: bool
+    original_terminal_reclassified: Literal[False] = False
+    canonical_write_authority: Literal[False] = False
+    approval_authority: Literal[False] = False
+    reason: str = Field(min_length=1, max_length=1000)
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def validate_terminal_projection(self) -> AQSkillAdapterTerminal:
+        """Keep successful terminal classes separate from append-only recovery evidence."""
+
+        expected_candidate = self.terminal_type in {
+            "production_delivery",
+            "review_bundle",
+        }
+        if self.campaign_terminal_candidate != expected_candidate:
+            raise ValueError("AQ campaign terminal candidacy differs from terminal type")
+        if self.recovery_package_acceptances and (
+            self.terminal_type != "reconciled_failed_recovery"
+        ):
+            raise ValueError(
+                "AQ recovery package acceptance requires a reconciled failed terminal"
+            )
+        if self.terminal_type == "reconciled_failed_recovery":
+            if self.one_prompt_terminal is not None or not self.recovery_package_acceptances:
+                raise ValueError(
+                    "reconciled AQ failure requires recovery evidence and no "
+                    "synthetic One-Prompt terminal"
+                )
+        elif (
+            self.one_prompt_terminal is None
+            or self.authoritative_aq_terminal != self.one_prompt_terminal
+        ):
+            raise ValueError(
+                "ordinary AQ adapter terminal must bind its exact One-Prompt terminal"
+            )
+        if len(self.recovery_package_acceptances) != len(
+            {(item.path, item.sha256) for item in self.recovery_package_acceptances}
+        ):
+            raise ValueError("AQ recovery package acceptances must be unique")
+        return self

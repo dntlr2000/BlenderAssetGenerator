@@ -282,3 +282,39 @@ Material Closure/Identity Split 경계 2건도 실제 Blender 5.0.1에서 통과
 legacy 10건 실패가 남아 있고, 실제 One-Prompt 사용자 자산 완주, built-in ImageGen 실제 호출,
 human review와 profile activation은 `unverified`다. exact command/count/evidence는
 `VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md`를 권위로 한다.
+
+## 15. AQ base first-completion Activation projection
+
+로컬 1차 완성 판정은 기존 strict production 후보 판정을 약화하지 않고 두 projection을 병렬로 둔다.
+
+```text
+ActivationAssetCandidateIndex
+  └─ production package + clean import를 모두 만족한 strict 후보만 집계
+
+ActivationCampaignOutcomeIndex
+  ├─ production_delivery + accepted human disposition
+  └─ usable review_bundle + needs_revision human disposition
+```
+
+campaign outcome evaluator는 repository-relative 등록 파일만 믿지 않는다. adapter terminal에서 exact
+skill plan/state, One-Prompt terminal/plan, base AutonomyPlan, RootAuthorization primary reference와
+host-replayed approval telemetry를 다시 연결한다. disposition beauty는 Blender 5.0.1의 정확한 7-pass
+manifest beauty와 같아야 한다. production delivery는 전체 V0.7 package/clean-import validator와 accepted
+quality freeze까지, usable review는 전체 review-bundle validator와 actionable action count까지 통과해야
+한다.
+
+과거 failed AQ terminal 뒤에 package acceptance가 생긴 경우에는 원래 terminal을 고치지 않는다.
+별도 `reconcile_aq_one_prompt_skill_terminal`이 append-only adapter terminal을 닫을 수 있지만 terminal
+type은 `reconciled_failed_recovery`, `campaign_terminal_candidate=false`이고 normal outcome 분자에 들어가지
+않는다.
+
+`LocalActivationReadinessReport 0.2.0`은 다음을 서로 다른 배열로 유지한다.
+
+- 현재 baseline 검증을 막는 `validation_blockers`
+- 캠페인·package·human acceptance 같은 `open_requirements`
+- local base scope 밖의 `excluded_capabilities`
+- sandbox, supporting client, destination parity 같은 `future_limitations`
+
+profile은 이 projection 구현만으로 활성화되지 않는다. 같은 baseline의 distinct outcome 5개, package
+최소 1개, exact single-use human local acceptance와 source-controlled publication이 끝날 때까지
+`disabled_experimental`을 유지한다.

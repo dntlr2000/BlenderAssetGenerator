@@ -27,11 +27,14 @@ from ..auto_revision.models import (
 )
 from ..autonomy_v2 import (
     cancel_one_prompt,
+    get_autonomy_v2_status,
     get_one_prompt_status,
     plan_one_prompt_run,
     resume_one_prompt,
     run_one_prompt,
 )
+from ..autonomy_v2.approval_models import AQV2OnePromptRunTerminal
+from ..autonomy_v2.models import DeliveryTerminalV2, QualityApprovedSourceFreeze
 from ..blender_artifacts import (
     deterministic_json_bytes,
     native_io_path,
@@ -52,6 +55,7 @@ from ..orchestration.models import (
     WorkflowRequest,
     WorkflowState,
 )
+from ..packaging.models import PortablePackageAcceptance
 from ..qa.models import VisualQAReport
 from ..qa.multiview_sanity import GeometryMultiviewVisualReview
 from ..revision import RevisionPlan
@@ -59,6 +63,7 @@ from ..workspace import job_dir, load_job, sha256_file, validate_job_id
 from .models import (
     AQSkillAdapterPlan,
     AQSkillAdapterState,
+    AQSkillAdapterTerminal,
     GuardedRevisionContinuation,
     MaterialImpactReport,
     MaterialImpactSnapshot,
@@ -4471,6 +4476,249 @@ def _update_aq_adapter_state(
     return updated
 
 
+def _aq_recovery_package_acceptances(
+    root: Path,
+    job_id: str,
+    relative_paths: list[str] | None,
+    *,
+    expected_source_fingerprint: str | None = None,
+) -> list[SkillArtifact]:
+    """Validate explicitly named package acceptances and all exact evidence they bind."""
+
+    artifacts: list[SkillArtifact] = []
+    for relative_path in relative_paths or []:
+        path = _contained_file(root, relative_path)
+        acceptance = PortablePackageAcceptance.model_validate_json(
+            path.read_text(encoding="utf-8")
+        )
+        expected_path = (
+            root
+            / "optimization"
+            / "runs"
+            / acceptance.run_id
+            / "package_acceptances"
+            / acceptance.package_id
+            / "acceptance.json"
+        )
+        if path != expected_path.resolve(strict=True):
+            raise ValueError("AQ recovery package acceptance path differs from its identity")
+        if (
+            acceptance.job_id != job_id
+            or not acceptance.consumed
+            or not acceptance.canonical_unchanged
+            or acceptance.destination_project_modified
+        ):
+            raise ValueError("AQ recovery package acceptance is not exact and non-mutating")
+        if (
+            expected_source_fingerprint is not None
+            and acceptance.source_fingerprint != expected_source_fingerprint
+        ):
+            raise ValueError("AQ recovery package acceptance uses a different source freeze")
+        manifest = _contained_file(root, acceptance.package_manifest_path)
+        roundtrip = _contained_file(root, acceptance.roundtrip_validation_path)
+        if (
+            sha256_file(manifest) != acceptance.package_manifest_sha256
+            or sha256_file(roundtrip) != acceptance.roundtrip_validation_sha256
+        ):
+            raise ValueError("AQ recovery package acceptance evidence changed")
+        artifacts.append(_artifact_for(root, path))
+    if len(artifacts) != len({(item.path, item.sha256) for item in artifacts}):
+        raise ValueError("AQ recovery package acceptance paths must be unique")
+    return artifacts
+
+
+def _publish_aq_adapter_terminal(
+    root: Path,
+    run_root: Path,
+    plan: AQSkillAdapterPlan,
+    adapter_state: AQSkillAdapterState,
+    one_prompt_status: dict[str, object],
+) -> AQSkillAdapterTerminal | None:
+    """Publish one immutable adapter terminal for an exact One-Prompt terminal."""
+
+    if str(one_prompt_status.get("status")) != "terminal":
+        return None
+    terminal_payload = one_prompt_status.get("terminal")
+    if not isinstance(terminal_payload, dict):
+        raise ValueError("terminal One-Prompt status omitted its exact terminal")
+    one_prompt_terminal = AQV2OnePromptRunTerminal.model_validate_json(
+        json.dumps(terminal_payload)
+    )
+    one_prompt_path = (
+        root
+        / "production"
+        / "autonomy_v2"
+        / plan.session_id
+        / "approval_envelope"
+        / "one_prompt"
+        / "terminal.json"
+    )
+    one_prompt_artifact = _artifact_for(root, one_prompt_path)
+    final_aq_state = SkillArtifact(
+        path=one_prompt_terminal.final_autonomy_state.path,
+        sha256=one_prompt_terminal.final_autonomy_state.sha256,
+    )
+    _validate_artifact(root, final_aq_state)
+    if (
+        one_prompt_terminal.job_id != plan.job_id
+        or one_prompt_terminal.session_id != plan.session_id
+        or one_prompt_terminal.one_prompt_plan.path != plan.one_prompt_plan.path
+        or one_prompt_terminal.one_prompt_plan.sha256 != plan.one_prompt_plan.sha256
+    ):
+        raise ValueError("One-Prompt terminal differs from the AQ skill plan")
+    source_state = _aq_source_artifact(root, one_prompt_status)
+    if source_state != final_aq_state:
+        raise ValueError("One-Prompt terminal does not bind the current exact AQ state")
+    terminal_path = run_root / "terminal.json"
+    if terminal_path.is_file():
+        existing = AQSkillAdapterTerminal.model_validate_json(
+            terminal_path.read_text(encoding="utf-8")
+        )
+        if existing.recovery_package_acceptances:
+            raise ValueError("ordinary AQ adapter terminal cannot carry recovery evidence")
+        return existing
+    terminal_state = adapter_state.model_copy(
+        update={
+            "status": "terminal",
+            "source_state": final_aq_state,
+            "next_action": None,
+            "updated_at": _utc_now(),
+        }
+    )
+    _write_aq_state(run_root, terminal_state)
+    terminal_type = one_prompt_terminal.terminal_type
+    candidate = terminal_type in {"production_delivery", "review_bundle"}
+    reason = {
+        "production_delivery": "One-Prompt published exact production-delivery evidence.",
+        "review_bundle": "One-Prompt published an exact review-bundle terminal.",
+        "genuine_escalation": "One-Prompt stopped at one consolidated genuine escalation.",
+        "blocked": "One-Prompt preserved a fail-closed technical terminal.",
+        "cancelled": "One-Prompt was explicitly cancelled.",
+    }[terminal_type]
+    terminal = AQSkillAdapterTerminal(
+        terminal_id=f"terminal-{plan.run_id}",
+        run_id=plan.run_id,
+        job_id=plan.job_id,
+        session_id=plan.session_id,
+        plan=_artifact_for(root, run_root / "plan.json"),
+        final_state=_state_artifact(root, run_root),
+        final_aq_state=final_aq_state,
+        authoritative_aq_terminal=one_prompt_artifact,
+        one_prompt_terminal=one_prompt_artifact,
+        terminal_type=terminal_type,
+        campaign_terminal_candidate=candidate,
+        reason=reason,
+        created_at=_utc_now(),
+    )
+    _publish_model(root, terminal_path, terminal)
+    return terminal
+
+
+def _historical_aq_one_prompt_projection(
+    job_id: str,
+    session_id: str,
+) -> dict[str, object]:
+    """Expose an expired One-Prompt session read-only through its validated AQ chain."""
+
+    base = get_autonomy_v2_status(job_id, session_id)
+    return {
+        "status": "historical_authorization_expired",
+        "profile_status": "disabled_experimental",
+        "job_id": job_id,
+        "session_id": session_id,
+        "base_autonomy": base,
+        "terminal": None,
+        "resume_same_state_budget_assignment": False,
+        "repository_creates_codex_task": False,
+        "app_close_background_execution": False,
+    }
+
+
+def _publish_reconciled_failed_aq_terminal(
+    root: Path,
+    run_root: Path,
+    plan: AQSkillAdapterPlan,
+    adapter_state: AQSkillAdapterState,
+    base_status: dict[str, object],
+    *,
+    recovery_package_acceptance_paths: list[str],
+) -> AQSkillAdapterTerminal:
+    """Bind a historical failed AQ terminal to later exact recovery acceptance evidence."""
+
+    state = base_status.get("state")
+    state_artifact_payload = base_status.get("state_artifact")
+    if not isinstance(state, dict) or not isinstance(state_artifact_payload, dict):
+        raise ValueError("historical AQ status omitted its exact current state")
+    if state.get("status") != "failed" or state.get("next_action") != "none":
+        raise ValueError("historical AQ reconciliation requires a failed terminal state")
+    final_aq_state = SkillArtifact(
+        path=str(state_artifact_payload.get("path", "")),
+        sha256=str(state_artifact_payload.get("sha256", "")),
+    )
+    _validate_artifact(root, final_aq_state)
+    delivery_payload = state.get("delivery_terminal")
+    if not isinstance(delivery_payload, dict):
+        raise ValueError("historical AQ failure omitted its delivery terminal")
+    delivery_artifact = SkillArtifact(
+        path=str(delivery_payload.get("path", "")),
+        sha256=str(delivery_payload.get("sha256", "")),
+    )
+    delivery = _load_model(root, delivery_artifact, DeliveryTerminalV2)
+    if (
+        delivery.job_id != plan.job_id
+        or delivery.session_id != plan.session_id
+        or delivery.outcome != "failed"
+        or not delivery.canonical_unchanged
+    ):
+        raise ValueError("historical AQ delivery terminal is not the exact failed source")
+    source_freeze = SkillArtifact(
+        path=delivery.source_freeze.path,
+        sha256=delivery.source_freeze.sha256,
+    )
+    freeze = _load_model(root, source_freeze, QualityApprovedSourceFreeze)
+    recoveries = _aq_recovery_package_acceptances(
+        root,
+        plan.job_id,
+        recovery_package_acceptance_paths,
+        expected_source_fingerprint=freeze.v07_source_fingerprint,
+    )
+    terminal_path = run_root / "terminal.json"
+    if terminal_path.is_file():
+        existing = AQSkillAdapterTerminal.model_validate_json(
+            terminal_path.read_text(encoding="utf-8")
+        )
+        if (
+            existing.terminal_type != "reconciled_failed_recovery"
+            or existing.authoritative_aq_terminal != delivery_artifact
+            or existing.final_aq_state != final_aq_state
+            or existing.recovery_package_acceptances != recoveries
+        ):
+            raise ValueError("historical AQ adapter terminal reconciliation is immutable")
+        return existing
+    if adapter_state.status != "terminal" or adapter_state.next_action is not None:
+        raise ValueError("historical AQ adapter state was not closed before terminal publication")
+    terminal = AQSkillAdapterTerminal(
+        terminal_id=f"terminal-{plan.run_id}",
+        run_id=plan.run_id,
+        job_id=plan.job_id,
+        session_id=plan.session_id,
+        plan=_artifact_for(root, run_root / "plan.json"),
+        final_state=_state_artifact(root, run_root),
+        final_aq_state=final_aq_state,
+        authoritative_aq_terminal=delivery_artifact,
+        terminal_type="reconciled_failed_recovery",
+        recovery_package_acceptances=recoveries,
+        campaign_terminal_candidate=False,
+        reason=(
+            "The original failed AQ delivery remains unchanged; exact later package "
+            "acceptance closes only the stale adapter projection."
+        ),
+        created_at=_utc_now(),
+    )
+    _publish_model(root, terminal_path, terminal)
+    return terminal
+
+
 def _load_aq_run(
     job_id: str,
     run_id: str,
@@ -4656,7 +4904,7 @@ def run_aq_one_prompt_skill(
                 ),
                 outcome="failed" if source_unchanged else _aq_outcome(before_status),
             )
-            _update_aq_adapter_state(
+            adapter_state = _update_aq_adapter_state(
                 root,
                 run_root,
                 adapter_state,
@@ -4666,6 +4914,13 @@ def run_aq_one_prompt_skill(
                 bundle=bundle,
                 registry=registry,
             )
+            _publish_aq_adapter_terminal(
+                root,
+                run_root,
+                plan,
+                adapter_state,
+                before_status,
+            )
             response = get_aq_one_prompt_skill_status(job_id, run_id)
             response["recovered_pending_route"] = True
             return response
@@ -4673,6 +4928,13 @@ def run_aq_one_prompt_skill(
             str(before_status.get("status")) == "terminal"
             and adapter_state.status == "terminal"
         ):
+            _publish_aq_adapter_terminal(
+                root,
+                run_root,
+                plan,
+                adapter_state,
+                before_status,
+            )
             return get_aq_one_prompt_skill_status(job_id, run_id)
         before_snapshot = _snapshot_aq_state_exact(
             root,
@@ -4716,7 +4978,7 @@ def run_aq_one_prompt_skill(
                 after=_aq_binding(plan.session_id, after_snapshot, before_status),
                 outcome=_aq_outcome(before_status),
             )
-            _update_aq_adapter_state(
+            adapter_state = _update_aq_adapter_state(
                 root,
                 run_root,
                 adapter_state,
@@ -4725,6 +4987,13 @@ def run_aq_one_prompt_skill(
                 receipt=receipt,
                 bundle=bundle,
                 registry=registry,
+            )
+            _publish_aq_adapter_terminal(
+                root,
+                run_root,
+                plan,
+                adapter_state,
+                before_status,
             )
             return get_aq_one_prompt_skill_status(job_id, run_id)
         executor = (
@@ -4764,7 +5033,7 @@ def run_aq_one_prompt_skill(
                     else _aq_outcome(after_status)
                 ),
             )
-            _update_aq_adapter_state(
+            adapter_state = _update_aq_adapter_state(
                 root,
                 run_root,
                 adapter_state,
@@ -4773,6 +5042,13 @@ def run_aq_one_prompt_skill(
                 receipt=receipt,
                 bundle=bundle,
                 registry=registry,
+            )
+            _publish_aq_adapter_terminal(
+                root,
+                run_root,
+                plan,
+                adapter_state,
+                after_status,
             )
             raise
         after_status = get_one_prompt_status(job_id, plan.session_id)
@@ -4794,7 +5070,7 @@ def run_aq_one_prompt_skill(
             after=_aq_binding(plan.session_id, after_snapshot, after_status),
             outcome=_aq_outcome(after_status),
         )
-        _update_aq_adapter_state(
+        adapter_state = _update_aq_adapter_state(
             root,
             run_root,
             adapter_state,
@@ -4803,6 +5079,13 @@ def run_aq_one_prompt_skill(
             receipt=receipt,
             bundle=bundle,
             registry=registry,
+        )
+        _publish_aq_adapter_terminal(
+            root,
+            run_root,
+            plan,
+            adapter_state,
+            after_status,
         )
         response = get_aq_one_prompt_skill_status(job_id, run_id)
         response["last_one_prompt_result"] = result
@@ -4829,6 +5112,144 @@ def resume_aq_one_prompt_skill(
         quality_submission=quality_submission,
         experimental_opt_in=True,
     )
+
+
+def reconcile_aq_one_prompt_skill_terminal(
+    job_id: str,
+    run_id: str,
+    *,
+    recovery_package_acceptance_paths: list[str],
+    experimental_opt_in: bool = False,
+) -> dict[str, object]:
+    """Close one stale failed AQ adapter from exact append-only recovery evidence."""
+
+    if not experimental_opt_in:
+        raise PermissionError("AQ skill adapter remains disabled_experimental")
+    if not recovery_package_acceptance_paths:
+        raise ValueError("AQ terminal reconciliation requires recovery package acceptance")
+    root, run_root, plan, adapter_state = _load_aq_run(job_id, run_id)
+    with _skill_run_lock(run_root):
+        root, run_root, plan, adapter_state = _load_aq_run(job_id, run_id)
+        base_status = get_autonomy_v2_status(job_id, plan.session_id)
+        state = base_status.get("state")
+        state_artifact_payload = base_status.get("state_artifact")
+        if not isinstance(state, dict) or not isinstance(state_artifact_payload, dict):
+            raise ValueError("AQ terminal reconciliation omitted its exact base state")
+        if state.get("status") != "failed" or state.get("next_action") != "none":
+            raise ValueError("AQ terminal reconciliation accepts only a failed terminal")
+        current_source = SkillArtifact(
+            path=str(state_artifact_payload.get("path", "")),
+            sha256=str(state_artifact_payload.get("sha256", "")),
+        )
+        _validate_artifact(root, current_source)
+        terminal_path = run_root / "terminal.json"
+        if terminal_path.is_file():
+            _publish_reconciled_failed_aq_terminal(
+                root,
+                run_root,
+                plan,
+                adapter_state,
+                base_status,
+                recovery_package_acceptance_paths=(
+                    recovery_package_acceptance_paths
+                ),
+            )
+            return get_aq_one_prompt_skill_status(job_id, run_id)
+        sequence = _receipt_sequence(run_root)
+        bundle, registry = _load_bundle(root, run_root)
+        projected_status = {
+            "status": "historical_authorization_expired",
+            "base_autonomy": base_status,
+        }
+        pending = _load_pending_aq_route(
+            root,
+            run_root,
+            run_id=run_id,
+            job_id=job_id,
+            bundle=bundle,
+            registry=registry,
+            source_public_status="historical_authorization_expired",
+        )
+        if pending is None:
+            before_snapshot = _snapshot_aq_state_exact(
+                root,
+                run_root,
+                sequence=sequence,
+                label="before",
+                source_artifact=current_source,
+            )
+            route_key, route_reason = _aq_route_key(root, projected_status)
+            selected_skill = _route_from_registry(
+                bundle,
+                registry,
+                execution_mode="aq",
+                route_key=route_key,
+            )
+            route = _publish_route_decision(
+                root,
+                run_root,
+                run_id=run_id,
+                job_id=job_id,
+                sequence=sequence,
+                execution_mode="aq",
+                route_key=route_key,
+                selected_skill=selected_skill,
+                source_state=before_snapshot,
+                reason=route_reason,
+            )
+        else:
+            route, decision = pending
+            before_snapshot = decision.source_state
+            route_key = decision.stage_key
+            selected_skill = decision.selected_skill_id
+        after_snapshot = _snapshot_aq_state_exact(
+            root,
+            run_root,
+            sequence=sequence,
+            label="after-reconciliation",
+            source_artifact=current_source,
+        )
+        receipt = _publish_execution_receipt(
+            root,
+            run_root,
+            run_id=run_id,
+            job_id=job_id,
+            sequence=sequence,
+            route=route,
+            before=_aq_binding_from_snapshot(
+                root,
+                plan.session_id,
+                before_snapshot,
+                status="failed",
+            ),
+            after=_aq_binding(
+                plan.session_id,
+                after_snapshot,
+                projected_status,
+            ),
+            outcome="failed",
+        )
+        adapter_state = adapter_state.model_copy(
+            update={
+                "status": "terminal",
+                "current_stage_key": route_key,
+                "current_skill_id": selected_skill,
+                "source_state": after_snapshot,
+                "next_action": None,
+                "receipt_chain_head_sha256": receipt.sha256,
+                "updated_at": _utc_now(),
+            }
+        )
+        _write_aq_state(run_root, adapter_state)
+        _publish_reconciled_failed_aq_terminal(
+            root,
+            run_root,
+            plan,
+            adapter_state,
+            base_status,
+            recovery_package_acceptance_paths=recovery_package_acceptance_paths,
+        )
+        return get_aq_one_prompt_skill_status(job_id, run_id)
 
 
 def cancel_aq_one_prompt_skill(
@@ -4919,13 +5340,53 @@ def cancel_aq_one_prompt_skill(
             }
         )
         _write_aq_state(run_root, adapter_state)
+        _publish_aq_adapter_terminal(
+            root,
+            run_root,
+            plan,
+            adapter_state,
+            after_status,
+        )
         return get_aq_one_prompt_skill_status(job_id, run_id)
 
 
 def get_aq_one_prompt_skill_status(job_id: str, run_id: str) -> dict[str, object]:
     """Read the AQ adapter and exact One-Prompt status without advancing either."""
 
-    _root, _run_root, plan, state = _load_aq_run(job_id, run_id)
+    root, run_root, plan, state = _load_aq_run(job_id, run_id)
+    terminal = None
+    terminal_path = run_root / "terminal.json"
+    if terminal_path.is_file():
+        terminal_model = AQSkillAdapterTerminal.model_validate_json(
+            terminal_path.read_text(encoding="utf-8")
+        )
+        terminal_artifacts = [
+            terminal_model.plan,
+            terminal_model.final_state,
+            terminal_model.final_aq_state,
+            terminal_model.authoritative_aq_terminal,
+            *terminal_model.recovery_package_acceptances,
+        ]
+        if terminal_model.one_prompt_terminal is not None:
+            terminal_artifacts.append(terminal_model.one_prompt_terminal)
+        for artifact in terminal_artifacts:
+            _validate_artifact(root, artifact)
+        if (
+            terminal_model.job_id != job_id
+            or terminal_model.run_id != run_id
+            or terminal_model.session_id != plan.session_id
+            or terminal_model.final_state != _state_artifact(root, run_root)
+            or state.status != "terminal"
+            or state.next_action is not None
+        ):
+            raise ValueError("AQ adapter terminal differs from its current projection")
+        terminal = terminal_model.model_dump(mode="json")
+    try:
+        one_prompt = get_one_prompt_status(job_id, plan.session_id)
+    except PermissionError as exc:
+        if str(exc) != "approval envelope has expired":
+            raise
+        one_prompt = _historical_aq_one_prompt_projection(job_id, plan.session_id)
     return {
         "status": state.status,
         "profile_status": "disabled_experimental",
@@ -4935,7 +5396,8 @@ def get_aq_one_prompt_skill_status(job_id: str, run_id: str) -> dict[str, object
         "entry_skill_id": _AQ_ENTRY,
         "plan": plan.model_dump(mode="json"),
         "state": state.model_dump(mode="json"),
-        "one_prompt": get_one_prompt_status(job_id, plan.session_id),
+        "terminal": terminal,
+        "one_prompt": one_prompt,
         "canonical_write_authority": False,
         "approval_authority": False,
         "repository_creates_codex_task": False,
@@ -5059,6 +5521,7 @@ __all__ = [
     "load_skill_registry",
     "plan_aq_one_prompt_skill",
     "plan_standard_asset_cycle",
+    "reconcile_aq_one_prompt_skill_terminal",
     "resume_aq_one_prompt_skill",
     "resume_standard_asset_cycle",
     "run_aq_one_prompt_skill",

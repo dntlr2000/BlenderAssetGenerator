@@ -12,9 +12,16 @@ from codex_blender_modeler.production import (
     ActivationAssetEligibilityReport,
     ActivationAssetEvidence,
     ActivationBaseline,
+    ActivationCampaignOutcomeEligibilityReport,
+    ActivationCampaignOutcomeEvidence,
+    ActivationCampaignOutcomeIndex,
+    ActivationCampaignOutcomeRegistry,
+    ActivationHumanQualityDisposition,
     ActivationReadinessReport,
     ActivationSourceManifest,
     HumanActivationAcceptance,
+    HumanLocalActivationAcceptance,
+    LocalActivationReadinessReport,
     activation_contract_capability,
 )
 
@@ -27,6 +34,21 @@ SCHEMA_MODELS = {
     "activation_asset_eligibility_report.schema.json": ActivationAssetEligibilityReport,
     "activation_asset_candidate_registry.schema.json": ActivationAssetCandidateRegistry,
     "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
+    "activation_human_quality_disposition.schema.json": (
+        ActivationHumanQualityDisposition
+    ),
+    "activation_campaign_outcome_evidence.schema.json": (
+        ActivationCampaignOutcomeEvidence
+    ),
+    "activation_campaign_outcome_eligibility_report.schema.json": (
+        ActivationCampaignOutcomeEligibilityReport
+    ),
+    "activation_campaign_outcome_registry.schema.json": (
+        ActivationCampaignOutcomeRegistry
+    ),
+    "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
+    "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
+    "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
 }
 
@@ -47,6 +69,10 @@ def activation_readiness_contract_findings() -> list[str]:
         findings.append("autonomous_static_prop_v2 profile is not disabled_experimental")
     if profile.get("verified_active") is not False:
         findings.append("autonomous_static_prop_v2 incorrectly claims verified activation")
+    if profile.get("activation_scope") != "local_desktop_in_session":
+        findings.append("autonomous_static_prop_v2 local activation scope drifted")
+    if capability.get("campaign_outcome_index_supported") is not True:
+        findings.append("activation readiness lacks a separate campaign outcome index")
     for filename, model in sorted(SCHEMA_MODELS.items()):
         path = ROOT / "schemas" / filename
         if not path.is_file():

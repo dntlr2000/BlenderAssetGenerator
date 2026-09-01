@@ -14,4 +14,4 @@ description: Adapt one explicit AQ v2 One-Prompt session into traceable referenc
 7. Stop for a genuine consolidated escalation, current-task controller assignment, missing IQ submission, budget boundary, or safe terminal.
 8. Never spawn another Codex task, claim background execution after app exit, or write a destination project.
 9. Resume the same One-Prompt plan, state, budget, assignment, bundle snapshot, and receipt chain.
-
+10. For an expired historical session whose authoritative AQ delivery is already `failed`, use only the exact terminal-reconciliation host surface with explicitly named package-acceptance evidence. Preserve the original failure and mark the resulting adapter terminal as ineligible for campaign success.

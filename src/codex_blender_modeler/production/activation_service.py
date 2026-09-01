@@ -35,15 +35,26 @@ from .activation_models import (
     ActivationAssetIndexRecord,
     ActivationBaseline,
     ActivationBlenderEvidence,
+    ActivationCampaignOutcomeEligibilityReport,
+    ActivationCampaignOutcomeEvidence,
+    ActivationCampaignOutcomeIndex,
+    ActivationCampaignOutcomeIndexRecord,
+    ActivationCampaignOutcomeRegistry,
+    ActivationCampaignReferenceGroup,
+    ActivationCampaignRegistryEntry,
     ActivationCandidateRegistryEntry,
     ActivationCommandReceipt,
     ActivationExclusion,
+    ActivationHumanQualityDisposition,
+    ActivationReadinessFinding,
     ActivationReadinessReport,
     ActivationReferenceDeduplicationGroup,
     ActivationSourceExclusion,
     ActivationSourceFile,
     ActivationSourceManifest,
     HumanActivationAcceptance,
+    HumanLocalActivationAcceptance,
+    LocalActivationReadinessReport,
 )
 
 _ModelT = TypeVar("_ModelT", bound=BaseModel)
@@ -92,6 +103,15 @@ _SOURCE_EXCLUSIONS: tuple[tuple[str, str, str], ...] = (
         "Read-only comparison material is not historical activation evidence.",
     ),
 )
+
+
+def _bounded_error_detail(exc: BaseException) -> str:
+    """Fit one validation exception into the persisted exclusion-detail limit."""
+
+    detail = str(exc).strip() or type(exc).__name__
+    return detail[:1000]
+
+
 _REQUIRED_ELIGIBILITY_CHECKS = frozenset(
     {
         "authoritative_job_contract",
@@ -758,7 +778,7 @@ def _artifact_exclusions(
             exclusions.append(
                 ActivationExclusion(
                     code="stale_tampered_missing_or_unknown_evidence",
-                    detail=f"{artifact.path}: {exc}",
+                    detail=f"{artifact.path}: {_bounded_error_detail(exc)}"[:1000],
                 )
             )
     return exclusions
@@ -799,7 +819,7 @@ def evaluate_activation_asset_eligibility(
         exclusions.append(
             ActivationExclusion(
                 code="stale_tampered_or_missing_baseline",
-                detail=str(exc),
+                detail=_bounded_error_detail(exc),
             )
         )
     if (
@@ -1086,6 +1106,1027 @@ def build_activation_asset_candidate_index(
     return index, artifact
 
 
+def _campaign_evidence_artifacts(
+    evidence: ActivationCampaignOutcomeEvidence,
+) -> list[ActivationArtifact]:
+    """Flatten every exact artifact explicitly named by one campaign outcome."""
+
+    return [
+        evidence.source_activation_baseline,
+        evidence.primary_reference,
+        evidence.adapter_terminal,
+        evidence.human_quality_disposition,
+        *evidence.actual_blender_render_manifests,
+    ]
+
+
+def _validate_relative_hash_artifact(root: Path, artifact: Any) -> Path:
+    """Revalidate one owner-relative artifact with optional exact byte size."""
+
+    owner = root.expanduser().resolve(strict=True)
+    path = ensure_contained_production_path(
+        owner,
+        owner / str(artifact.path),
+        must_exist=True,
+    )
+    expected_size = getattr(artifact, "byte_size", None)
+    size_mismatch = expected_size is not None and os.path.getsize(
+        native_io_path(path)
+    ) != int(expected_size)
+    if not os.path.isfile(native_io_path(path)) or size_mismatch or sha256_file(
+        path
+    ) != str(artifact.sha256):
+        raise ActivationValidationError(
+            f"embedded AQ artifact changed: {artifact.path}"
+        )
+    return path
+
+
+def _validate_embedded_aq_artifact(root: Path, artifact: Any) -> Path:
+    """Revalidate one exact AQ artifact relative to its owning job root."""
+
+    if getattr(artifact, "byte_size", None) is None:
+        raise ActivationValidationError("AQ artifact omitted its exact byte size")
+    return _validate_relative_hash_artifact(root, artifact)
+
+
+def _campaign_job_root(
+    repository: Path,
+    evidence: ActivationCampaignOutcomeEvidence,
+    adapter_path: Path,
+) -> Path:
+    """Derive and verify the exact job/run ownership of one adapter terminal."""
+
+    run_root = adapter_path.parent
+    skill_root = run_root.parent
+    job_root = skill_root.parent
+    if (
+        adapter_path.name != "terminal.json"
+        or run_root.name != evidence.skill_run_id
+        or skill_root.name != "skill_runs"
+        or job_root.name != evidence.job_id
+    ):
+        raise ActivationValidationError(
+            "adapter terminal path differs from the declared campaign job and run"
+        )
+    return ensure_contained_production_path(repository, job_root, must_exist=True)
+
+
+def _artifact_binding_matches(
+    left_root: Path,
+    left: Any,
+    right_root: Path,
+    right: Any,
+) -> bool:
+    """Compare two exact artifacts after resolving their different owner roots."""
+
+    left_path = _validate_relative_hash_artifact(left_root, left)
+    right_path = _validate_relative_hash_artifact(right_root, right)
+    return (
+        left_path == right_path
+        and str(left.sha256) == str(right.sha256)
+        and (
+            getattr(left, "byte_size", None) is None
+            or getattr(right, "byte_size", None) is None
+            or int(left.byte_size) == int(right.byte_size)
+        )
+    )
+
+
+def _validate_campaign_blender_manifests(
+    repository: Path,
+    evidence: ActivationCampaignOutcomeEvidence,
+    disposition: ActivationHumanQualityDisposition,
+) -> set[str]:
+    """Validate actual Blender 5 seven-pass manifests and the disposition beauty."""
+
+    from ..qa.models import RenderPassManifest
+
+    disposition_beauty = _validate_artifact(
+        repository,
+        disposition.representative_beauty,
+    )
+    qa_run_ids: set[str] = set()
+    beauty_matches = 0
+    for artifact in evidence.actual_blender_render_manifests:
+        if artifact.kind != "render_pass_manifest":
+            raise ActivationValidationError(
+                "campaign Blender evidence must be a render_pass_manifest"
+            )
+        manifest_path = _validate_artifact(repository, artifact)
+        manifest = RenderPassManifest.model_validate_json(manifest_path.read_bytes())
+        if (
+            manifest.job_id != evidence.job_id
+            or manifest.run_id is None
+            or manifest.blender_version != "5.0.1"
+        ):
+            raise ActivationValidationError(
+                "campaign render manifest differs from the supported job/runtime"
+            )
+        qa_run_ids.add(manifest.run_id)
+        for rendered_pass in manifest.passes:
+            pass_path = ensure_contained_production_path(
+                manifest_path.parent,
+                manifest_path.parent / rendered_pass.path,
+                must_exist=True,
+            )
+            if sha256_file(pass_path) != rendered_pass.sha256:
+                raise ActivationValidationError(
+                    f"campaign render pass changed: {rendered_pass.path}"
+                )
+            if (
+                rendered_pass.kind == "beauty"
+                and pass_path == disposition_beauty
+                and rendered_pass.sha256
+                == disposition.representative_beauty.sha256
+            ):
+                beauty_matches += 1
+    if beauty_matches != 1:
+        raise ActivationValidationError(
+            "human disposition beauty must match exactly one Blender render manifest"
+        )
+    return qa_run_ids
+
+
+def _campaign_terminal_exclusions(
+    root: Path,
+    evidence: ActivationCampaignOutcomeEvidence,
+    disposition: ActivationHumanQualityDisposition | None,
+) -> tuple[list[ActivationExclusion], bool]:
+    """Validate exact adapter, One-Prompt, package, review, and disposition evidence."""
+
+    from ..autonomy_v2.approval_models import (
+        AQV2ApprovalTelemetryReport,
+        AQV2OnePromptRunPlan,
+        AQV2OnePromptRunTerminal,
+    )
+    from ..autonomy_v2.delivery_service import validate_delivery_terminal_v2
+    from ..autonomy_v2.models import (
+        AutonomyPlanV2,
+        QualityApprovedSourceFreeze,
+        RootAuthorizationV2,
+    )
+    from ..autonomy_v2.quality_terminal_service import (
+        validate_quality_review_bundle_v2,
+    )
+    from ..qa.models import VisualQAReport
+    from ..skill_orchestration.models import (
+        AQSkillAdapterPlan,
+        AQSkillAdapterState,
+        AQSkillAdapterTerminal,
+    )
+
+    exclusions: list[ActivationExclusion] = []
+    package_verified = False
+    try:
+        adapter_path = _validate_artifact(root, evidence.adapter_terminal)
+        job_root = _campaign_job_root(root, evidence, adapter_path)
+        adapter = AQSkillAdapterTerminal.model_validate_json(
+            adapter_path.read_bytes()
+        )
+    except (OSError, ValueError, ActivationValidationError) as exc:
+        return [
+            ActivationExclusion(
+                code="invalid_adapter_terminal",
+                detail=_bounded_error_detail(exc),
+            )
+        ], False
+    try:
+        adapter_plan_path = _validate_relative_hash_artifact(job_root, adapter.plan)
+        adapter_state_path = _validate_relative_hash_artifact(
+            job_root,
+            adapter.final_state,
+        )
+        _validate_relative_hash_artifact(job_root, adapter.final_aq_state)
+        _validate_relative_hash_artifact(job_root, adapter.authoritative_aq_terminal)
+        adapter_plan = AQSkillAdapterPlan.model_validate_json(
+            adapter_plan_path.read_bytes()
+        )
+        adapter_state = AQSkillAdapterState.model_validate_json(
+            adapter_state_path.read_bytes()
+        )
+        if (
+            (adapter_plan.job_id, adapter_plan.run_id, adapter_plan.session_id)
+            != (evidence.job_id, evidence.skill_run_id, evidence.session_id)
+            or (adapter_state.job_id, adapter_state.run_id, adapter_state.session_id)
+            != (evidence.job_id, evidence.skill_run_id, evidence.session_id)
+            or adapter_state.status != "terminal"
+            or adapter_state.next_action is not None
+        ):
+            raise ActivationValidationError(
+                "adapter plan or final state differs from the campaign identity"
+            )
+    except (OSError, ValueError, ActivationValidationError) as exc:
+        exclusions.append(
+            ActivationExclusion(
+                code="invalid_adapter_projection",
+                detail=_bounded_error_detail(exc),
+            )
+        )
+        return _unique_exclusions(exclusions), False
+    if (
+        adapter.job_id != evidence.job_id
+        or adapter.session_id != evidence.session_id
+        or adapter.run_id != evidence.skill_run_id
+    ):
+        exclusions.append(
+            ActivationExclusion(
+                code="adapter_terminal_identity_mismatch",
+                detail="adapter terminal differs from campaign outcome identity",
+            )
+        )
+    expected_terminal_type = {
+        "production_delivery": "production_delivery",
+        "usable_review_terminal": "review_bundle",
+        "blocked": "blocked",
+        "failed": "reconciled_failed_recovery",
+        "cancelled": "cancelled",
+    }.get(evidence.terminal_class)
+    if expected_terminal_type is None or adapter.terminal_type != expected_terminal_type:
+        exclusions.append(
+            ActivationExclusion(
+                code="terminal_class_mismatch",
+                detail="declared campaign terminal class differs from adapter evidence",
+            )
+        )
+    if evidence.terminal_class not in {
+        "production_delivery",
+        "usable_review_terminal",
+    }:
+        exclusions.append(
+            ActivationExclusion(
+                code=f"terminal_{evidence.terminal_class}",
+                detail=f"campaign outcome is {evidence.terminal_class}",
+            )
+        )
+    expected_disposition = {
+        "production_delivery": "accepted",
+        "usable_review_terminal": "needs_revision",
+    }.get(evidence.terminal_class)
+    if (
+        expected_disposition is not None
+        and disposition is not None
+        and disposition.disposition != expected_disposition
+    ):
+        exclusions.append(
+            ActivationExclusion(
+                code="quality_disposition_terminal_mismatch",
+                detail=(
+                    "human quality disposition differs from the declared normal "
+                    "campaign terminal"
+                ),
+            )
+        )
+    if not adapter.campaign_terminal_candidate:
+        exclusions.append(
+            ActivationExclusion(
+                code="adapter_terminal_not_candidate",
+                detail="adapter terminal is not a normal campaign terminal candidate",
+            )
+        )
+    if adapter.one_prompt_terminal is None:
+        return _unique_exclusions(exclusions), False
+    try:
+        one_prompt_path = _validate_relative_hash_artifact(
+            job_root,
+            adapter.one_prompt_terminal,
+        )
+        one_prompt = AQV2OnePromptRunTerminal.model_validate_json(
+            one_prompt_path.read_bytes()
+        )
+        one_prompt_plan_path = _validate_embedded_aq_artifact(
+            job_root,
+            one_prompt.one_prompt_plan,
+        )
+        one_prompt_plan = AQV2OnePromptRunPlan.model_validate_json(
+            one_prompt_plan_path.read_bytes()
+        )
+        base_plan_path = _validate_embedded_aq_artifact(
+            job_root,
+            one_prompt_plan.base_autonomy_plan,
+        )
+        base_plan = AutonomyPlanV2.model_validate_json(base_plan_path.read_bytes())
+        authorization_path = _validate_embedded_aq_artifact(
+            job_root,
+            base_plan.root_authorization,
+        )
+        authorization = RootAuthorizationV2.model_validate_json(
+            authorization_path.read_bytes()
+        )
+        telemetry_path = _validate_embedded_aq_artifact(
+            job_root,
+            one_prompt.approval_telemetry,
+        )
+        telemetry = AQV2ApprovalTelemetryReport.model_validate_json(
+            telemetry_path.read_bytes()
+        )
+        if (
+            (one_prompt.job_id, one_prompt.session_id)
+            != (evidence.job_id, evidence.session_id)
+            or (one_prompt_plan.job_id, one_prompt_plan.session_id)
+            != (evidence.job_id, evidence.session_id)
+            or (base_plan.job_id, base_plan.session_id)
+            != (evidence.job_id, evidence.session_id)
+            or (authorization.job_id, authorization.session_id)
+            != (evidence.job_id, evidence.session_id)
+            or one_prompt.one_prompt_plan.path != adapter_plan.one_prompt_plan.path
+            or one_prompt.one_prompt_plan.sha256 != adapter_plan.one_prompt_plan.sha256
+            or one_prompt.final_autonomy_state.path != adapter.final_aq_state.path
+            or one_prompt.final_autonomy_state.sha256 != adapter.final_aq_state.sha256
+        ):
+            raise ActivationValidationError(
+                "One-Prompt authority chain differs from the campaign adapter"
+            )
+        if not _artifact_binding_matches(
+            root,
+            evidence.primary_reference,
+            job_root,
+            authorization.primary_reference,
+        ):
+            raise ActivationValidationError(
+                "campaign primary reference differs from RootAuthorizationV2"
+            )
+        if (
+            telemetry.initial_user_request_count != evidence.initial_request_count
+            or telemetry.additional_user_decision_count
+            != evidence.additional_user_decision_count
+            or telemetry.technical_user_approval_request_count
+            != evidence.technical_user_approval_count
+            or telemetry.canonical_corruption_count
+            != evidence.canonical_corruption_count
+            or telemetry.terminal_type != one_prompt.terminal_type
+            or one_prompt.canonical_restored_after_rollback
+            != evidence.rollback_integrity_preserved
+            or telemetry.blender_build_count < 1
+            or telemetry.quality_evaluation_count < 1
+        ):
+            raise ActivationValidationError(
+                "campaign KPI counters differ from host-replayed One-Prompt telemetry"
+            )
+        if disposition is None:
+            raise ActivationValidationError(
+                "campaign terminal requires a valid exact human disposition"
+            )
+        qa_run_ids = _validate_campaign_blender_manifests(
+            root,
+            evidence,
+            disposition,
+        )
+    except (OSError, ValueError, ActivationValidationError) as exc:
+        exclusions.append(
+            ActivationExclusion(
+                code="invalid_one_prompt_terminal",
+                detail=_bounded_error_detail(exc),
+            )
+        )
+        return _unique_exclusions(exclusions), False
+    if evidence.terminal_class == "production_delivery":
+        if one_prompt.delivery_terminal is None:
+            exclusions.append(
+                ActivationExclusion(
+                    code="missing_production_delivery_terminal",
+                    detail="One-Prompt terminal omitted delivery evidence",
+                )
+            )
+        else:
+            try:
+                delivery = validate_delivery_terminal_v2(
+                    job_root,
+                    one_prompt.delivery_terminal,
+                )
+                if (
+                    delivery.outcome != "completed"
+                    or any(
+                        item.status != "completed" or not item.production_ready
+                        for item in delivery.results
+                    )
+                ):
+                    raise ActivationValidationError(
+                        "delivery terminal is not fully production-ready"
+                    )
+                for result in delivery.results:
+                    if result.package_manifest is None or result.roundtrip_validation is None:
+                        raise ActivationValidationError(
+                            "completed delivery omitted package or clean-import evidence"
+                        )
+                    _validate_embedded_aq_artifact(job_root, result.package_manifest)
+                    _validate_embedded_aq_artifact(job_root, result.roundtrip_validation)
+                freeze_path = _validate_embedded_aq_artifact(
+                    job_root,
+                    delivery.source_freeze,
+                )
+                freeze = QualityApprovedSourceFreeze.model_validate_json(
+                    freeze_path.read_bytes()
+                )
+                visual_qa_runs: set[str] = set()
+                for artifact in freeze.quality_evidence:
+                    if artifact.kind != "visual_qa_report":
+                        continue
+                    report_path = _validate_embedded_aq_artifact(job_root, artifact)
+                    report = VisualQAReport.model_validate_json(report_path.read_bytes())
+                    visual_qa_runs.add(report.run_id)
+                if not qa_run_ids.intersection(visual_qa_runs):
+                    raise ActivationValidationError(
+                        "campaign Blender manifest is outside the accepted quality freeze"
+                    )
+                package_verified = True
+            except (OSError, ValueError, PermissionError, ActivationValidationError) as exc:
+                exclusions.append(
+                    ActivationExclusion(
+                        code="invalid_production_package_evidence",
+                        detail=_bounded_error_detail(exc),
+                    )
+                )
+    elif evidence.terminal_class == "usable_review_terminal":
+        if one_prompt.review_bundle is None:
+            exclusions.append(
+                ActivationExclusion(
+                    code="missing_usable_review_bundle",
+                    detail="One-Prompt terminal omitted review-bundle evidence",
+                )
+            )
+        else:
+            try:
+                review = validate_quality_review_bundle_v2(
+                    job_root,
+                    one_prompt.review_bundle,
+                )
+                if (
+                    len(review.recommended_actions)
+                    != evidence.actionable_review_action_count
+                ):
+                    raise ActivationValidationError(
+                        "review action count differs from exact review bundle"
+                    )
+                if disposition is None or not _artifact_binding_matches(
+                    root,
+                    disposition.representative_beauty,
+                    job_root,
+                    review.representative_render,
+                ):
+                    raise ActivationValidationError(
+                        "review terminal differs from the disposition beauty"
+                    )
+            except (OSError, ValueError, PermissionError, ActivationValidationError) as exc:
+                exclusions.append(
+                    ActivationExclusion(
+                        code="invalid_usable_review_bundle",
+                        detail=_bounded_error_detail(exc),
+                    )
+                )
+    return _unique_exclusions(exclusions), package_verified
+
+
+def evaluate_activation_campaign_outcome(
+    root: Path,
+    *,
+    evidence: ActivationCampaignOutcomeEvidence,
+    expected_baseline_artifact: ActivationArtifact,
+    output_path: Path,
+    generated_at: datetime | None = None,
+) -> tuple[ActivationCampaignOutcomeEligibilityReport, ActivationArtifact]:
+    """Evaluate one explicit AQ terminal against local first-completion criteria."""
+
+    repository = root.expanduser().resolve(strict=True)
+    exclusions: list[ActivationExclusion] = []
+    try:
+        baseline = load_activation_baseline(repository, expected_baseline_artifact)
+    except (OSError, ValueError, ActivationValidationError) as exc:
+        baseline = None
+        exclusions.append(
+            ActivationExclusion(
+                code="stale_tampered_or_missing_baseline",
+                detail=_bounded_error_detail(exc),
+            )
+        )
+    if (
+        baseline is None
+        or evidence.source_activation_baseline != expected_baseline_artifact
+        or evidence.source_activation_baseline_id != baseline.baseline_id
+        or evidence.source_activation_baseline_sha256 != baseline.baseline_sha256
+    ):
+        exclusions.append(
+            ActivationExclusion(
+                code="source_baseline_mismatch",
+                detail="campaign outcome belongs to another activation baseline",
+            )
+        )
+    for artifact in _campaign_evidence_artifacts(evidence):
+        try:
+            _validate_artifact(repository, artifact)
+        except (OSError, ValueError, ActivationValidationError) as exc:
+            exclusions.append(
+                ActivationExclusion(
+                    code="stale_tampered_missing_or_unknown_evidence",
+                    detail=f"{artifact.path}: {_bounded_error_detail(exc)}"[:1000],
+                )
+            )
+    disposition: ActivationHumanQualityDisposition | None = None
+    try:
+        disposition = _load_contract(
+            repository,
+            evidence.human_quality_disposition,
+            ActivationHumanQualityDisposition,
+        )
+        if (
+            disposition.job_id != evidence.job_id
+            or disposition.skill_run_id != evidence.skill_run_id
+        ):
+            raise ActivationValidationError(
+                "human quality disposition differs from campaign identity"
+            )
+        _validate_artifact(repository, disposition.representative_beauty)
+    except (OSError, ValueError, ActivationValidationError) as exc:
+        exclusions.append(
+            ActivationExclusion(
+                code="invalid_human_quality_disposition",
+                detail=_bounded_error_detail(exc),
+            )
+        )
+    terminal_exclusions, package_verified = _campaign_terminal_exclusions(
+        repository,
+        evidence,
+        disposition,
+    )
+    exclusions.extend(terminal_exclusions)
+    numeric_requirements = (
+        ("additional_user_decisions", evidence.additional_user_decision_count),
+        ("technical_user_approvals", evidence.technical_user_approval_count),
+        ("canonical_corruption", evidence.canonical_corruption_count),
+        ("unresolved_next_actions", evidence.unresolved_next_action_count),
+    )
+    for code, value in numeric_requirements:
+        if value:
+            exclusions.append(
+                ActivationExclusion(
+                    code=code,
+                    detail=f"campaign outcome records {value} {code}",
+                )
+            )
+    if not evidence.rollback_integrity_preserved:
+        exclusions.append(
+            ActivationExclusion(
+                code="rollback_integrity_failed",
+                detail="campaign outcome did not preserve rollback integrity",
+            )
+        )
+    exclusions = _unique_exclusions(exclusions)
+    eligible = not exclusions
+    payload: dict[str, Any] = {
+        "evidence": evidence,
+        "eligible": eligible,
+        "production_package_verified": eligible and package_verified,
+        "exclusion_reasons": exclusions,
+        "generated_at": _utc_now(generated_at),
+    }
+    report = _build_contract(
+        ActivationCampaignOutcomeEligibilityReport,
+        payload,
+        prefix="activation-campaign-eligibility",
+        id_field="report_id",
+        digest_field="report_sha256",
+    )
+    artifact = _write_contract(
+        repository,
+        output_path,
+        report,
+        artifact_id=report.report_id,
+        kind="activation_campaign_eligibility_report",
+    )
+    return report, artifact
+
+
+def write_activation_campaign_registry(
+    root: Path,
+    *,
+    entries: Sequence[ActivationCampaignRegistryEntry],
+    output_path: Path,
+    generated_at: datetime | None = None,
+) -> tuple[ActivationCampaignOutcomeRegistry, ActivationArtifact]:
+    """Create one explicit authoritative campaign registry without discovery."""
+
+    repository = root.expanduser().resolve(strict=True)
+    ordered = sorted(entries, key=lambda item: item.outcome_id)
+    for entry in ordered:
+        _validate_artifact(repository, entry.eligibility_report)
+    digest = stable_json_digest([item.model_dump(mode="json") for item in ordered])
+    registry = ActivationCampaignOutcomeRegistry(
+        registry_id=f"activation-campaign-registry-{digest[:24]}",
+        entries=ordered,
+        generated_at=_utc_now(generated_at),
+    )
+    artifact = _write_contract(
+        repository,
+        output_path,
+        registry,
+        artifact_id=registry.registry_id,
+        kind="activation_campaign_outcome_registry",
+    )
+    return registry, artifact
+
+
+def build_activation_campaign_outcome_index(
+    root: Path,
+    *,
+    registry_artifact: ActivationArtifact,
+    expected_baseline_artifact: ActivationArtifact,
+    output_path: Path,
+    generated_at: datetime | None = None,
+) -> tuple[ActivationCampaignOutcomeIndex, ActivationArtifact]:
+    """Index explicitly registered normal terminals by distinct reference content."""
+
+    repository = root.expanduser().resolve(strict=True)
+    registry = _load_contract(
+        repository,
+        registry_artifact,
+        ActivationCampaignOutcomeRegistry,
+    )
+    baseline = load_activation_baseline(repository, expected_baseline_artifact)
+    records: list[ActivationCampaignOutcomeIndexRecord] = []
+    for entry in registry.entries:
+        report = _load_contract(
+            repository,
+            entry.eligibility_report,
+            ActivationCampaignOutcomeEligibilityReport,
+        )
+        if report.evidence.outcome_id != entry.outcome_id:
+            raise ActivationValidationError(
+                "campaign registry identity differs from eligibility report"
+            )
+        reasons = list(report.exclusion_reasons)
+        if (
+            report.evidence.source_activation_baseline
+            != expected_baseline_artifact
+            or report.evidence.source_activation_baseline_id != baseline.baseline_id
+            or report.evidence.source_activation_baseline_sha256
+            != baseline.baseline_sha256
+        ):
+            reasons.append(
+                ActivationExclusion(
+                    code="source_baseline_mismatch",
+                    detail="campaign report belongs to another activation baseline",
+                )
+            )
+        for artifact in _campaign_evidence_artifacts(report.evidence):
+            try:
+                _validate_artifact(repository, artifact)
+            except (OSError, ValueError, ActivationValidationError) as exc:
+                reasons.append(
+                    ActivationExclusion(
+                        code="stale_tampered_missing_or_unknown_evidence",
+                        detail=f"{artifact.path}: {_bounded_error_detail(exc)}"[:1000],
+                    )
+                )
+        reasons = _unique_exclusions(reasons)
+        records.append(
+            ActivationCampaignOutcomeIndexRecord(
+                outcome_id=entry.outcome_id,
+                job_id=report.evidence.job_id,
+                session_id=report.evidence.session_id,
+                skill_run_id=report.evidence.skill_run_id,
+                primary_reference_sha256=report.evidence.primary_reference.sha256,
+                terminal_class=report.evidence.terminal_class,
+                eligibility_report=entry.eligibility_report,
+                eligible=report.eligible and not reasons,
+                counted=False,
+                production_package_verified=(
+                    report.production_package_verified and not reasons
+                ),
+                exclusion_reasons=reasons,
+            )
+        )
+    grouped: dict[str, list[ActivationCampaignOutcomeIndexRecord]] = defaultdict(list)
+    for record in records:
+        grouped[record.primary_reference_sha256].append(record)
+    groups: list[ActivationCampaignReferenceGroup] = []
+    updated: dict[str, ActivationCampaignOutcomeIndexRecord] = {}
+    for reference_sha in sorted(grouped):
+        members = sorted(grouped[reference_sha], key=lambda item: item.outcome_id)
+        eligible = [item for item in members if item.eligible]
+        representative: str | None = None
+        status = "excluded"
+        if len(eligible) == 1:
+            representative = eligible[0].outcome_id
+            status = "counted"
+        elif len(eligible) > 1:
+            status = "ambiguous"
+            for item in eligible:
+                updated[item.outcome_id] = item.model_copy(
+                    update={
+                        "eligible": False,
+                        "production_package_verified": False,
+                        "exclusion_reasons": _unique_exclusions(
+                            [
+                                *item.exclusion_reasons,
+                                ActivationExclusion(
+                                    code="ambiguous_campaign_reference",
+                                    detail=(
+                                        "multiple eligible outcomes share one primary "
+                                        "reference hash"
+                                    ),
+                                ),
+                            ]
+                        ),
+                    }
+                )
+        for item in members:
+            current = updated.get(item.outcome_id, item)
+            updated[item.outcome_id] = current.model_copy(
+                update={"counted": current.outcome_id == representative}
+            )
+        selected = next(
+            (item for item in members if item.outcome_id == representative),
+            None,
+        )
+        groups.append(
+            ActivationCampaignReferenceGroup(
+                primary_reference_sha256=reference_sha,
+                outcome_ids=[item.outcome_id for item in members],
+                eligible_representative=representative,
+                status=status,
+                counted_asset_units=1 if representative is not None else 0,
+                production_package_units=(
+                    1
+                    if selected is not None and selected.production_package_verified
+                    else 0
+                ),
+            )
+        )
+    final_records = [
+        updated[item.outcome_id]
+        for item in sorted(records, key=lambda entry: entry.outcome_id)
+    ]
+    counted_records = [item for item in final_records if item.counted]
+    payload: dict[str, Any] = {
+        "authoritative_registry": registry_artifact,
+        "source_activation_baseline": expected_baseline_artifact,
+        "source_activation_baseline_id": baseline.baseline_id,
+        "source_activation_baseline_sha256": baseline.baseline_sha256,
+        "records": final_records,
+        "reference_groups": groups,
+        "distinct_successful_asset_count": len(counted_records),
+        "production_delivery_count": sum(
+            item.terminal_class == "production_delivery" for item in counted_records
+        ),
+        "usable_review_terminal_count": sum(
+            item.terminal_class == "usable_review_terminal"
+            for item in counted_records
+        ),
+        "production_package_count": sum(
+            item.production_package_verified for item in counted_records
+        ),
+        "generated_at": _utc_now(generated_at),
+    }
+    index = _build_contract(
+        ActivationCampaignOutcomeIndex,
+        payload,
+        prefix="activation-campaign-index",
+        id_field="index_id",
+        digest_field="index_sha256",
+    )
+    artifact = _write_contract(
+        repository,
+        output_path,
+        index,
+        artifact_id=index.index_id,
+        kind="activation_campaign_outcome_index",
+    )
+    return index, artifact
+
+
+def validate_human_local_activation_acceptance(
+    root: Path,
+    *,
+    baseline_artifact: ActivationArtifact,
+    campaign_outcome_index_artifact: ActivationArtifact,
+    acceptance_artifact: ActivationArtifact | None,
+    observed_at: datetime | None = None,
+) -> HumanLocalActivationAcceptance:
+    """Validate exact five-outcome human authority without consuming it."""
+
+    if acceptance_artifact is None:
+        raise PermissionError("local profile publication requires exact human acceptance")
+    _require_disabled_activation_profile()
+    repository = root.expanduser().resolve(strict=True)
+    baseline = load_activation_baseline(repository, baseline_artifact)
+    index = _load_contract(
+        repository,
+        campaign_outcome_index_artifact,
+        ActivationCampaignOutcomeIndex,
+    )
+    acceptance = _load_contract(
+        repository,
+        acceptance_artifact,
+        HumanLocalActivationAcceptance,
+    )
+    hashes = sorted(
+        item.primary_reference_sha256
+        for item in index.reference_groups
+        if item.counted_asset_units == 1
+    )
+    now = _utc_now(observed_at)
+    if (
+        index.source_activation_baseline != baseline_artifact
+        or index.source_activation_baseline_id != baseline.baseline_id
+        or index.source_activation_baseline_sha256 != baseline.baseline_sha256
+        or acceptance.activation_baseline != baseline_artifact
+        or acceptance.activation_baseline_id != baseline.baseline_id
+        or acceptance.activation_baseline_sha256 != baseline.baseline_sha256
+        or acceptance.campaign_outcome_index != campaign_outcome_index_artifact
+        or acceptance.campaign_outcome_index_id != index.index_id
+        or acceptance.campaign_outcome_index_sha256 != index.index_sha256
+        or acceptance.distinct_primary_reference_sha256s != hashes
+        or index.distinct_successful_asset_count != 5
+        or index.production_package_count < 1
+        or not (acceptance.created_at <= now < acceptance.expires_at)
+    ):
+        raise PermissionError("human local activation acceptance is stale or incomplete")
+    consumption = (
+        repository
+        / "reports"
+        / "activation_readiness"
+        / "local_acceptance_consumptions"
+        / f"{acceptance.acceptance_id}.json"
+    )
+    if consumption.exists():
+        raise PermissionError("human local activation acceptance was already consumed")
+    return acceptance
+
+
+def create_local_activation_readiness_report(
+    root: Path,
+    *,
+    source_manifest_artifact: ActivationArtifact,
+    baseline_artifact: ActivationArtifact,
+    production_candidate_index_artifact: ActivationArtifact | None = None,
+    campaign_outcome_index_artifact: ActivationArtifact | None = None,
+    human_acceptance_artifact: ActivationArtifact | None = None,
+    validation_blockers: Sequence[ActivationReadinessFinding] = (),
+    output_path: Path | None = None,
+    generated_at: datetime | None = None,
+) -> tuple[LocalActivationReadinessReport, ActivationArtifact | None]:
+    """Publish structured local readiness while separating future limitations."""
+
+    repository = root.expanduser().resolve(strict=True)
+    profile = _require_disabled_activation_profile()
+    manifest = load_activation_source_manifest(repository, source_manifest_artifact)
+    baseline = load_activation_baseline(repository, baseline_artifact)
+    blockers = list(validation_blockers)
+    if (
+        baseline.source_manifest != source_manifest_artifact
+        or baseline.source_manifest_id != manifest.manifest_id
+        or baseline.source_manifest_sha256 != manifest.manifest_sha256
+    ):
+        blockers.append(
+            ActivationReadinessFinding(
+                finding_id="source_manifest_baseline_mismatch",
+                detail="Activation baseline differs from its exact source manifest.",
+            )
+        )
+    if production_candidate_index_artifact is not None:
+        production_index = _load_contract(
+            repository,
+            production_candidate_index_artifact,
+            ActivationAssetCandidateIndex,
+        )
+        if production_index.source_activation_baseline != baseline_artifact:
+            blockers.append(
+                ActivationReadinessFinding(
+                    finding_id="production_index_baseline_mismatch",
+                    detail="Strict production candidate index belongs to another baseline.",
+                )
+            )
+    campaign_count = 0
+    package_count = 0
+    campaign_index = None
+    if campaign_outcome_index_artifact is not None:
+        campaign_index = _load_contract(
+            repository,
+            campaign_outcome_index_artifact,
+            ActivationCampaignOutcomeIndex,
+        )
+        if campaign_index.source_activation_baseline != baseline_artifact:
+            blockers.append(
+                ActivationReadinessFinding(
+                    finding_id="campaign_index_baseline_mismatch",
+                    detail="Campaign outcome index belongs to another baseline.",
+                )
+            )
+        else:
+            campaign_count = campaign_index.distinct_successful_asset_count
+            package_count = campaign_index.production_package_count
+            if campaign_count > 5:
+                blockers.append(
+                    ActivationReadinessFinding(
+                        finding_id="campaign_outcome_count_exceeds_target",
+                        detail=(
+                            "Campaign index must register exactly five distinct normal "
+                            "outcomes for local Activation."
+                        ),
+                    )
+                )
+    accepted = None
+    if human_acceptance_artifact is not None:
+        if campaign_outcome_index_artifact is None:
+            blockers.append(
+                ActivationReadinessFinding(
+                    finding_id="human_acceptance_without_campaign_index",
+                    detail="Human activation acceptance has no campaign outcome index.",
+                )
+            )
+        else:
+            accepted = validate_human_local_activation_acceptance(
+                repository,
+                baseline_artifact=baseline_artifact,
+                campaign_outcome_index_artifact=campaign_outcome_index_artifact,
+                acceptance_artifact=human_acceptance_artifact,
+                observed_at=generated_at,
+            )
+    open_requirements: list[ActivationReadinessFinding] = []
+    if campaign_count < 5:
+        open_requirements.append(
+            ActivationReadinessFinding(
+                finding_id="current_baseline_five_outcomes_required",
+                detail=f"Current baseline has {campaign_count}/5 distinct normal outcomes.",
+            )
+        )
+    if package_count < 1:
+        open_requirements.append(
+            ActivationReadinessFinding(
+                finding_id="current_baseline_package_required",
+                detail="At least one production package and clean import are required.",
+            )
+        )
+    if accepted is None:
+        open_requirements.append(
+            ActivationReadinessFinding(
+                finding_id="exact_human_local_activation_acceptance_required",
+                detail="Exact single-use human local-profile acceptance is required.",
+            )
+        )
+    excluded_details = list(profile.get("excluded_capabilities", []))
+    excluded = [
+        ActivationReadinessFinding(
+            finding_id=str(capability),
+            detail=f"Capability is outside local base scope: {capability}.",
+        )
+        for capability in excluded_details
+    ]
+    future_ids = [
+        "desktop_sandbox_not_attested",
+        "client_mediated_controller_unverified",
+        "destination_runtime_parity_unverified",
+    ]
+    future_details = list(profile.get("future_limitations", []))
+    future = [
+        ActivationReadinessFinding(finding_id=finding_id, detail=str(detail))
+        for finding_id, detail in zip(future_ids, future_details, strict=True)
+    ]
+    blockers = sorted(blockers, key=lambda item: item.finding_id)
+    open_requirements = sorted(open_requirements, key=lambda item: item.finding_id)
+    status = "ready_for_fresh_campaign"
+    if blockers:
+        status = "validation_blocked"
+    elif campaign_count == 5 and package_count >= 1 and accepted is not None:
+        status = "ready_for_profile_publication"
+    elif campaign_count == 5 and package_count >= 1:
+        status = "ready_for_human_activation_acceptance"
+    elif campaign_count:
+        status = "campaign_in_progress"
+    payload: dict[str, Any] = {
+        "status": status,
+        "source_manifest": source_manifest_artifact,
+        "activation_baseline": baseline_artifact,
+        "production_candidate_index": production_candidate_index_artifact,
+        "campaign_outcome_index": campaign_outcome_index_artifact,
+        "distinct_campaign_outcome_count": campaign_count,
+        "production_package_count": package_count,
+        "exact_human_activation_acceptance": human_acceptance_artifact,
+        "validation_blockers": blockers,
+        "open_requirements": open_requirements,
+        "excluded_capabilities": sorted(excluded, key=lambda item: item.finding_id),
+        "future_limitations": sorted(future, key=lambda item: item.finding_id),
+        "generated_at": _utc_now(generated_at),
+    }
+    report = _build_contract(
+        LocalActivationReadinessReport,
+        payload,
+        prefix="local-activation-readiness",
+        id_field="report_id",
+        digest_field="report_sha256",
+    )
+    artifact = None
+    if output_path is not None:
+        artifact = _write_contract(
+            repository,
+            output_path,
+            report,
+            artifact_id=report.report_id,
+            kind="local_activation_readiness_report",
+        )
+    return report, artifact
+
+
 def validate_human_activation_acceptance(
     root: Path,
     *,
@@ -1242,6 +2283,13 @@ def activation_contract_capability() -> dict[str, object]:
         "immutable_baseline_supported": True,
         "explicit_candidate_registry_required": True,
         "primary_reference_deduplication": "sha256",
+        "campaign_outcome_index_supported": True,
+        "normal_campaign_terminals": [
+            "production_delivery",
+            "usable_review_terminal",
+        ],
+        "local_activation_scope": "local_desktop_in_session",
+        "structured_local_readiness_supported": True,
         "human_activation_acceptance_required": True,
         "profile_activation_writer_exposed": False,
         "campaign_creation_supported_by_this_service": False,

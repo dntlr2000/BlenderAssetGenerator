@@ -860,14 +860,25 @@ def test_terminal_session_cannot_reuse_an_issued_policy_authorization(
 
 
 def test_profile_stays_disabled_before_human_activation_acceptance() -> None:
-    """Keep the profile disabled while the real indexer owns activation asset counts."""
+    """Keep local activation disabled until exact campaign and human evidence exists."""
 
     status = autonomy_v2_profile_status()
     assert status["status"] == "disabled_experimental"
     assert status["verified_active"] is False
+    assert status["activation_scope"] == "local_desktop_in_session"
+    assert status["approval_isolation"] == "workflow_contract_only"
+    assert status["sandbox_attested"] is False
     assert any(
-        "human review evidence" in blocker
+        "human local-profile activation acceptance" in blocker
+        for blocker in status["required_local_blockers"]  # type: ignore[union-attr]
+    )
+    assert not any(
+        "destination runtime" in blocker
         for blocker in status["activation_blockers"]  # type: ignore[union-attr]
+    )
+    assert any(
+        "destination runtime" in limitation
+        for limitation in status["future_limitations"]  # type: ignore[union-attr]
     )
 
 

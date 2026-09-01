@@ -24,6 +24,7 @@ enabled_tools = [
   "run_aq_one_prompt_skill",
   "resume_aq_one_prompt_skill",
   "get_aq_one_prompt_skill_status",
+  "reconcile_aq_one_prompt_skill_terminal",
   "cancel_aq_one_prompt_skill",
   "plan_material_closure",
   "get_material_closure_status",

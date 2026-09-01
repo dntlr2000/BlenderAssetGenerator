@@ -18,6 +18,7 @@ from codex_blender_modeler.cli import app
 from codex_blender_modeler.skill_orchestration.models import (
     AQSkillAdapterPlan,
     AQSkillAdapterState,
+    AQSkillAdapterTerminal,
     GuardedRevisionContinuation,
     MaterialImpactReport,
     SkillBundleManifest,
@@ -49,6 +50,7 @@ CLI_COMMANDS = {
     "aq-one-prompt-skill-run",
     "aq-one-prompt-skill-resume",
     "aq-one-prompt-skill-status",
+    "aq-one-prompt-skill-reconcile-terminal",
     "aq-one-prompt-skill-cancel",
 }
 MCP_TOOLS = {
@@ -63,6 +65,7 @@ MCP_TOOLS = {
     "run_aq_one_prompt_skill",
     "resume_aq_one_prompt_skill",
     "get_aq_one_prompt_skill_status",
+    "reconcile_aq_one_prompt_skill_terminal",
     "cancel_aq_one_prompt_skill",
 }
 SCHEMA_MODELS = {
@@ -80,6 +83,7 @@ SCHEMA_MODELS = {
     "standard_quality_disposition_record.schema.json": StandardQualityDispositionRecord,
     "aq_skill_adapter_plan.schema.json": AQSkillAdapterPlan,
     "aq_skill_adapter_state.schema.json": AQSkillAdapterState,
+    "aq_skill_adapter_terminal.schema.json": AQSkillAdapterTerminal,
 }
 
 
@@ -165,6 +169,7 @@ def test_aq_skill_mutations_require_explicit_experimental_opt_in() -> None:
         "plan_aq_one_prompt_skill",
         "run_aq_one_prompt_skill",
         "resume_aq_one_prompt_skill",
+        "reconcile_aq_one_prompt_skill_terminal",
         "cancel_aq_one_prompt_skill",
     }:
         parameters = inspect.signature(getattr(mcp_server, tool_name)).parameters

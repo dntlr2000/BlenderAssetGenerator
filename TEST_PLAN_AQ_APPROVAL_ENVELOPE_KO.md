@@ -159,7 +159,21 @@ checkpointed는 additional ≤3, technical 0이다. fixture는 실제 사용자 
 
 ## 12. 활성화 판정
 
-테스트 통과는 profile 자동 활성화가 아니다. local-only activation은 one-prompt actual E2E,
-실제 자산 5개 이상, additional decision 0 목표, technical approval 0, safe terminal 100%, corruption 0과
-rollback integrity의 별도 review를 요구한다. ImageGen overlay는 실제 built-in invocation과 semantic/
-material benchmark가 추가로 필요하다.
+테스트 통과는 profile 자동 활성화가 아니다. local-only activation은 같은 clean baseline의 서로 다른
+primary reference 5개, actual One-Prompt/skill-adapter E2E, additional decision 0 목표, technical approval
+0, corruption 0, rollback integrity와 exact human disposition을 요구한다. 5개 중 최소 1개는 portable
+GLTF package와 clean-import round trip을 통과해야 한다.
+
+Activation focused gate는 추가로 다음을 검증한다.
+
+- strict production candidate index와 normal campaign outcome index가 서로 다른 계약일 것
+- adapter/One-Prompt/RootAuthorization/telemetry/reference binding이 stale·tampered·mismatched일 때 제외될 것
+- Blender 5.0.1 7-pass manifest와 disposition beauty가 exact하게 같을 것
+- production은 `accepted`, usable review는 `needs_revision` disposition만 허용할 것
+- duplicate reference outcome은 ambiguous로 fail-closed할 것
+- historical `reconciled_failed_recovery`는 campaign 성공으로 계산하지 않을 것
+- local blocker, excluded capability와 future limitation을 서로 다른 machine field로 유지할 것
+- exact `HumanLocalActivationAcceptance`가 없으면 publication-ready가 되지 않을 것
+
+ImageGen overlay는 실제 built-in invocation과 semantic/material benchmark가 추가로 필요하며 base
+local-only 5개 캠페인의 필수 capability가 아니다.

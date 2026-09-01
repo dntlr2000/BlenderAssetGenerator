@@ -63,6 +63,7 @@
         "run_aq_one_prompt_skill",
         "resume_aq_one_prompt_skill",
         "get_aq_one_prompt_skill_status",
+        "reconcile_aq_one_prompt_skill_terminal",
         "cancel_aq_one_prompt_skill"
       ]
     },

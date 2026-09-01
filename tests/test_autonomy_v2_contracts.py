@@ -153,19 +153,28 @@ def _completed_result(delivery_id: str, profile_id: str) -> DeliveryResult:
 
 
 def test_v2_profile_is_parallel_and_disabled_until_full_gates() -> None:
-    """The new profile cannot alter or prematurely replace verified AQ v1 semantics."""
+    """Keep AQ v2 disabled while declaring the exact local desktop boundary."""
 
     status = autonomy_v2_profile_status()
     assert status["profile_id"] == "autonomous_static_prop_v2"
     assert status["status"] == "disabled_experimental"
     assert status["verified_active"] is False
+    assert status["activation_scope"] == "local_desktop_in_session"
+    assert status["approval_isolation"] == "workflow_contract_only"
+    assert status["sandbox_attested"] is False
+    assert status["client_mediated_verified"] is False
     assert status["activation_blockers"]
     assert all(
         "not yet recorded" not in blocker
         for blocker in status["activation_blockers"]
     )
     assert any(
-        "closed loop" in blocker for blocker in status["activation_blockers"]
+        "five-outcome" in blocker for blocker in status["activation_blockers"]
+    )
+    assert "client_mediated_controller" in status["excluded_capabilities"]
+    assert any(
+        "supporting-client closed-loop" in limitation
+        for limitation in status["future_limitations"]
     )
 
 

@@ -33,6 +33,7 @@ from codex_blender_modeler.skill_orchestration import (
     get_standard_asset_cycle_status,
     plan_aq_one_prompt_skill,
     plan_standard_asset_cycle,
+    reconcile_aq_one_prompt_skill_terminal,
     resume_standard_asset_cycle,
     run_aq_one_prompt_skill,
     run_standard_asset_cycle,
@@ -2082,6 +2083,8 @@ def test_aq_skill_plan_and_cancel_preserve_disabled_profile_and_receipt_chain(
     )
     assert cancelled["status"] == "terminal"
     assert cancelled["profile_status"] == "disabled_experimental"
+    assert cancelled["terminal"]["terminal_type"] == "cancelled"
+    assert cancelled["terminal"]["campaign_terminal_candidate"] is False
     trace = get_skill_execution_trace("skill-aq-cancel", "aq-skill-cancel")
     assert len(trace["routes"]) == 1
     assert len(trace["receipts"]) == 1
@@ -2241,5 +2244,18 @@ def test_aq_adapter_reconciles_an_externally_terminalized_one_prompt(
     )
     assert reconciled["status"] == "terminal"
     assert reconciled["one_prompt"]["status"] == "terminal"
+    assert reconciled["terminal"]["terminal_type"] == "cancelled"
     trace = get_skill_execution_trace("skill-aq-terminal", "aq-skill-terminal")
     assert trace["receipts"][-1]["outcome"] == "cancelled"
+
+
+def test_aq_failed_terminal_reconciliation_requires_exact_recovery_evidence() -> None:
+    """Reject an empty recovery projection before touching any historical AQ run."""
+
+    with pytest.raises(ValueError, match="requires recovery package acceptance"):
+        reconcile_aq_one_prompt_skill_terminal(
+            "missing-job",
+            "missing-run",
+            recovery_package_acceptance_paths=[],
+            experimental_opt_in=True,
+        )

@@ -57,6 +57,14 @@ TerminalState = Literal[
     "cancelled",
     "nonterminal",
 ]
+CampaignTerminalClass = Literal[
+    "production_delivery",
+    "usable_review_terminal",
+    "blocked",
+    "failed",
+    "cancelled",
+    "nonterminal",
+]
 
 
 def _contract_digest(
@@ -466,6 +474,372 @@ class ActivationAssetCandidateIndex(V09StrictModel):
             prefix="activation-index",
             id_field="index_id",
             digest_field="index_sha256",
+        )
+        return self
+
+
+class ActivationHumanQualityDisposition(V09StrictModel):
+    """Record one exact human visual disposition without granting approval authority."""
+
+    schema_version: Literal["0.1.0"] = ACTIVATION_CONTRACT_VERSION
+    disposition_id: PortableId
+    disposition_sha256: Sha256
+    job_id: PortableId
+    skill_run_id: PortableId
+    representative_beauty: ActivationArtifact
+    disposition: Literal["accepted", "needs_revision"]
+    reviewer_identity: str = Field(min_length=1, max_length=256)
+    observed_statement_sha256: Sha256
+    is_user_approval: Literal[False] = False
+    is_quality_disposition: Literal[True] = True
+    recorded_at: datetime
+
+    @model_validator(mode="after")
+    def validate_disposition_identity(self) -> ActivationHumanQualityDisposition:
+        """Bind the exact beauty and disposition to deterministic immutable identity."""
+
+        _require_contract_identity(
+            self,
+            prefix="activation-quality-disposition",
+            id_field="disposition_id",
+            digest_field="disposition_sha256",
+        )
+        return self
+
+
+class ActivationCampaignOutcomeEvidence(V09StrictModel):
+    """Declare one explicit AQ campaign result without scanning historical workspaces."""
+
+    outcome_id: PortableId
+    job_id: PortableId
+    session_id: PortableId
+    skill_run_id: PortableId
+    source_activation_baseline: ActivationArtifact
+    source_activation_baseline_id: PortableId
+    source_activation_baseline_sha256: Sha256
+    primary_reference: ActivationArtifact
+    adapter_terminal: ActivationArtifact
+    terminal_class: CampaignTerminalClass
+    human_quality_disposition: ActivationArtifact
+    actual_blender_render_manifests: list[ActivationArtifact] = Field(min_length=1)
+    initial_request_count: Literal[1] = 1
+    additional_user_decision_count: int = Field(ge=0)
+    technical_user_approval_count: int = Field(ge=0)
+    canonical_corruption_count: int = Field(ge=0)
+    rollback_integrity_preserved: bool
+    unresolved_next_action_count: int = Field(ge=0)
+    actionable_review_action_count: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_outcome_evidence_shape(self) -> ActivationCampaignOutcomeEvidence:
+        """Require unique Blender receipts and terminal-specific action semantics."""
+
+        manifest_paths = [item.path for item in self.actual_blender_render_manifests]
+        if len(manifest_paths) != len(set(manifest_paths)):
+            raise ValueError("campaign Blender manifests must use unique paths")
+        if self.terminal_class == "usable_review_terminal":
+            if self.unresolved_next_action_count or not self.actionable_review_action_count:
+                raise ValueError(
+                    "usable review terminal requires actions and no unresolved next action"
+                )
+        elif self.actionable_review_action_count:
+            raise ValueError(
+                "actionable review actions belong only to a usable review terminal"
+            )
+        return self
+
+
+class ActivationCampaignOutcomeEligibilityReport(V09StrictModel):
+    """Classify one explicit campaign outcome against local first-completion KPIs."""
+
+    schema_version: Literal["0.1.0"] = ACTIVATION_CONTRACT_VERSION
+    contract_status: Literal["disabled_experimental"] = "disabled_experimental"
+    report_id: PortableId
+    report_sha256: Sha256
+    evidence: ActivationCampaignOutcomeEvidence
+    eligible: bool
+    production_package_verified: bool
+    exclusion_reasons: list[ActivationExclusion]
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_campaign_eligibility(self) -> ActivationCampaignOutcomeEligibilityReport:
+        """Keep success, package, and exclusion claims internally consistent."""
+
+        if self.eligible == bool(self.exclusion_reasons):
+            raise ValueError("campaign eligibility and exclusion reasons disagree")
+        if self.production_package_verified != (
+            self.eligible and self.evidence.terminal_class == "production_delivery"
+        ):
+            raise ValueError("campaign package count differs from terminal eligibility")
+        _require_contract_identity(
+            self,
+            prefix="activation-campaign-eligibility",
+            id_field="report_id",
+            digest_field="report_sha256",
+        )
+        return self
+
+
+class ActivationCampaignRegistryEntry(V09StrictModel):
+    """Bind one explicitly registered campaign-outcome eligibility report."""
+
+    outcome_id: PortableId
+    eligibility_report: ActivationArtifact
+
+
+class ActivationCampaignOutcomeRegistry(V09StrictModel):
+    """List the only campaign outcomes one authoritative index may inspect."""
+
+    schema_version: Literal["0.1.0"] = ACTIVATION_CONTRACT_VERSION
+    registry_id: PortableId
+    authoritative_registry: Literal[True] = True
+    entries: list[ActivationCampaignRegistryEntry]
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_campaign_registry(self) -> ActivationCampaignOutcomeRegistry:
+        """Require unique outcome identities, paths, and deterministic ordering."""
+
+        outcome_ids = [item.outcome_id for item in self.entries]
+        paths = [item.eligibility_report.path for item in self.entries]
+        if outcome_ids != sorted(outcome_ids) or len(outcome_ids) != len(
+            set(outcome_ids)
+        ):
+            raise ValueError("campaign registry outcomes must be sorted and unique")
+        if len(paths) != len(set(paths)):
+            raise ValueError("campaign registry cannot repeat an eligibility report")
+        return self
+
+
+class ActivationCampaignOutcomeIndexRecord(V09StrictModel):
+    """Record whether one registered terminal contributes a campaign asset unit."""
+
+    outcome_id: PortableId
+    job_id: PortableId
+    session_id: PortableId
+    skill_run_id: PortableId
+    primary_reference_sha256: Sha256
+    terminal_class: CampaignTerminalClass
+    eligibility_report: ActivationArtifact
+    eligible: bool
+    counted: bool
+    production_package_verified: bool
+    exclusion_reasons: list[ActivationExclusion]
+
+
+class ActivationCampaignReferenceGroup(V09StrictModel):
+    """Deduplicate eligible campaign outcomes by exact primary-reference bytes."""
+
+    primary_reference_sha256: Sha256
+    outcome_ids: list[PortableId] = Field(min_length=1)
+    eligible_representative: PortableId | None = None
+    status: Literal["counted", "excluded", "ambiguous"]
+    counted_asset_units: Literal[0, 1]
+    production_package_units: Literal[0, 1]
+
+    @model_validator(mode="after")
+    def validate_campaign_reference_group(self) -> ActivationCampaignReferenceGroup:
+        """Require one representative and at most one package unit per reference."""
+
+        if self.outcome_ids != sorted(self.outcome_ids) or len(
+            self.outcome_ids
+        ) != len(set(self.outcome_ids)):
+            raise ValueError("campaign outcome IDs must be unique and sorted")
+        counted = self.status == "counted"
+        if counted != (self.counted_asset_units == 1):
+            raise ValueError("campaign group status and counted units disagree")
+        if counted != (self.eligible_representative is not None):
+            raise ValueError("counted campaign group requires one representative")
+        if self.production_package_units > self.counted_asset_units:
+            raise ValueError("campaign package units cannot exceed counted assets")
+        return self
+
+
+class ActivationCampaignOutcomeIndex(V09StrictModel):
+    """Count normal AQ outcomes separately from strict production-package candidates."""
+
+    schema_version: Literal["0.1.0"] = ACTIVATION_CONTRACT_VERSION
+    contract_status: Literal["disabled_experimental"] = "disabled_experimental"
+    index_id: PortableId
+    index_sha256: Sha256
+    authoritative_registry: ActivationArtifact
+    source_activation_baseline: ActivationArtifact
+    source_activation_baseline_id: PortableId
+    source_activation_baseline_sha256: Sha256
+    records: list[ActivationCampaignOutcomeIndexRecord]
+    reference_groups: list[ActivationCampaignReferenceGroup]
+    distinct_successful_asset_count: int = Field(ge=0)
+    production_delivery_count: int = Field(ge=0)
+    usable_review_terminal_count: int = Field(ge=0)
+    production_package_count: int = Field(ge=0)
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_campaign_index_totals(self) -> ActivationCampaignOutcomeIndex:
+        """Derive campaign totals from exact counted representatives only."""
+
+        record_ids = [item.outcome_id for item in self.records]
+        group_hashes = [item.primary_reference_sha256 for item in self.reference_groups]
+        if record_ids != sorted(record_ids) or len(record_ids) != len(set(record_ids)):
+            raise ValueError("campaign records must be unique and outcome-sorted")
+        if group_hashes != sorted(group_hashes) or len(group_hashes) != len(
+            set(group_hashes)
+        ):
+            raise ValueError("campaign reference groups must be unique and hash-sorted")
+        counted_records = [item for item in self.records if item.counted]
+        counted_units = sum(item.counted_asset_units for item in self.reference_groups)
+        package_units = sum(item.production_package_units for item in self.reference_groups)
+        production = sum(
+            item.terminal_class == "production_delivery" for item in counted_records
+        )
+        reviews = sum(
+            item.terminal_class == "usable_review_terminal" for item in counted_records
+        )
+        if (
+            self.distinct_successful_asset_count != counted_units
+            or len(counted_records) != counted_units
+            or self.production_delivery_count != production
+            or self.usable_review_terminal_count != reviews
+            or production + reviews != counted_units
+            or self.production_package_count != package_units
+        ):
+            raise ValueError("campaign outcome index totals differ from its records")
+        _require_contract_identity(
+            self,
+            prefix="activation-campaign-index",
+            id_field="index_id",
+            digest_field="index_sha256",
+        )
+        return self
+
+
+class HumanLocalActivationAcceptance(V09StrictModel):
+    """Authorize one exact local profile publication from the five-outcome index."""
+
+    schema_version: Literal["0.2.0"] = "0.2.0"
+    acceptance_id: PortableId
+    acceptance_sha256: Sha256
+    activation_scope: Literal["local_desktop_in_session"] = "local_desktop_in_session"
+    activation_baseline: ActivationArtifact
+    activation_baseline_id: PortableId
+    activation_baseline_sha256: Sha256
+    campaign_outcome_index: ActivationArtifact
+    campaign_outcome_index_id: PortableId
+    campaign_outcome_index_sha256: Sha256
+    distinct_primary_reference_sha256s: list[Sha256] = Field(
+        min_length=5,
+        max_length=5,
+    )
+    minimum_production_package_count: Literal[1] = 1
+    profile_id: Literal["autonomous_static_prop_v2"] = ACTIVATION_PROFILE_ID
+    profile_version: Literal["0.2.0"] = ACTIVATION_PROFILE_VERSION
+    requested_operation: Literal["publish_local_profile"] = "publish_local_profile"
+    reviewer_identity: str = Field(min_length=1, max_length=256)
+    created_at: datetime
+    expires_at: datetime
+    single_use: Literal[True] = True
+    is_policy_authorization: Literal[False] = False
+    is_user_approval: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_local_acceptance(self) -> HumanLocalActivationAcceptance:
+        """Require exactly five unique references and finite single-use authority."""
+
+        hashes = self.distinct_primary_reference_sha256s
+        if hashes != sorted(hashes) or len(hashes) != len(set(hashes)):
+            raise ValueError("local activation reference hashes must be unique and sorted")
+        if self.expires_at <= self.created_at:
+            raise ValueError("local activation acceptance must expire after creation")
+        _require_contract_identity(
+            self,
+            prefix="human-local-activation",
+            id_field="acceptance_id",
+            digest_field="acceptance_sha256",
+        )
+        return self
+
+
+class ActivationReadinessFinding(V09StrictModel):
+    """Classify one local requirement, excluded capability, or future limitation."""
+
+    finding_id: ReasonCode
+    detail: str = Field(min_length=1, max_length=1000)
+    evidence: list[ActivationArtifact] = Field(default_factory=list)
+
+
+class LocalActivationReadinessReport(V09StrictModel):
+    """Project local AQ readiness without treating future client parity as a blocker."""
+
+    schema_version: Literal["0.2.0"] = "0.2.0"
+    contract_status: Literal["disabled_experimental"] = "disabled_experimental"
+    report_id: PortableId
+    report_sha256: Sha256
+    activation_scope: Literal["local_desktop_in_session"] = "local_desktop_in_session"
+    status: Literal[
+        "validation_blocked",
+        "ready_for_fresh_campaign",
+        "campaign_in_progress",
+        "ready_for_human_activation_acceptance",
+        "ready_for_profile_publication",
+    ]
+    source_manifest: ActivationArtifact
+    activation_baseline: ActivationArtifact
+    production_candidate_index: ActivationArtifact | None = None
+    campaign_outcome_index: ActivationArtifact | None = None
+    campaign_target_count: Literal[5] = 5
+    distinct_campaign_outcome_count: int = Field(ge=0)
+    production_package_target_count: Literal[1] = 1
+    production_package_count: int = Field(ge=0)
+    exact_human_activation_acceptance: ActivationArtifact | None = None
+    validation_blockers: list[ActivationReadinessFinding]
+    open_requirements: list[ActivationReadinessFinding]
+    excluded_capabilities: list[ActivationReadinessFinding]
+    future_limitations: list[ActivationReadinessFinding]
+    profile_id: Literal["autonomous_static_prop_v2"] = ACTIVATION_PROFILE_ID
+    profile_version: Literal["0.2.0"] = ACTIVATION_PROFILE_VERSION
+    profile_status: Literal["disabled_experimental"] = "disabled_experimental"
+    sandbox_attested: Literal[False] = False
+    client_mediated_verified: Literal[False] = False
+    destination_runtime_parity: Literal[False] = False
+    generated_at: datetime
+
+    @model_validator(mode="after")
+    def validate_local_readiness(self) -> LocalActivationReadinessReport:
+        """Keep local status, campaign counts, and remaining requirements exact."""
+
+        for label, findings in (
+            ("validation blockers", self.validation_blockers),
+            ("open requirements", self.open_requirements),
+            ("excluded capabilities", self.excluded_capabilities),
+            ("future limitations", self.future_limitations),
+        ):
+            ids = [item.finding_id for item in findings]
+            if ids != sorted(ids) or len(ids) != len(set(ids)):
+                raise ValueError(f"{label} must be unique and finding-sorted")
+        if self.status == "validation_blocked" and not self.validation_blockers:
+            raise ValueError("blocked local readiness requires a validation blocker")
+        if self.status != "validation_blocked" and self.validation_blockers:
+            raise ValueError("nonblocked local readiness cannot carry validation blockers")
+        campaign_complete = self.distinct_campaign_outcome_count == 5
+        package_complete = self.production_package_count >= 1
+        accepted = self.exact_human_activation_acceptance is not None
+        expected_status = "ready_for_fresh_campaign"
+        if self.validation_blockers:
+            expected_status = "validation_blocked"
+        elif campaign_complete and package_complete and accepted:
+            expected_status = "ready_for_profile_publication"
+        elif campaign_complete and package_complete:
+            expected_status = "ready_for_human_activation_acceptance"
+        elif self.distinct_campaign_outcome_count:
+            expected_status = "campaign_in_progress"
+        if self.status != expected_status:
+            raise ValueError("local readiness status differs from current evidence counts")
+        _require_contract_identity(
+            self,
+            prefix="local-activation-readiness",
+            id_field="report_id",
+            digest_field="report_sha256",
         )
         return self
 

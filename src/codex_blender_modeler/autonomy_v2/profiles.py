@@ -6,10 +6,35 @@ from .models import DeliveryProfile
 
 PROFILE_ID = "autonomous_static_prop_v2"
 PROFILE_STATUS = "disabled_experimental"
+LOCAL_ACTIVATION_SCOPE = "local_desktop_in_session"
+
+_REQUIRED_LOCAL_BLOCKERS = (
+    "current-baseline five-outcome One-Prompt campaign evidence is not published",
+    "current-baseline portable GLTF production package evidence is not published",
+    "exact human local-profile activation acceptance is not published",
+    "source-controlled local-profile activation publication is not complete",
+)
+
+_EXCLUDED_LOCAL_CAPABILITIES = (
+    "codex_imagegen",
+    "client_mediated_controller",
+    "signage_or_decal",
+    "dependency_rich_bake_material",
+    "architecture",
+    "interior",
+    "rig",
+    "animation",
+)
+
+_FUTURE_LIMITATIONS = (
+    "desktop_in_session is workflow-contract-only and is not a sandbox attestation",
+    "supporting-client closed-loop and tool-policy attestation are not verified",
+    "destination runtime import and material parity are not verified",
+)
 
 
 def autonomy_v2_profile_status() -> dict[str, object]:
-    """Expose v2 as disabled until every required real gate has passed."""
+    """Expose the disabled base profile with an exact local activation scope."""
 
     return {
         "profile_id": PROFILE_ID,
@@ -17,13 +42,16 @@ def autonomy_v2_profile_status() -> dict[str, object]:
         "status": PROFILE_STATUS,
         "underlying_execution_policy": "standard",
         "reference_content_scope": "primary_object_only",
+        "activation_scope": LOCAL_ACTIVATION_SCOPE,
+        "approval_isolation": "workflow_contract_only",
+        "sandbox_attested": False,
+        "client_mediated_verified": False,
         "verified_active": False,
-        "activation_blockers": [
-            "Codex Desktop or App Server supporting-client closed loop is not verified",
-            "controller phase sandbox and tool-policy attestation is not verified",
-            "real-reference quality benchmark has no human review evidence",
-            "destination runtime import and material parity is not verified",
-        ],
+        "required_local_blockers": list(_REQUIRED_LOCAL_BLOCKERS),
+        "excluded_capabilities": list(_EXCLUDED_LOCAL_CAPABILITIES),
+        "future_limitations": list(_FUTURE_LIMITATIONS),
+        # Preserve the legacy public key while narrowing it to true local blockers.
+        "activation_blockers": list(_REQUIRED_LOCAL_BLOCKERS),
     }
 
 

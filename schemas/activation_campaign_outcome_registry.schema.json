@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationCampaignRegistryEntry": {
+      "additionalProperties": false,
+      "description": "Bind one explicitly registered campaign-outcome eligibility report.",
+      "properties": {
+        "outcome_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "eligibility_report": {
+          "$ref": "#/$defs/ActivationArtifact"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "eligibility_report"
+      ],
+      "title": "ActivationCampaignRegistryEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "List the only campaign outcomes one authoritative index may inspect.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "registry_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Registry Id",
+      "type": "string"
+    },
+    "authoritative_registry": {
+      "const": true,
+      "default": true,
+      "title": "Authoritative Registry",
+      "type": "boolean"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/ActivationCampaignRegistryEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "registry_id",
+    "entries",
+    "generated_at"
+  ],
+  "title": "ActivationCampaignOutcomeRegistry",
+  "type": "object"
+}

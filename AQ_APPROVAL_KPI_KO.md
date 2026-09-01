@@ -129,9 +129,33 @@ failure injection은 normal-success KPI와 별도 cohort다.
 
 ## 7. activation review 기준
 
-local-only AQ v2 activation review에는 one-prompt actual E2E, 실제 자산 5개 이상, zero-additional-
-decision 목표, technical approval 0, safe terminal 100%, canonical corruption 0과 rollback 무결성이
-필요하다. Unity runtime parity는 local-only activation의 필수 지표가 아니다.
+local-only AQ v2 activation review는 같은 clean `ActivationBaseline`에서 시작한 서로 다른 primary
+reference 5개를 요구한다. 각 자산은 실제 `aq-one-prompt-orchestrator` adapter terminal,
+RootAuthorization reference, host-replayed telemetry, Blender 5.0.1 7-pass manifest와 exact human
+quality disposition을 하나의 불변 evidence chain으로 결속해야 한다.
+
+정상 campaign outcome은 다음 둘뿐이다.
+
+```text
+production_delivery + accepted disposition
+usable review_bundle + needs_revision disposition + actionable next actions
+```
+
+두 terminal 모두 initial request 1, additional decision 0 목표, technical user approval 0,
+canonical corruption 0, rollback 무결성과 미해결 technical next action 0을 요구한다. `blocked`,
+`failed`, `cancelled`, `running`, pending approval, historical recovery reconciliation은 campaign
+성공으로 세지 않는다. 같은 reference의 eligible outcome이 둘 이상이면 임의로 하나를 고르지 않고
+ambiguous로 제외한다.
+
+`ActivationAssetCandidateIndex`는 production package만 세는 기존 엄격 지표로 유지한다.
+`ActivationCampaignOutcomeIndex`는 위 두 정상 terminal을 별도로 세되, 5개 outcome 중 최소 1개는
+검증된 portable GLTF package와 clean import를 가진 production delivery여야 한다. profile publication은
+이 index와 정확히 다섯 reference hash를 결속한 single-use `HumanLocalActivationAcceptance` 없이는
+진행하지 않는다.
+
+이 1차 범위는 `local_desktop_in_session`의 workflow-contract-only 경계다. desktop 실행을 sandbox
+attestation으로 표현하지 않는다. Unity/Unreal runtime parity와 supporting-client tool-policy
+attestation은 future limitation이며 local-only base Activation의 필수 package count가 아니다.
 
 ImageGen overlay는 initial scope/budget 준수, 실제 built-in ImageGen E2E, semantic review 경계,
 material benchmark와 불필요한 호출 억제 지표가 추가로 필요하다. 이 문서의 representative fixture

@@ -1,0 +1,251 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "ActivationCampaignOutcomeEvidence": {
+      "additionalProperties": false,
+      "description": "Declare one explicit AQ campaign result without scanning historical workspaces.",
+      "properties": {
+        "outcome_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Outcome Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "skill_run_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Skill Run Id",
+          "type": "string"
+        },
+        "source_activation_baseline": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "source_activation_baseline_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Activation Baseline Id",
+          "type": "string"
+        },
+        "source_activation_baseline_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Activation Baseline Sha256",
+          "type": "string"
+        },
+        "primary_reference": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "adapter_terminal": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "terminal_class": {
+          "enum": [
+            "production_delivery",
+            "usable_review_terminal",
+            "blocked",
+            "failed",
+            "cancelled",
+            "nonterminal"
+          ],
+          "title": "Terminal Class",
+          "type": "string"
+        },
+        "human_quality_disposition": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "actual_blender_render_manifests": {
+          "items": {
+            "$ref": "#/$defs/ActivationArtifact"
+          },
+          "minItems": 1,
+          "title": "Actual Blender Render Manifests",
+          "type": "array"
+        },
+        "initial_request_count": {
+          "const": 1,
+          "default": 1,
+          "title": "Initial Request Count",
+          "type": "integer"
+        },
+        "additional_user_decision_count": {
+          "minimum": 0,
+          "title": "Additional User Decision Count",
+          "type": "integer"
+        },
+        "technical_user_approval_count": {
+          "minimum": 0,
+          "title": "Technical User Approval Count",
+          "type": "integer"
+        },
+        "canonical_corruption_count": {
+          "minimum": 0,
+          "title": "Canonical Corruption Count",
+          "type": "integer"
+        },
+        "rollback_integrity_preserved": {
+          "title": "Rollback Integrity Preserved",
+          "type": "boolean"
+        },
+        "unresolved_next_action_count": {
+          "minimum": 0,
+          "title": "Unresolved Next Action Count",
+          "type": "integer"
+        },
+        "actionable_review_action_count": {
+          "minimum": 0,
+          "title": "Actionable Review Action Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "job_id",
+        "session_id",
+        "skill_run_id",
+        "source_activation_baseline",
+        "source_activation_baseline_id",
+        "source_activation_baseline_sha256",
+        "primary_reference",
+        "adapter_terminal",
+        "terminal_class",
+        "human_quality_disposition",
+        "actual_blender_render_manifests",
+        "additional_user_decision_count",
+        "technical_user_approval_count",
+        "canonical_corruption_count",
+        "rollback_integrity_preserved",
+        "unresolved_next_action_count",
+        "actionable_review_action_count"
+      ],
+      "title": "ActivationCampaignOutcomeEvidence",
+      "type": "object"
+    },
+    "ActivationExclusion": {
+      "additionalProperties": false,
+      "description": "Record one deterministic machine-readable reason a candidate is not counted.",
+      "properties": {
+        "code": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "detail": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Detail",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "detail"
+      ],
+      "title": "ActivationExclusion",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Classify one explicit campaign outcome against local first-completion KPIs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Contract Status",
+      "type": "string"
+    },
+    "report_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Report Id",
+      "type": "string"
+    },
+    "report_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Report Sha256",
+      "type": "string"
+    },
+    "evidence": {
+      "$ref": "#/$defs/ActivationCampaignOutcomeEvidence"
+    },
+    "eligible": {
+      "title": "Eligible",
+      "type": "boolean"
+    },
+    "production_package_verified": {
+      "title": "Production Package Verified",
+      "type": "boolean"
+    },
+    "exclusion_reasons": {
+      "items": {
+        "$ref": "#/$defs/ActivationExclusion"
+      },
+      "title": "Exclusion Reasons",
+      "type": "array"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "report_sha256",
+    "evidence",
+    "eligible",
+    "production_package_verified",
+    "exclusion_reasons",
+    "generated_at"
+  ],
+  "title": "ActivationCampaignOutcomeEligibilityReport",
+  "type": "object"
+}

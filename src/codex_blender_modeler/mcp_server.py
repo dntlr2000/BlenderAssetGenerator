@@ -352,6 +352,9 @@ from .skill_orchestration import (
     plan_standard_asset_cycle as plan_standard_asset_cycle_internal,
 )
 from .skill_orchestration import (
+    reconcile_aq_one_prompt_skill_terminal as reconcile_aq_one_prompt_skill_terminal_internal,
+)
+from .skill_orchestration import (
     resume_aq_one_prompt_skill as resume_aq_one_prompt_skill_internal,
 )
 from .skill_orchestration import (
@@ -1359,6 +1362,23 @@ def get_aq_one_prompt_skill_status(job_id: str, run_id: str) -> dict:
     """Read the AQ adapter and underlying One-Prompt state without execution."""
 
     return get_aq_one_prompt_skill_status_internal(job_id, run_id)
+
+
+@mcp.tool()
+def reconcile_aq_one_prompt_skill_terminal(
+    job_id: str,
+    run_id: str,
+    recovery_package_acceptance_paths: list[str],
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Close a stale failed AQ adapter from exact append-only recovery evidence."""
+
+    return reconcile_aq_one_prompt_skill_terminal_internal(
+        job_id,
+        run_id,
+        recovery_package_acceptance_paths=recovery_package_acceptance_paths,
+        experimental_opt_in=experimental_opt_in,
+    )
 
 
 @mcp.tool()
