@@ -6,6 +6,7 @@ import json
 import math
 import os
 import re
+import secrets
 import shutil
 import struct
 import sys
@@ -15,6 +16,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+import bmesh
 import bpy
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -53,7 +55,7 @@ NON_RENDER_BOOLEAN_TAG = "hidden-boolean-target"
 
 
 def _portable_temp_mkdir_mode(path: Any, mode: int, temp_root: Path) -> int:
-    """Use inherited Windows ACLs only for glTF exporter's package-local temp children."""
+    """Use inherited Windows ACLs only for glTF exporter's isolated temp children."""
 
     if sys.platform != "win32" or mode != 0o700:
         return mode
@@ -64,18 +66,35 @@ def _portable_temp_mkdir_mode(path: Any, mode: int, temp_root: Path) -> int:
     return 0o777 if candidate.is_relative_to(temp_root) else mode
 
 
+def _create_portable_gltf_temp_root(package_root: Path) -> Path:
+    """Create a short normal-path temp root that Blender image APIs can write on Windows."""
+
+    temp_base = Path(tempfile.gettempdir()).resolve()
+    if not temp_base.is_dir():
+        raise FileNotFoundError(f"Portable glTF temp base does not exist: {temp_base}")
+    package_token = re.sub(r"[^A-Za-z0-9]+", "-", package_root.name).strip("-")[:16]
+    package_token = package_token or "package"
+    for _attempt in range(16):
+        candidate = temp_base / (
+            f"cbm-gltf-{package_token}-{os.getpid()}-{secrets.token_hex(4)}"
+        )
+        try:
+            candidate.mkdir(mode=0o777)
+        except FileExistsError:
+            continue
+        return candidate
+    raise RuntimeError(f"Could not allocate a unique portable glTF temp root: {temp_base}")
+
+
 @contextmanager
 def portable_gltf_temp_environment(package_root: Path) -> Iterator[None]:
-    """Keep Blender glTF image encoding in a package-local Windows-compatible temp root."""
+    """Keep Blender glTF image encoding in a short Windows-compatible temp root."""
 
     if sys.platform != "win32":
         yield
         return
 
-    temp_root = (package_root / ".cbm_gltf_temp").resolve()
-    if temp_root.exists():
-        raise FileExistsError(f"Portable glTF temp root already exists: {temp_root}")
-    temp_root.mkdir(mode=0o777)
+    temp_root = _create_portable_gltf_temp_root(package_root)
     original_tempdir = tempfile.tempdir
     original_mkdir = os.mkdir
     completed = False
@@ -283,30 +302,71 @@ def _replace_uv_layers(
     mesh.update()
 
 
+@contextmanager
+def _portable_tangent_probe(
+    obj: bpy.types.Object,
+) -> Iterator[bpy.types.Object]:
+    """Yield the source mesh or a disposable triangulated copy for tangent checks."""
+
+    mesh = obj.data
+    if not any(len(polygon.vertices) > 4 for polygon in mesh.polygons):
+        yield obj
+        return
+
+    temporary_mesh = mesh.copy()
+    temporary = bpy.data.objects.new(f"{obj.name}__CBM_EXPORT_TANGENT_PROBE", temporary_mesh)
+    temporary.matrix_world = obj.matrix_world.copy()
+    editable = bmesh.new()
+    try:
+        editable.from_mesh(temporary_mesh)
+        non_triangles = [face for face in editable.faces if len(face.verts) != 3]
+        if non_triangles:
+            bmesh.ops.triangulate(
+                editable,
+                faces=non_triangles,
+                quad_method="FIXED",
+                ngon_method="EAR_CLIP",
+            )
+            editable.to_mesh(temporary_mesh)
+            temporary_mesh.update()
+        yield temporary
+    finally:
+        editable.free()
+        bpy.data.objects.remove(temporary, do_unlink=True)
+        if temporary_mesh.users == 0:
+            bpy.data.meshes.remove(temporary_mesh)
+
+
 def _verify_portable_tangent_basis(
     obj: bpy.types.Object,
     uv_set: str,
 ) -> None:
     """Fail closed when a render mesh cannot produce finite tangents from portable UV0."""
 
-    mesh = obj.data
-    calculator = getattr(mesh, "calc_tangents", None)
-    if calculator is None:
-        raise RuntimeError("Blender runtime exposes no portable tangent calculator")
-    try:
-        calculator(uvmap=uv_set)
-        invalid = 0
-        for loop in mesh.loops:
-            values = tuple(float(value) for value in loop.tangent)
-            sign = float(loop.bitangent_sign)
-            if not all(value == value and abs(value) != float("inf") for value in (*values, sign)):
-                invalid += 1
-        if invalid:
-            raise RuntimeError(f"{obj.name!r} has {invalid} invalid tangent loops on {uv_set!r}")
-    finally:
-        freer = getattr(mesh, "free_tangents", None)
-        if freer is not None:
-            freer()
+    with _portable_tangent_probe(obj) as probe:
+        mesh = probe.data
+        calculator = getattr(mesh, "calc_tangents", None)
+        if calculator is None:
+            raise RuntimeError("Blender runtime exposes no portable tangent calculator")
+        try:
+            calculator(uvmap=uv_set)
+            invalid = 0
+            for loop in mesh.loops:
+                values = tuple(float(value) for value in loop.tangent)
+                sign = float(loop.bitangent_sign)
+                if not all(
+                    value == value and abs(value) != float("inf")
+                    for value in (*values, sign)
+                ):
+                    invalid += 1
+            if invalid:
+                raise RuntimeError(
+                    f"{obj.name!r} has {invalid} invalid tangent loops on {uv_set!r}"
+                )
+        finally:
+            freer = getattr(mesh, "free_tangents", None)
+            if freer is not None:
+                freer()
 
 
 def normalize_portable_uv_bindings(
@@ -952,8 +1012,43 @@ def _restore_triangulated_corner_normals(
     mesh.update()
 
 
+def _serialization_collinear_slivers(
+    editable: Any,
+    obj: bpy.types.Object,
+    *,
+    maximum_area_m2: float,
+    maximum_ratio: float,
+) -> list[Any]:
+    """Find negligible triangulation faces before custom corner normals are restored."""
+
+    result: list[Any] = []
+    for face in editable.faces:
+        if len(face.verts) != 3:
+            continue
+        coordinates = [obj.matrix_world @ vertex.co for vertex in face.verts]
+        edges = [
+            coordinates[(index + 1) % 3] - coordinates[index]
+            for index in range(3)
+        ]
+        maximum_edge_squared = max(edge.length_squared for edge in edges)
+        if maximum_edge_squared <= 0.0:
+            result.append(face)
+            continue
+        doubled_area = edges[0].cross(coordinates[2] - coordinates[0]).length
+        if (
+            doubled_area * 0.5 <= maximum_area_m2
+            and doubled_area / maximum_edge_squared <= maximum_ratio
+        ):
+            result.append(face)
+    return result
+
+
 def normalize_gltf_serialization_topology(
-    objects: list[bpy.types.Object], format_name: str
+    objects: list[bpy.types.Object],
+    format_name: str,
+    *,
+    collinear_sliver_maximum_area_m2: float | None = None,
+    collinear_sliver_maximum_ratio: float | None = None,
 ) -> dict[str, Any]:
     """Triangulate only in-memory glTF meshes before evidence and serialization."""
 
@@ -963,7 +1058,19 @@ def normalize_gltf_serialization_topology(
             "format": format_name,
             "reason": "format_does_not_require_gltf_triangle_serialization",
         }
-
+    if (collinear_sliver_maximum_area_m2 is None) != (
+        collinear_sliver_maximum_ratio is None
+    ):
+        raise ValueError("glTF collinear-sliver thresholds must be supplied together")
+    if (
+        collinear_sliver_maximum_area_m2 is not None
+        and (
+            collinear_sliver_maximum_area_m2 <= 0.0
+            or collinear_sliver_maximum_ratio is None
+            or collinear_sliver_maximum_ratio <= 0.0
+        )
+    ):
+        raise ValueError("glTF collinear-sliver thresholds must be positive")
     import bmesh
 
     mesh_objects = sorted(
@@ -981,7 +1088,13 @@ def normalize_gltf_serialization_topology(
         polygons_before = len(mesh.polygons)
         triangles_before = len(mesh.loop_triangles)
         non_tri_faces_before = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
-        if non_tri_faces_before:
+        removed_collinear_face_count = 0
+        expected_triangles_after = triangles_before
+        rewrite_requested = bool(
+            non_tri_faces_before
+            or collinear_sliver_maximum_area_m2 is not None
+        )
+        if rewrite_requested:
             source_normal_records = _capture_polygon_corner_normals(mesh)
             editable = bmesh.new()
             try:
@@ -1000,6 +1113,21 @@ def normalize_gltf_serialization_topology(
                     quad_method="FIXED",
                     ngon_method="EAR_CLIP",
                 )
+                if collinear_sliver_maximum_area_m2 is not None:
+                    collinear_faces = _serialization_collinear_slivers(
+                        editable,
+                        obj,
+                        maximum_area_m2=collinear_sliver_maximum_area_m2,
+                        maximum_ratio=float(collinear_sliver_maximum_ratio),
+                    )
+                    removed_collinear_face_count = len(collinear_faces)
+                    if collinear_faces:
+                        bmesh.ops.delete(
+                            editable,
+                            geom=collinear_faces,
+                            context="FACES_ONLY",
+                        )
+                expected_triangles_after = len(editable.faces)
                 normal_records = _capture_bmesh_triangle_corner_normals(
                     editable,
                     source_face_layer,
@@ -1017,7 +1145,10 @@ def normalize_gltf_serialization_topology(
         remaining_non_tri_faces = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
         if remaining_non_tri_faces:
             raise RuntimeError(f"glTF serialization mesh remains non-triangular: {obj.name}")
-        if triangles_after != triangles_before or polygons_after != triangles_after:
+        if (
+            triangles_after != expected_triangles_after
+            or polygons_after != triangles_after
+        ):
             raise RuntimeError(
                 f"glTF serialization triangulation changed triangle identity: {obj.name}"
             )
@@ -1030,6 +1161,7 @@ def normalize_gltf_serialization_topology(
                 "triangles_before": triangles_before,
                 "triangles_after": triangles_after,
                 "non_tri_faces_before": non_tri_faces_before,
+                "removed_collinear_face_count": removed_collinear_face_count,
             }
         )
     return {
@@ -1039,6 +1171,9 @@ def normalize_gltf_serialization_topology(
         "object_count": len(mesh_objects),
         "unique_mesh_count": len(records),
         "triangulated_mesh_count": sum(1 for record in records if record["non_tri_faces_before"]),
+        "removed_collinear_face_count": sum(
+            int(record["removed_collinear_face_count"]) for record in records
+        ),
         "non_tri_face_count_before": sum(int(record["non_tri_faces_before"]) for record in records),
         "triangle_count_before": sum(int(record["triangles_before"]) for record in records),
         "triangle_count_after": sum(int(record["triangles_after"]) for record in records),

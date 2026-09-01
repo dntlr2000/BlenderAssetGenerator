@@ -669,3 +669,140 @@ R5B source freeze를 delivery에 사용하거나 전역 budget을 늘리는 권�
 따라서 현재 authoritative 판단은 **R5B machine canary pass, human quality needs_revision, delivery
 unauthorized, bounded composition regression 진행 중, Activation NO-GO**입니다. AQ base와 ImageGen
 overlay profile은 모두 `disabled_experimental`을 유지합니다.
+
+## 12. R5C/R5D Laser 폐루프와 V0.7 technical recovery
+
+### 12.1 R5C composition과 R5D perspective compensation
+
+R5C는 R5B에서 빠졌던 assembly를 material-identity composition으로 묶어 고정 build budget 안에서
+실행했습니다. 실제 adapter terminal은 닫혔지만 V0.6 direct `0.932642`, silhouette IoU `0.904873`,
+IQ boundary F `0.627697`로 quality hard gate에서 `blocked`됐습니다.
+
+- campaign launch file SHA-256:
+  `a449a24e14bc3321575cb2c9c35e472b6940b0082327488a24a8755e96c21518`
+- campaign result file SHA-256:
+  `5cee30e32084cc4eff66954a8b60ca284ed3a77c94d246be207501adb4b41f2b`
+- review request SHA-256:
+  `4baa26bd134cfe5cfaa264539d802d84220eae229710926f305bb23b6a9657d0`
+- beauty SHA-256:
+  `b0193e2b7a3893913e05dc1ee6a5de261ce09dc256c727a01ebb98ad030651b1`
+- exact human disposition: `needs_revision`
+- disposition set logical/file SHA-256:
+  `0559479fe58b9064f347439da3ed47303d957023a858fa00b086e86cdc5b8c9a` /
+  `f8431f0b0560774d38cee795685944880f603cdaf995531227886019329132a9`
+
+R5C diagnostic은 reference와 candidate의 perspective 차이를 별도 attribution으로 고정했습니다. 같은
+immutable reference에서 전체 topology나 budget을 넓히지 않고 bounded perspective compensation만 적용한
+R5D는 V0.6 direct `0.946730`, silhouette IoU `0.935239`, IQ boundary F `0.816738`, chamfer
+`0.003923`으로 IQ pass/source freeze에 도달했습니다.
+
+- campaign launch file SHA-256:
+  `cb4981049d5b713709812f72e6c5f188f44f657097994485da455a9f53335d56`
+- campaign result file SHA-256:
+  `67d24d6d56c7862157a3bf61a9fbd50802509c05877d13582c55fb1091bc1040`
+- source freeze SHA-256:
+  `6b1faba801374645db5b07d3e28e801bcdc41cf5ae21f4a0a2ab259a124f49bc`
+- review request SHA-256:
+  `3e62d43cac0f4ebdcda80bfdfc1ccd442f32144025c3e0a965e8ca7683b45e9f`
+- beauty SHA-256:
+  `b538f7acc0ff84c427dd5a70b7268e89696cc2955b6e5e33868493049575e6ec`
+- exact human disposition: `accepted`
+- disposition set logical/file SHA-256:
+  `d5907e72ba5e3c014263c07175380b710fa8b9a745bebcceeee268a582e7a394` /
+  `84888eb2dac47b2e1319db21e891f12e674c5a09ea0a84ef8c286d49f7ba1965`
+
+이 visual acceptance는 V0.7 package나 Activation의 사전 승인이 아닙니다. 사용자는 이후 별도의 exact
+portable GLTF optimization plan SHA-256
+`65c13c1e2ccacaa056ad40b5bbe5ec8d4ffe2cfe4bd6a3a27b16dda74acecd95`를 승인했습니다.
+
+### 12.2 원래 host terminal과 append-only R01~R07
+
+승인된 계획의 원래 AQ host 실행은 production package를 만들지 못한 채 다음 exact safe terminal로
+종료됐습니다. 이 state와 terminal은 모든 recovery 뒤에도 수정하지 않았습니다.
+
+- failed state SHA-256:
+  `8cd9e923fc60b5e69dc7de6af06c70005a1634471f74cc071e9a1b0b6a45d621`
+- failed delivery terminal SHA-256:
+  `5c116036df12c868aebf68167332178771a264179df7e5a351a272ead51312ae`
+- consumed exact approval SHA-256:
+  `f94f96d18e6c5170e75338fae7d56142bf62c723d804d9f1442e3b18eccf0dd6`
+- canonical SceneSpec/MaterialPlan/blend SHA-256:
+  `b0fcf6c786fe8badf866fce357b703474361e43e3e17b127270dfc4afb4343c2` /
+  `7dbb233703c48bfbf3129b4af8bd5d33c65117c2e3b0aa895df307a4eee7dd02` /
+  `93a462943f2a82a6f4372b00167a7232666db67df733b3d4931c9eb6111d23c8`
+
+각 technical recovery는 새 경로와 새 attempt/result로만 실행했습니다.
+
+| Recovery | result logical SHA-256 | 결과 | 고정한 경계 |
+|---|---|---|---|
+| R01 tangent topology | `e097642502279b96b6c45f811fc80f7dffa78be5c2742ebbb880f41b823a1e7a` | failed | exporter n-gon tangent 계산 실패 |
+| R02 exporter probe | `68b8ee943da5a5b889e54adb565a3565e8a9aae81be3daa93966cb35b1e31f84` | failed | recovery adapter 호출 signature 실패, Blender side effect 0 |
+| R03 adapter signature | `1eceaec1b2225d6c2862e535e467eafe1b3796d956e0da2b4527646304b2caa0` | failed | Windows GLTF temporary path 길이 실패 |
+| R04 Windows temp path | `44d9f3671d1673e21142cd51bc83b7ecf3d465aee4c083f6d922bb9fd275875f` | failed | package 생성, clean-import tangent/UV/survival 실패 |
+| R05 serialization alignment | `a678062b947962b9781087c49023f68b26c78916d4b418a1f17e3db7ab730017` | failed | conversion의 near-collinear tangent residual 1개 |
+| R06 pre-normal topology | `0bd7b8b61f87bf9eee55e264f13b4f7eed737c287434c4d8090d881fcbab896e` | failed | package/round-trip pass, UV fingerprint boundary false negative |
+| R07 UV fingerprint evidence | `a3ab953192560de9c886b34c27bf8c7009a6a964902e30a435087a7d0704006b` | completed | 기존 R06 package의 evidence-only geometry survival 재검증 |
+
+R06 conversion은 exporter와 같은 `FIXED/EAR_CLIP` topology를 물리 고정하고, 면적
+`1e-7 m²` 이하이면서 aspect ratio `1e-5` 이하인 negligible triangulation face만 derived mesh에서
+제거했습니다. 실제 Blender 5.0.1 diagnostic에서 33개가 제거됐고 tangent invalid loop, residual
+micro/collinear sliver와 bounds delta는 모두 0이었습니다. canonical 3개 hash는 변하지 않았습니다.
+
+R06 package와 post-publication evidence:
+
+- technical package ID: `r5d-recovery-r06-gltf`
+- package manifest SHA-256:
+  `2ddcfd0e2125871e22282a3a4fd9558364bbfc673d6a8a71806e5821f0b97257`
+- round-trip validation SHA-256:
+  `227783a4065df4283027e5ae94c91206d84c71dd2bf91df1e622913bc0bd620c`
+- R07 geometry survival SHA-256:
+  `83bc1fae301df2f9a7b7ee6ace1ebf79de72b625663fd5879b9f839403019d0e`
+- package: `complete`, 파일 `26`, absolute path `0`, missing dependency `0`, errors/warnings `0/0`
+- clean import: `passed`, failed checks `0`, semantic/material coverage `1.0/1.0`
+- geometry survival: `known_loss`, exact `7`, equivalent `1`, failed `0`, format-hidden known loss `7`
+- R07 terminal: `technical_package_validated=true`, conversion/package 재실행 `false`
+
+R06 UV mismatch는 2,415개 corner와 436개 semantic-position key가 모두 같고 최대 raw delta가
+`2.98023223876953e-08`인 상태에서 기존 `1e-5` quantization 경계에 걸린 8개 V 값만 달랐던
+false negative였습니다. 비교 cell을 `2e-5`로 제한해 재검증했으며 material-visible UV displacement를
+허용하거나 실제 좌표 차이를 package pass로 재분류하지 않았습니다.
+
+최종 회귀 과정에서는 Blender image API가 `\\?\` extended temp path를 직접 거부하는 별도 GLTF
+image-encoding 경계를 발견했습니다. exporter는 이제 process temp 아래의 짧은 고유 normal-path staging
+root를 사용하고, 그 root 내부의 Python `0o700` child 생성만 inherited ACL mode로 바꾼 뒤 전역
+`tempfile.tempdir`와 `os.mkdir`를 복원합니다. 실패했던 signage/emissive preview 2건은 불필요하게 긴
+pytest basetemp에서만 재현된 경로 길이 오탐이었고, GLTF fake-signage export 1건은 이 staging 수정으로
+해소됐습니다. 세 exact 재현은 `3 passed`였고 최종 공식 gate는 다음을 기록했습니다.
+
+- V0.7 full gate: `2021 passed`, `65 skipped`; Blender 5.0.1 GLTF/FBX/OBJ package와 clean import 통과
+- AQ focused gate: `935 passed`, `26 skipped`
+- AQ Blender smoke: `47 passed`, `1 skipped`
+- AQ 0.1 benchmark: `8 passed`, `0 failed`, Blender case `3`
+- AQ 0.2 benchmark: `10 passed`, `0 failed`, Blender case `2`, human review `not_reviewed`
+
+이 검증은 현재 소스 결함을 닫는 회귀 증거이며 R06 package를 재생성하거나 원래 failed terminal을
+변경하지 않았습니다. 또한 package acceptance, destination write 또는 profile Activation 권한도 만들지
+않습니다.
+
+### 12.3 현재 Activation과 다음 exact 권한 경계
+
+R5D는 새 Laser의 IQ/source freeze, exact human `accepted`, 실제 Blender package, clean import와 geometry
+survival이라는 기술 선행조건을 충족했습니다. 그러나 R06은 원래 exact plan package ID와 다른 technical
+recovery package이고, R07도 host delivery adoption을 수행하지 않았습니다. 따라서 현재 authoritative 상태는
+다음과 같습니다.
+
+- `technical_package_validated=true`
+- `host_delivery_adopted=false`
+- `production_package_authorized=false`
+- `profile_activation_authorized=false`
+- AQ base와 ImageGen overlay 모두 `disabled_experimental`
+- Activation 판정: **NO-GO 유지**
+
+다음 단계는 새 모델링이나 package 재생성이 아닙니다. 사용자가 R06의 exact package manifest SHA-256
+`2ddcfd0e2125871e22282a3a4fd9558364bbfc673d6a8a71806e5821f0b97257`과 exact post-publication
+round-trip SHA-256
+`227783a4065df4283027e5ae94c91206d84c71dd2bf91df1e622913bc0bd620c`를 package acceptance 대상으로
+명시해야 합니다. 그 single-use host acknowledgement 뒤 full gate와 clean source commit을 기준으로 새
+ActivationSourceManifest/Baseline, Candidate Registry/Eligibility/Index/Readiness를 게시해 Stage 9 overlay
+진입 가능 여부와 AQ base NO-GO blocker를 서로 분리해 재평가합니다. package acceptance는 destination write나
+runtime parity, profile activation 승인이 아닙니다.

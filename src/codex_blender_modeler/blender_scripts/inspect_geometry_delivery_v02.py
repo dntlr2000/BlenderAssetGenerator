@@ -108,7 +108,9 @@ def _uv_vector(values: Any) -> list[float]:
         number = float(values[index])
         if not math.isfinite(number):
             raise RuntimeError("delivery geometry contains a non-finite UV coordinate")
-        quantum = 0.00001
+        # A 2e-5 cell absorbs the observed float32 V-flip round-trip delta
+        # (below 3e-8) without hiding a material-visible atlas displacement.
+        quantum = 0.00002
         rounded = round(round(number / quantum) * quantum, 5)
         result.append(0.0 if rounded == 0.0 else rounded)
     return result

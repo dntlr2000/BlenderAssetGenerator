@@ -348,11 +348,20 @@ def _normalize_manifest(
                 remaining_micro_sliver_face_count=int(
                     record.get("remaining_micro_sliver_face_count", 0)
                 ),
+                collinear_sliver_face_count_before=int(
+                    record.get("collinear_sliver_face_count_before", 0)
+                ),
+                remaining_collinear_sliver_face_count=int(
+                    record.get("remaining_collinear_sliver_face_count", 0)
+                ),
                 tangent_invalid_loop_count_before=int(
                     record.get("tangent_invalid_loop_count_before", 0)
                 ),
                 tangent_invalid_loop_count_after=int(
                     record.get("tangent_invalid_loop_count_after", 0)
+                ),
+                tangent_verification_attempt_count=int(
+                    record.get("tangent_verification_attempt_count", 1)
                 ),
                 bounds_max_abs_delta_m=float(
                     record.get("bounds_max_abs_delta_m", 0.0)

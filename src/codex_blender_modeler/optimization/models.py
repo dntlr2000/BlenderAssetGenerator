@@ -1294,11 +1294,19 @@ class PortableAtlasTile(V07StrictModel):
     )
     repaired_uv_degenerate_face_count: int = Field(default=0, ge=0)
     remaining_uv_degenerate_face_count: Literal[0] = 0
-    tangent_repair_method: Literal["none", "dissolve_degenerate"] = "none"
+    tangent_repair_method: Literal[
+        "none",
+        "dissolve_degenerate",
+        "remove_collinear_slivers",
+        "remove_collinear_slivers_and_dissolve_degenerate",
+    ] = "none"
     micro_sliver_face_count_before: int = Field(default=0, ge=0)
     remaining_micro_sliver_face_count: int = Field(default=0, ge=0)
+    collinear_sliver_face_count_before: int = Field(default=0, ge=0)
+    remaining_collinear_sliver_face_count: Literal[0] = 0
     tangent_invalid_loop_count_before: int = Field(default=0, ge=0)
-    tangent_invalid_loop_count_after: int = Field(default=0, ge=0)
+    tangent_invalid_loop_count_after: Literal[0] = 0
+    tangent_verification_attempt_count: int = Field(default=1, ge=1, le=3)
     bounds_max_abs_delta_m: float = Field(default=0.0, ge=0, le=0.000001)
 
     @model_validator(mode="after")

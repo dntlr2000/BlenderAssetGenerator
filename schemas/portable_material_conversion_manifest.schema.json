@@ -288,7 +288,9 @@
           "default": "none",
           "enum": [
             "none",
-            "dissolve_degenerate"
+            "dissolve_degenerate",
+            "remove_collinear_slivers",
+            "remove_collinear_slivers_and_dissolve_degenerate"
           ],
           "title": "Tangent Repair Method",
           "type": "string"
@@ -305,6 +307,18 @@
           "title": "Remaining Micro Sliver Face Count",
           "type": "integer"
         },
+        "collinear_sliver_face_count_before": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Collinear Sliver Face Count Before",
+          "type": "integer"
+        },
+        "remaining_collinear_sliver_face_count": {
+          "const": 0,
+          "default": 0,
+          "title": "Remaining Collinear Sliver Face Count",
+          "type": "integer"
+        },
         "tangent_invalid_loop_count_before": {
           "default": 0,
           "minimum": 0,
@@ -312,9 +326,16 @@
           "type": "integer"
         },
         "tangent_invalid_loop_count_after": {
+          "const": 0,
           "default": 0,
-          "minimum": 0,
           "title": "Tangent Invalid Loop Count After",
+          "type": "integer"
+        },
+        "tangent_verification_attempt_count": {
+          "default": 1,
+          "maximum": 3,
+          "minimum": 1,
+          "title": "Tangent Verification Attempt Count",
           "type": "integer"
         },
         "bounds_max_abs_delta_m": {

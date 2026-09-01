@@ -16,6 +16,9 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 from compat import configure_render_compat, set_material_transparency  # noqa: E402
+from export_portable_package import (  # noqa: E402
+    normalize_gltf_serialization_topology,
+)
 from portable_asset_common import operator_kwargs, scene_source_provenance  # noqa: E402
 from portable_material_conversion_runtime import (  # noqa: E402
     atlas_tile_bounds,
@@ -41,6 +44,8 @@ COLOR_SPACES = {
 }
 CONVERTIBLE_ROLES = {"render", "lod"}
 SUPPORTED_MAPPING_MODES = {"uv", "object", "triplanar"}
+COLLINEAR_SLIVER_MAX_AREA_M2 = 1e-7
+COLLINEAR_SLIVER_MAX_RATIO = 1e-5
 
 
 def parse_args() -> argparse.Namespace:
@@ -741,10 +746,15 @@ def _mesh_world_bounds(obj: bpy.types.Object) -> tuple[float, float, float, floa
     )
 
 
-def _invalid_tangent_faces(obj: bpy.types.Object, uv_name: str) -> dict[str, Any]:
-    """Return invalid tangent loops and faces on the exact portable normal-map UV."""
+def _calculate_invalid_tangent_faces(
+    obj: bpy.types.Object,
+    uv_name: str,
+) -> dict[str, Any]:
+    """Calculate tangents only on Blender-compatible tri/quad probe topology."""
 
     mesh = obj.data
+    if any(len(polygon.vertices) > 4 for polygon in mesh.polygons):
+        raise RuntimeError("Internal tangent calculation received n-gon topology")
     calculator = getattr(mesh, "calc_tangents", None)
     if calculator is None:
         raise RuntimeError("Blender runtime does not support tangent calculation")
@@ -778,7 +788,49 @@ def _invalid_tangent_faces(obj: bpy.types.Object, uv_name: str) -> dict[str, Any
         "invalid_face_indices": sorted(
             {loop_to_face[index] for index in invalid_loops}
         ),
+        "probe_topology": "native_tri_quad",
     }
+
+
+def _triangulated_tangent_probe(
+    obj: bpy.types.Object,
+    uv_name: str,
+) -> tuple[dict[str, Any], set[int]]:
+    """Measure tangents and micro-slivers on one disposable export-like mesh copy."""
+
+    temporary_mesh = obj.data.copy()
+    temporary = bpy.data.objects.new(f"{obj.name}__CBM_TANGENT_PROBE", temporary_mesh)
+    temporary.matrix_world = obj.matrix_world.copy()
+    editable = bmesh.new()
+    try:
+        editable.from_mesh(temporary_mesh)
+        non_triangles = [face for face in editable.faces if len(face.verts) != 3]
+        if non_triangles:
+            bmesh.ops.triangulate(
+                editable,
+                faces=non_triangles,
+                quad_method="FIXED",
+                ngon_method="EAR_CLIP",
+            )
+            editable.to_mesh(temporary_mesh)
+            temporary_mesh.update()
+        result = _calculate_invalid_tangent_faces(temporary, uv_name)
+        result["probe_topology"] = "triangulated_copy"
+        return result, set(_micro_sliver_faces(temporary, 1e-6))
+    finally:
+        editable.free()
+        bpy.data.objects.remove(temporary, do_unlink=True)
+        if temporary_mesh.users == 0:
+            bpy.data.meshes.remove(temporary_mesh)
+
+
+def _invalid_tangent_faces(obj: bpy.types.Object, uv_name: str) -> dict[str, Any]:
+    """Return invalid tangents, probing n-gons only on a triangulated mesh copy."""
+
+    if any(len(polygon.vertices) > 4 for polygon in obj.data.polygons):
+        result, _micro_faces = _triangulated_tangent_probe(obj, uv_name)
+        return result
+    return _calculate_invalid_tangent_faces(obj, uv_name)
 
 
 def _micro_sliver_faces(obj: bpy.types.Object, distance_m: float) -> list[int]:
@@ -798,39 +850,75 @@ def _micro_sliver_faces(obj: bpy.types.Object, distance_m: float) -> list[int]:
     return result
 
 
+def _collinear_sliver_faces(
+    obj: bpy.types.Object,
+    *,
+    maximum_area_m2: float,
+    maximum_ratio: float,
+) -> list[int]:
+    """Find negligible triangular faces whose world-space vertices are nearly collinear."""
+
+    result: list[int] = []
+    for polygon in obj.data.polygons:
+        if len(polygon.vertices) != 3:
+            continue
+        coordinates = [
+            obj.matrix_world @ obj.data.vertices[index].co
+            for index in polygon.vertices
+        ]
+        edges = [
+            coordinates[(index + 1) % 3] - coordinates[index]
+            for index in range(3)
+        ]
+        maximum_edge_squared = max(edge.length_squared for edge in edges)
+        if maximum_edge_squared <= 0.0:
+            result.append(int(polygon.index))
+            continue
+        doubled_area = edges[0].cross(coordinates[2] - coordinates[0]).length
+        if (
+            doubled_area * 0.5 <= maximum_area_m2
+            and doubled_area / maximum_edge_squared <= maximum_ratio
+        ):
+            result.append(int(polygon.index))
+    return result
+
+
 def _simulated_export_tangent_faces(
     obj: bpy.types.Object,
     uv_name: str,
 ) -> dict[str, Any]:
     """Check tangents on a temporary fully triangulated copy like an interchange export."""
 
-    temporary_mesh = obj.data.copy()
-    temporary = bpy.data.objects.new(f"{obj.name}__CBM_TANGENT_PROBE", temporary_mesh)
-    temporary.matrix_world = obj.matrix_world.copy()
-    editable = bmesh.new()
-    try:
-        editable.from_mesh(temporary_mesh)
-        non_triangles = [face for face in editable.faces if len(face.verts) != 3]
-        if non_triangles:
-            bmesh.ops.triangulate(
-                editable,
-                faces=non_triangles,
-                quad_method="BEAUTY",
-                ngon_method="BEAUTY",
-            )
-            editable.to_mesh(temporary_mesh)
-            temporary_mesh.update()
-        result = _invalid_tangent_faces(temporary, uv_name)
-        micro_faces = set(_micro_sliver_faces(temporary, 1e-6))
-        result["repairable_invalid_face_indices"] = sorted(
-            set(result["invalid_face_indices"]) & micro_faces
-        )
-        return result
-    finally:
-        editable.free()
-        bpy.data.objects.remove(temporary, do_unlink=True)
-        if temporary_mesh.users == 0:
-            bpy.data.meshes.remove(temporary_mesh)
+    if all(len(polygon.vertices) == 3 for polygon in obj.data.polygons):
+        result = _calculate_invalid_tangent_faces(obj, uv_name)
+        result["probe_topology"] = "physical_export_triangles"
+        micro_faces = set(_micro_sliver_faces(obj, 1e-6))
+    else:
+        result, micro_faces = _triangulated_tangent_probe(obj, uv_name)
+    result["repairable_invalid_face_indices"] = sorted(
+        set(result["invalid_face_indices"]) & micro_faces
+    )
+    return result
+
+
+def _verify_repaired_tangent_basis(
+    obj: bpy.types.Object,
+    uv_name: str,
+) -> tuple[dict[str, Any], dict[str, Any], int]:
+    """Require repaired native/export tangents to settle within three exact probes."""
+
+    native: dict[str, Any] = {}
+    exported: dict[str, Any] = {}
+    for attempt in range(1, 4):
+        native = _invalid_tangent_faces(obj, uv_name)
+        exported = _simulated_export_tangent_faces(obj, uv_name)
+        if (
+            not native["invalid_loop_indices"]
+            and not exported["invalid_loop_indices"]
+        ):
+            return native, exported, attempt
+        obj.data.update()
+    return native, exported, 3
 
 
 def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[str, Any]:
@@ -848,10 +936,24 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
     export_invalid_faces = export_before["invalid_face_indices"]
     repairable_export_faces = export_before["repairable_invalid_face_indices"]
     micro_slivers = _micro_sliver_faces(obj, 1e-6)
-    if not repairable_export_faces:
+    collinear_slivers = _collinear_sliver_faces(
+        obj,
+        maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2,
+        maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO,
+    )
+    if export_invalid_loops and not repairable_export_faces and not collinear_slivers:
+        raise RuntimeError(
+            f"Portable tangent preflight found non-repairable invalid loops: {obj.name} "
+            f"({len(export_invalid_loops)})"
+        )
+    if not repairable_export_faces and not collinear_slivers:
         return {
             "repair_method": "none",
             "repair_distance_m": 0.0,
+            "collinear_sliver_maximum_area_m2": COLLINEAR_SLIVER_MAX_AREA_M2,
+            "collinear_sliver_maximum_ratio": COLLINEAR_SLIVER_MAX_RATIO,
+            "collinear_sliver_face_count_before": 0,
+            "remaining_collinear_sliver_face_count": 0,
             "micro_sliver_face_count_before": len(micro_slivers),
             "remaining_micro_sliver_face_count": len(micro_slivers),
             "native_invalid_loop_count": len(invalid_loops),
@@ -860,6 +962,7 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
             "invalid_face_count_before": len(export_invalid_faces),
             "invalid_loop_count_after": len(export_invalid_loops),
             "invalid_face_count_after": len(export_invalid_faces),
+            "verification_attempt_count": 1,
             "vertices_before": before_vertices,
             "vertices_after": before_vertices,
             "polygons_before": before_polygons,
@@ -871,11 +974,29 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
     editable = bmesh.new()
     try:
         editable.from_mesh(obj.data)
-        bmesh.ops.dissolve_degenerate(
-            editable,
-            dist=1e-6,
-            edges=list(editable.edges),
-        )
+        editable.faces.ensure_lookup_table()
+        editable.faces.index_update()
+        collinear_faces = [editable.faces[index] for index in collinear_slivers]
+        if collinear_faces:
+            bmesh.ops.delete(
+                editable,
+                geom=collinear_faces,
+                context="FACES_ONLY",
+            )
+        if repairable_export_faces:
+            bmesh.ops.dissolve_degenerate(
+                editable,
+                dist=1e-6,
+                edges=list(editable.edges),
+            )
+        non_triangles = [face for face in editable.faces if len(face.verts) != 3]
+        if non_triangles:
+            bmesh.ops.triangulate(
+                editable,
+                faces=non_triangles,
+                quad_method="FIXED",
+                ngon_method="EAR_CLIP",
+            )
         editable.to_mesh(obj.data)
     finally:
         editable.free()
@@ -885,9 +1006,15 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
     if layer is None:
         raise RuntimeError(f"Tangent repair removed portable UV: {obj.name}")
     remaining_uv = _degenerate_uv_faces(obj.data, layer)
-    native_after = _invalid_tangent_faces(obj, uv_name)
-    export_after = _simulated_export_tangent_faces(obj, uv_name)
+    native_after, export_after, verification_attempt_count = (
+        _verify_repaired_tangent_basis(obj, uv_name)
+    )
     remaining_micro_slivers = _micro_sliver_faces(obj, 1e-6)
+    remaining_collinear_slivers = _collinear_sliver_faces(
+        obj,
+        maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2,
+        maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO,
+    )
     after_bounds = _mesh_world_bounds(obj)
     bounds_delta = max(
         abs(current - original)
@@ -896,6 +1023,8 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
     if (
         remaining_uv
         or remaining_micro_slivers
+        or remaining_collinear_slivers
+        or native_after["invalid_loop_indices"]
         or export_after["invalid_loop_indices"]
         or bounds_delta > 1e-6
     ):
@@ -903,14 +1032,25 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
             f"Portable tangent repair failed for {obj.name}: "
             f"invalid_loops={len(export_after['invalid_loop_indices'])}, "
             f"micro_slivers={len(remaining_micro_slivers)}, "
+            f"collinear_slivers={len(remaining_collinear_slivers)}, "
             f"degenerate_uv_faces={len(remaining_uv)}, bounds_delta={bounds_delta}"
         )
     after_triangles = sum(
         max(0, len(face.vertices) - 2) for face in obj.data.polygons
     )
+    if collinear_slivers and repairable_export_faces:
+        repair_method = "remove_collinear_slivers_and_dissolve_degenerate"
+    elif collinear_slivers:
+        repair_method = "remove_collinear_slivers"
+    else:
+        repair_method = "dissolve_degenerate"
     return {
-        "repair_method": "dissolve_degenerate",
-        "repair_distance_m": 1e-6,
+        "repair_method": repair_method,
+        "repair_distance_m": 1e-6 if repairable_export_faces else 0.0,
+        "collinear_sliver_maximum_area_m2": COLLINEAR_SLIVER_MAX_AREA_M2,
+        "collinear_sliver_maximum_ratio": COLLINEAR_SLIVER_MAX_RATIO,
+        "collinear_sliver_face_count_before": len(collinear_slivers),
+        "remaining_collinear_sliver_face_count": 0,
         "micro_sliver_face_count_before": len(micro_slivers),
         "remaining_micro_sliver_face_count": 0,
         "native_invalid_loop_count": len(invalid_loops),
@@ -921,6 +1061,7 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
         "invalid_face_count_before": len(export_invalid_faces),
         "invalid_loop_count_after": 0,
         "invalid_face_count_after": 0,
+        "verification_attempt_count": verification_attempt_count,
         "vertices_before": before_vertices,
         "vertices_after": len(obj.data.vertices),
         "polygons_before": before_polygons,
@@ -929,6 +1070,29 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
         "triangles_after": after_triangles,
         "bounds_max_abs_delta_m": round(bounds_delta, 12),
     }
+
+
+def _merge_serialization_topology_repair(
+    topology: dict[str, Any],
+    serialization: dict[str, Any],
+) -> dict[str, Any]:
+    """Fold pre-normal triangulation sliver removal into the conversion tile evidence."""
+
+    removed = int(serialization.get("removed_collinear_face_count", 0))
+    if removed <= 0:
+        return topology
+    merged = dict(topology)
+    method = str(merged["repair_method"])
+    if method != "none":
+        merged["repair_method"] = "remove_collinear_slivers_and_dissolve_degenerate"
+    else:
+        merged["repair_method"] = "remove_collinear_slivers"
+    merged["collinear_sliver_face_count_before"] = (
+        int(merged["collinear_sliver_face_count_before"]) + removed
+    )
+    merged["polygons_before"] = int(merged["polygons_before"]) + removed
+    merged["triangles_before"] = int(merged["triangles_before"]) + removed
+    return merged
 
 
 def _activate_many(objects: list[bpy.types.Object]) -> None:
@@ -1417,7 +1581,17 @@ def main() -> None:
         source_materials[material_id] = source_material
         surface_by_material.setdefault(material_id, _surface_semantics(source_material))
         atlas_record = _create_atlas_uv(obj, bounds)
+        serialization_topology = normalize_gltf_serialization_topology(
+            [obj],
+            "glb",
+            collinear_sliver_maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2,
+            collinear_sliver_maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO,
+        )
         topology_record = _repair_tangent_micro_slivers(obj, ATLAS_UV_SET)
+        topology_record = _merge_serialization_topology_repair(
+            topology_record,
+            serialization_topology,
+        )
         binding_id = stable_identifier(f"{index:06d}.{obj.name}", "binding")
         record = {
             "binding_id": binding_id,
@@ -1431,6 +1605,7 @@ def main() -> None:
             "mapping_mode": mapping_mode,
             "tile_index": index,
             "atlas": atlas_record,
+            "serialization_topology": serialization_topology,
             "portable_topology": topology_record,
             **coordinate_record,
         }
@@ -1583,12 +1758,21 @@ def main() -> None:
                 "remaining_micro_sliver_face_count": record[
                     "portable_topology"
                 ]["remaining_micro_sliver_face_count"],
+                "collinear_sliver_face_count_before": record[
+                    "portable_topology"
+                ]["collinear_sliver_face_count_before"],
+                "remaining_collinear_sliver_face_count": record[
+                    "portable_topology"
+                ]["remaining_collinear_sliver_face_count"],
                 "tangent_invalid_loop_count_before": record[
                     "portable_topology"
                 ]["invalid_loop_count_before"],
                 "tangent_invalid_loop_count_after": record[
                     "portable_topology"
                 ]["invalid_loop_count_after"],
+                "tangent_verification_attempt_count": record[
+                    "portable_topology"
+                ]["verification_attempt_count"],
                 "bounds_max_abs_delta_m": record["portable_topology"][
                     "bounds_max_abs_delta_m"
                 ],

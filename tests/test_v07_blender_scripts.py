@@ -41,6 +41,7 @@ def load_export_script(monkeypatch: pytest.MonkeyPatch) -> ModuleType:
     """Load export verification helpers with a harmless fake bpy module."""
 
     path = SCRIPT_ROOT / "export_portable_package.py"
+    monkeypatch.setitem(sys.modules, "bmesh", ModuleType("bmesh"))
     monkeypatch.setitem(sys.modules, "bpy", ModuleType("bpy"))
     spec = importlib.util.spec_from_file_location("portable_export_test", path)
     if spec is None or spec.loader is None:
@@ -441,6 +442,18 @@ def test_glb_export_verifies_file_level_texcoord0_and_tangent_attributes() -> No
     assert "gltf_material_textureinfo_texcoord0" in source
     assert "TEXCOORD_0" in source
     assert "TANGENT" in source
+
+
+def test_portable_export_probes_ngon_tangents_on_a_triangulated_copy() -> None:
+    """Keep n-gon authoring topology while validating the export-like tangent basis."""
+
+    source = (SCRIPT_ROOT / "export_portable_package.py").read_text(encoding="utf-8")
+    assert "def _portable_tangent_probe" in source
+    assert "temporary_mesh = mesh.copy()" in source
+    assert "bmesh.ops.triangulate(" in source
+    assert 'quad_method="FIXED"' in source
+    assert 'ngon_method="EAR_CLIP"' in source
+    assert "with _portable_tangent_probe(obj) as probe:" in source
     assert 'if args.format in {"glb", "gltf"}:' in source
 
 
@@ -448,19 +461,24 @@ def test_windows_gltf_temp_environment_inherits_package_acl(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Avoid Python 3.13+ restrictive temp ACLs only inside a glTF package transaction."""
+    """Use a short normal path and inherited ACLs only inside a glTF transaction."""
 
     module = load_export_script(monkeypatch)
     monkeypatch.setattr(module.sys, "platform", "win32")
     package_root = tmp_path / "package"
     package_root.mkdir()
+    short_temp_base = tmp_path / "short-temp"
+    short_temp_base.mkdir()
+    monkeypatch.setattr(module.tempfile, "tempdir", str(short_temp_base))
     original_tempdir = module.tempfile.tempdir
     original_mkdir = module.os.mkdir
 
     with module.portable_gltf_temp_environment(package_root):
-        temp_root = (package_root / ".cbm_gltf_temp").resolve()
+        temp_root = Path(module.tempfile.tempdir)
         child = temp_root / "encoded-image"
-        assert module.tempfile.tempdir == str(temp_root)
+        assert temp_root.parent == short_temp_base.resolve()
+        assert temp_root.name.startswith("cbm-gltf-package-")
+        assert not str(temp_root).startswith("\\\\?\\")
         assert module.os.mkdir is not original_mkdir
         module.os.mkdir(child, 0o700)
         assert child.is_dir()
@@ -468,7 +486,7 @@ def test_windows_gltf_temp_environment_inherits_package_acl(
 
     assert module.os.mkdir is original_mkdir
     assert module.tempfile.tempdir == original_tempdir
-    assert not (package_root / ".cbm_gltf_temp").exists()
+    assert not temp_root.exists()
 
 
 def test_windows_gltf_temp_mode_does_not_broaden_unrelated_paths(
@@ -495,6 +513,11 @@ def test_gltf_export_triangulates_serialization_meshes_before_evidence() -> None
     assert 'if format_name not in {"glb", "gltf"}:' in source
     assert 'quad_method="FIXED"' in source
     assert 'ngon_method="EAR_CLIP"' in source
+    assert "def _serialization_collinear_slivers" in source
+    assert 'context="FACES_ONLY"' in source
+    assert '"removed_collinear_face_count": removed_collinear_face_count' in source
+    assert "rewrite_requested = bool(" in source
+    assert "expected_triangles_after = triangles_before" in source
     assert "source_normal_records = _capture_polygon_corner_normals(mesh)" in source
     assert "normal_records = _capture_bmesh_triangle_corner_normals(" in source
     assert "editable.faces.layers.int.remove(source_face_layer)" in source

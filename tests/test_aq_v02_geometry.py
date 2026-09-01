@@ -649,7 +649,10 @@ def test_delivery_uv_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -> No
     baseline = module._uv_vector((0.0078125, 0.4921875))
     serializer_noise = module._uv_vector((0.0078129, 0.4921871))
     visible_drift = module._uv_vector((0.0078325, 0.4921875))
+    v_flip_lower = module._uv_vector((0.975601136684418, 0.226304978132248))
+    v_flip_upper = module._uv_vector((0.975601136684418, 0.22630500793457))
     assert serializer_noise == baseline
+    assert v_flip_upper == v_flip_lower
     assert visible_drift != baseline
 
 

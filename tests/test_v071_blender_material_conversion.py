@@ -184,18 +184,45 @@ def test_portable_conversion_repairs_only_detected_tangent_micro_slivers() -> No
     """Tangent repair is conditional, bounded, evidenced, and run-owned."""
 
     source = SCRIPT_PATH.read_text(encoding="utf-8")
+    assert "def _calculate_invalid_tangent_faces" in source
+    assert "def _triangulated_tangent_probe" in source
     assert "def _invalid_tangent_faces" in source
     assert "def _micro_sliver_faces" in source
+    assert "def _collinear_sliver_faces" in source
+    assert "COLLINEAR_SLIVER_MAX_AREA_M2 = 1e-7" in source
+    assert "COLLINEAR_SLIVER_MAX_RATIO = 1e-5" in source
     assert "def _simulated_export_tangent_faces" in source
+    assert "def _verify_repaired_tangent_basis" in source
     assert "def _repair_tangent_micro_slivers" in source
     assert "bmesh.ops.dissolve_degenerate" in source
+    assert "bmesh.ops.delete" in source
+    assert 'context="FACES_ONLY"' in source
     assert "dist=1e-6" in source
-    assert 'quad_method="BEAUTY"' in source
-    assert '"repair_method": "dissolve_degenerate"' in source
+    assert "normalize_gltf_serialization_topology" in source
+    assert "def _merge_serialization_topology_repair" in source
+    assert 'quad_method="FIXED"' in source
+    assert 'ngon_method="EAR_CLIP"' in source
+    assert 'result["probe_topology"] = "triangulated_copy"' in source
+    assert 'result["probe_topology"] = "physical_export_triangles"' in source
+    assert "Internal tangent calculation received n-gon topology" in source
+    assert 'repair_method = "remove_collinear_slivers"' in source
+    assert 'repair_method = "dissolve_degenerate"' in source
+    assert '"collinear_sliver_face_count_before": len(collinear_slivers)' in source
+    assert '"verification_attempt_count": verification_attempt_count' in source
+    repair_source = source[
+        source.index("def _repair_tangent_micro_slivers") : source.index(
+            "def _merge_serialization_topology_repair"
+        )
+    ]
+    assert repair_source.index("bmesh.ops.dissolve_degenerate") < repair_source.index(
+        "bmesh.ops.triangulate"
+    )
     assert '"micro_sliver_face_count_before": len(micro_slivers)' in source
     assert "bounds_delta > 1e-6" in source
-    assert source.index("_create_atlas_uv(obj, bounds)") < source.index(
-        "_repair_tangent_micro_slivers(obj, ATLAS_UV_SET)"
+    assert (
+        source.index("_create_atlas_uv(obj, bounds)")
+        < source.index("serialization_topology = normalize_gltf_serialization_topology(")
+        < source.index("_repair_tangent_micro_slivers(obj, ATLAS_UV_SET)")
     )
 
 

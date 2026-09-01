@@ -636,7 +636,8 @@ V0.7 승인 대기 4/5였고, 사용자는 review request
 `37443f12078e8c2d152647115c3271cd7c4da30fa1ef0e04c524eb18d0ffb7d6`의 exact beauty 5개도
 모두 `needs_revision`으로 기록했습니다. Wood의 contour `1.0`이 V0.6 high missing finding을 가린
 coverage gap과 Laser의 flat-relief 한계를 확인했으므로, 다시 5개를 반복하지 않고 신규 policy-bound
-V0.6 finding bridge와 bounded beveled-relief capability를 단일 Laser canary로 분리 검증했습니다.
+V0.6 finding bridge와 bounded beveled-relief/composition capability를 단일 Laser canary로 분리
+검증했습니다.
 
 clean commit `6572b22d45dba610e3b69468bedf4e2b34c6296c`와 tree
 `c4e3ff480db0f5e52f1994471eca0572a4e2e774`에서 source manifest
@@ -649,8 +650,32 @@ R4의 10개 관측 panel을 beveled relief로 바꾼 11-object 범위에서 geom
 chamfer `0.002242`로 pass/source freeze에 도달했습니다. exact beauty
 `c497f6751f3918d1665efe6c7ab5ab313388de0630eb75437f6996aa76f7cafd`는 `needs_revision` 1/1로
 기록됐고, R5B는 delivery unauthorized 상태를 유지합니다. Production assembly detail을 고정 예산 안에
-보완한 새 composition Laser canary와 새 exact human disposition 전에는 delivery와 Activation 재평가로
-넘어가지 않습니다. 기존 R1~R5B machine evidence와 disposition은 고쳐 쓰지 않습니다.
+보완한 R5C composition canary는 V0.6 direct `0.932642`, IQ boundary F `0.627697`에서 safe
+`blocked`됐고 exact beauty
+`b0193e2b7a3893913e05dc1ee6a5de261ce09dc256c727a01ebb98ad030651b1`가
+`needs_revision`으로 기록됐습니다. 같은 immutable reference의 bounded perspective compensation을 적용한
+R5D는 V0.6 direct `0.946730`, IQ boundary F `0.816738`로 IQ/source freeze에 도달했고 exact beauty
+`b538f7acc0ff84c427dd5a70b7268e89696cc2955b6e5e33868493049575e6ec`가 `accepted`로
+기록됐습니다.
+
+사용자는 R5D portable GLTF 최적화 계획 SHA-256
+`65c13c1e2ccacaa056ad40b5bbe5ec8d4ffe2cfe4bd6a3a27b16dda74acecd95`를 exact
+승인했습니다. 원래 host delivery는 immutable failed state/terminal로 종료됐고, append-only R01~R06은
+n-gon tangent, adapter signature, Windows GLTF temp path, serialization topology와 UV fingerprint 경계
+결함을 각각 분리했습니다. R06 package는 26개 파일, absolute path 0, missing dependency 0, clean-import
+round-trip pass를 기록했고 R07 evidence-only revalidation은 geometry survival `known_loss`와
+`technical_package_validated=true`를 기록했습니다. 그러나 technical package
+`r5d-recovery-r06-gltf`는 아직 exact package acceptance를 거치지 않았고 기존 host delivery terminal도
+소급 변경하지 않았으므로 production package나 Activation GO가 아닙니다. 기존 R1~R07 machine evidence와
+disposition은 고쳐 쓰지 않습니다.
+
+최종 소스 회귀에서는 Blender image API가 `\\?\` extended temp path를 직접 받지 못하는 별도 경계를
+발견해, GLTF image encoding을 process temp 아래의 짧은 고유 normal-path staging root에서 실행하도록
+보완했습니다. package-local output과 canonical source는 바뀌지 않습니다. 공식 V0.7 gate는 전체
+`2021 passed / 65 skipped`와 portable GLTF/FBX/OBJ clean import를 통과했고, AQ gate는 focused
+`935 passed / 26 skipped`, 실제 Blender `47 passed / 1 skipped`, AQ 0.1/0.2 benchmark
+`8/8`과 `10/10`을 통과했습니다. 이 기술 회귀 통과도 R06 package의 사후 host acceptance나 profile
+Activation 권한을 생성하지 않습니다.
 
 상세 설계·실행·검증 경계는 [AQ 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md),
 [시작 가이드](GETTING_STARTED_AQ_V02_KO.md), [테스트 계획](TEST_PLAN_AQ_V02_KO.md),
@@ -1015,22 +1040,29 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - R6 package-local temporary ACL 실패와 R7 UV serializer sensitivity 실패 보존
    - R8 exact ShaderRecipe/source freeze/package/round-trip/survival 통과
    - 26개 파일 hash 일치, absolute path 0, missing dependency 0, canonical unchanged
-7. 검증 가능한 activation coverage 마감 [R5B needs_revision 반영, composition canary 준비]
+7. 검증 가능한 activation coverage 마감 [R5D visual acceptance 및 technical package 검증 완료]
    - Stage 9 준비 R1/R2는 safe technical terminal, R3와 R4 exact beauty는 각각 `needs_revision` 5/5 기록 완료
    - R4는 historical IQ pass/source freeze 4/5, rust blocked 1/5이며 R4 disposition set은 future beauty에 재사용하지 않음
    - Wood high direct finding을 policy-bound IQ 입력으로 연결하는 bridge와 bounded beveled-relief geometry capability 검증 완료
    - R5 18-object Laser는 고정 build budget 초과를 실제 Blender materialization 전에 fail-closed하고 adapter terminal까지 닫음
    - R5B 11-object Laser는 geometry/material/V0.6/IQ/source freeze 통과, 추가 사용자 결정 0,
-     technical approval 0, canonical corruption 0, 현재 `await_v07_approval`
+     technical approval 0, canonical corruption 0으로 `await_v07_approval`에 도달했으나 exact
+     `needs_revision`으로 delivery 진입을 중단
    - R5B review request `6c7e4270501b50cd6223b4f716439ba0bfa333bfde7898887c0af4ce2a9caf0b`와
      beauty `c497f6751f3918d1665efe6c7ab5ab313388de0630eb75437f6996aa76f7cafd`는 exact
      `needs_revision`으로 기록 완료; V0.7, budget expansion, activation 권한은 생성하지 않음
    - 동일 material의 2~32개 구조 operand를 기존 strict `boolean_tree`의 균형 `EXACT UNION` 한 개로
      합성하는 helper를 추가했으며, 여섯 분리 부품/한 materialization/여섯 connected component를 실제
      Blender 5.0.1로 검증
-   - rear stock/receiver/rail/trigger/foregrip를 material identity별 composition object로 묶는 새 Laser
-     canary를 고정 `total_blender_builds=14` 안에서 실행하기 전에 clean commit과 새 baseline을 생성
-   - 단일 폐루프 통과 전에는 다시 5개 전체 캠페인을 시작하지 않으며, 실패 원인별 capability를 먼저 분리
+   - R5C material-identity composition은 고정 budget 안에서 실행했지만 IQ boundary F `0.627697` 및
+     exact `needs_revision`으로 종료; perspective mismatch를 별도 원인으로 고정
+   - R5D bounded perspective compensation은 IQ/source freeze와 exact beauty `accepted`에 도달했고,
+     exact V0.7 optimization plan 승인도 기록 완료
+   - 원래 host delivery 실패 terminal은 불변 보존; R01~R06 technical recovery와 R07 evidence-only
+     revalidation을 거친 `r5d-recovery-r06-gltf`는 package/round-trip/geometry-survival 기술 검증 통과
+   - technical package manifest와 post-publication round-trip에 대한 exact host acceptance 전에는
+     `host_delivery_adopted=false`, `production_package_authorized=false`를 유지
+   - exact package acceptance로 단일 Laser 폐루프를 닫기 전에는 다시 5개 전체 캠페인을 시작하지 않음
    - isolated immutable signage/decal reference와 별도 authorization이 필요한 dependency-rich Material Closure는
      누락을 숨기지 않고 명시적 input/authority blocker로 이월
 8. clean commit ActivationSourceManifest/Baseline 재생성 및 AQ v2 local-only activation review
@@ -1039,12 +1071,13 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - current source manifest `activation-source-26f37fa8e845482a5309e11e`
    - current baseline `activation-baseline-4de9c955ee1e3716a4b14b49`
    - validation receipt 17개, candidate 0/5와 blocker 10개를 누락하지 않은 readiness
-   - R5/R5B는 이 baseline에 결속된 append-only 후속 campaign이며 current candidate index를 소급 변경하지 않음
-   - R5B needs_revision과 새 composition capability를 포함한 clean commit에서 baseline을 새로 만들고,
-     새 Laser exact beauty disposition 및 허가된 delivery terminal 뒤 Registry/Index/Readiness를 별도 재평가
+   - R5~R5D와 delivery R01~R07은 이 baseline에 결속된 append-only 후속 evidence이며 current candidate
+     index를 소급 변경하지 않음
+   - R5D accepted disposition과 delivery 기술 수정의 full gate/clean commit을 먼저 고정하고, exact package
+     acceptance 뒤 새 ActivationSourceManifest/Baseline 및 Registry/Index/Readiness를 별도 재평가
 9. Codex ImageGen overlay one-prompt benchmark와 activation review
-   - R4 5개와 R5B disposition은 완료됐으며, 새 Laser composition 수정/delivery 폐루프가 완료되고 미해결 local
-     framework 결함이 없을 때 시작 가능 여부를 재판정
+   - R4 5개와 R5B/R5C/R5D disposition은 완료됐으며, R5D technical package의 exact host acceptance로
+     delivery 폐루프가 닫히고 미해결 local framework 결함이 없을 때 시작 가능 여부를 재판정
    - AQ base activation GO와 분리하며 `disabled_experimental` 및 두 explicit opt-in을 유지
    - 정확한 실행 상태는 run-owned `reports/activation_readiness/.../campaign_decision.json`이 소유
 10. Standard Generated Texture Intake 0.1
@@ -1076,13 +1109,15 @@ ImageGen overlay에는 실제 built-in ImageGen
 `disabled_experimental`입니다. Unity URP는 engine-neutral source package를 목적 엔진에서 재구성하는
 별도 단계이며 현재 destination write나 runtime parity를 뜻하지 않습니다.
 
-7번에서 9번으로 넘어가는 경계는 AQ base profile 활성화와 별개입니다. 현재 5개 결과와 새 5개 결과의
+7번에서 9번으로 넘어가는 경계는 AQ base profile 활성화와 별개입니다. 현재 5개 결과와 R5B~R5D의
 exact human disposition, 새 clean baseline에 결합된 세션 terminal, adapter/recovery closure, IQ/package
 증거와 Activation Index/Readiness를 모두 run-owned 기계 JSON으로 고정합니다. 품질 `needs_revision`은
-정확한 safe terminal로 남아 있고 최소 한 개의 새 candidate가 IQ/source freeze와 portable delivery를
-완료했다면 ImageGen overlay 실험 자체를 막지 않습니다. 반대로 parser/controller/recovery/package 같은
-local framework 결함이 남아 있으면 9번을 시작하지 않고, 수정 commit과 새 baseline 뒤 영향받은 job을
-새로 실행합니다. supporting-client closed loop, controller sandbox attestation, destination runtime parity,
-signage/decal 입력과 bake-bound authorization은 해제되기 전까지 base activation blocker로 계속 표시합니다.
+정확한 safe terminal로 남습니다. R5D는 새 candidate의 IQ/source freeze, exact visual acceptance와
+기술적으로 검증된 portable package를 확보했지만, future artifact를 미리 승인할 수 없다는 원칙 때문에
+R06 package의 exact acceptance가 별도로 필요합니다. 그 host-only acknowledgement가 없으면 portable
+delivery 완료로 계산하지 않고 9번을 시작하지 않습니다. parser/controller/recovery/package 결함은 이번
+수정 commit과 full gate로 닫은 뒤 새 baseline에서 재평가합니다. supporting-client closed loop,
+controller sandbox attestation, destination runtime parity, signage/decal 입력과 bake-bound authorization은
+해제되기 전까지 base activation blocker로 계속 표시합니다.
 
 현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt `0.1.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 각 companion 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
