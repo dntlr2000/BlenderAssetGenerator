@@ -73,6 +73,7 @@ _CONTROLLER_PROMOTION_PATHS = frozenset(
         "src/codex_blender_modeler/autonomy_v2/approval_supervisor_service.py",
         "src/codex_blender_modeler/autonomy_v2/candidate_validation_service.py",
         "src/codex_blender_modeler/autonomy_v2/controller_bridge.py",
+        "src/codex_blender_modeler/autonomy_v2/human_quality_review_service.py",
         "src/codex_blender_modeler/autonomy_v2/material_phase_service.py",
         "src/codex_blender_modeler/autonomy_v2/supervisor_service.py",
         "src/codex_blender_modeler/production/activation_models.py",
@@ -1270,6 +1271,9 @@ def _campaign_terminal_exclusions(
         AQV2OnePromptRunTerminal,
     )
     from ..autonomy_v2.delivery_service import validate_delivery_terminal_v2
+    from ..autonomy_v2.human_quality_review_service import (
+        validate_human_quality_review_bundle_v2,
+    )
     from ..autonomy_v2.models import (
         AutonomyPlanV2,
         QualityApprovedSourceFreeze,
@@ -1556,10 +1560,47 @@ def _campaign_terminal_exclusions(
             )
         else:
             try:
-                review = validate_quality_review_bundle_v2(
-                    job_root,
-                    one_prompt.review_bundle,
-                )
+                if one_prompt.review_bundle.kind == "human-quality-review-bundle":
+                    review = validate_human_quality_review_bundle_v2(
+                        job_root,
+                        one_prompt.review_bundle,
+                    )
+                    if (
+                        disposition is None
+                        or review.human_disposition_id != disposition.disposition_id
+                        or review.human_disposition_sha256
+                        != disposition.disposition_sha256
+                        or review.human_disposition_file_sha256
+                        != evidence.human_quality_disposition.sha256
+                        or review.human_disposition_byte_size
+                        != evidence.human_quality_disposition.byte_size
+                        or review.human_disposition_observed_statement_sha256
+                        != disposition.observed_statement_sha256
+                        or review.human_disposition_reviewer_identity
+                        != disposition.reviewer_identity
+                        or review.human_disposition_skill_run_id
+                        != disposition.skill_run_id
+                    ):
+                        raise ActivationValidationError(
+                            "human review bundle differs from its exact disposition"
+                        )
+                    if not any(
+                        _artifact_binding_matches(
+                            root,
+                            manifest,
+                            job_root,
+                            review.render_pass_manifest,
+                        )
+                        for manifest in evidence.actual_blender_render_manifests
+                    ):
+                        raise ActivationValidationError(
+                            "human review manifest is outside campaign Blender evidence"
+                        )
+                else:
+                    review = validate_quality_review_bundle_v2(
+                        job_root,
+                        one_prompt.review_bundle,
+                    )
                 if (
                     len(review.recommended_actions)
                     != evidence.actionable_review_action_count

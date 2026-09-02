@@ -48,6 +48,7 @@ from codex_blender_modeler.autonomy_v2.models import (
     DeliveryProfile,
     DeliveryReviewBinding,
     DeliveryTerminalV2,
+    HumanQualityReviewBundleV2,
     QualityApprovedSourceFreeze,
     QualityReviewBundleV2,
     QualityTerminalV2,
@@ -165,6 +166,9 @@ AQ_V02_SCHEMA_MODELS = {
     "autonomy_v02_budget.schema.json": AutonomyBudgetV2,
     "autonomy_v02_root_authorization.schema.json": RootAuthorizationV2,
     "autonomy_v02_quality_source_freeze.schema.json": QualityApprovedSourceFreeze,
+    "autonomy_v02_human_quality_review_bundle.schema.json": (
+        HumanQualityReviewBundleV2
+    ),
     "autonomy_v02_quality_review_bundle.schema.json": QualityReviewBundleV2,
     "autonomy_v02_delivery_profile.schema.json": DeliveryProfile,
     "autonomy_v02_delivery_plan.schema.json": DeliveryPlan,
@@ -227,7 +231,7 @@ def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
     for filename, model in AQ_V02_SCHEMA_MODELS.items():
         assert registered[filename] is model
     new_names = set(AQ_V02_SCHEMA_MODELS)
-    assert len(new_names) == 50
+    assert len(new_names) == 51
     geometry_names = {
         "mesh_payload_v02.schema.json",
         "mesh_payload_v02_compile_report.schema.json",

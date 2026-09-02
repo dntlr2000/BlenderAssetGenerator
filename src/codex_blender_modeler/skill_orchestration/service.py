@@ -27,6 +27,7 @@ from ..auto_revision.models import (
 )
 from ..autonomy_v2 import (
     cancel_one_prompt,
+    close_human_quality_review_v2,
     get_autonomy_v2_status,
     get_one_prompt_status,
     plan_one_prompt_run,
@@ -5098,13 +5099,22 @@ def resume_aq_one_prompt_skill(
     *,
     max_actions: int = 32,
     quality_submission: dict[str, object] | None = None,
+    human_quality_disposition_path: str | Path | None = None,
     experimental_opt_in: bool = False,
 ) -> dict[str, object]:
-    """Resume the same AQ plan, state, budget, assignment, snapshots, and receipts."""
+    """Resume the same AQ run and optionally close one exact human review terminal."""
 
     if not experimental_opt_in:
         raise PermissionError("AQ skill adapter remains disabled_experimental")
-    _load_aq_run(job_id, run_id)
+    _root, _run_root, plan, _adapter_state = _load_aq_run(job_id, run_id)
+    if human_quality_disposition_path is not None:
+        close_human_quality_review_v2(
+            job_id,
+            plan.session_id,
+            skill_run_id=run_id,
+            human_quality_disposition_path=human_quality_disposition_path,
+            allow_disabled_experimental=True,
+        )
     return run_aq_one_prompt_skill(
         job_id,
         run_id,

@@ -13,17 +13,25 @@ from codex_blender_modeler.autonomy_v2.delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from codex_blender_modeler.autonomy_v2.human_quality_review_service import (
+    build_human_quality_review_bundle_v2,
+    validate_human_quality_disposition_binding_v2,
+    validate_human_quality_review_bundle_v2,
+)
 from codex_blender_modeler.autonomy_v2.models import (
     AQV2Artifact,
+    DeliveryPlan,
+    DeliveryRequest,
     QualityApprovedSourceFreeze,
 )
+from codex_blender_modeler.autonomy_v2.profiles import delivery_profile
 from codex_blender_modeler.autonomy_v2.quality_terminal_service import (
     build_quality_review_bundle_v2,
     publish_quality_terminal_v2,
     validate_quality_review_bundle_v2,
     validate_quality_terminal_v2,
 )
-from codex_blender_modeler.blender_artifacts import stable_json_digest
+from codex_blender_modeler.blender_artifacts import sha256_file, stable_json_digest
 from codex_blender_modeler.integrated_quality.v02_models import (
     ContourMetricsV02,
     HardGateResultV02,
@@ -34,6 +42,11 @@ from codex_blender_modeler.integrated_quality.v02_models import (
     QualityFindingV02,
     ReentryDecisionV02,
 )
+from codex_blender_modeler.production.activation_models import (
+    ActivationArtifact,
+    ActivationHumanQualityDisposition,
+)
+from codex_blender_modeler.qa.models import RenderPassManifest, RenderPassRecord
 
 NOW = datetime(2026, 8, 11, tzinfo=UTC)
 
@@ -334,6 +347,135 @@ def _quality_freeze(
     return freeze, write_immutable_v2_model(root, path, freeze)
 
 
+def _delivery_plan(
+    root: Path,
+    *,
+    session_id: str,
+    freeze: AQV2Artifact,
+) -> AQV2Artifact:
+    """Publish one deterministic pending portable-delivery plan fixture."""
+
+    authorization = _file_artifact(
+        root,
+        f"production/autonomy_v2/{session_id}/root_authorization.json",
+        artifact_id=f"authorization-{session_id}",
+        kind="root-authorization",
+        content=b'{"authorization":"fixture"}\n',
+    )
+    plan = DeliveryPlan(
+        contract_id=f"delivery-plan-{session_id}",
+        job_id=root.name,
+        workflow_id="wf-quality-v2",
+        dispatch_id="dispatch-quality-v2",
+        session_id=session_id,
+        input_sha256="1" * 64,
+        source_fingerprint="2" * 64,
+        producer="codex_blender_modeler.autonomy_v2.delivery_service",
+        provenance=[authorization, freeze],
+        created_at=NOW,
+        plan_id=f"delivery-plan-{session_id}",
+        root_authorization=authorization,
+        source_freeze=freeze,
+        requests=[
+            DeliveryRequest(
+                delivery_id="delivery-01-gltf",
+                profile=delivery_profile("portable_gltf"),
+                source_freeze=freeze,
+                run_id=f"{session_id}-gltf-run",
+                package_id=f"{session_id}-gltf-package",
+                status="planned",
+            )
+        ],
+    )
+    return write_immutable_v2_model(
+        root,
+        root / f"production/autonomy_v2/{session_id}/delivery_plan.json",
+        plan,
+    )
+
+
+def _human_disposition(
+    repository: Path,
+    root: Path,
+    *,
+    skill_run_id: str,
+    disposition: str = "needs_revision",
+) -> tuple[ActivationHumanQualityDisposition, Path]:
+    """Publish one exact activation disposition and Blender seven-pass fixture."""
+
+    qa_root = root / "qa/runs/human-review-v06"
+    pass_records: list[RenderPassRecord] = []
+    for index, kind in enumerate(
+        (
+            "beauty",
+            "silhouette",
+            "object_id",
+            "material_id",
+            "normal",
+            "depth",
+            "wireframe",
+        ),
+        start=1,
+    ):
+        path = qa_root / "passes" / f"{kind}.png"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(f"PNG-{kind}-{index}\n".encode())
+        pass_records.append(
+            RenderPassRecord(
+                kind=kind,
+                path=f"passes/{kind}.png",
+                sha256=sha256_file(path),
+                width=32,
+                height=32,
+                encoding="png-rgb8",
+            )
+        )
+    manifest = RenderPassManifest(
+        job_id=root.name,
+        run_id="human-review-v06",
+        scene_spec_sha256="3" * 64,
+        camera_fingerprint="4" * 64,
+        build_fingerprint="5" * 64,
+        blender_version="5.0.1",
+        render_engine="BLENDER_EEVEE",
+        render_device="DEFAULT",
+        resolution=(32, 32),
+        passes=pass_records,
+    )
+    manifest_path = qa_root / "render_pass_manifest.json"
+    manifest_path.write_text(manifest.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    beauty_path = qa_root / "passes/beauty.png"
+    beauty = ActivationArtifact(
+        artifact_id="human-review-beauty",
+        kind="representative_beauty",
+        path=beauty_path.relative_to(repository).as_posix(),
+        sha256=sha256_file(beauty_path),
+        byte_size=beauty_path.stat().st_size,
+    )
+    payload = {
+        "schema_version": "0.1.0",
+        "job_id": root.name,
+        "skill_run_id": skill_run_id,
+        "representative_beauty": beauty.model_dump(mode="json"),
+        "disposition": disposition,
+        "reviewer_identity": "fixture-reviewer",
+        "observed_statement_sha256": "6" * 64,
+        "is_user_approval": False,
+        "is_quality_disposition": True,
+        "recorded_at": NOW.isoformat().replace("+00:00", "Z"),
+    }
+    digest = stable_json_digest(payload)
+    model = ActivationHumanQualityDisposition(
+        disposition_id=f"activation-quality-disposition-{digest[:24]}",
+        disposition_sha256=digest,
+        **{**payload, "recorded_at": NOW},
+    )
+    path = repository / "reports" / f"{disposition}_disposition.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(model.model_dump_json(indent=2) + "\n", encoding="utf-8")
+    return model, path
+
+
 def test_review_bundle_and_terminal_bind_exact_nonpass_evidence(tmp_path: Path) -> None:
     """Review publication derives actions and remains explicitly non-production."""
 
@@ -490,6 +632,110 @@ def test_quality_approved_terminal_revalidates_exact_source_freeze(
     (root / freeze.scene_spec.path).write_bytes(b"tampered\n")
     with pytest.raises(ValueError, match="size changed|hash changed"):
         validate_quality_terminal_v2(root, terminal_artifact)
+
+
+def test_human_nonpass_after_machine_pass_publishes_review_only_bundle(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Post-IQ human review binds exact Beauty evidence and never executes delivery."""
+
+    repository = tmp_path
+    root = repository / "workspaces" / "human_review_job"
+    root.mkdir(parents=True)
+    evidence, report, _blend, _render = _review_inputs(root, outcome="passed")
+    _freeze, freeze_artifact = _quality_freeze(
+        root,
+        session_id="human-review-session",
+        report=report,
+        quality_evidence=evidence,
+    )
+
+    def validate_frozen_files(
+        job_root: Path,
+        value: QualityApprovedSourceFreeze,
+    ) -> None:
+        """Rehash every named source without repository provenance discovery."""
+
+        for artifact in value.provenance:
+            validate_v2_artifact(job_root, artifact)
+
+    monkeypatch.setattr(
+        "codex_blender_modeler.autonomy_v2.quality_terminal_service."
+        "validate_quality_source_freeze",
+        validate_frozen_files,
+    )
+    monkeypatch.setattr(
+        "codex_blender_modeler.autonomy_v2.human_quality_review_service."
+        "validate_quality_source_freeze",
+        validate_frozen_files,
+    )
+    terminal, terminal_artifact = publish_quality_terminal_v2(
+        job_root=root,
+        session_id="human-review-session",
+        status="quality_approved",
+        integrated_quality_report=report,
+        source_freeze=freeze_artifact,
+        reason="Machine IQ passed before external human visual review.",
+        created_at=NOW,
+    )
+    delivery_plan_artifact = _delivery_plan(
+        root,
+        session_id="human-review-session",
+        freeze=freeze_artifact,
+    )
+    disposition, disposition_path = _human_disposition(
+        repository,
+        root,
+        skill_run_id="human-review-skill-run",
+    )
+
+    bundle, bundle_artifact = build_human_quality_review_bundle_v2(
+        repository_root=repository,
+        job_root=root,
+        session_id="human-review-session",
+        skill_run_id="human-review-skill-run",
+        disposition_path=disposition_path,
+        machine_quality_terminal=terminal_artifact,
+        source_freeze=freeze_artifact,
+        delivery_plan=delivery_plan_artifact,
+        delivery_runs=0,
+        created_at=NOW,
+    )
+
+    assert terminal.status == "quality_approved"
+    assert bundle.machine_quality_outcome == "passed"
+    assert bundle.human_disposition == "needs_revision"
+    assert bundle.delivery_runs == 0
+    assert bundle.production_ready is False
+    assert bundle.destination_handoff_eligible is False
+    assert bundle.representative_render.sha256 == (
+        disposition.representative_beauty.sha256
+    )
+    assert validate_human_quality_review_bundle_v2(root, bundle_artifact) == bundle
+    assert (
+        validate_human_quality_disposition_binding_v2(
+            repository_root=repository,
+            job_root=root,
+            bundle=bundle,
+            disposition_path=disposition_path,
+        )
+        == disposition
+    )
+
+    _accepted, accepted_path = _human_disposition(
+        repository,
+        root,
+        skill_run_id="human-review-skill-run",
+        disposition="accepted",
+    )
+    with pytest.raises(ValueError, match="differs from its exact review bundle"):
+        validate_human_quality_disposition_binding_v2(
+            repository_root=repository,
+            job_root=root,
+            bundle=bundle,
+            disposition_path=accepted_path,
+        )
 
 
 @pytest.mark.parametrize(

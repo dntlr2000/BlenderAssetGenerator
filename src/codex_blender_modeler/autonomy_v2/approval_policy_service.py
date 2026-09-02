@@ -161,8 +161,14 @@ def _policy_decision_guard(root: Path, session_id: str) -> Iterator[None]:
         os.close(descriptor)
 
 
-def _require_nonterminal_policy_session(job_id: str, session_id: str) -> None:
-    """Reject new policy authority after the exact AQ session reached a terminal state."""
+def _require_nonterminal_policy_session(
+    job_id: str,
+    session_id: str,
+    *,
+    gate_kind: RoutineGateKind | None = None,
+    exact_target: ApprovalArtifact | None = None,
+) -> None:
+    """Reject terminal policy work except exact interrupted human-review closure."""
 
     from .controller_bridge import get_autonomy_v2_status
 
@@ -170,9 +176,38 @@ def _require_nonterminal_policy_session(job_id: str, session_id: str) -> None:
     state = status["state"]
     if not isinstance(state, dict):
         raise ValueError("AQ v2 status returned no strict state projection")
-    if state.get("status") in {"completed", "blocked", "failed", "cancelled"} or (
-        state.get("phase") == "terminal" or state.get("next_action") == "none"
-    ):
+    terminal = state.get("status") in {
+        "completed",
+        "blocked",
+        "failed",
+        "cancelled",
+        "review_required",
+    } or (state.get("phase") == "terminal" or state.get("next_action") == "none")
+    if not terminal:
+        return
+    provenance = state.get("provenance")
+    last = provenance[-1] if isinstance(provenance, list) and provenance else None
+    budget = state.get("budget_usage")
+    exact_interrupted_review = (
+        gate_kind == "review_bundle_terminal"
+        and exact_target is not None
+        and state.get("phase") == "terminal"
+        and state.get("status") == "review_required"
+        and state.get("next_action") == "none"
+        and isinstance(last, dict)
+        and last.get("kind") == "human-quality-review-bundle"
+        and last.get("path") == exact_target.path
+        and last.get("sha256") == exact_target.sha256
+        and last.get("byte_size") == exact_target.byte_size
+        and state.get("quality_terminal") is not None
+        and state.get("source_freeze") is not None
+        and state.get("delivery_plan") is not None
+        and state.get("delivery_terminal") is None
+        and state.get("delivery_results") == []
+        and isinstance(budget, dict)
+        and budget.get("delivery_runs") == 0
+    )
+    if not exact_interrupted_review:
         raise PermissionError("terminal AQ session cannot issue or reuse policy authority")
 
 
@@ -1507,7 +1542,15 @@ def _validate_review_gate_target(
 ) -> list[str]:
     """Require a strict non-production review bundle and explicit envelope permission."""
 
-    from .models import DeliveryTerminalV2, QualityReviewBundleV2
+    from .human_quality_review_service import (
+        validate_human_quality_review_bundle_v2,
+    )
+    from .models import (
+        AQV2Artifact,
+        DeliveryTerminalV2,
+        HumanQualityReviewBundleV2,
+        QualityReviewBundleV2,
+    )
 
     if not envelope.allow_review_bundle_terminal:
         return ["REVIEW_BUNDLE_TERMINAL_NOT_ALLOWED"]
@@ -1517,7 +1560,32 @@ def _validate_review_gate_target(
         try:
             terminal = _load_model(root, target, DeliveryTerminalV2)
         except ValueError:
-            return ["REVIEW_TARGET_NOT_NONPRODUCTION_TERMINAL"]
+            try:
+                human_contract = _load_model(
+                    root,
+                    target,
+                    HumanQualityReviewBundleV2,
+                )
+                human_review = validate_human_quality_review_bundle_v2(
+                    root,
+                    AQV2Artifact(
+                        artifact_id=human_contract.contract_id,
+                        kind=target.kind,
+                        path=target.path,
+                        sha256=target.sha256,
+                        byte_size=target.byte_size,
+                    ),
+                )
+            except ValueError:
+                return ["REVIEW_TARGET_NOT_NONPRODUCTION_TERMINAL"]
+            if (
+                human_review.production_ready
+                or human_review.destination_handoff_eligible
+                or not human_review.review_only
+                or human_review.delivery_runs != 0
+            ):
+                return ["HUMAN_REVIEW_BUNDLE_CLAIMS_PRODUCTION"]
+            return []
         if terminal.outcome != "review_only" or any(
             item.production_ready or item.status != "review_only"
             for item in terminal.results
@@ -1678,7 +1746,6 @@ def evaluate_routine_gate_eligibility(
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ Approval Envelope remains disabled_experimental")
-    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -1720,6 +1787,12 @@ def evaluate_routine_gate_eligibility(
         target_path,
         artifact_id=_stable_id("target", str(exact_target_path)),
         kind=exact_target_kind,
+    )
+    _require_nonterminal_policy_session(
+        job_id,
+        session_id,
+        gate_kind=gate_kind,
+        exact_target=target,
     )
     canonical = approval_artifact_for(
         root,
@@ -1965,7 +2038,6 @@ def _authorize_routine_gate_unlocked(
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ Approval Envelope remains disabled_experimental")
-    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -1991,6 +2063,12 @@ def _authorize_routine_gate_unlocked(
         kind="aqv2-routine-gate-eligibility-report",
     )
     report = _load_model(root, report_artifact, AQV2RoutineGateEligibilityReport)
+    _require_nonterminal_policy_session(
+        job_id,
+        session_id,
+        gate_kind=report.gate_kind,
+        exact_target=report.exact_target_artifact,
+    )
     expected_report_path = (
         _approval_root(root, session_id)
         / "eligibility"
@@ -2111,7 +2189,6 @@ def _validated_current_policy_authorization(
 ]:
     """Replay one canonical issued authorization and prove that it is still unused."""
 
-    _require_nonterminal_policy_session(job_id, session_id)
     boundary = _load_approval_boundary(job_id, session_id)
     (
         root,
@@ -2132,6 +2209,12 @@ def _validated_current_policy_authorization(
     )
     with open(native_io_path(path), "rb") as handle:
         authorization = AQV2RoutinePolicyAuthorization.model_validate_json(handle.read())
+    _require_nonterminal_policy_session(
+        job_id,
+        session_id,
+        gate_kind=authorization.gate_kind,
+        exact_target=authorization.exact_target_artifact,
+    )
     expected_path = (
         _approval_root(root, session_id)
         / "authorizations"

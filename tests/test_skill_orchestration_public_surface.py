@@ -176,6 +176,22 @@ def test_aq_skill_mutations_require_explicit_experimental_opt_in() -> None:
         assert parameters["experimental_opt_in"].default is False
 
 
+def test_aq_skill_resume_exposes_exact_post_iq_human_disposition() -> None:
+    """Expose human review terminalization only on the existing AQ resume surface."""
+
+    command = typer.main.get_command(app).commands["aq-one-prompt-skill-resume"]
+    option_names = {
+        option
+        for parameter in command.params
+        for option in getattr(parameter, "opts", ())
+    }
+    assert "--human-quality-disposition" in option_names
+    parameters = inspect.signature(mcp_server.resume_aq_one_prompt_skill).parameters
+    assert parameters["human_quality_disposition_path"].default is None
+    run_parameters = inspect.signature(mcp_server.run_aq_one_prompt_skill).parameters
+    assert "human_quality_disposition_path" not in run_parameters
+
+
 def test_skill_schemas_match_strict_models_and_generator_registry() -> None:
     """Keep every checked-in Draft 2020-12 schema equal to its Pydantic model."""
 

@@ -352,6 +352,93 @@ def test_quality_nonpass_terminates_review_without_delivery() -> None:
     assert final.next_action == "none"
 
 
+def test_post_iq_human_nonpass_closes_before_delivery_without_downgrading_iq() -> None:
+    """A human non-pass preserves machine pass evidence and appends review-only state."""
+
+    quality_terminal = _artifact("quality-terminal-passed", "quality-terminal")
+    source_freeze = _artifact("source-freeze-passed", "source-freeze")
+    delivery_plan = _artifact("delivery-plan-passed", "delivery-plan")
+    pending_payload = _boundary_state(
+        phase="delivery",
+        status="delivery_pending",
+        next_action="await_v07_approval",
+        delivery_plan=delivery_plan,
+    ).model_dump(mode="python")
+    pending_payload.update(
+        {
+            "quality_terminal": quality_terminal,
+            "source_freeze": source_freeze,
+        }
+    )
+    pending = AutonomyStateV2.model_validate(pending_payload)
+    review = _artifact(
+        "human-quality-review",
+        "human-quality-review-bundle",
+    )
+
+    final = transition_state(
+        pending,
+        event="human_quality_nonpassing",
+        evidence=review,
+        created_at=NOW,
+    )
+
+    assert (final.phase, final.status, final.next_action) == (
+        "terminal",
+        "review_required",
+        "none",
+    )
+    assert final.quality_terminal == quality_terminal
+    assert final.source_freeze == source_freeze
+    assert final.delivery_plan == delivery_plan
+    assert final.delivery_terminal is None
+    assert final.delivery_results == []
+    validate_state_transition(pending, final)
+
+
+def test_post_iq_human_nonpass_rejects_any_executed_delivery() -> None:
+    """Human review cannot replace a delivery attempt or a non-review artifact."""
+
+    delivery_plan = _artifact("delivery-plan-passed", "delivery-plan")
+    payload = _boundary_state(
+        phase="delivery",
+        status="delivery_pending",
+        next_action="await_v07_approval",
+        delivery_plan=delivery_plan,
+    ).model_dump(mode="python")
+    payload.update(
+        {
+            "quality_terminal": _artifact(
+                "quality-terminal-passed",
+                "quality-terminal",
+            ),
+            "source_freeze": _artifact("source-freeze-passed", "source-freeze"),
+            "budget_usage": BudgetUsageV2(delivery_runs=1),
+        }
+    )
+    pending = AutonomyStateV2.model_validate(payload)
+    with pytest.raises(ValueError, match="precede every delivery"):
+        transition_state(
+            pending,
+            event="human_quality_nonpassing",
+            evidence=_artifact(
+                "human-quality-review",
+                "human-quality-review-bundle",
+            ),
+            created_at=NOW,
+        )
+    clean_payload = pending.model_dump(mode="python")
+    clean_payload["budget_usage"] = BudgetUsageV2()
+    clean = AutonomyStateV2.model_validate(clean_payload)
+    with pytest.raises(ValueError, match="review-bundle"):
+        transition_state(
+            clean,
+            event="human_quality_nonpassing",
+            evidence=_artifact("arbitrary-review", "evidence"),
+            created_at=NOW,
+        )
+
+
 def test_terminal_state_cannot_transition_again() -> None:
     """Immutable terminal projections reject replay even when new evidence is supplied."""
 

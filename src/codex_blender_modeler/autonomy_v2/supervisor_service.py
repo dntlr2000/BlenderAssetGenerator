@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from ..autonomy.worker import autonomy_session_lock
 from ..blender_artifacts import native_io_path, sha256_file
+from ..config import get_settings
 from ..integrated_quality.v02_models import (
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
@@ -33,6 +34,7 @@ from ..production.controller_executor import (
     PhaseToolProfile,
 )
 from ..production.validation import ensure_contained_production_path
+from .approval_models import ApprovalArtifact
 from .candidate_validation_service import validate_and_promote_geometry_candidate_v2
 from .controller_bridge import _resume_pending_controller_locked, _session_bundle
 from .delivery_executor import execute_approved_delivery_plan_v2
@@ -51,6 +53,11 @@ from .delivery_service import (
     validate_quality_source_inputs_v2,
     validate_v2_artifact,
     write_immutable_v2_model,
+)
+from .human_quality_review_service import (
+    build_human_quality_review_bundle_v2,
+    validate_human_quality_disposition_binding_v2,
+    validate_human_quality_review_bundle_v2,
 )
 from .material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
@@ -2265,6 +2272,138 @@ def advance_autonomy_v2(
         allow_disabled_experimental=allow_disabled_experimental,
         policy_authorization_path=None,
     )
+
+
+def close_human_quality_review_v2(
+    job_id: str,
+    session_id: str,
+    *,
+    skill_run_id: str,
+    human_quality_disposition_path: str | Path,
+    allow_disabled_experimental: bool = False,
+) -> dict[str, object]:
+    """Close passed IQ as review-only before delivery from one exact human non-pass."""
+
+    root, session_root, plan, _budget, _state, _state_artifact = _session_bundle(
+        job_id,
+        session_id,
+    )
+    _require_execution_opt_in(
+        root,
+        plan,
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
+    repository_root = get_settings().repo_root
+    with autonomy_session_lock(
+        root,
+        session_root,
+        owner_id="aqv2-human-quality-review",
+        ttl_seconds=900,
+    ):
+        root, session_root, plan, _budget, state, state_artifact = _session_bundle(
+            job_id,
+            session_id,
+        )
+        _require_execution_opt_in(
+            root,
+            plan,
+            allow_disabled_experimental=allow_disabled_experimental,
+        )
+        if (
+            state.status == "review_required"
+            and state.next_action == "none"
+            and state.provenance
+            and state.provenance[-1].kind == "human-quality-review-bundle"
+        ):
+            existing_artifact = state.provenance[-1]
+            existing = validate_human_quality_review_bundle_v2(
+                root,
+                existing_artifact,
+            )
+            validate_human_quality_disposition_binding_v2(
+                repository_root=repository_root,
+                job_root=root,
+                bundle=existing,
+                disposition_path=human_quality_disposition_path,
+            )
+            if existing.human_disposition_skill_run_id != skill_run_id:
+                raise ValueError("human review bundle belongs to another AQ skill run")
+            return {
+                "advanced": False,
+                "outcome": "human_quality_review_already_recorded",
+                "next_action": "none",
+                "human_quality_review_bundle": existing_artifact.model_dump(
+                    mode="json"
+                ),
+                "state": state.model_dump(mode="json"),
+                "state_artifact": state_artifact.model_dump(mode="json"),
+            }
+        if (
+            state.phase,
+            state.status,
+            state.next_action,
+        ) != ("delivery", "delivery_pending", "await_v07_approval"):
+            raise ValueError(
+                "human quality review requires delivery_pending before V0.7 execution"
+            )
+        if (
+            state.quality_terminal is None
+            or state.source_freeze is None
+            or state.delivery_plan is None
+        ):
+            raise ValueError("human quality review boundary omitted passed-IQ evidence")
+        if (
+            state.delivery_terminal is not None
+            or state.delivery_results
+            or state.budget_usage.delivery_runs != 0
+        ):
+            raise ValueError("human quality review cannot replace executed delivery evidence")
+        bundle, bundle_artifact = build_human_quality_review_bundle_v2(
+            repository_root=repository_root,
+            job_root=root,
+            session_id=session_id,
+            skill_run_id=skill_run_id,
+            disposition_path=human_quality_disposition_path,
+            machine_quality_terminal=state.quality_terminal,
+            source_freeze=state.source_freeze,
+            delivery_plan=state.delivery_plan,
+            delivery_runs=state.budget_usage.delivery_runs,
+        )
+        from .approval_supervisor_service import (
+            _ensure_review_terminal_policy_decision,
+        )
+
+        policy_decision = _ensure_review_terminal_policy_decision(
+            job_id,
+            session_id,
+            review_bundle=ApprovalArtifact.model_validate(
+                bundle_artifact.model_dump(mode="python")
+            ),
+            quality_terminal=ApprovalArtifact.model_validate(
+                state.quality_terminal.model_dump(mode="python")
+            ),
+        )
+        next_state = transition_state(
+            state,
+            event="human_quality_nonpassing",
+            evidence=bundle_artifact,
+            created_at=datetime.now(UTC),
+            reason=(
+                "Exact human visual disposition requires bounded authoring review; "
+                "delivery was not executed."
+            ),
+        )
+        next_artifact = _write_next_state(root, session_root, next_state)
+        return {
+            "advanced": True,
+            "outcome": "human_quality_review_terminal",
+            "next_action": "none",
+            "human_quality_review": bundle.model_dump(mode="json"),
+            "human_quality_review_bundle": bundle_artifact.model_dump(mode="json"),
+            "routine_policy_decision": policy_decision,
+            "state": next_state.model_dump(mode="json"),
+            "state_artifact": next_artifact.model_dump(mode="json"),
+        }
 
 
 def _advance_autonomy_v2_with_policy(

@@ -120,6 +120,11 @@ from .delivery_service import (
     validate_quality_source_inputs_v2,
     validate_v2_artifact,
 )
+from .human_quality_review_service import (
+    build_human_quality_review_bundle_v2,
+    validate_human_quality_disposition_binding_v2,
+    validate_human_quality_review_bundle_v2,
+)
 from .material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundaryV2,
@@ -156,6 +161,7 @@ from .models import (
     DeliveryReviewBinding,
     DeliveryReviewEntry,
     DeliveryTerminalV2,
+    HumanQualityReviewBundleV2,
     QualityApprovedSourceFreeze,
     QualityReviewActionV2,
     QualityReviewBundleV2,
@@ -178,6 +184,7 @@ from .quality_terminal_service import (
 from .supervisor_service import (
     QualitySubmissionV2,
     advance_autonomy_v2,
+    close_human_quality_review_v2,
     run_autonomy_v2,
 )
 from .transitions import transition_state
@@ -216,6 +223,7 @@ __all__ = [
     "GeometryAuthoringCompletionV2",
     "GeometryCandidateValidationReceiptV2",
     "HistoricalSessionAutonomyEligibilityReport",
+    "HumanQualityReviewBundleV2",
     "MaterialControllerCompletionV2",
     "MaterialClosurePolicyPromotionBoundaryV03",
     "MaterialClosurePromotionBoundaryV2",
@@ -240,7 +248,9 @@ __all__ = [
     "autonomy_v2_profile_catalog",
     "cancel_autonomy_v2",
     "cancel_one_prompt",
+    "close_human_quality_review_v2",
     "codex_image_overlay_profile_status",
+    "build_human_quality_review_bundle_v2",
     "build_quality_review_bundle_v2",
     "create_delivery_plan",
     "delivery_profile",
@@ -303,6 +313,8 @@ __all__ = [
     "validate_delivery_terminal_v2",
     "validate_quality_source_freeze",
     "validate_quality_source_inputs_v2",
+    "validate_human_quality_disposition_binding_v2",
+    "validate_human_quality_review_bundle_v2",
     "validate_quality_review_bundle_v2",
     "validate_quality_terminal_v2",
     "validate_and_promote_geometry_candidate_v2",

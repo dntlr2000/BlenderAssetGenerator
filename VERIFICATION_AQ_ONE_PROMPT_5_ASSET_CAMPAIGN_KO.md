@@ -832,3 +832,73 @@ baseline의 차이, 원래 failed AQ terminal, accepted technical package를 각
 그 machine evidence에서 Stage 9 overlay의 bounded experimental 진입 가능 여부와 AQ base NO-GO blocker를
 분리해 결정합니다. package acceptance는 Destination Handoff plan 승인, destination write, runtime parity 또는
 profile Activation 승인이 아닙니다.
+
+## 13. B8 post-IQ human review terminal과 기준선 재시작 경계
+
+### 13.1 Exact human disposition
+
+clean source commit `84e585898fe44dcd85f24f2093892813b889f79c`의 baseline
+`activation-baseline-ce171a5174e9d2e2409adb96`에서 plastic-shard B8 canary를 실행했습니다. machine IQ는
+통과해 source freeze와 delivery plan을 게시했지만, 사용자는 다음 exact review bytes를
+`needs_revision`으로 판정했습니다.
+
+- review request SHA-256:
+  `731ac8f5bdf86e10da416d19d7c751cdaeada954f6a1c066a62aa4fef52c00d4`
+- Beauty SHA-256:
+  `82038452582297511a04669a415dc8e68b5ee5338d823415be2886ec08c367e0`
+- disposition logical SHA-256:
+  `17064f63bce972e1981215557b06fd814a131a6920f4935f46bd60439b9f7013`
+- disposition file SHA-256:
+  `8d5be105b3204d261f8c73b232f5166b17b7fdf8260b5a55a6e5e9f02bc9b957`
+- disposition: `needs_revision`; quality disposition이며 user approval이 아님
+
+### 13.2 Append-only closure
+
+기존 AQ v2는 machine IQ non-pass review bundle만 허용해, machine-passed IQ 뒤 human non-pass를
+`delivery_pending`에서 정상 terminal로 닫을 수 없었습니다. 원래 IQ report, quality terminal, source
+freeze와 delivery plan을 변경하지 않고 다음 새 evidence를 게시했습니다.
+
+- human quality review bundle SHA-256:
+  `54b25a95c31185adc72adbb397d28c93f4cf126ef6a9bf7af08eac3083e0bcca`
+- final AQ state SHA-256:
+  `2338411e82660e2fc685ecf3722bef34bf233e7c0985a40e2621307247af1691`
+- One-Prompt terminal SHA-256:
+  `f37eb2f950397179df27a9a5f3ea5c1ba711afce8e065ac109ae3ee2b57b5533`
+- routine policy decision SHA-256:
+  `5e559c53d41b12ffb69aa1c74fdc1f200648fab39993c126c2e239733c3a89d9`
+- AQ state / adapter terminal: `review_required` / `review_bundle`
+- delivery runs / production package: `0` / 없음
+- additional user decisions / technical user approvals / canonical corruption: `0 / 0 / 0`
+- strict Activation usable-review validation exclusions: `[]`
+
+첫 recovery 시도에서 state가 먼저 append되고 policy receipt가 아직 없던 interrupted boundary와, 두 번째
+시도의 잘못된 policy target artifact ID는 immutable technical failure evidence로 보존했습니다. 정상 경로는
+policy receipt를 state transition 전에 고정하고, 과거 B8 interrupted state는 exact terminal·provenance·zero
+delivery 조건에만 한정해 복구합니다. 일반 terminal에서 새 policy authority를 발행하는 권한은 추가하지
+않았습니다.
+
+### 13.3 Activation 의미와 다음 단계
+
+B8은 usable review terminal의 실제 실행 증거이지만, 이 결함을 수정하면서 controller promotion source와
+schema가 바뀌었습니다. 따라서 B8을 수정 후 clean baseline의 campaign outcome으로 소급 계산하지 않습니다.
+
+수정 후 공식 검증은 다음과 같이 완료했습니다.
+
+- 전체 pytest: `2041 passed`, `65 skipped`
+- AQ focused: `953 passed`, `26 skipped`
+- AQ Blender 5.0.1 smoke: `47 passed`, `1 skipped`
+- 공식 V0.9 chain: V0.7·V0.8 독립 전체 회귀, 실제 GLTF/FBX/OBJ package 및 clean import,
+  V0.8 orchestration, V0.9 portable GLTF package·round trip·handoff·queue·audit를 포함해 exit `0`
+- V0.9 handoff evidence: package absolute path `0`, missing dependency `0`, round trip `passed`,
+  semantic/material coverage `1.0/1.0`, valid handoff `1/1`, canonical unchanged
+- Ruff, doctor, Blender compatibility, agent instruction, repository summary, Activation readiness contract,
+  `git diff --check`: 통과
+
+첫 AQ Blender gate는 의도보다 긴 pytest root 때문에 optional ImageGen signage 파일 경로가 정확히 Windows
+260자에 도달해 1건 실패했습니다. 파일 자체는 존재했으며 동일 case를 짧은 저장소 내부 경로에서 재실행해
+`1 passed`, 공식 gate의 기본 짧은 `/.b/` 경로로 전체 재실행해 위 `47 passed`, `1 skipped`와 exit `0`을
+확인했습니다. 이는 B8 source 결함으로 분류하지 않습니다.
+
+다음 순서는 이 변경의 clean commit, 새 ActivationSourceManifest/Baseline/Readiness 게시, 새 baseline의
+fresh canary 재실행입니다. profile은 계속 `disabled_experimental`이고 current-baseline campaign outcome은
+`0/5`입니다.

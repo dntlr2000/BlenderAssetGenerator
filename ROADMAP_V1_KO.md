@@ -46,8 +46,10 @@ AQ local-only
 
 Standard는 두 실제 자산의 composite run과 GLTF clean import를 통과했으므로 선언된 품질·형식 한계
 안에서 1차 완료로 분류합니다. AQ v2는 계약, adapter, policy, recovery와 실제 자산 실행 증거가
-존재하지만 current-baseline activation candidate가 `0/5`이고 cross-projection terminal/KPI 의미가
-아직 닫히지 않았으므로 1차 완료 전 상태입니다.
+존재하고, B8 canary에서 machine-passed IQ 뒤 exact human `needs_revision`을 append-only usable review
+terminal로 닫는 경계까지 검증했습니다. 그러나 이 결함 수정은 framework/source 변경이므로 B8을 새
+기준선의 캠페인 실적으로 소급 계산하지 않습니다. 새 clean baseline의 distinct campaign outcome은 아직
+`0/5`이므로 AQ는 계속 1차 완료 전 상태입니다.
 
 AQ 1차 완성의 고정 지원 범위는 Windows 11, Blender `5.0.1`, `primary_object_only` 정적 소품,
 local/procedural PBR와 engine-neutral portable GLTF입니다. Codex ImageGen, destination project write,
@@ -150,7 +152,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약과 adapter/policy recovery 구현, 실제 다중 캠페인 수행, R5D exact beauty·portable GLTF package acceptance 완료 | 최신 clean baseline `activation-baseline-6b01a9e911e0c573d60e30ab`의 eligible candidate `0/5`; skill-run terminal/current KPI projection과 local-only Activation 기준 정합화 및 fresh 5개 캠페인 전까지 `autonomous_static_prop_v2` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약과 adapter/policy recovery 구현, 실제 다중 캠페인 수행, R5D exact beauty·portable GLTF package acceptance 및 B8 post-IQ human review terminal 검증 완료 | B8이 결속된 clean baseline `activation-baseline-ce171a5174e9d2e2409adb96`는 후속 framework/source 수정으로 historical이 됨; 새 clean baseline과 fresh 5개 캠페인 전까지 current-baseline outcome `0/5`, `autonomous_static_prop_v2` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, bounded benchmark entry machine decision은 `GO` | AQ base 1차 완성과 분리된 optional overlay이며 실행 우선순위는 AQ base closeout 뒤; `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
 | Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, 기존 crystal dependency closure는 identity preflight에서 안전 실패, 새 authorized bake-bound closure는 입력 부재로 미실행 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
@@ -726,6 +728,23 @@ historical `host_delivery_adopted=false`도 소급 수정하지 않습니다. �
 acknowledgement는 닫혔지만 destination write, runtime parity 또는 profile Activation 권한은 생기지 않았습니다.
 기존 R1~R07 machine evidence와 disposition은 고쳐 쓰지 않습니다.
 
+2026-09-02 clean commit `84e585898fe44dcd85f24f2093892813b889f79c`에 결속된 B8 plastic-shard
+canary는 IQ pass/source freeze와 `delivery_pending`까지 진행한 뒤 review request SHA-256
+`731ac8f5bdf86e10da416d19d7c751cdaeada954f6a1c066a62aa4fef52c00d4`의 Beauty SHA-256
+`82038452582297511a04669a415dc8e68b5ee5338d823415be2886ec08c367e0`가 exact
+`needs_revision`으로 기록됐습니다. 이 실행은 기존 machine IQ를 낮춰 쓰지 않고 새
+`human-quality-review-bundle` SHA-256
+`54b25a95c31185adc72adbb397d28c93f4cf126ef6a9bf7af08eac3083e0bcca`와 AQ state
+`review_required`, One-Prompt/skill adapter `review_bundle` terminal로 닫혔습니다. delivery run과
+production package는 0이며 canonical source는 변하지 않았습니다. Activation의 strict usable-review
+검증도 exclusion 0으로 통과했습니다.
+
+B8은 동시에 machine-passed IQ 이후 human non-pass를 닫는 계약이 없었던 framework 결함을 발견한
+canary입니다. 새 append-only contract, policy-before-state 정상 경로, exact interrupted-close recovery,
+CLI/MCP/skill resume 및 Activation projection을 구현했으므로 소스가 baseline
+`activation-baseline-ce171a5174e9d2e2409adb96`와 달라졌습니다. 따라서 B8은 결함 재현과 수정 검증의
+역사적 증거로만 보존하며 새 Activation campaign의 1/5로 세지 않습니다.
+
 최종 소스 회귀에서는 Blender image API가 `\\?\` extended temp path를 직접 받지 못하는 별도 경계를
 발견해, GLTF image encoding을 process temp 아래의 짧은 고유 normal-path staging root에서 실행하도록
 보완했습니다. package-local output과 canonical source는 바뀌지 않습니다. 공식 V0.7 gate는 전체
@@ -1138,27 +1157,31 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      `GO`, AQ base Activation은 `NO_GO`, campaign 생성은 `false`로 판정
    - 해당 decision의 `unresolved_local_framework_defects=0`은 선언된 R5D delivery-recovery 범위의 판정이며,
      이후 확인된 skill-run/current-summary cross-projection 부채까지 닫았다는 뜻이 아님
-8-A. AQ Base First-Completion Closure [바로 다음]
+8-A. AQ Base First-Completion Closure [완료]
    - R5D 원래 failed AQ terminal과 과거 skill receipt를 수정하지 않고, exact recovery/package acceptance를
-     연결하는 append-only skill-run terminal projection을 추가하여 `running/await_v07_approval` 잔류를 해소
+     연결하는 append-only skill-run terminal projection을 추가하여 `running/await_v07_approval` 잔류를 해소 [완료]
    - `verification/latest_summary.json`의 historical Standard snapshot과 최신 project/AQ projection을 분리하고,
-     실제 AQ skill-adapter 실행·캠페인·current test count를 authoritative evidence에서 다시 계산
+     실제 AQ skill-adapter 실행·캠페인·current test count를 authoritative evidence에서 다시 계산 [완료]
    - 엄격한 production-package candidate index는 유지하고, production delivery와 usable review terminal을
-     함께 세는 별도 campaign outcome projection을 추가하거나 동등한 분리 계약을 마련
+     함께 세는 별도 campaign outcome projection을 추가 [완료]
    - local-only required blocker, 현재 지원 범위에서 제외된 capability, destination/future limitation을
-     서로 다른 machine-readable 분류로 투영
-   - supporting-client closed-loop와 controller sandbox/tool-policy attestation은 실제 current-task 실행
-     증거로 닫거나 미검증 local blocker로 유지하며, `desktop_in_session` 자체를 sandbox 증거로 사용하지 않음
+     서로 다른 machine-readable 분류로 투영 [완료]
+   - supporting-client closed-loop와 controller sandbox/tool-policy attestation을 future limitation으로 분리하고,
+     `desktop_in_session` 자체를 sandbox 증거로 사용하지 않음 [완료]
    - exact `ready_for_profile_publication`과 clean baseline을 재검증하고 single-use human acceptance를 소비하는
-     고정 source publication writer를 구현; untracked/modified publication은 Activation으로 인정하지 않음
+     고정 source publication writer를 구현; untracked/modified publication은 Activation으로 인정하지 않음 [완료]
+   - B8에서 확인된 machine-passed IQ 이후 human `needs_revision` 경계를 별도 append-only review bundle,
+     policy/state recovery, One-Prompt/skill terminal과 Activation usable-review 검증으로 닫음 [완료]
    - 기존 두 Standard 실제 자산은 공통 orchestration/host 변경의 focused regression 대상으로 재확인하되,
-     새 Standard 자산 캠페인은 공통 의미가 바뀌거나 회귀가 발견되지 않는 한 1차 완성 선행 조건으로 추가하지 않음
+     새 Standard 자산 캠페인은 공통 의미가 바뀌거나 회귀가 발견되지 않는 한 1차 완성 선행 조건으로 추가하지 않음 [완료]
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
-     실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check` 통과 후 clean commit 생성
-8-B. fresh current-baseline AQ canary와 5-reference campaign [8-A 후]
+     실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
+     source commit으로 고정 [완료]
+8-B. fresh current-baseline AQ canary와 5-reference campaign [8-A clean commit 후 바로 다음]
    - 8-A clean commit에서 새 ActivationSourceManifest/Baseline/Readiness를 생성하고 profile은 계속
      `disabled_experimental`로 유지
-   - 먼저 서로 다른 reference 중 1개를 `aq-one-prompt-orchestrator` canary로 실행
+   - B8 historical canary는 framework 수정 전 baseline의 1/5로 재사용하지 않고, 새 clean baseline에서
+     서로 다른 reference 중 1개를 `aq-one-prompt-orchestrator` canary로 다시 실행
    - canary 뒤 framework/source 변경이 없고 아래 기준을 모두 만족하면 같은 baseline의 campaign #1로 계산하고
      나머지 4개를 실행; framework/source가 바뀌면 새 baseline에서 영향받은 campaign을 다시 시작
    - 각 자산은 initial request 1, 추가 사용자 결정 0 목표, technical user approval 0, adapter route terminal,

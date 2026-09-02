@@ -502,6 +502,72 @@ class QualityReviewBundleV2(AQV2Evidence):
         return self
 
 
+class HumanQualityReviewBundleV2(AQV2Evidence):
+    """Bind a post-IQ human non-pass to an append-only review-only terminal."""
+
+    bundle_id: PortableId
+    machine_quality_outcome: Literal["passed"] = "passed"
+    integrated_quality_report: AQV2Artifact
+    machine_quality_terminal: AQV2Artifact
+    source_freeze: AQV2Artifact
+    delivery_plan: AQV2Artifact
+    candidate_blend: AQV2Artifact
+    representative_render: AQV2Artifact
+    render_pass_manifest: AQV2Artifact
+    human_disposition_id: PortableId
+    human_disposition_sha256: Sha256
+    human_disposition_file_sha256: Sha256
+    human_disposition_byte_size: int = Field(gt=0)
+    human_disposition_observed_statement_sha256: Sha256
+    human_disposition_reviewer_identity: str = Field(min_length=1, max_length=256)
+    human_disposition_skill_run_id: PortableId
+    human_disposition: Literal["needs_revision"] = "needs_revision"
+    recommended_actions: list[QualityReviewActionV2] = Field(min_length=1)
+    delivery_runs: Literal[0] = 0
+    review_only: Literal[True] = True
+    production_ready: Literal[False] = False
+    destination_handoff_eligible: Literal[False] = False
+    canonical_unchanged: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_human_review_bundle(self) -> HumanQualityReviewBundleV2:
+        """Require exact internal provenance and explicitly non-production evidence."""
+
+        named = [
+            self.integrated_quality_report,
+            self.machine_quality_terminal,
+            self.source_freeze,
+            self.delivery_plan,
+            self.candidate_blend,
+            self.representative_render,
+            self.render_pass_manifest,
+        ]
+        named_bindings = {
+            (item.path, item.sha256, item.byte_size) for item in named
+        }
+        provenance_bindings = {
+            (item.path, item.sha256, item.byte_size) for item in self.provenance
+        }
+        if provenance_bindings != named_bindings or len(self.provenance) != len(named):
+            raise ValueError(
+                "human quality review provenance must equal its named artifacts"
+            )
+        if len(named_bindings) != len(named):
+            raise ValueError("human quality review artifacts must be distinct")
+        if not self.candidate_blend.path.casefold().endswith(".blend"):
+            raise ValueError("human quality review candidate must be a Blender file")
+        if not self.representative_render.path.casefold().endswith(
+            (".png", ".jpg", ".jpeg", ".webp")
+        ):
+            raise ValueError("human quality review render must be PNG, JPEG, or WEBP")
+        if not self.render_pass_manifest.path.casefold().endswith(".json"):
+            raise ValueError("human quality review render manifest must be JSON")
+        action_ids = [item.action_id for item in self.recommended_actions]
+        if len(action_ids) != len(set(action_ids)):
+            raise ValueError("human quality review action IDs must be unique")
+        return self
+
+
 class QualityTerminalV2(AQV2Evidence):
     """End authoring quality independently from any later package-format delivery."""
 

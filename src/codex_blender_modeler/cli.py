@@ -3757,6 +3757,10 @@ def aq_one_prompt_skill_resume_command(
         Path | None,
         typer.Option("--quality-submission"),
     ] = None,
+    human_quality_disposition: Annotated[
+        Path | None,
+        typer.Option("--human-quality-disposition"),
+    ] = None,
     experimental_opt_in: Annotated[
         bool,
         typer.Option("--enable-v2/--disable-v2"),
@@ -3769,6 +3773,7 @@ def aq_one_prompt_skill_resume_command(
         run_id,
         max_actions=max_actions,
         quality_submission=_load_quality_submission_payload(quality_submission),
+        human_quality_disposition_path=human_quality_disposition,
         experimental_opt_in=experimental_opt_in,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))

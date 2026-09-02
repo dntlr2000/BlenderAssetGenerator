@@ -16,6 +16,7 @@ TransitionEvent = Literal[
     "material_candidate_validated",
     "quality_passed",
     "quality_nonpassing",
+    "human_quality_nonpassing",
     "delivery_planned",
     "delivery_finished",
     "blocked",
@@ -61,7 +62,13 @@ _ALLOWED_EVENTS_BY_BOUNDARY: dict[tuple[str, str, str], frozenset[TransitionEven
         {"delivery_planned", "blocked", "failed", "cancelled"}
     ),
     ("delivery", "delivery_pending", "await_v07_approval"): frozenset(
-        {"delivery_finished", "blocked", "failed", "cancelled"}
+        {
+            "human_quality_nonpassing",
+            "delivery_finished",
+            "blocked",
+            "failed",
+            "cancelled",
+        }
     ),
 }
 
@@ -103,6 +110,11 @@ def _infer_transition_event(
 
     if current.phase == "terminal":
         if current.status == "review_required":
+            if (
+                current.provenance
+                and current.provenance[-1].kind == "human-quality-review-bundle"
+            ):
+                return "human_quality_nonpassing"
             return "quality_nonpassing"
         if current.status == "blocked":
             return "blocked"
@@ -225,6 +237,27 @@ def transition_state(
         raise ValueError("quality_nonpassing requires exact quality-terminal evidence")
     if event in {"quality_passed", "quality_nonpassing"} and evidence != quality_terminal:
         raise ValueError("quality transition evidence must be the exact quality terminal")
+    if event == "human_quality_nonpassing":
+        if (
+            current.quality_terminal is None
+            or current.source_freeze is None
+            or current.delivery_plan is None
+        ):
+            raise ValueError(
+                "human_quality_nonpassing requires passed quality and delivery-plan evidence"
+            )
+        if evidence.kind != "human-quality-review-bundle":
+            raise ValueError(
+                "human_quality_nonpassing requires exact human review-bundle evidence"
+            )
+        if (
+            current.delivery_terminal is not None
+            or current.delivery_results
+            or current.budget_usage.delivery_runs != 0
+        ):
+            raise ValueError(
+                "human_quality_nonpassing must precede every delivery execution"
+            )
     if event == "delivery_planned" and delivery_plan is None:
         raise ValueError("delivery_planned requires exact delivery-plan evidence")
     if event == "delivery_planned" and evidence != delivery_plan:
@@ -253,6 +286,7 @@ def transition_state(
         ),
         "quality_passed": ("quality", "quality_approved", "plan_delivery"),
         "quality_nonpassing": ("terminal", "completed", "none"),
+        "human_quality_nonpassing": ("terminal", "completed", "none"),
         "delivery_planned": ("delivery", "delivery_pending", "await_v07_approval"),
         "delivery_finished": ("terminal", "completed", "none"),
         "blocked": ("terminal", "blocked", "none"),
@@ -262,9 +296,13 @@ def transition_state(
     phase, status, next_action = mapping[event]
     results = list(delivery_results or current.delivery_results)
     terminal_reason = reason
-    if event == "quality_nonpassing":
+    if event in {"quality_nonpassing", "human_quality_nonpassing"}:
         status = "review_required"
-        terminal_reason = reason or "integrated quality did not pass"
+        terminal_reason = reason or (
+            "human visual disposition requires review"
+            if event == "human_quality_nonpassing"
+            else "integrated quality did not pass"
+        )
     elif event == "delivery_finished":
         statuses = [item.status for item in results]
         if statuses == ["review_only"] or all(item == "completed" for item in statuses):

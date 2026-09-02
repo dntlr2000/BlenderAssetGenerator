@@ -57,7 +57,8 @@ from .controller_bridge import (
     cancel_autonomy_v2,
     get_autonomy_v2_status,
 )
-from .models import AutonomyStateV2
+from .human_quality_review_service import validate_human_quality_review_bundle_v2
+from .models import AQV2Artifact, AutonomyStateV2
 from .planner import plan_autonomous_static_prop_v2
 from .supervisor_service import (
     QualitySubmissionV2,
@@ -1384,11 +1385,35 @@ def _terminalize_current_state(
         quality_path = validate_approval_artifact(root, quality_artifact)
         with open(native_io_path(quality_path), "rb") as handle:
             quality = QualityTerminalV2.model_validate_json(handle.read())
-        if quality.review_bundle is None:
-            raise ValueError("review-required AQ terminal has no review bundle")
-        review = ApprovalArtifact.model_validate(
-            quality.review_bundle.model_dump(mode="python")
-        )
+        if quality.review_bundle is not None:
+            review = ApprovalArtifact.model_validate(
+                quality.review_bundle.model_dump(mode="python")
+            )
+        elif (
+            quality.status == "quality_approved"
+            and state.provenance
+            and state.provenance[-1].kind == "human-quality-review-bundle"
+        ):
+            human_artifact = AQV2Artifact.model_validate(
+                state.provenance[-1].model_dump(mode="python")
+            )
+            human_review = validate_human_quality_review_bundle_v2(
+                root,
+                human_artifact,
+            )
+            if (
+                human_review.machine_quality_terminal != state.quality_terminal
+                or human_review.source_freeze != state.source_freeze
+                or human_review.delivery_plan != state.delivery_plan
+            ):
+                raise ValueError(
+                    "human review terminal differs from the current passed-IQ state"
+                )
+            review = ApprovalArtifact.model_validate(
+                human_artifact.model_dump(mode="python")
+            )
+        else:
+            raise ValueError("review-required AQ terminal has no exact review bundle")
         validate_approval_artifact(root, review)
         _ensure_review_terminal_policy_decision(
             job_id,

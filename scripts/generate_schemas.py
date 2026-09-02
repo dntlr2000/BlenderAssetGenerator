@@ -131,6 +131,7 @@ from codex_blender_modeler.autonomy_v2.models import (
     DeliveryProfile,
     DeliveryReviewBinding,
     DeliveryTerminalV2,
+    HumanQualityReviewBundleV2,
     QualityApprovedSourceFreeze,
     QualityReviewBundleV2,
     QualityTerminalV2,
@@ -721,6 +722,9 @@ SCHEMAS = {
     "autonomy_v02_budget.schema.json": AutonomyBudgetV2,
     "autonomy_v02_root_authorization.schema.json": RootAuthorizationV2,
     "autonomy_v02_quality_source_freeze.schema.json": QualityApprovedSourceFreeze,
+    "autonomy_v02_human_quality_review_bundle.schema.json": (
+        HumanQualityReviewBundleV2
+    ),
     "autonomy_v02_quality_review_bundle.schema.json": QualityReviewBundleV2,
     "autonomy_v02_delivery_profile.schema.json": DeliveryProfile,
     "autonomy_v02_delivery_plan.schema.json": DeliveryPlan,

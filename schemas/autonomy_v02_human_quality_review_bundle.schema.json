@@ -1,0 +1,322 @@
+{
+  "$defs": {
+    "AQV2Artifact": {
+      "additionalProperties": false,
+      "description": "Bind one immutable job-contained artifact to exact bytes and role.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "AQV2Artifact",
+      "type": "object"
+    },
+    "QualityReviewActionV2": {
+      "additionalProperties": false,
+      "description": "Record one deterministic non-executing recommendation from IQ 0.2 evidence.",
+      "properties": {
+        "action_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Action Id",
+          "type": "string"
+        },
+        "finding_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Id"
+        },
+        "destination": {
+          "enum": [
+            "v0.4_structural_authoring",
+            "v0.6_parametric_convergence",
+            "v0.7_production_repair",
+            "manual_evidence_review",
+            "restricted_scope_required"
+          ],
+          "title": "Destination",
+          "type": "string"
+        },
+        "reason_code": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Reason Code",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "automatic_action_allowed": {
+          "const": false,
+          "default": false,
+          "title": "Automatic Action Allowed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action_id",
+        "destination",
+        "reason_code",
+        "message"
+      ],
+      "title": "QualityReviewActionV2",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a post-IQ human non-pass to an append-only review-only terminal.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Contract Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "dispatch_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Dispatch Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "producer": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Producer",
+      "type": "string"
+    },
+    "producer_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Producer Version",
+      "type": "string"
+    },
+    "provenance": {
+      "items": {
+        "$ref": "#/$defs/AQV2Artifact"
+      },
+      "minItems": 1,
+      "title": "Provenance",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "bundle_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "machine_quality_outcome": {
+      "const": "passed",
+      "default": "passed",
+      "title": "Machine Quality Outcome",
+      "type": "string"
+    },
+    "integrated_quality_report": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "machine_quality_terminal": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "source_freeze": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "delivery_plan": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "candidate_blend": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "representative_render": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "render_pass_manifest": {
+      "$ref": "#/$defs/AQV2Artifact"
+    },
+    "human_disposition_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Human Disposition Id",
+      "type": "string"
+    },
+    "human_disposition_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Human Disposition Sha256",
+      "type": "string"
+    },
+    "human_disposition_file_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Human Disposition File Sha256",
+      "type": "string"
+    },
+    "human_disposition_byte_size": {
+      "exclusiveMinimum": 0,
+      "title": "Human Disposition Byte Size",
+      "type": "integer"
+    },
+    "human_disposition_observed_statement_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Human Disposition Observed Statement Sha256",
+      "type": "string"
+    },
+    "human_disposition_reviewer_identity": {
+      "maxLength": 256,
+      "minLength": 1,
+      "title": "Human Disposition Reviewer Identity",
+      "type": "string"
+    },
+    "human_disposition_skill_run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Human Disposition Skill Run Id",
+      "type": "string"
+    },
+    "human_disposition": {
+      "const": "needs_revision",
+      "default": "needs_revision",
+      "title": "Human Disposition",
+      "type": "string"
+    },
+    "recommended_actions": {
+      "items": {
+        "$ref": "#/$defs/QualityReviewActionV2"
+      },
+      "minItems": 1,
+      "title": "Recommended Actions",
+      "type": "array"
+    },
+    "delivery_runs": {
+      "const": 0,
+      "default": 0,
+      "title": "Delivery Runs",
+      "type": "integer"
+    },
+    "review_only": {
+      "const": true,
+      "default": true,
+      "title": "Review Only",
+      "type": "boolean"
+    },
+    "production_ready": {
+      "const": false,
+      "default": false,
+      "title": "Production Ready",
+      "type": "boolean"
+    },
+    "destination_handoff_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Destination Handoff Eligible",
+      "type": "boolean"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "contract_id",
+    "job_id",
+    "workflow_id",
+    "dispatch_id",
+    "session_id",
+    "input_sha256",
+    "source_fingerprint",
+    "producer",
+    "provenance",
+    "created_at",
+    "bundle_id",
+    "integrated_quality_report",
+    "machine_quality_terminal",
+    "source_freeze",
+    "delivery_plan",
+    "candidate_blend",
+    "representative_render",
+    "render_pass_manifest",
+    "human_disposition_id",
+    "human_disposition_sha256",
+    "human_disposition_file_sha256",
+    "human_disposition_byte_size",
+    "human_disposition_observed_statement_sha256",
+    "human_disposition_reviewer_identity",
+    "human_disposition_skill_run_id",
+    "recommended_actions"
+  ],
+  "title": "HumanQualityReviewBundleV2",
+  "type": "object"
+}

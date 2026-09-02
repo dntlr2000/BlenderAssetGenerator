@@ -1347,6 +1347,7 @@ def resume_aq_one_prompt_skill(
     run_id: str,
     max_actions: int = 32,
     quality_submission: dict | None = None,
+    human_quality_disposition_path: str | None = None,
     experimental_opt_in: bool = False,
 ) -> dict:
     """Resume the exact AQ plan, budget, assignment, snapshots, and receipts."""
@@ -1356,6 +1357,7 @@ def resume_aq_one_prompt_skill(
         run_id,
         max_actions=max_actions,
         quality_submission=quality_submission,
+        human_quality_disposition_path=human_quality_disposition_path,
         experimental_opt_in=experimental_opt_in,
     )
 
