@@ -83,6 +83,9 @@ from codex_blender_modeler.integrated_quality.v02_models import (
 from codex_blender_modeler.integrated_quality.v02_service import (
     build_integrated_quality_report_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_visibility_metrics import (
+    compare_fixed_camera_visibility_v02,
+)
 from codex_blender_modeler.optimization.io import (
     job_relative,
     run_directory,
@@ -606,8 +609,25 @@ def _build_passed_quality_submission(
     mask.save(candidate_path, format="PNG")
     reference = _artifact(root, reference_path, "material-loop-reference-mask", "reference_mask")
     candidate = _artifact(root, candidate_path, "material-loop-candidate-mask", "candidate_mask")
+    reference_image_path = root / promoted.geometry.authorization.primary_reference.path
+    reference_image = _artifact(
+        root,
+        reference_image_path,
+        "material-loop-reference-image",
+        "reference_image",
+    )
+    legacy_run_id = "material-loop-delivery-v06"
+    beauty_path = root / "qa" / "runs" / legacy_run_id / "passes" / "beauty.png"
+    beauty_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(reference_image_path, beauty_path)
+    candidate_beauty = _artifact(
+        root,
+        beauty_path,
+        "material-loop-candidate-beauty",
+        "candidate_beauty",
+    )
     legacy_path = _write_visual_qa_report(
-        evidence_root / "legacy_v06_report.json",
+        root / "qa" / "runs" / legacy_run_id / "visual_qa_report.json",
         job_id=plan.job_id,
     )
     legacy = _artifact(root, legacy_path, "material-loop-legacy-v06", "visual_qa_report")
@@ -625,6 +645,23 @@ def _build_passed_quality_submission(
         candidate_evidence_id="material-loop.candidate.contour",
         candidate_artifact_sha256=candidate.sha256,
         candidate_camera_sha256=camera.sha256,
+    )
+    visibility = compare_fixed_camera_visibility_v02(
+        reference_image_path,
+        beauty_path,
+        reference_path,
+        candidate_path,
+        reference_image_sha256=reference_image.sha256,
+        candidate_beauty_sha256=candidate_beauty.sha256,
+        reference_mask_sha256=reference.sha256,
+        candidate_mask_sha256=candidate.sha256,
+        camera_sha256=camera.sha256,
+        evidence_ids=[
+            reference_image.artifact_id,
+            candidate_beauty.artifact_id,
+            reference.artifact_id,
+            candidate.artifact_id,
+        ],
     )
     policy = IntegratedQualityPolicyV02.model_validate_json(
         (root / promoted.geometry.authorization.quality_profile.path).read_bytes()
@@ -647,6 +684,8 @@ def _build_passed_quality_submission(
     ]
     quality_evidence = [
         camera,
+        reference_image,
+        candidate_beauty,
         reference,
         candidate,
         legacy,
@@ -689,6 +728,7 @@ def _build_passed_quality_submission(
             authoritative_view_count=0,
             limitations=["Optional multiview evidence is outside this bounded fixture."],
         ),
+        fixed_camera_visibility=visibility,
         advisory_metrics=[],
         producer=ProducerIdentityV02(
             name="pytest_codex_image_material_loop_delivery",

@@ -118,6 +118,15 @@ def _quality_report_evidence_hashes(report: IntegratedQualityReportV02) -> set[s
     for metric in report.advisory_metrics:
         if metric.artifact_sha256 is not None:
             hashes.add(metric.artifact_sha256)
+    if report.fixed_camera_visibility is not None:
+        hashes.update(
+            {
+                report.fixed_camera_visibility.reference_image_sha256,
+                report.fixed_camera_visibility.candidate_beauty_sha256,
+                report.fixed_camera_visibility.reference_mask_sha256,
+                report.fixed_camera_visibility.candidate_mask_sha256,
+            }
+        )
     return hashes
 
 

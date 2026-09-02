@@ -80,6 +80,7 @@ def test_v2_internal_plan_binds_standard_dispatch_and_phase_profiles(
     assert authorization.synthetic_user_approval is False
     assert authorization.reference_content_scope == "primary_object_only"
     assert quality_policy["require_v06_authoritative_high_findings"] is True
+    assert quality_policy["require_fixed_camera_visibility"] is True
     for artifact in plan.provenance:
         validate_v2_artifact(root, artifact)
 

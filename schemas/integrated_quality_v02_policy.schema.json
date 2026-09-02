@@ -70,6 +70,11 @@
       "title": "Require V06 Authoritative High Findings",
       "type": "boolean"
     },
+    "require_fixed_camera_visibility": {
+      "default": false,
+      "title": "Require Fixed Camera Visibility",
+      "type": "boolean"
+    },
     "minimum_multiview_silhouette_stability": {
       "default": 0.7,
       "maximum": 1,
@@ -82,6 +87,34 @@
       "maximum": 1,
       "minimum": 0,
       "title": "Minimum Multiview Semantic Placement",
+      "type": "number"
+    },
+    "minimum_visibility_informative_channels": {
+      "default": 1,
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Minimum Visibility Informative Channels",
+      "type": "integer"
+    },
+    "minimum_visibility_edge_retention": {
+      "default": 0.35,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Visibility Edge Retention",
+      "type": "number"
+    },
+    "minimum_visibility_high_frequency_retention": {
+      "default": 0.35,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Visibility High Frequency Retention",
+      "type": "number"
+    },
+    "minimum_visibility_luminance_retention": {
+      "default": 0.25,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Minimum Visibility Luminance Retention",
       "type": "number"
     },
     "meaningful_gain_min": {

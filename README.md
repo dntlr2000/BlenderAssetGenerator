@@ -89,9 +89,13 @@ AQ entry는 기존 One-Prompt state를 reference/geometry/material/closure/quali
 
 현재 machine-readable KPI에는 대표 계약 fixture와 함께 두 실제 Standard 자산의 exact
 human-reviewed E2E가 기록됩니다. 플라스틱 canary는 high silhouette 한계를 수용한 상태이고, 천
-복합 자산은 fresh V0.5/V0.6과 승인된 GLB package/clean import까지 완료했습니다. AQ는 진입
-준비성만 `ready`이며 v2 profile은 계속 `disabled_experimental`이고 실제 AQ 자산 실행은 시작하지
-않았습니다. 실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
+복합 자산은 fresh V0.5/V0.6과 승인된 GLB package/clean import까지 완료했습니다. AQ v2는 실제
+skill-adapter, Blender, package와 clean-import 캠페인을 반복 실행했지만 profile은 계속
+`disabled_experimental`입니다. C655 기준선의 5개 technical production delivery는 모두 완료됐으나
+fixed-camera 내부 디테일 붕괴를 IQ가 차단하지 못하는 framework 결함이 확인되어 Activation 실적으로
+소급하지 않습니다. 해당 fail-closed gate를 포함한 새 clean baseline에서 canary와 5-reference
+campaign을 다시 닫기 전까지 current-baseline outcome은 `0/5`이고 Activation은 수행되지 않습니다.
+실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
 [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
 [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는
 [AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)를 참조합니다.
@@ -824,7 +828,11 @@ plan item의 exact fallback으로 종료합니다. 최종 controller `timeout|fa
 controller request/result를 결속합니다. `waiting_for_output`만 같은 request의 재개 가능 상태로 남습니다.
 
 IQ 0.2는 exact global/semantic PNG bytes에서 contour·semantic metric과 gates/findings/outcome을
-host가 다시 만들고 caller report 전체와 equality를 검사합니다. source freeze는 현재 canonical
+host가 다시 만들고 caller report 전체와 equality를 검사합니다. 새 AQ v2 plan은 exact primary
+reference, V0.6 beauty, 두 silhouette mask와 camera에 결속된 fixed-camera foreground-interior
+edge/high-frequency/luminance retention도 필수로 재계산합니다. 이 companion은 외곽 contour가 맞아도
+내부 구조·재질 가시성이 평탄하게 붕괴한 candidate를 fail-closed하며 사람의 visual acceptance를
+대신하지 않습니다. source freeze는 현재 canonical
 bytes와 필수 `geometry_candidate_validation_receipt`/`material_phase_receipt`에 다시 결속됩니다.
 authoritative hard finding이 하나라도 남으면 quality pass가 될 수 없으며, typed raw receipt가 없는
 required scored landmark/multi-view는 pass authority가 없습니다. `QualityTerminalV2`는 IQ, freeze
@@ -1154,7 +1162,7 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Project-enabled MCP SHA-256: a6ade0870ec7a8005c2dbe022a1abdda8394bc754ea931a9efcc0a4cb772393d
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 2037
+- Latest reported test count: 2048
 - Verification summary: verification/latest_summary.json (passed)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from pathlib import PurePosixPath
 from typing import Annotated, Literal
@@ -419,6 +420,93 @@ class AdvisoryMetricV02(IntegratedQualityV02StrictModel):
         return self
 
 
+class VisibilityChannelMeasurementV02(IntegratedQualityV02StrictModel):
+    """Measure one fixed-camera interior-visibility channel against its source."""
+
+    channel: Literal[
+        "interior_edge",
+        "high_frequency",
+        "luminance_variation",
+    ]
+    reference_value: float = Field(ge=0)
+    candidate_value: float = Field(ge=0)
+    reference_floor: float = Field(gt=0)
+    informative: bool
+    retention_ratio: float | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def validate_channel_measurement(self) -> VisibilityChannelMeasurementV02:
+        """Bind informative state and retention ratio to the measured source value."""
+
+        expected_informative = self.reference_value >= self.reference_floor
+        if self.informative != expected_informative:
+            raise ValueError("visibility channel informative state differs from its floor")
+        if not self.informative:
+            if self.retention_ratio is not None:
+                raise ValueError("uninformative visibility channels cannot claim retention")
+            return self
+        expected_ratio = self.candidate_value / self.reference_value
+        if self.retention_ratio is None or not math.isclose(
+            self.retention_ratio,
+            expected_ratio,
+            rel_tol=1.0e-9,
+            abs_tol=1.0e-12,
+        ):
+            raise ValueError("visibility retention ratio differs from measured values")
+        return self
+
+
+class FixedCameraVisibilityMetricV02(IntegratedQualityV02StrictModel):
+    """Bind direct interior structure/material visibility to exact V0.6 pixels."""
+
+    metric_id: StableId
+    status: MetricState
+    authority: Authority
+    evidence_ids: list[StableId] = Field(min_length=4, max_length=4)
+    reference_image_sha256: Sha256
+    candidate_beauty_sha256: Sha256
+    reference_mask_sha256: Sha256
+    candidate_mask_sha256: Sha256
+    camera_sha256: Sha256
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    mask_erosion_diagonal_fraction: float = Field(gt=0, le=0.05)
+    mask_erosion_radius_px: int = Field(ge=1, le=49)
+    reference_interior_pixels: int = Field(ge=0)
+    candidate_interior_pixels: int = Field(ge=0)
+    informative_channel_count: int = Field(ge=0, le=3)
+    channels: list[VisibilityChannelMeasurementV02] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_visibility_metric(self) -> FixedCameraVisibilityMetricV02:
+        """Require exact channels for scored evidence and no invented unavailable scores."""
+
+        if len(self.evidence_ids) != len(set(self.evidence_ids)):
+            raise ValueError("fixed-camera visibility evidence IDs must be unique")
+        expected_channels = [
+            "interior_edge",
+            "high_frequency",
+            "luminance_variation",
+        ]
+        if self.status == "unscorable":
+            if self.channels or self.informative_channel_count or not self.limitations:
+                raise ValueError(
+                    "unscorable fixed-camera visibility requires no channels and a limitation"
+                )
+            return self
+        if self.authority != "authoritative":
+            raise ValueError("scored fixed-camera visibility must bind authoritative pixels")
+        if self.reference_interior_pixels < 1 or self.candidate_interior_pixels < 1:
+            raise ValueError("scored fixed-camera visibility requires nonempty interiors")
+        if [item.channel for item in self.channels] != expected_channels:
+            raise ValueError("fixed-camera visibility channels or order changed")
+        informative = sum(item.informative for item in self.channels)
+        if self.informative_channel_count != informative:
+            raise ValueError("visibility informative channel count changed")
+        return self
+
+
 class IntegratedQualityPolicyV02(IntegratedQualityV02StrictModel):
     """Freeze explicit companion thresholds without replacing V0.6 scoring."""
 
@@ -433,8 +521,13 @@ class IntegratedQualityPolicyV02(IntegratedQualityV02StrictModel):
     maximum_landmark_reprojection_error_norm: float = Field(default=0.05, ge=0)
     require_multiview: bool = False
     require_v06_authoritative_high_findings: bool = False
+    require_fixed_camera_visibility: bool = False
     minimum_multiview_silhouette_stability: float = Field(default=0.7, ge=0, le=1)
     minimum_multiview_semantic_placement: float = Field(default=0.7, ge=0, le=1)
+    minimum_visibility_informative_channels: int = Field(default=1, ge=1, le=3)
+    minimum_visibility_edge_retention: float = Field(default=0.35, ge=0, le=1)
+    minimum_visibility_high_frequency_retention: float = Field(default=0.35, ge=0, le=1)
+    minimum_visibility_luminance_retention: float = Field(default=0.25, ge=0, le=1)
     meaningful_gain_min: float = Field(default=0.01, gt=0, le=1)
     lexicographic_metric_priority: list[StableId] = Field(default_factory=list)
 
@@ -534,6 +627,7 @@ class IntegratedQualityReportV02(IntegratedQualityV02StrictModel):
     semantics: list[SemanticMetricV02] = Field(default_factory=list)
     landmarks: list[LandmarkMetricV02] = Field(default_factory=list)
     multiview: MultiviewMetricV02
+    fixed_camera_visibility: FixedCameraVisibilityMetricV02 | None = None
     advisory_metrics: list[AdvisoryMetricV02] = Field(default_factory=list)
     hard_gates: list[HardGateResultV02] = Field(default_factory=list)
     findings: list[QualityFindingV02] = Field(default_factory=list)
@@ -624,6 +718,11 @@ class IntegratedQualityReportV02(IntegratedQualityV02StrictModel):
             raise ValueError("semantic evidence must match the report camera SHA-256")
         if any(item.camera_sha256 != self.camera_sha256 for item in self.landmarks):
             raise ValueError("landmark evidence must match the report camera SHA-256")
+        if (
+            self.fixed_camera_visibility is not None
+            and self.fixed_camera_visibility.camera_sha256 != self.camera_sha256
+        ):
+            raise ValueError("fixed-camera visibility must match the report camera SHA-256")
         return self
 
 

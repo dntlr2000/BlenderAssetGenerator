@@ -20,6 +20,7 @@ from ..blender_artifacts import (
 from ..integrated_quality.v02_contour_metrics import compare_contours_v02
 from ..integrated_quality.v02_models import (
     ContourEvidenceBindingV02,
+    FixedCameraVisibilityMetricV02,
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
     QualityFindingV02,
@@ -28,6 +29,9 @@ from ..integrated_quality.v02_semantic_metrics import compare_semantic_masks_v02
 from ..integrated_quality.v02_service import build_integrated_quality_report_v02
 from ..integrated_quality.v02_v06_bridge import (
     project_authoritative_v06_findings_v02,
+)
+from ..integrated_quality.v02_visibility_metrics import (
+    compare_fixed_camera_visibility_v02,
 )
 from ..optimization import initialize_asset_profile, plan_asset_optimization
 from ..optimization.models import (
@@ -402,6 +406,88 @@ def _required_v06_quality_findings(
     )
 
 
+def _recompute_fixed_camera_visibility(
+    *,
+    root: Path,
+    report: IntegratedQualityReportV02,
+    quality_evidence: list[AQV2Artifact],
+    camera_artifact: AQV2Artifact,
+    reference_mask_artifact: AQV2Artifact | None,
+    candidate_mask_artifact: AQV2Artifact,
+    expected_reference_image_sha256: str | None,
+) -> FixedCameraVisibilityMetricV02 | None:
+    """Recompute submitted direct visibility from four exact host-bound image artifacts."""
+
+    visibility = report.fixed_camera_visibility
+    if visibility is None:
+        return None
+    if reference_mask_artifact is None:
+        raise ValueError("fixed-camera visibility requires the exact reference mask")
+    reference_image = _unique_quality_artifact(
+        quality_evidence,
+        sha256=visibility.reference_image_sha256,
+        label="fixed-camera reference image",
+        kind="reference_image",
+    )
+    if (
+        expected_reference_image_sha256 is not None
+        and reference_image.sha256 != expected_reference_image_sha256
+    ):
+        raise ValueError(
+            "fixed-camera reference image differs from the authorized primary reference"
+        )
+    candidate_beauty = _unique_quality_artifact(
+        quality_evidence,
+        sha256=visibility.candidate_beauty_sha256,
+        label="fixed-camera candidate beauty",
+        kind="candidate_beauty",
+    )
+    if report.legacy_v06_report_sha256 is not None:
+        v06_artifact = _unique_quality_artifact(
+            quality_evidence,
+            sha256=report.legacy_v06_report_sha256,
+            label="fixed-camera legacy V0.6 report",
+            kind="visual_qa_report",
+        )
+        visual_report = VisualQAReport.model_validate_json(
+            validate_v2_artifact(root, v06_artifact).read_bytes()
+        )
+        expected_beauty_path = (
+            f"qa/runs/{visual_report.run_id}/passes/beauty.png"
+        )
+        if (
+            visual_report.job_id != report.job_id
+            or candidate_beauty.path != expected_beauty_path
+        ):
+            raise ValueError(
+                "fixed-camera candidate beauty differs from the exact V0.6 run"
+            )
+    expected_evidence_ids = [
+        reference_image.artifact_id,
+        candidate_beauty.artifact_id,
+        reference_mask_artifact.artifact_id,
+        candidate_mask_artifact.artifact_id,
+    ]
+    if visibility.evidence_ids != expected_evidence_ids:
+        raise ValueError("fixed-camera visibility evidence identity or order changed")
+    return compare_fixed_camera_visibility_v02(
+        validate_v2_artifact(root, reference_image),
+        validate_v2_artifact(root, candidate_beauty),
+        validate_v2_artifact(root, reference_mask_artifact),
+        validate_v2_artifact(root, candidate_mask_artifact),
+        reference_image_sha256=reference_image.sha256,
+        candidate_beauty_sha256=candidate_beauty.sha256,
+        reference_mask_sha256=reference_mask_artifact.sha256,
+        candidate_mask_sha256=candidate_mask_artifact.sha256,
+        camera_sha256=camera_artifact.sha256,
+        evidence_ids=expected_evidence_ids,
+        metric_id=visibility.metric_id,
+        mask_erosion_diagonal_fraction=(
+            visibility.mask_erosion_diagonal_fraction
+        ),
+    )
+
+
 def validate_host_recomputed_quality_report_v2(
     *,
     job_root: Path,
@@ -409,6 +495,7 @@ def validate_host_recomputed_quality_report_v2(
     quality_evidence: list[AQV2Artifact],
     camera_artifact: AQV2Artifact,
     expected_policy: IntegratedQualityPolicyV02,
+    expected_reference_image_sha256: str | None = None,
 ) -> IntegratedQualityReportV02:
     """Recompute mask metrics and every derived IQ decision from exact submitted bytes."""
 
@@ -514,6 +601,16 @@ def validate_host_recomputed_quality_report_v2(
             "required multiview pass authority needs a host-verifiable typed input receipt"
         )
 
+    recomputed_visibility = _recompute_fixed_camera_visibility(
+        root=root,
+        report=report,
+        quality_evidence=quality_evidence,
+        camera_artifact=camera_artifact,
+        reference_mask_artifact=reference_artifact,
+        candidate_mask_artifact=candidate,
+        expected_reference_image_sha256=expected_reference_image_sha256,
+    )
+
     required_v06_findings = _required_v06_quality_findings(
         root=root,
         report=report,
@@ -534,6 +631,7 @@ def validate_host_recomputed_quality_report_v2(
         semantics=recomputed_semantics,
         landmarks=report.landmarks,
         multiview=report.multiview,
+        fixed_camera_visibility=recomputed_visibility,
         advisory_metrics=report.advisory_metrics,
         producer=report.producer,
         created_at=report.created_at,
@@ -568,6 +666,7 @@ def validate_host_recomputed_quality_report_v2(
         semantics=recomputed_semantics,
         landmarks=report.landmarks,
         multiview=report.multiview,
+        fixed_camera_visibility=recomputed_visibility,
         advisory_metrics=report.advisory_metrics,
         producer=report.producer,
         created_at=report.created_at,
@@ -968,6 +1067,7 @@ def validate_quality_source_freeze(
         quality_evidence=freeze.quality_evidence,
         camera_artifact=camera_matches[0],
         expected_policy=policy,
+        expected_reference_image_sha256=authorization.primary_reference.sha256,
     )
     if (
         report.job_id != freeze.job_id
@@ -1102,6 +1202,15 @@ def _quality_report_evidence_hashes(report: IntegratedQualityReportV02) -> set[s
     for metric in report.advisory_metrics:
         if metric.artifact_sha256 is not None:
             hashes.add(metric.artifact_sha256)
+    if report.fixed_camera_visibility is not None:
+        hashes.update(
+            {
+                report.fixed_camera_visibility.reference_image_sha256,
+                report.fixed_camera_visibility.candidate_beauty_sha256,
+                report.fixed_camera_visibility.reference_mask_sha256,
+                report.fixed_camera_visibility.candidate_mask_sha256,
+            }
+        )
     return hashes
 
 
@@ -1166,6 +1275,7 @@ def publish_quality_source_freeze(
         quality_evidence=quality_evidence,
         camera_artifact=camera_artifact,
         expected_policy=policy,
+        expected_reference_image_sha256=authorization.primary_reference.sha256,
     )
     quality_source_fingerprint = validate_quality_source_inputs_v2(
         job_root=root,

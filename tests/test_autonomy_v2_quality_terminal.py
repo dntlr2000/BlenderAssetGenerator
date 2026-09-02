@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from codex_blender_modeler.autonomy_v2 import quality_terminal_service
 from codex_blender_modeler.autonomy_v2.delivery_service import (
     artifact_for_v2,
     validate_v2_artifact,
@@ -34,6 +35,7 @@ from codex_blender_modeler.autonomy_v2.quality_terminal_service import (
 from codex_blender_modeler.blender_artifacts import sha256_file, stable_json_digest
 from codex_blender_modeler.integrated_quality.v02_models import (
     ContourMetricsV02,
+    FixedCameraVisibilityMetricV02,
     HardGateResultV02,
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
@@ -228,6 +230,49 @@ def _review_inputs(
         content=b"PNG-review-fixture",
     )
     return evidence, report, blend, render
+
+
+def test_quality_terminal_freeze_hashes_include_fixed_camera_visibility(
+    tmp_path: Path,
+) -> None:
+    """Require all four direct visibility image bindings in an approved source freeze."""
+
+    root = tmp_path / "quality_visibility_hashes"
+    root.mkdir()
+    evidence, report_artifact, _blend, _render = _review_inputs(
+        root,
+        outcome="passed",
+    )
+    report = IntegratedQualityReportV02.model_validate_json(
+        (root / report_artifact.path).read_bytes()
+    )
+    visibility = FixedCameraVisibilityMetricV02(
+        metric_id="reference.fixed_camera_visibility_v02",
+        status="unscorable",
+        authority="unavailable",
+        evidence_ids=[
+            "visibility-reference-image",
+            "visibility-candidate-beauty",
+            "visibility-reference-mask",
+            "visibility-candidate-mask",
+        ],
+        reference_image_sha256="a" * 64,
+        candidate_beauty_sha256="b" * 64,
+        reference_mask_sha256="c" * 64,
+        candidate_mask_sha256="d" * 64,
+        camera_sha256=evidence.sha256,
+        width=32,
+        height=32,
+        mask_erosion_diagonal_fraction=0.008,
+        mask_erosion_radius_px=1,
+        reference_interior_pixels=0,
+        candidate_interior_pixels=0,
+        informative_channel_count=0,
+        limitations=["direct visibility fixture intentionally unavailable"],
+    )
+    bound_report = report.model_copy(update={"fixed_camera_visibility": visibility})
+    hashes = quality_terminal_service._quality_report_evidence_hashes(bound_report)
+    assert {"a" * 64, "b" * 64, "c" * 64, "d" * 64} <= hashes
 
 
 def _quality_freeze(

@@ -52,6 +52,9 @@ from codex_blender_modeler.integrated_quality.v02_service import (
 from codex_blender_modeler.integrated_quality.v02_v06_bridge import (
     project_authoritative_v06_findings_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_visibility_metrics import (
+    compare_fixed_camera_visibility_v02,
+)
 from codex_blender_modeler.qa.models import (
     BoundingBoxMetric,
     DirectVisualMetrics,
@@ -64,6 +67,7 @@ SHA_A = "a" * 64
 SHA_B = "b" * 64
 SHA_C = "c" * 64
 SHA_D = "d" * 64
+SHA_E = "e" * 64
 PRODUCER = ProducerIdentityV02(name="cbm_integrated_quality_v02", version="0.2.0")
 
 
@@ -196,6 +200,37 @@ def _multiview(*, scored: bool = False):
     )
 
 
+def _visibility(*, flat_candidate: bool = False):
+    """Create exact fixed-camera visibility with a detailed or collapsed candidate."""
+
+    reference = Image.new("RGB", (64, 64), (230, 230, 230))
+    candidate = Image.new("RGB", (64, 64), (230, 230, 230))
+    mask = Image.new("L", (64, 64), 0)
+    ImageDraw.Draw(mask).rectangle((8, 8, 55, 55), fill=255)
+    for image in (reference, candidate):
+        ImageDraw.Draw(image).rectangle((8, 8, 55, 55), fill=(80, 90, 100))
+    for offset in range(12, 56, 8):
+        ImageDraw.Draw(reference).rectangle(
+            (offset, 12, offset + 2, 51), fill=(190, 70, 40)
+        )
+        if not flat_candidate:
+            ImageDraw.Draw(candidate).rectangle(
+                (offset, 12, offset + 2, 51), fill=(190, 70, 40)
+            )
+    return compare_fixed_camera_visibility_v02(
+        reference,
+        candidate,
+        mask,
+        mask,
+        reference_image_sha256=SHA_A,
+        candidate_beauty_sha256=SHA_E,
+        reference_mask_sha256=SHA_C,
+        candidate_mask_sha256=SHA_D,
+        camera_sha256=SHA_B,
+        evidence_ids=["reference", "beauty", "reference-mask", "candidate-mask"],
+    )
+
+
 def _policy(**updates) -> IntegratedQualityPolicyV02:
     """Build one strict focused quality policy."""
 
@@ -211,6 +246,7 @@ def _report(
     contour=None,
     semantic=None,
     policy=None,
+    visibility=None,
     extras=None,
 ) -> IntegratedQualityReportV02:
     """Build one complete report using a copied legacy V0.6 score."""
@@ -230,6 +266,7 @@ def _report(
         semantics=[semantic or _semantic()],
         landmarks=[],
         multiview=_multiview(),
+        fixed_camera_visibility=visibility,
         advisory_metrics=[
             build_advisory_metric_v02(
                 metric_id="advisory.depth",
@@ -395,6 +432,40 @@ def test_required_multiview_unavailable_is_unscorable() -> None:
     )
     assert gate.status == "unscorable"
     assert report.outcome == "unscorable"
+
+
+def test_required_fixed_camera_visibility_passes_only_with_retained_detail() -> None:
+    """Block a flat interior while allowing exact direct pixels under the same contour."""
+
+    policy = _policy(require_fixed_camera_visibility=True)
+    passed = _report(policy=policy, visibility=_visibility())
+    blocked = _report(policy=policy, visibility=_visibility(flat_candidate=True))
+    gate = next(
+        item
+        for item in blocked.hard_gates
+        if item.gate_id == "gate.reference.fixed_camera_visibility_v02"
+    )
+    assert passed.outcome == "passed"
+    assert passed.quality_accepted is True
+    assert gate.status == "failed"
+    assert gate.blocking is True
+    assert blocked.outcome == "blocked"
+    assert blocked.reentry[0].destination == "v0.4_structural_authoring"
+
+
+def test_required_fixed_camera_visibility_missing_is_unscorable() -> None:
+    """Reject omission of the new direct pixel companion without changing legacy policy."""
+
+    required = _report(policy=_policy(require_fixed_camera_visibility=True))
+    legacy = _report()
+    assert required.outcome == "unscorable"
+    assert required.quality_accepted is False
+    assert required.reentry[0].destination == "manual_evidence_review"
+    assert legacy.outcome == "passed"
+    assert all(
+        item.gate_id != "gate.reference.fixed_camera_visibility_v02"
+        for item in legacy.hard_gates
+    )
 
 
 def test_restricted_scope_is_a_definitive_blocker() -> None:

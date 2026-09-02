@@ -186,8 +186,8 @@ immutable user reference + target/scope/output request
 - authoring metadata equality와 destination format의 최종 surface equivalence를 분리한다.
 
 현재 supervisor는 geometry와 material phase를 위 순서로 전진시키고, caller가 제출한 IQ 0.2
-report의 global/semantic reference·candidate PNG를 exact path/hash/kind로 유일하게 찾는다. host는
-그 실제 bytes에서 contour·semantic metric을 다시 계산하고 gates, findings,
+report의 global/semantic mask와 fixed-camera reference/beauty PNG를 exact path/hash/kind로 유일하게
+찾는다. host는 그 실제 bytes에서 contour·semantic·interior-visibility metric을 다시 계산하고 gates, findings,
 `revision_reasons`, reentry와 outcome을 다시 만든 뒤 제출 report 전체와 equality를 검사한다.
 supervisor 자체가 IQ 점수나 사용자 승인을 합성하지 않는다.
 
@@ -434,6 +434,22 @@ additive opt-in이다. 기본값은 `false`이므로 기존 policy/report byte�
 있다면 outcome은 `needs_revision`이며 source freeze를 발행하지 않는다. 이 규칙은 과거 evidence를
 소급 수정하지 않고 새 policy-bound run에만 적용된다.
 
+`IntegratedQualityPolicyV02.require_fixed_camera_visibility`도 같은 additive opt-in 원칙을 따른다.
+기본값은 `false`여서 과거 IQ 0.2 policy/report 의미를 바꾸지 않으며, 새
+`autonomous_static_prop_v2` plan과 geometry-repair plan만 이를 `true`로 고정한다. 이 gate는 exact
+primary reference image, V0.6 beauty, reference mask, candidate silhouette mask와 camera SHA-256을
+함께 결속한다. 외곽 contour band를 결정론적으로 침식한 뒤 foreground 내부의 edge energy,
+high-frequency energy와 luminance variation이 reference 대비 얼마나 남았는지 측정한다. 최소 한
+channel이 informative여야 하고, informative channel별 retention threshold를 모두 통과해야 한다.
+
+필수 image/mask가 없거나 foreground 내부가 비면 `unscorable`과 manual evidence review로 끝난다.
+exact pixels가 존재하지만 retention이 threshold 아래면 required gate를 `failed`로 닫고 semantic
+structural finding을 V0.4 structural authoring으로 되돌린다. host는 caller score를 신뢰하지 않고 네
+image artifact bytes에서 metric을 다시 계산하며 source freeze와 quality terminal도 네 SHA-256을
+필수 evidence로 검사한다. 이 companion은 contour-only 또는 featureless collapse를 production으로
+통과시키지 않는 보수적 하한선이지, spatial correspondence·재질 정확도·사람의 visual acceptance를
+대신하는 완성도 점수가 아니다.
+
 ### 10.2 metric 계층
 
 Reference Fidelity:
@@ -441,6 +457,7 @@ Reference Fidelity:
 - 기존 V0.6 overall direct score와 silhouette IoU
 - contour boundary precision/recall/F-score
 - edge distance-transform score
+- fixed-camera foreground-interior edge/high-frequency/luminance retention
 - semantic mask IoU와 semantic boundary F-score
 - optional observed landmark reprojection error
 - bbox/occupancy와 camera reprojection residual

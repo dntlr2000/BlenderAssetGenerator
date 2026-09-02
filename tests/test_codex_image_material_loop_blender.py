@@ -39,7 +39,7 @@ from codex_blender_modeler.autonomy_v2.planner import plan_autonomous_static_pro
 from codex_blender_modeler.autonomy_v2.supervisor_service import (
     _controller_validation_boundary,
 )
-from codex_blender_modeler.blender_artifacts import sha256_file
+from codex_blender_modeler.blender_artifacts import native_io_path, sha256_file
 from codex_blender_modeler.codex_imagegen import (
     CodexImageArtifact,
     CodexImageDimensions,
@@ -275,7 +275,7 @@ def _geometry_material_boundary(
     workspace = tmp_path / "w"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
     reference = tmp_path / "r.png"
-    Image.new("RGB", (32, 32), (48, 96, 144)).save(reference)
+    _write_fake_material_source(reference, size=32)
     planned = plan_autonomous_static_prop_v2(
         "Create only the fixture hull.",
         reference_path=reference,
@@ -1838,9 +1838,11 @@ def test_imagegen_family_reaches_verified_material_or_review_boundary(
     )
     assert preview.actual_blender_rendered is True
     assert preview.human_reviewed is False
-    preview_manifest = json.loads(
-        (root / preview.raw_swatch_manifest.path).read_text(encoding="utf-8")
-    )
+    with open(
+        native_io_path(root / preview.raw_swatch_manifest.path),
+        encoding="utf-8",
+    ) as handle:
+        preview_manifest = json.load(handle)
     assert preview_manifest["blender_version"] == "5.0.1"
     finalized = finalize_codex_image_material_loop_promotion(
         root,

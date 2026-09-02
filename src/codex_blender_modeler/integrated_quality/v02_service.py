@@ -7,6 +7,7 @@ from datetime import datetime
 from .v02_models import (
     AdvisoryMetricV02,
     ContourMetricsV02,
+    FixedCameraVisibilityMetricV02,
     HardGateResultV02,
     IntegratedQualityPolicyV02,
     IntegratedQualityReportV02,
@@ -284,12 +285,71 @@ def _multiview_gate(
     )
 
 
+def _fixed_camera_visibility_gate(
+    visibility: FixedCameraVisibilityMetricV02 | None,
+    policy: IntegratedQualityPolicyV02,
+) -> HardGateResultV02 | None:
+    """Evaluate exact foreground-interior visibility only when the policy selects it."""
+
+    if visibility is None and not policy.require_fixed_camera_visibility:
+        return None
+    evidence_ids = visibility.evidence_ids if visibility is not None else []
+    if (
+        visibility is None
+        or visibility.status == "unscorable"
+        or visibility.authority != "authoritative"
+        or visibility.informative_channel_count
+        < policy.minimum_visibility_informative_channels
+    ):
+        return _gate(
+            "gate.reference.fixed_camera_visibility_v02",
+            status="unscorable",
+            required=policy.require_fixed_camera_visibility,
+            evidence_ids=evidence_ids,
+            reason_code="fixed_camera_visibility_unavailable",
+            message=(
+                "Required direct fixed-camera interior visibility evidence is unavailable."
+            ),
+        )
+    thresholds = {
+        "interior_edge": policy.minimum_visibility_edge_retention,
+        "high_frequency": policy.minimum_visibility_high_frequency_retention,
+        "luminance_variation": policy.minimum_visibility_luminance_retention,
+    }
+    failed_channels = [
+        item.channel
+        for item in visibility.channels
+        if item.informative
+        and item.retention_ratio is not None
+        and item.retention_ratio < thresholds[item.channel]
+    ]
+    passed = not failed_channels
+    return _gate(
+        "gate.reference.fixed_camera_visibility_v02",
+        status="passed" if passed else "failed",
+        required=policy.require_fixed_camera_visibility,
+        evidence_ids=evidence_ids,
+        reason_code=(
+            "fixed_camera_visibility_passed"
+            if passed
+            else "fixed_camera_visibility_below_threshold"
+        ),
+        message=(
+            "Direct fixed-camera interior visibility retention thresholds passed."
+            if passed
+            else "Direct fixed-camera visibility is below threshold for: "
+            + ", ".join(failed_channels)
+        ),
+    )
+
+
 def _metric_findings(
     *,
     contour: ContourMetricsV02,
     semantics: list[SemanticMetricV02],
     landmarks: list[LandmarkMetricV02],
     multiview: MultiviewMetricV02,
+    fixed_camera_visibility: FixedCameraVisibilityMetricV02 | None,
     gates: list[HardGateResultV02],
     policy: IntegratedQualityPolicyV02,
 ) -> list[QualityFindingV02]:
@@ -382,6 +442,25 @@ def _metric_findings(
                 message=multiview_gate.message,
             )
         )
+    visibility_gate = gate_by_id.get("gate.reference.fixed_camera_visibility_v02")
+    if visibility_gate is not None and visibility_gate.status != "passed":
+        findings.append(
+            QualityFindingV02(
+                finding_id="finding.reference.fixed_camera_visibility_v02",
+                category=(
+                    "missing_evidence"
+                    if visibility_gate.status == "unscorable"
+                    else "semantic"
+                ),
+                severity="high",
+                evidence_ids=(
+                    fixed_camera_visibility.evidence_ids
+                    if fixed_camera_visibility is not None
+                    else []
+                ),
+                message=visibility_gate.message,
+            )
+        )
     return findings
 
 
@@ -399,6 +478,7 @@ def build_integrated_quality_report_v02(
     semantics: list[SemanticMetricV02],
     landmarks: list[LandmarkMetricV02],
     multiview: MultiviewMetricV02,
+    fixed_camera_visibility: FixedCameraVisibilityMetricV02 | None = None,
     advisory_metrics: list[AdvisoryMetricV02],
     producer: ProducerIdentityV02,
     created_at: datetime,
@@ -408,11 +488,13 @@ def build_integrated_quality_report_v02(
 ) -> IntegratedQualityReportV02:
     """Build an IQ 0.2 report without changing V0.6 or Integrated Quality 0.1 evidence."""
 
+    visibility_gate = _fixed_camera_visibility_gate(fixed_camera_visibility, policy)
     gates = [
         _contour_gate(contour, policy),
         *_semantic_gates(semantics, policy),
         *_landmark_gates(landmarks, policy),
         _multiview_gate(multiview, policy),
+        *([visibility_gate] if visibility_gate is not None else []),
     ]
     extras = additional_findings or []
     if any(item.category == "restricted_scope" for item in extras):
@@ -437,6 +519,7 @@ def build_integrated_quality_report_v02(
         semantics=semantics,
         landmarks=landmarks,
         multiview=multiview,
+        fixed_camera_visibility=fixed_camera_visibility,
         gates=gates,
         policy=policy,
     ) + extras
@@ -477,6 +560,7 @@ def build_integrated_quality_report_v02(
         semantics=semantics,
         landmarks=landmarks,
         multiview=multiview,
+        fixed_camera_visibility=fixed_camera_visibility,
         advisory_metrics=advisory_metrics,
         hard_gates=gates,
         findings=findings,

@@ -53,6 +53,9 @@ from codex_blender_modeler.integrated_quality.v02_service import (
 from codex_blender_modeler.integrated_quality.v02_v06_bridge import (
     project_authoritative_v06_findings_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_visibility_metrics import (
+    compare_fixed_camera_visibility_v02,
+)
 from codex_blender_modeler.qa.models import (
     BoundingBoxMetric,
     DirectVisualMetrics,
@@ -819,6 +822,265 @@ def test_host_recomputed_iq_rejects_self_consistent_forged_high_scores(
         )
 
 
+def test_host_recomputed_iq_rejects_forged_fixed_camera_visibility(
+    tmp_path: Path,
+) -> None:
+    """Recompute exact beauty pixels so a self-consistent visibility score cannot pass."""
+
+    root = tmp_path / "iq-visibility-recompute"
+    quality_root = root / "quality"
+    quality_root.mkdir(parents=True)
+    camera = _file_artifact(root, "visibility-camera", "camera")
+    mask = Image.new("L", (64, 64), 0)
+    ImageDraw.Draw(mask).rectangle((8, 8, 55, 55), fill=255)
+    reference_image = Image.new("RGB", (64, 64), (230, 230, 230))
+    candidate_image = Image.new("RGB", (64, 64), (230, 230, 230))
+    for image in (reference_image, candidate_image):
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((8, 8, 55, 55), fill=(80, 90, 100))
+        for offset in range(12, 56, 8):
+            draw.rectangle((offset, 12, offset + 2, 51), fill=(190, 70, 40))
+    reference_image_path = quality_root / "reference-image.png"
+    visibility_run_id = "visibility-v06"
+    candidate_beauty_path = (
+        root / "qa" / "runs" / visibility_run_id / "passes" / "beauty.png"
+    )
+    reference_mask_path = quality_root / "reference-mask.png"
+    candidate_mask_path = quality_root / "candidate-mask.png"
+    reference_image.save(reference_image_path)
+    candidate_beauty_path.parent.mkdir(parents=True)
+    candidate_image.save(candidate_beauty_path)
+    mask.save(reference_mask_path)
+    mask.save(candidate_mask_path)
+    reference_image_artifact = artifact_for_v2(
+        root,
+        reference_image_path,
+        artifact_id="visibility-reference-image",
+        kind="reference_image",
+    )
+    candidate_beauty_artifact = artifact_for_v2(
+        root,
+        candidate_beauty_path,
+        artifact_id="visibility-candidate-beauty",
+        kind="candidate_beauty",
+    )
+    reference_mask_artifact = artifact_for_v2(
+        root,
+        reference_mask_path,
+        artifact_id="visibility-reference-mask",
+        kind="reference_mask",
+    )
+    candidate_mask_artifact = artifact_for_v2(
+        root,
+        candidate_mask_path,
+        artifact_id="visibility-candidate-mask",
+        kind="candidate_mask",
+    )
+    visual_report = VisualQAReport(
+        job_id="aq_v2_delivery",
+        run_id=visibility_run_id,
+        request_sha256="c" * 64,
+        camera_fingerprint="d" * 64,
+        direct_metrics=DirectVisualMetrics(
+            scoring_version="semantic_bbox_v2",
+            silhouette_iou=0.98,
+            silhouette_union_fraction=0.4,
+            global_bbox=BoundingBoxMetric(
+                reference_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                rendered_bbox_norm=(0.1, 0.1, 0.9, 0.9),
+                center_error_norm=0.0,
+                size_error_norm=0.0,
+            ),
+            semantic_deviations=[],
+            overall_direct_score=0.98,
+        ),
+        findings=[],
+        generated_target_status="not_requested",
+        warnings=[],
+    )
+    visual_report_path = (
+        root / "qa" / "runs" / visibility_run_id / "visual_qa_report.json"
+    )
+    visual_report_path.write_text(
+        visual_report.model_dump_json(indent=2) + "\n",
+        encoding="utf-8",
+    )
+    visual_report_artifact = artifact_for_v2(
+        root,
+        visual_report_path,
+        artifact_id="visibility-v06-report",
+        kind="visual_qa_report",
+    )
+    contour = compare_contours_v02(
+        reference_mask_path,
+        candidate_mask_path,
+        reference_evidence=ContourEvidenceBindingV02(
+            evidence_id=reference_mask_artifact.artifact_id,
+            origin="observed",
+            authority="authoritative",
+            artifact_path=reference_mask_artifact.path,
+            artifact_sha256=reference_mask_artifact.sha256,
+            camera_sha256=camera.sha256,
+        ),
+        candidate_evidence_id=candidate_mask_artifact.artifact_id,
+        candidate_artifact_sha256=candidate_mask_artifact.sha256,
+        candidate_camera_sha256=camera.sha256,
+    )
+    visibility = compare_fixed_camera_visibility_v02(
+        reference_image_path,
+        candidate_beauty_path,
+        reference_mask_path,
+        candidate_mask_path,
+        reference_image_sha256=reference_image_artifact.sha256,
+        candidate_beauty_sha256=candidate_beauty_artifact.sha256,
+        reference_mask_sha256=reference_mask_artifact.sha256,
+        candidate_mask_sha256=candidate_mask_artifact.sha256,
+        camera_sha256=camera.sha256,
+        evidence_ids=[
+            reference_image_artifact.artifact_id,
+            candidate_beauty_artifact.artifact_id,
+            reference_mask_artifact.artifact_id,
+            candidate_mask_artifact.artifact_id,
+        ],
+    )
+    policy = IntegratedQualityPolicyV02(
+        profile_id="quality.static-prop-v02",
+        require_fixed_camera_visibility=True,
+    )
+    report_arguments = {
+        "report_id": "iq-v02-visibility-host-recompute",
+        "job_id": "aq_v2_delivery",
+        "workflow_id": "wf-aq-v2-delivery",
+        "dispatch_id": "dispatch-aq-v2-delivery",
+        "source_fingerprint": "a" * 64,
+        "camera_sha256": camera.sha256,
+        "input_sha256": "b" * 64,
+        "legacy_v06_report_sha256": visual_report_artifact.sha256,
+        "legacy_v06_direct_score": 0.98,
+        "policy": policy,
+        "contour": contour,
+        "semantics": [],
+        "landmarks": [],
+        "multiview": MultiviewMetricV02(
+            metric_id="multiview.unavailable",
+            status="unscorable",
+            observations=[],
+            authoritative_view_count=0,
+            limitations=["optional multiview evidence was not supplied"],
+        ),
+        "advisory_metrics": [],
+        "producer": ProducerIdentityV02(
+            name="cbm_integrated_quality_v02",
+            version="0.2.0",
+        ),
+        "created_at": NOW,
+    }
+    genuine = build_integrated_quality_report_v02(
+        **report_arguments,
+        fixed_camera_visibility=visibility,
+    )
+    evidence = [
+        camera,
+        reference_image_artifact,
+        candidate_beauty_artifact,
+        reference_mask_artifact,
+        candidate_mask_artifact,
+        visual_report_artifact,
+    ]
+    assert genuine.outcome == "passed"
+    assert (
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=genuine,
+            quality_evidence=evidence,
+            camera_artifact=camera,
+            expected_policy=policy,
+            expected_reference_image_sha256=reference_image_artifact.sha256,
+        )
+        == genuine
+    )
+
+    with pytest.raises(ValueError, match="authorized primary reference"):
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=genuine,
+            quality_evidence=evidence,
+            camera_artifact=camera,
+            expected_policy=policy,
+            expected_reference_image_sha256="f" * 64,
+        )
+
+    wrong_beauty_path = quality_root / "wrong-beauty.png"
+    candidate_image.save(wrong_beauty_path)
+    wrong_beauty_artifact = artifact_for_v2(
+        root,
+        wrong_beauty_path,
+        artifact_id="visibility-wrong-beauty",
+        kind="candidate_beauty",
+    )
+    wrong_visibility = compare_fixed_camera_visibility_v02(
+        reference_image_path,
+        wrong_beauty_path,
+        reference_mask_path,
+        candidate_mask_path,
+        reference_image_sha256=reference_image_artifact.sha256,
+        candidate_beauty_sha256=wrong_beauty_artifact.sha256,
+        reference_mask_sha256=reference_mask_artifact.sha256,
+        candidate_mask_sha256=candidate_mask_artifact.sha256,
+        camera_sha256=camera.sha256,
+        evidence_ids=[
+            reference_image_artifact.artifact_id,
+            wrong_beauty_artifact.artifact_id,
+            reference_mask_artifact.artifact_id,
+            candidate_mask_artifact.artifact_id,
+        ],
+    )
+    wrong_beauty_report = build_integrated_quality_report_v02(
+        **report_arguments,
+        fixed_camera_visibility=wrong_visibility,
+    )
+    with pytest.raises(ValueError, match="exact V0.6 run"):
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=wrong_beauty_report,
+            quality_evidence=[
+                camera,
+                reference_image_artifact,
+                wrong_beauty_artifact,
+                reference_mask_artifact,
+                candidate_mask_artifact,
+                visual_report_artifact,
+            ],
+            camera_artifact=camera,
+            expected_policy=policy,
+            expected_reference_image_sha256=reference_image_artifact.sha256,
+        )
+
+    forged_channels = [
+        item.model_copy(
+            update={
+                "candidate_value": item.reference_value * 2.0,
+                "retention_ratio": 2.0,
+            }
+        )
+        for item in visibility.channels
+    ]
+    forged_visibility = visibility.model_copy(update={"channels": forged_channels})
+    forged = build_integrated_quality_report_v02(
+        **report_arguments,
+        fixed_camera_visibility=forged_visibility,
+    )
+    with pytest.raises(ValueError, match="host-recomputed"):
+        validate_host_recomputed_quality_report_v2(
+            job_root=root,
+            report=forged,
+            quality_evidence=evidence,
+            camera_artifact=camera,
+            expected_policy=policy,
+            expected_reference_image_sha256=reference_image_artifact.sha256,
+        )
+
+
 def test_host_recomputed_iq_requires_policy_bound_v06_high_findings(
     tmp_path: Path,
 ) -> None:
@@ -1148,7 +1410,10 @@ def test_quality_source_freeze_requires_exact_passed_iq_v02(
     monkeypatch.setattr(
         "codex_blender_modeler.autonomy_v2.delivery_service.validate_root_authorization_boundary_v2",
         lambda **_kwargs: (
-            SimpleNamespace(quality_profile=policy_artifact),
+            SimpleNamespace(
+                quality_profile=policy_artifact,
+                primary_reference=SimpleNamespace(sha256="7" * 64),
+            ),
             SimpleNamespace(),
             SimpleNamespace(),
             SimpleNamespace(),

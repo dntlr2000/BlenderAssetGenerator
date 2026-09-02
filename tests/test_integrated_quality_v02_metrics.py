@@ -31,6 +31,9 @@ from codex_blender_modeler.integrated_quality.v02_multiview_metrics import (
 from codex_blender_modeler.integrated_quality.v02_semantic_metrics import (
     compare_semantic_masks_v02,
 )
+from codex_blender_modeler.integrated_quality.v02_visibility_metrics import (
+    compare_fixed_camera_visibility_v02,
+)
 
 FIXTURE = Path(__file__).parent / "fixtures" / "integrated_quality_v02" / "masks.json"
 SHA_A = "a" * 64
@@ -57,6 +60,18 @@ def _rectangle(size: int, shift: int = 0) -> Image.Image:
         (margin + shift, margin, size - margin - 1 + shift, size - margin - 1),
         fill=255,
     )
+    return image
+
+
+def _visibility_image(*, detailed: bool) -> Image.Image:
+    """Build a fixed-camera RGB fixture with optional foreground interior bands."""
+
+    image = Image.new("RGB", (64, 64), (240, 240, 240))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((8, 8, 55, 55), fill=(80, 90, 100))
+    if detailed:
+        for offset in range(12, 56, 8):
+            draw.rectangle((offset, 12, offset + 2, 51), fill=(190, 70, 40))
     return image
 
 
@@ -349,3 +364,63 @@ def test_multiview_and_provider_metrics_preserve_authority_boundaries() -> None:
     assert scored_normal.status == "scored"
     assert scored_normal.authoritative is False
     assert generated_only.status == "unscorable"
+
+
+def test_fixed_camera_visibility_excludes_contour_and_retains_interior_detail() -> None:
+    """Pass equal interior pixels and reject a silhouette-only flat candidate."""
+
+    mask = _rectangle(64)
+    detailed = _visibility_image(detailed=True)
+    exact = compare_fixed_camera_visibility_v02(
+        detailed,
+        detailed,
+        mask,
+        mask,
+        reference_image_sha256=SHA_A,
+        candidate_beauty_sha256=SHA_B,
+        reference_mask_sha256=SHA_C,
+        candidate_mask_sha256="d" * 64,
+        camera_sha256="e" * 64,
+        evidence_ids=["reference", "beauty", "reference-mask", "candidate-mask"],
+    )
+    flat = compare_fixed_camera_visibility_v02(
+        detailed,
+        _visibility_image(detailed=False),
+        mask,
+        mask,
+        reference_image_sha256=SHA_A,
+        candidate_beauty_sha256=SHA_B,
+        reference_mask_sha256=SHA_C,
+        candidate_mask_sha256="d" * 64,
+        camera_sha256="e" * 64,
+        evidence_ids=["reference", "beauty", "reference-mask", "candidate-mask"],
+    )
+    assert exact.status == "scored"
+    assert exact.mask_erosion_radius_px >= 1
+    assert all(item.retention_ratio == pytest.approx(1.0) for item in exact.channels)
+    assert max(
+        item.retention_ratio or 0 for item in flat.channels if item.informative
+    ) < 0.35
+
+
+def test_fixed_camera_visibility_empty_interior_is_unscorable() -> None:
+    """Keep a contour-only one-pixel mask unavailable after deterministic erosion."""
+
+    image = _visibility_image(detailed=True)
+    empty_interior = Image.new("L", image.size, 0)
+    empty_interior.putpixel((32, 32), 255)
+    metric = compare_fixed_camera_visibility_v02(
+        image,
+        image,
+        _rectangle(64),
+        empty_interior,
+        reference_image_sha256=SHA_A,
+        candidate_beauty_sha256=SHA_B,
+        reference_mask_sha256=SHA_C,
+        candidate_mask_sha256="d" * 64,
+        camera_sha256="e" * 64,
+        evidence_ids=["reference", "beauty", "reference-mask", "candidate-mask"],
+    )
+    assert metric.status == "unscorable"
+    assert metric.channels == []
+    assert "candidate mask has no interior" in metric.limitations[0]

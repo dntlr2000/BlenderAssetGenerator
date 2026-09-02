@@ -47,9 +47,12 @@ AQ local-only
 Standard는 두 실제 자산의 composite run과 GLTF clean import를 통과했으므로 선언된 품질·형식 한계
 안에서 1차 완료로 분류합니다. AQ v2는 계약, adapter, policy, recovery와 실제 자산 실행 증거가
 존재하고, B8 canary에서 machine-passed IQ 뒤 exact human `needs_revision`을 append-only usable review
-terminal로 닫는 경계까지 검증했습니다. 그러나 이 결함 수정은 framework/source 변경이므로 B8을 새
-기준선의 캠페인 실적으로 소급 계산하지 않습니다. 새 clean baseline의 distinct campaign outcome은 아직
-`0/5`이므로 AQ는 계속 1차 완료 전 상태입니다.
+terminal로 닫는 경계까지 검증했습니다. 이후 C655 기준선에서 서로 다른 reference 5개가
+One-Prompt, production delivery와 clean import를 모두 통과했지만 rust·wood·crystal의 내부 구조와
+재질 가시성이 평탄하게 붕괴해도 contour 중심 IQ가 통과하는 framework 결함이 확인됐습니다. 이 결함
+수정은 다시 source 변경이므로 B8이나 C655 결과를 새 기준선의 캠페인 실적으로 소급 계산하지 않습니다.
+fixed-camera 내부 가시성 gate를 포함한 새 clean baseline의 distinct campaign outcome은 아직 `0/5`이므로
+AQ는 계속 1차 완료 전 상태입니다.
 
 AQ 1차 완성의 고정 지원 범위는 Windows 11, Blender `5.0.1`, `primary_object_only` 정적 소품,
 local/procedural PBR와 engine-neutral portable GLTF입니다. Codex ImageGen, destination project write,
@@ -1178,7 +1181,14 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
 8-B. fresh current-baseline AQ canary와 5-reference campaign [8-A clean commit 후 바로 다음]
-   - 8-A clean commit에서 새 ActivationSourceManifest/Baseline/Readiness를 생성하고 profile은 계속
+   - C655 source에서 서로 다른 reference 5개가 One-Prompt, IQ pass, production GLTF package와 clean import를
+     기술적으로 5/5 완료했으나 exact human disposition 전 검토에서 contour-only/internal-detail collapse가
+     반복 확인됨; 이 evidence는 orchestration/delivery 회귀 근거로 보존하되 Activation outcome으로 세지 않음
+   - IQ 0.2에 exact reference/beauty/reference-mask/candidate-mask/camera-bound fixed-camera interior
+     visibility gate를 additive하게 추가하고 새 AQ plan에만 필수화; historical policy/report 기본 의미는 유지
+   - gate/source 변경을 full regression과 실제 Blender gate로 고정한 clean commit에서 새
+     ActivationSourceManifest/Baseline/Readiness를 생성한 뒤 아래 canary와 5-reference 조건을 다시 적용
+   - visibility-gate clean commit에서 새 ActivationSourceManifest/Baseline/Readiness를 생성하고 profile은 계속
      `disabled_experimental`로 유지
    - B8 historical canary는 framework 수정 전 baseline의 1/5로 재사용하지 않고, 새 clean baseline에서
      서로 다른 reference 중 1개를 `aq-one-prompt-orchestrator` canary로 다시 실행
