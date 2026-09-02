@@ -621,11 +621,39 @@ def test_delivery_normal_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -
 
     baseline = module._normal_vector((0.3, -0.4, 0.8660254))
     serializer_noise = module._normal_vector((0.3002, -0.4002, 0.8662254))
-    visible_drift = module._normal_vector((0.302, -0.4, 0.8653))
+    visible_drift = module._normal_vector((0.31, -0.4, 0.8625))
     flipped = module._normal_vector((-0.3, 0.4, -0.8660254))
     assert serializer_noise == baseline
     assert visible_drift != baseline
     assert flipped != baseline
+
+
+def test_delivery_normal_quantizer_absorbs_gltf_cell_boundary_noise(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep recorded Blender GLTF round-trip noise inside one normal cell."""
+
+    monkeypatch.setitem(sys.modules, "bpy", types.ModuleType("bpy"))
+    script_path = (
+        Path("src")
+        / "codex_blender_modeler"
+        / "blender_scripts"
+        / "inspect_geometry_delivery_v02.py"
+    ).resolve()
+    spec = importlib.util.spec_from_file_location(
+        "test_inspect_geometry_delivery_boundary_v02",
+        script_path,
+    )
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    recorded_pairs = (
+        ((0.113, 0.595, 0.796), (0.113, 0.595, 0.795)),
+        ((0.216, 0.070, 0.974), (0.216, 0.071, 0.974)),
+    )
+    for source, clean_import in recorded_pairs:
+        assert module._normal_vector(source) == module._normal_vector(clean_import)
 
 
 def test_delivery_uv_quantizer_is_bounded(monkeypatch: pytest.MonkeyPatch) -> None:

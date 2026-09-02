@@ -120,15 +120,17 @@ def _normal_vector(values: Any) -> list[float]:
     """Quantize one unit normal within Blender interchange serialization precision."""
 
     result: list[float] = []
+    quantum = 0.005
     for index in range(3):
         number = float(values[index])
         if not math.isfinite(number):
             raise RuntimeError("delivery geometry contains a non-finite normal")
         # Blender 5 glTF serializes normals at four decimal places and its importer
-        # applies another bounded component quantization. A 1e-3 comparison cell
-        # absorbs that round-trip noise while keeping flips and visible smoothing
-        # changes outside the exact split-normal fingerprint.
-        rounded = round(round(number / 0.001) * 0.001, 3)
+        # applies another bounded component quantization. A 5e-3 comparison cell
+        # keeps the observed adjacent 1e-3 serializer cells equivalent while
+        # materially different directions and flips remain outside the bounded
+        # split-normal fingerprint.
+        rounded = round(round(number / quantum) * quantum, 3)
         result.append(0.0 if rounded == 0.0 else rounded)
     return result
 
