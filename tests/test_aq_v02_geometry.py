@@ -651,6 +651,14 @@ def test_delivery_normal_quantizer_absorbs_gltf_cell_boundary_noise(
     recorded_pairs = (
         ((0.113, 0.595, 0.796), (0.113, 0.595, 0.795)),
         ((0.216, 0.070, 0.974), (0.216, 0.071, 0.974)),
+        (
+            (-0.338842601, 0.590483069, 0.732472122),
+            (-0.338737398, 0.590381861, 0.732602417),
+        ),
+        (
+            (-0.643592536, 0.346390247, 0.682497203),
+            (-0.643575549, 0.346358806, 0.682529271),
+        ),
     )
     for source, clean_import in recorded_pairs:
         assert module._normal_vector(source) == module._normal_vector(clean_import)
