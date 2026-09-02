@@ -247,6 +247,7 @@ BlenderAssetGenerator/
   schemas/autonomy_v02_delivery_terminal.schema.json
   schemas/autonomy_v02_geometry_authoring_completion.schema.json
   schemas/autonomy_v02_geometry_candidate_validation_receipt.schema.json
+  schemas/autonomy_v02_human_quality_review_bundle.schema.json
   schemas/autonomy_v02_material_closure_promotion_boundary.schema.json
   schemas/autonomy_v02_material_controller_completion.schema.json
   schemas/autonomy_v02_material_phase_receipt.schema.json
@@ -640,6 +641,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
   src/codex_blender_modeler/autonomy_v2/execution_profile_service.py
+  src/codex_blender_modeler/autonomy_v2/human_quality_review_service.py
   src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/material_phase_models.py
   src/codex_blender_modeler/autonomy_v2/material_phase_service.py
