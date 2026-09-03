@@ -96,11 +96,15 @@ skill-adapter, Blender, package와 clean-import 캠페인을 반복 실행했지
 fixed-camera 내부 디테일 붕괴를 IQ가 차단하지 못하는 framework 결함이 확인되어 Activation 실적으로
 소급하지 않습니다. 이후 735와 f683 기준선의 실제 캠페인은 각각 정상 terminal `1/5`로 종료했습니다.
 f683에서는 adapter trace 5/5를 닫았지만 Rust의 UV/법선 수치 경계, Wood·Crystal의 build provenance
-긴 경로, Laser의 잘못 채워진 실루엣 음영역을 확인했습니다. 이 실패 이력은 보존하며, 기술 보완과
-격리 사전 검증은 새 캠페인의 성공으로 계산하지 않습니다. 수정 후 clean baseline에서 canary와
-5-reference campaign을 다시 닫기 전까지 수정 후 outcome은 `0/5`이고 Activation은 수행되지 않습니다.
+긴 경로, Laser의 잘못 채워진 실루엣 음영역을 확인했습니다. 후속 42aa 기준선은 공식 receipt 16개를
+통과한 뒤 정상 terminal `3/5`와 trace closure `5/5`로 종료했습니다. Plastic·Rust·Laser의 production
+GLTF/clean import는 통과했으나 Wood·Crystal은 portable material conversion의 긴 shader 경로에서
+실패했습니다. 해당 경로 수정과 두 자산의 숨겨진 연결부 접선 보완은 격리 실제 Blender delivery 및
+고정 카메라 지표 사전 검증을 통과했지만, 기존 실패 이력이나 새 캠페인의 성공으로 재분류하지 않습니다.
+수정 후 clean baseline에서 canary와 5-reference campaign을 다시 닫기 전까지 수정 후 outcome은
+`0/5`이고, 42aa beauty의 exact human disposition도 `0/5`이며 Activation은 수행되지 않습니다.
 정확한 캠페인·사전 검증 구분은 [5자산 캠페인 기록](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)의
-15절에 기록합니다.
+16절에 기록합니다.
 실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
 [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
 [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는

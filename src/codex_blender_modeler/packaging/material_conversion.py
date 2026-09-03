@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+from ..blender_artifacts import file_exists, native_io_path
 from ..blender_runner import run_blender
 from ..config import load_feature_config
 from ..materials.io import load_material_plan, load_shader_recipe, resolve_job_path
@@ -84,7 +85,7 @@ def _hashed_artifact(
 ) -> HashedArtifact:
     """Bind one existing job-contained input to a role-correct hash receipt."""
 
-    if not path.is_file():
+    if not file_exists(path):
         raise FileNotFoundError(path)
     return HashedArtifact(
         id=artifact_id,
@@ -101,7 +102,7 @@ def _shader_artifact(
 ) -> PortableMaterialContractArtifact:
     """Bind one approved V0.5 ShaderRecipe to a portable conversion plan."""
 
-    if not path.is_file():
+    if not file_exists(path):
         raise FileNotFoundError(path)
     return PortableMaterialContractArtifact(
         id=f"shader.recipe.{material_id}",
@@ -120,7 +121,7 @@ def _material_bindings(
     """Bind every exported material ID to its recipe, fingerprint, and LOD0 families."""
 
     material_plan_path = root / "analysis" / "material_plan.json"
-    if not material_plan_path.is_file():
+    if not file_exists(material_plan_path):
         raise RuntimeError(
             "Portable material conversion requires analysis/material_plan.json"
         )
@@ -380,13 +381,16 @@ def _normalize_manifest(
         record = raw_outputs.get(channel)
         if record is None:
             raise RuntimeError(f"Blender conversion omitted channel: {channel}")
-        candidate = Path(str(record.get("path", output_root / f"{channel}.png"))).resolve()
+        candidate = Path(
+            native_io_path(Path(str(record.get("path", output_root / f"{channel}.png"))))
+        ).resolve()
+        native_output_root = Path(native_io_path(output_root)).resolve()
         try:
-            candidate.relative_to(output_root.resolve())
+            candidate.relative_to(native_output_root)
         except ValueError as exc:
             raise RuntimeError(f"Converted channel escaped its staging root: {candidate}") from exc
         expected = output_root / f"{channel}.png"
-        if candidate != expected.resolve() or not expected.is_file():
+        if candidate != Path(native_io_path(expected)).resolve() or not file_exists(expected):
             raise RuntimeError(f"Converted channel path is unexpected: {candidate}")
         digest = sha256_file(expected)
         if str(record.get("sha256", digest)).lower() != digest:
@@ -445,7 +449,7 @@ def _normalize_manifest(
         )
 
     portable_blend = staging_root / "converted" / "scene.blend"
-    if not portable_blend.is_file():
+    if not file_exists(portable_blend):
         raise RuntimeError("Blender conversion did not create converted/scene.blend")
     portable_digest = sha256_file(portable_blend)
     raw_portable = _require_raw_object(raw.get("portable_blend"), "portable_blend")
@@ -536,12 +540,12 @@ def convert_portable_materials(
         raise RuntimeError("Current material build differs from the optimization source")
 
     final_root = material_conversion_directory(root, run_id, conversion_id)
-    if final_root.exists():
+    if os.path.lexists(native_io_path(final_root)):
         raise FileExistsError(f"Portable material conversion already exists: {final_root}")
     parent = final_root.parent
-    parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(parent), exist_ok=True)
     staging_root = _material_conversion_staging_directory(parent)
-    staging_root.mkdir(parents=False, exist_ok=False)
+    os.mkdir(native_io_path(staging_root))
     plan = _conversion_plan(
         root,
         job_id,
@@ -588,9 +592,10 @@ def convert_portable_materials(
         args,
         blend_file=run_root / "optimized" / "scene.blend",
     )
-    if not evidence_path.is_file():
+    if not file_exists(evidence_path):
         raise RuntimeError("Blender material conversion produced no evidence JSON")
-    raw = json.loads(evidence_path.read_text(encoding="utf-8"))
+    with open(native_io_path(evidence_path), encoding="utf-8") as stream:
+        raw = json.load(stream)
     if not isinstance(raw, dict):
         raise ValueError("Blender material conversion evidence must be a JSON object")
     require_unchanged_source(optimization.source, root, job_id)
@@ -605,7 +610,7 @@ def convert_portable_materials(
         raw,
     )
     write_model(staging_root / "conversion_manifest.json", manifest)
-    os.replace(staging_root, final_root)
+    os.replace(native_io_path(staging_root), native_io_path(final_root))
     return manifest
 
 
@@ -652,7 +657,7 @@ def load_portable_material_conversion(
         (manifest.uv_manifest, "UV manifest"),
     ):
         path = resolve_inside(root, artifact.path, label)
-        if not path.is_file() or sha256_file(path) != artifact.sha256:
+        if not file_exists(path) or sha256_file(path) != artifact.sha256:
             raise RuntimeError(f"Portable material conversion input changed: {label}")
     if manifest.profile_artifact != profile_artifact(root, profile):
         raise RuntimeError("Portable material conversion AssetProfile is stale")
@@ -665,13 +670,13 @@ def load_portable_material_conversion(
         "portable material scene",
     )
     if (
-        not portable_blend.is_file()
+        not file_exists(portable_blend)
         or sha256_file(portable_blend) != portable_blend_artifact.sha256
     ):
         raise RuntimeError("Portable material scene is missing or changed")
     for output in manifest.outputs:
         path = resolve_inside(root, output.path, f"portable {output.channel} channel")
-        if not path.is_file() or sha256_file(path) != output.sha256:
+        if not file_exists(path) or sha256_file(path) != output.sha256:
             raise RuntimeError(f"Portable material channel is missing or changed: {output.channel}")
     require_unchanged_source(optimization.source, root, optimization.job_id)
     return MaterialConversionSelection(

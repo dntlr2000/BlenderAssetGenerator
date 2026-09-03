@@ -9,11 +9,22 @@ from pathlib import Path
 from typing import Any
 
 
+def native_io_path(path: Path) -> str:
+    """Use extended Windows filenames for stdlib I/O without changing serialized paths."""
+
+    resolved = os.path.abspath(os.fspath(path.expanduser()))
+    if os.name != "nt" or resolved.startswith("\\\\?\\"):
+        return resolved
+    if resolved.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + resolved[2:]
+    return "\\\\?\\" + resolved
+
+
 def sha256_file(path: Path) -> str:
-    """Hash one conversion input or output without loading the file at once."""
+    """Hash one native-path conversion input or output without loading it at once."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for block in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
@@ -116,12 +127,10 @@ def stable_object_key(record: dict[str, Any]) -> tuple[str, str, int, str]:
 
 
 def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
-    """Publish deterministic JSON without exposing a partially written evidence file."""
+    """Publish legacy deterministic JSON atomically through native-path I/O."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".partial")
-    temporary.write_text(
-        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    with open(native_io_path(temporary), "w", encoding="utf-8") as stream:
+        stream.write(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n")
+    os.replace(native_io_path(temporary), native_io_path(path))

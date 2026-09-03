@@ -11,7 +11,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
-from ..blender_artifacts import write_json_atomic
+from ..blender_artifacts import file_exists, native_io_path, write_json_atomic
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
 FILESYSTEM_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
@@ -85,12 +85,13 @@ def write_model(path: Path, model: BaseModel) -> None:
 
 
 def load_model(path: Path, model_type: type[ModelT]) -> ModelT:
-    """Load and validate one required JSON object as the requested model type."""
+    """Read required native-path JSON and retain the requested model's legacy validation."""
 
-    if not path.is_file():
+    if not file_exists(path):
         raise FileNotFoundError(path)
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        with open(native_io_path(path), encoding="utf-8") as stream:
+            payload = json.load(stream)
     except json.JSONDecodeError as exc:
         raise ValueError(f"Invalid JSON contract: {path}") from exc
     return model_type.model_validate(payload)

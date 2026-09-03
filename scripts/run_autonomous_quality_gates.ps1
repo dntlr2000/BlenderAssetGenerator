@@ -87,6 +87,7 @@ $FocusedTests = @(
     "tests/test_autonomy_worker.py",
     "tests/test_packaging_long_paths_aq.py",
     "tests/test_material_contract_long_paths.py",
+    "tests/test_material_conversion_long_paths.py",
     "tests/test_aq_adapter_terminal_recovery.py",
     "tests/test_v07_lod_smoothing.py",
     "tests/test_aq_v02_geometry.py",
@@ -202,11 +203,13 @@ if ($RunBlender) {
     $PreviousMaterialClosureSmoke = $env:CBM_RUN_MATERIAL_CLOSURE_BLENDER_SMOKE
     $PreviousMaterialIdentitySplitSmoke = `
         $env:CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE
+    $PreviousDeliveryExecutorSmoke = $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E
     try {
         $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AUTONOMY_E2E_SMOKE = "1"
         $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE = "1"
         $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE = "1"
+        $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = "1"
         $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_LOD_SMOOTHING_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE = "1"
@@ -228,6 +231,7 @@ if ($RunBlender) {
             tests/test_blender_companion_service.py::test_static_prop_authoring_companions_are_hash_bound_and_read_only `
             tests/test_v07_blender_scripts.py::test_blender_runtime_writes_portable_json_to_extended_path `
             tests/test_material_contract_long_paths.py::test_blender_build_and_inspect_preserve_deep_shader_provenance `
+            tests/test_aq_v02_delivery_executor_blender.py `
             tests/test_autonomy_candidate_blender.py::test_initial_candidate_build_qa_and_policy_promotion `
             tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_reaches_one_terminal_delivery `
             tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_publishes_review_only_bundle_without_package `
@@ -248,6 +252,14 @@ if ($RunBlender) {
         $BenchmarkV02Arguments += "--run-blender"
     }
     finally {
+        # Restore the exact dual-format/deep-shader E2E opt-in after this gate.
+        if ($null -eq $PreviousDeliveryExecutorSmoke) {
+            Remove-Item Env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E `
+                -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E = $PreviousDeliveryExecutorSmoke
+        }
         # Restore the opt-in LOD regression flag after this bounded Blender gate.
         if ($null -eq $PreviousLodSmoothingSmoke) {
             Remove-Item Env:CBM_RUN_LOD_SMOOTHING_SMOKE -ErrorAction SilentlyContinue

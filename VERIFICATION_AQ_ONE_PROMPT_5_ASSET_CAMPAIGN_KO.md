@@ -1120,3 +1120,113 @@ ActivationSourceManifest/Baseline/Readiness → 새 sequence 1 canary → 정상
 현재 단계는 로드맵 8-B이고 수정 후 outcome은 `0/5`, profile은 `disabled_experimental`입니다.
 기술 복구에 사용자 승인을 요구하지 않으며 exact human quality disposition과 local Activation
 acceptance는 각자의 실제 권한 경계에서만 처리합니다.
+
+## 16. 42aa 캠페인 결과와 portable 경로·연결부 접선 후속 보완
+
+### 16.1 같은 clean baseline의 실제 5개 실행
+
+Source commit `42aa7c74cc9d3269b267e5d17e3714373e1464e0`, tree
+`01c2707cb72ce21fee10ffa6fd4303eacbc951cd`에서 공식 검증 receipt 16개를 모두 통과했습니다.
+전체 host는 `2134 passed, 68 skipped, 8 warnings`, AQ host는
+`1046 passed, 29 skipped, 8 warnings`, 명시적 Blender gate는
+`50 passed, 1 skipped, 6 warnings`입니다. skip은 pass로 세지 않습니다. V0.7~V0.9 receipt의
+host 범위와 별도 opt-in 실제 Blender 실행을 구분하며, 독립 전체 엔진 검증으로 확대 해석하지 않습니다.
+기록은 `reports/activation_readiness/validation_runs/42aa7c74cc9d3269/validation_summary.json`입니다.
+
+- Activation baseline SHA-256:
+  `510bd73b09ada3689f15a4fe2b727a9dbbe8c517434e73daec25c8dd4d5921e0`
+- local readiness SHA-256:
+  `4410dd64461adef5464419ebdb2883705700896f7db0d817bfa9ad04e870a6a5`
+- execution readiness SHA-256:
+  `df69cd678c46e0938dfef4ce2e36eef12ad5690a4f0573f4022b449af9df5338`
+- campaign: `aq-first-completion-42aa7c7-fix2`
+
+Sequence 1의 정상 terminal과 source 불변성을 확인한 뒤 같은 기준선의 2~5를 실행했습니다.
+
+| Sequence | 자산 | 실제 terminal | 정상 terminal |
+|---|---|---|---:|
+| 1 | plastic_shard | IQ, production GLTF package와 clean import 통과 | 1 |
+| 2 | rusted_scrap | IQ, GLB numerical survival, production package와 clean import 통과 | 1 |
+| 3 | weathered_wood_beam | build/IQ 통과 후 portable shader 경로 실패; base failed / adapter blocked | 0 |
+| 4 | crystal_emitter | build/IQ 통과 후 같은 portable shader 경로 실패; base failed / adapter blocked | 0 |
+| 5 | multi_material_laser | 수정된 음영역의 IQ, production GLTF package와 clean import 통과 | 1 |
+
+정상 terminal `3/5`, adapter trace closure `5/5`, 각 route/receipt `4/4`입니다. 세 package를
+독립 재해시했고 모두 post-publication round trip `passed`, warning 6개를 유지했습니다. Rust의
+25,284개 triangle/75,852개 corner numerical proof를 실제 AQ delivery에서 소비했으며 원래 exact
+comparison과 metadata known loss도 보존했습니다. 추가 사용자 결정, technical user approval,
+canonical corruption, destination project write는 모두 0입니다. 실행 중 source/helper/reference
+불변성을 확인했고, 결과 감사는 source 수정 전에 동결했습니다.
+
+실행 감사는
+`reports/activation_readiness/fresh_campaign/aq-first-completion-42aa7c7-fix2/campaign_execution_result.json`,
+SHA-256 `fb64aae80571ef2bb24af2bebb004016855d99a902e99fe20b08df2455562134`입니다.
+정식 job state/terminal/receipt가 권위이고 이 감사는 파생 요약입니다. 실제 beauty 5개를 직접
+검토한 비인간 advisory는 모두 `needs_revision`이지만, exact human disposition은 `0/5`입니다.
+평탄한 판상 형상·outline 위주의 내부 표현 등 한계를 human acceptance로 재분류하지 않습니다.
+Activation outcome은 0이며, 이전 캠페인의 human disposition을 이 beauty에 재사용하지 않습니다.
+
+### 16.2 Portable material conversion의 남은 긴 경로 I/O
+
+Wood·Crystal의 270자 이상 shader 파일은 native I/O로 존재·해시를 확인할 수 있었지만
+portable host의 일반 `is_file`과 optimization loader가 없는 파일로 판정했습니다. 읽기 전용
+진단은 `.t/n02-diagnostics/delivery_shader_path_diagnostic.json`입니다. 다음 경계를 일치시켰습니다.
+
+- host portable conversion의 artifact 읽기, output 검증과 원자적 staging publication
+- optimization JSON loader의 native 읽기; 기존 Python model validation/coercion 의미는 유지
+- Blender stdlib conversion runtime의 hash/JSON publication과 recipe 경로 비교
+- PowerShell/Bash AQ gate의 동일 short/deep shader GLB·FBX 실제 E2E opt-in
+
+Job containment, exact hash, unknown-field/schema 거부, 원본 불변성, single-use 승인과 tangent
+기준은 유지했습니다. 신규 긴 경로 host case 10개는 수정 전 `8 failed, 2 passed`로 재현됐으며,
+수정 후 관련 focused 검증은 `43 passed, 1 skipped`입니다. 실제 Blender 5.0.1 short/deep
+dual-format delivery 및 crash-adoption은 `2 passed`입니다. 관련 V0.7~V0.9/AQ delivery host
+회귀는 `506 passed, 5 skipped`로 완료했으며 JUnit은
+`.t/n03-diagnostics/portable-host.junit.xml`입니다. 이 수치는 다음 clean commit의 공식 full
+gate receipt와 구분합니다.
+
+### 16.3 Wood·Crystal의 격리 후보와 실제 delivery 사전 검증
+
+원래 두 job의 계약을 읽기 전용으로 복제한 첫 delivery fixture는 긴 경로 읽기를 통과한 뒤
+각 relief object의 non-repairable tangent loop 7개/5개로 실패했습니다. 실패를 무시하거나
+gate를 완화하지 않았습니다. 원인은 열린 sweep의 숨겨진 hub/연결부였고, Rust에서 검증된 동일
+bounded authoring helper를 새 staging 후보에만 적용했습니다. 숨겨진 중간 hub를 제거하고
+국소 quadratic connector를 최대 0.055 m 또는 해당 segment의 20% 이내로 잘랐습니다.
+Semantic/material ID, camera, reference, 기존 profile/scale와 나머지 objects는 유지했으며
+indexed face/edge intent가 있는 후보는 거부합니다. 추론된 숨겨진 구조를 관측 사실로 표시하지 않습니다.
+
+두 수정 후보는 실제 Blender 5.0.1 build, V0.6 7-pass, 256px CPU material bake, GLB package,
+clean import와 all-corner geometry survival을 통과했습니다. 처음 수정 fixture는 실제 delivery
+뒤 요약의 warning-count 타입 오류로 test failed를 남겼고 이를 보존했습니다. 요약을 수정하고
+형상 보존까지 포함해 다시 실행한 결과만 `2 passed`로 기록합니다. JUnit은
+`.t/n03-diagnostics/revised-material-delivery-02.junit.xml`입니다. 모든 원본 입력/terminal은
+재해시 후 불변이며 fixture용 V0.7 승인은 실제 production 승인이나 과거 권한 재사용이 아닙니다.
+
+| 사전 검증 | Wood | Crystal |
+|---|---|---|
+| candidate V03 SHA-256 | `567add4ad28bbf9348ba5c54ebfb5c1d7644a944252fdddc1f49d9d81c1a77f5` | `c5075a1561c9321796cd0c4531ed48be71da548045a2b0e01220b268c21bad8e` |
+| clean import | passed, warning 6 | passed, warning 6 |
+| geometry survival | known_loss | known_loss |
+| contour F-score | `1.0` | `0.860182` |
+| interior edge retention | `0.432238` | `0.747072` |
+| high-frequency retention | `0.633933` | `0.917937` |
+| luminance retention | `0.546553` | `0.996651` |
+
+Package/geometry 증거는 `.t/n03-diagnostics/revised-material-delivery-02/sequence-03.json`과
+`sequence-04.json`이며 SHA-256은 각각
+`5a58d75da1ac38f889d681d3dc91e8725820d4edae4e1da41c4278bd26899c4d`,
+`c542ce5a8050d3d625198a9d2a516d7c5903035332e6d5419942470715afb0d6`입니다.
+고정 카메라 지표는 `.t/n03-diagnostics/revised-visibility-02/summary.json`에 기록했습니다.
+기존 contour `0.8`, visibility `0.35 / 0.35 / 0.25` 기준은 변경하지 않았습니다. 이 별도 계산은
+full Integrated Quality 판정, source freeze, 실제 AQ outcome 또는 human quality acceptance가 아닙니다.
+두 beauty에서도 판상 형상과 outline 표현의 시각적 한계가 남습니다.
+
+### 16.4 다음 실행 경계
+
+현재 위치는 8-B입니다. Portable 경로 보완과 후보를 새 clean source/helper checkpoint에 고정하고,
+공식 full regression/실제 Blender gate를 통과한 새 ActivationSourceManifest/Baseline/Readiness에서
+sequence 1 canary → 정상 terminal/source 불변성 확인 → 같은 기준선의 2~5를 실행합니다.
+42aa의 세 성공 또는 격리 fixture를 다음 캠페인의 실적으로 합산하지 않으므로 수정 후 outcome은
+아직 `0/5`입니다. 과거 failed/blocked session은 재개·재분류하지 않습니다. 새 실제 beauty에 대한
+exact human disposition 및 별도 local Activation acceptance 전까지 profile은 계속
+`disabled_experimental`이며, destination project write와 ImageGen은 이 실행 범위에 포함되지 않습니다.

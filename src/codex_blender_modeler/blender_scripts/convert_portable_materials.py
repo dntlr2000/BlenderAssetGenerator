@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -25,6 +26,7 @@ from portable_material_conversion_runtime import (  # noqa: E402
     blender_relative_path,
     fingerprint_json,
     grid_shape,
+    native_io_path,
     safe_component,
     sha256_file,
     stable_identifier,
@@ -70,7 +72,8 @@ def parse_args() -> argparse.Namespace:
 def _read_json_object(path: Path, label: str) -> dict[str, Any]:
     """Read one required conversion contract and reject a non-object root."""
 
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    with open(native_io_path(path), encoding="utf-8") as stream:
+        payload = json.load(stream)
     if not isinstance(payload, dict):
         raise ValueError(f"{label} root must be a JSON object: {path}")
     return payload
@@ -121,11 +124,12 @@ def _validate_output_boundary(
 
     if output_blend == source_blend:
         raise RuntimeError("Portable material conversion cannot overwrite the optimized source")
-    if output_blend.exists():
+    if os.path.lexists(native_io_path(output_blend)):
         raise FileExistsError(f"Portable output blend already exists: {output_blend}")
-    if output_evidence.exists():
+    if os.path.lexists(native_io_path(output_evidence)):
         raise FileExistsError(f"Portable conversion evidence already exists: {output_evidence}")
-    if texture_root.exists() and any(texture_root.iterdir()):
+    native_texture_root = Path(native_io_path(texture_root))
+    if native_texture_root.exists() and any(native_texture_root.iterdir()):
         raise FileExistsError(f"Portable texture root is not empty: {texture_root}")
 
 
@@ -258,9 +262,10 @@ def _verify_bound_job_artifact(
     artifact = plan.get(field)
     if not isinstance(artifact, dict) or artifact.get("kind") != expected_kind:
         raise ValueError(f"Conversion plan {field} must use kind={expected_kind}")
-    path = (job_root / str(artifact.get("path", ""))).resolve()
+    path = Path(native_io_path(job_root / str(artifact.get("path", "")))).resolve()
+    native_root = Path(native_io_path(job_root)).resolve()
     try:
-        path.relative_to(job_root)
+        path.relative_to(native_root)
     except ValueError as exc:
         raise RuntimeError(f"Conversion plan {field} escapes the job: {path}") from exc
     if not path.is_file() or sha256_file(path) != str(artifact.get("sha256")):
@@ -378,16 +383,17 @@ def _validate_conversion_scope(
         recipe = binding.get("source_shader_recipe")
         if not isinstance(recipe, dict) or recipe.get("kind") != "shader_recipe":
             raise ValueError(f"Conversion binding lacks shader recipe artifact: {material_id}")
-        recipe_path = (job_root / str(recipe.get("path", ""))).resolve()
+        recipe_path = Path(native_io_path(job_root / str(recipe.get("path", "")))).resolve()
+        native_root = Path(native_io_path(job_root)).resolve()
         try:
-            recipe_path.relative_to(job_root)
+            recipe_path.relative_to(native_root)
         except ValueError as exc:
             raise RuntimeError(f"Shader recipe escapes the job: {recipe_path}") from exc
         if not recipe_path.is_file() or sha256_file(recipe_path) != str(recipe.get("sha256")):
             raise RuntimeError(f"Shader recipe artifact changed for {material_id}")
         embedded_recipe_path = Path(
-            str(material.get("cbm_shader_recipe") or "")
-        ).expanduser().resolve()
+            native_io_path(Path(str(material.get("cbm_shader_recipe") or "")))
+        ).resolve()
         if embedded_recipe_path != recipe_path:
             raise RuntimeError(f"Loaded shader recipe path is stale for {material_id}")
         if str(material.get("cbm_shader_recipe_sha256") or "") != str(
@@ -1309,11 +1315,11 @@ def _run_bake_operator(channel: str, margin_px: int) -> None:
 def _save_bake_image(image: bpy.types.Image, output: Path) -> str:
     """Save one shared atlas channel and return its exact lowercase digest."""
 
-    output.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output.parent), exist_ok=True)
     image.filepath_raw = str(output)
     image.file_format = "PNG"
     image.save()
-    if not output.is_file():
+    if not os.path.isfile(native_io_path(output)):
         raise RuntimeError(f"Blender did not write portable texture: {output}")
     return sha256_file(output)
 
@@ -1499,9 +1505,9 @@ def _portable_surface_factors(semantics: dict[str, Any]) -> dict[str, Any]:
 def _save_portable_blend(output_blend: Path) -> str:
     """Atomically save a separate converted scene without replacing the optimized source."""
 
-    output_blend.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output_blend.parent), exist_ok=True)
     temporary = output_blend.with_name(output_blend.stem + ".partial.blend")
-    if temporary.exists():
+    if os.path.lexists(native_io_path(temporary)):
         raise FileExistsError(f"Partial portable blend already exists: {temporary}")
     operator = bpy.ops.wm.save_as_mainfile
     operator(
@@ -1513,9 +1519,9 @@ def _save_portable_blend(output_blend: Path) -> str:
             },
         )
     )
-    if not temporary.is_file():
+    if not os.path.isfile(native_io_path(temporary)):
         raise RuntimeError(f"Blender did not save portable scene: {temporary}")
-    temporary.replace(output_blend)
+    os.replace(native_io_path(temporary), native_io_path(output_blend))
     return sha256_file(output_blend)
 
 
@@ -1530,9 +1536,9 @@ def main() -> None:
     output_evidence = Path(args.output_evidence).expanduser().resolve()
     texture_root = Path(args.output_texture_root).expanduser().resolve()
     source_blend = Path(bpy.data.filepath).expanduser().resolve()
-    if not source_blend.is_file():
+    if not os.path.isfile(native_io_path(source_blend)):
         raise FileNotFoundError("A saved optimized source .blend must be loaded")
-    if not job_root.is_dir():
+    if not os.path.isdir(native_io_path(job_root)):
         raise FileNotFoundError(f"Job root does not exist: {job_root}")
     if args.resolution < 64 or args.resolution > 8192:
         raise ValueError("Portable atlas resolution must be in [64, 8192]")

@@ -1090,6 +1090,7 @@ BlenderAssetGenerator/
   tests/test_material_closure_schemas.py
   tests/test_material_closure_service.py
   tests/test_material_contract_long_paths.py
+  tests/test_material_conversion_long_paths.py
   tests/test_material_fidelity.py
   tests/test_material_graph_aq.py
   tests/test_material_graph_runtime.py

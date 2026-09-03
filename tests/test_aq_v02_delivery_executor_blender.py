@@ -47,6 +47,7 @@ from codex_blender_modeler.autonomy_v2.quality_terminal_service import (
     publish_quality_terminal_v2,
 )
 from codex_blender_modeler.blender_artifacts import (
+    native_io_path,
     sha256_file,
     stable_json_digest,
     write_json_atomic,
@@ -132,8 +133,10 @@ def _artifact(root: Path, path: Path, artifact_id: str, kind: str) -> AQV2Artifa
     )
 
 
-def _prepare_canonical_static_prop(workspace: Path) -> tuple[Path, dict[str, object]]:
-    """Create and build one minimal primary-only canonical static prop."""
+def _prepare_canonical_static_prop(
+    workspace: Path, *, deep_shader_paths: bool = False
+) -> tuple[Path, dict[str, object]]:
+    """Build a minimal primary-only prop with optional campaign-depth shader bindings."""
 
     root = ensure_job_dirs(JOB_ID)
     reference = root / "input" / "reference.png"
@@ -269,6 +272,8 @@ def _prepare_canonical_static_prop(workspace: Path) -> tuple[Path, dict[str, obj
         },
     )
     create_material_scaffold(JOB_ID)
+    if deep_shader_paths:
+        _deepen_fixture_shader_recipes(root)
     material_validation = validate_job_material_contracts(JOB_ID)
     assert material_validation["ok"] is True
     blend = root / "blender" / "scene.blend"
@@ -287,6 +292,27 @@ def _prepare_canonical_static_prop(workspace: Path) -> tuple[Path, dict[str, obj
     _write_json(root / "reports" / "aq_v2" / "build_provenance.json", build)
     assert root.parent == workspace
     return root, build
+
+
+def _deepen_fixture_shader_recipes(root: Path) -> None:
+    """Bind copied test-owned recipes beyond MAX_PATH before any source freeze exists."""
+
+    plan_path = root / "analysis/material_plan.json"
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    for item in plan["materials"]:
+        source = root / item["shader_recipe"]
+        parent = root / "production/autonomy_v2/session/material_inputs"
+        while len(os.path.abspath(parent / source.name)) < 280:
+            parent /= "candidate-dependency-0123456789abcdef"
+        target = parent / source.name
+        os.makedirs(native_io_path(parent), exist_ok=True)
+        with open(native_io_path(source), "rb") as stream:
+            content = stream.read()
+        with open(native_io_path(target), "xb") as stream:
+            stream.write(content)
+        assert sha256_file(source) == sha256_file(target)
+        item["shader_recipe"] = target.relative_to(root).as_posix()
+    write_json_atomic(plan_path, plan)
 
 
 def _publish_candidate_to_canonical_survival(
@@ -1080,18 +1106,20 @@ def _load_bound_model(root: Path, artifact: AQV2Artifact, model):
     return model.model_validate_json(path.read_bytes())
 
 
+@pytest.mark.parametrize("deep_shader_paths", [False, True], ids=["short", "deep"])
 def test_exact_approved_dual_glb_fbx_delivery_and_crash_adoption(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    deep_shader_paths: bool,
 ) -> None:
-    """Run two independent real Blender deliveries and re-adopt their exact evidence."""
+    """Run GLB/FBX conversion, clean import and adoption with exact short/deep inputs."""
 
     settings = get_settings()
     if not executable_exists(settings.blender_bin):
         pytest.skip(f"Blender executable not found: {settings.blender_bin}")
-    workspace = tmp_path.parent / "w"
+    workspace = tmp_path.parent / ("wd" if deep_shader_paths else "w")
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
-    root, build = _prepare_canonical_static_prop(workspace)
+    root, build = _prepare_canonical_static_prop(workspace, deep_shader_paths=deep_shader_paths)
     source = collect_source_provenance(root, JOB_ID)
     survival, candidate_snapshot, canonical_snapshot = _publish_candidate_to_canonical_survival(
         root,
@@ -1101,6 +1129,9 @@ def test_exact_approved_dual_glb_fbx_delivery_and_crash_adoption(
     scene, blend, build_artifact, material, recipes, textures, geometry = _source_artifacts(
         root, build
     )
+    if deep_shader_paths:
+        assert recipes
+        assert all(len(os.path.abspath(root / item.path)) >= 280 for item in recipes)
     reference = _artifact(
         root,
         root / "input" / "reference.png",
@@ -1194,6 +1225,7 @@ def test_exact_approved_dual_glb_fbx_delivery_and_crash_adoption(
             root / "blender" / "scene.blend",
         )
     }
+    canonical_hashes.update({root / item.path: item.sha256 for item in recipes})
 
     def convert_fixture_at_low_resolution(
         job_id: str,
