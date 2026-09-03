@@ -826,13 +826,90 @@ def normalize_derived_lod_for_budget(
     return triangulated, removed
 
 
+def refresh_derived_lod_smoothing(target: bpy.types.Object) -> dict[str, Any]:
+    """Reapply declared angle shading after decimation, only on a run-owned LOD."""
+
+    if (
+        target.type != "MESH"
+        or target.get("cbm_asset_role") != "lod"
+        or type(target.get("cbm_lod_level")) is not int
+        or target.get("cbm_lod_level") <= 0
+    ):
+        raise RuntimeError("LOD smoothing refresh requires a derived mesh above LOD0")
+    raw_policy = target.get("cbm_v02_smoothing_policy")
+    if raw_policy is None:
+        return {"status": "not_applicable", "reason": "source_has_no_exact_smoothing_policy"}
+    if target.get("cbm_mesh_payload_version") != "0.2.0":
+        raise RuntimeError("LOD smoothing metadata requires exact MeshPayload 0.2 provenance")
+    try:
+        policy = json.loads(raw_policy)
+    except (TypeError, ValueError) as exc:
+        raise RuntimeError("LOD source smoothing metadata is malformed") from exc
+    if (
+        not isinstance(policy, dict)
+        or set(policy) != {"mode", "angle_degrees", "keep_explicit_sharp"}
+        or type(policy.get("mode")) is not str
+        or policy.get("mode") not in {"flat", "smooth", "smooth_by_angle", "weighted_normals"}
+        or policy.get("mode") != target.get("cbm_v02_smoothing_mode")
+        or type(policy.get("keep_explicit_sharp")) is not bool
+    ):
+        raise RuntimeError("LOD source smoothing metadata differs from its declared mode")
+    angle = policy["angle_degrees"]
+    if policy["mode"] != "smooth_by_angle":
+        if angle is not None:
+            raise RuntimeError("Non-angle LOD smoothing metadata unexpectedly declares an angle")
+        return {"status": "not_applicable", "reason": "source_mode_is_not_angle_based"}
+    if type(angle) not in {int, float} or not math.isfinite(angle) or not 0.0 < angle < 180.0:
+        raise RuntimeError("LOD source smoothing angle is outside its exact contract")
+
+    mesh = target.data
+    mesh.update()
+    threshold = math.cos(math.radians(angle))
+    polygons_by_edge: dict[tuple[int, int], list[int]] = {}
+    for polygon in mesh.polygons:
+        for raw_key in polygon.edge_keys:
+            key = tuple(sorted((int(raw_key[0]), int(raw_key[1]))))
+            polygons_by_edge.setdefault(key, []).append(polygon.index)
+    before_sharp = sum(bool(edge.use_edge_sharp) for edge in mesh.edges)
+    newly_sharp = []
+    for edge in mesh.edges:
+        key = tuple(sorted((int(edge.vertices[0]), int(edge.vertices[1]))))
+        adjacent = polygons_by_edge.get(key, [])
+        if len(adjacent) != 2:
+            continue
+        first = mesh.polygons[adjacent[0]].normal
+        second = mesh.polygons[adjacent[1]].normal
+        dot_value = float(first.dot(second))
+        if not math.isfinite(dot_value):
+            raise RuntimeError("LOD smoothing refresh encountered a non-finite face normal")
+        if dot_value < threshold and not edge.use_edge_sharp:
+            newly_sharp.append(edge.index)
+    # Preserve surviving explicit/sharp boundaries; only add breaks newly required by
+    # the declared angle on the changed topology. Never change positions, UVs or faces.
+    for index in newly_sharp:
+        mesh.edges[index].use_edge_sharp = True
+    reset_custom_normals = bool(mesh.has_custom_normals)
+    if reset_custom_normals:
+        mesh.normals_split_custom_set([(0.0, 0.0, 0.0)] * len(mesh.loops))
+    mesh.update()
+    return {
+        "status": "applied",
+        "source_mode": policy["mode"],
+        "angle_degrees": float(angle),
+        "retained_sharp_edge_count": before_sharp,
+        "added_sharp_edge_count": len(newly_sharp),
+        "reset_interpolated_custom_normals": reset_custom_normals,
+        "geometry_and_uv_policy": "unchanged",
+    }
+
+
 def make_lod(
     source: bpy.types.Object,
     collection: bpy.types.Collection,
     level: int,
     ratio: float,
 ) -> bpy.types.Object:
-    """Create one deterministic decimated LOD copy without altering LOD0 geometry."""
+    """Decimate a run-owned LOD and refresh exact shading without altering LOD0."""
 
     if level <= 0 or not 0.0 < ratio < 1.0:
         raise ValueError(f"LOD{level} requires a ratio between zero and one: {ratio}")
@@ -885,6 +962,10 @@ def make_lod(
     target["cbm_lod_removed_zero_area_faces"] = removed_zero_area_faces
     target.data.validate(verbose=False, clean_customdata=False)
     target.data.update()
+    smoothing_record = refresh_derived_lod_smoothing(target)
+    target["cbm_lod_smoothing_refresh"] = json.dumps(
+        smoothing_record, sort_keys=True, separators=(",", ":")
+    )
     return target
 
 
@@ -1175,7 +1256,7 @@ def directive_lod_policy(
 
 
 def main() -> None:
-    """Create a separate optimized Blender scene while leaving its source file untouched."""
+    """Publish run-owned optimization and shading evidence without changing the source."""
 
     args = parse_args()
     plan_path = Path(args.plan).expanduser().resolve()
@@ -1344,6 +1425,7 @@ def main() -> None:
             "semantic_id": semantic_id,
             "lods": [0],
             "lod_triangle_counts": {"0": estimated_triangle_count(lod0)},
+            "lod_smoothing_refresh": {},
             "triangulated_ngons": triangulated_ngons,
             "uv": uv_actions,
             "tangents": tangent_action,
@@ -1358,6 +1440,9 @@ def main() -> None:
             object_actions["lods"].append(level)
             object_actions["lod_triangle_counts"][str(level)] = estimated_triangle_count(
                 lod
+            )
+            object_actions["lod_smoothing_refresh"][str(level)] = json.loads(
+                str(lod["cbm_lod_smoothing_refresh"])
             )
 
         strategy = str((directive or {}).get("collision_strategy", "inherit"))

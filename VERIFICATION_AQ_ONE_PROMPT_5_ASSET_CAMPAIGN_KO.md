@@ -902,3 +902,95 @@ schema가 바뀌었습니다. 따라서 B8을 수정 후 clean baseline의 campa
 다음 순서는 이 변경의 clean commit, 새 ActivationSourceManifest/Baseline/Readiness 게시, 새 baseline의
 fresh canary 재실행입니다. profile은 계속 `disabled_experimental`이고 current-baseline campaign outcome은
 `0/5`입니다.
+
+## 14. 735 기준선 캠페인과 2026-09-03 기술 보완
+
+### 14.1 실행 결과와 불변 경계
+
+사용자가 지정한 readiness SHA-256
+`4d6a521e1bc68f445362dd98fede8c3c2280f6a82ba8252943f4708ccefcfc4f`는
+`aq-first-completion-7359ce7-vis1` 캠페인, source commit
+`7359ce79767f7b17384746b344b2cdbddf283971`, tree
+`c77039478568cbd6cdf6f557eabdb884a3b5d309`에 결속됩니다. canary 정상 terminal과 source 불변성을
+확인한 뒤 sequence 2~5를 실행했습니다. 실행 결과와 human quality acceptance는 별개입니다.
+
+| Sequence | 자산 | 실제 결과 | 정상 terminal 집계 |
+|---|---|---|---|
+| 1 | plastic_shard | production delivery, GLTF package/clean import, adapter trace 7/7 | 1 |
+| 2 | rusted_scrap | IQ pass 뒤 portable tangent preflight 실패, delivery failed | 0 |
+| 3 | weathered_wood_beam | 270~273자 shader 경로 읽기 실패 뒤 cancelled | 0 |
+| 4 | crystal_emitter | 269~271자 shader 경로 읽기 실패 뒤 cancelled | 0 |
+| 5 | multi_material_laser | legacy bevel modifier가 GeometryIntent-only 계약에 위반, base failed; adapter route/receipt 3/2 | 0 |
+
+Sequence 1 package manifest는
+`9fb1aba9fcd705c92239d130c56094750a50332d96972252cbd50bfe8b6f829b`, post-publication round trip은
+`27ab5fd33d043d137bc2ec7e71062cc9659efd5bea67c66f4077d8cd73f7c204`입니다. 30개 package payload의
+크기/hash를 독립 재검증했습니다. round trip의 기존 warning 6개는 소거하거나 destination parity로
+재분류하지 않았습니다. beauty
+`d3ad084afa2b60b70248218914965b1d8657ae7b238ccac76e72ee9887a2f500`에 대한 새로운 human acceptance를
+자동 생성하지 않았습니다.
+
+실행 요약은 `.t/4bb-activation/campaign_execution_result_735.json` SHA-256
+`870ef52c7e7724352a48859e73ed280ffac2b81797459d33db55988b043ccbb8`에 보존되어 있습니다. 이 파일은
+derived aid이며 machine job state, exact terminal, policy receipt와 trace 검증을 대체하지 않습니다.
+기존 실패·취소 상태, immutable request/receipt, 승인과 package는 수정하지 않습니다. 이후 source
+보완이 있으므로 이 캠페인의 1건을 수정 후 baseline의 실적으로 소급 계산하지 않습니다.
+
+### 14.2 결함 분리와 수정 범위
+
+- 재질 경로: Standard/AQ 공통 MaterialPlan, ShaderRecipe, TextureManifest와 Blender용 stdlib
+  manifest/runtime loader에 기존 native long-path I/O를 일관 적용합니다. 경로 containment, exact hash,
+  schema/version과 dependency 권한 검사를 완화하지 않습니다. Wood·Crystal의 실제 request-bound
+  shader 6개를 읽기 전용으로 재검증했고 원본 bytes와 cancelled session은 그대로입니다.
+- 종료·복구: One-Prompt의 마지막 action과 예외 경계에서 이미 terminal인 base state의 companion을
+  게시합니다. adapter는 exact pending cancellation snapshot을 복구하되 동작을 자동 재시도하지
+  않습니다. 이미 실패한 base에 새 cancel route를 만드는 동작을 차단합니다. expired historical
+  terminal reconciliation의 별도 exact authority 조건은 바꾸지 않습니다.
+- Rust 후보: 원본 optimized blend
+  `baca34727285a20eb58bb1f5b1b3e44a3338c1e53057e3b32c7b3c06feb85d9a`를 저장하지 않고 진단했습니다.
+  steel/rebar relief의 급격한 숨겨진 연결부와 decimation 이후 법선에 문제가 있었습니다. 단순 sharp-edge
+  후보는 해결하지 못했고 그 진단을 보존했습니다. 두 번째 후보는 공유 hidden hub를 국소 곡선 연결부로
+  바꾸고 기존 base silhouette·semantic/material ID·camera를 유지합니다.
+- LOD 공통 경로: 새 MeshPayload 0.2 build에 exact smoothing policy를 보존하고, decimation 후
+  run-owned LOD1 이상에만 선언된 angle smoothing을 재평가합니다. 살아남은 sharp edge는 유지하며,
+  좌표·face·UV·LOD0를 수정하지 않습니다. 없는 historical policy는 추측하거나 자동 생성하지 않고,
+  malformed metadata는 fail-closed합니다. raw optimization action에 각 LOD 처리 결과를 기록합니다.
+- Laser 후보: 기존 11개 조립체/윤곽/구멍/깊이/material identity는 유지하되, 허용되지 않는 legacy
+  bevel effect는 명시적으로 제외합니다. 이는 bevel과 품질의 동등성 주장이 아닙니다. 실제 AQ candidate
+  contract와 Blender build를 통과한 sharp-edged geometry의 렌더를 확인했으며 최종 재질/IQ와 human
+  quality disposition은 새 캠페인에서 별도로 판정해야 합니다.
+
+### 14.3 검증 상태와 다음 경계
+
+격리된 새 Rust 후보는 Blender 5.0.1의 기존 optimization/UV/LOD/portable topology 함수를 사용한
+기술 probe에서 21개 render/LOD 메시 모두 invalid tangent loop `0`을 기록했습니다. source blend
+SHA-256은 `80f6223d1a173e790b4a39f68a5e88b45dd18bc9be116665f3412e1414417b00`, 진단 파일은
+`.t/735fix/rusted_repaired_tangent_04.json`입니다. 이 geometry-only probe는 Material Closure,
+package 또는 clean-import pass를 대신하지 않습니다. Laser의 bevel 없는 후보도 33개 render/LOD
+메시 tangent probe와 실제 build/render를 실행했습니다. 렌더는 기술 검증용이며 quality acceptance가
+아닙니다.
+
+LOD 보완 전 공통 path/terminal 수정의 전체 pytest는 `2069 passed, 65 skipped`였고, LOD 보완의
+focused host/Blender 실행은 `38 passed`였습니다. 추가된 gate wiring은 양쪽 PowerShell/Bash runner에
+동기화했습니다. 최종 수정 상태의 검증 결과는 다음과 같습니다.
+
+- 전체 pytest와 관련 opt-in Blender 실행: `2101 passed, 57 skipped, 8 warnings`.
+  기존 Pillow deprecation warning이며 skip을 실행 통과로 집계하지 않습니다.
+- AQ host gate: `1004 passed, 27 skipped, 8 warnings`, host/synthetic benchmark 포함 exit `0`.
+  이 host gate에는 `-RunBlender`를 지정하지 않았습니다.
+- V0.9 isolated gate: 실제 Standard GLTF optimization, material conversion, package, clean import,
+  handoff, dispatch/queue/audit와 stability evidence 게시까지 exit `0`.
+  handoff validation은 `ok=true`, failed `0`, warning `6`, missing dependency/absolute path `0`이며
+  canonical/source package 불변성을 확인했습니다. 기존 법선·접선·UV 등의 동등성 경고는 유지합니다.
+  `-SkipV08 -SkipV07 -SkipCompatibility`를 명시했으므로 V0.7/V0.8 독립 전체 chain 통과로
+  표시하지 않습니다. 별도 Blender compatibility 실행에서 5.0.1 및 GLB/FBX/OBJ export를 확인했습니다.
+- Ruff, doctor, agent instruction, incident literal, Activation contract와 `git diff --check`: 통과.
+
+실행 로그는 `.t/735fix/v09_gate_01.log`, `.t/735fix/aq_host_gate_01.log`, V0.9 격리 증거는
+`reports/v09_smoke/20260903T041433662Z-26220`에 보존합니다. 이 검증은 수정 중 source의 회귀 증거이며,
+아직 새 clean source manifest/baseline/readiness와 수정 후 5개 캠페인 결과는 없습니다.
+
+다음 경계는 최종 회귀 통과 → clean source checkpoint → 새 ActivationSourceManifest/Baseline/Readiness
+→ sequence 1 canary → 정상 terminal/source 불변성 확인 후 2~5입니다. 이전 `needs_revision`을 새
+beauty에 재사용하지 않고, exact human quality disposition과 Activation acceptance는 각각 별도
+권한으로 남깁니다. profile은 계속 `disabled_experimental`, 수정 후 campaign outcome은 `0/5`입니다.

@@ -128,7 +128,7 @@ def test_blender_smoke_is_manual_and_self_hosted() -> None:
 
 
 def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
-    """Keep every AQ v2 Blender smoke explicit and absent from portable Python CI."""
+    """Keep AQ/v2 LOD smokes explicit and their regression contracts in both gate runners."""
 
     powershell = (ROOT / "scripts" / "run_autonomous_quality_gates.ps1").read_text(
         encoding="utf-8"
@@ -139,6 +139,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
     python_commands = _run_commands(_load_workflow("python-ci.yml"))
     expected_env = {
         "CBM_RUN_AQ_V02_GEOMETRY_SMOKE",
+        "CBM_RUN_LOD_SMOOTHING_SMOKE",
         "CBM_RUN_MATERIAL_GRAPH_BLENDER_SMOKE",
         "CBM_RUN_AQ_V02_BENCHMARK_BLENDER_SMOKE",
         "CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE",
@@ -150,6 +151,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
     }
     expected_nodes = {
         "tests/test_aq_v02_geometry_blender.py",
+        "tests/test_v07_lod_smoothing.py::test_real_blender_refresh_keeps_source_geometry_and_uv_unchanged",
         "tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5",
         "tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke",
         "tests/test_material_authoring_blender_v02.py::test_fixed_material_families_compile_reopen_and_render_in_blender_5",
@@ -160,6 +162,13 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "tests/test_material_identity_split_service.py::test_identity_split_runs_actual_blender_5_and_stops_before_scope_approval",
     }
     for token in expected_env | expected_nodes:
+        assert token in powershell
+        assert token in bash
+    for token in (
+        "tests/test_material_contract_long_paths.py",
+        "tests/test_aq_adapter_terminal_recovery.py",
+        "tests/test_v07_lod_smoothing.py",
+    ):
         assert token in powershell
         assert token in bash
     for test_name in CODEX_IMAGEGEN_HOST_TESTS:

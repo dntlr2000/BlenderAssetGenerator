@@ -984,6 +984,7 @@ BlenderAssetGenerator/
   tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
   tests/test_agent_instruction_hierarchy.py
+  tests/test_aq_adapter_terminal_recovery.py
   tests/test_aq_approval_envelope.py
   tests/test_aq_approval_envelope_schemas.py
   tests/test_aq_approval_kpi.py
@@ -1084,6 +1085,7 @@ BlenderAssetGenerator/
   tests/test_material_closure_public.py
   tests/test_material_closure_schemas.py
   tests/test_material_closure_service.py
+  tests/test_material_contract_long_paths.py
   tests/test_material_fidelity.py
   tests/test_material_graph_aq.py
   tests/test_material_graph_runtime.py
@@ -1146,6 +1148,7 @@ BlenderAssetGenerator/
   tests/test_v07_contracts.py
   tests/test_v07_export_pdf.py
   tests/test_v07_host_services.py
+  tests/test_v07_lod_smoothing.py
   tests/test_v07_optimizer_lod.py
   tests/test_v07_public_surface.py
   tests/test_v07_schemas.py

@@ -334,7 +334,7 @@ def _build_v02(
     payload_path: Path,
     base_dir: Path,
 ) -> bpy.types.Object:
-    """Build one host-authored v2 payload and retain SceneSpec material handoff data."""
+    """Build one exact v2 payload and retain material and derived-LOD shading intent."""
 
     _verify_v02_payload(payload, payload_path=payload_path, base_dir=base_dir)
     mesh = bpy.data.meshes.new("CBM_CustomMeshV02")
@@ -359,6 +359,9 @@ def _build_v02(
         separators=(",", ":"),
     )
     obj["cbm_v02_smoothing_mode"] = str(payload["smoothing_policy"]["mode"])
+    obj["cbm_v02_smoothing_policy"] = json.dumps(
+        payload["smoothing_policy"], sort_keys=True, separators=(",", ":")
+    )
     obj["cbm_v02_recreated_effects"] = json.dumps(
         sorted(
             item["effect"]

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
+
+from .blender_artifacts import file_exists, native_io_path, sha256_file
 
 IMAGE_CHANNELS = {"base_color", "roughness", "metallic", "normal", "height", "opacity", "emission"}
 COLOR_CHANNELS = {"base_color", "emission"}
@@ -69,7 +70,7 @@ def _validate_channel(
         if not isinstance(path_value, str) or not path_value.strip():
             raise MaterialManifestError(f"Image channel {name} requires a path")
         resolved = _resolve_inside(job_root, manifest_dir / path_value, f"Channel {name} path")
-        if not resolved.is_file():
+        if not file_exists(resolved):
             raise MaterialManifestError(f"Channel {name} file does not exist: {resolved}")
         result["resolved_path"] = str(resolved)
 
@@ -200,7 +201,7 @@ def _validate_generated_channel_hashes(
             )
         resolved_path = Path(str(channels[name]["resolved_path"]))
         try:
-            actual = hashlib.sha256(resolved_path.read_bytes()).hexdigest()
+            actual = sha256_file(resolved_path)
         except OSError as exc:
             raise MaterialManifestError(
                 f"Image channel {name} could not be hashed: {resolved_path}"
@@ -368,7 +369,7 @@ def _validate_surface_detail_bindings(
                 manifest_dir / mask_value,
                 f"surface_detail_bindings[{index}] mask_path",
             )
-            if not mask_path.is_file():
+            if not file_exists(mask_path):
                 raise MaterialManifestError(
                     f"surface_detail_bindings[{index}] mask file does not exist"
                 )
@@ -376,7 +377,7 @@ def _validate_surface_detail_bindings(
                 raise MaterialManifestError(
                     f"surface_detail_bindings[{index}].placement.mask_sha256 is invalid"
                 )
-            actual_hash = hashlib.sha256(mask_path.read_bytes()).hexdigest()
+            actual_hash = sha256_file(mask_path)
             if actual_hash != mask_hash:
                 raise MaterialManifestError(
                     f"surface_detail_bindings[{index}] mask SHA-256 differs"
@@ -407,7 +408,7 @@ def _validate_surface_detail_bindings(
 def load_material_manifest(
     material_spec: dict[str, Any], job_root: Path
 ) -> tuple[dict[str, Any] | None, Path | None]:
-    """Load and validate one workspace-relative material manifest."""
+    """Validate contained material dependencies using native long-path reads and hashes."""
 
     manifest_value = material_spec.get("texture_manifest")
     if not manifest_value:
@@ -421,11 +422,12 @@ def load_material_manifest(
         resolved_root / manifest_value,
         "texture_manifest",
     )
-    if not manifest_path.is_file():
+    if not file_exists(manifest_path):
         raise MaterialManifestError(f"texture_manifest does not exist: {manifest_path}")
 
     try:
-        raw = json.loads(manifest_path.read_text(encoding="utf-8"))
+        with open(native_io_path(manifest_path), encoding="utf-8") as handle:
+            raw = json.load(handle)
     except json.JSONDecodeError as exc:
         raise MaterialManifestError(f"Invalid texture manifest JSON: {manifest_path}") from exc
     if not isinstance(raw, dict):

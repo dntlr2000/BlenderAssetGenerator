@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..blender_artifacts import native_io_path
 from .models import MaterialPlan, ShaderRecipe
 
 
@@ -18,12 +19,14 @@ def resolve_job_path(job_root: Path, value: str, label: str) -> Path:
 
 
 def load_material_plan(path: Path) -> MaterialPlan:
-    """Load and validate a versioned material plan from disk."""
+    """Load a strict material plan through the native long-path I/O boundary."""
 
-    return MaterialPlan.model_validate_json(path.read_text(encoding="utf-8"))
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return MaterialPlan.model_validate_json(handle.read())
 
 
 def load_shader_recipe(path: Path) -> ShaderRecipe:
-    """Load and validate a whitelisted shader recipe from disk."""
+    """Load a whitelisted shader recipe through the native long-path I/O boundary."""
 
-    return ShaderRecipe.model_validate_json(path.read_text(encoding="utf-8"))
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return ShaderRecipe.model_validate_json(handle.read())

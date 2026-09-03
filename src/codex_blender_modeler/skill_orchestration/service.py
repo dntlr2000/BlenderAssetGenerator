@@ -89,6 +89,7 @@ _REGISTRY_PATH = Path(".agents/skills/registry.json")
 _RUN_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]{0,127}$")
 _STANDARD_ENTRY = "standard-asset-cycle"
 _AQ_ENTRY = "aq-one-prompt-orchestrator"
+_AQ_CANCELLATION_ROUTE_REASON = " The AQ cancellation was explicitly requested."
 _GEOMETRY_REENTRY_REASON_PREFIX = "Geometry visual review requires bounded V0.4 re-entry"
 _QUALITY_REVISION_REASON_PREFIX = (
     "Human needs_revision disposition routes bounded V0.4 candidate review"
@@ -4197,6 +4198,41 @@ def _aq_source_artifact(root: Path, status: dict[str, object]) -> SkillArtifact:
     return selected
 
 
+def _aq_base_is_terminal(status: dict[str, object]) -> bool:
+    """Recognize an exact terminal base boundary even before its companion is published."""
+
+    state, _artifact = _aq_base_state(status)
+    return state.get("next_action") == "none" and state.get("status") in {
+        "completed", "partial", "review_required", "blocked", "failed", "cancelled"
+    }
+
+
+def _reconcile_aq_base_terminal(
+    root: Path,
+    job_id: str,
+    session_id: str,
+    status: dict[str, object],
+) -> dict[str, object]:
+    """Ask the host to finish a missing terminal companion without advancing its base state."""
+
+    if str(status.get("status")) == "terminal" or not _aq_base_is_terminal(status):
+        return status
+    source_before = _aq_source_artifact(root, status)
+    resume_one_prompt(
+        job_id,
+        session_id,
+        max_actions=1,
+        allow_disabled_experimental=True,
+    )
+    current = get_one_prompt_status(job_id, session_id)
+    if (
+        str(current.get("status")) != "terminal"
+        or _aq_source_artifact(root, current) != source_before
+    ):
+        raise ValueError("AQ terminal reconciliation changed its exact base state")
+    return current
+
+
 def _aq_controller_profile(root: Path, state: dict[str, Any]) -> tuple[str, bool]:
     """Infer geometry/material and closure only from exact current controller evidence."""
 
@@ -4389,7 +4425,7 @@ def _load_pending_aq_route(
     registry: SkillRegistry,
     source_public_status: str,
 ) -> tuple[SkillArtifact, SkillRouteDecision] | None:
-    """Validate and return the sole receipt-less AQ route after an interruption."""
+    """Validate the sole interrupted run/cancel route and its exact snapshot family."""
 
     route_root = run_root / "routes"
     receipt_root = run_root / "receipts"
@@ -4405,7 +4441,13 @@ def _load_pending_aq_route(
         raise ValueError("pending AQ route sequence is noncontiguous")
     route_artifact = _artifact_for(root, route_path)
     route = _load_model(root, route_artifact, SkillRouteDecision)
-    expected_source = run_root / "underlying" / f"{sequence:04d}-before.json"
+    cancel_source = run_root / "underlying" / f"{sequence:04d}-before-cancel.json"
+    is_cancel = route.source_state.path == cancel_source.relative_to(root).as_posix()
+    expected_source = (
+        cancel_source
+        if is_cancel
+        else run_root / "underlying" / f"{sequence:04d}-before.json"
+    )
     if (
         route.decision_id != f"route-{run_id}-{sequence:04d}"
         or (route.run_id, route.job_id, route.execution_mode) != (run_id, job_id, "aq")
@@ -4426,6 +4468,8 @@ def _load_pending_aq_route(
         },
     }
     expected_key, expected_reason = _aq_route_key(root, source_status)
+    if is_cancel:
+        expected_reason += _AQ_CANCELLATION_ROUTE_REASON
     expected_skill = _route_from_registry(
         bundle,
         registry,
@@ -4877,6 +4921,9 @@ def run_aq_one_prompt_skill(
         )
         if pending is not None:
             route, decision = pending
+            before_status = _reconcile_aq_base_terminal(
+                root, job_id, plan.session_id, before_status
+            )
             after_snapshot = _snapshot_aq_state_exact(
                 root,
                 run_root,
@@ -5269,7 +5316,7 @@ def cancel_aq_one_prompt_skill(
     reason: str,
     experimental_opt_in: bool = False,
 ) -> dict[str, object]:
-    """Cancel the exact underlying One-Prompt session and preserve adapter evidence."""
+    """Cancel a live session with receipt-backed errors and recoverable interruption snapshots."""
 
     if not experimental_opt_in:
         raise PermissionError("AQ skill adapter remains disabled_experimental")
@@ -5280,10 +5327,21 @@ def cancel_aq_one_prompt_skill(
     with _skill_run_lock(run_root):
         root, run_root, plan, adapter_state = _load_aq_run(job_id, run_id)
         before_status = get_one_prompt_status(job_id, plan.session_id)
-        if str(before_status.get("status")) == "terminal":
+        if str(before_status.get("status")) == "terminal" or _aq_base_is_terminal(before_status):
             raise RuntimeError("terminal AQ One-Prompt session cannot be cancelled again")
+        bundle, registry = _load_bundle(root, run_root)
+        if _load_pending_aq_route(
+            root,
+            run_root,
+            run_id=run_id,
+            job_id=job_id,
+            bundle=bundle,
+            registry=registry,
+            source_public_status=adapter_state.status,
+        ) is not None:
+            raise RuntimeError("pending AQ route must be resumed before cancellation")
         sequence = _receipt_sequence(run_root)
-        before_snapshot = _snapshot_underlying_state(
+        before_snapshot = _snapshot_aq_state_exact(
             root,
             run_root,
             sequence=sequence,
@@ -5291,7 +5349,6 @@ def cancel_aq_one_prompt_skill(
             source_artifact=_aq_source_artifact(root, before_status),
         )
         route_key, route_reason = _aq_route_key(root, before_status)
-        bundle, registry = _load_bundle(root, run_root)
         selected_skill = _route_from_registry(
             bundle, registry, execution_mode="aq", route_key=route_key
         )
@@ -5305,17 +5362,24 @@ def cancel_aq_one_prompt_skill(
             route_key=route_key,
             selected_skill=selected_skill,
             source_state=before_snapshot,
-            reason=f"{route_reason} The AQ cancellation was explicitly requested.",
+            reason=route_reason + _AQ_CANCELLATION_ROUTE_REASON,
         )
-        cancel_one_prompt(
-            job_id,
-            plan.session_id,
-            reason=normalized,
-            allow_disabled_experimental=True,
+        cancel_error: Exception | None = None
+        try:
+            cancel_one_prompt(
+                job_id,
+                plan.session_id,
+                reason=normalized,
+                allow_disabled_experimental=True,
+            )
+        except Exception as exc:
+            # Record ordinary failures; process interruption leaves the exact route resumable.
+            cancel_error = exc
+        after_status = _reconcile_aq_base_terminal(
+            root, job_id, plan.session_id, get_one_prompt_status(job_id, plan.session_id)
         )
-        after_status = get_one_prompt_status(job_id, plan.session_id)
         source = _aq_source_artifact(root, after_status)
-        snapshot = _snapshot_underlying_state(
+        snapshot = _snapshot_aq_state_exact(
             root,
             run_root,
             sequence=sequence,
@@ -5331,25 +5395,22 @@ def cancel_aq_one_prompt_skill(
             route=route,
             before=_aq_binding(plan.session_id, before_snapshot, before_status),
             after=_aq_binding(plan.session_id, snapshot, after_status),
-            outcome="cancelled",
+            outcome=(
+                "failed"
+                if cancel_error is not None and before_snapshot.sha256 == snapshot.sha256
+                else _aq_outcome(after_status)
+            ),
         )
-        route_key, _route_reason = _aq_route_key(root, after_status)
-        selected_skill = _route_from_registry(
-            bundle, registry, execution_mode="aq", route_key=route_key
+        adapter_state = _update_aq_adapter_state(
+            root,
+            run_root,
+            adapter_state,
+            after_status=after_status,
+            after_snapshot=snapshot,
+            receipt=receipt,
+            bundle=bundle,
+            registry=registry,
         )
-        base_state, _artifact = _aq_base_state(after_status)
-        adapter_state = adapter_state.model_copy(
-            update={
-                "status": str(after_status.get("status", "terminal")),
-                "current_stage_key": route_key,
-                "current_skill_id": selected_skill,
-                "source_state": snapshot,
-                "next_action": str(base_state.get("next_action", "")) or None,
-                "receipt_chain_head_sha256": receipt.sha256,
-                "updated_at": _utc_now(),
-            }
-        )
-        _write_aq_state(run_root, adapter_state)
         _publish_aq_adapter_terminal(
             root,
             run_root,
@@ -5357,6 +5418,8 @@ def cancel_aq_one_prompt_skill(
             adapter_state,
             after_status,
         )
+        if cancel_error is not None:
+            raise cancel_error
         return get_aq_one_prompt_skill_status(job_id, run_id)
 
 

@@ -51,8 +51,12 @@ terminal로 닫는 경계까지 검증했습니다. 이후 C655 기준선에서 
 One-Prompt, production delivery와 clean import를 모두 통과했지만 rust·wood·crystal의 내부 구조와
 재질 가시성이 평탄하게 붕괴해도 contour 중심 IQ가 통과하는 framework 결함이 확인됐습니다. 이 결함
 수정은 다시 source 변경이므로 B8이나 C655 결과를 새 기준선의 캠페인 실적으로 소급 계산하지 않습니다.
-fixed-camera 내부 가시성 gate를 포함한 새 clean baseline의 distinct campaign outcome은 아직 `0/5`이므로
-AQ는 계속 1차 완료 전 상태입니다.
+fixed-camera 내부 가시성 gate를 포함한 `7359ce7` 기준선에서는 canary의 production GLTF/clean import를
+검증했으나, 5개 실행 중 정상 terminal은 `1/5`였습니다. Rusted scrap은 delivery tangent 오류,
+Wood·Crystal은 Windows 긴 재질 경로 오류 이후 cancelled, Laser는 legacy modifier 계약 위반과
+누락된 adapter 종료 증거를 남겼습니다. 이 결과를 성공으로 재분류하지 않습니다. 현재는 **8-B의 기술
+결함 보완과 새 기준선 준비 단계**이며, 수정 후 기준선의 캠페인 실적은 아직 `0/5`입니다. AQ는 계속
+1차 완료 전이고, exact human quality disposition과 Activation도 완료되지 않았습니다.
 
 AQ 1차 완성의 고정 지원 범위는 Windows 11, Blender `5.0.1`, `primary_object_only` 정적 소품,
 local/procedural PBR와 engine-neutral portable GLTF입니다. Codex ImageGen, destination project write,
@@ -155,7 +159,7 @@ V1.0  Integrated Reference-to-Asset Pipeline (승격 중단)
 | V0.9 | 수정된 로컬 범위 구현·회귀·Blender 5 handoff gate 완료 | stabilization/handoff `0.9.0`, 프로젝트 `0.9.0` |
 | AQ 0.1 | `autonomous_static_prop_v1`만 검증된 opt-in 병렬 확장 | autonomy/integrated quality/companion contracts `0.1.0`; 프로젝트는 `0.9.0` 유지 |
 | AQ 0.2 | 선택된 fixture와 gate를 통과했으나 비활성 실험 단계 | `autonomous_static_prop_v2` `disabled_experimental`; 프로젝트는 `0.9.0` 유지 |
-| AQ 0.3 | additive approval-policy/one-prompt 계약과 adapter/policy recovery 구현, 실제 다중 캠페인 수행, R5D exact beauty·portable GLTF package acceptance 및 B8 post-IQ human review terminal 검증 완료 | B8이 결속된 clean baseline `activation-baseline-ce171a5174e9d2e2409adb96`는 후속 framework/source 수정으로 historical이 됨; 새 clean baseline과 fresh 5개 캠페인 전까지 current-baseline outcome `0/5`, `autonomous_static_prop_v2` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
+| AQ 0.3 | additive approval-policy/one-prompt 계약과 adapter/policy recovery 구현, R5D exact beauty/package acceptance와 B8 post-IQ review terminal 검증; 735 기준선 캠페인 정상 terminal `1/5` 이후 기술 결함 보완 중 | 과거 baseline과 실패 이력 보존; 재료 경로·terminal/recovery·파생 LOD 법선 보완 후 새 clean baseline/fresh 5개 캠페인 필요, 수정 후 outcome `0/5`, `autonomous_static_prop_v2` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
 | ImageGen 0.1 | controller-mediated companion 구현, bounded benchmark entry machine decision은 `GO` | AQ base 1차 완성과 분리된 optional overlay이며 실행 우선순위는 AQ base closeout 뒤; `autonomous_static_prop_v2_codex_imagegen` `disabled_experimental`, 프로젝트 `0.9.0` 유지 |
 | Material Closure 0.1 | additive stabilization 구현·local regression; constant/local-only material promotion은 실제 자산 5/5 통과, 기존 crystal dependency closure는 identity preflight에서 안전 실패, 새 authorized bake-bound closure는 입력 부재로 미실행 | dependency closure/preflight/promotion companion; 프로젝트 `0.9.0` 유지 |
 | Material Identity Split 0.1 | generic framework와 실제 승인 전 shadow 검증 완료, apply 승인 대기 | paired scope-change companion; 프로젝트 `0.9.0`/SceneSpec `0.2.0` 유지 |
@@ -1180,12 +1184,24 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. fresh current-baseline AQ canary와 5-reference campaign [8-A clean commit 후 바로 다음]
+8-B. fresh current-baseline AQ canary와 5-reference campaign [현재: 735 캠페인 결함 보완·재기준선 준비]
    - C655 source에서 서로 다른 reference 5개가 One-Prompt, IQ pass, production GLTF package와 clean import를
      기술적으로 5/5 완료했으나 exact human disposition 전 검토에서 contour-only/internal-detail collapse가
      반복 확인됨; 이 evidence는 orchestration/delivery 회귀 근거로 보존하되 Activation outcome으로 세지 않음
    - IQ 0.2에 exact reference/beauty/reference-mask/candidate-mask/camera-bound fixed-camera interior
      visibility gate를 additive하게 추가하고 새 AQ plan에만 필수화; historical policy/report 기본 의미는 유지
+   - readiness `4d6a521e1bc68f445362dd98fede8c3c2280f6a82ba8252943f4708ccefcfc4f`의 735 캠페인은
+     canary 정상 terminal/source 불변성 확인 후 2~5를 실행했으나 정상 terminal `1/5`로 종료
+   - Plastic은 production delivery/GLTF clean import 통과; Rust는 tangent 오류로 delivery failed;
+     Wood·Crystal은 긴 재질 경로 오류 뒤 cancelled; Laser는 legacy bevel 계약 위반으로 base failed,
+     기존 adapter에는 route/receipt `3/2`의 interrupted cancellation 증거가 남음
+   - 기존 job을 재개·재분류하지 않고 source의 긴 경로 I/O, 마지막 action/예외 terminal publication,
+     cancel-route recovery와 파생 LOD의 exact angle smoothing 갱신을 보완
+   - 새 후보는 실제 AQ candidate contract 검사부터 시작: Rust의 occluded connector를 국소 곡선으로
+     재저작하고 Laser의 unsupported legacy bevel은 명시적 sharp-edged geometry로 대체; 참조 형상과
+     최종 품질의 동등성을 주장하지 않으며 실제 V0.6/IQ 및 exact human review로 다시 판정
+   - isolated preflight/diagnostic은 campaign outcome 또는 승인으로 세지 않음; 상세 근거는
+     VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md의 14절에 기록
    - gate/source 변경을 full regression과 실제 Blender gate로 고정한 clean commit에서 새
      ActivationSourceManifest/Baseline/Readiness를 생성한 뒤 아래 canary와 5-reference 조건을 다시 적용
    - visibility-gate clean commit에서 새 ActivationSourceManifest/Baseline/Readiness를 생성하고 profile은 계속

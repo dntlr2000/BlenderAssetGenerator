@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .blender_artifacts import file_exists, native_io_path
 from .material_manifest import MaterialManifestError, load_material_manifest
 
 _SURFACE_LIMITS = {
@@ -49,10 +50,11 @@ class ShaderRecipeRuntimeError(ValueError):
 
 
 def _load_object(path: Path, label: str) -> dict[str, Any]:
-    """Load one JSON object without importing host-only validation dependencies."""
+    """Read native long-path JSON without importing host-only validation dependencies."""
 
     try:
-        value = json.loads(path.read_text(encoding="utf-8"))
+        with open(native_io_path(path), encoding="utf-8") as handle:
+            value = json.load(handle)
     except json.JSONDecodeError as exc:
         raise ShaderRecipeRuntimeError(f"Invalid {label} JSON: {path}") from exc
     if not isinstance(value, dict):
@@ -331,7 +333,7 @@ def _validate_scene_material_coverage(root: Path, items: list[Any]) -> None:
     """Require a present MaterialPlan to cover the full SceneSpec material ID set."""
 
     scene_spec_path = root / "analysis" / "scene_spec.json"
-    if not scene_spec_path.is_file():
+    if not file_exists(scene_spec_path):
         return
     scene_spec = _load_object(scene_spec_path, "SceneSpec")
     scene_materials = scene_spec.get("materials", [])
@@ -361,7 +363,7 @@ def load_runtime_shader_recipes(job_root: Path, job_id: str) -> dict[str, dict[s
 
     root = job_root.expanduser().resolve()
     plan_path = root / "analysis" / "material_plan.json"
-    if not plan_path.is_file():
+    if not file_exists(plan_path):
         return {}
     plan = _load_object(plan_path, "material plan")
     if plan.get("schema_version") != "0.5.0":
@@ -393,7 +395,7 @@ def load_runtime_shader_recipes(job_root: Path, job_id: str) -> dict[str, dict[s
             if not isinstance(recipe_value, str):
                 raise ShaderRecipeRuntimeError(f"shader_recipe for {material_id} must be a string")
             recipe_path = _resolve_inside(root, recipe_value, "shader_recipe")
-            if not recipe_path.is_file():
+            if not file_exists(recipe_path):
                 raise ShaderRecipeRuntimeError(f"Shader recipe does not exist: {recipe_path}")
             recipe_raw = _load_object(recipe_path, "shader recipe")
             plan_mapping = item.get("mapping", {})
@@ -433,7 +435,7 @@ def load_runtime_material_mappings(job_root: Path, job_id: str) -> dict[str, dic
 
     root = job_root.expanduser().resolve()
     plan_path = root / "analysis" / "material_plan.json"
-    if not plan_path.is_file():
+    if not file_exists(plan_path):
         return {}
     plan = _load_object(plan_path, "material plan")
     if plan.get("schema_version") != "0.5.0":

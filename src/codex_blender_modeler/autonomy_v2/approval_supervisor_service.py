@@ -1868,7 +1868,7 @@ def run_one_prompt(
     quality_submission: QualitySubmissionV2 | dict[str, object] | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
-    """Run bounded current-task actions until controller work, escalation, or a safe terminal."""
+    """Run bounded actions and publish terminal companions even on the final or failed action."""
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ one-prompt supervisor remains disabled_experimental")
@@ -1891,45 +1891,50 @@ def run_one_prompt(
             terminal["actions"] = actions
             return terminal
         policy_mode = plan.approval_mode != "interactive"
-        if policy_mode and state.next_action == "validate_candidate":
-            policy_result = _advance_geometry_with_policy(
-                job_id,
-                session_id,
-                state,
-                quality_submission=quality_submission,
-            )
-            if policy_result is not None:
-                actions.append(policy_result)
-                continue
-        if policy_mode and state.next_action == "run_integrated_quality":
-            policy_result = _advance_quality_with_policy(
-                job_id,
-                session_id,
-                state,
-                quality_submission=quality_submission,
-            )
-            if policy_result is not None:
-                actions.append(policy_result)
-                continue
-        if policy_mode and state.next_action == "await_v07_approval":
-            from .delivery_policy_adapter import (
-                execute_policy_authorized_delivery_boundary_v2,
-            )
+        try:
+            if policy_mode and state.next_action == "validate_candidate":
+                policy_result = _advance_geometry_with_policy(
+                    job_id,
+                    session_id,
+                    state,
+                    quality_submission=quality_submission,
+                )
+                if policy_result is not None:
+                    actions.append(policy_result)
+                    continue
+            if policy_mode and state.next_action == "run_integrated_quality":
+                policy_result = _advance_quality_with_policy(
+                    job_id,
+                    session_id,
+                    state,
+                    quality_submission=quality_submission,
+                )
+                if policy_result is not None:
+                    actions.append(policy_result)
+                    continue
+            if policy_mode and state.next_action == "await_v07_approval":
+                from .delivery_policy_adapter import (
+                    execute_policy_authorized_delivery_boundary_v2,
+                )
 
-            delivery_result = execute_policy_authorized_delivery_boundary_v2(
+                delivery_result = execute_policy_authorized_delivery_boundary_v2(
+                    job_id,
+                    session_id,
+                    allow_disabled_experimental=True,
+                )
+                actions.append(delivery_result)
+                continue
+            result = run_autonomy_v2(
                 job_id,
                 session_id,
+                max_actions=1,
+                quality_submission=quality_submission,
                 allow_disabled_experimental=True,
             )
-            actions.append(delivery_result)
-            continue
-        result = run_autonomy_v2(
-            job_id,
-            session_id,
-            max_actions=1,
-            quality_submission=quality_submission,
-            allow_disabled_experimental=True,
-        )
+        except Exception:
+            # Publish only an already-terminal base state; never retry the failed action.
+            _terminalize_current_state(job_id, session_id)
+            raise
         actions.append(result)
         after = AutonomyStateV2.model_validate_json(json.dumps(result["state"]))
         if after.next_action == "execute_controller" or result["stop_reason"] in {
@@ -1952,6 +1957,10 @@ def run_one_prompt(
                 "repository_creates_codex_task": False,
                 "app_close_background_execution": False,
             }
+    terminal = _terminalize_current_state(job_id, session_id)
+    if terminal is not None:
+        terminal["actions"] = actions
+        return terminal
     return {
         "status": "global_action_slice_exhausted",
         "job_id": job_id,

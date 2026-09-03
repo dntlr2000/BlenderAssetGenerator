@@ -86,6 +86,9 @@ $FocusedTests = @(
     "tests/test_autonomy_terminal_verifier_aq.py",
     "tests/test_autonomy_worker.py",
     "tests/test_packaging_long_paths_aq.py",
+    "tests/test_material_contract_long_paths.py",
+    "tests/test_aq_adapter_terminal_recovery.py",
+    "tests/test_v07_lod_smoothing.py",
     "tests/test_aq_v02_geometry.py",
     "tests/test_aq_v02_delivery_geometry_blender.py",
     "tests/test_aq_v02_schema_registry.py",
@@ -182,6 +185,7 @@ if ($RunBlender) {
     $PreviousQualitySmoke = $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE
     $PreviousPortableLongPathSmoke = $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE
     $PreviousAQV02GeometrySmoke = $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE
+    $PreviousLodSmoothingSmoke = $env:CBM_RUN_LOD_SMOOTHING_SMOKE
     $PreviousAQV02DeliveryGeometrySmoke = $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE
     $PreviousAQV02CandidateValidationSmoke = $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE
     $PreviousGeometryIntentReachabilitySmoke = $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE
@@ -203,6 +207,7 @@ if ($RunBlender) {
         $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE = "1"
         $env:CBM_RUN_PORTABLE_LONG_PATH_BLENDER_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_GEOMETRY_SMOKE = "1"
+        $env:CBM_RUN_LOD_SMOOTHING_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_DELIVERY_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE = "1"
         $env:CBM_RUN_GEOMETRY_INTENT_V02_REACHABILITY_SMOKE = "1"
@@ -225,6 +230,7 @@ if ($RunBlender) {
             tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_reaches_one_terminal_delivery `
             tests/test_autonomy_candidate_blender.py::test_autonomous_static_prop_publishes_review_only_bundle_without_package `
             tests/test_aq_v02_geometry_blender.py `
+            tests/test_v07_lod_smoothing.py::test_real_blender_refresh_keeps_source_geometry_and_uv_unchanged `
             tests/test_aq_v02_delivery_geometry_blender.py `
             tests/test_autonomy_v2_candidate_validation_blender.py `
             tests/test_geometry_intent_v02_reachability.py `
@@ -240,6 +246,13 @@ if ($RunBlender) {
         $BenchmarkV02Arguments += "--run-blender"
     }
     finally {
+        # Restore the opt-in LOD regression flag after this bounded Blender gate.
+        if ($null -eq $PreviousLodSmoothingSmoke) {
+            Remove-Item Env:CBM_RUN_LOD_SMOOTHING_SMOKE -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_LOD_SMOOTHING_SMOKE = $PreviousLodSmoothingSmoke
+        }
         if ($null -eq $PreviousGeometrySmoke) {
             Remove-Item Env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE -ErrorAction SilentlyContinue
         }

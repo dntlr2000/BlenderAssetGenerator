@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from ..blender_artifacts import native_io_path
 from ..material_manifest import (
     COLOR_CHANNELS,
     DATA_CHANNELS,
@@ -16,9 +17,10 @@ from .models import TextureManifest
 
 
 def load_texture_manifest(path: Path) -> TextureManifest:
-    """Load a v0.5 texture contract, normalizing a missing legacy version field."""
+    """Read native long paths while retaining the existing V0.5 legacy-version default."""
 
-    raw = json.loads(path.read_text(encoding="utf-8"))
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        raw = json.load(handle)
     if not isinstance(raw, dict):
         raise MaterialManifestError("texture manifest root must be an object")
     raw.setdefault("schema_version", "0.5.0")
