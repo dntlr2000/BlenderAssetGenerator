@@ -45,6 +45,11 @@ from ..optimization.provenance import collect_source_provenance
 from ..packaging.models import ExportPackageManifest, RoundTripValidation
 from ..production.validation import ensure_contained_production_path
 from ..qa.models import VisualQAReport
+from ..structural_geometry.geometry_delivery_equivalence import (
+    GeometryNumericalSurvivalReportV02,
+    load_delivery_survival_report,
+    validate_numerical_survival_report,
+)
 from ..structural_geometry.geometry_survival_v02 import (
     GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
@@ -218,10 +223,7 @@ def validate_root_authorization_boundary_v2(
             profile.allowed_delivery_profiles
         )
         or budget.delivery_runs
-        < sum(
-            item != "review_only"
-            for item in authorization.requested_delivery_profiles
-        )
+        < sum(item != "review_only" for item in authorization.requested_delivery_profiles)
     ):
         raise ValueError("AQ v2 plan, profile, budget, and authorization bindings differ")
     authorization_named = [
@@ -382,10 +384,7 @@ def _required_v06_quality_findings(
 
     if not expected_policy.require_v06_authoritative_high_findings:
         return []
-    if (
-        report.legacy_v06_report_sha256 is None
-        or report.legacy_v06_direct_score is None
-    ):
+    if report.legacy_v06_report_sha256 is None or report.legacy_v06_direct_score is None:
         raise ValueError("IQ 0.2 policy requires exact legacy V0.6 report evidence")
     artifact = _unique_quality_artifact(
         quality_evidence,
@@ -452,16 +451,9 @@ def _recompute_fixed_camera_visibility(
         visual_report = VisualQAReport.model_validate_json(
             validate_v2_artifact(root, v06_artifact).read_bytes()
         )
-        expected_beauty_path = (
-            f"qa/runs/{visual_report.run_id}/passes/beauty.png"
-        )
-        if (
-            visual_report.job_id != report.job_id
-            or candidate_beauty.path != expected_beauty_path
-        ):
-            raise ValueError(
-                "fixed-camera candidate beauty differs from the exact V0.6 run"
-            )
+        expected_beauty_path = f"qa/runs/{visual_report.run_id}/passes/beauty.png"
+        if visual_report.job_id != report.job_id or candidate_beauty.path != expected_beauty_path:
+            raise ValueError("fixed-camera candidate beauty differs from the exact V0.6 run")
     expected_evidence_ids = [
         reference_image.artifact_id,
         candidate_beauty.artifact_id,
@@ -482,9 +474,7 @@ def _recompute_fixed_camera_visibility(
         camera_sha256=camera_artifact.sha256,
         evidence_ids=expected_evidence_ids,
         metric_id=visibility.metric_id,
-        mask_erosion_diagonal_fraction=(
-            visibility.mask_erosion_diagonal_fraction
-        ),
+        mask_erosion_diagonal_fraction=(visibility.mask_erosion_diagonal_fraction),
     )
 
 
@@ -533,9 +523,7 @@ def validate_host_recomputed_quality_report_v2(
         origin=_top_level_contour_origin(report),  # type: ignore[arg-type]
         authority=report.contour.authority,
         artifact_path=(reference_artifact.path if reference_artifact is not None else None),
-        artifact_sha256=(
-            reference_artifact.sha256 if reference_artifact is not None else None
-        ),
+        artifact_sha256=(reference_artifact.sha256 if reference_artifact is not None else None),
         camera_sha256=camera_artifact.sha256,
     )
     recomputed_contour = compare_contours_v02(
@@ -639,9 +627,7 @@ def validate_host_recomputed_quality_report_v2(
         legacy_v06_direct_score=report.legacy_v06_direct_score,
     )
     base_finding_ids = {item.finding_id for item in base.findings}
-    required_v06_finding_ids = {
-        item.finding_id for item in required_v06_findings
-    }
+    required_v06_finding_ids = {item.finding_id for item in required_v06_findings}
     if base_finding_ids.intersection(required_v06_finding_ids):
         raise ValueError("V0.6 bridge finding IDs collide with recomputed IQ findings")
     additional_findings = [
@@ -649,8 +635,7 @@ def validate_host_recomputed_quality_report_v2(
         *[
             item
             for item in report.findings
-            if item.finding_id
-            not in base_finding_ids.union(required_v06_finding_ids)
+            if item.finding_id not in base_finding_ids.union(required_v06_finding_ids)
         ],
     ]
     recomputed = build_integrated_quality_report_v02(
@@ -1099,9 +1084,7 @@ def validate_quality_source_freeze(
         workflow_id=freeze.workflow_id,
         dispatch_id=freeze.dispatch_id,
         session_id=freeze.session_id,
-        geometry_candidate_validation_receipt=(
-            freeze.geometry_candidate_validation_receipt
-        ),
+        geometry_candidate_validation_receipt=(freeze.geometry_candidate_validation_receipt),
         material_phase_receipt=freeze.material_phase_receipt,
         geometry_intent_survival=freeze.geometry_intent_survival,
         scene_spec=freeze.scene_spec,
@@ -1121,9 +1104,7 @@ def validate_quality_source_freeze(
         texture_manifests=freeze.texture_manifests,
         geometry_payloads=freeze.geometry_payloads,
         geometry_intent_survival=freeze.geometry_intent_survival,
-        geometry_candidate_validation_receipt=(
-            freeze.geometry_candidate_validation_receipt
-        ),
+        geometry_candidate_validation_receipt=(freeze.geometry_candidate_validation_receipt),
         material_phase_receipt=freeze.material_phase_receipt,
     )
     if (
@@ -1388,9 +1369,7 @@ def publish_quality_source_freeze(
         texture_manifests=texture_manifests,
         geometry_payloads=geometry_payloads,
         geometry_intent_survival=geometry_intent_survival,
-        geometry_candidate_validation_receipt=(
-            geometry_candidate_validation_receipt
-        ),
+        geometry_candidate_validation_receipt=(geometry_candidate_validation_receipt),
         material_phase_receipt=material_phase_receipt,
         v07_source_fingerprint=source.source_fingerprint,
         frozen_source_sha256=stable_json_digest(frozen_payload),
@@ -1432,20 +1411,16 @@ def validate_delivery_plan_authority_v2(
 ) -> RootAuthorizationV2:
     """Revalidate one delivery plan against its live exact root authorization boundary."""
 
-    authorization, _autonomy_plan, _profile, _budget = (
-        validate_root_authorization_boundary_v2(
-            job_root=root,
-            job_id=plan.job_id,
-            workflow_id=plan.workflow_id,
-            dispatch_id=plan.dispatch_id,
-            session_id=plan.session_id,
-            root_authorization_artifact=plan.root_authorization,
-        )
+    authorization, _autonomy_plan, _profile, _budget = validate_root_authorization_boundary_v2(
+        job_root=root,
+        job_id=plan.job_id,
+        workflow_id=plan.workflow_id,
+        dispatch_id=plan.dispatch_id,
+        session_id=plan.session_id,
+        root_authorization_artifact=plan.root_authorization,
     )
     if plan_artifact is not None:
-        expected_path = (
-            f"production/autonomy_v2/{plan.session_id}/delivery_plan.json"
-        )
+        expected_path = f"production/autonomy_v2/{plan.session_id}/delivery_plan.json"
         if (
             plan_artifact.path != expected_path
             or plan_artifact.artifact_id != plan.contract_id
@@ -1468,11 +1443,14 @@ def validate_delivery_plan_authority_v2(
         or plan.input_sha256 != stable_json_digest(input_payload)
         or plan.source_fingerprint
         != stable_json_digest(
-            {**input_payload, "frozen_source": _load_model(
-                root,
-                plan.source_freeze,
-                QualityApprovedSourceFreeze,
-            ).frozen_source_sha256}
+            {
+                **input_payload,
+                "frozen_source": _load_model(
+                    root,
+                    plan.source_freeze,
+                    QualityApprovedSourceFreeze,
+                ).frozen_source_sha256,
+            }
         )
     ):
         raise ValueError("AQ v2 delivery plan exceeds or differs from root authorization")
@@ -1668,6 +1646,59 @@ def prepare_v07_delivery_reviews(
     return binding, write_immutable_v2_model(root, path, binding)
 
 
+def _validate_numerical_package_survival(
+    root: Path,
+    freeze: QualityApprovedSourceFreeze,
+    request: DeliveryRequest,
+    package: ExportPackageManifest,
+    material: PortableMaterialConversionManifest,
+    survival: GeometryNumericalSurvivalReportV02,
+) -> None:
+    """Bind a fully recomputed corner proof to this package, conversion, source and request."""
+
+    geometry_relative = f"optimization/runs/{request.run_id}/aq_v2/geometry"
+    if (
+        survival.source_corner_evidence.path != f"{geometry_relative}/optimized_lod0_corners.json"
+        or survival.target_corner_evidence.path
+        != f"{geometry_relative}/clean_import_glb_corners.json"
+    ):
+        raise ValueError("numerical geometry evidence must use this host-owned delivery run")
+    source, target = validate_numerical_survival_report(root, survival)
+    for snapshot in (source, target):
+        path = ensure_contained_production_path(
+            root,
+            root / geometry_relative / f"{snapshot.stage}_snapshot.json",
+            must_exist=True,
+        )
+        published = GeometryStageSnapshotV02.model_validate_json(
+            Path(native_io_path(path)).read_bytes()
+        )
+        if published != snapshot:
+            raise ValueError("numerical geometry evidence differs from the published snapshot")
+    primary = next(
+        (
+            item
+            for item in package.files
+            if item.id == package.primary_file_id and item.kind == "primary_asset"
+        ),
+        None,
+    )
+    if (
+        material.portable_blend is None
+        or primary is None
+        or source.artifact_path != material.portable_blend.path
+        or source.artifact_sha256 != material.portable_blend.sha256
+        or target.artifact_path != primary.path
+        or target.artifact_sha256 != primary.sha256
+        or source.source_fingerprint_sha256 != freeze.v07_source_fingerprint
+        or target.source_fingerprint_sha256 != freeze.v07_source_fingerprint
+        or source.build_fingerprint_sha256 != package.source.build_fingerprint
+        or target.build_fingerprint_sha256 != package.source.build_fingerprint
+        or survival.report_id != f"survival-{request.delivery_id}-optimized-clean-import"
+    ):
+        raise ValueError("numerical geometry evidence is not bound to this exact package")
+
+
 def _validate_package_result(
     root: Path,
     freeze: QualityApprovedSourceFreeze,
@@ -1675,7 +1706,7 @@ def _validate_package_result(
     review: DeliveryReviewEntry,
     result: DeliveryResult,
 ) -> None:
-    """Revalidate one completed result against its exact request and V0.7 review."""
+    """Rehash one exact delivery result, including any additive raw-corner numerical proof."""
 
     if result.delivery_id != request.delivery_id or result.profile_id != request.profile.profile_id:
         raise ValueError("delivery result identity does not match its immutable request")
@@ -1756,12 +1787,9 @@ def _validate_package_result(
                 or policy_authorization.workflow_id != freeze.workflow_id
                 or policy_authorization.dispatch_id != freeze.dispatch_id
                 or policy_authorization.session_id != freeze.session_id
-                or policy_authorization.gate_kind
-                != "optimization_plan_authorization"
-                or policy_authorization.exact_target_artifact.path
-                != review.optimization_plan.path
-                or policy_authorization.exact_target_artifact.sha256
-                != review.exact_plan_sha256
+                or policy_authorization.gate_kind != "optimization_plan_authorization"
+                or policy_authorization.exact_target_artifact.path != review.optimization_plan.path
+                or policy_authorization.exact_target_artifact.sha256 != review.exact_plan_sha256
                 or policy_authorization.current_canonical_snapshot.path
                 != request.source_freeze.path
                 or policy_authorization.current_canonical_snapshot.sha256
@@ -1824,9 +1852,7 @@ def _validate_package_result(
     ):
         raise ValueError("material-loss evidence is stale or incomplete")
     survival_path = validate_v2_artifact(root, result.geometry_survival_report)
-    survival = GeometryIntentSurvivalReportV02.model_validate_json(
-        Path(native_io_path(survival_path)).read_bytes()
-    )
+    survival = load_delivery_survival_report(survival_path)
     expected_format = "GLB" if result.profile_id == "portable_gltf" else "FBX"
     expected_stage = (
         "clean_import_glb" if result.profile_id == "portable_gltf" else "clean_import_fbx"
@@ -1838,6 +1864,14 @@ def _validate_package_result(
         or survival.overall_status in {"failed", "unscorable"}
     ):
         raise ValueError("geometry-survival evidence is not delivery-equivalent")
+    if isinstance(survival, GeometryNumericalSurvivalReportV02):
+        expected_survival_path = (
+            f"optimization/runs/{request.run_id}/aq_v2/geometry/"
+            "optimized_to_clean_import_report.json"
+        )
+        if result.geometry_survival_report.path != expected_survival_path:
+            raise ValueError("numerical survival report is not owned by this delivery run")
+        _validate_numerical_package_survival(root, freeze, request, package, material, survival)
 
 
 def publish_delivery_terminal(

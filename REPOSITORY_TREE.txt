@@ -327,6 +327,8 @@ BlenderAssetGenerator/
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
   schemas/framework_change_justification.schema.json
+  schemas/geometry_delivery_corner_evidence.schema.json
+  schemas/geometry_delivery_numerical_survival_report.schema.json
   schemas/geometry_intent_survival_report.schema.json
   schemas/geometry_multiview_visual_review.schema.json
   schemas/geometry_stage_snapshot_v02.schema.json
@@ -952,6 +954,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/standard_custom_mesh_candidate.py
   src/codex_blender_modeler/structural_geometry/__init__.py
   src/codex_blender_modeler/structural_geometry/composition_geometry.py
+  src/codex_blender_modeler/structural_geometry/geometry_delivery_equivalence.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_survival_v02.py
@@ -1066,6 +1069,7 @@ BlenderAssetGenerator/
   tests/test_controller_executor_v02.py
   tests/test_external_static_asset_intake.py
   tests/test_feature_config.py
+  tests/test_geometry_delivery_equivalence.py
   tests/test_geometry_intent_v02_reachability.py
   tests/test_geometry_models.py
   tests/test_integrated_quality_aq.py

@@ -45,6 +45,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--build-fingerprint-sha256", required=True)
     parser.add_argument("--topology-profile", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--corner-evidence-output")
     return parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 
 
@@ -331,8 +332,7 @@ def _topology_records(obj: bpy.types.Object) -> list[object]:
     semantic_id = _object_identity(obj)
     for polygon in mesh.polygons:
         positions = sorted(
-            _vector(obj.matrix_world @ mesh.vertices[index].co, 3)
-            for index in polygon.vertices
+            _vector(obj.matrix_world @ mesh.vertices[index].co, 3) for index in polygon.vertices
         )
         records.append({"semantic_id": semantic_id, "positions": positions})
     return sorted(
@@ -356,8 +356,7 @@ def _authoring_channels(objects: list[bpy.types.Object]) -> dict[str, object]:
         semantic_id = _object_identity(obj)
         for edge in mesh.edges:
             positions = sorted(
-                _vector(obj.matrix_world @ mesh.vertices[index].co, 3)
-                for index in edge.vertices
+                _vector(obj.matrix_world @ mesh.vertices[index].co, 3) for index in edge.vertices
             )
             if edge.use_edge_sharp:
                 sharp.append([semantic_id, positions])
@@ -366,12 +365,8 @@ def _authoring_channels(objects: list[bpy.types.Object]) -> dict[str, object]:
         for name, output in (("crease_edge", creases), ("bevel_weight_edge", bevels)):
             attribute = mesh.attributes.get(name)
             if attribute is not None:
-                output.append(
-                    [semantic_id, [_round(item.value) for item in attribute.data]]
-                )
-        smoothing.append(
-            [semantic_id, [bool(polygon.use_smooth) for polygon in mesh.polygons]]
-        )
+                output.append([semantic_id, [_round(item.value) for item in attribute.data]])
+        smoothing.append([semantic_id, [bool(polygon.use_smooth) for polygon in mesh.polygons]])
         modifiers.append(
             [
                 semantic_id,
@@ -387,8 +382,7 @@ def _authoring_channels(objects: list[bpy.types.Object]) -> dict[str, object]:
                 {
                     str(key): obj[key]
                     for key in sorted(obj.keys())
-                    if str(key).startswith("cbm_")
-                    and isinstance(obj[key], (str, int, float, bool))
+                    if str(key).startswith("cbm_") and isinstance(obj[key], (str, int, float, bool))
                 },
             ]
         )
@@ -466,9 +460,7 @@ def _snapshot(args: argparse.Namespace, artifact: Path) -> dict[str, object]:
         "material_slots_fingerprint": _available(
             {"semantic_ids": semantic_ids, "slots": sorted(slot_records, key=_sort_key)}
         ),
-        "polygon_material_fingerprint": _available(
-            sorted(polygon_materials, key=_sort_key)
-        ),
+        "polygon_material_fingerprint": _available(sorted(polygon_materials, key=_sort_key)),
         "split_normal_fingerprint": _available(sorted(normals, key=_sort_key)),
         "sharp_edge_fingerprint": authoring["sharp"],
         "uv_seam_fingerprint": authoring["seams"],
@@ -488,21 +480,67 @@ def _write_json(path: Path, payload: object) -> None:
         handle.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
+def _corner_evidence(stage: str, snapshot: dict[str, object]) -> dict[str, object]:
+    """Capture full joint corner values beside an unchanged optimized/GLB snapshot."""
+
+    if stage not in {"optimized_lod0", "clean_import_glb"} or bpy.app.version[:3] != (5, 0, 1):
+        raise RuntimeError("corner evidence supports only Blender 5.0.1 optimized/GLB stages")
+    triangles: list[object] = []
+    for obj in _stage_objects(stage):
+        mesh = obj.data
+        mesh.calc_loop_triangles()
+        if len(triangles) + len(mesh.loop_triangles) > 1_000_000:
+            raise RuntimeError("corner evidence exceeds the bounded triangle limit")
+        uv_data = _delivery_uv_layer(mesh).data
+        normals = _corner_normals(mesh)
+        normal_matrix = obj.matrix_world.to_3x3().inverted_safe().transposed()
+        for triangle in mesh.loop_triangles:
+            corners = []
+            for vertex_index, loop_index in zip(triangle.vertices, triangle.loops, strict=True):
+                position = obj.matrix_world @ mesh.vertices[vertex_index].co
+                normal = (normal_matrix @ normals[loop_index]).normalized()
+                corners.append(
+                    {
+                        "position": [float(value) for value in position],
+                        "uv": [float(value) for value in uv_data[loop_index].uv],
+                        "normal": [float(value) for value in normal],
+                    }
+                )
+            triangles.append({"semantic_id": _object_identity(obj), "corners": corners})
+    return {
+        "schema_version": "0.1.0",
+        "kind": "geometry_delivery_corner_evidence",
+        "blender_version": bpy.app.version_string,
+        "snapshot": snapshot,
+        "triangles": triangles,
+    }
+
+
 def main() -> None:
-    """Re-hash the inspected artifact, inspect its LOD0, and emit a strict snapshot."""
+    """Emit the exact LOD0 snapshot and an explicitly requested bounded corner companion."""
 
     args = _parse_args()
     root = Path(args.job_root).resolve()
     artifact = _contained(args.artifact, root, must_exist=True)
     output = _contained(args.output, root, must_exist=False)
+    corner_output = (
+        _contained(args.corner_evidence_output, root, must_exist=False)
+        if args.corner_evidence_output
+        else None
+    )
+    if corner_output is not None and corner_output == output:
+        raise RuntimeError("snapshot and corner evidence require independent outputs")
     if sha256_file(artifact) != args.artifact_sha256:
         raise RuntimeError("delivery artifact changed before geometry inspection")
     if args.stage in {"clean_import_glb", "clean_import_fbx"}:
         _import_asset(args.stage, artifact)
     payload = _snapshot(args, artifact)
+    corners = _corner_evidence(args.stage, payload) if corner_output is not None else None
     if sha256_file(artifact) != args.artifact_sha256:
         raise RuntimeError("delivery artifact changed during geometry inspection")
     _write_json(output, payload)
+    if corner_output is not None:
+        _write_json(corner_output, corners)
 
 
 if __name__ == "__main__":

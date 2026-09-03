@@ -24,6 +24,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--glb", required=True)
     parser.add_argument("--fbx", required=True)
     parser.add_argument("--receipt", required=True)
+    parser.add_argument("--precision-boundary-fixture", action="store_true")
     return parser.parse_args(sys.argv[sys.argv.index("--") + 1 :])
 
 
@@ -41,8 +42,8 @@ def _contained(path: str, root: Path) -> Path:
     return candidate
 
 
-def _build_fixture() -> bpy.types.Object:
-    """Build one UV-mapped, sharp-edged, material-bound static render cube."""
+def _build_fixture(*, precision_boundary: bool = False) -> bpy.types.Object:
+    """Build a fixed cube with an optional predetermined GLB float32 UV boundary."""
 
     bpy.ops.wm.read_factory_settings(use_empty=True)
     bpy.ops.mesh.primitive_cube_add(size=2.0, location=(0.0, 0.0, 0.0))
@@ -66,6 +67,8 @@ def _build_fixture() -> bpy.types.Object:
         edge.use_seam = edge.index in {0, 4, 8}
     if not obj.data.uv_layers:
         raise RuntimeError("fixed delivery cube has no generated UV layer")
+    if precision_boundary:
+        obj.data.uv_layers.active.data[0].uv.y = 0.35130998492240906
     obj.select_set(True)
     bpy.context.view_layer.objects.active = obj
     return obj
@@ -126,7 +129,7 @@ def main() -> None:
     glb = _contained(args.glb, root)
     fbx = _contained(args.fbx, root)
     receipt = _contained(args.receipt, root)
-    _build_fixture()
+    _build_fixture(precision_boundary=args.precision_boundary_fixture)
     bpy.ops.wm.save_as_mainfile(filepath=str(optimized_blend))
     _export_glb(glb)
     _export_fbx(fbx)

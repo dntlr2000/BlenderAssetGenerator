@@ -5,6 +5,7 @@ import json
 from pathlib import Path, PurePosixPath
 from typing import Any, Literal
 
+from .blender_artifacts import file_exists, native_io_path
 from .blender_scripts.standard_custom_mesh_runtime import (
     validate_standard_custom_mesh_payload,
 )
@@ -27,13 +28,20 @@ class BuildProvenanceError(RuntimeError):
 
 
 def sha256_file(path: Path) -> str:
-    """Hash one canonical source or derived artifact without loading it into memory."""
+    """Stream exact source bytes through the same native path boundary used by Blender."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _read_text(path: Path) -> str:
+    """Read UTF-8 provenance inputs without depending on host MAX_PATH support."""
+
+    with open(native_io_path(path), encoding="utf-8") as handle:
+        return handle.read()
 
 
 def canonical_json_sha256(value: Any) -> str:
@@ -158,10 +166,10 @@ def _material_binding_override_paths(
     """Validate an optional exact material-slot derivative companion and return overrides."""
 
     manifest_path = root / "analysis" / "material_binding_derivative.json"
-    if not manifest_path.is_file():
+    if not file_exists(manifest_path):
         return {}
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        payload = json.loads(_read_text(manifest_path))
     except (OSError, json.JSONDecodeError) as exc:
         raise BuildProvenanceError("material binding derivative companion is invalid") from exc
     if not isinstance(payload, dict) or payload.get("schema_version") != "0.1.0":
@@ -176,9 +184,8 @@ def _material_binding_override_paths(
         payload.get("source_receipt_path"),
         "material binding source receipt",
     )
-    if (
-        not receipt_path.is_file()
-        or sha256_file(receipt_path) != payload.get("source_receipt_sha256")
+    if not file_exists(receipt_path) or sha256_file(receipt_path) != payload.get(
+        "source_receipt_sha256"
     ):
         raise BuildProvenanceError("material binding source receipt is stale")
     objects = {
@@ -211,9 +218,9 @@ def _material_binding_override_paths(
             "material binding derivative",
         )
         if (
-            not source_path.is_file()
+            not file_exists(source_path)
             or sha256_file(source_path) != binding.get("source_sha256")
-            or not derivative_path.is_file()
+            or not file_exists(derivative_path)
             or sha256_file(derivative_path) != binding.get("derivative_sha256")
         ):
             raise BuildProvenanceError("material binding payload hash is stale")
@@ -251,11 +258,11 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
         source_resolved = (root / path_value).expanduser().resolve()
         relative = _relative_path(root, source_resolved, "geometry payload")
         resolved = material_binding_overrides.get(path_value, source_resolved)
-        if not resolved.is_file():
+        if not file_exists(resolved):
             raise BuildProvenanceError(f"Geometry payload does not exist: {resolved}")
         if geometry.get("kind") == "custom_mesh":
             try:
-                raw_payload = json.loads(resolved.read_text(encoding="utf-8"))
+                raw_payload = json.loads(_read_text(resolved))
             except (OSError, json.JSONDecodeError) as exc:
                 raise BuildProvenanceError(
                     f"Geometry payload is not valid JSON: {resolved}"
@@ -270,10 +277,9 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
                     raise BuildProvenanceError(
                         f"Standard custom_mesh payload is invalid: {resolved}"
                     ) from exc
-                if (
-                    standard_payload["job_id"] != scene_spec.get("job_id")
-                    or standard_payload["object_id"] != item.get("id")
-                ):
+                if standard_payload["job_id"] != scene_spec.get("job_id") or standard_payload[
+                    "object_id"
+                ] != item.get("id"):
                     raise BuildProvenanceError(
                         "Standard custom_mesh identity differs from SceneSpec"
                     )
@@ -294,10 +300,7 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
                         source_path_value,
                         label,
                     )
-                    if (
-                        not source_path.is_file()
-                        or sha256_file(source_path) != expected_sha256
-                    ):
+                    if not file_exists(source_path) or sha256_file(source_path) != expected_sha256:
                         raise BuildProvenanceError(f"{label} hash is stale")
                 source_scene_spec_path = _contained_relative_path(
                     root,
@@ -305,13 +308,9 @@ def _geometry_payload_hashes(root: Path, scene_spec: dict[str, Any]) -> dict[str
                     "Standard source SceneSpec",
                 )
                 try:
-                    source_scene_spec = json.loads(
-                        source_scene_spec_path.read_text(encoding="utf-8")
-                    )
+                    source_scene_spec = json.loads(_read_text(source_scene_spec_path))
                 except (OSError, json.JSONDecodeError) as exc:
-                    raise BuildProvenanceError(
-                        "Standard source SceneSpec is invalid"
-                    ) from exc
+                    raise BuildProvenanceError("Standard source SceneSpec is invalid") from exc
                 source_objects = source_scene_spec.get("objects")
                 matches = (
                     [
@@ -343,7 +342,7 @@ def _optional_interior_contract_hashes(root: Path) -> dict[str, Any] | None:
     """Bind an explicitly created interior scope and approval without changing legacy hashes."""
 
     scope_path = root / "architecture" / "interior_scope.json"
-    if not scope_path.is_file():
+    if not file_exists(scope_path):
         return None
     approval_path = root / "architecture" / "interior_scope.approval.json"
     return {
@@ -351,10 +350,10 @@ def _optional_interior_contract_hashes(root: Path) -> dict[str, Any] | None:
         "scope_sha256": sha256_file(scope_path),
         "approval_path": (
             _relative_path(root, approval_path, "interior approval")
-            if approval_path.is_file()
+            if file_exists(approval_path)
             else None
         ),
-        "approval_sha256": sha256_file(approval_path) if approval_path.is_file() else None,
+        "approval_sha256": sha256_file(approval_path) if file_exists(approval_path) else None,
     }
 
 
@@ -362,21 +361,17 @@ def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | Non
     """Bind validated detail IDs without importing host-only packages in Blender."""
 
     plan_path = root / "analysis" / "modeling_plan.json"
-    if not plan_path.is_file():
+    if not file_exists(plan_path):
         return None
     try:
-        raw = json.loads(plan_path.read_text(encoding="utf-8"))
+        raw = json.loads(_read_text(plan_path))
     except json.JSONDecodeError as exc:
-        raise BuildProvenanceError(
-            f"ModelingPlan is invalid JSON: {plan_path}"
-        ) from exc
+        raise BuildProvenanceError(f"ModelingPlan is invalid JSON: {plan_path}") from exc
     details = raw.get("surface_details") if isinstance(raw, dict) else None
     if not details:
         return None
     if not isinstance(details, list):
-        raise BuildProvenanceError(
-            f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Surface-detail ModelingPlan contract is invalid: {plan_path}")
     # Host entry points perform the full Pydantic validation before Blender starts.
     # This lightweight pass keeps fingerprint collection usable in Blender's Python,
     # which intentionally does not inherit the host virtual environment.
@@ -393,9 +388,7 @@ def _optional_surface_detail_contract_hashes(root: Path) -> dict[str, Any] | Non
             )
         detail_ids.append(detail_id)
     if len(detail_ids) != len(set(detail_ids)):
-        raise BuildProvenanceError(
-            f"Surface-detail ModelingPlan contract is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Surface-detail ModelingPlan contract is invalid: {plan_path}")
     return {
         "modeling_plan_path": _relative_path(root, plan_path, "modeling plan"),
         "modeling_plan_sha256": sha256_file(plan_path),
@@ -407,41 +400,29 @@ def _optional_assembly_contract_hashes(root: Path) -> dict[str, Any] | None:
     """Bind every spatial assembly frame while leaving legacy fingerprints unchanged."""
 
     plan_path = root / "analysis" / "modeling_plan.json"
-    if not plan_path.is_file():
+    if not file_exists(plan_path):
         return None
     try:
-        raw = json.loads(plan_path.read_text(encoding="utf-8"))
+        raw = json.loads(_read_text(plan_path))
     except json.JSONDecodeError as exc:
-        raise BuildProvenanceError(
-            f"ModelingPlan is invalid JSON: {plan_path}"
-        ) from exc
+        raise BuildProvenanceError(f"ModelingPlan is invalid JSON: {plan_path}") from exc
     if not isinstance(raw, dict):
-        raise BuildProvenanceError(
-            f"Assembly ModelingPlan contract is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Assembly ModelingPlan contract is invalid: {plan_path}")
     policy = raw.get("assembly_consistency_policy", "legacy_unbound")
     if policy == "legacy_unbound":
         return None
     if policy != "spatial_v1":
-        raise BuildProvenanceError(
-            f"Assembly ModelingPlan policy is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Assembly ModelingPlan policy is invalid: {plan_path}")
     relationships = raw.get("assembly_relationships", [])
     if not isinstance(relationships, list):
-        raise BuildProvenanceError(
-            f"Assembly ModelingPlan contract is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Assembly ModelingPlan contract is invalid: {plan_path}")
     relation_ids: list[str] = []
     for relationship in relationships:
         if not isinstance(relationship, dict):
-            raise BuildProvenanceError(
-                f"Assembly ModelingPlan contract is invalid: {plan_path}"
-            )
+            raise BuildProvenanceError(f"Assembly ModelingPlan contract is invalid: {plan_path}")
         relation_id = relationship.get("id")
         if not isinstance(relation_id, str) or not relation_id.strip():
-            raise BuildProvenanceError(
-                f"Assembly ModelingPlan contract is invalid: {plan_path}"
-            )
+            raise BuildProvenanceError(f"Assembly ModelingPlan contract is invalid: {plan_path}")
         relation_ids.append(relation_id)
     if len(relation_ids) != len(set(relation_ids)):
         raise BuildProvenanceError(
@@ -449,9 +430,7 @@ def _optional_assembly_contract_hashes(root: Path) -> dict[str, Any] | None:
         )
     frame = raw.get("assembly_frame")
     if not isinstance(frame, dict) or not isinstance(frame.get("root_object_id"), str):
-        raise BuildProvenanceError(
-            f"Assembly ModelingPlan frame is invalid: {plan_path}"
-        )
+        raise BuildProvenanceError(f"Assembly ModelingPlan frame is invalid: {plan_path}")
     return {
         "modeling_plan_path": _relative_path(root, plan_path, "modeling plan"),
         "modeling_plan_sha256": sha256_file(plan_path),
@@ -475,37 +454,35 @@ def collect_build_provenance(
 
     root = job_root.expanduser().resolve()
     if material_plan_mode not in {"current", "scene_spec_only"}:
-        raise BuildProvenanceError(
-            f"Unsupported build material-plan mode: {material_plan_mode!r}"
-        )
+        raise BuildProvenanceError(f"Unsupported build material-plan mode: {material_plan_mode!r}")
     spec_path = (
         scene_spec_path.expanduser().resolve()
         if scene_spec_path is not None
         else root / "analysis" / "scene_spec.json"
     )
-    if not spec_path.is_file():
+    if not file_exists(spec_path):
         raise BuildProvenanceError(f"SceneSpec does not exist: {spec_path}")
     try:
-        scene_spec = json.loads(spec_path.read_text(encoding="utf-8"))
+        scene_spec = json.loads(_read_text(spec_path))
     except json.JSONDecodeError as exc:
         raise BuildProvenanceError(f"SceneSpec is invalid JSON: {spec_path}") from exc
     if not isinstance(scene_spec, dict) or scene_spec.get("job_id") != job_id:
         actual_job_id = scene_spec.get("job_id") if isinstance(scene_spec, dict) else None
-        raise BuildProvenanceError(
-            f"SceneSpec job_id {actual_job_id!r} does not match {job_id!r}"
-        )
-    is_job_workspace = (root / "job.json").is_file() or (root / "architecture").is_dir()
+        raise BuildProvenanceError(f"SceneSpec job_id {actual_job_id!r} does not match {job_id!r}")
+    is_job_workspace = (
+        file_exists(root / "job.json") or Path(native_io_path(root / "architecture")).is_dir()
+    )
     reference_scope_payload: dict[str, Any] | None = None
     metadata_path = root / "job.json"
     reference_content_scope: str | None = None
     target_subject: str | None = None
-    if metadata_path.is_file():
+    if file_exists(metadata_path):
         from .reference_scope import reference_content_scope_from_metadata
 
         try:
-            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
-            reference_content_scope, target_subject = (
-                reference_content_scope_from_metadata(metadata)
+            metadata = json.loads(_read_text(metadata_path))
+            reference_content_scope, target_subject = reference_content_scope_from_metadata(
+                metadata
             )
         except (json.JSONDecodeError, ValueError) as exc:
             raise BuildProvenanceError(
@@ -549,11 +526,9 @@ def collect_build_provenance(
                     f"Reference content-scope validation failed: {exc}"
                 ) from exc
         modeling_plan_path = root / "analysis" / "modeling_plan.json"
-        if modeling_plan_path.is_file():
+        if file_exists(modeling_plan_path):
             try:
-                modeling_plan = ModelingPlan.model_validate_json(
-                    modeling_plan_path.read_text(encoding="utf-8")
-                )
+                modeling_plan = ModelingPlan.model_validate_json(_read_text(modeling_plan_path))
             except (OSError, ValueError) as exc:
                 raise BuildProvenanceError(
                     f"ModelingPlan contract validation failed: {exc}"
@@ -564,19 +539,15 @@ def collect_build_provenance(
             )
             if not assembly_report.ok:
                 formatted = "; ".join(
-                    item.message
-                    for item in assembly_report.checks
-                    if item.status == "failed"
+                    item.message for item in assembly_report.checks if item.status == "failed"
                 )
-                raise BuildProvenanceError(
-                    f"Assembly consistency validation failed: {formatted}"
-                )
+                raise BuildProvenanceError(f"Assembly consistency validation failed: {formatted}")
             if validate_surface_details:
                 try:
                     material_plan_path = root / "analysis" / "material_plan.json"
                     material_plan = (
                         load_material_plan(material_plan_path)
-                        if material_plan_mode == "current" and material_plan_path.is_file()
+                        if material_plan_mode == "current" and file_exists(material_plan_path)
                         else None
                     )
                     surface_report = validate_surface_detail_contract(
@@ -593,9 +564,7 @@ def collect_build_provenance(
                     ) from exc
                 if not surface_report.ok:
                     failures = "; ".join(
-                        item.message
-                        for item in surface_report.checks
-                        if item.status == "failed"
+                        item.message for item in surface_report.checks if item.status == "failed"
                     )
                     raise BuildProvenanceError(
                         f"Surface-detail contract validation failed: {failures}"
@@ -605,13 +574,11 @@ def collect_build_provenance(
         raise BuildProvenanceError("SceneSpec camera must be an object")
 
     runtime_recipes = (
-        load_runtime_shader_recipes(root, job_id)
-        if material_plan_mode == "current"
-        else {}
+        load_runtime_shader_recipes(root, job_id) if material_plan_mode == "current" else {}
     )
     plan_path = root / "analysis" / "material_plan.json"
     selected_plan_path = (
-        plan_path if material_plan_mode == "current" and plan_path.is_file() else None
+        plan_path if material_plan_mode == "current" and file_exists(plan_path) else None
     )
     materials: dict[str, dict[str, Any]] = {}
     for material_id, runtime in sorted(runtime_recipes.items()):
@@ -620,9 +587,7 @@ def collect_build_provenance(
         manifest_value = runtime.get("cbm_texture_manifest")
         manifest_path_value = runtime.get("cbm_texture_manifest_path")
         manifest_path = (
-            Path(str(manifest_path_value)).expanduser().resolve()
-            if manifest_path_value
-            else None
+            Path(str(manifest_path_value)).expanduser().resolve() if manifest_path_value else None
         )
         record: dict[str, Any] = {
             "shader_recipe_path": (
@@ -630,13 +595,9 @@ def collect_build_provenance(
             ),
             "shader_recipe_sha256": sha256_file(recipe_path) if recipe_path else None,
             "texture_manifest_path": (
-                _relative_path(root, manifest_path, "texture manifest")
-                if manifest_path
-                else None
+                _relative_path(root, manifest_path, "texture manifest") if manifest_path else None
             ),
-            "texture_manifest_sha256": (
-                sha256_file(manifest_path) if manifest_path else None
-            ),
+            "texture_manifest_sha256": (sha256_file(manifest_path) if manifest_path else None),
             "texture_channels": _texture_channel_hashes(
                 root,
                 material_id,

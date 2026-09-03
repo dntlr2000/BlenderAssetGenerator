@@ -994,3 +994,129 @@ focused host/Blender 실행은 `38 passed`였습니다. 추가된 gate wiring은
 → sequence 1 canary → 정상 terminal/source 불변성 확인 후 2~5입니다. 이전 `needs_revision`을 새
 beauty에 재사용하지 않고, exact human quality disposition과 Activation acceptance는 각각 별도
 권한으로 남깁니다. profile은 계속 `disabled_experimental`, 수정 후 campaign outcome은 `0/5`입니다.
+
+## 15. f683 기준선 캠페인과 추가 기술 보완
+
+### 15.1 Clean baseline과 실제 다섯 자산 결과
+
+14절 이후 source commit `f6830b742cfa9ce3f4e85a8fe5dba836c41d891d`, tree
+`98411849b8ba40a653a9e5300b57ac9295268ddd`에서 검증 receipt 16개를 모두 통과했습니다.
+전체 host pytest는 `2092 passed, 66 skipped, 8 warnings`, AQ host는
+`1004 passed, 27 skipped, 8 warnings`, 명시적 Blender gate는
+`48 passed, 1 skipped, 6 warnings`였습니다. skip은 실행 통과로 계산하지 않습니다.
+해당 기록은 `reports/activation_readiness/validation_runs/f6830b742cfa9ce3/validation_summary.json`입니다.
+
+- Activation baseline SHA-256:
+  `a1d1397eb64f8e8c2833aabc11145c9d741c96e1af023f36393f9dee00df48bc`
+- local readiness SHA-256:
+  `8ebc34a91ea1e7aa4195f946739c890a9e02e13ffdb495f290c0432bebac0df8`
+- execution readiness SHA-256:
+  `e3607943fd8606d3a8b07562b10e238ea372c68ea1601a8096e8f4eefb61da16`
+- campaign: `aq-first-completion-f6830b7-fix1`
+
+Canary의 정상 terminal/source 불변성을 확인한 뒤 sequence 2~5를 실행했습니다. 다섯 자산 모두
+adapter route/receipt `4/4`의 유효한 종료 trace를 남겼지만 정상 terminal은 `1/5`입니다.
+
+| Sequence | 자산 | 실제 결과 | 정상 terminal |
+|---|---|---|---:|
+| 1 | plastic_shard | IQ, production GLTF package와 clean import 통과 | 1 |
+| 2 | rusted_scrap | V0.7 clean import는 통과했으나 AQ UV/split-normal 해시 비교 실패; base failed / adapter blocked | 0 |
+| 3 | weathered_wood_beam | build provenance의 긴 shader 경로 읽기 실패, rollback 후 exact host cancellation | 0 |
+| 4 | crystal_emitter | 같은 provenance 긴 경로 결함, rollback 후 exact host cancellation | 0 |
+| 5 | multi_material_laser | V0.6 실행 완료; contour `0.759032`로 hard gate blocked | 0 |
+
+Sequence 1의 package SHA-256은
+`38687e19977bf89adda6e61e8ab4f2210d128f15971ee19f4c431d58210d79a3`, post-publication round trip은
+`46a2de9906cded885f4d9883e62745b167035f6b3274bbcd945904b0d6f118d7`입니다.
+30개 package payload를 독립 재해시했고 warning 6개를 유지했습니다. 당시 source, helper 17개,
+exact 입력 41개와 preflight 6개의 불변성을 확인했습니다. 추가 사용자 결정·technical user approval·
+canonical corruption·destination write는 모두 0입니다. 실제 beauty는 3개이며 이 캠페인의 exact
+human quality disposition은 0개입니다.
+
+Derived 실행 감사는
+`reports/activation_readiness/fresh_campaign/aq-first-completion-f6830b7-fix1/campaign_execution_result.json`,
+SHA-256 `f72c61b50a32852660cbeb5cda08dca2cf48ff3dd89da8ecda997729fbeccf4e`입니다.
+정식 job state/terminal/receipt가 권위이며 감사 요약이 이를 대신하지 않습니다. 이미 failed, cancelled,
+blocked 또는 completed인 job은 재개하거나 재분류하지 않습니다. 아래 보완 뒤의 새 baseline 실적으로
+이 1건을 재사용하지 않습니다.
+
+### 15.2 경로와 GLB 수치 동등성 보완
+
+`build_provenance.py`의 남은 일반 `open`/`is_file`/`read_text`를 기존 native long-path I/O와
+일치시켰습니다. hash·schema·path containment·dependency 검사는 그대로입니다. Wood와 Crystal의
+실제 형상/재질 계약을 각각 격리 복제한 full build와 reopen은 Blender 5.0.1에서 통과했습니다.
+Wood는 6 objects/3 materials, Crystal은 9 objects/3 materials이고 shader 경로는 302~306자입니다.
+원본 cancelled session과 입력 bytes는 수정하지 않았습니다. 격리 기록은
+`.t/f68-diagnostics/material-build-preflight/summary.json`입니다.
+
+Rust의 실제 optimized blend와 GLB는 같은 표면·material fingerprint를 유지했습니다. 25,284개
+삼각형의 75,852개 코너를 유일하게 대응시켜 측정한 최대 오차는 다음과 같습니다.
+
+| 항목 | 실제 최대 차이 | 새 companion의 고정 상한 |
+|---|---:|---:|
+| world position 성분 | `0 m` | `0.000001 m` |
+| UV 성분 | `2.9802322387695312e-08` | `0.0000001` |
+| unit normal 성분 | `0.003962226212024689` | `0.005` |
+| normal 각도 | `0.24121191808961934°` | `0.5°` |
+
+기존 snapshot/report `0.1.0`의 양자화 해시와 failed 결과는 수정하지 않습니다. 새 execution에서만
+별도 strict raw-corner evidence `0.1.0`과 numerical survival report `0.2.0`을 생성할 수 있습니다.
+이 경로는 Blender 5.0.1 GLB의 optimized-to-clean-import 관계에만 한정하며, 실패가 UV/normal
+해시뿐일 때만 선택합니다. 모든 코너를 공동 비교하고 중복/퇴화/모호한 삼각형, 뒤집힌 winding,
+UV seam 재배치, 한계 초과, 다른 run/source/build/package 또는 변조된 raw proof를 거부합니다.
+기존 exact 비교를 새 report 안과 독립 파일에 보존하고, 소비 시 원본 blend/GLB와 raw records를
+재해시·재계산합니다. IQ 기준, material/topology gate, candidate promotion, FBX, 사용자 승인과
+historical evidence의 의미는 바꾸지 않습니다.
+
+과거 Rust artifact를 읽기 전용으로 다시 검사한 새 진단 proof는
+`.t/f68-diagnostics/rust-numerical-preflight/numerical_survival_report.json`, SHA-256
+`4e2777f930a1827eb8758eaeb681261d657bfc859b82db8dd2842446b10bc350`입니다.
+최종 상태 `known_loss`는 기존 format/authoring metadata 손실을 보존한 결과입니다. 이는 과거 failed
+campaign을 production으로 바꾸는 승인이나 새 campaign outcome이 아닙니다.
+
+### 15.3 Laser V0.4 후보 재진입과 실제 사전 검증
+
+원인은 receiver frame의 방아쇠 구멍뿐 아니라 receiver shell의 convex hull이 하부 관측 음영역을
+채운 것이었습니다. 동일 reference/camera, 11개 semantic/material identity와 조립 범위에서 두
+profile의 관측 음영역을 복원하고 energy/control 부품은 허용된 bounded loft facet으로 저작했습니다.
+unobserved 깊이는 여전히 추론이며 완전한 제품 구조나 human quality acceptance를 주장하지 않습니다.
+
+첫 후보는 self-touching profile로 실패했고, 관련 없는 sight profile까지 바꾼 후보는 cap-area에서
+실패했습니다. 이 진단들은 보존했습니다. 다음 후보는 build/V0.6에 성공했으나 shell이 구멍을 가려
+contour `0.759092`에 머물렀습니다. object-ID 렌더로 원인을 분리한 최종 격리 후보는 다음 결과입니다.
+
+- 실제 AQ candidate contract, Blender 5.0.1 build, V0.6 canonical 7-pass 실행: 통과
+- 같은 contour 기준과 camera: `0.759032 → 0.952061`; 기준 `0.8` 불변
+- V0.6 direct score: `0.987376`
+- 고정 카메라 내부 가시성 retention: interior edge `0.525746`, high frequency `0.704216`,
+  luminance variation `1.038835`; 기존 기준 `0.35 / 0.35 / 0.25` 불변
+- LOD0~2 메시 33개 portable tangent probe: invalid loops `0`, source blend 불변
+- exact beauty SHA-256:
+  `b9ea6ed403c876ff50e1d2551767d97b6daf3a26f41fd3ffef280de00b3dc9b0`
+
+기록은 `.t/f68-diagnostics/laser-aperture-preflight-05/preflight_result.json`과
+`.t/735fix/laser_aperture_05_tangent.json`입니다. 격리 beauty를 직접 확인했으나 판상 실루엣과
+평평한 재질 표현의 한계가 남습니다. 이 사전 검증은 full IQ/source freeze/portable package나
+campaign outcome을 대신하지 않으며, 사람이 exact `accepted` 또는 `needs_revision`을 기록한
+것으로 취급하지 않습니다.
+
+### 15.4 회귀와 다음 실행 경계
+
+변경 관련 집중 검증은 `82 passed`이며 GLB/FBX 실제 import의 두 precision fixture와 실제 긴
+shader 경로 build/reopen을 포함합니다. 새 proof의 host negative/compatibility case 40개도 여기에
+포함됩니다. PowerShell/Bash AQ gate와 schema registry를 함께 갱신했습니다. 새 schema는 명시적
+version으로만 로드하며 기존 schema bytes는 변경하지 않습니다.
+
+수정 상태의 전체 host 회귀는 `2134 passed, 68 skipped, 8 warnings`로 완료했습니다.
+68개 skip에는 명시적 opt-in이 없는 Blender 항목이 포함되므로 Blender 통과로 계산하지 않습니다.
+기존 Pillow deprecation 경고 8개를 유지했으며 Ruff, doctor, agent instruction, Activation contract와
+`git diff --check`도 통과했습니다. clean commit의 공식 검증 receipt는 이후 별도로 생성합니다.
+별도 opt-in `test_aq_v02_delivery_executor_blender.py`도 Blender 5.0.1에서 `1 passed`로 완료해
+실제 독립 GLB/FBX 패키징·clean import와 exact crash-adoption 경로를 확인했습니다.
+
+다음 경계는 전체 회귀·공식 gate 및 repository projection 동기화 → clean source checkpoint → 새
+ActivationSourceManifest/Baseline/Readiness → 새 sequence 1 canary → 정상 terminal/source 불변성
+확인 후 2~5입니다. source가 바뀐 이상 f683 또는 이전 baseline의 실적은 합산하지 않습니다.
+현재 단계는 로드맵 8-B이고 수정 후 outcome은 `0/5`, profile은 `disabled_experimental`입니다.
+기술 복구에 사용자 승인을 요구하지 않으며 exact human quality disposition과 local Activation
+acceptance는 각자의 실제 권한 경계에서만 처리합니다.

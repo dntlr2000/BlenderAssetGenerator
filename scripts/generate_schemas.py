@@ -447,6 +447,10 @@ from codex_blender_modeler.stabilization.models import (
     WorkspaceAuditReport,
 )
 from codex_blender_modeler.standard_custom_mesh import StandardCustomMeshPayload
+from codex_blender_modeler.structural_geometry.geometry_delivery_equivalence import (
+    GeometryDeliveryCornerEvidenceV02,
+    GeometryNumericalSurvivalReportV02,
+)
 from codex_blender_modeler.structural_geometry.geometry_survival_v02 import (
     GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
@@ -698,6 +702,8 @@ SCHEMAS = {
     "mesh_payload_v02_migration_receipt.schema.json": MeshPayloadV02MigrationReceipt,
     "geometry_stage_snapshot_v02.schema.json": GeometryStageSnapshotV02,
     "geometry_intent_survival_report.schema.json": GeometryIntentSurvivalReportV02,
+    "geometry_delivery_corner_evidence.schema.json": GeometryDeliveryCornerEvidenceV02,
+    "geometry_delivery_numerical_survival_report.schema.json": GeometryNumericalSurvivalReportV02,
     # Integrated Quality 0.2 remains parallel to the registered 0.1 contracts.
     "integrated_quality_v02_report.schema.json": IntegratedQualityReportV02,
     "integrated_quality_v02_policy.schema.json": IntegratedQualityPolicyV02,

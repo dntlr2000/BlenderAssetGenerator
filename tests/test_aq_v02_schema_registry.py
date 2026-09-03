@@ -98,6 +98,10 @@ from codex_blender_modeler.production.controller_executor.models import (
     ControllerResult,
     PhaseToolProfile,
 )
+from codex_blender_modeler.structural_geometry.geometry_delivery_equivalence import (
+    GeometryDeliveryCornerEvidenceV02,
+    GeometryNumericalSurvivalReportV02,
+)
 from codex_blender_modeler.structural_geometry.geometry_survival_v02 import (
     GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
@@ -125,6 +129,8 @@ from codex_blender_modeler.versioning import (
     AUTONOMY_V02_DELIVERY_SCHEMA_VERSION,
     AUTONOMY_V02_SCHEMA_VERSION,
     CONTROLLER_EXECUTOR_SCHEMA_VERSION,
+    GEOMETRY_DELIVERY_CORNER_SCHEMA_VERSION,
+    GEOMETRY_NUMERICAL_SURVIVAL_SCHEMA_VERSION,
     GEOMETRY_RUNTIME_V02_SCHEMA_VERSION,
     INTEGRATED_QUALITY_SCHEMA_VERSION,
     INTEGRATED_QUALITY_V02_SCHEMA_VERSION,
@@ -144,14 +150,14 @@ AQ_V02_SCHEMA_MODELS = {
     "mesh_payload_v02_migration_receipt.schema.json": MeshPayloadV02MigrationReceipt,
     "geometry_stage_snapshot_v02.schema.json": GeometryStageSnapshotV02,
     "geometry_intent_survival_report.schema.json": GeometryIntentSurvivalReportV02,
+    "geometry_delivery_corner_evidence.schema.json": GeometryDeliveryCornerEvidenceV02,
+    "geometry_delivery_numerical_survival_report.schema.json": GeometryNumericalSurvivalReportV02,
     "integrated_quality_v02_report.schema.json": IntegratedQualityReportV02,
     "integrated_quality_v02_policy.schema.json": IntegratedQualityPolicyV02,
     "integrated_quality_v02_candidate_ranking.schema.json": CandidateRankingV02,
     "integrated_quality_v02_reentry.schema.json": ReentryDecisionV02,
     "material_graph_runtime_plan.schema.json": NormalizedMaterialGraphPlan,
-    "material_graph_runtime_dependency_manifest.schema.json": (
-        MaterialGraphDependencyManifest
-    ),
+    "material_graph_runtime_dependency_manifest.schema.json": (MaterialGraphDependencyManifest),
     "material_graph_runtime_compile_request.schema.json": MaterialGraphCompileRequest,
     "material_graph_runtime_compile_report.schema.json": MaterialGraphCompileReport,
     "material_graph_runtime_inventory.schema.json": NormalizedMaterialNodeInventory,
@@ -166,9 +172,7 @@ AQ_V02_SCHEMA_MODELS = {
     "autonomy_v02_budget.schema.json": AutonomyBudgetV2,
     "autonomy_v02_root_authorization.schema.json": RootAuthorizationV2,
     "autonomy_v02_quality_source_freeze.schema.json": QualityApprovedSourceFreeze,
-    "autonomy_v02_human_quality_review_bundle.schema.json": (
-        HumanQualityReviewBundleV2
-    ),
+    "autonomy_v02_human_quality_review_bundle.schema.json": (HumanQualityReviewBundleV2),
     "autonomy_v02_quality_review_bundle.schema.json": QualityReviewBundleV2,
     "autonomy_v02_delivery_profile.schema.json": DeliveryProfile,
     "autonomy_v02_delivery_plan.schema.json": DeliveryPlan,
@@ -178,20 +182,14 @@ AQ_V02_SCHEMA_MODELS = {
     "autonomy_v02_plan.schema.json": AutonomyPlanV2,
     "autonomy_v02_state.schema.json": AutonomyStateV2,
     "autonomy_v02_cancellation.schema.json": AutonomyCancellationV2,
-    "autonomy_v02_geometry_authoring_completion.schema.json": (
-        GeometryAuthoringCompletionV2
-    ),
+    "autonomy_v02_geometry_authoring_completion.schema.json": (GeometryAuthoringCompletionV2),
     "autonomy_v02_geometry_candidate_validation_receipt.schema.json": (
         GeometryCandidateValidationReceiptV2
     ),
-    "autonomy_v02_material_controller_completion.schema.json": (
-        MaterialControllerCompletionV2
-    ),
+    "autonomy_v02_material_controller_completion.schema.json": (MaterialControllerCompletionV2),
     "autonomy_v02_material_promotion_intent.schema.json": MaterialPromotionIntentV2,
     "autonomy_v02_material_phase_receipt.schema.json": MaterialPhaseReceiptV2,
-    "autonomy_v02_material_rollback_receipt.schema.json": (
-        MaterialPhaseRollbackReceiptV2
-    ),
+    "autonomy_v02_material_rollback_receipt.schema.json": (MaterialPhaseRollbackReceiptV2),
     "autonomy_benchmark_v02_case.schema.json": BenchmarkCaseV02,
     "autonomy_benchmark_v02_manifest.schema.json": BenchmarkManifestV02,
     "autonomy_benchmark_v02_blender_receipt.schema.json": BlenderBenchmarkReceiptV02,
@@ -225,13 +223,11 @@ def test_aq_v02_checked_in_schemas_match_every_registered_model() -> None:
 def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
     """Prevent generated files from drifting to a similarly named legacy model."""
 
-    registered = runpy.run_path(str(ROOT / "scripts" / "generate_schemas.py"))[
-        "SCHEMAS"
-    ]
+    registered = runpy.run_path(str(ROOT / "scripts" / "generate_schemas.py"))["SCHEMAS"]
     for filename, model in AQ_V02_SCHEMA_MODELS.items():
         assert registered[filename] is model
     new_names = set(AQ_V02_SCHEMA_MODELS)
-    assert len(new_names) == 51
+    assert len(new_names) == 53
     geometry_names = {
         "mesh_payload_v02.schema.json",
         "mesh_payload_v02_compile_report.schema.json",
@@ -239,6 +235,8 @@ def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
         "mesh_payload_v02_migration_receipt.schema.json",
         "geometry_stage_snapshot_v02.schema.json",
         "geometry_intent_survival_report.schema.json",
+        "geometry_delivery_corner_evidence.schema.json",
+        "geometry_delivery_numerical_survival_report.schema.json",
     }
     prefixes = (
         "integrated_quality_v02_",
@@ -259,8 +257,7 @@ def test_schema_generator_registers_exact_aq_v02_model_identities() -> None:
             or (
                 name.startswith(prefixes)
                 and not name.startswith("material_authoring_codex_image_")
-                and name
-                != "autonomy_v02_material_closure_promotion_boundary.schema.json"
+                and name != "autonomy_v02_material_closure_promotion_boundary.schema.json"
             )
         )
     }
@@ -276,6 +273,20 @@ def test_aq_v02_versions_remain_parallel_to_legacy_contracts() -> None:
     assert AUTONOMY_SCHEMA_VERSION == "0.1.0"
     assert MESH_PAYLOAD_V02_SCHEMA_VERSION == MESH_PAYLOAD_V02_MODEL_VERSION == "0.2.0"
     assert GEOMETRY_RUNTIME_V02_SCHEMA_VERSION == "0.1.0"
+    assert GEOMETRY_DELIVERY_CORNER_SCHEMA_VERSION == "0.1.0"
+    assert GEOMETRY_NUMERICAL_SURVIVAL_SCHEMA_VERSION == "0.2.0"
+    assert (
+        GeometryDeliveryCornerEvidenceV02.model_json_schema()["properties"]["schema_version"][
+            "const"
+        ]
+        == GEOMETRY_DELIVERY_CORNER_SCHEMA_VERSION
+    )
+    assert (
+        GeometryNumericalSurvivalReportV02.model_json_schema()["properties"]["schema_version"][
+            "const"
+        ]
+        == GEOMETRY_NUMERICAL_SURVIVAL_SCHEMA_VERSION
+    )
     for model in (
         MeshPayloadV02CompileReport,
         MeshPayloadV02MigrationPlan,
@@ -286,16 +297,8 @@ def test_aq_v02_versions_remain_parallel_to_legacy_contracts() -> None:
         assert model.model_json_schema()["properties"]["schema_version"]["const"] == (
             GEOMETRY_RUNTIME_V02_SCHEMA_VERSION
         )
-    assert (
-        INTEGRATED_QUALITY_V02_SCHEMA_VERSION
-        == INTEGRATED_QUALITY_V02_MODEL_VERSION
-        == "0.2.0"
-    )
-    assert (
-        MATERIAL_GRAPH_RUNTIME_SCHEMA_VERSION
-        == MATERIAL_GRAPH_RUNTIME_MODEL_VERSION
-        == "0.1.0"
-    )
+    assert INTEGRATED_QUALITY_V02_SCHEMA_VERSION == INTEGRATED_QUALITY_V02_MODEL_VERSION == "0.2.0"
+    assert MATERIAL_GRAPH_RUNTIME_SCHEMA_VERSION == MATERIAL_GRAPH_RUNTIME_MODEL_VERSION == "0.1.0"
     for model in (
         NormalizedMaterialGraphPlan,
         MaterialGraphDependencyManifest,
@@ -308,31 +311,15 @@ def test_aq_v02_versions_remain_parallel_to_legacy_contracts() -> None:
         assert model.model_json_schema()["properties"]["schema_version"]["const"] == (
             MATERIAL_GRAPH_RUNTIME_SCHEMA_VERSION
         )
-    assert (
-        CONTROLLER_EXECUTOR_SCHEMA_VERSION
-        == CONTROLLER_EXECUTOR_MODEL_VERSION
-        == "0.1.0"
-    )
+    assert CONTROLLER_EXECUTOR_SCHEMA_VERSION == CONTROLLER_EXECUTOR_MODEL_VERSION == "0.1.0"
     for model in (PhaseToolProfile, ControllerExecutionRequest, ControllerResult):
         assert model.model_json_schema()["properties"]["schema_version"]["const"] == (
             CONTROLLER_EXECUTOR_SCHEMA_VERSION
         )
     assert AUTONOMY_V02_SCHEMA_VERSION == AUTONOMY_V02_MODEL_VERSION == "0.2.0"
-    assert (
-        AUTONOMY_V02_DELIVERY_SCHEMA_VERSION
-        == AUTONOMY_V02_DELIVERY_MODEL_VERSION
-        == "0.1.0"
-    )
-    assert (
-        AUTONOMY_BENCHMARK_V02_SCHEMA_VERSION
-        == BENCHMARK_V02_MODEL_VERSION
-        == "0.2.0"
-    )
-    assert (
-        AUTONOMY_BENCHMARK_V02_RUNNER_VERSION
-        == BENCHMARK_V02_RUNNER_MODEL_VERSION
-        == "0.2.0"
-    )
+    assert AUTONOMY_V02_DELIVERY_SCHEMA_VERSION == AUTONOMY_V02_DELIVERY_MODEL_VERSION == "0.1.0"
+    assert AUTONOMY_BENCHMARK_V02_SCHEMA_VERSION == BENCHMARK_V02_MODEL_VERSION == "0.2.0"
+    assert AUTONOMY_BENCHMARK_V02_RUNNER_VERSION == BENCHMARK_V02_RUNNER_MODEL_VERSION == "0.2.0"
     assert MATERIAL_AUTHORING_SCHEMA_VERSION == "0.1.0"
     assert ADVANCED_MATERIAL_HANDOFF_SCHEMA_VERSION == "0.1.0"
 
@@ -355,9 +342,7 @@ def test_explicit_version_dispatch_keeps_legacy_and_v02_separate() -> None:
     assert isinstance(legacy, LegacyVertexUvMeshPayload)
     with pytest.raises(ValueError, match="unsupported"):
         load_compatible_mesh_payload({"schema_version": "0.3.0"})
-    assert BenchmarkManifest.model_json_schema()["properties"]["schema_version"][
-        "const"
-    ] == "0.1.0"
-    assert BenchmarkManifestV02.model_json_schema()["properties"]["schema_version"][
-        "const"
-    ] == "0.2.0"
+    assert BenchmarkManifest.model_json_schema()["properties"]["schema_version"]["const"] == "0.1.0"
+    assert (
+        BenchmarkManifestV02.model_json_schema()["properties"]["schema_version"]["const"] == "0.2.0"
+    )

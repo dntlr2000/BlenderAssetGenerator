@@ -150,6 +150,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE",
     }
     expected_nodes = {
+        "tests/test_material_contract_long_paths.py::test_blender_build_and_inspect_preserve_deep_shader_provenance",
         "tests/test_aq_v02_geometry_blender.py",
         "tests/test_v07_lod_smoothing.py::test_real_blender_refresh_keeps_source_geometry_and_uv_unchanged",
         "tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5",
@@ -186,6 +187,8 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
     assert "scripts/check_activation_readiness_contract.py" in bash
     assert "tests/test_activation_readiness.py" in powershell
     assert "tests/test_activation_readiness.py" in bash
+    assert "tests/test_geometry_delivery_equivalence.py" in powershell
+    assert "tests/test_geometry_delivery_equivalence.py" in bash
     assert "PytestRoot" in powershell
     assert 'Join-Path (Get-Location) ".b"' in powershell
     assert "scripts/run_pytest_acl_safe.py" in powershell

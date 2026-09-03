@@ -10,6 +10,7 @@ from uuid import uuid4
 from ..blender_artifacts import native_io_path, sha256_file
 from ..blender_runner import run_blender
 from ..production.validation import ensure_contained_production_path
+from .geometry_delivery_equivalence import GeometryDeliveryCornerEvidenceV02
 from .geometry_survival_v02 import GeometryStageSnapshotV02
 
 DeliveryGeometryStage = Literal[
@@ -30,8 +31,9 @@ def inspect_delivery_geometry_stage_v02(
     source_fingerprint_sha256: str,
     build_fingerprint_sha256: str,
     topology_profile: str = "static_prop_closed",
+    corner_evidence_relative_path: str | None = None,
 ) -> GeometryStageSnapshotV02:
-    """Inspect one immutable delivery artifact and atomically publish its strict snapshot."""
+    """Publish an exact snapshot and optional same-execution, hash-bound corner companion."""
 
     root = ensure_contained_production_path(job_root, job_root, must_exist=True)
     artifact = ensure_contained_production_path(
@@ -55,6 +57,24 @@ def inspect_delivery_geometry_stage_v02(
         output.with_name(f".{output.name}.{uuid4().hex}.tmp"),
         must_exist=False,
     )
+    corner_output = None
+    corner_staging = None
+    if corner_evidence_relative_path is not None:
+        if stage not in {"optimized_lod0", "clean_import_glb"}:
+            raise ValueError("corner evidence is limited to optimized/GLB delivery")
+        corner_output = ensure_contained_production_path(
+            root,
+            root / corner_evidence_relative_path,
+            must_exist=False,
+        )
+        if corner_output == output or os.path.exists(native_io_path(corner_output)):
+            raise FileExistsError(corner_output)
+        corner_output.parent.mkdir(parents=True, exist_ok=True)
+        corner_staging = ensure_contained_production_path(
+            root,
+            corner_output.with_name(f".{corner_output.name}.{uuid4().hex}.tmp"),
+            must_exist=False,
+        )
     artifact_sha256 = sha256_file(artifact)
     arguments = [
         "--job-root",
@@ -74,14 +94,15 @@ def inspect_delivery_geometry_stage_v02(
         "--output",
         str(staging),
     ]
+    if corner_staging is not None:
+        arguments.extend(["--corner-evidence-output", str(corner_staging)])
     try:
         run_blender(
             "inspect_geometry_delivery_v02.py",
             arguments,
             blend_file=(
                 artifact
-                if stage
-                in {"compiled_candidate", "promoted_canonical", "optimized_lod0"}
+                if stage in {"compiled_candidate", "promoted_canonical", "optimized_lod0"}
                 else None
             ),
             factory_startup=stage in {"clean_import_glb", "clean_import_fbx"},
@@ -103,9 +124,19 @@ def inspect_delivery_geometry_stage_v02(
             raise ValueError("delivery geometry snapshot does not match its host request")
         if sha256_file(artifact) != artifact_sha256:
             raise RuntimeError("delivery artifact changed during host inspection")
+        if corner_staging is not None:
+            evidence = GeometryDeliveryCornerEvidenceV02.model_validate_json(
+                Path(native_io_path(corner_staging)).read_bytes()
+            )
+            if evidence.snapshot != snapshot:
+                raise ValueError("corner evidence differs from the same-execution snapshot")
+            assert corner_output is not None
+            os.replace(native_io_path(corner_staging), native_io_path(corner_output))
         os.replace(native_io_path(staging), native_io_path(output))
         return snapshot
     except Exception:
         if os.path.isfile(native_io_path(staging)):
             os.unlink(native_io_path(staging))
+        if corner_staging is not None and os.path.isfile(native_io_path(corner_staging)):
+            os.unlink(native_io_path(corner_staging))
         raise

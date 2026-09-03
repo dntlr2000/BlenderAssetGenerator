@@ -30,6 +30,7 @@
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
 | Material Identity Split | additive strict `0.1.0`; paired SceneSpec/ModelingPlan, Blender shadow validation, specialized root-scope approval, guarded apply/recovery; 실제 자산은 승인 요청 경계에서 정지 |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
+| GLB numerical geometry survival | raw corner evidence `0.1.0`, numerical report `0.2.0`; Blender 5.0.1 전용 additive proof, 기존 exact snapshot/report 의미 유지 |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
 | AQ post-change 최종 회귀 | 1145 passed, 20 skipped, 8 warnings in 149.21s; Ruff passed |
@@ -93,8 +94,13 @@ human-reviewed E2E가 기록됩니다. 플라스틱 canary는 high silhouette �
 skill-adapter, Blender, package와 clean-import 캠페인을 반복 실행했지만 profile은 계속
 `disabled_experimental`입니다. C655 기준선의 5개 technical production delivery는 모두 완료됐으나
 fixed-camera 내부 디테일 붕괴를 IQ가 차단하지 못하는 framework 결함이 확인되어 Activation 실적으로
-소급하지 않습니다. 해당 fail-closed gate를 포함한 새 clean baseline에서 canary와 5-reference
-campaign을 다시 닫기 전까지 current-baseline outcome은 `0/5`이고 Activation은 수행되지 않습니다.
+소급하지 않습니다. 이후 735와 f683 기준선의 실제 캠페인은 각각 정상 terminal `1/5`로 종료했습니다.
+f683에서는 adapter trace 5/5를 닫았지만 Rust의 UV/법선 수치 경계, Wood·Crystal의 build provenance
+긴 경로, Laser의 잘못 채워진 실루엣 음영역을 확인했습니다. 이 실패 이력은 보존하며, 기술 보완과
+격리 사전 검증은 새 캠페인의 성공으로 계산하지 않습니다. 수정 후 clean baseline에서 canary와
+5-reference campaign을 다시 닫기 전까지 수정 후 outcome은 `0/5`이고 Activation은 수행되지 않습니다.
+정확한 캠페인·사전 검증 구분은 [5자산 캠페인 기록](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)의
+15절에 기록합니다.
 실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
 [AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
 [AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는

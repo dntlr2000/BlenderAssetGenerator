@@ -25,11 +25,19 @@ from ..packaging import (
 )
 from ..packaging.models import ExportPackageManifest, RoundTripValidation
 from ..production.validation import ensure_contained_production_path
+from ..structural_geometry.geometry_delivery_equivalence import (
+    GeometryNumericalSurvivalReportV02,
+    bind_corner_evidence,
+    build_numerical_survival_report,
+    load_corner_evidence,
+    load_delivery_survival_report,
+    needs_numerical_comparison,
+    validate_numerical_survival_report,
+)
 from ..structural_geometry.geometry_delivery_inspector_v02 import (
     inspect_delivery_geometry_stage_v02,
 )
 from ..structural_geometry.geometry_survival_v02 import (
-    GeometryIntentSurvivalReportV02,
     GeometryStageSnapshotV02,
     compare_geometry_stage_snapshots_v02,
     publish_geometry_survival_report_v02,
@@ -83,11 +91,7 @@ def _validate_execution_binding(
         or review.source_freeze != plan.source_freeze
     ):
         raise ValueError("delivery review does not match the immutable delivery plan")
-    portable = [
-        request
-        for request in plan.requests
-        if request.profile.profile_id != "review_only"
-    ]
+    portable = [request for request in plan.requests if request.profile.profile_id != "review_only"]
     entries = {entry.delivery_id: entry for entry in review.entries}
     if set(entries) != {request.delivery_id for request in portable}:
         raise ValueError("delivery review does not exactly cover portable requests")
@@ -293,9 +297,10 @@ def _validate_completed_exact_policy_authorization(
         run_root / "optimization_policy_authorization.json",
         must_exist=True,
     )
-    if Path(native_io_path(snapshot_path)).read_bytes() != Path(
-        native_io_path(authorization_path)
-    ).read_bytes():
+    if (
+        Path(native_io_path(snapshot_path)).read_bytes()
+        != Path(native_io_path(authorization_path)).read_bytes()
+    ):
         raise RuntimeError("optimization policy snapshot differs from issued authority")
     reviewed_plan = _load_bound_model(root, review.optimization_plan, OptimizationPlan)
     completed_plan = OptimizationPlan.model_validate_json(
@@ -451,10 +456,7 @@ def _adopt_completed_portable_request(
     package = _load_job_model(package_path, ExportPackageManifest)
     roundtrip_path = ensure_contained_production_path(
         root,
-        run_root
-        / "roundtrip"
-        / request.package_id
-        / "roundtrip_validation.json",
+        run_root / "roundtrip" / request.package_id / "roundtrip_validation.json",
         must_exist=True,
     )
     _load_job_model(roundtrip_path, RoundTripValidation)
@@ -465,9 +467,7 @@ def _adopt_completed_portable_request(
         must_exist=True,
     )
     imported_stage = (
-        "clean_import_glb"
-        if request.profile.profile_id == "portable_gltf"
-        else "clean_import_fbx"
+        "clean_import_glb" if request.profile.profile_id == "portable_gltf" else "clean_import_fbx"
     )
     imported_snapshot_path = ensure_contained_production_path(
         root,
@@ -487,10 +487,7 @@ def _adopt_completed_portable_request(
         imported_snapshot_path,
         GeometryStageSnapshotV02,
     )
-    survival = _load_job_model(
-        survival_path,
-        GeometryIntentSurvivalReportV02,
-    )
+    survival = load_delivery_survival_report(survival_path)
     verify_geometry_stage_snapshot_artifact_v02(optimized_snapshot, job_root=root)
     verify_geometry_stage_snapshot_artifact_v02(imported_snapshot, job_root=root)
     primary_path = _primary_package_artifact_path(root, package)
@@ -499,19 +496,15 @@ def _adopt_completed_portable_request(
     if (
         optimized_snapshot.stage != "optimized_lod0"
         or optimized_snapshot.artifact_path != expected_optimized_path
-        or optimized_snapshot.source_fingerprint_sha256
-        != freeze.v07_source_fingerprint
+        or optimized_snapshot.source_fingerprint_sha256 != freeze.v07_source_fingerprint
         or optimized_snapshot.build_fingerprint_sha256 != expected_build
         or imported_snapshot.stage != imported_stage
         or imported_snapshot.artifact_path != primary_path
-        or imported_snapshot.source_fingerprint_sha256
-        != freeze.v07_source_fingerprint
+        or imported_snapshot.source_fingerprint_sha256 != freeze.v07_source_fingerprint
         or imported_snapshot.build_fingerprint_sha256 != expected_build
     ):
         raise RuntimeError("delivery geometry snapshots do not match the completed run")
-    package_format = (
-        "GLB" if request.profile.profile_id == "portable_gltf" else "FBX"
-    )
+    package_format = "GLB" if request.profile.profile_id == "portable_gltf" else "FBX"
     recomputed_survival = compare_geometry_stage_snapshots_v02(
         report_id=f"survival-{request.delivery_id}-optimized-clean-import",
         relation="optimized_to_clean_import",
@@ -519,7 +512,15 @@ def _adopt_completed_portable_request(
         target=imported_snapshot,
         package_format=package_format,
     )
-    if survival != recomputed_survival:
+    if isinstance(survival, GeometryNumericalSurvivalReportV02):
+        proof_source, proof_target = validate_numerical_survival_report(root, survival)
+        if (
+            proof_source != optimized_snapshot
+            or proof_target != imported_snapshot
+            or survival.exact_snapshot_comparison != recomputed_survival
+        ):
+            raise RuntimeError("numerical survival proof does not match the completed run")
+    elif survival != recomputed_survival:
         raise RuntimeError("geometry survival report does not match its exact snapshots")
     approval_artifact = None
     if policy_authorization is None:
@@ -568,9 +569,7 @@ def _adopt_completed_portable_request(
         material_loss_report=material_artifact,
         geometry_survival_report=survival_artifact,
         production_ready=True,
-        known_losses=list(
-            dict.fromkeys([*package.known_losses, *survival.known_losses])
-        ),
+        known_losses=list(dict.fromkeys([*package.known_losses, *survival.known_losses])),
     )
     _validate_package_result(root, freeze, request, review, result)
     validate_quality_source_freeze(root, freeze)
@@ -612,23 +611,19 @@ def _execute_portable_request(
         / request.package_id
         / "package_manifest.json"
     )
-    roundtrip_path = (
-        run_root
-        / "roundtrip"
-        / request.package_id
-        / "roundtrip_validation.json"
-    )
+    roundtrip_path = run_root / "roundtrip" / request.package_id / "roundtrip_validation.json"
     approval_path = run_root / "optimization_approval.json"
     policy_snapshot_path = run_root / "optimization_policy_authorization.json"
     geometry_root = run_root / "aq_v2" / "geometry"
     optimized_snapshot_path = geometry_root / "optimized_lod0_snapshot.json"
     imported_stage = (
-        "clean_import_glb"
-        if request.profile.profile_id == "portable_gltf"
-        else "clean_import_fbx"
+        "clean_import_glb" if request.profile.profile_id == "portable_gltf" else "clean_import_fbx"
     )
     imported_snapshot_path = geometry_root / f"{imported_stage}_snapshot.json"
     survival_path = geometry_root / "optimized_to_clean_import_report.json"
+    optimized_corners_path = geometry_root / "optimized_lod0_corners.json"
+    imported_corners_path = geometry_root / "clean_import_glb_corners.json"
+    collect_corners = request.profile.profile_id == "portable_gltf"
     collected: dict[str, AQV2Artifact | None] = {
         "optimization_plan": None,
         "optimization_approval": None,
@@ -642,9 +637,7 @@ def _execute_portable_request(
         validate_quality_source_freeze(root, freeze)
         if policy_authorization is None:
             if os.path.isfile(native_io_path(policy_snapshot_path)):
-                raise RuntimeError(
-                    "delivery run mixes AQ v2 policy and user approval authority"
-                )
+                raise RuntimeError("delivery run mixes AQ v2 policy and user approval authority")
             if os.path.isfile(native_io_path(approval_path)):
                 existing_approval = OptimizationApproval.model_validate_json(
                     Path(native_io_path(approval_path)).read_bytes()
@@ -678,18 +671,14 @@ def _execute_portable_request(
             )
         else:
             if os.path.isfile(native_io_path(approval_path)):
-                raise RuntimeError(
-                    "delivery run mixes user approval and AQ v2 policy authority"
-                )
+                raise RuntimeError("delivery run mixes user approval and AQ v2 policy authority")
             collected["optimization_plan"] = review.optimization_plan
             if os.path.isfile(native_io_path(policy_snapshot_path)):
                 completed_path = run_root / "optimization_plan.json"
                 completed = OptimizationPlan.model_validate_json(
                     Path(native_io_path(completed_path)).read_bytes()
                 )
-                if completed.status == "complete" and os.path.isfile(
-                    native_io_path(package_path)
-                ):
+                if completed.status == "complete" and os.path.isfile(native_io_path(package_path)):
                     return _adopt_completed_portable_request(
                         root=root,
                         freeze=freeze,
@@ -767,6 +756,9 @@ def _execute_portable_request(
             output_relative_path=optimized_snapshot_path.relative_to(root).as_posix(),
             source_fingerprint_sha256=freeze.v07_source_fingerprint,
             build_fingerprint_sha256=optimized.source.build_fingerprint,
+            corner_evidence_relative_path=(
+                optimized_corners_path.relative_to(root).as_posix() if collect_corners else None
+            ),
         )
         package = package_asset(
             freeze.job_id,
@@ -832,18 +824,34 @@ def _execute_portable_request(
             output_relative_path=imported_snapshot_path.relative_to(root).as_posix(),
             source_fingerprint_sha256=freeze.v07_source_fingerprint,
             build_fingerprint_sha256=optimized.source.build_fingerprint,
+            corner_evidence_relative_path=(
+                imported_corners_path.relative_to(root).as_posix() if collect_corners else None
+            ),
         )
         survival = compare_geometry_stage_snapshots_v02(
             report_id=f"survival-{request.delivery_id}-optimized-clean-import",
             relation="optimized_to_clean_import",
             source=optimized_snapshot,
             target=imported_snapshot,
-            package_format=(
-                "GLB"
-                if request.profile.profile_id == "portable_gltf"
-                else "FBX"
-            ),
+            package_format=("GLB" if request.profile.profile_id == "portable_gltf" else "FBX"),
         )
+        if needs_numerical_comparison(survival):
+            publish_geometry_survival_report_v02(
+                geometry_root / "optimized_to_clean_import_exact_comparison.json",
+                survival,
+            )
+            source_corners = bind_corner_evidence(root, optimized_corners_path)
+            target_corners = bind_corner_evidence(root, imported_corners_path)
+            numerical = build_numerical_survival_report(
+                report_id=survival.report_id,
+                source=load_corner_evidence(root, source_corners),
+                target=load_corner_evidence(root, target_corners),
+                source_artifact=source_corners,
+                target_artifact=target_corners,
+            )
+            if numerical.exact_snapshot_comparison != survival:
+                raise RuntimeError("numerical proof does not match the inspected snapshots")
+            survival = numerical
         publish_geometry_survival_report_v02(survival_path, survival)
         collected["geometry_survival_report"] = artifact_for_v2(
             root,
@@ -852,9 +860,7 @@ def _execute_portable_request(
             kind="geometry_survival_report",
         )
         if survival.overall_status in {"failed", "unscorable"}:
-            raise RuntimeError(
-                "optimized-to-clean-import geometry survival was not proven"
-            )
+            raise RuntimeError("optimized-to-clean-import geometry survival was not proven")
         validate_quality_source_freeze(root, freeze)
         losses = list(dict.fromkeys([*package.known_losses, *survival.known_losses]))
         return DeliveryResult(
@@ -864,9 +870,7 @@ def _execute_portable_request(
             source_freeze_sha256=source_freeze_artifact.sha256,
             optimization_plan=review.optimization_plan,
             optimization_approval=collected["optimization_approval"],
-            optimization_policy_authorization=collected[
-                "optimization_policy_authorization"
-            ],
+            optimization_policy_authorization=collected["optimization_policy_authorization"],
             package_manifest=collected["package_manifest"],
             roundtrip_validation=collected["roundtrip_validation"],
             material_loss_report=collected["material_loss_report"],
@@ -883,25 +887,19 @@ def _execute_portable_request(
             artifact_id=f"{request.delivery_id}-optimization-approval",
             kind="optimization_approval",
         )
-        collected["material_loss_report"] = collected[
-            "material_loss_report"
-        ] or _partial_artifact(
+        collected["material_loss_report"] = collected["material_loss_report"] or _partial_artifact(
             root,
             conversion_path,
             artifact_id=f"{request.delivery_id}-material-conversion",
             kind="portable_material_conversion_manifest",
         )
-        collected["package_manifest"] = collected[
-            "package_manifest"
-        ] or _partial_artifact(
+        collected["package_manifest"] = collected["package_manifest"] or _partial_artifact(
             root,
             package_path,
             artifact_id=f"{request.delivery_id}-package-manifest",
             kind="package_manifest",
         )
-        collected["roundtrip_validation"] = collected[
-            "roundtrip_validation"
-        ] or _partial_artifact(
+        collected["roundtrip_validation"] = collected["roundtrip_validation"] or _partial_artifact(
             root,
             roundtrip_path,
             artifact_id=f"{request.delivery_id}-roundtrip-validation",
@@ -922,9 +920,7 @@ def _execute_portable_request(
             source_freeze_sha256=source_freeze_artifact.sha256,
             optimization_plan=collected["optimization_plan"],
             optimization_approval=collected["optimization_approval"],
-            optimization_policy_authorization=collected[
-                "optimization_policy_authorization"
-            ],
+            optimization_policy_authorization=collected["optimization_policy_authorization"],
             package_manifest=collected["package_manifest"],
             roundtrip_validation=collected["roundtrip_validation"],
             material_loss_report=collected["material_loss_report"],
