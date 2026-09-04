@@ -6,11 +6,18 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any
 
 import bpy
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from portable_asset_common import native_io_path  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -33,9 +40,9 @@ def _contained(path: str, job_root: Path, *, must_exist: bool) -> Path:
         resolved.relative_to(job_root)
     except ValueError as exc:
         raise RuntimeError("MeshPayload 0.2 compiler path escapes job root") from exc
-    if must_exist and not resolved.is_file():
+    if must_exist and not os.path.isfile(native_io_path(resolved)):
         raise FileNotFoundError(resolved)
-    if not must_exist and resolved.exists():
+    if not must_exist and os.path.exists(native_io_path(resolved)):
         raise FileExistsError(resolved)
     return resolved
 
@@ -43,7 +50,11 @@ def _contained(path: str, job_root: Path, *, must_exist: bool) -> Path:
 def _sha256_file(path: Path) -> str:
     """Return the exact file SHA-256 used by the host-to-Blender binding."""
 
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with open(native_io_path(path), "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _canonical_sha256(value: object) -> str:
@@ -446,8 +457,8 @@ def _stage_snapshot(
 def _write_json(path: Path, payload: object) -> None:
     """Publish one UTF-8 report after the compiled blend is complete."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x", encoding="utf-8", newline="\n") as handle:
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
+    with open(native_io_path(path), "x", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 
@@ -461,7 +472,8 @@ def main() -> None:
     report_path = _contained(args.report, job_root, must_exist=False)
     if _sha256_file(payload_path) != args.payload_sha256:
         raise RuntimeError("MeshPayload 0.2 changed after host validation")
-    payload = json.loads(payload_path.read_text(encoding="utf-8"))
+    with open(native_io_path(payload_path), encoding="utf-8") as handle:
+        payload = json.load(handle)
     _required_payload_shape(payload)
     if any(item.get("severity") == "error" for item in payload.get("findings", [])):
         raise RuntimeError("MeshPayload 0.2 has blocking findings")
@@ -479,8 +491,8 @@ def main() -> None:
     _apply_data_intent(obj, payload)
     _apply_modifier_intent(obj, payload)
     mesh.update(calc_edges=True)
-    output_blend.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=str(output_blend))
+    os.makedirs(native_io_path(output_blend.parent), exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=native_io_path(output_blend))
     snapshot = _stage_snapshot(
         obj,
         payload,

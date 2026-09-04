@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -21,6 +22,8 @@ for import_root in (BLENDER_SCRIPTS, PACKAGE_SRC):
 
 from builders.structural_registry import create_structural_geometry  # noqa: E402
 from geometry_intent_runtime import apply_geometry_intent  # noqa: E402
+
+from codex_blender_modeler.blender_artifacts import native_io_path  # noqa: E402
 
 
 def _parse_args() -> argparse.Namespace:
@@ -50,7 +53,7 @@ def _contained_file(path: str, job_root: Path, *, must_exist: bool) -> Path:
         resolved.relative_to(job_root)
     except ValueError as exc:
         raise RuntimeError("structural materializer path escapes job root") from exc
-    if must_exist and not resolved.is_file():
+    if must_exist and not os.path.isfile(native_io_path(resolved)):
         raise FileNotFoundError(resolved)
     return resolved
 
@@ -93,7 +96,7 @@ def _file_sha256(path: Path) -> str:
     """Hash one exact materializer source without normalizing its bytes."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -465,11 +468,9 @@ def _mesh_payload_v02(
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     """Write one UTF-8 JSON artifact only after successful materialization."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
-    )
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
+    with open(native_io_path(path), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
 
 def main() -> None:
@@ -481,7 +482,8 @@ def main() -> None:
     output_mesh = _contained_file(args.output_mesh, job_root, must_exist=False)
     output_blend = _contained_file(args.output_blend, job_root, must_exist=False)
     report_path = _contained_file(args.report, job_root, must_exist=False)
-    candidate = json.loads(candidate_path.read_text(encoding="utf-8"))
+    with open(native_io_path(candidate_path), encoding="utf-8") as handle:
+        candidate = json.load(handle)
     actual_hash = _canonical_sha256(candidate)
     if actual_hash != args.candidate_sha256:
         raise RuntimeError("structural candidate changed after host validation")
@@ -504,16 +506,16 @@ def main() -> None:
     else:
         payload = _mesh_payload(obj, candidate)
     _write_json(output_mesh, payload)
-    output_blend.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.wm.save_as_mainfile(filepath=str(output_blend))
+    os.makedirs(native_io_path(output_blend.parent), exist_ok=True)
+    bpy.ops.wm.save_as_mainfile(filepath=native_io_path(output_blend))
     report = {
         "schema_version": "0.1.0",
         "status": "passed",
         "semantic_id": candidate["semantic_id"],
         "builder_kind": candidate["geometry"]["kind"],
         "candidate_sha256": actual_hash,
-        "mesh_sha256": hashlib.sha256(output_mesh.read_bytes()).hexdigest(),
-        "blend_sha256": hashlib.sha256(output_blend.read_bytes()).hexdigest(),
+        "mesh_sha256": _file_sha256(output_mesh),
+        "blend_sha256": _file_sha256(output_blend),
         "vertex_count": len(payload["vertices"]),
         "polygon_count": len(payload["faces"]),
     }

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -12,6 +13,7 @@ from compile_mesh_payload_v02 import (
     _apply_modifier_intent,
     _required_payload_shape,
 )
+from portable_asset_common import native_io_path
 from standard_custom_mesh_runtime import validate_standard_custom_mesh_payload
 
 
@@ -22,7 +24,7 @@ def _resolve(path: str, base_dir: Path) -> Path:
     if not candidate.is_absolute():
         candidate = base_dir / candidate
     candidate = candidate.resolve()
-    if not candidate.is_file():
+    if not os.path.isfile(native_io_path(candidate)):
         raise FileNotFoundError(candidate)
     return _material_binding_override_path(path, base_dir, candidate)
 
@@ -80,7 +82,7 @@ def _sha256_file(path: Path) -> str:
     """Hash one exact contained v2 dependency without normalizing its bytes."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -118,7 +120,7 @@ def _contained_v02_path(raw_path: str, base_dir: Path) -> Path:
         candidate.relative_to(root)
     except ValueError as exc:
         raise RuntimeError("MeshPayload 0.2 source path escapes job root") from exc
-    if not candidate.is_file():
+    if not os.path.isfile(native_io_path(candidate)):
         raise FileNotFoundError(candidate)
     return candidate
 
@@ -142,7 +144,7 @@ def _contained_standard_path(raw_path: str, base_dir: Path, label: str) -> Path:
         candidate.relative_to(root)
     except ValueError as exc:
         raise RuntimeError(f"{label} path escapes job root") from exc
-    if not candidate.is_file():
+    if not os.path.isfile(native_io_path(candidate)):
         raise FileNotFoundError(candidate)
     return candidate
 
@@ -176,7 +178,8 @@ def _build_standard(
     if _sha256_file(source_blend_path) != payload["source_blend_sha256"]:
         raise RuntimeError("Standard source Blend hash is stale")
     try:
-        source_spec = json.loads(source_spec_path.read_text(encoding="utf-8"))
+        with open(native_io_path(source_spec_path), encoding="utf-8") as handle:
+            source_spec = json.load(handle)
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("Standard source SceneSpec is invalid") from exc
     matches = [
@@ -236,10 +239,11 @@ def _material_binding_override_path(
     """Resolve one optional exact material-slot derivative without changing source bytes."""
 
     manifest_path = base_dir / "analysis" / "material_binding_derivative.json"
-    if not manifest_path.is_file():
+    if not os.path.isfile(native_io_path(manifest_path)):
         return source_path
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        with open(native_io_path(manifest_path), encoding="utf-8") as handle:
+            manifest = json.load(handle)
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError("material binding derivative companion is invalid") from exc
     if (
@@ -379,7 +383,8 @@ def build(spec: dict, base_dir: Path) -> bpy.types.Object:
     vertex_uvs = None
     if spec.get("path"):
         payload_path = _resolve(spec["path"], base_dir)
-        payload = json.loads(payload_path.read_text(encoding="utf-8"))
+        with open(native_io_path(payload_path), encoding="utf-8") as handle:
+            payload = json.load(handle)
         payload_kind = payload.get("payload_kind")
         version = payload.get("schema_version")
         if payload_kind == "standard_custom_mesh":

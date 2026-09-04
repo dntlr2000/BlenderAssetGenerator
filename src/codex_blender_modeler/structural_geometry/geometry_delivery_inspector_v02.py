@@ -22,6 +22,13 @@ DeliveryGeometryStage = Literal[
 ]
 
 
+def _read_bytes(path: Path) -> bytes:
+    """Read one delivery inspection artifact through a native long-path spelling."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 def inspect_delivery_geometry_stage_v02(
     *,
     job_root: Path,
@@ -50,7 +57,7 @@ def inspect_delivery_geometry_stage_v02(
     )
     if os.path.exists(native_io_path(output)):
         raise FileExistsError(output)
-    output.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output.parent), exist_ok=True)
     output = ensure_contained_production_path(root, output, must_exist=False)
     staging = ensure_contained_production_path(
         root,
@@ -69,7 +76,7 @@ def inspect_delivery_geometry_stage_v02(
         )
         if corner_output == output or os.path.exists(native_io_path(corner_output)):
             raise FileExistsError(corner_output)
-        corner_output.parent.mkdir(parents=True, exist_ok=True)
+        os.makedirs(native_io_path(corner_output.parent), exist_ok=True)
         corner_staging = ensure_contained_production_path(
             root,
             corner_output.with_name(f".{corner_output.name}.{uuid4().hex}.tmp"),
@@ -108,9 +115,7 @@ def inspect_delivery_geometry_stage_v02(
             factory_startup=stage in {"clean_import_glb", "clean_import_fbx"},
             disable_autoexec=True,
         )
-        snapshot = GeometryStageSnapshotV02.model_validate_json(
-            Path(native_io_path(staging)).read_bytes()
-        )
+        snapshot = GeometryStageSnapshotV02.model_validate_json(_read_bytes(staging))
         expected_relative = artifact.relative_to(root).as_posix()
         if (
             snapshot.stage != stage
@@ -126,7 +131,7 @@ def inspect_delivery_geometry_stage_v02(
             raise RuntimeError("delivery artifact changed during host inspection")
         if corner_staging is not None:
             evidence = GeometryDeliveryCornerEvidenceV02.model_validate_json(
-                Path(native_io_path(corner_staging)).read_bytes()
+                _read_bytes(corner_staging)
             )
             if evidence.snapshot != snapshot:
                 raise ValueError("corner evidence differs from the same-execution snapshot")

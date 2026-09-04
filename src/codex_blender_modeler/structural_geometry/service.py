@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any, Literal
 
+from ..blender_artifacts import native_io_path
 from ..blender_runner import run_blender
 from .geometry_intent_runtime_v02 import classify_geometry_intent_v02
 from .mesh_payload_io_v02 import (
@@ -81,11 +83,16 @@ def materialize_structural_candidate(
     blend_path = _resolve_job_path(job_root, blend_relative_path)
     report_path = _resolve_job_path(job_root, report_relative_path)
     for path in (candidate_path, mesh_path, blend_path, report_path):
-        if path.exists():
+        if os.path.exists(native_io_path(path)):
             raise FileExistsError(f"structural materialization will not overwrite {path.name}")
-        path.parent.mkdir(parents=True, exist_ok=True)
+        os.makedirs(native_io_path(path.parent), exist_ok=True)
     payload = validated.model_dump(mode="json")
-    with candidate_path.open("x", encoding="utf-8", newline="\n") as handle:
+    with open(
+        native_io_path(candidate_path),
+        "x",
+        encoding="utf-8",
+        newline="\n",
+    ) as handle:
         handle.write(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
     blender_args = [
         "--candidate",
@@ -153,7 +160,8 @@ def materialize_structural_candidate(
         )
         if materialized.source_hashes != [expected_source_hash]:
             raise RuntimeError("materialized MeshPayload 0.2 changed source binding")
-        report = json.loads(report_path.read_text(encoding="utf-8"))
+        with open(native_io_path(report_path), encoding="utf-8") as handle:
+            report = json.load(handle)
         if report.get("mesh_payload_version") != "0.2.0":
             raise RuntimeError("materialization report omitted MeshPayload 0.2 dispatch")
     return materialized

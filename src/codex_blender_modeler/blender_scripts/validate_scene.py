@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from collections import Counter
 from pathlib import Path
@@ -18,6 +19,7 @@ from assembly_runtime import (  # noqa: E402
     load_assembly_contract,
     relationship_ids_by_object,
 )
+from portable_asset_common import native_io_path  # noqa: E402
 
 DEFERRED_MODIFIER_KINDS = {"boolean", "normal_transfer"}
 
@@ -197,7 +199,8 @@ def main() -> None:
 
     args = parse_args()
     spec_path = Path(args.spec).expanduser().resolve()
-    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    with open(native_io_path(spec_path), encoding="utf-8") as handle:
+        spec = json.load(handle)
     job_root = (
         Path(args.job_root).expanduser().resolve()
         if args.job_root
@@ -205,7 +208,7 @@ def main() -> None:
     )
     assembly_contract = load_assembly_contract(job_root)
     output = Path(args.output).expanduser().resolve()
-    output.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output.parent), exist_ok=True)
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -376,7 +379,8 @@ def main() -> None:
         },
         "assembly": assembly,
     }
-    output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    with open(native_io_path(output), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(report, indent=2))
     print(f"CBM_VALIDATE_{'OK' if report['ok'] else 'FAILED'} output={output}")
 
 

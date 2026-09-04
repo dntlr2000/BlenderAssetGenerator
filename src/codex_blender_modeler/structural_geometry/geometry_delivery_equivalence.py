@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 from typing import Literal
 
@@ -374,13 +375,13 @@ def bind_corner_evidence(root: Path, path: Path) -> GeometryCornerArtifactV02:
     """Bind only a contained regular file after the host has published its raw records."""
 
     safe = ensure_contained_production_path(root, path, must_exist=True)
-    native = Path(native_io_path(safe))
-    if not native.is_file():
+    native = native_io_path(safe)
+    if not os.path.isfile(native):
         raise ValueError("corner evidence is not a regular file")
     return GeometryCornerArtifactV02(
         path=safe.relative_to(root).as_posix(),
         sha256=sha256_file(safe),
-        byte_size=native.stat().st_size,
+        byte_size=os.stat(native).st_size,
     )
 
 
@@ -399,7 +400,7 @@ def load_corner_evidence(
         root, root / evidence.snapshot.artifact_path, must_exist=True
     )
     if (
-        not Path(native_io_path(source)).is_file()
+        not os.path.isfile(native_io_path(source))
         or sha256_file(source) != evidence.snapshot.artifact_sha256
     ):
         raise ValueError("corner evidence source artifact changed")

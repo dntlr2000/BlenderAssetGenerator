@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -21,7 +22,7 @@ from assembly_runtime import (  # noqa: E402
     matrix_rows,
     resolve_assembly_world_to_frame,
 )
-from portable_asset_common import uv_layer_metrics  # noqa: E402
+from portable_asset_common import native_io_path, uv_layer_metrics  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -94,7 +95,7 @@ def main() -> None:
 
     args = parse_args()
     output = Path(args.output).expanduser().resolve()
-    output.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(output.parent), exist_ok=True)
     objects = []
     families: dict[str, list[dict]] = defaultdict(list)
     depsgraph = bpy.context.evaluated_depsgraph_get()
@@ -253,7 +254,8 @@ def main() -> None:
             ),
         },
     }
-    output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    with open(native_io_path(output), "w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(report, indent=2))
     print(f"CBM_INSPECT_OK output={output}")
 
 

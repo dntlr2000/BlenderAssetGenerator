@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ..blender_artifacts import native_io_path
 from .mesh_payload_v02 import MeshPayloadV02
 from .models import StructuralMeshPayload
 
@@ -43,7 +45,7 @@ def file_sha256(path: Path) -> str:
     """Return the exact SHA-256 of one file without normalizing its representation."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -55,12 +57,14 @@ def _read_payload(value: Path | str | bytes | dict[str, Any]) -> dict[str, Any]:
     if isinstance(value, dict):
         return value
     if isinstance(value, Path):
-        return json.loads(value.read_text(encoding="utf-8"))
+        with open(native_io_path(value), encoding="utf-8") as handle:
+            return json.load(handle)
     if isinstance(value, bytes):
         return json.loads(value.decode("utf-8"))
     if value.lstrip().startswith("{"):
         return json.loads(value)
-    return json.loads(Path(value).read_text(encoding="utf-8"))
+    with open(native_io_path(Path(value)), encoding="utf-8") as handle:
+        return json.load(handle)
 
 
 def load_mesh_payload_v02(
@@ -101,7 +105,7 @@ def verify_mesh_payload_v02_source_hashes(
             candidate.relative_to(root)
         except ValueError as exc:
             raise ValueError(f"source artifact escapes job root: {artifact.path}") from exc
-        if not candidate.is_file():
+        if not os.path.isfile(native_io_path(candidate)):
             raise FileNotFoundError(candidate)
         if file_sha256(candidate) != artifact.sha256:
             raise ValueError(f"source artifact hash is stale: {artifact.path}")

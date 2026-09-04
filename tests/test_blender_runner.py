@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from codex_blender_modeler import blender_runner
+from codex_blender_modeler.blender_artifacts import native_io_path
 
 
 def test_blender_runner_isolates_mcp_stdin_and_propagates_python_failures(
@@ -134,4 +138,48 @@ def test_blender_runner_can_disable_autoexec_for_untrusted_blend_inputs(
         "--python-exit-code",
         "1",
     ]
-    assert captured["command"][5] == str(source)
+    assert captured["command"][5] == native_io_path(source)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows extended-path regression")
+def test_blender_runner_accepts_existing_blend_beyond_legacy_max_path(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Recognize an exact Blend input whose absolute path exceeds legacy MAX_PATH."""
+
+    script_dir = tmp_path / "src" / "codex_blender_modeler" / "blender_scripts"
+    script_dir.mkdir(parents=True)
+    (script_dir / "inspect_scene.py").write_text("print('ok')", encoding="utf-8")
+    blender = tmp_path / "blender.exe"
+    blender.write_bytes(b"")
+    deep = tmp_path
+    while len(str(deep / "scene.blend")) <= 280:
+        deep /= "long-segment-0123456789"
+    os.makedirs(native_io_path(deep), exist_ok=True)
+    source = deep / "scene.blend"
+    with open(native_io_path(source), "wb") as handle:
+        handle.write(b"blend")
+    settings = SimpleNamespace(
+        blender_bin=str(blender),
+        repo_root=tmp_path,
+        blender_timeout=10,
+    )
+    monkeypatch.setattr(blender_runner, "get_settings", lambda: settings)
+    monkeypatch.setattr(blender_runner, "executable_exists", lambda _value: True)
+    captured = {}
+
+    def fake_run(command, **_kwargs):
+        """Capture the long-path Blender command without starting a process."""
+
+        captured["command"] = command
+        return subprocess.CompletedProcess(command, 0, stdout="ok", stderr="")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    blender_runner.run_blender(
+        "inspect_scene.py",
+        ["--output", str(deep / "inventory.json")],
+        blend_file=source,
+        disable_autoexec=True,
+    )
+
+    assert captured["command"][5] == native_io_path(source)

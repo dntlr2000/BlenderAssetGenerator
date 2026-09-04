@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
+
+from portable_asset_common import native_io_path
 
 _TEXTURED_REPRESENTATIONS = {"texture_channels", "baked_decal"}
 _UV_STRATEGIES = {"existing_uv", "projected_patch", "material_atlas"}
@@ -13,10 +16,11 @@ def _load_modeling_plan(job_root: Path) -> dict[str, Any] | None:
     """Load one optional ModelingPlan using Blender's standard-library runtime."""
 
     path = job_root / "analysis" / "modeling_plan.json"
-    if not path.is_file():
+    if not os.path.isfile(native_io_path(path)):
         return None
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        with open(native_io_path(path), encoding="utf-8") as handle:
+            payload = json.load(handle)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"ModelingPlan is invalid JSON: {path}") from exc
     if not isinstance(payload, dict):

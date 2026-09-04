@@ -81,6 +81,13 @@ _ROLE_TAGS = {
 }
 
 
+def _read_bytes(path: Path) -> bytes:
+    """Read one exact candidate artifact through a native long-path spelling."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 @dataclass(frozen=True, slots=True)
 class _ControllerBundle:
     """Carry one fully rehashed geometry ControllerExecutor result boundary."""
@@ -210,9 +217,7 @@ def _validate_controller_bundle(
         raise ValueError("current candidate boundary is not anchored by a controller result")
     result_artifact = state.provenance[-1]
     result_path = validate_v2_artifact(root, result_artifact)
-    result = ControllerResult.model_validate_json(
-        Path(native_io_path(result_path)).read_bytes()
-    )
+    result = ControllerResult.model_validate_json(_read_bytes(result_path))
     if result.producer != "codex_blender_modeler.production.controller_executor.service":
         raise PermissionError("geometry candidate result was not published by the executor")
     if result.status != "completed" or not result.canonical_unchanged:
@@ -305,7 +310,7 @@ def _validate_controller_bundle(
         kind="geometry_authoring_completion",
     )
     completion = GeometryAuthoringCompletionV2.model_validate_json(
-        Path(native_io_path(root / completion_artifact.path)).read_bytes()
+        _read_bytes(root / completion_artifact.path)
     )
     if (
         (
@@ -425,7 +430,7 @@ def _validate_camera_binding(root: Path, scene: SceneSpecV03) -> None:
     """Bind the candidate camera to the deterministic V0.4 camera solution."""
 
     solution = CameraSolution.model_validate_json(
-        (root / "analysis/camera_solution.json").read_bytes()
+        _read_bytes(root / "analysis/camera_solution.json")
     )
     if solution.job_id != scene.job_id or solution.projection != scene.camera.projection:
         raise ValueError("SceneSpecV03 camera projection differs from its camera solution")
@@ -470,16 +475,16 @@ def _validate_candidate_contracts(
     """Validate object-only semantic, material, source, and camera candidate contracts."""
 
     modeling = ModelingPlan.model_validate_json(
-        Path(native_io_path(root / bundle.modeling_artifact.path)).read_bytes()
+        _read_bytes(root / bundle.modeling_artifact.path)
     )
     scene = SceneSpecV03.model_validate_json(
-        Path(native_io_path(root / bundle.scene_v03_artifact.path)).read_bytes()
+        _read_bytes(root / bundle.scene_v03_artifact.path)
     )
     if modeling.job_id != authorization.job_id or scene.job_id != authorization.job_id:
         raise ValueError("geometry controller authored contracts for another job")
     if modeling.stage != "authored" or scene.mode != "concept":
         raise ValueError("AQ v2 geometry candidate must be an authored concept")
-    metadata_payload = json.loads((root / "job.json").read_text(encoding="utf-8"))
+    metadata_payload = json.loads(_read_bytes(root / "job.json"))
     if not isinstance(metadata_payload, dict):
         raise ValueError("job metadata must be a JSON object")
     metadata = metadata_payload
@@ -499,7 +504,7 @@ def _validate_candidate_contracts(
         _validate_modeling_diagnostic_bindings(modeling)
     )
     reference = ReferenceAnalysis.model_validate_json(
-        (root / expected_reference_path).read_bytes()
+        _read_bytes(root / expected_reference_path)
     )
     if reference.job_id != authorization.job_id:
         raise ValueError("reference analysis belongs to another job")
@@ -713,9 +718,12 @@ def _compile_scene_v03(
 def _copy_exact(source: Path, destination: Path, expected_sha256: str) -> None:
     """Copy or adopt one exact contained file without silently replacing evidence."""
 
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    if destination.exists():
-        if not destination.is_file() or sha256_file(destination) != expected_sha256:
+    os.makedirs(native_io_path(destination.parent), exist_ok=True)
+    if os.path.exists(native_io_path(destination)):
+        if (
+            not os.path.isfile(native_io_path(destination))
+            or sha256_file(destination) != expected_sha256
+        ):
             raise FileExistsError(destination)
         return
     shutil.copy2(native_io_path(source), native_io_path(destination))
@@ -734,7 +742,7 @@ def _build_isolated_candidate(
     """Build, inspect, and validate one candidate against a copied candidate-owned root."""
 
     workspace = root / "aq2w" / validation_root.name
-    (workspace / "analysis").mkdir(parents=True, exist_ok=False)
+    os.makedirs(native_io_path(workspace / "analysis"), exist_ok=False)
     _copy_exact(root / "job.json", workspace / "job.json", sha256_file(root / "job.json"))
     _copy_exact(
         root / modeling_artifact.path,
@@ -742,7 +750,7 @@ def _build_isolated_candidate(
         modeling_artifact.sha256,
     )
     modeling = ModelingPlan.model_validate_json(
-        Path(native_io_path(root / modeling_artifact.path)).read_bytes()
+        _read_bytes(root / modeling_artifact.path)
     )
     for relative in (
         modeling.reference_analysis_path,
@@ -799,8 +807,10 @@ def _build_isolated_candidate(
         blend_file=blend,
         disable_autoexec=True,
     )
-    validation_payload = json.loads(validation.read_text(encoding="utf-8"))
-    inventory_payload = json.loads(inventory.read_text(encoding="utf-8"))
+    with open(native_io_path(validation), encoding="utf-8") as handle:
+        validation_payload = json.load(handle)
+    with open(native_io_path(inventory), encoding="utf-8") as handle:
+        inventory_payload = json.load(handle)
     if not isinstance(validation_payload, dict) or validation_payload.get("ok") is not True:
         raise RuntimeError("isolated geometry candidate validation did not pass")
     expected_ids = {item.id for item in compilation.scene.objects}
@@ -940,7 +950,7 @@ def _stage_canonical_copy(root: Path, baseline: _CanonicalBaseline) -> Path:
     staging = baseline.target.with_name(
         f".{baseline.target.name}.aqv2-{uuid4().hex}.tmp"
     )
-    staging.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(staging.parent), exist_ok=True)
     shutil.copy2(native_io_path(source), native_io_path(staging))
     if sha256_file(staging) != baseline.candidate.sha256:
         os.unlink(native_io_path(staging))
@@ -991,7 +1001,7 @@ def _validate_existing_receipt(
         artifact_id=f"geometry-validation-{plan.session_id}",
         kind="geometry_candidate_validation_receipt",
     )
-    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(path.read_bytes())
+    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(_read_bytes(path))
     if (
         receipt.job_id != plan.job_id
         or receipt.workflow_id != plan.workflow_id
@@ -1009,13 +1019,13 @@ def _validate_existing_receipt(
     ):
         raise ValueError("geometry validation receipt names unexpected canonical paths")
     source_snapshot = GeometryStageSnapshotV02.model_validate_json(
-        (root / receipt.candidate_geometry_snapshot.path).read_bytes()
+        _read_bytes(root / receipt.candidate_geometry_snapshot.path)
     )
     target_snapshot = GeometryStageSnapshotV02.model_validate_json(
-        (root / receipt.canonical_geometry_snapshot.path).read_bytes()
+        _read_bytes(root / receipt.canonical_geometry_snapshot.path)
     )
     report = GeometryIntentSurvivalReportV02.model_validate_json(
-        (root / receipt.geometry_intent_survival.path).read_bytes()
+        _read_bytes(root / receipt.geometry_intent_survival.path)
     )
     recomputed = compare_geometry_stage_snapshots_v02(
         report_id=report.report_id,
@@ -1101,7 +1111,7 @@ def validate_geometry_candidate_validation_receipt_v2(
     """Rehash one published geometry receipt and all current promotion evidence."""
 
     path = validate_v2_artifact(root, artifact)
-    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(path.read_bytes())
+    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(_read_bytes(path))
     validated, normalized = _validate_existing_receipt(
         root=root,
         plan=plan,
@@ -1234,16 +1244,16 @@ def _validate_and_promote_geometry_core(
     if state.plan.path != expected_plan_path:
         raise PermissionError("AQ v2 state does not bind the selected session plan")
     planned_plan = AutonomyPlanV2.model_validate_json(
-        validate_v2_artifact(root, state.plan).read_bytes()
+        _read_bytes(validate_v2_artifact(root, state.plan))
     )
     planned_budget = AutonomyBudgetV2.model_validate_json(
-        validate_v2_artifact(root, plan.budget).read_bytes()
+        _read_bytes(validate_v2_artifact(root, plan.budget))
     )
     if plan != planned_plan or budget != planned_budget:
         raise PermissionError("AQ v2 plan or budget differs from immutable session evidence")
     authorization_path = validate_v2_artifact(root, plan.root_authorization)
     planned_authorization = RootAuthorizationV2.model_validate_json(
-        authorization_path.read_bytes()
+        _read_bytes(authorization_path)
     )
     if authorization.status != "active" or authorization != planned_authorization:
         raise PermissionError("AQ v2 root authorization is not active or plan-bound")
@@ -1274,7 +1284,7 @@ def _validate_and_promote_geometry_core(
         raise ValueError("current candidate boundary is not anchored by a controller result")
     current_result_artifact = state.provenance[-1]
     current_result = ControllerResult.model_validate_json(
-        validate_v2_artifact(root, current_result_artifact).read_bytes()
+        _read_bytes(validate_v2_artifact(root, current_result_artifact))
     )
     if (
         current_result.status != "completed"
@@ -1358,7 +1368,7 @@ def _validate_and_promote_geometry_core(
     )
     if reentry is not None and len(scene_v03.objects) > reentry.cost.materializations:
         raise PermissionError("candidate exceeds reserved structural materialization cost")
-    validation_root.mkdir(parents=True, exist_ok=False)
+    os.makedirs(native_io_path(validation_root), exist_ok=False)
     compilation = _compile_scene_v03(
         root=root,
         validation_root=validation_root,
@@ -1456,7 +1466,7 @@ def _validate_and_promote_geometry_core(
                 material_plan_mode="scene_spec_only" if reentry is not None else "current",
             )
             candidate_provenance = json.loads(
-                (root / build.provenance.path).read_text(encoding="utf-8")
+                _read_bytes(root / build.provenance.path)
             )
             if canonical_provenance != candidate_provenance:
                 raise RuntimeError("promoted canonical build provenance differs from candidate")

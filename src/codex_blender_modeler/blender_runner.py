@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
+from .blender_artifacts import native_io_path
 from .config import executable_exists, get_settings
 
 
@@ -26,7 +28,7 @@ def run_blender(
             f"Blender executable not found: {settings.blender_bin}. Set BLENDER_BIN in .env"
         )
     script = settings.repo_root / "src" / "codex_blender_modeler" / "blender_scripts" / script_name
-    if not script.is_file():
+    if not os.path.isfile(native_io_path(script)):
         raise FileNotFoundError(script)
 
     command = [settings.blender_bin]
@@ -42,9 +44,9 @@ def run_blender(
         ]
     )
     if blend_file is not None:
-        if not blend_file.is_file():
+        if not os.path.isfile(native_io_path(blend_file)):
             raise FileNotFoundError(blend_file)
-        command.append(str(blend_file))
+        command.append(native_io_path(blend_file))
     command.extend(["--python", str(script), "--", *args])
 
     result = subprocess.run(

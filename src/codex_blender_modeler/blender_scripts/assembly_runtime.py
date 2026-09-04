@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
 from typing import Any
 
 import bpy
 from mathutils import Matrix, Vector
+from portable_asset_common import native_io_path
 
 _AXIS = {"X": 0, "Y": 1, "Z": 2}
 
@@ -16,7 +18,7 @@ def sha256_file(path: Path) -> str:
     """Hash one raw assembly contract without host-only dependencies."""
 
     digest = hashlib.sha256()
-    with path.open("rb") as handle:
+    with open(native_io_path(path), "rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
@@ -36,7 +38,7 @@ def load_assembly_contract(
     """Load the selected raw ModelingPlan assembly contract and its exact hash."""
 
     path = modeling_plan_path or (job_root / "analysis" / "modeling_plan.json")
-    if not path.is_file():
+    if not os.path.isfile(native_io_path(path)):
         return {
             "declared": False,
             "path": None,
@@ -47,7 +49,8 @@ def load_assembly_contract(
             "roles": {},
         }
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        with open(native_io_path(path), encoding="utf-8") as handle:
+            payload = json.load(handle)
     except json.JSONDecodeError as exc:
         raise RuntimeError(f"ModelingPlan is invalid JSON: {path}") from exc
     if not isinstance(payload, dict):

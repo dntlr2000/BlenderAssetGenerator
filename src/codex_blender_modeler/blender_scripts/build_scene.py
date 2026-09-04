@@ -25,6 +25,7 @@ from common import (  # noqa: E402
     load_runtime_material_mappings,
     load_runtime_shader_recipes,
     make_material,
+    native_io_path,
     setup_camera,
     setup_lighting,
 )
@@ -73,7 +74,8 @@ def main() -> None:
     except ValueError as exc:
         raise RuntimeError("SceneSpec must remain inside the declared job root") from exc
     output = ensure_parent(args.output)
-    spec = json.loads(spec_path.read_text(encoding="utf-8"))
+    with open(native_io_path(spec_path), encoding="utf-8") as handle:
+        spec = json.load(handle)
     build_provenance = collect_build_provenance(
         job_root,
         str(spec["job_id"]),
@@ -202,7 +204,7 @@ def main() -> None:
     bpy.context.scene["cbm_material_build_fingerprint"] = build_provenance["fingerprint"]
     bpy.context.scene["cbm_build_provenance"] = canonical_json_text(build_provenance)
     attach_assembly_metadata(bpy.context.scene, object_map, assembly_contract)
-    bpy.ops.wm.save_as_mainfile(filepath=str(output))
+    bpy.ops.wm.save_as_mainfile(filepath=native_io_path(output))
     print(f"CBM_BUILD_OK objects={count} output={output}")
 
 

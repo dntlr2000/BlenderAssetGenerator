@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, model_validator
 
+from ..blender_artifacts import native_io_path
 from .mesh_payload_v02 import (
     JobRelativePath,
     MeshPayloadV02StrictModel,
@@ -374,9 +376,13 @@ def verify_geometry_stage_snapshot_artifact_v02(
         artifact.relative_to(root)
     except ValueError as exc:
         raise ValueError("geometry stage artifact escapes job root") from exc
-    if not artifact.is_file():
+    if not os.path.isfile(native_io_path(artifact)):
         raise FileNotFoundError(artifact)
-    if hashlib.sha256(artifact.read_bytes()).hexdigest() != snapshot.artifact_sha256:
+    digest = hashlib.sha256()
+    with open(native_io_path(artifact), "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    if digest.hexdigest() != snapshot.artifact_sha256:
         raise ValueError("geometry stage artifact hash is stale")
 
 
@@ -386,8 +392,12 @@ def publish_geometry_survival_report_v02(
 ) -> str:
     """Publish one immutable report and return its exact file SHA-256 integration binding."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
     payload = json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2) + "\n"
-    with path.open("x", encoding="utf-8", newline="\n") as handle:
+    with open(native_io_path(path), "x", encoding="utf-8", newline="\n") as handle:
         handle.write(payload)
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256()
+    with open(native_io_path(path), "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

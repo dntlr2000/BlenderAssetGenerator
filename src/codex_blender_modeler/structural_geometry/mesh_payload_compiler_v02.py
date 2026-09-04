@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import json
+import os
 from pathlib import Path
 from typing import Literal
 
+from ..blender_artifacts import native_io_path
 from ..blender_runner import run_blender
 from .geometry_survival_v02 import GeometryStageSnapshotV02
 from .mesh_payload_io_v02 import (
@@ -58,12 +61,12 @@ def compile_mesh_payload_v02(
     payload_path = _resolve_job_path(job_root, payload_relative_path)
     output_blend = _resolve_job_path(job_root, output_blend_relative_path)
     report_path = _resolve_job_path(job_root, report_relative_path)
-    if not payload_path.is_file():
+    if not os.path.isfile(native_io_path(payload_path)):
         raise FileNotFoundError(payload_path)
     for output in (output_blend, report_path):
-        if output.exists():
+        if os.path.exists(native_io_path(output)):
             raise FileExistsError(output)
-        output.parent.mkdir(parents=True, exist_ok=True)
+        os.makedirs(native_io_path(output.parent), exist_ok=True)
     payload = load_mesh_payload_v02(payload_path)
     payload.assert_compilable()
     verify_mesh_payload_v02_source_hashes(payload, job_root=job_root)
@@ -85,9 +88,8 @@ def compile_mesh_payload_v02(
         factory_startup=True,
         disable_autoexec=True,
     )
-    report = MeshPayloadV02CompileReport.model_validate_json(
-        report_path.read_text(encoding="utf-8")
-    )
+    with open(native_io_path(report_path), encoding="utf-8") as handle:
+        report = MeshPayloadV02CompileReport.model_validate(json.load(handle))
     if report.payload_path != payload_relative_path:
         raise RuntimeError("Blender compiler report changed the payload path")
     if report.payload_file_sha256 != payload_file_hash:

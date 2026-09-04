@@ -127,6 +127,13 @@ def _read_json_object(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _read_bytes(path: Path) -> bytes:
+    """Read one exact artifact through the platform-native long-path spelling."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
+
+
 def _media_type_for(path: str) -> str:
     """Map one immutable artifact suffix to its stable media type."""
 
@@ -367,7 +374,7 @@ def _validate_root_scope(
         root_authorization,
         expected_kind="root_authorization",
     )
-    authority = RootAuthorizationV2.model_validate_json(path.read_bytes())
+    authority = RootAuthorizationV2.model_validate_json(_read_bytes(path))
     if (
         authority.job_id != job_root.name
         or authority.workflow_id != workflow_id
@@ -394,7 +401,7 @@ def _validate_material_plan_absence(
         MaterialCanonicalMaterialPlanAbsence,
     )
     validate_material_plan_absence_evidence(job_root, absence)
-    if (job_root / "analysis" / "material_plan.json").exists():
+    if os.path.exists(native_io_path(job_root / "analysis" / "material_plan.json")):
         raise MaterialIdentitySplitError("canonical MaterialPlan appeared after absence evidence")
     return absence
 
@@ -501,7 +508,7 @@ def _blender_executable() -> Path:
     configured = get_settings().blender_bin
     candidate = shutil.which(configured) or configured
     path = Path(candidate).expanduser().resolve(strict=True)
-    if not path.is_file():
+    if not os.path.isfile(native_io_path(path)):
         raise FileNotFoundError(path)
     return path
 
@@ -718,7 +725,7 @@ class MaterialIdentitySplitService:
         )
         candidate_scene = artifact_by_name["candidate_scene_spec.json"]
         SceneSpec.model_validate_json(
-            validate_exact_artifact(self.job_root, candidate_scene).read_bytes()
+            _read_bytes(validate_exact_artifact(self.job_root, candidate_scene))
         )
         preconditions = MaterialIdentitySplitCanonicalPreconditions(
             scene_spec=canonical_scene,
@@ -894,8 +901,12 @@ class MaterialIdentitySplitService:
             self.job_root.joinpath(*shadow_root.split("/")),
             must_exist=False,
         )
-        if root.exists() and any(root.iterdir()):
-            raise FileExistsError("identity-split shadow workspace already contains outputs")
+        if os.path.isdir(native_io_path(root)):
+            with os.scandir(native_io_path(root)) as entries:
+                if next(entries, None) is not None:
+                    raise FileExistsError(
+                        "identity-split shadow workspace already contains outputs"
+                    )
         for relative in ("analysis", "blender", "reports", "input"):
             destination = root / relative
             os.makedirs(native_io_path(destination), exist_ok=True)
@@ -903,14 +914,14 @@ class MaterialIdentitySplitService:
         scene_path = root / "analysis" / "scene_spec.json"
         modeling_path = root / "analysis" / "modeling_plan.json"
         reference_path = root / plan.preconditions.primary_reference.path
-        reference_path.parent.mkdir(parents=True, exist_ok=True)
+        os.makedirs(native_io_path(reference_path.parent), exist_ok=True)
         for artifact, destination in (
             (plan.candidate_scene_spec, scene_path),
             (plan.candidate_modeling_plan, modeling_path),
             (plan.preconditions.primary_reference, reference_path),
         ):
             source = validate_exact_artifact(self.job_root, artifact)
-            publish_bytes_create_once(destination, source.read_bytes())
+            publish_bytes_create_once(destination, _read_bytes(source))
         candidate_payload = _load_exact_json(self.job_root, plan.candidate_scene_spec)
         pending = sorted(_candidate_dependency_paths(candidate_payload))
         copied: set[str] = set()
@@ -923,7 +934,7 @@ class MaterialIdentitySplitService:
                 self.job_root.joinpath(*relative.split("/")),
                 must_exist=True,
             )
-            if not source.is_file():
+            if not os.path.isfile(native_io_path(source)):
                 raise MaterialIdentitySplitError(
                     f"candidate dependency is not a regular file: {relative}"
                 )
@@ -932,9 +943,9 @@ class MaterialIdentitySplitService:
                 root.joinpath(*relative.split("/")),
                 must_exist=False,
             )
-            destination.parent.mkdir(parents=True, exist_ok=True)
+            os.makedirs(native_io_path(destination.parent), exist_ok=True)
             ensure_autonomy_path(self.job_root, destination.parent, must_exist=True)
-            publish_bytes_create_once(destination, source.read_bytes())
+            publish_bytes_create_once(destination, _read_bytes(source))
             copied.add(relative)
             if source.suffix.casefold() == ".json":
                 nested = _candidate_dependency_paths(_read_json_object(source))
@@ -1108,7 +1119,9 @@ class MaterialIdentitySplitService:
                 media_type="application/x-blender",
             ),
         )
-        material_absent_before = not (self.job_root / "analysis" / "material_plan.json").exists()
+        material_absent_before = not os.path.exists(
+            native_io_path(self.job_root / "analysis" / "material_plan.json")
+        )
         (
             shadow,
             scene_path,
@@ -1179,7 +1192,9 @@ class MaterialIdentitySplitService:
                 media_type="application/x-blender",
             ),
         )
-        material_absent_after = not (self.job_root / "analysis" / "material_plan.json").exists()
+        material_absent_after = not os.path.exists(
+            native_io_path(self.job_root / "analysis" / "material_plan.json")
+        )
         canonical_unchanged = (
             all(
                 (left.path, left.sha256, left.byte_size)
@@ -1651,7 +1666,9 @@ class MaterialIdentitySplitService:
         artifacts: list[ExactArtifact] = []
         previous: ExactArtifact | None = None
         for sequence, path in enumerate(state_files):
-            state = MaterialIdentitySplitTransactionState.model_validate_json(path.read_bytes())
+            state = MaterialIdentitySplitTransactionState.model_validate_json(
+                _read_bytes(path)
+            )
             artifact = _artifact_from_path(
                 self.job_root,
                 path.relative_to(self.job_root).as_posix(),

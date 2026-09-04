@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -57,7 +58,7 @@ def _contained(path: str, root: Path, *, must_exist: bool) -> Path:
         candidate.relative_to(root)
     except ValueError as exc:
         raise RuntimeError("AQ v2 geometry inspection path escapes the job root") from exc
-    if must_exist and not Path(native_io_path(candidate)).is_file():
+    if must_exist and not os.path.isfile(native_io_path(candidate)):
         raise FileNotFoundError(candidate)
     return candidate
 
@@ -475,8 +476,8 @@ def _snapshot(args: argparse.Namespace, artifact: Path) -> dict[str, object]:
 def _write_json(path: Path, payload: object) -> None:
     """Publish one immutable UTF-8 JSON report after all stage checks pass."""
 
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with Path(native_io_path(path)).open("x", encoding="utf-8", newline="\n") as handle:
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
+    with open(native_io_path(path), "x", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import sys
 from collections.abc import Iterable
 from pathlib import Path
@@ -11,6 +12,7 @@ from builders.registry import create_geometry
 from compat import configure_render_compat, set_material_transparency
 from mathutils import Vector
 from modifiers import apply_deferred_modifiers, apply_immediate_modifiers
+from portable_asset_common import native_io_path
 
 PACKAGE_SRC = Path(__file__).resolve().parents[2]
 if str(PACKAGE_SRC) not in sys.path:
@@ -817,6 +819,8 @@ def configure_render(render_engine: str = "EEVEE", render_device: str = "AUTO") 
 
 
 def ensure_parent(path: str | Path) -> Path:
+    """Resolve one output and create its parent with Windows long-path support."""
+
     path = Path(path).expanduser().resolve()
-    path.parent.mkdir(parents=True, exist_ok=True)
+    os.makedirs(native_io_path(path.parent), exist_ok=True)
     return path
