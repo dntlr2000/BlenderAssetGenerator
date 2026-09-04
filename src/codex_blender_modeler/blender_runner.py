@@ -12,6 +12,15 @@ class BlenderRunError(RuntimeError):
     pass
 
 
+def _blend_cli_path(path: Path) -> str:
+    """Use extended Windows spelling only when a Blend path reaches MAX_PATH."""
+
+    absolute = os.path.abspath(os.fspath(path.expanduser()))
+    if os.name == "nt" and len(absolute) >= 260:
+        return native_io_path(path)
+    return absolute
+
+
 def run_blender(
     script_name: str,
     args: list[str],
@@ -46,7 +55,7 @@ def run_blender(
     if blend_file is not None:
         if not os.path.isfile(native_io_path(blend_file)):
             raise FileNotFoundError(blend_file)
-        command.append(native_io_path(blend_file))
+        command.append(_blend_cli_path(blend_file))
     command.extend(["--python", str(script), "--", *args])
 
     result = subprocess.run(

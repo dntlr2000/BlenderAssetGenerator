@@ -138,7 +138,7 @@ def test_blender_runner_can_disable_autoexec_for_untrusted_blend_inputs(
         "--python-exit-code",
         "1",
     ]
-    assert captured["command"][5] == native_io_path(source)
+    assert captured["command"][5] == str(source)
 
 
 @pytest.mark.skipif(os.name != "nt", reason="Windows extended-path regression")
