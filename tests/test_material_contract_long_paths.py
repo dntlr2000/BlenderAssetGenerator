@@ -12,6 +12,7 @@ import pytest
 
 from codex_blender_modeler.autonomy_v2.material_phase_service import (
     MaterialPhaseError,
+    _replace_material_plan_if_current,
     _validate_material_plan_dependencies,
 )
 from codex_blender_modeler.blender_artifacts import native_io_path, sha256_file
@@ -199,6 +200,26 @@ def test_aq_material_dependencies_accept_exact_long_paths(tmp_path: Path) -> Non
 
     plan, _paths, inputs = _material_bundle(tmp_path)
     _validate_material_plan_dependencies(tmp_path, plan, inputs)
+
+
+def test_aq_material_promotion_copies_exact_long_path_candidate(tmp_path: Path) -> None:
+    """Promote an exact MaterialPlan whose controller path exceeds legacy MAX_PATH."""
+
+    _plan, paths, _inputs = _material_bundle(tmp_path)
+    candidate = paths["plan"]
+    candidate_sha256 = sha256_file(candidate)
+    assert len(os.path.abspath(candidate)) > 260
+
+    _replace_material_plan_if_current(
+        tmp_path,
+        candidate,
+        expected_current_sha256=None,
+        expected_candidate_sha256=candidate_sha256,
+    )
+
+    canonical = tmp_path / "analysis" / "material_plan.json"
+    assert sha256_file(canonical) == candidate_sha256
+    assert sha256_file(candidate) == candidate_sha256
 
 
 @pytest.mark.parametrize("dependency", ["recipe", "manifest", "image"])

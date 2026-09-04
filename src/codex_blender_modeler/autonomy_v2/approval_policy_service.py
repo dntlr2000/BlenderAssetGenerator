@@ -997,6 +997,18 @@ def _same_artifact_bytes(left: object, right: object) -> bool:
     )
 
 
+def _same_artifact_content(left: object, right: object) -> bool:
+    """Compare immutable artifact content while allowing distinct snapshot paths."""
+
+    return (
+        getattr(left, "sha256", None),
+        getattr(left, "byte_size", None),
+    ) == (
+        getattr(right, "sha256", None),
+        getattr(right, "byte_size", None),
+    )
+
+
 def _validate_geometry_policy_result(
     root: Path,
     receipt: AQV2PolicyDecisionReceipt,
@@ -1064,7 +1076,7 @@ def _validate_geometry_policy_result(
             geometry.controller_result,
             receipt.exact_target_artifact,
         )
-        or not _same_artifact_bytes(
+        or not _same_artifact_content(
             geometry.canonical_scene_spec,
             receipt.canonical_snapshot_after,
         )
@@ -1074,7 +1086,6 @@ def _validate_geometry_policy_result(
         geometry.canonical_modeling_plan,
         geometry.canonical_scene_spec,
         geometry.canonical_blend,
-        geometry.canonical_geometry_snapshot,
     )
     for artifact in geometry.provenance:
         if not require_current_canonical and any(
@@ -1205,7 +1216,7 @@ def _gate_specific_forbidden_conditions(
     if gate_kind in {"geometry_candidate_promotion", "structural_candidate_promotion"}:
         return _validate_geometry_gate_target(root, target, dependencies, envelope)
     if gate_kind == "bounded_parametric_revision":
-        return _validate_parametric_gate_target(root, target)
+        return _validate_parametric_gate_target(root, target, dependencies, envelope)
     if gate_kind == "bounded_material_identity_split":
         return _validate_identity_split_gate_target(root, target, envelope)
     if gate_kind in {"material_candidate_promotion", "material_quality_acknowledgement"}:
@@ -1318,11 +1329,44 @@ def _dependencies_match_exact_artifacts(
     return len(dependencies) == len(expected) and observed == required
 
 
-def _validate_parametric_gate_target(root: Path, target: ApprovalArtifact) -> list[str]:
-    """Require an IQ needs-revision report with a bounded parametric reentry."""
+def _validate_parametric_gate_target(
+    root: Path, target: ApprovalArtifact, dependencies: list[ApprovalArtifact] | None = None,
+    envelope: AutonomyApprovalEnvelope | None = None,
+) -> list[str]:
+    """Retain legacy IQ targets; explicitly bound new loops validate scalar-only candidate edits."""
 
     from ..integrated_quality.v02_models import IntegratedQualityReportV02
 
+    if target.kind == "controller-result" and envelope is not None:
+        from .candidate_validation_service import (
+            _validate_candidate_contracts,
+            _validate_controller_bundle,
+            _validate_reentry_targets,
+        )
+        from .controller_bridge import _session_bundle
+        from .quality_revision_service import active_reentry
+
+        reasons = _validate_geometry_gate_target(root, target, dependencies or [], envelope)
+        if reasons:
+            return reasons
+        try:
+            base = _session_bundle(envelope.job_id, envelope.session_id)
+            reentry = active_reentry(root, base[2], base[4])
+            if reentry is None or reentry.route != "parametric_revision":
+                return ["PARAMETRIC_REENTRY_NOT_BOUND"]
+            if (base[4].provenance[-1].path, base[4].provenance[-1].sha256) != (
+                target.path, target.sha256
+            ):
+                return ["PARAMETRIC_TARGET_NOT_CURRENT"]
+            authority = _load_model(root, envelope.root_authorization, RootAuthorizationV2)
+            bundle = _validate_controller_bundle(root=root, plan=base[2], state=base[4])
+            _modeling, scene = _validate_candidate_contracts(
+                root=root, authorization=authority, bundle=bundle
+            )
+            _validate_reentry_targets(root, reentry, scene)
+            return []
+        except (ValueError, PermissionError, OSError):
+            return ["PARAMETRIC_CANDIDATE_EXCEEDS_FROZEN_BOUNDS"]
     try:
         report = _load_model(root, target, IntegratedQualityReportV02)
     except ValueError:
@@ -1554,6 +1598,19 @@ def _validate_review_gate_target(
 
     if not envelope.allow_review_bundle_terminal:
         return ["REVIEW_BUNDLE_TERMINAL_NOT_ALLOWED"]
+    from ..reference_fidelity.models import FidelityArtifact
+    from .fidelity_terminal_service import BUNDLE_KIND, validate_fidelity_review_bundle
+
+    if target.kind == BUNDLE_KIND:
+        try:
+            fidelity = validate_fidelity_review_bundle(
+                root, FidelityArtifact(path=target.path, sha256=target.sha256)
+            )
+            if (fidelity.job_id, fidelity.session_id) != (envelope.job_id, envelope.session_id):
+                return ["FIDELITY_REVIEW_SESSION_MISMATCH"]
+            return []
+        except (ValueError, OSError):
+            return ["FIDELITY_REVIEW_EVIDENCE_INVALID"]
     try:
         bundle = _load_model(root, target, QualityReviewBundleV2)
     except ValueError:
@@ -2555,16 +2612,17 @@ def get_applied_policy_decision_receipt(
     if os.path.isdir(native_io_path(decisions_root)):
         for decision_path in sorted(decisions_root.glob("*.json")):
             receipt, artifact = _decision_receipt_from_path(root, decision_path)
-            _validate_policy_receipt_authorization(
-                root,
-                receipt,
-                require_current_canonical=True,
-            )
-            if (
+            matches_requested_action = (
                 receipt.policy_authorization == authorization_artifact
                 and receipt.action_result is not None
                 and _same_artifact_bytes(receipt.action_result, result_binding)
-            ):
+            )
+            _validate_policy_receipt_authorization(
+                root,
+                receipt,
+                require_current_canonical=matches_requested_action,
+            )
+            if matches_requested_action:
                 matches.append((receipt, artifact))
     if len(matches) != 1 or matches[0][0].outcome != "applied":
         raise PermissionError(

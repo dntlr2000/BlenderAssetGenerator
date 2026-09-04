@@ -162,6 +162,64 @@ def _fan_cap(indices: list[int], *, reverse: bool) -> list[list[int]]:
     ]
 
 
+def _triangle_area_squared(vertices: list[Vec3], face: list[int]) -> float:
+    """Return the squared cross-product magnitude for one triangle."""
+
+    first, second, third = (vertices[index] for index in face)
+    normal = _cross(_subtract(second, first), _subtract(third, first))
+    return _dot(normal, normal)
+
+
+def _loft_cap(vertices: list[Vec3], indices: list[int], *, reverse: bool) -> list[list[int]]:
+    """Preserve valid legacy fans; use an interior center after degenerate resampling."""
+
+    legacy_faces = _fan_cap(indices, reverse=reverse)
+    if all(_triangle_area_squared(vertices, face) > 1.0e-24 for face in legacy_faces):
+        return legacy_faces
+
+    center = tuple(
+        math.fsum(vertices[index][axis] for index in indices) / len(indices)
+        for axis in range(3)
+    )
+    center_index = len(vertices)
+    vertices.append(center)
+    ordered = list(reversed(indices)) if reverse else list(indices)
+    faces = [
+        [center_index, ordered[index], ordered[(index + 1) % len(ordered)]]
+        for index in range(len(ordered))
+    ]
+    if any(_triangle_area_squared(vertices, face) <= 1.0e-24 for face in faces):
+        raise ValueError("resampled loft cap contains a zero-area boundary segment")
+    return faces
+
+
+def _centroid(points: list[Vec3]) -> Vec3:
+    """Return one deterministic arithmetic centroid for an ordered point set."""
+
+    return tuple(
+        math.fsum(point[axis] for point in points) / len(points)
+        for axis in range(3)
+    )
+
+
+def _newell_normal(points: list[Vec3]) -> Vec3:
+    """Return the unnormalized Newell normal for one closed section loop."""
+
+    normal = [0.0, 0.0, 0.0]
+    for first, second in zip(points, [*points[1:], points[0]], strict=True):
+        normal[0] += (first[1] - second[1]) * (first[2] + second[2])
+        normal[1] += (first[2] - second[2]) * (first[0] + second[0])
+        normal[2] += (first[0] - second[0]) * (first[1] + second[1])
+    return (normal[0], normal[1], normal[2])
+
+
+def _loft_faces_need_reversal(sections: list[list[Vec3]]) -> bool:
+    """Detect section winding opposite the first-to-last loft progression."""
+
+    progression = _subtract(_centroid(sections[-1]), _centroid(sections[0]))
+    return _dot(_newell_normal(sections[0]), progression) < 0.0
+
+
 def build_loft_mesh(spec: dict[str, Any]) -> dict[str, Any]:
     """Compile validated loft sections into deterministic vertices and quad side faces."""
 
@@ -204,11 +262,17 @@ def build_loft_mesh(spec: dict[str, Any]) -> dict[str, Any]:
                 ]
             )
     if closed and spec.get("cap_policy", "ends") == "ends":
-        faces.extend(_fan_cap(list(range(count)), reverse=True))
+        faces.extend(_loft_cap(vertices, list(range(count)), reverse=True))
         final_start = (len(sections) - 1) * count
         faces.extend(
-            _fan_cap(list(range(final_start, final_start + count)), reverse=False)
+            _loft_cap(
+                vertices,
+                list(range(final_start, final_start + count)),
+                reverse=False,
+            )
         )
+    if closed and _loft_faces_need_reversal(sections):
+        faces = [list(reversed(face)) for face in faces]
     return {"vertices": vertices, "faces": faces, "findings": []}
 
 

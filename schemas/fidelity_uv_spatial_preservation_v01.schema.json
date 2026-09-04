@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove that a material-only candidate preserves the bound spatial geometry.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_uv_spatial_preservation",
+      "default": "fidelity_uv_spatial_preservation",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source_scene": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "candidate_scene": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_mesh": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "candidate_mesh": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_vertex_count": {
+      "exclusiveMinimum": 0,
+      "title": "Source Vertex Count",
+      "type": "integer"
+    },
+    "candidate_vertex_count": {
+      "exclusiveMinimum": 0,
+      "title": "Candidate Vertex Count",
+      "type": "integer"
+    },
+    "seam_duplicate_count": {
+      "minimum": 0,
+      "title": "Seam Duplicate Count",
+      "type": "integer"
+    },
+    "uv_representation": {
+      "const": "polygon_corner_mesh_payload_v02",
+      "title": "Uv Representation",
+      "type": "string"
+    },
+    "loop_uv_count_matches": {
+      "const": true,
+      "title": "Loop Uv Count Matches",
+      "type": "boolean"
+    },
+    "closed_two_manifold": {
+      "const": true,
+      "title": "Closed Two Manifold",
+      "type": "boolean"
+    },
+    "bounds_equal": {
+      "const": true,
+      "title": "Bounds Equal",
+      "type": "boolean"
+    },
+    "zero_area_face_count": {
+      "const": 0,
+      "title": "Zero Area Face Count",
+      "type": "integer"
+    },
+    "source_side_faces_equal": {
+      "const": true,
+      "title": "Source Side Faces Equal",
+      "type": "boolean"
+    },
+    "cap_retriangulation_preserves_surface": {
+      "const": true,
+      "title": "Cap Retriangulation Preserves Surface",
+      "type": "boolean"
+    },
+    "exact_topology_preserved": {
+      "const": true,
+      "title": "Exact Topology Preserved",
+      "type": "boolean"
+    },
+    "original_positions_equal": {
+      "const": true,
+      "title": "Original Positions Equal",
+      "type": "boolean"
+    },
+    "duplicates_match_source_positions": {
+      "const": true,
+      "title": "Duplicates Match Source Positions",
+      "type": "boolean"
+    },
+    "faces_equal_after_seam_collapse": {
+      "const": true,
+      "title": "Faces Equal After Seam Collapse",
+      "type": "boolean"
+    },
+    "object_pose_equal": {
+      "const": true,
+      "title": "Object Pose Equal",
+      "type": "boolean"
+    },
+    "camera_equal": {
+      "const": true,
+      "title": "Camera Equal",
+      "type": "boolean"
+    },
+    "reference_sources_equal": {
+      "const": true,
+      "title": "Reference Sources Equal",
+      "type": "boolean"
+    },
+    "spatial_geometry_preserved": {
+      "const": true,
+      "title": "Spatial Geometry Preserved",
+      "type": "boolean"
+    },
+    "canonical_write_performed": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Performed",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "source_scene",
+    "candidate_scene",
+    "source_mesh",
+    "candidate_mesh",
+    "source_vertex_count",
+    "candidate_vertex_count",
+    "seam_duplicate_count",
+    "uv_representation",
+    "loop_uv_count_matches",
+    "closed_two_manifold",
+    "bounds_equal",
+    "zero_area_face_count",
+    "source_side_faces_equal",
+    "cap_retriangulation_preserves_surface",
+    "exact_topology_preserved",
+    "original_positions_equal",
+    "duplicates_match_source_positions",
+    "faces_equal_after_seam_collapse",
+    "object_pose_equal",
+    "camera_equal",
+    "reference_sources_equal",
+    "spatial_geometry_preserved"
+  ],
+  "title": "UVSpatialPreservationV01",
+  "type": "object"
+}

@@ -453,6 +453,7 @@ def run_scene_spec_visual_qa_snapshot(
     surface_detail_inventory_path: Path | None = None,
     render_engine: str = "eevee",
     render_device: str = "auto",
+    record_fidelity_conditions: bool = False,
 ) -> dict[str, Any]:
     """Create immutable direct QA evidence for an isolated candidate without updating latest."""
 
@@ -495,6 +496,8 @@ def run_scene_spec_visual_qa_snapshot(
         camera_fingerprint=fingerprint,
         scene_spec_sha256=spec_hash,
         surface_detail_inventory_path=surface_detail_inventory_path,
+        **({"comparison_conditions_path": source_dir / "comparison_conditions.json"}
+           if record_fidelity_conditions else {}),
     )
     run_manifest, manifest_path, passes = _snapshot_render_passes(
         rendered,

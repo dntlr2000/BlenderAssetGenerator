@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Terminate the new companion, never retroactively reinterpret a legacy IQ report.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_review_terminal",
+      "default": "fidelity_review_terminal",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_state": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "review_bundle": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "status": {
+      "const": "review_required",
+      "default": "review_required",
+      "title": "Status",
+      "type": "string"
+    },
+    "reason": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "source_freeze": {
+      "default": null,
+      "title": "Source Freeze",
+      "type": "null"
+    },
+    "production_ready": {
+      "const": false,
+      "default": false,
+      "title": "Production Ready",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "session_id",
+    "loop",
+    "source_state",
+    "review_bundle",
+    "reason"
+  ],
+  "title": "FidelityReviewTerminalV01",
+  "type": "object"
+}

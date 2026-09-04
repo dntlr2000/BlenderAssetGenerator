@@ -1,0 +1,408 @@
+{
+  "$defs": {
+    "CameraHypothesis": {
+      "additionalProperties": false,
+      "description": "Distinguish measured calibration from a chosen underconstrained viewing hypothesis.",
+      "properties": {
+        "camera_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Fingerprint",
+          "type": "string"
+        },
+        "origin": {
+          "enum": [
+            "default_hypothesis",
+            "visual_hypothesis",
+            "line_fit",
+            "measured"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "evidence_observation_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Evidence Observation Ids",
+          "type": "array"
+        },
+        "rationale": {
+          "minLength": 8,
+          "title": "Rationale",
+          "type": "string"
+        },
+        "uncertainty": {
+          "minLength": 8,
+          "title": "Uncertainty",
+          "type": "string"
+        },
+        "hidden_surfaces_recovered": {
+          "const": false,
+          "default": false,
+          "title": "Hidden Surfaces Recovered",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "camera_fingerprint",
+        "origin",
+        "evidence_observation_ids",
+        "rationale",
+        "uncertainty"
+      ],
+      "title": "CameraHypothesis",
+      "type": "object"
+    },
+    "FeatureRequirement": {
+      "additionalProperties": false,
+      "description": "Freeze an observable criterion before candidate evaluation, including justified N/A.",
+      "properties": {
+        "feature_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "observation_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "face_groups": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "volume",
+            "cross_section",
+            "part_relation",
+            "silhouette",
+            "local_dimension",
+            "material",
+            "surface_direction",
+            "camera",
+            "missing_evidence",
+            "topology",
+            "uv"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "expected": {
+          "maxLength": 2048,
+          "minLength": 8,
+          "title": "Expected",
+          "type": "string"
+        },
+        "comparison": {
+          "maxLength": 2048,
+          "minLength": 8,
+          "title": "Comparison",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "applicability": {
+          "default": "applicable",
+          "enum": [
+            "applicable",
+            "not_applicable"
+          ],
+          "title": "Applicability",
+          "type": "string"
+        },
+        "applicability_reason": {
+          "anyOf": [
+            {
+              "minLength": 8,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Applicability Reason"
+        },
+        "severity": {
+          "default": "major",
+          "enum": [
+            "minor",
+            "major",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "minimum_confidence": {
+          "default": 0.7,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feature_id",
+        "observation_ids",
+        "target_ids",
+        "kind",
+        "expected",
+        "comparison"
+      ],
+      "title": "FeatureRequirement",
+      "type": "object"
+    },
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "ReferenceObservation": {
+      "additionalProperties": false,
+      "description": "Record image observations independently of a generated candidate's geometry.",
+      "properties": {
+        "observation_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "region": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Region",
+          "type": "array"
+        },
+        "description": {
+          "maxLength": 2048,
+          "minLength": 8,
+          "title": "Description",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "landmarks": {
+          "patternProperties": {
+            "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                },
+                {
+                  "maximum": 1,
+                  "minimum": 0,
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            }
+          },
+          "title": "Landmarks",
+          "type": "object"
+        },
+        "uncertainty": {
+          "maxLength": 2048,
+          "minLength": 1,
+          "title": "Uncertainty",
+          "type": "string"
+        }
+      },
+      "required": [
+        "observation_id",
+        "region",
+        "description",
+        "status",
+        "confidence",
+        "uncertainty"
+      ],
+      "title": "ReferenceObservation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Describe the 3D hypothesis without changing SceneSpec 0.2 or ModelingPlan 0.4.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "modeling_hypothesis",
+      "default": "modeling_hypothesis",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "hypothesis_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Hypothesis Id",
+      "type": "string"
+    },
+    "reference": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "observations": {
+      "items": {
+        "$ref": "#/$defs/ReferenceObservation"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Observations",
+      "type": "array"
+    },
+    "requirements": {
+      "items": {
+        "$ref": "#/$defs/FeatureRequirement"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Requirements",
+      "type": "array"
+    },
+    "camera": {
+      "$ref": "#/$defs/CameraHypothesis"
+    },
+    "representation": {
+      "enum": [
+        "solid",
+        "shell",
+        "sheet",
+        "assembly"
+      ],
+      "title": "Representation",
+      "type": "string"
+    },
+    "volume_and_sections": {
+      "minLength": 8,
+      "title": "Volume And Sections",
+      "type": "string"
+    },
+    "part_relations": {
+      "minLength": 8,
+      "title": "Part Relations",
+      "type": "string"
+    },
+    "hidden_geometry_assumptions": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Hidden Geometry Assumptions",
+      "type": "array"
+    },
+    "authoring_strategy": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Authoring Strategy",
+      "type": "string"
+    },
+    "reference_derived_from_candidate": {
+      "const": false,
+      "default": false,
+      "title": "Reference Derived From Candidate",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "hypothesis_id",
+    "reference",
+    "observations",
+    "requirements",
+    "camera",
+    "representation",
+    "volume_and_sections",
+    "part_relations",
+    "hidden_geometry_assumptions",
+    "authoring_strategy"
+  ],
+  "title": "ModelingHypothesisV01",
+  "type": "object"
+}

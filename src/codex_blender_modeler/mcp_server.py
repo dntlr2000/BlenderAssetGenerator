@@ -4207,6 +4207,144 @@ def _preload_optional_vision_runtime() -> None:
         return
 
 
+@mcp.tool()
+def capture_reference_fidelity_evidence(
+    job_id: str, qa_run_id: str, output_dir: str, scene_snapshot: str | None = None
+) -> dict:
+    """Capture exact current or historical seven-pass evidence without source mutation."""
+
+    from .reference_fidelity.service import capture_render_evidence
+
+    root = job_dir(job_id)
+    return capture_render_evidence(
+        root, qa_run_id=qa_run_id, output_dir=root / output_dir,
+        scene_spec_path=root / scene_snapshot if scene_snapshot is not None else None,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def evaluate_reference_fidelity(job_id: str, review_path: str, output: str) -> dict:
+    """Rehash and route nonhuman visual findings; this is never human or promotion authority."""
+
+    from .reference_fidelity.service import evaluate_review_file
+
+    root = job_dir(job_id)
+    return evaluate_review_file(root, root / review_path, root / output).model_dump(mode="json")
+
+
+@mcp.tool()
+def preflight_directional_material(
+    job_id: str,
+    image_path: str,
+    mapping_evidence_path: str,
+    expected_fibre_axis: str,
+    coordinate_domain: str,
+    sampled_tile_span: float,
+    output: str,
+) -> dict:
+    """Publish local directional-tile checks without consuming a Blender or quality attempt."""
+
+    from .reference_fidelity.material import publish_directional_material_preflight
+    from .reference_fidelity.service import artifact_at
+
+    root = job_dir(job_id)
+    return publish_directional_material_preflight(
+        root,
+        output=root / output,
+        job_id=job_id,
+        preflight_id=Path(output).stem,
+        image=artifact_at(root, root / image_path),
+        mapping_evidence=artifact_at(root, root / mapping_evidence_path),
+        expected_fibre_axis=expected_fibre_axis,
+        coordinate_domain=coordinate_domain,
+        sampled_tile_span=sampled_tile_span,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def bind_aq_quality_revision_loop(job_id: str, session_id: str, plan_path: str) -> dict:
+    """Bind one explicit new-loop companion before initial geometry, never reopen old terminals."""
+
+    from .autonomy_v2.quality_revision_service import bind_quality_revision_loop
+
+    return bind_quality_revision_loop(job_id, session_id, Path(plan_path)).model_dump(mode="json")
+
+
+@mcp.tool()
+def submit_aq_quality_attempt(job_id: str, session_id: str, review_path: str,
+                              quality_submission_path: str) -> dict:
+    """Record one nonterminal exact visual/IQ attempt without synthesizing quality acceptance."""
+
+    from .autonomy_v2.quality_revision_service import submit_quality_attempt
+
+    return submit_quality_attempt(job_id, session_id, review_path=Path(review_path),
+                                  quality_submission_path=Path(quality_submission_path)).model_dump(mode="json")
+
+
+@mcp.tool()
+def begin_aq_structural_reentry(
+    job_id: str, session_id: str, strategy: str, cost_path: str
+) -> dict:
+    """Reserve a bounded V0.4 correction; promotion still consumes its own exact host policy."""
+
+    from .autonomy_v2.quality_revision_models import RevisionCostV01
+    from .autonomy_v2.quality_revision_service import begin_structural_reentry
+    from .reference_fidelity.service import artifact_at, read_artifact
+
+    root = job_dir(job_id)
+    cost = RevisionCostV01.model_validate_json(
+        read_artifact(root, artifact_at(root, root / cost_path))
+    )
+    return begin_structural_reentry(job_id, session_id, strategy=strategy, cost=cost)
+
+
+@mcp.tool()
+def compare_reference_fidelity(job_id: str, before: str, after: str, output: str) -> dict:
+    """Compare exact render-bound evaluations; no quality acceptance or canonical mutation."""
+
+    from .reference_fidelity.service import compare_evaluation_files
+
+    root = job_dir(job_id)
+    return compare_evaluation_files(
+        root, before_path=root / before, after_path=root / after, output=root / output
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def begin_aq_quality_reentry(job_id: str, session_id: str, strategy: str, cost_path: str) -> dict:
+    """Reserve the current exact defect route and shared budget before controller execution."""
+
+    from .autonomy_v2.quality_revision_models import RevisionCostV01
+    from .autonomy_v2.quality_revision_service import begin_quality_reentry
+    from .reference_fidelity.service import artifact_at, read_artifact
+
+    root = job_dir(job_id)
+    cost = RevisionCostV01.model_validate_json(
+        read_artifact(root, artifact_at(root, root / cost_path))
+    )
+    return begin_quality_reentry(job_id, session_id, strategy=strategy, cost=cost)
+
+
+@mcp.tool()
+def render_aq_reference_fidelity(job_id: str, session_id: str, run_id: str) -> dict:
+    """Render one budgeted seven-pass comparison before nonhuman quality assessment."""
+
+    from .autonomy_v2.quality_revision_service import render_quality_evidence
+
+    return render_quality_evidence(job_id, session_id, run_id=run_id)
+
+
+@mcp.tool()
+def supplement_aq_quality_evidence(job_id: str, session_id: str, review_path: str) -> dict:
+    """Fill missing observations once; preserve original source, findings, IQ and shared budget."""
+
+    from .autonomy_v2.quality_revision_service import supplement_quality_evidence
+
+    return supplement_quality_evidence(
+        job_id, session_id, review_path=Path(review_path)
+    ).model_dump(mode="json")
+
+
 def main() -> None:
     """Start stdio MCP after optional native runtimes are initialized on the main thread."""
 

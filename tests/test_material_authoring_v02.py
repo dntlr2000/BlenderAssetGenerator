@@ -730,3 +730,96 @@ def test_procedural_families_are_scale_bound_deterministic_and_explicitly_unveri
     crystal_manifest = family_manifests["crystal"]
     assert "transmission" in crystal_manifest.master_intent.features
     assert "runtime parity is unverified" in " ".join(crystal_manifest.limitations)
+
+
+def test_procedural_wood_v2_is_additive_deterministic_and_keeps_v1_distinct(
+    tmp_path: Path,
+) -> None:
+    """Generate the new fibre-axis strategy without changing or aliasing legacy v1 output."""
+
+    root = tmp_path / "job"
+    root.mkdir()
+    uv = _uv_identity(root)
+    manifests = {}
+    for run_id, strategy in (
+        ("wood-v1-frozen", "procedural_wood_v1"),
+        ("wood-v2-a", "procedural_wood_v2"),
+        ("wood-v2-b", "procedural_wood_v2"),
+    ):
+        request = _request(
+            root,
+            run_id=run_id,
+            strategy=strategy,
+            family="wood",
+            payload_name="procedural_wood",
+            payload=_wood(uv),
+        )
+        manifests[run_id] = _load_manifest(
+            root,
+            author_material_candidate(root, request).manifest.path,
+        )
+    v1_hashes = [item.artifact.sha256 for item in manifests["wood-v1-frozen"].channels]
+    v2_a_hashes = [item.artifact.sha256 for item in manifests["wood-v2-a"].channels]
+    v2_b_hashes = [item.artifact.sha256 for item in manifests["wood-v2-b"].channels]
+    assert v2_a_hashes == v2_b_hashes
+    assert v1_hashes != v2_a_hashes
+    assert manifests["wood-v1-frozen"].strategy == "procedural_wood_v1"
+    assert manifests["wood-v2-a"].strategy == "procedural_wood_v2"
+    assert "2D tile direction" in " ".join(manifests["wood-v2-a"].limitations)
+
+    with pytest.raises(ValidationError, match="2D x or y fibre axis"):
+        _request(
+            root,
+            run_id="wood-v2-z",
+            strategy="procedural_wood_v2",
+            family="wood",
+            payload_name="procedural_wood",
+            payload=_wood(uv).model_copy(update={"grain_axis": "z"}),
+        )
+
+
+def test_procedural_wood_v1_recorded_candidate_bytes_remain_frozen(tmp_path: Path) -> None:
+    """Pin the exact legacy Wood bytes used by the preserved failed visual experiment."""
+
+    root = tmp_path / "job"
+    root.mkdir()
+    uv = _uv_identity(root)
+    recorded_scale = 6.556727983845519
+    config = _wood(uv, scale_m=recorded_scale).model_copy(
+        update={
+            "grain_frequency_m": 0.36,
+            "growth_ring_scale_m": 0.30,
+            "knot_seed": 417,
+            "knot_count": 4,
+            "earlywood_color": (0.46, 0.24, 0.09),
+            "latewood_color": (0.075, 0.026, 0.008),
+            "earlywood_latewood_contrast": 0.84,
+            "roughness_base": 0.74,
+            "roughness_variation": 0.18,
+            "pore_bump_scale_m": 0.0006,
+            "finish_coating_amount": 0.02,
+            "deterministic_seed": 90217,
+            "mapping": "triplanar",
+        }
+    )
+    request = _request(
+        root,
+        run_id="wood-v1-recorded",
+        strategy="procedural_wood_v1",
+        family="wood",
+        payload_name="procedural_wood",
+        payload=config,
+        requested_pixels=512,
+        scale_m=recorded_scale,
+    )
+    manifest = _load_manifest(
+        root,
+        author_material_candidate(root, request).manifest.path,
+    )
+    assert {item.channel: item.artifact.sha256 for item in manifest.channels} == {
+        "base_color": "b63194c7cc330abf09e4f5e2c58a291831458f008153296f10708971a68cf9b6",
+        "height": "aa24e49c23f970dd1422b02f699a503dc4903d0128289bf24e13bc2cf804777c",
+        "normal": "21078fbdfa38f258f321c285e7e227e35d75b06129aed6dfba72817cb11fd35d",
+        "occlusion": "32aa6698b9d3d85eb238dc5d5d29bae00d39108a61137247547021df37471115",
+        "roughness": "1f7cf01fbae846e4e36c0b96dd3837869e45ff95e65b5f1b69d9fabb65e69b6d",
+    }

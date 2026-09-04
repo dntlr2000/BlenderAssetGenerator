@@ -1,0 +1,158 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Persist a nonterminal quality attempt against the exact current round source tuple.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "aq_quality_attempt",
+      "default": "aq_quality_attempt",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "round_index": {
+      "minimum": 0,
+      "title": "Round Index",
+      "type": "integer"
+    },
+    "source_state": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "scene_spec": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "geometry_receipt": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "material_receipt": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "quality_submission": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "visual_review": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "fidelity_evaluation": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "strategy": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "unresolved_features": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Unresolved Features",
+      "type": "array"
+    },
+    "next_action": {
+      "enum": [
+        "structural_reentry",
+        "parametric_revision",
+        "material_revision",
+        "calibration",
+        "evidence_required",
+        "technical_recovery",
+        "quality_ready",
+        "review_required"
+      ],
+      "title": "Next Action",
+      "type": "string"
+    },
+    "previous_attempt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "paired_comparison": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "supplements_attempt": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "is_terminal": {
+      "const": false,
+      "default": false,
+      "title": "Is Terminal",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    }
+  },
+  "required": [
+    "loop",
+    "round_index",
+    "source_state",
+    "scene_spec",
+    "geometry_receipt",
+    "material_receipt",
+    "quality_submission",
+    "visual_review",
+    "fidelity_evaluation",
+    "strategy",
+    "unresolved_features",
+    "next_action"
+  ],
+  "title": "QualityAttemptV01",
+  "type": "object"
+}

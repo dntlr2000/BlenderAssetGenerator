@@ -1,0 +1,112 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Charge a real QA invocation before effects and preserve exact same-input retry identity.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_qa_reservation",
+      "default": "fidelity_qa_reservation",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "round_index": {
+      "maximum": 5,
+      "minimum": 0,
+      "title": "Round Index",
+      "type": "integer"
+    },
+    "attempt_index": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Attempt Index",
+      "type": "integer"
+    },
+    "source_state": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "reserved_before_effects": {
+      "const": true,
+      "default": true,
+      "title": "Reserved Before Effects",
+      "type": "boolean"
+    },
+    "human_approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Human Approval Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "loop",
+    "sequence",
+    "previous",
+    "round_index",
+    "attempt_index",
+    "source_state",
+    "source",
+    "build_fingerprint",
+    "run_id"
+  ],
+  "title": "QualityRenderReservationV01",
+  "type": "object"
+}

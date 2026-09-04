@@ -9,6 +9,16 @@ startup_timeout_sec = 20
 tool_timeout_sec = 900
 required = false
 enabled_tools = [
+  "capture_reference_fidelity_evidence",
+  "evaluate_reference_fidelity",
+  "preflight_directional_material",
+  "compare_reference_fidelity",
+  "bind_aq_quality_revision_loop",
+  "submit_aq_quality_attempt",
+  "render_aq_reference_fidelity",
+  "supplement_aq_quality_evidence",
+  "begin_aq_structural_reentry",
+  "begin_aq_quality_reentry",
   "create_job",
   "add_view",
   "get_job_status",

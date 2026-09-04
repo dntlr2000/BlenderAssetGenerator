@@ -30,6 +30,7 @@
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
 | Material Identity Split | additive strict `0.1.0`; paired SceneSpec/ModelingPlan, Blender shadow validation, specialized root-scope approval, guarded apply/recovery; 실제 자산은 승인 요청 경계에서 정지 |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
+| Reference Fidelity / AQ quality revision loop | additive `0.1.0`, 새 exact session opt-in만 적용; 구조/finding/수정 연결 및 실제 Blender multi-round fixture vertical 통과, 목재 부분 개선, 실제 5자산 전이 미완료; `disabled_experimental` |
 | GLB numerical geometry survival | raw corner evidence `0.1.0`, numerical report `0.2.0`; Blender 5.0.1 전용 additive proof, 기존 exact snapshot/report 의미 유지 |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
@@ -41,12 +42,33 @@
 | 2026-08-13 AQ v2 ↔ V0.9 state-anchor lifecycle | full `1586 passed, 57 skipped, 8 warnings`; related focused `226 passed`; no-op reconcile/receipt lineage/AQ controller resume 통과; 기존 `collectible_wood_02_2`는 read-only 감사상 stale/unverified |
 | 2026-08-14 Material Closure Stabilization | full `1750 passed, 62 skipped, 8 warnings`; actual Blender 5.0.1 승인 전 fixture `1 passed`; Crystalgun retry02는 missing UV coverage로 권한 소비 전 `preflight_failed`; authorized promotion/`MaterialPhaseReceiptV2`/IQ는 미검증 |
 | 2026-08-14 Material Identity Split 승인 전 검증 | Crystalgun paired candidate를 실제 Blender 5.0.1 build/inspect/validate 3 processes로 검증하고 `framework_ready_for_explicit_scope_approval`에서 정지; ApprovalRequest `1`, 사용자 승인·consumption·ApplyIntent·canonical write·controller/promotion/IQ `0`; 최종 full `1809 passed, 63 skipped, 8 warnings`, 실제 opt-in Blender node `1 passed` |
+| 2026-09-04 Reference Fidelity host/vertical | full `2224 passed, 73 skipped, 8 warnings`; AQ focused `1136 passed, 32 skipped`; 실제 Blender 5.0.1 `56 passed, 1 skipped`; multi-round fixture vertical, implementation/Blender-bound Wood v2, V03 correction 및 공통 loft cap/winding 회귀 포함, 실제 5자산 품질·인간 수락은 미검증 |
 
 2026-08-14 Crystalgun incident 감사에서 보고된 AQ state `0011`이 최신이 아님을 확인했습니다. 실제 head는 `0012 / terminal / cancelled / none`이며 canonical MaterialPlan, `MaterialPhaseReceiptV2`, neutral material preview와 IQ 진입 evidence가 없습니다. 기존 technical retry와 승인은 새 material controller 권한이 아니며, append-only failure/discrepancy/supersession evidence와 별도 material repair session만 허용합니다. supersession 게시, 새 repair dry-run, 사용자 appearance approval과 production promotion은 각각 실제 evidence가 생성되기 전까지 완료로 간주하지 않습니다.
 
 같은 자산의 shared-material ownership 문제는 Material Closure를 완화하지 않고 Material Identity Split으로 분리했습니다. 승인 전 shadow run은 두 material identity와 두 object assignment, 대응 ModelingPlan 변경만 검증했으며 canonical SceneSpec, ModelingPlan, Blend와 MaterialPlan absence는 그대로입니다. ApprovalRequest는 사용자 승인이 아니므로 별도 사용자 결정 전에는 apply 또는 후속 material repair를 실행하지 않습니다.
 
 Blender 4.x용 feature-probe fallback은 유지하지만 현재 통합 저장소의 실제 Blender 실행 기준선은 5.0.1입니다. macOS, Linux, 다른 Python/Blender 조합은 실제 V0.9 gate가 수행되기 전까지 `unverified`입니다.
+
+## Reference Fidelity 개발 상태
+
+관찰·3D 가설 → 구조 저작 → 실제 일곱-pass 렌더 → source-bound 비인간 finding → bounded 수정 →
+같은 조건 전후 비교를 연결하는 optional companion을 추가했습니다. Standard 승인과 기존 AQ session의
+의미는 유지합니다. 목재 실증은 연결 체적·절단면을 확인했지만 균열 규칙성과 풍화 재질이 미해결입니다. 새 AQ 수정
+루프는 고정 fixture의 실제 Blender multi-round vertical을 통과했지만, fixture의 비인간 판정은 실제 자산
+품질 증거가 아니며 나머지 네 reference의 전이는 아직 검증 전입니다. technical terminal을 visual acceptance로
+간주하지 않습니다. legacy Wood bytes를 보존하는 additive directional Wood v2와 exact typed
+tile/mapping 사전검사는 구현됐고 Blender 5.0.1 compile fixture를 통과했습니다. 규칙적 stripe가 남은
+attempt02는 render 전에 보존·중단했습니다. attempt03는 exact 승인 아래 실제 Blender same-camera
+일곱-pass를 완료해 grain 방향은 개선됐지만 두 major finding이 남아 B를 통과하지 못했습니다. 더 좁고
+불규칙한 crack과 밝은 dry-wood 파라미터의 attempt04는 image-only preflight만 통과했습니다. 실행 전
+topology 감사에서 seam-split boundary와 46개 degenerate cap triangle을 발견했습니다. 수동 cap 교체였던
+attempt07도 shared-edge winding 320개가 일치하지 않아 실행 전에 superseded했습니다. 공통 loft compiler가
+degenerate convex cap에 interior-center fan을 사용하고 진행축과 반대인 section winding을 정규화하도록 고친 뒤,
+동일 authoring을 재컴파일한 attempt08은 source topology exact 보존, closed two-manifold, 0 degenerate face,
+8,640 polygon-corner UV와 image-only preflight를 통과했습니다. 아직 새 exact scope 승인 전이므로 Blender
+beauty는 없습니다. UV-sphere나 preflight 통과를 실제 reference beauty 개선으로 세지 않습니다.
+[사용 계약](docs/reference_fidelity.md), [실행/한계 기록](VERIFICATION_REFERENCE_FIDELITY_KO.md)을 참조하세요.
 
 ## AQ Approval Envelope 0.3과 One-Prompt
 
@@ -1163,16 +1185,16 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental delivery roles: portable_fbx, review_only
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
-- Skill registry SHA-256: 4ae2e74c5b932f9c00238326ae7875b78c9042021b67462933bad445e3287d2b
-- CLI commands: 178
-- CLI registry SHA-256: 36e4627cffa6481bbaee6cfdf8d54e05a86124d9d87c026d767f9fad92a7088b
-- MCP server tools: 169
-- MCP server registry SHA-256: 30f2e13a607c26bc7d91c5f8b5fba24e3f5a642f48ee9f5932ebba035f5a002c
-- Project-enabled MCP tools: 168
-- Project-enabled MCP SHA-256: a6ade0870ec7a8005c2dbe022a1abdda8394bc754ea931a9efcc0a4cb772393d
+- Skill registry SHA-256: f220fd3c3902eaf59f3decc63116af157d7dabf32263abca62603f1c6318c5a7
+- CLI commands: 188
+- CLI registry SHA-256: 8331013fdc74a1856cc7b88aa3c73ec912081a3c2ba08270471b75745987b74c
+- MCP server tools: 179
+- MCP server registry SHA-256: 934b80c247505d17274eede6a23ebe94b9f7859b194be3b8a0e49d12e7b61e88
+- Project-enabled MCP tools: 178
+- Project-enabled MCP SHA-256: 09bd8fa370d31d8f3f90d3d7613429da91db94e6d2ea61570f161e28c72a2fab
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
-- Latest reported test count: 2048
+- Latest reported test count: 2238
 - Verification summary: verification/latest_summary.json (passed)
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.

@@ -1,0 +1,109 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve attempts and best-known evidence without changing IQ or human disposition.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_review_bundle",
+      "default": "fidelity_review_bundle",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_state": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "attempts": {
+      "items": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "minItems": 1,
+      "title": "Attempts",
+      "type": "array"
+    },
+    "best_known_attempt": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "reason": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "review_only": {
+      "const": true,
+      "default": true,
+      "title": "Review Only",
+      "type": "boolean"
+    },
+    "production_ready": {
+      "const": false,
+      "default": false,
+      "title": "Production Ready",
+      "type": "boolean"
+    },
+    "destination_handoff_eligible": {
+      "const": false,
+      "default": false,
+      "title": "Destination Handoff Eligible",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "session_id",
+    "loop",
+    "source_state",
+    "attempts",
+    "best_known_attempt",
+    "reason"
+  ],
+  "title": "FidelityReviewBundleV01",
+  "type": "object"
+}

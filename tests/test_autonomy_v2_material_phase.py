@@ -857,10 +857,12 @@ def test_material_policy_decision_failure_rolls_back_canonical_promotion(
     root, plan, budget, state, result, baseline_sha = _fixture(tmp_path, monkeypatch)
     import codex_blender_modeler.autonomy_v2.approval_policy_service as policy_service
     import codex_blender_modeler.autonomy_v2.material_phase_service as service
+    decision_after_paths: list[str] = []
 
     def reject_decision(*_args: object, **_kwargs: object) -> dict[str, object]:
         """Simulate a fail-closed host decision writer after candidate promotion."""
 
+        decision_after_paths.append(str(_kwargs["canonical_snapshot_after_path"]))
         raise PermissionError("PolicyDecisionReceipt unavailable")
 
     monkeypatch.setattr(
@@ -882,6 +884,8 @@ def test_material_policy_decision_failure_rolls_back_canonical_promotion(
             canonical_lock_held=False,
         )
     assert sha256_file(root / "analysis" / "material_plan.json") == baseline_sha
+    assert len(decision_after_paths) == 1
+    assert decision_after_paths[0].endswith("/promoted/scene_spec.json")
     assert list(root.rglob("rollback_receipt.json"))
     assert not list(
         root.glob(

@@ -44,6 +44,19 @@ MATERIAL_FAMILY_PRESETS: dict[str, dict[str, Any]] = {
         "emission_high": (0, 0, 0),
         "emission_threshold": 1.0,
     },
+    "worn_blue_plastic": {
+        "base_low": (7, 60, 162),
+        "base_high": (20, 112, 222),
+        "roughness": (0.3, 0.5),
+        "metallic": (0.0, 0.0),
+        "normal_strength": 0.08,
+        "emission_low": (0, 0, 0),
+        "emission_high": (0, 0, 0),
+        "emission_threshold": 1.0,
+        "detail_tone_factor": 1.5,
+        "detail_roughness_value": 215,
+        "detail_relief_mix": 0.12,
+    },
     "rock": {
         "base_low": (35, 31, 29),
         "base_high": (122, 112, 101),
@@ -610,6 +623,34 @@ def _detail_relief(
             fill=102,
             width=line_width,
         )
+    elif detail_pattern == "abrasion_scratches":
+        scratch_paths = (
+            ((0.18, 0.22), (0.43, 0.49)),
+            ((0.31, 0.16), (0.56, 0.39)),
+            ((0.48, 0.63), (0.73, 0.82)),
+            ((0.16, 0.72), (0.36, 0.58)),
+            ((0.55, 0.24), (0.82, 0.43)),
+            ((0.66, 0.54), (0.87, 0.67)),
+            ((0.25, 0.87), (0.47, 0.73)),
+            ((0.42, 0.36), (0.51, 0.31)),
+            ((0.58, 0.76), (0.69, 0.69)),
+        )
+        for index, (start, end) in enumerate(scratch_paths):
+            points = (
+                round(start[0] * (width - 1)),
+                round(start[1] * (height - 1)),
+                round(end[0] * (width - 1)),
+                round(end[1] * (height - 1)),
+            )
+            intensity = 150 + (index % 4) * 24
+            mark_draw.line(points, fill=intensity, width=line_width)
+            relief_draw.line(points, fill=112, width=line_width)
+        nick_radius = max(1, min(width, height) // 96)
+        for u, v in ((0.08, 0.18), (0.11, 0.52), (0.23, 0.94), (0.78, 0.08), (0.93, 0.46)):
+            x, y = round(u * (width - 1)), round(v * (height - 1))
+            box = (x - nick_radius, y - nick_radius, x + nick_radius, y + nick_radius)
+            mark_draw.ellipse(box, fill=210)
+            relief_draw.ellipse(box, fill=108)
     else:
         raise ValueError(f"Unsupported detail_pattern: {detail_pattern!r}")
     return marks, relief

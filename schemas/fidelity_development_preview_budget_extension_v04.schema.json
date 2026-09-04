@@ -1,0 +1,250 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one material-only refinement to the exact unresolved visual finding.",
+  "properties": {
+    "schema_version": {
+      "const": "0.4.0",
+      "default": "0.4.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_development_preview_budget_extension",
+      "default": "fidelity_development_preview_budget_extension",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "extension_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Extension Id",
+      "type": "string"
+    },
+    "extension_index": {
+      "const": 3,
+      "default": 3,
+      "title": "Extension Index",
+      "type": "integer"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "prior_extension": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "prior_primary_outcome": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "prior_visual_findings": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "prior_evaluation": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "prior_spatial_preservation": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_dependencies": {
+      "items": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "maxItems": 1024,
+      "title": "Source Dependencies",
+      "type": "array"
+    },
+    "source_spatial_preservation": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "revision_route": {
+      "const": "material_revision",
+      "default": "material_revision",
+      "title": "Revision Route",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "implementation_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Implementation Fingerprint",
+      "type": "string"
+    },
+    "blender_executable_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blender Executable Sha256",
+      "type": "string"
+    },
+    "blender_version": {
+      "const": "5.0.1",
+      "default": "5.0.1",
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "primary_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Primary Run Id",
+      "type": "string"
+    },
+    "retry_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Retry Run Id",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "material_fidelity_refinement",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "execution_request_basis": {
+      "const": "exact_scope_sha256_user_approval",
+      "title": "Execution Request Basis",
+      "type": "string"
+    },
+    "prior_authorized_attempt_limit": {
+      "const": 12,
+      "default": 12,
+      "title": "Prior Authorized Attempt Limit",
+      "type": "integer"
+    },
+    "prior_reserved_attempt_count": {
+      "const": 9,
+      "default": 9,
+      "title": "Prior Reserved Attempt Count",
+      "type": "integer"
+    },
+    "additional_attempt_limit": {
+      "const": 2,
+      "default": 2,
+      "title": "Additional Attempt Limit",
+      "type": "integer"
+    },
+    "cumulative_authorized_attempt_limit": {
+      "const": 14,
+      "default": 14,
+      "title": "Cumulative Authorized Attempt Limit",
+      "type": "integer"
+    },
+    "closed_prior_retry_slots": {
+      "const": 3,
+      "default": 3,
+      "title": "Closed Prior Retry Slots",
+      "type": "integer"
+    },
+    "maximum_total_reservations": {
+      "const": 11,
+      "default": 11,
+      "title": "Maximum Total Reservations",
+      "type": "integer"
+    },
+    "reclaims_closed_retry_slot": {
+      "const": false,
+      "default": false,
+      "title": "Reclaims Closed Retry Slot",
+      "type": "boolean"
+    },
+    "primary_attempts": {
+      "const": 1,
+      "default": 1,
+      "title": "Primary Attempts",
+      "type": "integer"
+    },
+    "maximum_identical_input_technical_retries": {
+      "const": 1,
+      "default": 1,
+      "title": "Maximum Identical Input Technical Retries",
+      "type": "integer"
+    },
+    "scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    },
+    "resets_existing_budget": {
+      "const": false,
+      "default": false,
+      "title": "Resets Existing Budget",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    },
+    "package_acceptance_authority": {
+      "const": false,
+      "default": false,
+      "title": "Package Acceptance Authority",
+      "type": "boolean"
+    },
+    "activation_authority": {
+      "const": false,
+      "default": false,
+      "title": "Activation Authority",
+      "type": "boolean"
+    },
+    "campaign_evidence": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Evidence",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "extension_id",
+    "job_id",
+    "prior_extension",
+    "prior_primary_outcome",
+    "prior_visual_findings",
+    "prior_evaluation",
+    "prior_spatial_preservation",
+    "source",
+    "source_dependencies",
+    "source_spatial_preservation",
+    "build_fingerprint",
+    "implementation_fingerprint",
+    "blender_executable_sha256",
+    "primary_run_id",
+    "retry_run_id",
+    "purpose",
+    "execution_request_basis",
+    "scope_sha256"
+  ],
+  "title": "DevelopmentPreviewBudgetExtensionV04",
+  "type": "object"
+}

@@ -1,0 +1,71 @@
+{
+  "schema_version": "0.1.0",
+  "historical_source_commit": "5e5b1726523c461248d82e9484b3e4c8dedb9393",
+  "meaning": "Exact planning-time anchors, not new quality dispositions or a full workspace inventory.",
+  "anchors": [
+    {
+      "path": "reports/activation_readiness/fresh_campaign/aq-first-completion-5e5b172-fix3/human_review_request.json",
+      "sha256": "2f1a3b63d26a79f6d34a2fb5e165bde9d19cb17eab314b5ef5712b5b1a2cf560"
+    },
+    {
+      "path": "reports/activation_readiness/fresh_campaign/aq-first-completion-5e5b172-fix3/campaign_terminal_audit.json",
+      "sha256": "f3d7201079b641b504be662db62bf444bcf53f944f687f48a630e29f97bb2009"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_01_plastic_shard/input/reference.png",
+      "sha256": "ef1a06d053cbf414b986d5488dd8d5c4b4a61b9387489fb957816feec167cc52"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_01_plastic_shard/qa/runs/aq-first-completion-n03-fix3-01-v06/passes/beauty.png",
+      "sha256": "87744e870255bad71f6d4ac3c178ab662ea666e481a7bf2410ddf464b57d0834"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_02_rusted_scrap/input/reference.png",
+      "sha256": "5a125a3d8a0b96f6bcfb7ec1438e59cdbff82fd02358f459126838e025386576"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_02_rusted_scrap/qa/runs/aq-first-completion-n03-fix3-02-v06/passes/beauty.png",
+      "sha256": "641ef2268fe531131f130110ba468526bbc9556a3d74ab6ed6e3276e8f8acfcd"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_03_weathered_wood_beam/input/reference.png",
+      "sha256": "b1312fedd5c1cfab2c7a1c522157442b1a3c543398612e8d02d4672af7df8fc7"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_03_weathered_wood_beam/qa/runs/aq-first-completion-n03-fix3-03-v06/passes/beauty.png",
+      "sha256": "6194395a92e3f9aab85da8308e177b693e23925ec81408290b5c3d077daae859"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_04_crystal_emitter/input/reference.png",
+      "sha256": "dd2ecc1bfeb403595d8a4f77875980fd7cad7d29582d661a248fa2d639c846bf"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_04_crystal_emitter/qa/runs/aq-first-completion-n03-fix3-04-v06/passes/beauty.png",
+      "sha256": "6bfbcb40b73a3aa56ca5d0af8bde3fb4c8974ffa01671f4c6ae56fe18170accb"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_05_multi_material_laser/input/reference.png",
+      "sha256": "1a4a707f7aaa5c7c333ed473eed72ab5de43583bb69fad27552e5eea117c6420"
+    },
+    {
+      "path": "workspaces/aq_first_completion_n03_fix3_05_multi_material_laser/qa/runs/aq-first-completion-n03-fix3-05-v06/passes/beauty.png",
+      "sha256": "55934814b95797fce5497e2c672b052191662c79de5f378f1b341dd472291a4b"
+    },
+    {
+      "path": "workspaces/item_plastic_standard_canary_01/analysis/scene_spec.json",
+      "sha256": "3ed91596fc7731592558a8a0a08c5ad6b3c33ede3caca287584cbffb1d78f0e9"
+    },
+    {
+      "path": "workspaces/item_plastic_standard_canary_01/qa/runs/v08-d33330a6-qa/passes/beauty.png",
+      "sha256": "a3103ed58856d27de55cadbc08876c95c4905541a97c998c3f3edff910d91e0c"
+    },
+    {
+      "path": "workspaces/collectible_cloth_01/analysis/scene_spec.json",
+      "sha256": "b61f7fead07d5aedeed6ed1cd7b0026aa143af8ae287bff93cef04033eef6531"
+    },
+    {
+      "path": "workspaces/collectible_cloth_01/qa/runs/v08-984ec6b0-qa/passes/beauty.png",
+      "sha256": "556c684df1bcd39106aa0b9adae39aef39dce0e96eb61ee5837452dab4ccb456"
+    }
+  ]
+}

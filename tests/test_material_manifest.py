@@ -97,6 +97,84 @@ def test_valid_hybrid_manifest_resolves_channels_and_color_spaces(tmp_path: Path
     assert Path(manifest["channels"]["base_color"]["resolved_path"]).is_file()
 
 
+def test_image_manifest_normalizes_blender_surface_controls(tmp_path: Path) -> None:
+    """Validate image normal and height controls before the manifest reaches Blender."""
+
+    payload = _valid_payload()
+    payload["source_type"] = "image"
+    payload["channels"]["height"] = {
+        "source": "image",
+        "path": "height.png",
+        "color_space": "Non-Color",
+    }
+    payload["channels"]["normal"] = {
+        "source": "image",
+        "path": "normal.png",
+        "color_space": "Non-Color",
+    }
+    payload["procedural"] = {
+        "normal_strength": 1,
+        "bump_strength": 0.22,
+        "bump_distance": 0.015,
+    }
+    path = _write_manifest(tmp_path, payload)
+    (path.parent / "height.png").write_bytes(b"draft-height")
+    (path.parent / "normal.png").write_bytes(b"draft-normal")
+
+    manifest, _ = load_material_manifest(
+        {
+            "id": "mat.test",
+            "texture_manifest": "textures/mat.test/texture_manifest.json",
+        },
+        tmp_path,
+    )
+
+    assert manifest is not None
+    assert manifest["procedural"]["normal_strength"] == 1.0
+    assert manifest["procedural"]["bump_strength"] == 0.22
+    assert manifest["procedural"]["bump_distance"] == 0.015
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("normal_strength", True),
+        ("normal_strength", 8.01),
+        ("bump_strength", -0.01),
+        ("bump_strength", 1.01),
+        ("bump_distance", "far"),
+        ("bump_distance", 2.01),
+        ("bump_distance", float("nan")),
+    ],
+)
+def test_image_manifest_rejects_invalid_blender_surface_controls(
+    tmp_path: Path,
+    field: str,
+    value: object,
+) -> None:
+    """Fail closed on unsafe image controls instead of deferring errors to bpy."""
+
+    payload = _valid_payload()
+    payload["source_type"] = "image"
+    payload["channels"]["height"] = {
+        "source": "image",
+        "path": "height.png",
+        "color_space": "Non-Color",
+    }
+    payload["procedural"] = {field: value}
+    path = _write_manifest(tmp_path, payload)
+    (path.parent / "height.png").write_bytes(b"draft-height")
+
+    with pytest.raises(MaterialManifestError, match=field):
+        load_material_manifest(
+            {
+                "id": "mat.test",
+                "texture_manifest": "textures/mat.test/texture_manifest.json",
+            },
+            tmp_path,
+        )
+
+
 def test_manifest_accepts_exact_generated_channel_hashes(tmp_path: Path) -> None:
     """Accept a generation map that exactly hashes every image-backed channel."""
 

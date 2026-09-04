@@ -64,7 +64,8 @@
         "resume_aq_one_prompt_skill",
         "get_aq_one_prompt_skill_status",
         "reconcile_aq_one_prompt_skill_terminal",
-        "cancel_aq_one_prompt_skill"
+        "cancel_aq_one_prompt_skill",
+        "bind_aq_quality_revision_loop"
       ]
     },
     {
@@ -197,7 +198,7 @@
       "execution_modes": ["standard"],
       "dependencies": [],
       "route_keys": ["standard.qa"],
-      "allowed_tools": ["run_visual_qa", "run_visual_diagnostics", "generate_pdf_report"]
+      "allowed_tools": ["run_visual_qa", "run_visual_diagnostics", "generate_pdf_report", "capture_reference_fidelity_evidence", "evaluate_reference_fidelity", "compare_reference_fidelity"]
     },
     {
       "skill_id": "reference-visual-qa",
@@ -269,7 +270,7 @@
       "execution_modes": ["aq"],
       "dependencies": [],
       "route_keys": ["aq.material.execute_controller", "aq.material.validate_candidate"],
-      "allowed_tools": ["run_autonomy_v2_one_prompt", "resume_autonomy_v2_one_prompt"]
+      "allowed_tools": ["run_autonomy_v2_one_prompt", "resume_autonomy_v2_one_prompt", "preflight_directional_material"]
     },
     {
       "skill_id": "aq-material-closure",
@@ -293,7 +294,7 @@
       "execution_modes": ["aq"],
       "dependencies": [],
       "route_keys": ["aq.quality.run_integrated_quality", "aq.quality.review_terminal"],
-      "allowed_tools": ["run_autonomy_v2_one_prompt", "get_integrated_quality_status"]
+      "allowed_tools": ["run_autonomy_v2_one_prompt", "get_integrated_quality_status", "capture_reference_fidelity_evidence", "evaluate_reference_fidelity", "compare_reference_fidelity", "render_aq_reference_fidelity", "submit_aq_quality_attempt", "supplement_aq_quality_evidence", "begin_aq_structural_reentry", "begin_aq_quality_reentry"]
     },
     {
       "skill_id": "aq-delivery-stage",

@@ -4745,5 +4745,147 @@ def status(job_id: str) -> None:
     console.print(table)
 
 
+@app.command("fidelity-evidence")
+def fidelity_evidence(
+    job_id: str, qa_run_id: str, output_dir: Path, scene_snapshot: Path | None = None
+) -> None:
+    """Capture exact source bindings without changing QA or canonical geometry."""
+
+    from .reference_fidelity.service import capture_render_evidence
+
+    root = job_dir(job_id)
+    evidence = capture_render_evidence(
+        root, qa_run_id=qa_run_id, output_dir=root / output_dir,
+        scene_spec_path=root / scene_snapshot if scene_snapshot is not None else None,
+    )
+    console.print_json(evidence.model_dump_json())
+
+
+@app.command("fidelity-evaluate")
+def fidelity_evaluate(job_id: str, review_path: Path, output: Path) -> None:
+    """Validate nonhuman visual findings and route exact defects independently from legacy IQ."""
+
+    from .reference_fidelity.service import evaluate_review_file
+
+    root = job_dir(job_id)
+    result = evaluate_review_file(root, root / review_path, root / output)
+    console.print_json(result.model_dump_json())
+
+
+@app.command("fidelity-material-preflight")
+def fidelity_material_preflight(
+    job_id: str,
+    image_path: Path,
+    mapping_evidence_path: Path,
+    expected_fibre_axis: str,
+    coordinate_domain: str,
+    sampled_tile_span: float,
+    output: Path,
+) -> None:
+    """Check exact directional texture evidence without rendering or granting quality authority."""
+
+    from .reference_fidelity.material import publish_directional_material_preflight
+    from .reference_fidelity.service import artifact_at
+
+    root = job_dir(job_id)
+    result = publish_directional_material_preflight(
+        root,
+        output=root / output,
+        job_id=job_id,
+        preflight_id=output.stem,
+        image=artifact_at(root, root / image_path),
+        mapping_evidence=artifact_at(root, root / mapping_evidence_path),
+        expected_fibre_axis=expected_fibre_axis,
+        coordinate_domain=coordinate_domain,
+        sampled_tile_span=sampled_tile_span,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("aq-quality-loop-bind")
+def aq_quality_loop_bind(job_id: str, session_id: str, plan_path: Path) -> None:
+    """Bind one explicit disabled-experimental companion before the first geometry candidate."""
+
+    from .autonomy_v2.quality_revision_service import bind_quality_revision_loop
+
+    console.print_json(bind_quality_revision_loop(job_id, session_id, plan_path).model_dump_json())
+
+
+@app.command("aq-quality-attempt")
+def aq_quality_attempt(
+    job_id: str, session_id: str, review_path: Path, submission_path: Path
+) -> None:
+    """Record one source-bound nonterminal IQ/visual attempt; do not approve or deliver."""
+
+    from .autonomy_v2.quality_revision_service import submit_quality_attempt
+
+    result = submit_quality_attempt(job_id, session_id, review_path=review_path,
+                                    quality_submission_path=submission_path)
+    console.print_json(result.model_dump_json())
+
+
+@app.command("aq-structural-reentry")
+def aq_structural_reentry(job_id: str, session_id: str, strategy: str, cost_path: Path) -> None:
+    """Reserve an exact structural correction and return to the host geometry controller."""
+
+    from .autonomy_v2.quality_revision_models import RevisionCostV01
+    from .autonomy_v2.quality_revision_service import begin_structural_reentry
+    from .reference_fidelity.service import artifact_at, read_artifact
+
+    root = job_dir(job_id)
+    cost = RevisionCostV01.model_validate_json(
+        read_artifact(root, artifact_at(root, root / cost_path))
+    )
+    console.print_json(json.dumps(begin_structural_reentry(job_id, session_id,
+                                                          strategy=strategy, cost=cost)))
+
+
+@app.command("fidelity-compare")
+def fidelity_compare(job_id: str, before: Path, after: Path, output: Path) -> None:
+    """Compare exact nonhuman evaluations under actual matched renderer conditions."""
+
+    from .reference_fidelity.service import compare_evaluation_files
+
+    root = job_dir(job_id)
+    result = compare_evaluation_files(root, before_path=root / before,
+                                      after_path=root / after, output=root / output)
+    console.print_json(result.model_dump_json())
+
+
+@app.command("aq-quality-reentry")
+def aq_quality_reentry(job_id: str, session_id: str, strategy: str, cost_path: Path) -> None:
+    """Reserve the defect-selected structural or local correction, never a caller-invented route."""
+
+    from .autonomy_v2.quality_revision_models import RevisionCostV01
+    from .autonomy_v2.quality_revision_service import begin_quality_reentry
+    from .reference_fidelity.service import artifact_at, read_artifact
+
+    root = job_dir(job_id)
+    cost = RevisionCostV01.model_validate_json(
+        read_artifact(root, artifact_at(root, root / cost_path))
+    )
+    result = begin_quality_reentry(job_id, session_id, strategy=strategy, cost=cost)
+    console.print_json(json.dumps(result))
+
+
+@app.command("aq-quality-render")
+def aq_quality_render(job_id: str, session_id: str, run_id: str) -> None:
+    """Render exact companion QA with pre-reserved costs and immutable source snapshots."""
+
+    from .autonomy_v2.quality_revision_service import render_quality_evidence
+
+    console.print_json(json.dumps(render_quality_evidence(job_id, session_id, run_id=run_id)))
+
+
+@app.command("aq-quality-supplement")
+def aq_quality_supplement(job_id: str, session_id: str, review_path: Path) -> None:
+    """Append missing observations once on the same render without replacing an earlier finding."""
+
+    from .autonomy_v2.quality_revision_service import supplement_quality_evidence
+
+    result = supplement_quality_evidence(job_id, session_id, review_path=review_path)
+    console.print_json(result.model_dump_json())
+
+
 if __name__ == "__main__":
     app()

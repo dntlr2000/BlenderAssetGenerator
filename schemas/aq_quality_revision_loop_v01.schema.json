@@ -1,0 +1,183 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "RevisionCostV01": {
+      "additionalProperties": false,
+      "description": "Reserve actual stage costs before effects; a structural round is not a build budget.",
+      "properties": {
+        "materializations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Materializations",
+          "type": "integer"
+        },
+        "builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Builds",
+          "type": "integer"
+        },
+        "qa_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Qa Runs",
+          "type": "integer"
+        },
+        "closure_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Closure Runs",
+          "type": "integer"
+        },
+        "diagnostic_views": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Diagnostic Views",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        }
+      },
+      "title": "RevisionCostV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one explicitly selected loop over one active AQ root and Approval Envelope.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "aq_quality_revision_loop",
+      "default": "aq_quality_revision_loop",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "profile_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "root_authorization": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "approval_envelope": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "hypothesis": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "initial_state": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "structural_revision_limit": {
+      "default": 3,
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Structural Revision Limit",
+      "type": "integer"
+    },
+    "local_revision_limit": {
+      "default": 2,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Local Revision Limit",
+      "type": "integer"
+    },
+    "same_input_technical_retries": {
+      "const": 1,
+      "default": 1,
+      "title": "Same Input Technical Retries",
+      "type": "integer"
+    },
+    "plateau_length": {
+      "const": 2,
+      "default": 2,
+      "title": "Plateau Length",
+      "type": "integer"
+    },
+    "strategy_switch_limit": {
+      "const": 1,
+      "default": 1,
+      "title": "Strategy Switch Limit",
+      "type": "integer"
+    },
+    "cost_limit": {
+      "$ref": "#/$defs/RevisionCostV01"
+    },
+    "allow_disabled_experimental": {
+      "const": true,
+      "title": "Allow Disabled Experimental",
+      "type": "boolean"
+    },
+    "execution_lifetime": {
+      "const": "current_codex_task",
+      "default": "current_codex_task",
+      "title": "Execution Lifetime",
+      "type": "string"
+    },
+    "human_approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Human Approval Authority",
+      "type": "boolean"
+    },
+    "destination_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "session_id",
+    "root_authorization",
+    "approval_envelope",
+    "hypothesis",
+    "initial_state",
+    "cost_limit",
+    "allow_disabled_experimental"
+  ],
+  "title": "AQQualityRevisionLoopV01",
+  "type": "object"
+}

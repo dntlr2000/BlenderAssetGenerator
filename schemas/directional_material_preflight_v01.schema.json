@@ -1,0 +1,227 @@
+{
+  "$defs": {
+    "DirectionalTextureThresholdsV01": {
+      "additionalProperties": false,
+      "description": "Freeze conservative tile checks that precede, but never replace, visual review.",
+      "properties": {
+        "minimum_gradient_energy": {
+          "default": 0.001,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Gradient Energy",
+          "type": "number"
+        },
+        "minimum_anisotropy": {
+          "default": 0.15,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Anisotropy",
+          "type": "number"
+        },
+        "maximum_dominant_harmonic_fraction": {
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Dominant Harmonic Fraction",
+          "type": "number"
+        },
+        "minimum_sampled_tile_span": {
+          "default": 0.75,
+          "exclusiveMinimum": 0,
+          "maximum": 1024,
+          "title": "Minimum Sampled Tile Span",
+          "type": "number"
+        }
+      },
+      "title": "DirectionalTextureThresholdsV01",
+      "type": "object"
+    },
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reject empty, misdirected, single-period, or under-sampled directional tiles.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "directional_material_preflight",
+      "default": "directional_material_preflight",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "preflight_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Preflight Id",
+      "type": "string"
+    },
+    "image": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "mapping_evidence": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "expected_fibre_axis": {
+      "enum": [
+        "x",
+        "y"
+      ],
+      "title": "Expected Fibre Axis",
+      "type": "string"
+    },
+    "coordinate_domain": {
+      "enum": [
+        "uv",
+        "normalized_generated",
+        "object_m",
+        "world_m"
+      ],
+      "title": "Coordinate Domain",
+      "type": "string"
+    },
+    "sampled_tile_span": {
+      "exclusiveMinimum": 0,
+      "maximum": 1024,
+      "title": "Sampled Tile Span",
+      "type": "number"
+    },
+    "sampled_resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Sampled Resolution",
+      "type": "array"
+    },
+    "thresholds": {
+      "$ref": "#/$defs/DirectionalTextureThresholdsV01"
+    },
+    "gradient_x": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Gradient X",
+      "type": "number"
+    },
+    "gradient_y": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Gradient Y",
+      "type": "number"
+    },
+    "anisotropy": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Anisotropy",
+      "type": "number"
+    },
+    "detected_fibre_axis": {
+      "enum": [
+        "x",
+        "y",
+        "ambiguous",
+        "none"
+      ],
+      "title": "Detected Fibre Axis",
+      "type": "string"
+    },
+    "dominant_harmonic_fraction": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Dominant Harmonic Fraction",
+      "type": "number"
+    },
+    "finding_codes": {
+      "items": {
+        "enum": [
+          "insufficient_spatial_variation",
+          "direction_ambiguous",
+          "direction_mismatch",
+          "single_period_dominance",
+          "insufficient_sampled_span"
+        ],
+        "type": "string"
+      },
+      "title": "Finding Codes",
+      "type": "array"
+    },
+    "outcome": {
+      "enum": [
+        "preflight_passed",
+        "review_required"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "reference_similarity_evaluated": {
+      "const": false,
+      "default": false,
+      "title": "Reference Similarity Evaluated",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "preflight_id",
+    "image",
+    "mapping_evidence",
+    "expected_fibre_axis",
+    "coordinate_domain",
+    "sampled_tile_span",
+    "sampled_resolution",
+    "thresholds",
+    "gradient_x",
+    "gradient_y",
+    "anisotropy",
+    "detected_fibre_axis",
+    "dominant_harmonic_fraction",
+    "outcome"
+  ],
+  "title": "DirectionalMaterialPreflightV01",
+  "type": "object"
+}

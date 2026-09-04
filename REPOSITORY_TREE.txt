@@ -113,6 +113,7 @@ BlenderAssetGenerator/
   VERIFICATION_KO.md
   VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md
   VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md
+  VERIFICATION_REFERENCE_FIDELITY_KO.md
   VERIFICATION_SKILL_ORCHESTRATION_KO.md
   VERIFICATION_V06_KO.md
   VERIFICATION_V073_KO.md
@@ -131,6 +132,7 @@ BlenderAssetGenerator/
   docs/agent/source_of_truth.md
   docs/agent/testing_and_verification.md
   docs/agent/workflow_reference.md
+  docs/reference_fidelity.md
   examples/autonomous_quality_benchmarks/manifest.json
   examples/autonomous_quality_benchmarks_v02/manifest.json
   examples/first_reference_test/geometry/city_underside.mesh.json
@@ -195,6 +197,9 @@ BlenderAssetGenerator/
   schemas/advanced_material_handoff_plan.schema.json
   schemas/advanced_material_handoff_receipt.schema.json
   schemas/advanced_material_handoff_request.schema.json
+  schemas/aq_quality_attempt_v01.schema.json
+  schemas/aq_quality_render_reservation_v01.schema.json
+  schemas/aq_quality_revision_loop_v01.schema.json
   schemas/aq_skill_adapter_plan.schema.json
   schemas/aq_skill_adapter_state.schema.json
   schemas/aq_skill_adapter_terminal.schema.json
@@ -318,6 +323,8 @@ BlenderAssetGenerator/
   schemas/destination_import_plan.schema.json
   schemas/destination_import_receipt.schema.json
   schemas/destination_import_validation.schema.json
+  schemas/directional_mapping_evidence_v01.schema.json
+  schemas/directional_material_preflight_v01.schema.json
   schemas/environment_probe.schema.json
   schemas/exact_signage_text_evidence_v021.schema.json
   schemas/export_package_manifest.schema.json
@@ -326,6 +333,19 @@ BlenderAssetGenerator/
   schemas/external_asset_intake_validation.schema.json
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
+  schemas/fidelity_comparison_v01.schema.json
+  schemas/fidelity_development_preview_attempt_outcome_v01.schema.json
+  schemas/fidelity_development_preview_attempt_outcome_v02.schema.json
+  schemas/fidelity_development_preview_attempt_outcome_v03.schema.json
+  schemas/fidelity_development_preview_budget_extension_v01.schema.json
+  schemas/fidelity_development_preview_budget_extension_v02.schema.json
+  schemas/fidelity_development_preview_budget_extension_v03.schema.json
+  schemas/fidelity_development_preview_budget_extension_v04.schema.json
+  schemas/fidelity_evaluation_v01.schema.json
+  schemas/fidelity_render_evidence_v01.schema.json
+  schemas/fidelity_review_bundle_v01.schema.json
+  schemas/fidelity_review_terminal_v01.schema.json
+  schemas/fidelity_uv_spatial_preservation_v01.schema.json
   schemas/framework_change_justification.schema.json
   schemas/geometry_delivery_corner_evidence.schema.json
   schemas/geometry_delivery_numerical_survival_report.schema.json
@@ -455,6 +475,7 @@ BlenderAssetGenerator/
   schemas/mesh_payload_v02_migration_plan.schema.json
   schemas/mesh_payload_v02_migration_receipt.schema.json
   schemas/mesh_preflight_report.schema.json
+  schemas/modeling_hypothesis_v01.schema.json
   schemas/modeling_plan.schema.json
   schemas/optimization_approval.schema.json
   schemas/optimization_plan.schema.json
@@ -486,6 +507,8 @@ BlenderAssetGenerator/
   schemas/review_bundle_receipt.schema.json
   schemas/revision_approval.schema.json
   schemas/revision_candidates.schema.json
+  schemas/revision_cost_v01.schema.json
+  schemas/revision_ledger_entry_v01.schema.json
   schemas/revision_plan.schema.json
   schemas/revision_request.schema.json
   schemas/root_authorization.schema.json
@@ -515,7 +538,9 @@ BlenderAssetGenerator/
   schemas/structural_candidate_plan.schema.json
   schemas/structural_geometry_candidate.schema.json
   schemas/structural_mesh_payload.schema.json
+  schemas/structural_reentry_plan_v01.schema.json
   schemas/structural_regression_report.schema.json
+  schemas/structure_authoring_v01.schema.json
   schemas/surface_detail_validation.schema.json
   schemas/texture_manifest.schema.json
   schemas/texture_pack_manifest.schema.json
@@ -532,6 +557,7 @@ BlenderAssetGenerator/
   schemas/visual_convergence_report.schema.json
   schemas/visual_convergence_report_manifest.schema.json
   schemas/visual_convergence_selection.schema.json
+  schemas/visual_finding_set_v01.schema.json
   schemas/visual_qa_report.schema.json
   schemas/visual_qa_request.schema.json
   schemas/workflow_approval.schema.json
@@ -544,6 +570,7 @@ BlenderAssetGenerator/
   schemas/workspace_audit.schema.json
   schemas/workspace_relocation_plan.schema.json
   schemas/workspace_relocation_receipt.schema.json
+  scripts/audit_reference_fidelity_history.py
   scripts/bootstrap.ps1
   scripts/bootstrap.sh
   scripts/check_activation_readiness_contract.py
@@ -643,6 +670,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
   src/codex_blender_modeler/autonomy_v2/execution_profile_service.py
+  src/codex_blender_modeler/autonomy_v2/fidelity_terminal_service.py
   src/codex_blender_modeler/autonomy_v2/human_quality_review_service.py
   src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/material_phase_models.py
@@ -651,6 +679,9 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/models.py
   src/codex_blender_modeler/autonomy_v2/planner.py
   src/codex_blender_modeler/autonomy_v2/profiles.py
+  src/codex_blender_modeler/autonomy_v2/quality_revision_budget.py
+  src/codex_blender_modeler/autonomy_v2/quality_revision_models.py
+  src/codex_blender_modeler/autonomy_v2/quality_revision_service.py
   src/codex_blender_modeler/autonomy_v2/quality_terminal_service.py
   src/codex_blender_modeler/autonomy_v2/supervisor_service.py
   src/codex_blender_modeler/autonomy_v2/transitions.py
@@ -815,6 +846,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/material_authoring/codex_image_v05_bridge.py
   src/codex_blender_modeler/material_authoring/models.py
   src/codex_blender_modeler/material_authoring/service.py
+  src/codex_blender_modeler/material_authoring/wood.py
   src/codex_blender_modeler/material_closure/AGENTS.md
   src/codex_blender_modeler/material_closure/__init__.py
   src/codex_blender_modeler/material_closure/approval_policy.py
@@ -931,6 +963,13 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/reference_evidence/reporting.py
   src/codex_blender_modeler/reference_evidence/segmentation.py
   src/codex_blender_modeler/reference_evidence/service.py
+  src/codex_blender_modeler/reference_fidelity/__init__.py
+  src/codex_blender_modeler/reference_fidelity/authoring.py
+  src/codex_blender_modeler/reference_fidelity/material.py
+  src/codex_blender_modeler/reference_fidelity/models.py
+  src/codex_blender_modeler/reference_fidelity/preview.py
+  src/codex_blender_modeler/reference_fidelity/service.py
+  src/codex_blender_modeler/reference_fidelity/source_snapshot.py
   src/codex_blender_modeler/reference_scope.py
   src/codex_blender_modeler/reporting/__init__.py
   src/codex_blender_modeler/reporting/models.py
@@ -983,6 +1022,7 @@ BlenderAssetGenerator/
   tests/blender_scripts/probe_portable_json_long_path.py
   tests/cli_help_support.py
   tests/fixtures/integrated_quality_v02/masks.json
+  tests/fixtures/reference_fidelity/historical_5e5b172.json
   tests/test_activation_readiness.py
   tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
@@ -1120,9 +1160,19 @@ BlenderAssetGenerator/
   tests/test_qa_shape_metrics.py
   tests/test_qa_structural_regression.py
   tests/test_qa_suggestion_enrichment.py
+  tests/test_quality_revision_budget.py
+  tests/test_quality_revision_flow.py
+  tests/test_quality_revision_host.py
   tests/test_reference_analysis.py
   tests/test_reference_content_scope.py
   tests/test_reference_evidence_aq.py
+  tests/test_reference_fidelity.py
+  tests/test_reference_fidelity_aq_blender_vertical.py
+  tests/test_reference_fidelity_files.py
+  tests/test_reference_fidelity_geometry_blender.py
+  tests/test_reference_fidelity_material.py
+  tests/test_reference_fidelity_preview_budget.py
+  tests/test_reference_fidelity_public.py
   tests/test_reference_mask_refinement.py
   tests/test_repository_catalog.py
   tests/test_repository_summary_generator.py

@@ -1,0 +1,183 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "RevisionCostV01": {
+      "additionalProperties": false,
+      "description": "Reserve actual stage costs before effects; a structural round is not a build budget.",
+      "properties": {
+        "materializations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Materializations",
+          "type": "integer"
+        },
+        "builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Builds",
+          "type": "integer"
+        },
+        "qa_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Qa Runs",
+          "type": "integer"
+        },
+        "closure_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Closure Runs",
+          "type": "integer"
+        },
+        "diagnostic_views": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Diagnostic Views",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        }
+      },
+      "title": "RevisionCostV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one exact correction and its cost before candidate authoring or promotion.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "structural_reentry_plan",
+      "default": "structural_reentry_plan",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "attempt": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "round_index": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Round Index",
+      "type": "integer"
+    },
+    "source_scene": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_modeling_plan": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "source_blend": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "feature_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Feature Ids",
+      "type": "array"
+    },
+    "target_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Target Ids",
+      "type": "array"
+    },
+    "route": {
+      "enum": [
+        "structural_reentry",
+        "parametric_revision",
+        "material_revision"
+      ],
+      "title": "Route",
+      "type": "string"
+    },
+    "strategy": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "change_strategy": {
+      "title": "Change Strategy",
+      "type": "boolean"
+    },
+    "cost": {
+      "$ref": "#/$defs/RevisionCostV01"
+    },
+    "comparison_camera_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Comparison Camera Sha256",
+      "type": "string"
+    },
+    "policy_gate": {
+      "enum": [
+        "structural_candidate_promotion",
+        "bounded_parametric_revision",
+        "material_candidate_promotion"
+      ],
+      "title": "Policy Gate",
+      "type": "string"
+    },
+    "authority": {
+      "const": "plan_only_requires_exact_host_policy",
+      "default": "plan_only_requires_exact_host_policy",
+      "title": "Authority",
+      "type": "string"
+    }
+  },
+  "required": [
+    "loop",
+    "attempt",
+    "round_index",
+    "source_scene",
+    "source_modeling_plan",
+    "source_blend",
+    "feature_ids",
+    "target_ids",
+    "route",
+    "strategy",
+    "change_strategy",
+    "cost",
+    "comparison_camera_sha256",
+    "policy_gate"
+  ],
+  "title": "StructuralReentryPlanV01",
+  "type": "object"
+}

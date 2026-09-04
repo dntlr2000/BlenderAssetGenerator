@@ -1,0 +1,186 @@
+{
+  "$defs": {
+    "BuildSourceSnapshotV01": {
+      "additionalProperties": false,
+      "description": "Keep mutable material/plan inputs readable after later canonical promotions.",
+      "properties": {
+        "provenance": {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        "files": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FidelityArtifact"
+          },
+          "title": "Files",
+          "type": "object"
+        },
+        "supplemental_scene_materials": {
+          "additionalProperties": {
+            "$ref": "#/$defs/FidelityArtifact"
+          },
+          "title": "Supplemental Scene Materials",
+          "type": "object"
+        },
+        "supplemental_meaning": {
+          "const": "captured_source_not_legacy_build_fingerprint",
+          "default": "captured_source_not_legacy_build_fingerprint",
+          "title": "Supplemental Meaning",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provenance",
+        "files"
+      ],
+      "title": "BuildSourceSnapshotV01",
+      "type": "object"
+    },
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind all seven actual V0.6 passes and immutable source snapshots for one comparison.",
+  "properties": {
+    "scene_spec": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "geometry_payloads": {
+      "items": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "title": "Geometry Payloads",
+      "type": "array"
+    },
+    "geometry_snapshots": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "title": "Geometry Snapshots",
+      "type": "object"
+    },
+    "qa_request": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "qa_report": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "pass_manifest": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "camera_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Camera Fingerprint",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "build_sources": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BuildSourceSnapshotV01"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "comparison_conditions": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "render_engine": {
+      "minLength": 1,
+      "title": "Render Engine",
+      "type": "string"
+    },
+    "resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Resolution",
+      "type": "array"
+    },
+    "passes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "propertyNames": {
+        "enum": [
+          "beauty",
+          "silhouette",
+          "object_id",
+          "material_id",
+          "normal",
+          "depth",
+          "wireframe"
+        ]
+      },
+      "title": "Passes",
+      "type": "object"
+    },
+    "auxiliary_views": {
+      "items": {
+        "$ref": "#/$defs/FidelityArtifact"
+      },
+      "maxItems": 8,
+      "title": "Auxiliary Views",
+      "type": "array"
+    },
+    "auxiliary_view_meaning": {
+      "const": "candidate_consistency_only",
+      "default": "candidate_consistency_only",
+      "title": "Auxiliary View Meaning",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scene_spec",
+    "qa_request",
+    "qa_report",
+    "pass_manifest",
+    "camera_fingerprint",
+    "build_fingerprint",
+    "render_engine",
+    "resolution",
+    "passes"
+  ],
+  "title": "RenderEvidenceV01",
+  "type": "object"
+}

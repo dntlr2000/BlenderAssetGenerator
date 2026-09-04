@@ -66,6 +66,28 @@ def _face_normal(
     )
 
 
+def _edge_incidence(faces: list[list[int]]) -> dict[tuple[int, int], int]:
+    """Count undirected face-edge incidence for one deterministic mesh payload."""
+
+    counts: dict[tuple[int, int], int] = {}
+    for face in faces:
+        for first, second in zip(face, [*face[1:], face[0]], strict=True):
+            edge = tuple(sorted((first, second)))
+            counts[edge] = counts.get(edge, 0) + 1
+    return counts
+
+
+def _edge_orientation_balance(faces: list[list[int]]) -> dict[tuple[int, int], int]:
+    """Sum canonical edge directions so consistently wound shared edges cancel."""
+
+    balances: dict[tuple[int, int], int] = {}
+    for face in faces:
+        for first, second in zip(face, [*face[1:], face[0]], strict=True):
+            edge = tuple(sorted((first, second)))
+            balances[edge] = balances.get(edge, 0) + (1 if (first, second) == edge else -1)
+    return balances
+
+
 def test_explicit_v02_to_v03_migration_is_hash_bound() -> None:
     """Require exact legacy and candidate hashes before accepting migration."""
 
@@ -112,6 +134,98 @@ def test_loft_resamples_unequal_sections_deterministically() -> None:
     assert first == second
     assert len(first["vertices"]) == 16
     assert len(first["faces"]) == 20
+    assert set(_edge_incidence(first["faces"]).values()) == {2}
+    assert set(_edge_orientation_balance(first["faces"]).values()) == {0}
+    assert all(
+        sum(value * value for value in _face_normal(first["vertices"], face)) > 1.0e-24
+        for face in first["faces"]
+    )
+
+
+def test_loft_cap_falls_back_when_dense_resampling_makes_legacy_fans_degenerate() -> None:
+    """Close dense convex sections without zero-area faces or open boundary edges."""
+
+    spec = LoftGeometry.model_validate_json(
+        json.dumps({
+            "kind": "loft",
+            "sections": [
+                {
+                    "closed": True,
+                    "points": [[-1, -1, 0], [1, -1, 0], [1, 1, 0], [-1, 1, 0]],
+                },
+                {
+                    "closed": True,
+                    "points": [[-1, -1, 2], [1, -1, 2], [1, 1, 2], [-1, 1, 2]],
+                },
+            ],
+            "resample_count": 16,
+            "cap_policy": "ends",
+            "correspondence_policy": "index",
+        })
+    )
+
+    payload = build_loft_mesh(spec.model_dump(mode="json"))
+
+    assert len(payload["vertices"]) == 34
+    assert len(payload["faces"]) == 48
+    assert payload["vertices"][-2:] == [(0.0, 0.0, 0.0), (0.0, 0.0, 2.0)]
+    assert set(_edge_incidence(payload["faces"]).values()) == {2}
+    assert set(_edge_orientation_balance(payload["faces"]).values()) == {0}
+    assert all(
+        sum(value * value for value in _face_normal(payload["vertices"], face))
+        > 1.0e-24
+        for face in payload["faces"]
+    )
+
+
+def test_loft_reverses_faces_when_section_normal_opposes_progression() -> None:
+    """Keep vertex indices stable while making a Y-axis X/Z loft face outward."""
+
+    spec = LoftGeometry.model_validate_json(
+        json.dumps({
+            "kind": "loft",
+            "sections": [
+                {
+                    "closed": True,
+                    "points": [
+                        [-1, -1, -1],
+                        [1, -1, -1],
+                        [1, -1, 1],
+                        [-1, -1, 1],
+                    ],
+                },
+                {
+                    "closed": True,
+                    "points": [
+                        [-1, 1, -1],
+                        [1, 1, -1],
+                        [1, 1, 1],
+                        [-1, 1, 1],
+                    ],
+                },
+            ],
+            "resample_count": 4,
+            "cap_policy": "ends",
+            "correspondence_policy": "index",
+        })
+    )
+
+    payload = build_loft_mesh(spec.model_dump(mode="json"))
+    vertices = payload["vertices"]
+    mesh_center = tuple(
+        sum(vertex[axis] for vertex in vertices) / len(vertices) for axis in range(3)
+    )
+
+    assert vertices[:4] == [tuple(point) for point in spec.sections[0].points]
+    assert set(_edge_orientation_balance(payload["faces"]).values()) == {0}
+    for face in payload["faces"]:
+        normal = _face_normal(vertices, face)
+        face_center = tuple(
+            sum(vertices[index][axis] for index in face) / len(face)
+            for axis in range(3)
+        )
+        outward = tuple(face_center[axis] - mesh_center[axis] for axis in range(3))
+        assert sum(normal[axis] * outward[axis] for axis in range(3)) > 0
 
 
 def test_beveled_relief_loft_preserves_projection_and_adds_chamfer_sections() -> None:

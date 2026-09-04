@@ -13,3 +13,5 @@ description: Convert V0.6 QA findings into hash-bound, user-approved, single-use
 6. Require an explicit, hash-bound, single-use user approval before application.
 7. Archive the prior SceneSpec, apply once, rebuild, rerender with the same camera, and reevaluate constraints.
 8. Accept the revision only if direct-reference score improves and measured constraints do not regress; otherwise report rollback required.
+
+An explicit `VisualFindingSetV01` may identify structural errors that this scalar guarded path cannot fix. Route those to V0.4 structural candidate authoring and its exact Standard approval, with a fixed hypothesis and before/after render comparison. Do not relax this legacy path's direct-score gate or convert Codex findings into user approval. New structural evidence may improve observed volume even when the legacy outline score falls; report the separate companion result and seek the applicable exact candidate approval. Preserve old QA, approvals and SceneSpec history.

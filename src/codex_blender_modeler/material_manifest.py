@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -106,7 +107,36 @@ def _validate_ramp(value: Any, label: str) -> None:
             raise MaterialManifestError(f"{label}[{index}] color must have four numbers")
 
 
-def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any) -> dict:
+def _validate_runtime_number(
+    result: dict[str, Any],
+    name: str,
+    *,
+    minimum: float,
+    maximum: float,
+) -> None:
+    """Normalize one Blender-consumed manifest control inside an explicit safe range."""
+
+    setting = result.get(name)
+    if setting is None:
+        return
+    if (
+        isinstance(setting, bool)
+        or not isinstance(setting, (int, float))
+        or not math.isfinite(float(setting))
+        or not minimum <= float(setting) <= maximum
+    ):
+        raise MaterialManifestError(
+            f"procedural.{name} must be a finite number within [{minimum}, {maximum}]"
+        )
+    result[name] = float(setting)
+
+
+def _validate_runtime_procedural(
+    channels: dict[str, dict[str, Any]],
+    value: Any,
+    *,
+    intended_scale_m: float,
+) -> dict:
     """Reject procedural declarations that the current Blender graph cannot consume."""
 
     if not isinstance(value, dict):
@@ -132,6 +162,26 @@ def _validate_runtime_procedural(channels: dict[str, dict[str, Any]], value: Any
         )
     if procedural_scale is not None:
         result["coordinate_scale_m"] = float(procedural_scale)
+    # These controls affect image-backed normal/height nodes too. Validate them before
+    # the procedural-channel early return so malformed image manifests never reach bpy.
+    _validate_runtime_number(
+        result,
+        "normal_strength",
+        minimum=0.0,
+        maximum=8.0,
+    )
+    _validate_runtime_number(
+        result,
+        "bump_strength",
+        minimum=0.0,
+        maximum=1.0,
+    )
+    _validate_runtime_number(
+        result,
+        "bump_distance",
+        minimum=0.0,
+        maximum=intended_scale_m,
+    )
     procedural_channels = {
         name for name, channel in channels.items() if channel["source"] == "procedural"
     }
@@ -502,7 +552,9 @@ def load_material_manifest(
             )
     _validate_generated_channel_hashes(raw, result["channels"])
     result["procedural"] = _validate_runtime_procedural(
-        result["channels"], raw.get("procedural", {})
+        result["channels"],
+        raw.get("procedural", {}),
+        intended_scale_m=result["intended_scale_m"],
     )
     detail_ids, bindings = _validate_surface_detail_bindings(
         raw,

@@ -105,6 +105,7 @@ def render_scene_qa_passes(
     camera_fingerprint: str | None = None,
     scene_spec_sha256: str | None = None,
     surface_detail_inventory_path: Path | None = None,
+    comparison_conditions_path: Path | None = None,
 ) -> RenderPassManifest:
     """Render seven-pass QA against canonical or isolated inventory evidence."""
 
@@ -158,6 +159,15 @@ def render_scene_qa_passes(
         "--camera-fingerprint": current_camera_fingerprint,
         "--scene-spec-sha256": current_scene_hash,
     }
+    if comparison_conditions_path is not None:
+        from .production.validation import ensure_contained_production_path
+
+        conditions_path = ensure_contained_production_path(
+            root, comparison_conditions_path, must_exist=False
+        )
+        if conditions_path.exists():
+            raise FileExistsError("comparison conditions already exist; use a new QA run")
+        optional["--comparison-conditions"] = str(conditions_path)
     for flag, value in optional.items():
         if value is not None:
             args.extend([flag, value])

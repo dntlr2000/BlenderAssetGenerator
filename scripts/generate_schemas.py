@@ -137,6 +137,16 @@ from codex_blender_modeler.autonomy_v2.models import (
     QualityTerminalV2,
     RootAuthorizationV2,
 )
+from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+    AQQualityRevisionLoopV01,
+    FidelityReviewBundleV01,
+    FidelityReviewTerminalV01,
+    QualityAttemptV01,
+    QualityRenderReservationV01,
+    RevisionCostV01,
+    RevisionLedgerEntryV01,
+    StructuralReentryPlanV01,
+)
 from codex_blender_modeler.background_quality.models import (
     BackgroundFitReport,
     BackgroundQualityReport,
@@ -415,6 +425,24 @@ from codex_blender_modeler.reference_evidence.models import (
     CameraHypothesisSet,
     ReferenceEvidence,
     ReferenceEvidenceRunResult,
+)
+from codex_blender_modeler.reference_fidelity.authoring import StructureAuthoringV01
+from codex_blender_modeler.reference_fidelity.models import (
+    DevelopmentPreviewAttemptOutcomeV01,
+    DevelopmentPreviewAttemptOutcomeV02,
+    DevelopmentPreviewAttemptOutcomeV03,
+    DevelopmentPreviewBudgetExtensionV01,
+    DevelopmentPreviewBudgetExtensionV02,
+    DevelopmentPreviewBudgetExtensionV03,
+    DevelopmentPreviewBudgetExtensionV04,
+    DirectionalMappingEvidenceV01,
+    DirectionalMaterialPreflightV01,
+    FidelityComparisonV01,
+    FidelityEvaluationV01,
+    ModelingHypothesisV01,
+    RenderEvidenceV01,
+    UVSpatialPreservationV01,
+    VisualFindingSetV01,
 )
 from codex_blender_modeler.reporting.models import HumanReportManifest
 from codex_blender_modeler.skill_orchestration.models import (
@@ -944,6 +972,48 @@ SCHEMAS = {
     "advanced_material_handoff_plan.schema.json": AdvancedMaterialHandoffPlan,
     "advanced_material_handoff_receipt.schema.json": AdvancedMaterialHandoffReceipt,
 }
+
+
+SCHEMAS.update({
+    "fidelity_development_preview_budget_extension_v01.schema.json": (
+        DevelopmentPreviewBudgetExtensionV01
+    ),
+    "fidelity_development_preview_attempt_outcome_v01.schema.json": (
+        DevelopmentPreviewAttemptOutcomeV01
+    ),
+    "fidelity_development_preview_budget_extension_v02.schema.json": (
+        DevelopmentPreviewBudgetExtensionV02
+    ),
+    "fidelity_development_preview_budget_extension_v03.schema.json": (
+        DevelopmentPreviewBudgetExtensionV03
+    ),
+    "fidelity_development_preview_budget_extension_v04.schema.json": (
+        DevelopmentPreviewBudgetExtensionV04
+    ),
+    "fidelity_development_preview_attempt_outcome_v02.schema.json": (
+        DevelopmentPreviewAttemptOutcomeV02
+    ),
+    "fidelity_development_preview_attempt_outcome_v03.schema.json": (
+        DevelopmentPreviewAttemptOutcomeV03
+    ),
+    "fidelity_uv_spatial_preservation_v01.schema.json": UVSpatialPreservationV01,
+    "directional_material_preflight_v01.schema.json": DirectionalMaterialPreflightV01,
+    "directional_mapping_evidence_v01.schema.json": DirectionalMappingEvidenceV01,
+    "modeling_hypothesis_v01.schema.json": ModelingHypothesisV01,
+    "visual_finding_set_v01.schema.json": VisualFindingSetV01,
+    "fidelity_evaluation_v01.schema.json": FidelityEvaluationV01,
+    "fidelity_comparison_v01.schema.json": FidelityComparisonV01,
+    "fidelity_render_evidence_v01.schema.json": RenderEvidenceV01,
+    "structure_authoring_v01.schema.json": StructureAuthoringV01,
+    "aq_quality_revision_loop_v01.schema.json": AQQualityRevisionLoopV01,
+    "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
+    "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
+    "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,
+    "revision_ledger_entry_v01.schema.json": RevisionLedgerEntryV01,
+    "revision_cost_v01.schema.json": RevisionCostV01,
+    "fidelity_review_bundle_v01.schema.json": FidelityReviewBundleV01,
+    "fidelity_review_terminal_v01.schema.json": FidelityReviewTerminalV01,
+})
 
 
 def main() -> None:

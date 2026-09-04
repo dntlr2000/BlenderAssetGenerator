@@ -67,6 +67,7 @@ from .models import (
     BudgetUsageV2,
     RootAuthorizationV2,
 )
+from .quality_revision_models import StructuralReentryPlanV01
 
 _STRUCTURAL_KINDS = frozenset(
     {"loft", "sweep", "boolean_tree", "multi_loop_extrude", "geometry_nodes_template"}
@@ -728,6 +729,7 @@ def _build_isolated_candidate(
     validation_root: Path,
     modeling_artifact: AQV2Artifact,
     compilation: _CandidateCompilation,
+    structural_reentry: bool = False,
 ) -> _CandidateBuild:
     """Build, inspect, and validate one candidate against a copied candidate-owned root."""
 
@@ -772,6 +774,7 @@ def _build_isolated_candidate(
         compilation.scene.job_id,
         scene_spec_path=scene_path,
         validate_contracts=True,
+        material_plan_mode="scene_spec_only" if structural_reentry else "current",
     )
     build_root = workspace / "build"
     blend = build_root / "scene.blend"
@@ -779,7 +782,8 @@ def _build_isolated_candidate(
     validation = build_root / "validation.json"
     run_blender(
         "build_scene.py",
-        ["--spec", str(scene_path), "--job-root", str(workspace), "--output", str(blend)],
+        ["--spec", str(scene_path), "--job-root", str(workspace), "--output", str(blend)]
+        + (["--material-plan-mode", "scene_spec_only"] if structural_reentry else []),
         factory_startup=True,
         disable_autoexec=True,
     )
@@ -822,6 +826,7 @@ def _build_isolated_candidate(
         compilation.scene.job_id,
         scene_spec_path=scene_path,
         validate_contracts=True,
+        material_plan_mode="scene_spec_only" if structural_reentry else "current",
     )
     if observed_provenance != provenance:
         raise RuntimeError("candidate build inputs changed during isolated Blender execution")
@@ -858,12 +863,20 @@ def _reserve_candidate_budget(
     budget: AutonomyBudgetV2,
     *,
     materialization_builds: int,
+    structural_reentry: bool = False,
+    parametric_reentry: bool = False,
 ) -> BudgetUsageV2:
     """Reserve structural materializations, one candidate build, and one promotion."""
 
     updated = usage.model_copy(
         update={
-            "initial_candidates": usage.initial_candidates + 1,
+            "initial_candidates": usage.initial_candidates + int(
+                not structural_reentry and not parametric_reentry
+            ),
+            "structural_rounds": usage.structural_rounds + int(structural_reentry),
+            "parametric_convergence_iterations": (
+                usage.parametric_convergence_iterations + int(parametric_reentry)
+            ),
             "total_blender_builds": (
                 usage.total_blender_builds + materialization_builds + 1
             ),
@@ -873,6 +886,8 @@ def _reserve_candidate_budget(
     )
     limits = {
         "initial_candidates": budget.initial_candidates,
+        "structural_rounds": budget.structural_rounds,
+        "parametric_convergence_iterations": budget.parametric_convergence_iterations,
         "total_blender_builds": budget.total_blender_builds,
         "canonical_promotions": budget.canonical_promotions,
         "total_actions": budget.global_action_limit,
@@ -1019,6 +1034,8 @@ def _validate_geometry_policy_authority(
     policy_authorization_path: str | Path | None,
     *,
     require_unused: bool = True,
+    structural_reentry: bool = False,
+    parametric_reentry: bool = False,
 ) -> bool:
     """Require policy presence and optionally replay unused geometry authority."""
 
@@ -1027,11 +1044,17 @@ def _validate_geometry_policy_authority(
         validate_routine_policy_authorization,
     )
 
+    gate = (
+        "bounded_parametric_revision" if parametric_reentry else
+        "structural_candidate_promotion" if structural_reentry else "geometry_candidate_promotion"
+    )
     required = policy_authorization_required(
         plan.job_id,
         plan.session_id,
-        "geometry_candidate_promotion",
+        gate,
     )
+    if (structural_reentry or parametric_reentry) and not required:
+        raise PermissionError("structural reentry requires exact single-use envelope policy")
     if required and policy_authorization_path is None:
         raise PermissionError(
             "Approval Envelope geometry promotion requires PolicyAuthorization"
@@ -1047,7 +1070,7 @@ def _validate_geometry_policy_authority(
             plan.job_id,
             plan.session_id,
             policy_authorization_path=policy_authorization_path,
-            expected_gate_kind="geometry_candidate_promotion",
+            expected_gate_kind=gate,
             expected_target_path=result_artifact.path,
         )
     return True
@@ -1100,7 +1123,108 @@ def validate_and_promote_geometry_candidate_v2(
     authorization: RootAuthorizationV2,
     policy_authorization_path: str | Path | None = None,
 ) -> tuple[GeometryCandidateValidationReceiptV2, AQV2Artifact]:
-    """Validate and commit geometry with its required policy decision inside the lock."""
+    """Preserve initial-candidate semantics; never consume this wrapper for a revision round."""
+
+    from .quality_revision_service import active_reentry
+
+    if active_reentry(job_root, plan, state) is not None:
+        raise PermissionError("reserved structural reentry requires its dedicated host wrapper")
+    return _validate_and_promote_geometry_core(
+        job_root=job_root, session_root=session_root, plan=plan, budget=budget, state=state,
+        authorization=authorization, policy_authorization_path=policy_authorization_path,
+    )
+
+
+def validate_and_promote_geometry_reentry_v01(
+    *, job_root: Path, session_root: Path, plan: AutonomyPlanV2, budget: AutonomyBudgetV2,
+    state: AutonomyStateV2, authorization: RootAuthorizationV2,
+    policy_authorization_path: str | Path | None = None,
+) -> tuple[GeometryCandidateValidationReceiptV2, AQV2Artifact]:
+    """Validate a reserved source-bound reentry under its separate structural policy gate."""
+
+    from .quality_revision_service import active_reentry
+
+    reentry = active_reentry(job_root, plan, state)
+    if reentry is None or reentry.route not in {"structural_reentry", "parametric_revision"}:
+        raise PermissionError("structural promotion requires an exact active reentry plan")
+    return _validate_and_promote_geometry_core(
+        job_root=job_root, session_root=session_root, plan=plan, budget=budget, state=state,
+        authorization=authorization, policy_authorization_path=policy_authorization_path,
+        reentry=reentry,
+    )
+
+
+def _require_reentry_baseline(root: Path, reentry: StructuralReentryPlanV01) -> None:
+    """Compare-and-swap the exact scene, modeling plan and blend bound before reauthoring."""
+
+    for path, artifact in (
+        ("analysis/scene_spec.json", reentry.source_scene),
+        ("analysis/modeling_plan.json", reentry.source_modeling_plan),
+        ("blender/scene.blend", reentry.source_blend),
+    ):
+        if sha256_file(root / path) != artifact.sha256:
+            raise ValueError("structural reentry canonical baseline changed")
+
+
+def _validate_reentry_targets(
+    root: Path, reentry: StructuralReentryPlanV01, scene: SceneSpecV03
+) -> None:
+    """Keep non-target parts/materials/camera fixed while replacing declared structural targets."""
+
+    from ..reference_fidelity.models import FidelityArtifact
+    from ..reference_fidelity.service import read_artifact
+    from .quality_revision_models import QualityAttemptV01
+
+    baseline = SceneSpec.model_validate_json(read_artifact(root, reentry.source_scene))
+    attempt = QualityAttemptV01.model_validate_json(read_artifact(root, reentry.attempt))
+    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(
+        read_artifact(root, attempt.geometry_receipt)
+    )
+    source = receipt.candidate_scene_spec_v03
+    original = SceneSpecV03.model_validate_json(read_artifact(
+        root, FidelityArtifact(path=source.path, sha256=source.sha256)
+    ))
+    before = {obj.id: obj.model_dump(mode="json") for obj in original.objects}
+    after = {obj.id: obj.model_dump(mode="json") for obj in scene.objects}
+    targets = set(reentry.target_ids)
+    if not targets <= after.keys():
+        raise ValueError("structural revision must preserve its declared semantic identities")
+    if (set(before) ^ set(after)) - targets:
+        raise ValueError("structural revision may not add/remove unplanned semantic identities")
+    for key in set(before) - targets:
+        if before[key] != after[key]:
+            raise PermissionError(f"structural revision changed undeclared target: {key}")
+    previous_materials = [
+        item.model_dump(exclude={"texture_manifest"}) for item in baseline.materials
+    ]
+    current_materials = [item.model_dump(exclude={"texture_manifest"}) for item in scene.materials]
+    if baseline.camera != scene.camera or previous_materials != current_materials:
+        raise PermissionError("structural revision cannot change the comparison camera or material")
+    if reentry.route == "parametric_revision":
+        if set(before) != set(after):
+            raise PermissionError("parametric revision cannot add or remove parts")
+        for key in targets:
+            old = dict(before[key])
+            new = dict(after[key])
+            old_transform = old.pop("transform")
+            new_transform = new.pop("transform")
+            if old != new or old_transform["rotation_deg"] != new_transform["rotation_deg"]:
+                raise PermissionError("parametric revision only permits bounded translation/scale")
+            if any(abs(new_transform["location"][axis] - old_transform["location"][axis])
+                   > baseline.nominal_scene_size[axis] * 0.1 for axis in range(3)):
+                raise PermissionError("parametric translation exceeds ten percent of scene extent")
+            if any(not 0.75 <= new_transform["scale"][axis] / old_transform["scale"][axis] <= 1.25
+                   for axis in range(3)):
+                raise PermissionError("parametric scale exceeds the bounded 25-percent range")
+
+
+def _validate_and_promote_geometry_core(
+    *, job_root: Path, session_root: Path, plan: AutonomyPlanV2, budget: AutonomyBudgetV2,
+    state: AutonomyStateV2, authorization: RootAuthorizationV2,
+    policy_authorization_path: str | Path | None = None,
+    reentry: StructuralReentryPlanV01 | None = None,
+) -> tuple[GeometryCandidateValidationReceiptV2, AQV2Artifact]:
+    """Share isolated compile/build/atomic rollback machinery behind exact purpose wrappers."""
 
     root = ensure_contained_production_path(job_root, job_root, must_exist=True)
     session = ensure_contained_production_path(root, session_root, must_exist=True)
@@ -1180,6 +1304,8 @@ def validate_and_promote_geometry_candidate_v2(
         current_result_artifact,
         policy_authorization_path,
         require_unused=not os.path.isfile(native_io_path(receipt_path)),
+        structural_reentry=reentry is not None,
+        parametric_reentry=reentry is not None and reentry.route == "parametric_revision",
     )
     if os.path.isfile(native_io_path(receipt_path)):
         receipt, receipt_artifact = _validate_existing_receipt(
@@ -1198,6 +1324,8 @@ def validate_and_promote_geometry_candidate_v2(
             )
         return receipt, receipt_artifact
     bundle = _validate_controller_bundle(root=root, plan=plan, state=state)
+    if reentry is not None:
+        _require_reentry_baseline(root, reentry)
     baseline_hashes = _require_current_inputs(
         root=root,
         authorization=authorization,
@@ -1208,11 +1336,28 @@ def validate_and_promote_geometry_candidate_v2(
         authorization=authorization,
         bundle=bundle,
     )
+    from ..reference_fidelity.authoring import StructureAuthoringV01, validate_structure_authoring
+    from .quality_revision_service import load_optional_loop
+
+    binding = load_optional_loop(root, plan.session_id)
+    if binding is not None:
+        validate_structure_authoring(root, StructureAuthoringV01(
+            hypothesis=binding[0].hypothesis,
+            scene=scene_v03,
+            modeling_plan=modeling,
+            representation_rationale="\n".join(modeling.global_notes),
+        ))
+    if reentry is not None:
+        _validate_reentry_targets(root, reentry, scene_v03)
     usage = _reserve_candidate_budget(
         state.budget_usage,
         budget,
         materialization_builds=len(scene_v03.objects),
+        structural_reentry=reentry is not None and reentry.route == "structural_reentry",
+        parametric_reentry=reentry is not None and reentry.route == "parametric_revision",
     )
+    if reentry is not None and len(scene_v03.objects) > reentry.cost.materializations:
+        raise PermissionError("candidate exceeds reserved structural materialization cost")
     validation_root.mkdir(parents=True, exist_ok=False)
     compilation = _compile_scene_v03(
         root=root,
@@ -1236,6 +1381,7 @@ def validate_and_promote_geometry_candidate_v2(
         validation_root=validation_root,
         modeling_artifact=bundle.modeling_artifact,
         compilation=compilation,
+        structural_reentry=reentry is not None,
     )
     source_fingerprint = stable_json_digest(
         {
@@ -1265,6 +1411,8 @@ def validate_and_promote_geometry_candidate_v2(
     )
     owner = f"aqv2-geometry-{plan.session_id}"
     with canonical_scene_spec_write_lock(plan.job_id, owner, ttl_seconds=3600):
+        if reentry is not None:
+            _require_reentry_baseline(root, reentry)
         refreshed = _validate_controller_bundle(root=root, plan=plan, state=state)
         if refreshed.result_artifact != bundle.result_artifact:
             raise ValueError("controller result changed before canonical promotion")
@@ -1305,6 +1453,7 @@ def validate_and_promote_geometry_candidate_v2(
                 plan.job_id,
                 scene_spec_path=root / "analysis/scene_spec.json",
                 validate_contracts=True,
+                material_plan_mode="scene_spec_only" if reentry is not None else "current",
             )
             candidate_provenance = json.loads(
                 (root / build.provenance.path).read_text(encoding="utf-8")
@@ -1449,7 +1598,7 @@ def validate_and_promote_geometry_candidate_v2(
                     plan.job_id,
                     plan.session_id,
                     policy_authorization_path=policy_authorization_path,
-                    canonical_snapshot_after_path=canonical_scene.path,
+                    canonical_snapshot_after_path=compilation.scene_artifact.path,
                     canonical_snapshot_after_kind="canonical-scene-snapshot",
                     outcome="applied",
                     action_result_path=receipt_artifact.path,

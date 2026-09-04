@@ -271,6 +271,66 @@ def test_beveled_relief_loft_materializes_in_blender(tmp_path: Path) -> None:
     assert len(payload.faces) == 21
 
 
+def test_dense_resampled_loft_caps_materialize_without_degenerate_faces(
+    tmp_path: Path,
+) -> None:
+    """Exercise the center-fan fallback through the actual Blender loft builder."""
+
+    candidate = StructuralGeometryCandidate.model_validate_json(
+        json.dumps({
+            "schema_version": "0.1.0",
+            "semantic_id": "asset.dense-loft",
+            "geometry": {
+                "kind": "loft",
+                "sections": [
+                    {
+                        "closed": True,
+                        "points": [
+                            [-1.0, -1.0, 0.0],
+                            [1.0, -1.0, 0.0],
+                            [1.0, 1.0, 0.0],
+                            [-1.0, 1.0, 0.0],
+                        ],
+                    },
+                    {
+                        "closed": True,
+                        "points": [
+                            [-1.0, -1.0, 2.0],
+                            [1.0, -1.0, 2.0],
+                            [1.0, 1.0, 2.0],
+                            [-1.0, 1.0, 2.0],
+                        ],
+                    },
+                ],
+                "resample_count": 16,
+                "cap_policy": "ends",
+                "correspondence_policy": "index",
+            },
+        })
+    )
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "dense-loft",
+        candidate=candidate,
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+    )
+    edge_incidence: dict[tuple[int, int], int] = {}
+    edge_orientation: dict[tuple[int, int], int] = {}
+    for face in payload.faces:
+        for first, second in zip(face, [*face[1:], face[0]], strict=True):
+            edge = tuple(sorted((first, second)))
+            edge_incidence[edge] = edge_incidence.get(edge, 0) + 1
+            direction = 1 if (first, second) == edge else -1
+            edge_orientation[edge] = edge_orientation.get(edge, 0) + direction
+
+    assert len(payload.vertices) == 34
+    assert len(payload.faces) == 48
+    assert set(edge_incidence.values()) == {2}
+    assert set(edge_orientation.values()) == {0}
+
+
 def test_concave_multi_loop_discards_redundant_zero_area_cap_triangles(
     tmp_path: Path,
 ) -> None:

@@ -1,0 +1,151 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one non-resetting two-slot lab extension to one exact staged candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_development_preview_budget_extension",
+      "default": "fidelity_development_preview_budget_extension",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "extension_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Extension Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "primary_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Primary Run Id",
+      "type": "string"
+    },
+    "retry_run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Retry Run Id",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "directional_wood_material_correction",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "execution_request_basis": {
+      "const": "current_task_explicit_bounded_execution",
+      "title": "Execution Request Basis",
+      "type": "string"
+    },
+    "base_attempt_limit": {
+      "const": 6,
+      "default": 6,
+      "title": "Base Attempt Limit",
+      "type": "integer"
+    },
+    "additional_attempt_limit": {
+      "const": 2,
+      "default": 2,
+      "title": "Additional Attempt Limit",
+      "type": "integer"
+    },
+    "primary_attempts": {
+      "const": 1,
+      "default": 1,
+      "title": "Primary Attempts",
+      "type": "integer"
+    },
+    "maximum_identical_input_technical_retries": {
+      "const": 1,
+      "default": 1,
+      "title": "Maximum Identical Input Technical Retries",
+      "type": "integer"
+    },
+    "scope_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Scope Sha256",
+      "type": "string"
+    },
+    "resets_existing_budget": {
+      "const": false,
+      "default": false,
+      "title": "Resets Existing Budget",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    },
+    "package_acceptance_authority": {
+      "const": false,
+      "default": false,
+      "title": "Package Acceptance Authority",
+      "type": "boolean"
+    },
+    "activation_authority": {
+      "const": false,
+      "default": false,
+      "title": "Activation Authority",
+      "type": "boolean"
+    },
+    "campaign_evidence": {
+      "const": false,
+      "default": false,
+      "title": "Campaign Evidence",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "extension_id",
+    "job_id",
+    "source",
+    "primary_run_id",
+    "retry_run_id",
+    "purpose",
+    "execution_request_basis",
+    "scope_sha256"
+  ],
+  "title": "DevelopmentPreviewBudgetExtensionV01",
+  "type": "object"
+}

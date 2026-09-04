@@ -1,0 +1,44 @@
+{
+  "additionalProperties": false,
+  "description": "Reserve actual stage costs before effects; a structural round is not a build budget.",
+  "properties": {
+    "materializations": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Materializations",
+      "type": "integer"
+    },
+    "builds": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Builds",
+      "type": "integer"
+    },
+    "qa_runs": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Qa Runs",
+      "type": "integer"
+    },
+    "closure_runs": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Closure Runs",
+      "type": "integer"
+    },
+    "diagnostic_views": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Diagnostic Views",
+      "type": "integer"
+    },
+    "promotions": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Promotions",
+      "type": "integer"
+    }
+  },
+  "title": "RevisionCostV01",
+  "type": "object"
+}

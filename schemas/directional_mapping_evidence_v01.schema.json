@@ -1,0 +1,135 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind image-plane coordinate coverage to exact texture and geometry evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "directional_mapping_evidence",
+      "default": "directional_mapping_evidence",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "mapping_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Mapping Id",
+      "type": "string"
+    },
+    "texture_manifest": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "coordinate_binding": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "coordinate_domain": {
+      "enum": [
+        "uv",
+        "normalized_generated",
+        "object_m",
+        "world_m"
+      ],
+      "title": "Coordinate Domain",
+      "type": "string"
+    },
+    "coordinate_extent": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "type": "number"
+        },
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "type": "number"
+        }
+      ],
+      "title": "Coordinate Extent",
+      "type": "array"
+    },
+    "runtime_mapping_scale": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "type": "number"
+        },
+        {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000,
+          "type": "number"
+        }
+      ],
+      "title": "Runtime Mapping Scale",
+      "type": "array"
+    },
+    "sampled_tile_span": {
+      "exclusiveMinimum": 0,
+      "maximum": 1000000,
+      "title": "Sampled Tile Span",
+      "type": "number"
+    },
+    "measurement_basis": {
+      "const": "image_plane_coordinate_extent_times_runtime_mapping_scale",
+      "default": "image_plane_coordinate_extent_times_runtime_mapping_scale",
+      "title": "Measurement Basis",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 32,
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "mapping_id",
+    "texture_manifest",
+    "coordinate_binding",
+    "coordinate_domain",
+    "coordinate_extent",
+    "runtime_mapping_scale",
+    "sampled_tile_span"
+  ],
+  "title": "DirectionalMappingEvidenceV01",
+  "type": "object"
+}

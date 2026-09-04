@@ -126,6 +126,7 @@ def test_provider_rejects_invalid_channels_and_returns_isolated_presets(
     presets = list_material_family_presets()
     assert set(presets) == {
         "standard_pbr",
+        "worn_blue_plastic",
         "rock",
         "terrain",
         "water",
@@ -182,6 +183,44 @@ def test_surface_detail_pattern_writes_png_pixels_and_exact_ids(
     base_color = Image.open(result.channel_paths["base_color"])
     assert base_color.format == "PNG"
     assert len(set(base_color.getdata())) > 2
+
+
+def test_abrasion_pattern_is_deterministic_and_changes_the_material_maps(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The bounded abrasion pattern must add repeatable visible marks to exact channels."""
+
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(tmp_path))
+    results = []
+    for index in range(2):
+        results.append(
+            generate_procedural_pbr(
+                f"texture_abrasion_{index}",
+                "mat.worn_plastic",
+                preset="worn_blue_plastic",
+                channels=("base_color", "roughness", "normal"),
+                resolution=(96, 96),
+                seed=41021,
+                intended_scale_m=1.0,
+                uv_set="UVMap",
+                surface_detail_ids=("detail.abrasion",),
+                detail_pattern="abrasion_scratches",
+                output_dir=(
+                    tmp_path
+                    / f"texture_abrasion_{index}"
+                    / "textures"
+                    / "mat.worn_plastic"
+                ),
+            )
+        )
+
+    assert results[0].channel_sha256 == results[1].channel_sha256
+    assert results[0].manifest.procedural["detail_pattern"] == "abrasion_scratches"
+    assert results[0].manifest.procedural["detail_placement_scope"] == "legacy_unbound"
+    base = Image.open(results[0].channel_paths["base_color"])
+    roughness = Image.open(results[0].channel_paths["roughness"])
+    assert len(set(base.getdata())) > 32
+    assert max(roughness.getdata()) > 150
 
 
 @pytest.mark.parametrize(

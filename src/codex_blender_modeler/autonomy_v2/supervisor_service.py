@@ -1005,7 +1005,13 @@ def _controller_validation_boundary(
     profile = _read_exact_model(root, profile_artifact, PhaseToolProfile)
     policy_decision: dict[str, object] | None = None
     if profile.profile_id == "geometry_authoring":
-        receipt, evidence = validate_and_promote_geometry_candidate_v2(
+        from .candidate_validation_service import validate_and_promote_geometry_reentry_v01
+        from .quality_revision_service import active_reentry
+
+        promoter = (validate_and_promote_geometry_reentry_v01
+                    if active_reentry(root, plan, state) is not None
+                    else validate_and_promote_geometry_candidate_v2)
+        receipt, evidence = promoter(
             job_root=root,
             session_root=session_root,
             plan=plan,
@@ -1230,7 +1236,13 @@ def _validate_quality_submission(
     material_receipt: AQV2Artifact | None = None
     if report.outcome == "passed":
         scene, blend, build, material, survival = _required_freeze_artifacts(submission)
-        geometry_receipt, material_receipt = _quality_phase_receipts(state)
+        from .quality_revision_service import current_round_receipts, load_optional_loop
+
+        geometry_receipt, material_receipt = (
+            current_round_receipts(root, plan, state)
+            if load_optional_loop(root, plan.session_id) is not None
+            else _quality_phase_receipts(state)
+        )
         validate_quality_promotion_evidence_v2(
             job_root=root,
             job_id=plan.job_id,
@@ -1519,12 +1531,25 @@ def _advance_quality_action(
             "required_contract": "QualitySubmissionV2",
             "state": state.model_dump(mode="json"),
         }
+    from .quality_revision_service import (
+        quality_revision_boundary,
+        validate_final_quality_submission,
+    )
+
+    fidelity_boundary = quality_revision_boundary(root, plan, state)
+    if fidelity_boundary is not None and fidelity_boundary["next_action"] != "quality_ready":
+        return {
+            "advanced": False, "outcome": "waiting_for_reference_fidelity_review",
+            "next_action": fidelity_boundary["next_action"],
+            "reference_fidelity": fidelity_boundary, "state": state.model_dump(mode="json"),
+        }
     _validate_optional_codex_image_material_companion(
         root=root,
         session_root=session_root,
         state=state,
         submission=submission,
     )
+    validate_final_quality_submission(root, plan, state, submission)
     validated_submission = _validate_quality_submission(
         root,
         plan,

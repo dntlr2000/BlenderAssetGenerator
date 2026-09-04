@@ -59,6 +59,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--run-id")
     parser.add_argument("--camera-fingerprint")
     parser.add_argument("--scene-spec-sha256")
+    parser.add_argument("--comparison-conditions")
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
@@ -411,6 +412,53 @@ def _pass_record(
     }
 
 
+def _comparison_lighting(scene: bpy.types.Scene) -> dict[str, Any]:
+    """Record actual lighting and display settings, without treating them as geometry evidence."""
+
+    lights = []
+    for obj in sorted(scene.objects, key=lambda item: item.name):
+        if obj.type != "LIGHT":
+            continue
+        data = obj.data
+        if data.use_nodes:
+            raise ValueError("fidelity comparison does not support node-driven lights")
+        lights.append({
+            "type": data.type, "energy": float(data.energy), "color": list(data.color),
+            "matrix_world": [[round(v, 7) for v in row] for row in obj.matrix_world],
+            "hide_render": bool(obj.hide_render),
+            **{key: getattr(data, key) for key in (
+                "shape", "size", "size_y", "angle", "shadow_soft_size", "spot_size", "spot_blend"
+            ) if hasattr(data, key)},
+        })
+    world = scene.world
+    world_record = {"color": list(world.color)} if world else None
+    if world and world.use_nodes:
+        nodes = world.node_tree.nodes
+        # Unknown/environment maps need a future typed receipt, not an approximate comparison.
+        if any(node.bl_idname not in {"ShaderNodeBackground", "ShaderNodeOutputWorld"}
+               for node in nodes):
+            raise ValueError("fidelity comparison needs a supported fixed world-light contract")
+        world_record = {
+            "backgrounds": [
+                {"color": list(node.inputs["Color"].default_value),
+                 "strength": float(node.inputs["Strength"].default_value)}
+                for node in nodes if node.bl_idname == "ShaderNodeBackground"
+            ],
+            "links": sorted((link.from_node.bl_idname, link.from_socket.name,
+                             link.to_node.bl_idname, link.to_socket.name)
+                            for link in world.node_tree.links),
+        }
+    return {
+        "lights": lights, "world": world_record,
+        "blender_version": bpy.app.version_string,
+        "engine": scene.render.engine,
+        "view_transform": scene.view_settings.view_transform,
+        "look": scene.view_settings.look, "exposure": scene.view_settings.exposure,
+        "gamma": scene.view_settings.gamma, "film_transparent": scene.render.film_transparent,
+        "renderer_source_sha256": sha256_file(Path(__file__)),
+    }
+
+
 def main() -> None:
     """Render beauty and shader-independent QA passes plus a reproducibility manifest."""
 
@@ -443,6 +491,7 @@ def main() -> None:
             expected_camera_fingerprint=args.camera_fingerprint,
         )
     )
+    conditions = _comparison_lighting(scene) if args.comparison_conditions else None
     semantic_objects = [
         obj
         for obj in sorted(scene.objects, key=lambda item: item.name)
@@ -520,6 +569,12 @@ def main() -> None:
         "warnings": warnings,
     }
     write_json_atomic(manifest_path, manifest)
+    if args.comparison_conditions:
+        write_json_atomic(Path(args.comparison_conditions), {
+            "schema_version": "0.1.0", "contract_kind": "fidelity_render_conditions",
+            "scene_spec_sha256": scene_spec_sha256, "camera_fingerprint": camera_fingerprint,
+            "pass_manifest_sha256": sha256_file(manifest_path), "conditions": conditions,
+        })
     print(f"CBM_QA_PASSES_OK passes={len(records)} manifest={manifest_path}")
 
 

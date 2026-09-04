@@ -61,6 +61,7 @@ MaterialAuthoringStrategy = Literal[
     "localized_decal_v1",
     "planar_reference_patch_v1",
     "procedural_wood_v1",
+    "procedural_wood_v2",
     "procedural_metal_v1",
     "emissive_pattern_v1",
     "crystal_portable_approximation_v1",
@@ -541,6 +542,7 @@ class MaterialAuthoringRequest(MaterialAuthoringStrictModel):
             "localized_decal_v1": "localized_decal",
             "planar_reference_patch_v1": "planar_reference_patch",
             "procedural_wood_v1": "procedural_wood",
+            "procedural_wood_v2": "procedural_wood",
             "procedural_metal_v1": "procedural_metal",
             "emissive_pattern_v1": "emissive_pattern",
             "crystal_portable_approximation_v1": "crystal",
@@ -558,6 +560,12 @@ class MaterialAuthoringRequest(MaterialAuthoringStrictModel):
         present = [name for name in names if getattr(self, name) is not None]
         if present != [expected]:
             raise ValueError(f"strategy requires only {expected}; received {present}")
+        if (
+            self.strategy == "procedural_wood_v2"
+            and self.procedural_wood is not None
+            and self.procedural_wood.grain_axis == "z"
+        ):
+            raise ValueError("procedural_wood_v2 requires a 2D x or y fibre axis")
         expected_root = f"material_authoring/runs/{self.run_id}"
         if self.output_root != expected_root:
             raise ValueError(f"output_root must equal {expected_root}")
@@ -588,6 +596,7 @@ class MaterialAuthoringRequest(MaterialAuthoringStrictModel):
             "localized_decal_v1": "signage_decal",
             "planar_reference_patch_v1": "planar_reference_patch",
             "procedural_wood_v1": "wood",
+            "procedural_wood_v2": "wood",
             "procedural_metal_v1": "metal",
             "emissive_pattern_v1": "emissive",
             "crystal_portable_approximation_v1": "crystal",

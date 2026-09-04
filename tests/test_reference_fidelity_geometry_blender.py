@@ -1,0 +1,147 @@
+"""Opt-in initial geometry promotion with a fidelity hypothesis; no visual acceptance."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+import test_autonomy_v2_candidate_validation_blender as geometry_smoke
+from test_reference_fidelity import hypothesis
+
+from codex_blender_modeler.autonomy_v2.approval_policy_service import _load_approval_boundary
+from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
+    GeometryCandidateValidationReceiptV2,
+)
+from codex_blender_modeler.autonomy_v2.controller_bridge import _session_bundle
+from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+    AQQualityRevisionLoopV01,
+    RevisionCostV01,
+)
+from codex_blender_modeler.autonomy_v2.quality_revision_service import (
+    bind_quality_revision_loop,
+    load_optional_loop,
+)
+from codex_blender_modeler.production.controller_executor.models import ControllerExecutionRequest
+from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
+from codex_blender_modeler.reference_fidelity.models import FidelityArtifact
+from codex_blender_modeler.reference_fidelity.service import publish
+
+pytestmark = pytest.mark.skipif(
+    os.environ.get("CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE") != "1",
+    reason="set CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE=1 for actual fidelity geometry smoke",
+)
+
+
+def _bound_fidelity_geometry_fixture(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[Path, str]:
+    """Build one real initial AQ geometry round and return its bound session."""
+
+    old_modeling = geometry_smoke._modeling_plan
+    old_advance = geometry_smoke._advance_reference
+
+    def spatial_modeling(job_id, note):
+        """Declare one authored inferred spatial hull using the existing ModelingPlan contract."""
+
+        result = old_modeling(job_id, note)
+        result["assembly_consistency_policy"] = "spatial_v1"
+        result["assembly_frame"] = {
+            "root_object_id": "asset.hull",
+            "longitudinal_axis": "Y",
+            "lateral_axis": "X",
+            "vertical_axis": "Z",
+            "evidence_status": "inferred",
+        }
+        result["objects"][0]["assembly_role"] = "root"
+        result["global_notes"] = ["Fixture-only authored hull; no actual reference quality claim."]
+        return result
+
+    def bind_then_advance(root, session_id):
+        """Bind the companion at the real initial state without creating a human approval."""
+
+        job_id = root.name
+        _root, _session, plan, _budget, _state, state_artifact = _session_bundle(job_id, session_id)
+        boundary = _load_approval_boundary(job_id, session_id)
+        source = boundary[2].primary_reference
+        template = hypothesis()
+        camera = geometry_smoke._scene_v03(job_id, source.path)["camera"]
+        observed = template.model_copy(
+            update={
+                "job_id": job_id,
+                "reference": FidelityArtifact(path=source.path, sha256=source.sha256),
+                "observations": [
+                    template.observations[0].model_copy(
+                        update={
+                            "region": (0.2, 0.2, 0.8, 0.8),
+                            "description": (
+                                "Uniform fixture region; test transport, not shape truth."
+                            ),
+                            "uncertainty": "Authored test hull; no reference fidelity claimed.",
+                        }
+                    )
+                ],
+                "requirements": [
+                    template.requirements[0].model_copy(
+                        update={
+                            "target_ids": ["asset.hull"],
+                        }
+                    )
+                ],
+                "camera": template.camera.model_copy(
+                    update={
+                        "camera_fingerprint": camera_fingerprint(camera),
+                    }
+                ),
+            }
+        )
+        observed_ref = publish(root, root / "fidelity/hypothesis.json", observed)
+        loop = AQQualityRevisionLoopV01(
+            job_id=job_id,
+            session_id=session_id,
+            root_authorization=FidelityArtifact(
+                path=plan.root_authorization.path, sha256=plan.root_authorization.sha256
+            ),
+            approval_envelope=FidelityArtifact(path=boundary[9].path, sha256=boundary[9].sha256),
+            initial_state=FidelityArtifact(path=state_artifact.path, sha256=state_artifact.sha256),
+            hypothesis=observed_ref,
+            structural_revision_limit=2,
+            local_revision_limit=2,
+            cost_limit=RevisionCostV01(
+                materializations=2, builds=4, qa_runs=4, closure_runs=2, promotions=4
+            ),
+            allow_disabled_experimental=True,
+        )
+        proposal = root / "fidelity/proposed_loop.json"
+        publish(root, proposal, loop)
+        bind_quality_revision_loop(job_id, session_id, proposal)
+        old_advance(root, session_id)
+
+    monkeypatch.setattr(geometry_smoke, "_modeling_plan", spatial_modeling)
+    monkeypatch.setattr(geometry_smoke, "_advance_reference", bind_then_advance)
+    # Reuse the full legacy smoke's real controller/policy/build/idempotent promotion assertions.
+    geometry_smoke.test_geometry_controller_candidate_builds_and_promotes_exactly(
+        tmp_path, monkeypatch
+    )
+    root = tmp_path / "workspaces/aqv2_candidate_smoke"
+    sessions = list((root / "production/autonomy_v2").iterdir())
+    assert len(sessions) == 1
+    _, _, _plan, _budget, state, _artifact = _session_bundle(root.name, sessions[0].name)
+    receipt = GeometryCandidateValidationReceiptV2.model_validate_json(
+        (root / state.provenance[-1].path).read_bytes()
+    )
+    request = ControllerExecutionRequest.model_validate_json(
+        (root / receipt.controller_request.path).read_bytes()
+    )
+    loop, loop_artifact = load_optional_loop(root, sessions[0].name)
+    assert {loop_artifact.path, loop.hypothesis.path} <= {
+        item.path for item in request.immutable_inputs
+    }
+    assert state.source_freeze is None and state.quality_terminal is None
+    return root, sessions[0].name
+
+
+def test_bound_fidelity_observations_reach_actual_geometry_promotion(tmp_path, monkeypatch):
+    """Exercise real planning, policy, build and promotion with the additive authoring gate."""
+
+    _bound_fidelity_geometry_fixture(tmp_path, monkeypatch)

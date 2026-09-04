@@ -61,12 +61,27 @@ Wood·Crystal은 Windows 긴 재질 경로 오류 이후 cancelled, Laser는 leg
 후속 `42aa7c7` clean baseline도 검증 receipt 16개를 통과했고, 실제 캠페인은 Plastic·Rust·Laser의
 production GLTF/clean import를 포함한 정상 terminal `3/5`, adapter trace closure `5/5`로 닫혔습니다.
 Wood·Crystal은 build와 IQ를 통과했으나 portable material conversion의 긴 shader 경로 읽기에서
-failed/blocked로 종료됐습니다. 모든 과거 결과는 그대로 보존합니다. 현재는 **8-B의 portable 경로
-보완과 새 기준선 준비 단계**입니다. 경로 수정 뒤 두 자산의 격리 delivery에서 드러난 숨겨진 연결부
+failed/blocked로 종료됐습니다. 모든 과거 결과는 그대로 보존합니다. 당시에는 **8-B의 portable 경로
+보완과 새 기준선 준비 단계**였습니다. 경로 수정 뒤 두 자산의 격리 delivery에서 드러난 숨겨진 연결부
 접선 문제도 새 후보에서 보완해 실제 GLB clean import·형상 보존·고정 카메라 지표 사전 검증을
-통과했습니다. 이 격리 결과는 다음 기준선의 캠페인 실적이 아니므로 수정 후 outcome은 아직 `0/5`입니다.
+통과했습니다. 이 격리 결과는 다음 기준선의 캠페인 실적이 아니며, 당시 수정 후 outcome은 `0/5`였습니다.
 AQ는 계속 1차 완료 전이고, 이번 5개 beauty의 exact human quality disposition과 Activation도
 완료되지 않았습니다.
+
+2026-09-05 현재 `5e5b172`/`aq-first-completion-5e5b172-fix3`는 기술적으로 production/package terminal
+`5/5`이며 새 beauty 인간 판정은 `0/5`입니다. 이 사실로 위 과거 실패를 재분류하지 않습니다.
+목재의 판상 생성, contour/bbox 중심 QA의 누락, 시각 지적과 실제 재저작 사이의 단절을 확인했으므로
+캠페인 반복·Activation 추진은 보류하고 **8-B 앞단의 reference 충실도 생성·평가·수정 루프 개선**을
+진행합니다. 새 공통 계약/host 수정 경로와 실제 Blender fixture multi-round vertical을 구현·검증했습니다.
+격리 목재는 attempt09에서 고정 관찰 4/4와 attempt08 대비 `improved`를 기록했고, exact 승인 범위의
+external-intake normalization, V0.7 optimization, 512px CPU portable PBR 변환, immutable static-payload
+GLB 및 fresh clean import를 완료했습니다. 이어 같은 공통 authoring/finding/re-entry 경로를 Plastic, Rust,
+Crystal, Laser에 자산별 서비스 코드 분기 없이 전이해 다섯 reference 모두 source-bound 비인간 비교에서
+실제 개선을 입증했습니다. Crystal과 Laser는 초안의 구조 결함을 V0.4 re-entry로 실제 수정했습니다.
+최신 전체 host 회귀, actual Blender AQ gate, V0.9 package/handoff gate와 과거 16개 anchor 불변 audit까지
+통과해 A/B/C/D를 닫았습니다. 이 격리 evidence는 새 clean-baseline 캠페인 실적이나 인간 수락이 아닙니다.
+기술적 5/5를 시각적 5/5로 간주하지 않습니다. 현재 실행 근거는
+[Reference Fidelity 검증 기록](VERIFICATION_REFERENCE_FIDELITY_KO.md)을 따릅니다.
 
 AQ 1차 완성의 고정 지원 범위는 Windows 11, Blender `5.0.1`, `primary_object_only` 정적 소품,
 local/procedural PBR와 engine-neutral portable GLTF입니다. Codex ImageGen, destination project write,
@@ -1195,7 +1210,83 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. fresh current-baseline AQ canary와 5-reference campaign [현재: 42aa 캠페인 후 portable 경로 보완·재기준선 준비]
+8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: A/B/C/D 완료·E clean commit/baseline canary 대기]
+   - A: 기존 실패 evidence를 변경하지 않고 높은 contour/bbox 점수와 잘못된 부피의 공존을 재현;
+     정상 volumetric/shell/sheet/cloth/균일 재질 positive control과 missing evidence/명시적 N/A를 구분
+   - 관찰·불확실성/3D 가설, 구조 우선 저작, source-bound nonhuman finding, 실제 bounded reentry,
+     회차별 source/receipt 및 사전 비용 예약을 공통 경로로 연결 [구현·host 회귀·실제 Blender fixture AQ vertical 완료]
+   - 실제 vertical은 initial geometry/material/7-pass QA → structural policy re-entry → 새 geometry/material/
+     7-pass QA → paired comparison/회차별 receipt → 필수 hard-gate `blocked` terminal을 검증; 고정
+     `defect/satisfied` fixture 입력을 실제 reference quality나 human disposition으로 세지 않음
+   - B: 목재 1개에서 결함 인식 → 구조 재저작 → 실제 비교를 먼저 입증; top/side/end 연결 체적,
+     불규칙 depression과 방향성 목재 재질을 고정 관찰 4/4로 확인했다. raw GLB의 procedural 재질 손실은
+     별도 보존했고 exact 승인된 V0.7 파생 최적화, 512px CPU portable PBR 변환, static-payload package와
+     fresh clean import까지 완료했다. post-import beauty와 human/package acceptance는 생성하지 않음 [완료]
+   - legacy `procedural_wood_v1` bytes를 고정하고 비단일주기 `procedural_wood_v2`, typed mapping evidence 및
+     exact direction/periodicity/sampled-span preflight를 추가; Blender 5.0.1 compile fixture도 reference
+     quality 증거가 아님. 규칙적 stripe가 남은 attempt02는 render하지 않고 보존했으며, 불규칙 grain과
+     비평탄 height/normal/roughness를 추가한 append-only attempt03를 exact scope
+     `b4afc73df9896148cbef62b972483e2a4844b78cc69e2366e8fe105aa46fd6af`로 실행했다. Blender 5.0.1
+     일곱-pass는 정상 완료했고 longitudinal/end grain은 실제로 개선됐지만, source-bound review는 홈의
+     과도한 규칙성과 어두운 smooth surface를 major finding으로 남겨 `needs_revision`/
+     `next_action=structural_reentry`로 닫았다. 기술 완료나 direct score 유지로 B를 완료 처리하지 않음
+   - attempt04는 전체-scale section loft의 좁고 비대칭인 세 depression, low-frequency worn section,
+     밝고 거친 Wood v2 파라미터를 결합해 image-only preflight를 통과했지만 per-vertex UV seam staging
+     mesh의 coincident split boundary 때문에 실행 전에 superseded했다. strict MeshPayload 0.2 전환에서
+     legacy cap의 0면적 triangle 46개도 발견했으며 attempt05/06 준비 실패는 Blender·preview budget 없이 보존함
+   - attempt07은 기존 polygon-corner UV와 source-hash closure를 재사용해 closed two-manifold와 0 degenerate
+     face를 만들었지만, 공통 compiler의 inward side winding 위에 outward cap을 수동 결합해 shared-edge
+     orientation 320개가 불일치했다. proposal `4bad8cf9abfc491b894ae3d83a45be48890198055ac6586308fc4273498c359b`은
+     승인·발행·실행 전에 superseded함
+   - 공통 `build_loft_mesh`는 기존 fan이 유효하면 bytes를 유지하고, dense resampling으로 0면적 cap이 생길 때만
+     convex section 내부 center를 추가한다. section Newell normal과 first→last progression이 반대이면 face
+     winding만 반전해 vertex index·face 순서를 보존하면서 outward orientation을 맞춘다. host focused 23/23과
+     실제 Blender 5.0.1 structural smoke 12/12를 통과함
+   - attempt08은 attempt04의 exact StructureAuthoring을 수정된 공통 compiler로 다시 컴파일하고 MeshPayload 0.2
+     loop UV를 source topology/winding 그대로 결합했다. SceneSpec SHA
+     `db111ebd0a263c20ef553e39ec1012078d31ad8bf6fe8244bccc798c81a5044d`, MeshPayload SHA
+     `513d5473181a2e3ce51a55c6f6c7da51dce43fb8e2c2b228ce149d420026eefa`, preflight SHA
+     `75eeafaf08ec06fdec01e83ff819d2f34c21508727214ab0e623919bff57add3`, spatial audit SHA
+     `c110b406c7a22310a00146339f979986b09800e59bd1a29e2abe4c84d453b2b9`이다. 4,320 edge가 incidence 2,
+     orientation balance 0이며 8,640 loop UV를 가진다. 완료된 V02 outcome·새 dependency/runtime를 결속한
+     V03 scope `ec090247635b469f0fb90782c5654247c3713eeaeae1533f09a4d031aa07cf26`을 승인받아 primary
+     `structural_material_attempt08`을 실행했다. Blender 5.0.1 build와 일곱-pass QA는 retry 없이 완료됐고
+     beauty SHA는 `2f6b30e6f601649b9eaf9ea136156b26e3743fb207ed6a07a05a7636ad0f9435`다. source-bound
+     evaluation은 4개 중 3개 충족, `needs_revision`, `next_action=material_revision`; attempt03 대비
+     `longitudinal-cracks` 해소와 `partially_improved`를 기록했다. 이는 인간 disposition이나 canonical/package/
+     campaign/Activation 권한이 아님
+   - 성공한 V03 primary 뒤 identical-input technical retry는 닫혔다. attempt08에서 image channel `strength`가
+     Blender runtime control이 아니었던 계약 누락을 확인해, image-backed normal/height도 명시적
+     `procedural.normal_strength`/`bump_strength`/`bump_distance`를 loader에서 검증하도록 보완했다. 과거
+     channel 의미는 소급 변경하지 않음
+   - 동일 spatial geometry/pose/camera/reference 위에서 contrast·knot·roughness와 runtime normal/bump만
+     변경한 append-only attempt09 candidate는 directional preflight와 spatial audit를 통과했다. V04 exact
+     scope `0f650030829c32f085e1a48648d1a84d4a66aae0738717d8f085e01e723d2e98` 승인 뒤 extension과
+     primary를 한 번 소비했고, Blender 5.0.1 일곱-pass beauty
+     `e03dbf968acc61e279ad39dd94714ff204ae5f325951a477aa620cbfb9d29297`를 생성했다. source-bound
+     evaluation `91728ddafe19b530ad74a71893fcd294116c1ce70b522593ace4558d1a64a2ba`는 고정 관찰 4/4
+     `visually_satisfied`, attempt08→09 comparison
+     `41a24ddf2c27e7261c439832889f00f9970cdcf1664fd34dcdd36e2a4b73ad46`는
+     `directional-wood-surface` 해소·신규 회귀 없음의 `improved`다. 이는 인간 disposition이나
+     canonical/package/campaign/Activation 권한이 아니며 성공한 primary 뒤 retry는 닫힘
+   - 완료된 과거 extension은 당시 runtime 증거로 계속 읽되, 새 active extension만 현재 runtime과
+     재검증하도록 호환성 결함을 보완함
+   - 최신 full host 2238/73 skipped, AQ focused 1141/32 skipped, 실제 Blender 56/1 skipped gate와 별도 loft
+     host 23/23, 실제 Blender structural 12/12를 수정된 compiler 및 V04/runtime-control 기준으로 확인했다.
+     attempt08의 구조 개선은
+     별도 source-bound visual comparison으로만 기록하며 human disposition으로 세지 않음
+   - C: 목재는 전체 5자산 목표를 축소한 것이 아니다. Plastic/Rust/Crystal/Laser 네 reference에도 자산별
+     서비스 코드 분기 없이 전이했고, source-bound paired comparison에서 모두 실제 개선을 기록했다.
+     이 결과는 clean-baseline campaign outcome이나 human disposition이 아님 [완료]
+   - D: Standard/AQ 공통 회귀, SceneSpec 0.2/기존 승인·복구·package 및 과거 evidence 불변성을 최신 full
+     pytest, actual Blender AQ/V0.9 gate와 16-anchor audit로 통합 확인했다. 새 companion 없는 과거 AQ 동작은
+     유지하고, actual Blender vertical에서 발견한 긴 material promotion 경로 결함은 native long-path I/O로
+     수정한 뒤 gate 전체를 재실행해 통과함 [완료]
+   - 실제 기술·시각 개선·인간 disposition을 별도 집계; 검증/수정/needs_revision 횟수를 품질 KPI로 세지 않음
+   - 같은 결함·전략의 정체는 경로에 맞는 전략 변경 또는 bounded review로 종료; material 정체를
+     geometry/장식 증량으로 해결하지 않으며 재개/새 child로 예산을 초기화하지 않음
+   - E의 새 clean source/Baseline/Readiness/canary+나머지 4개는 B/C/D 통과 뒤로 이동; 아래 과거 기록과
+     운영 조건은 보존하되 지금 즉시 재캠페인을 지시하는 순서로 읽지 않음
    - C655 source에서 서로 다른 reference 5개가 One-Prompt, IQ pass, production GLTF package와 clean import를
      기술적으로 5/5 완료했으나 exact human disposition 전 검토에서 contour-only/internal-detail collapse가
      반복 확인됨; 이 evidence는 orchestration/delivery 회귀 근거로 보존하되 Activation outcome으로 세지 않음
@@ -1247,6 +1338,8 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - 동일 evidence의 `needs_revision`을 자동 재사용하거나 무한 반복하지 않고 bounded budget의 review terminal로 종료
    - 최소 한 자산은 IQ pass/source freeze, portable GLTF package와 clean-import round trip을 통과
 8-C. AQ local-only Activation 재심사와 V0.9 1차 완성 closeout [8-B 후]
+   - F 진입 전 5개 reference 모두의 실제 시각 개선을 exact paired evidence로 입증하고, 미해결 중대
+     구조 오류가 없어야 함; QA가 나쁜 결과를 막는 것만으로 생성 능력 개선을 완료 처리하지 않음
    - distinct current-baseline campaign outcome 5/5와 production package 최소 1개를 별도 지표로 검증
    - exact human activation acceptance 없이는 profile status를 변경하지 않음
    - 모든 local-only 필수 조건과 single-use activation authority가 통과한 경우에만

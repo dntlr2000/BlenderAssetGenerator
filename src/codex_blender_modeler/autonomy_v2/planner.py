@@ -44,7 +44,7 @@ _PHASE_PROFILE_SPECS: tuple[tuple[str, list[str], list[str]], ...] = (
     ),
     (
         "material_authoring",
-        ["assignment", "scene", "material-baseline", "scale-context"],
+        ["assignment", "scene", "material-baseline", "scale-context", "reference"],
         ["material_plan.json", "material_graph.json", "completion.json"],
     ),
     ("quality_readonly", ["quality-input", "camera", "reference"], []),

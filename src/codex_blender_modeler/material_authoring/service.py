@@ -909,6 +909,37 @@ def _wood_channels(
     )
 
 
+def _wood_channels_v2(
+    root: Path,
+    request: MaterialAuthoringRequest,
+) -> tuple[dict[RawPBRChannel, Image.Image], UVIdentity, list[str], list[str]]:
+    """Generate additive directional Wood v2 maps without changing legacy v1 bytes."""
+
+    from .wood import generate_directional_wood_v2
+
+    config = request.procedural_wood
+    if config is None:
+        raise ValueError("wood configuration is missing")
+    source_hashes = [request.scale_context.artifact.sha256]
+    end_grain: Image.Image | None = None
+    if config.end_grain_mask is not None:
+        mask_path = _validate_artifact(root, config.end_grain_mask)
+        source_hashes.append(config.end_grain_mask.sha256)
+        with Image.open(native_io_path(mask_path)) as opened:
+            end_grain = opened.convert("L")
+    images = generate_directional_wood_v2(config, end_grain_mask=end_grain)
+    return (
+        images,
+        config.uv_identity,
+        source_hashes,
+        [
+            "procedural Blender master shader compilation and neutral preview are not run",
+            "v2 grain_axis is a 2D tile direction; object-face mapping remains separately verified",
+            "procedural texture structure is not a reference-similarity or human-quality result",
+        ],
+    )
+
+
 def _metal_channels(
     root: Path,
     request: MaterialAuthoringRequest,
@@ -1097,6 +1128,8 @@ def _author_strategy(
         images, uv, hashes, limitations = _planar_patch_channels(root, request, resolution)
     elif request.strategy == "procedural_wood_v1":
         images, uv, hashes, limitations = _wood_channels(root, request)
+    elif request.strategy == "procedural_wood_v2":
+        images, uv, hashes, limitations = _wood_channels_v2(root, request)
     elif request.strategy == "procedural_metal_v1":
         images, uv, hashes, limitations = _metal_channels(root, request)
     elif request.strategy == "emissive_pattern_v1":

@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "RoutedFindingV01": {
+      "additionalProperties": false,
+      "description": "Convert a concrete defect or missing expected item into the appropriate host route.",
+      "properties": {
+        "feature_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Feature Id",
+          "type": "string"
+        },
+        "target_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Target Ids",
+          "type": "array"
+        },
+        "face_groups": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Face Groups",
+          "type": "array"
+        },
+        "observation_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "kind": {
+          "enum": [
+            "volume",
+            "cross_section",
+            "part_relation",
+            "silhouette",
+            "local_dimension",
+            "material",
+            "surface_direction",
+            "camera",
+            "missing_evidence",
+            "topology",
+            "uv"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "minor",
+            "major",
+            "critical"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "expected": {
+          "title": "Expected",
+          "type": "string"
+        },
+        "actual": {
+          "title": "Actual",
+          "type": "string"
+        },
+        "comparison": {
+          "title": "Comparison",
+          "type": "string"
+        },
+        "route": {
+          "enum": [
+            "structural_reentry",
+            "parametric_revision",
+            "material_revision",
+            "calibration",
+            "evidence_required",
+            "technical_recovery",
+            "quality_ready",
+            "review_required"
+          ],
+          "title": "Route",
+          "type": "string"
+        }
+      },
+      "required": [
+        "feature_id",
+        "target_ids",
+        "face_groups",
+        "observation_ids",
+        "kind",
+        "severity",
+        "expected",
+        "actual",
+        "comparison",
+        "route"
+      ],
+      "title": "RoutedFindingV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Keep technical score, observable fidelity, and human disposition separate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "reference_fidelity_evaluation",
+      "default": "reference_fidelity_evaluation",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "hypothesis": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "visual_review": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "legacy_direct_score": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Legacy Direct Score",
+      "type": "number"
+    },
+    "required_features": {
+      "minimum": 0,
+      "title": "Required Features",
+      "type": "integer"
+    },
+    "satisfied_features": {
+      "minimum": 0,
+      "title": "Satisfied Features",
+      "type": "integer"
+    },
+    "findings": {
+      "items": {
+        "$ref": "#/$defs/RoutedFindingV01"
+      },
+      "title": "Findings",
+      "type": "array"
+    },
+    "outcome": {
+      "enum": [
+        "visually_satisfied",
+        "needs_revision",
+        "unscorable"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "next_action": {
+      "enum": [
+        "structural_reentry",
+        "parametric_revision",
+        "material_revision",
+        "calibration",
+        "evidence_required",
+        "technical_recovery",
+        "quality_ready",
+        "review_required"
+      ],
+      "title": "Next Action",
+      "type": "string"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    },
+    "is_promotion_authority": {
+      "const": false,
+      "default": false,
+      "title": "Is Promotion Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "hypothesis",
+    "visual_review",
+    "legacy_direct_score",
+    "required_features",
+    "satisfied_features",
+    "findings",
+    "outcome",
+    "next_action"
+  ],
+  "title": "FidelityEvaluationV01",
+  "type": "object"
+}

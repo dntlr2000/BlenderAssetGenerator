@@ -4239,6 +4239,24 @@ def _aq_controller_profile(root: Path, state: dict[str, Any]) -> tuple[str, bool
     provenance = state.get("provenance", [])
     if not isinstance(provenance, list):
         raise ValueError("AQ state provenance must be a list")
+    markers = [
+        index for index, item in enumerate(provenance)
+        if isinstance(item, dict) and item.get("kind") == "reference_fidelity_reentry_v01"
+    ]
+    if markers:
+        # The validated host state owns this round; do not borrow the old material result.
+        from ..autonomy_v2.quality_revision_models import StructuralReentryPlanV01
+
+        marker = provenance[markers[-1]]
+        path = _validate_artifact(root, SkillArtifact(path=marker["path"], sha256=marker["sha256"]))
+        reentry = StructuralReentryPlanV01.model_validate_json(path.read_bytes())
+        provenance = provenance[markers[-1] + 1:]
+        if reentry.route == "material_revision":
+            return "material", False
+        if not provenance:
+            return "geometry", False
+        if provenance[-1].get("kind") == "geometry_candidate_validation_receipt":
+            return "material", False
     for artifact in reversed(provenance):
         if not isinstance(artifact, dict):
             continue
@@ -4390,7 +4408,7 @@ def _aq_outcome(status: dict[str, object]) -> str:
         return "blocked"
     if value == "global_action_slice_exhausted":
         return "slice_exhausted"
-    if value.startswith("waiting_for_integrated_quality"):
+    if value.startswith(("waiting_for_integrated_quality", "waiting_for_reference_fidelity")):
         return "waiting_for_controller"
     return "advanced"
 

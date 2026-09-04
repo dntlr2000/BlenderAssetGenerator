@@ -16,6 +16,8 @@ TransitionEvent = Literal[
     "material_candidate_validated",
     "quality_passed",
     "quality_nonpassing",
+    "quality_revision_requested",
+    "fidelity_review_required",
     "human_quality_nonpassing",
     "delivery_planned",
     "delivery_finished",
@@ -56,7 +58,10 @@ _ALLOWED_EVENTS_BY_BOUNDARY: dict[tuple[str, str, str], frozenset[TransitionEven
         }
     ),
     ("quality", "running", "run_integrated_quality"): frozenset(
-        {"quality_passed", "quality_nonpassing", "blocked", "failed", "cancelled"}
+        {
+            "quality_passed", "quality_nonpassing", "quality_revision_requested",
+            "fidelity_review_required", "blocked", "failed", "cancelled",
+        }
     ),
     ("quality", "quality_approved", "plan_delivery"): frozenset(
         {"delivery_planned", "blocked", "failed", "cancelled"}
@@ -110,6 +115,9 @@ def _infer_transition_event(
 
     if current.phase == "terminal":
         if current.status == "review_required":
+            if (current.quality_terminal is not None and current.quality_terminal.kind
+                    == "reference_fidelity_review_terminal_v01"):
+                return "fidelity_review_required"
             if (
                 current.provenance
                 and current.provenance[-1].kind == "human-quality-review-bundle"
@@ -139,6 +147,8 @@ def _infer_transition_event(
         ("delivery", "delivery_pending", "await_v07_approval"): "delivery_planned",
     }
     if boundary == ("authoring", "running", "execute_controller"):
+        if previous.next_action == "run_integrated_quality":
+            return "quality_revision_requested"
         if previous.next_action == "collect_reference":
             return "reference_ready"
         if previous.next_action == "validate_candidate":
@@ -235,6 +245,15 @@ def transition_state(
         )
     if event == "quality_nonpassing" and quality_terminal is None:
         raise ValueError("quality_nonpassing requires exact quality-terminal evidence")
+    if event == "fidelity_review_required":
+        if (quality_terminal != evidence or evidence.kind
+                != "reference_fidelity_review_terminal_v01" or source_freeze is not None):
+            raise ValueError("fidelity review requires a typed non-production terminal")
+    if event == "quality_revision_requested":
+        if evidence.kind != "reference_fidelity_reentry_v01":
+            raise ValueError("quality reentry requires an exact versioned reentry companion")
+        if current.quality_terminal is not None or current.source_freeze is not None:
+            raise ValueError("quality reentry cannot reopen an accepted freeze or terminal")
     if event in {"quality_passed", "quality_nonpassing"} and evidence != quality_terminal:
         raise ValueError("quality transition evidence must be the exact quality terminal")
     if event == "human_quality_nonpassing":
@@ -284,8 +303,10 @@ def transition_state(
             "running",
             "run_integrated_quality",
         ),
+        "quality_revision_requested": ("authoring", "running", "execute_controller"),
         "quality_passed": ("quality", "quality_approved", "plan_delivery"),
         "quality_nonpassing": ("terminal", "completed", "none"),
+        "fidelity_review_required": ("terminal", "review_required", "none"),
         "human_quality_nonpassing": ("terminal", "completed", "none"),
         "delivery_planned": ("delivery", "delivery_pending", "await_v07_approval"),
         "delivery_finished": ("terminal", "completed", "none"),
@@ -296,6 +317,8 @@ def transition_state(
     phase, status, next_action = mapping[event]
     results = list(delivery_results or current.delivery_results)
     terminal_reason = reason
+    if event == "fidelity_review_required" and not reason:
+        raise ValueError("fidelity terminal needs its exact diagnosed stop reason")
     if event in {"quality_nonpassing", "human_quality_nonpassing"}:
         status = "review_required"
         terminal_reason = reason or (

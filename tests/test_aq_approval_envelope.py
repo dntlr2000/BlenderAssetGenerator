@@ -35,6 +35,7 @@ from codex_blender_modeler.autonomy_v2 import (
 from codex_blender_modeler.autonomy_v2.approval_models import ApprovalArtifact
 from codex_blender_modeler.autonomy_v2.approval_policy_service import (
     _validate_identity_split_gate_target,
+    get_applied_policy_decision_receipt,
 )
 from codex_blender_modeler.autonomy_v2.approval_supervisor_service import (
     _close_failed_policy_authorization,
@@ -49,7 +50,11 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
 from codex_blender_modeler.autonomy_v2.delivery_service import artifact_for_v2
 from codex_blender_modeler.autonomy_v2.models import AutonomyPlanV2, AutonomyStateV2
 from codex_blender_modeler.autonomy_v2.transitions import transition_state
-from codex_blender_modeler.blender_artifacts import sha256_file, write_json_atomic
+from codex_blender_modeler.blender_artifacts import (
+    native_io_path,
+    sha256_file,
+    write_json_atomic,
+)
 from codex_blender_modeler.production.controller_executor.models import (
     ControllerArtifact,
     ControllerResult,
@@ -252,6 +257,107 @@ def test_initial_geometry_policy_uses_the_immutable_reference_snapshot(
     snapshot, kind = _geometry_policy_snapshot(root, str(base["job_id"]))
     assert snapshot == root / "input" / "reference.png"
     assert kind == "canonical-reference-snapshot"
+
+
+def test_revision_geometry_policy_freezes_mutable_canonical_bytes(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Keep a structural policy's before-snapshot readable after canonical promotion."""
+
+    root, base = _base_plan(
+        tmp_path,
+        monkeypatch,
+        job_id="approval_revision_geometry_snapshot",
+    )
+    canonical = root / "analysis/scene_spec.json"
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    canonical.write_bytes(b'{"round": 0}\n')
+    before = canonical.read_bytes()
+    snapshot, kind = _geometry_policy_snapshot(
+        root,
+        str(base["job_id"]),
+        str(base["session_id"]),
+    )
+    canonical.write_bytes(b'{"round": 1}\n')
+    assert snapshot != canonical
+    with open(native_io_path(snapshot), "rb") as handle:
+        assert handle.read() == before
+    assert kind == "canonical-scene-snapshot"
+
+
+def test_applied_decision_lookup_treats_prior_canonical_as_history(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Validate old policy decisions as history while requiring the selected action current."""
+
+    root, base = _base_plan(
+        tmp_path,
+        monkeypatch,
+        job_id="approval_decision_history",
+    )
+    job_id, session_id = _enable_autonomous_envelope(base)
+    canonical = root / "analysis" / "scene_spec.json"
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    canonical.write_bytes(b'{"round": 0}\n')
+    latest_authorization_path = ""
+    latest_target = canonical
+
+    for round_index in range(2):
+        target = (
+            root
+            / "production"
+            / "autonomy_v2"
+            / session_id
+            / f"applied-target-{round_index}.json"
+        )
+        write_json_atomic(
+            target,
+            {"status": "applied", "round": round_index},
+        )
+        eligibility = evaluate_routine_gate_eligibility(
+            job_id,
+            session_id,
+            gate_kind="rollback",
+            exact_target_path=target,
+            exact_target_kind="rollback-target",
+            current_canonical_snapshot_path=canonical,
+            current_canonical_snapshot_kind="canonical-scene-snapshot",
+            allow_disabled_experimental=True,
+        )
+        issued = authorize_routine_gate(
+            job_id,
+            session_id,
+            eligibility_report_path=str(eligibility["report_artifact"]["path"]),  # type: ignore[index]
+            allow_disabled_experimental=True,
+        )
+        latest_authorization_path = str(
+            issued["authorization_artifact"]["path"]  # type: ignore[index]
+        )
+        latest_target = target
+        publish_policy_decision_receipt(
+            job_id,
+            session_id,
+            policy_authorization_path=latest_authorization_path,
+            canonical_snapshot_after_path=canonical,
+            canonical_snapshot_after_kind="canonical-scene-snapshot",
+            outcome="applied",
+            action_result_path=target,
+            action_result_kind="rollback-result",
+            allow_disabled_experimental=True,
+        )
+        if round_index == 0:
+            canonical.write_bytes(b'{"round": 1}\n')
+
+    replay = get_applied_policy_decision_receipt(
+        job_id,
+        session_id,
+        policy_authorization_path=latest_authorization_path,
+        action_result_path=latest_target,
+    )
+    assert replay["status"] == "applied"
+    assert replay["authorization_consumed_once"] is True
 
 
 def test_missing_delegation_fails_before_companion_or_one_prompt_job_creation(

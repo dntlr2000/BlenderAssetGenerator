@@ -61,6 +61,16 @@ else {
 }
 
 $FocusedTests = @(
+    "tests/test_reference_fidelity.py",
+    "tests/test_reference_fidelity_files.py",
+    "tests/test_reference_fidelity_material.py",
+    "tests/test_reference_fidelity_preview_budget.py",
+    "tests/test_reference_fidelity_geometry_blender.py",
+    "tests/test_reference_fidelity_aq_blender_vertical.py",
+    "tests/test_quality_revision_budget.py",
+    "tests/test_quality_revision_host.py",
+    "tests/test_quality_revision_flow.py",
+    "tests/test_reference_fidelity_public.py",
     "tests/test_autonomous_quality_benchmarks.py",
     "tests/test_autonomous_quality_schemas.py",
     "tests/test_autonomous_quality_public_surface.py",
@@ -239,6 +249,8 @@ if ($RunBlender) {
             tests/test_v07_lod_smoothing.py::test_real_blender_refresh_keeps_source_geometry_and_uv_unchanged `
             tests/test_aq_v02_delivery_geometry_blender.py `
             tests/test_autonomy_v2_candidate_validation_blender.py `
+            tests/test_reference_fidelity_geometry_blender.py `
+            tests/test_reference_fidelity_aq_blender_vertical.py `
             tests/test_geometry_intent_v02_reachability.py `
             tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5 `
             tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke `

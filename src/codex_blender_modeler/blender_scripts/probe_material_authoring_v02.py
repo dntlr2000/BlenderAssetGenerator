@@ -26,11 +26,11 @@ FIXTURE_VERSION = "0.1.0"
 OUTPUT_PREFIX = "material_authoring/blender_smoke/runs/"
 MANIFEST_PREFIX = "material_authoring/runs/"
 FAMILY_STRATEGIES = {
-    "wood": "procedural_wood_v1",
-    "metal": "procedural_metal_v1",
-    "signage_decal": "localized_decal_v1",
-    "emissive": "emissive_pattern_v1",
-    "crystal": "crystal_portable_approximation_v1",
+    "wood": {"procedural_wood_v1", "procedural_wood_v2"},
+    "metal": {"procedural_metal_v1"},
+    "signage_decal": {"localized_decal_v1"},
+    "emissive": {"emissive_pattern_v1"},
+    "crystal": {"crystal_portable_approximation_v1"},
 }
 FAMILY_CHANNELS = {
     "wood": {"base_color", "height", "normal", "occlusion", "roughness"},
@@ -350,7 +350,7 @@ def _validate_manifest(root: Path, path: Path, expected_hash: str) -> tuple[dict
         raise FixtureContractError("material family is outside the fixed fixture registry")
     if manifest.get("schema_version") != FIXTURE_VERSION:
         raise FixtureContractError("unsupported material authoring manifest version")
-    if manifest.get("strategy") != FAMILY_STRATEGIES[family]:
+    if manifest.get("strategy") not in FAMILY_STRATEGIES[family]:
         raise FixtureContractError("material family and authoring strategy disagree")
     if manifest.get("status") != "unverified":
         raise FixtureContractError("fixture accepts only an unverified run-owned candidate")

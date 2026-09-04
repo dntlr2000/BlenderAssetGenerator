@@ -2,21 +2,21 @@
   "schema_version": "0.1.0",
   "project_version": "0.9.0",
   "status": "passed",
-  "verified_at": "2026-09-02T15:37:34Z",
-  "test_count": 2048,
-  "skipped_count": 65,
+  "verified_at": "2026-09-04T17:26:50Z",
+  "test_count": 2238,
+  "skipped_count": 73,
   "warning_count": 8,
   "summary_kind": "current_aggregate_with_historical_snapshots",
   "final_verification": {
     "status": "passed_with_declared_scope_limits",
-    "pytest_passed": 2048,
-    "pytest_skipped": 65,
+    "pytest_passed": 2238,
+    "pytest_skipped": 73,
     "pytest_warnings": 8,
     "ruff_status": "passed"
   },
   "current_projection": {
-    "recorded_on": "2026-09-02",
-    "source_checkpoint_status": "visibility_gate_full_regression_verified_pending_clean_checkpoint_and_fresh_baseline",
+    "recorded_on": "2026-09-05",
+    "source_checkpoint_status": "reference_fidelity_a_to_d_verified_pending_clean_checkpoint_and_fresh_baseline",
     "standard": {
       "status": "declared_scope_first_completion_verified",
       "actual_asset_count": 2,
@@ -26,7 +26,7 @@
     "aq_local_only": {
       "profile_id": "autonomous_static_prop_v2",
       "profile_status": "disabled_experimental",
-      "framework_status": "8b_visibility_gate_verified_prebaseline",
+      "framework_status": "8b_reference_fidelity_a_to_d_verified_prebaseline",
       "profile_publication_writer_verified": true,
       "profile_publication_created": false,
       "profile_publication_requires_clean_source_commit": true,
@@ -39,7 +39,7 @@
       "required_production_packages": 1,
       "human_activation_accepted": false,
       "activation_performed": false,
-      "next_stage": "8b_clean_visibility_gate_baseline_canary_then_five_reference_campaign"
+      "next_stage": "8b_reference_fidelity_clean_baseline_canary_then_five_reference_campaign"
     }
   },
   "historical_full_suite_20260811": {
@@ -339,6 +339,31 @@
       "profile_activation_performed": false,
       "scope": "Additive fixed-camera foreground-interior edge, high-frequency, and luminance retention over exact primary-reference, V0.6 beauty, silhouette-mask, and camera hashes. The gate detects collapse and routes structural re-entry; it is not human visual acceptance."
     },
+    "reference_fidelity_generation_revision_loop_8b_prebaseline": {
+      "status": "passed_pending_clean_source_checkpoint_and_fresh_campaign",
+      "recorded_on": "2026-09-05",
+      "full_pytest_passed": 2238,
+      "full_pytest_skipped": 73,
+      "full_pytest_warnings": 8,
+      "aq_host_gate_passed": 1141,
+      "aq_host_gate_skipped": 32,
+      "aq_host_gate_warnings": 8,
+      "actual_blender_gate_passed": 56,
+      "actual_blender_gate_skipped": 1,
+      "actual_blender_gate_warnings": 6,
+      "v09_isolated_gate_passed": true,
+      "historical_anchor_count": 16,
+      "historical_anchor_matched": 16,
+      "isolated_reference_count": 5,
+      "isolated_visual_improvement_count": 5,
+      "human_quality_disposition_count": 0,
+      "current_baseline_campaign_outcome_count": 0,
+      "required_campaign_outcome_count": 5,
+      "profile_status": "disabled_experimental",
+      "profile_activation_performed": false,
+      "verification_record": "VERIFICATION_REFERENCE_FIDELITY_KO.md",
+      "scope": "Additive observed-feature hypotheses, structural-first authoring, source-bound non-human findings, bounded AQ re-entry, round-specific receipts, isolated five-reference visual transfer evidence, actual Blender AQ/V0.9 compatibility, and historical-anchor preservation. Isolated transfer work is not a clean-baseline campaign outcome, human acceptance, package acceptance, destination write, or Activation."
+    },
     "standard_asset_actual_e2e": {
       "status": "passed_with_declared_quality_and_format_limits",
       "recorded_on": "2026-08-27",
@@ -406,7 +431,7 @@
     "autonomous_static_prop_v2_codex_imagegen": "disabled_experimental"
   },
   "ci_status": {
-    "local_python_ci_equivalent": "passed_with_actual_standard_e2e_and_8b_visibility_gate_pending_clean_checkpoint_and_fresh_campaign",
+    "local_python_ci_equivalent": "passed_with_reference_fidelity_a_to_d_actual_blender_and_v09_pending_clean_checkpoint_and_fresh_campaign",
     "github_hosted_python_ci": "not_run",
     "self_hosted_blender_ci": "not_run"
   },
@@ -414,8 +439,8 @@
     "The plastic canary is accepted with a remaining direct.global_silhouette high finding: direct score improved from 0.744321 to 0.795028 and silhouette IoU from 0.674717 to 0.718917, but it is not a perfect quality pass.",
     "The cloth asset is accepted with a remaining direct.global_silhouette medium finding and 1,152 degenerate UV triangles in the evaluated UV mesh; its direct score is 0.862142 and silhouette IoU is 0.812281.",
     "Both actual Standard GLB clean-import reports pass with semantic/material coverage 1.0 and zero bounds error while retaining six declared axis, units, custom-normal, tangent, and UV verification warnings each.",
-    "AQ v2 local-only 8-A framework closure and actual skill-adapter/Blender execution are verified. The C655 campaign reached five technical deliveries, but three references exposed contour-only internal-detail collapse, so none are counted for Activation. The fixed-camera visibility gate now passes full host and Blender regression, while the profile remains disabled_experimental and the new clean-baseline 8-B campaign is still 0/5.",
-    "Fixed-camera interior visibility is a fail-closed collapse detector, not a visual-quality score or human acceptance substitute. A fresh clean baseline, five exact human dispositions, at least one accepted production package, and explicit Activation acceptance remain required.",
+    "AQ v2 local-only 8-A framework closure and actual skill-adapter/Blender execution are verified. The C655 campaign reached five technical deliveries, but three references exposed contour-only internal-detail collapse, so none are counted for Activation. Reference-fidelity A-D now prove isolated visual improvement on five references and actual Blender compatibility, while the profile remains disabled_experimental and the new clean-baseline 8-B campaign is still 0/5.",
+    "Fixed-camera interior visibility is a fail-closed collapse detector, and the new source-bound feature review is non-human evidence rather than art approval. A fresh clean baseline, five exact human dispositions, at least one accepted production package, and explicit Activation acceptance remain required.",
     "The R5D adapter reconciliation is append-only evidence for an expired historical failed session. It does not reclassify the original AQ terminal, count as a current-baseline campaign outcome, or grant profile Activation.",
     "The V0.9 isolated gate uses an automated fixture approval only inside its isolated package smoke; it is not user approval for a production asset and is not reusable authority.",
     "The Material Identity Split actual-asset run stops at framework_ready_for_explicit_scope_approval. ApprovalRequest is not user approval; no approval consumption, ApplyIntent, canonical write, repair session, controller, promotion, MaterialPhaseReceiptV2, IQ transition, package, or destination write was executed.",

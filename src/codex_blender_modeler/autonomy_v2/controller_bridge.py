@@ -135,11 +135,24 @@ def _required_authoring_profile(
     plan: AutonomyPlanV2,
     state: AutonomyStateV2,
 ) -> str:
-    """Require geometry first and material after one exact current promotion boundary."""
+    """Require geometry then material, selecting a reserved round only for explicit loops."""
+
+    from .quality_revision_service import REENTRY_KIND, active_reentry
+
+    reentry = active_reentry(root, plan, state)
+    provenance = state.provenance
+    if reentry is not None:
+        marker_index = max(index for index, item in enumerate(provenance)
+                           if item.kind == REENTRY_KIND)
+        provenance = provenance[marker_index + 1:]
+        if reentry.route == "material_revision":
+            if any(item.kind == "geometry_candidate_validation_receipt" for item in provenance):
+                raise ValueError("material-only reentry cannot promote geometry")
+            return "material_authoring"
 
     receipts = [
         item
-        for item in state.provenance
+        for item in provenance
         if item.kind == "geometry_candidate_validation_receipt"
     ]
     if not receipts:
@@ -234,6 +247,11 @@ def _state_chain(
             validate_initial_state(state)
         else:
             validate_state_transition(previous, state)
+            if (previous.next_action == "run_integrated_quality"
+                    and state.next_action == "execute_controller"):
+                from .quality_revision_service import validate_reentry_transition
+
+                validate_reentry_transition(root, previous, state)
         artifact = artifact_for_v2(
             root,
             safe_path,
@@ -260,9 +278,14 @@ def _validate_state_terminal_evidence(
         )
         validate_quality_source_freeze(root, freeze)
     if state.quality_terminal is not None:
+        from .fidelity_terminal_service import TERMINAL_KIND, validate_fidelity_terminal
         from .quality_terminal_service import validate_quality_terminal_v2
 
-        quality_terminal = validate_quality_terminal_v2(root, state.quality_terminal)
+        quality_terminal = (
+            validate_fidelity_terminal(root, state.quality_terminal)
+            if state.quality_terminal.kind == TERMINAL_KIND
+            else validate_quality_terminal_v2(root, state.quality_terminal)
+        )
         if quality_terminal.source_freeze != state.source_freeze:
             raise ValueError("AQ v2 state and quality terminal use different freezes")
     if state.delivery_terminal is not None:
@@ -782,6 +805,10 @@ def execute_autonomy_v2_controller(
             session_id,
         )
         _validate_controller_authority(root, plan, budget)
+        if phase_profile_id in {"geometry_authoring", "material_authoring"}:
+            from .quality_revision_service import fidelity_authoring_inputs
+
+            immutable_inputs = fidelity_authoring_inputs(root, plan, state, immutable_inputs)
         if state.next_action == "none" or state.status in {
             "cancelled",
             "blocked",

@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "RevisionCostV01": {
+      "additionalProperties": false,
+      "description": "Reserve actual stage costs before effects; a structural round is not a build budget.",
+      "properties": {
+        "materializations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Materializations",
+          "type": "integer"
+        },
+        "builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Builds",
+          "type": "integer"
+        },
+        "qa_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Qa Runs",
+          "type": "integer"
+        },
+        "closure_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Closure Runs",
+          "type": "integer"
+        },
+        "diagnostic_views": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Diagnostic Views",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        }
+      },
+      "title": "RevisionCostV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Append one consumed reservation; crash, cancellation and restart cannot refund it.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "quality_revision_reservation",
+      "default": "quality_revision_reservation",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "loop": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "sequence": {
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "plan": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "structural_used": {
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Structural Used",
+      "type": "integer"
+    },
+    "local_used": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Local Used",
+      "type": "integer"
+    },
+    "strategy_switches_used": {
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Strategy Switches Used",
+      "type": "integer"
+    },
+    "cost_used": {
+      "$ref": "#/$defs/RevisionCostV01"
+    },
+    "reserved_before_effects": {
+      "const": true,
+      "default": true,
+      "title": "Reserved Before Effects",
+      "type": "boolean"
+    },
+    "counts_as_human_approval": {
+      "const": false,
+      "default": false,
+      "title": "Counts As Human Approval",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "loop",
+    "sequence",
+    "previous",
+    "plan",
+    "structural_used",
+    "local_used",
+    "strategy_switches_used",
+    "cost_used"
+  ],
+  "title": "RevisionLedgerEntryV01",
+  "type": "object"
+}

@@ -30,6 +30,7 @@ class TextureGenerationRequest(BaseModel):
         "ornate_filigree",
         "grip_filigree",
         "crystal_facet_lines",
+        "abrasion_scratches",
     ] = "none"
     overwrite: bool = False
 

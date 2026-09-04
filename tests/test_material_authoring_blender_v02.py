@@ -39,6 +39,7 @@ from codex_blender_modeler.workspace import sha256_file
 NOW = datetime(2026, 8, 11, 4, 0, tzinfo=UTC)
 FAMILY_STRATEGY = {
     "wood": ("procedural_wood_v1", "procedural_wood"),
+    "wood_v2": ("procedural_wood_v2", "procedural_wood"),
     "metal": ("procedural_metal_v1", "procedural_metal"),
     "signage_decal": ("localized_decal_v1", "localized_decal"),
     "emissive": ("emissive_pattern_v1", "emissive_pattern"),
@@ -195,7 +196,7 @@ def _font(root: Path) -> ProjectLocalFont:
 def _family_payload(root: Path, family: str, uv: UVIdentity) -> object:
     """Build one bounded family companion using only existing strict contracts."""
 
-    if family == "wood":
+    if family in {"wood", "wood_v2"}:
         return ProceduralWoodInput(
             grain_axis="x",
             grain_frequency_m=0.04,
@@ -276,6 +277,7 @@ def _request(root: Path, family: str) -> MaterialAuthoringRequest:
 
     strategy, payload_name = FAMILY_STRATEGY[family]
     run_id = f"blender-{family.replace('_', '-')}"
+    material_family = "wood" if family == "wood_v2" else family
     scale_context = _scale_context(root)
     kwargs = {payload_name: _family_payload(root, family, _uv_identity(root))}
     return MaterialAuthoringRequest(
@@ -290,7 +292,7 @@ def _request(root: Path, family: str) -> MaterialAuthoringRequest:
         scale_context=scale_context,
         resolution=ResolutionSelectorInput(
             selector_id=f"selector-{run_id}",
-            material_family=family,
+            material_family=material_family,
             mapping_kind="decal" if family == "signage_decal" else "tileable",
             projected_pixel_footprint=128.0,
             target_texel_density_px_m=256.0,
@@ -346,7 +348,8 @@ def test_material_authoring_blender_probe_has_no_dynamic_execution_surface() -> 
     reason="set CBM_RUN_MATERIAL_AUTHORING_BLENDER_SMOKE=1 for Blender 5.0.1 smoke",
 )
 @pytest.mark.parametrize(
-    "family", ["wood", "metal", "signage_decal", "emissive", "crystal"]
+    "family",
+    ["wood", "wood_v2", "metal", "signage_decal", "emissive", "crystal"],
 )
 def test_fixed_material_families_compile_reopen_and_render_in_blender_5(
     tmp_path: Path,
@@ -397,7 +400,7 @@ def test_fixed_material_families_compile_reopen_and_render_in_blender_5(
     inventory = json.loads((output_root / "normalized_inventory.json").read_text("utf-8"))
     assert smoke["status"] == "passed"
     assert smoke["blender_version"] == "5.0.1"
-    assert smoke["material_family"] == family
+    assert smoke["material_family"] == ("wood" if family == "wood_v2" else family)
     assert smoke["manifest_sha256"] == manifest_hash
     assert smoke["source_manifest_unchanged"] is True
     assert smoke["canonical_write_performed"] is False
@@ -417,9 +420,9 @@ def test_fixed_material_families_compile_reopen_and_render_in_blender_5(
         item["template_id"] for item in inventory["normalized_inventory"]["nodes"]
     }
     assert {"image_texture", "material_output", "principled_bsdf"} <= templates
-    if family in {"wood", "metal", "signage_decal", "crystal"}:
+    if family in {"wood", "wood_v2", "metal", "signage_decal", "crystal"}:
         assert "normal_map" in templates
-    if family == "wood":
+    if family in {"wood", "wood_v2"}:
         assert "bump" in templates
     expected_channels = {item["channel"] for item in original_manifest["channels"]}
     compiled_channels = {

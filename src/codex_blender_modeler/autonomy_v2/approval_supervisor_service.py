@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
 
-from ..blender_artifacts import native_io_path
+from ..blender_artifacts import native_io_path, publish_bytes_create_once, sha256_file
 from ..workspace import find_reference, job_dir
 from .approval_models import (
     ApprovalArtifact,
@@ -1377,6 +1377,26 @@ def _terminalize_current_state(
     if state.next_action != "none":
         return None
     if state.status == "review_required" and state.quality_terminal is not None:
+        from .fidelity_terminal_service import (
+            BUNDLE_KIND,
+            TERMINAL_KIND,
+            validate_fidelity_terminal,
+        )
+        if state.quality_terminal.kind == TERMINAL_KIND:
+            from .delivery_service import artifact_for_v2
+
+            fidelity = validate_fidelity_terminal(root, state.quality_terminal)
+            review = ApprovalArtifact.model_validate(artifact_for_v2(
+                root, root / fidelity.review_bundle.path,
+                artifact_id="fidelity-review-bundle", kind=BUNDLE_KIND,
+            ).model_dump())
+            _ensure_review_terminal_policy_decision(
+                job_id, session_id, review_bundle=review,
+                quality_terminal=ApprovalArtifact.model_validate(state.quality_terminal.model_dump()),
+            )
+            return _publish_one_prompt_terminal(
+                job_id, session_id, terminal_type="review_bundle", review_bundle=review,
+            )
         from .models import QualityTerminalV2
 
         quality_artifact = ApprovalArtifact.model_validate(
@@ -1511,15 +1531,43 @@ def _terminalize_pending_escalation(
     )
 
 
-def _geometry_policy_snapshot(root: Path, job_id: str) -> tuple[Path, str]:
-    """Select existing geometry or the immutable reference for an initial promotion."""
+def _snapshot_mutable_geometry_policy_source(
+    root: Path, session_id: str, source: Path
+) -> Path:
+    """Freeze current canonical geometry bytes before a policy-authorized replacement."""
+
+    digest = sha256_file(source)
+    destination = (
+        _approval_root(root, session_id)
+        / "canonical_snapshots"
+        / f"geometry-{digest}{source.suffix}"
+    )
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    publish_bytes_create_once(destination, source.read_bytes())
+    return destination
+
+
+def _geometry_policy_snapshot(
+    root: Path, job_id: str, session_id: str | None = None
+) -> tuple[Path, str]:
+    """Select immutable pre-promotion geometry or the initial reference snapshot."""
 
     scene_path = root / "analysis" / "scene_spec.json"
     if os.path.isfile(native_io_path(scene_path)):
-        return scene_path, "canonical-scene-snapshot"
+        return (
+            _snapshot_mutable_geometry_policy_source(root, session_id, scene_path)
+            if session_id is not None
+            else scene_path,
+            "canonical-scene-snapshot",
+        )
     blend_path = root / "blender" / "scene.blend"
     if os.path.isfile(native_io_path(blend_path)):
-        return blend_path, "canonical-scene-snapshot"
+        return (
+            _snapshot_mutable_geometry_policy_source(root, session_id, blend_path)
+            if session_id is not None
+            else blend_path,
+            "canonical-scene-snapshot",
+        )
     return find_reference(job_id), "canonical-reference-snapshot"
 
 
@@ -1648,8 +1696,16 @@ def _advance_geometry_with_policy(
     canonical_before_path, canonical_before_kind = _geometry_policy_snapshot(
         root,
         job_id,
+        session_id,
     )
     dependencies = [result.request, result.tool_profile, *result.outputs]
+    from .controller_bridge import _session_bundle
+    from .quality_revision_service import active_reentry
+
+    base_plan = _session_bundle(job_id, session_id)[2]
+    reentry = active_reentry(root, base_plan, state)
+    promotion_gate = (reentry.policy_gate if reentry is not None
+                      else "geometry_candidate_promotion")
     exact_target = approval_artifact_for(
         root,
         result_path,
@@ -1659,14 +1715,14 @@ def _advance_geometry_with_policy(
     authorization_artifact = _reconcile_interrupted_policy_authorization(
         job_id,
         session_id,
-        gate_kind="geometry_candidate_promotion",
+        gate_kind=promotion_gate,
         exact_target=exact_target,
     )
     if authorization_artifact is None:
         eligibility = evaluate_routine_gate_eligibility(
             job_id,
             session_id,
-            gate_kind="geometry_candidate_promotion",
+            gate_kind=promotion_gate,
             exact_target_path=result_path,
             exact_target_kind="controller-result",
             current_canonical_snapshot_path=canonical_before_path,
@@ -1711,7 +1767,7 @@ def _advance_geometry_with_policy(
                 job_id,
                 session_id,
                 decision_artifact=decision_artifact,
-                expected_gate_kind="geometry_candidate_promotion",
+                expected_gate_kind=promotion_gate,
                 expected_next_action="validate_candidate",
                 reason=failure_reason,
             )
@@ -1744,6 +1800,12 @@ def _advance_quality_with_policy(
         else QualitySubmissionV2.model_validate(quality_submission)
     )
     root = job_dir(job_id)
+    from .controller_bridge import _session_bundle
+    from .quality_revision_service import validate_final_quality_submission
+
+    validate_final_quality_submission(
+        root, _session_bundle(job_id, session_id)[2], state, submission
+    )
     report_artifact = ApprovalArtifact.model_validate(
         submission.integrated_quality_report.model_dump(mode="python")
     )
@@ -1843,6 +1905,15 @@ def get_one_prompt_status(job_id: str, session_id: str) -> dict[str, object]:
         derived_status = "waiting_for_controller"
     if terminal is None and escalation["status"] == "pending":
         derived_status = "genuine_escalation"
+    fidelity = None
+    if terminal is None and base["state"]["next_action"] == "run_integrated_quality":
+        from .controller_bridge import _session_bundle
+        from .quality_revision_service import quality_revision_boundary
+
+        bundle = _session_bundle(job_id, session_id)
+        fidelity = quality_revision_boundary(root, bundle[2], bundle[4])
+        if fidelity is not None and fidelity["next_action"] != "quality_ready":
+            derived_status = "waiting_for_reference_fidelity_review"
     return {
         "status": derived_status,
         "profile_status": "disabled_experimental",
@@ -1854,6 +1925,7 @@ def get_one_prompt_status(job_id: str, session_id: str) -> dict[str, object]:
         "approval_envelope": get_approval_envelope_status(job_id, session_id),
         "escalation": escalation,
         "terminal": None if terminal is None else terminal[0].model_dump(mode="json"),
+        **({"reference_fidelity": fidelity} if fidelity is not None else {}),
         "resume_same_state_budget_assignment": True,
         "repository_creates_codex_task": False,
         "app_close_background_execution": False,
@@ -1890,6 +1962,30 @@ def run_one_prompt(
         if terminal is not None:
             terminal["actions"] = actions
             return terminal
+        if state.next_action == "run_integrated_quality":
+            from .controller_bridge import _session_bundle
+            from .quality_revision_service import quality_revision_boundary
+
+            base_plan = _session_bundle(job_id, session_id)[2]
+            boundary = quality_revision_boundary(root, base_plan, state)
+            if boundary is not None and boundary["next_action"] == "review_required":
+                from .fidelity_terminal_service import publish_fidelity_review_terminal
+
+                actions.append(publish_fidelity_review_terminal(job_id, session_id))
+                terminal = _terminalize_current_state(job_id, session_id)
+                if terminal is None:
+                    raise RuntimeError("fidelity review terminal was not published")
+                terminal["actions"] = actions
+                return terminal
+            if boundary is not None and boundary["next_action"] != "quality_ready":
+                return {
+                    "status": "waiting_for_reference_fidelity_review", "job_id": job_id,
+                    "session_id": session_id, "actions": actions,
+                    "state": state.model_dump(mode="json"), "reference_fidelity": boundary,
+                    "routine_user_approval_wait": False,
+                    "repository_creates_codex_task": False,
+                    "app_close_background_execution": False,
+                }
         policy_mode = plan.approval_mode != "interactive"
         try:
             if policy_mode and state.next_action == "validate_candidate":

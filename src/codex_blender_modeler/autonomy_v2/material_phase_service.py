@@ -1517,7 +1517,7 @@ def _replace_material_plan_if_current(
         raise MaterialPhaseError("canonical MaterialPlan changed before promotion")
     canonical.parent.mkdir(parents=True, exist_ok=True)
     temporary = canonical.parent / f".material_plan.{uuid4().hex}.tmp"
-    shutil.copy2(candidate, temporary)
+    shutil.copy2(native_io_path(candidate), native_io_path(temporary))
     try:
         if sha256_file(temporary) != expected_candidate_sha256:
             raise MaterialPhaseError("material promotion staging hash mismatch")
@@ -1532,7 +1532,8 @@ def _replace_material_plan_if_current(
             )
         os.replace(native_io_path(temporary), native_io_path(canonical))
     except Exception:
-        temporary.unlink(missing_ok=True)
+        if os.path.exists(native_io_path(temporary)):
+            os.unlink(native_io_path(temporary))
         raise
     if sha256_file(canonical) != expected_candidate_sha256:
         raise MaterialPhaseError("canonical MaterialPlan differs from promoted candidate")
@@ -1575,13 +1576,14 @@ def _restore_material_plan(
         return
     source = validate_v2_artifact(root, previous)
     temporary = canonical.parent / f".material_rollback.{uuid4().hex}.tmp"
-    shutil.copy2(source, temporary)
+    shutil.copy2(native_io_path(source), native_io_path(temporary))
     try:
         if sha256_file(temporary) != previous.sha256:
             raise MaterialPhaseError("material rollback staging hash mismatch")
         os.replace(native_io_path(temporary), native_io_path(canonical))
     except Exception:
-        temporary.unlink(missing_ok=True)
+        if os.path.exists(native_io_path(temporary)):
+            os.unlink(native_io_path(temporary))
         raise
     if sha256_file(canonical) != previous.sha256:
         raise MaterialPhaseError("canonical MaterialPlan rollback hash mismatch")
@@ -2344,7 +2346,7 @@ def _validate_and_promote_material_controller_result_v2(
                     plan.job_id,
                     plan.session_id,
                     policy_authorization_path=policy_authorization_path,
-                    canonical_snapshot_after_path="analysis/scene_spec.json",
+                    canonical_snapshot_after_path=snapshots.scene_spec.path,
                     canonical_snapshot_after_kind="canonical-scene-snapshot",
                     outcome="applied",
                     action_result_path=receipt_artifact.path,

@@ -1,0 +1,102 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record exact paired improvement, not a render count or added-detail proxy.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "before": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "after": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "resolved_features": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Resolved Features",
+      "type": "array"
+    },
+    "regressed_features": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Regressed Features",
+      "type": "array"
+    },
+    "unresolved_major_features": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "title": "Unresolved Major Features",
+      "type": "array"
+    },
+    "direct_score_delta": {
+      "title": "Direct Score Delta",
+      "type": "number"
+    },
+    "outcome": {
+      "enum": [
+        "improved",
+        "partially_improved",
+        "regressed",
+        "unchanged",
+        "incomparable"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "is_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Is Human Acceptance",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "before",
+    "after",
+    "resolved_features",
+    "regressed_features",
+    "unresolved_major_features",
+    "direct_score_delta",
+    "outcome",
+    "reason"
+  ],
+  "title": "FidelityComparisonV01",
+  "type": "object"
+}
