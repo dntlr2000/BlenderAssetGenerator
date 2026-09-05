@@ -50,6 +50,22 @@
     "source": {
       "$ref": "#/$defs/FidelityArtifact"
     },
+    "source_dependencies": {
+      "anyOf": [
+        {
+          "items": {
+            "$ref": "#/$defs/FidelityArtifact"
+          },
+          "maxItems": 1024,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Dependencies"
+    },
     "primary_run_id": {
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
       "title": "Primary Run Id",

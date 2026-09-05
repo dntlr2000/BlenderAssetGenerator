@@ -537,6 +537,56 @@ def test_asset_neutral_first_extension_is_source_bound_and_legacy_stays_readable
     legacy_payload = json.loads((other_root / legacy.path).read_text(encoding="utf-8"))
     assert legacy_payload["purpose"] == "directional_wood_material_correction"
     assert legacy_payload["execution_request_basis"] == "current_task_explicit_bounded_execution"
+    assert "source_dependencies" not in legacy_payload
+
+
+def test_asset_neutral_first_extension_binds_nested_geometry_dependencies(
+    tmp_path, monkeypatch
+) -> None:
+    """Reject a custom-mesh payload changed after exact structural scope publication."""
+
+    root, scene, _ = _fixture(tmp_path, monkeypatch)
+    data = json.loads(scene.read_text(encoding="utf-8"))
+    mesh_path = root / "fidelity/candidate/external.mesh.json"
+    mesh_path.write_text(
+        json.dumps(
+            {
+                "vertices": [[0, 0, 0], [1, 0, 0], [0, 1, 0]],
+                "faces": [[0, 1, 2]],
+            }
+        ),
+        encoding="utf-8",
+    )
+    data["objects"][0]["geometry"] = {
+        "kind": "custom_mesh",
+        "path": mesh_path.relative_to(root).as_posix(),
+    }
+    scene.write_text(json.dumps(data), encoding="utf-8")
+    source = artifact_at(root, scene)
+    _base_ledger(root, source)
+    plan = _generic_plan(root, scene)
+    assert plan.source_dependencies is not None
+    assert [item.path for item in plan.source_dependencies] == [
+        "fidelity/candidate/external.mesh.json"
+    ]
+    preview.publish_development_preview_reference_fidelity_extension(
+        JOB,
+        scene_path=scene.relative_to(root),
+        primary_run_id=plan.primary_run_id,
+        retry_run_id=plan.retry_run_id,
+        approved_scope_sha256=plan.scope_sha256,
+    )
+    mesh_path.write_text(
+        json.dumps(
+            {
+                "vertices": [[0, 0, 0], [2, 0, 0], [0, 1, 0]],
+                "faces": [[0, 1, 2]],
+            }
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="first extension source dependency closure differs"):
+        preview._load_preview_extensions(root, JOB)
 
 
 def test_first_extension_rejects_crossed_legacy_and_exact_approval_semantics(

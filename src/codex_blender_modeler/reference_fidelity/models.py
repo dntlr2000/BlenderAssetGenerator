@@ -176,6 +176,7 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
     extension_id: StableId
     job_id: JobId
     source: FidelityArtifact
+    source_dependencies: list[FidelityArtifact] | None = Field(default=None, max_length=1024)
     primary_run_id: StableId
     retry_run_id: StableId
     purpose: Literal[
@@ -212,7 +213,16 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
         }[self.purpose]
         if self.execution_request_basis != required_basis:
             raise ValueError("development preview purpose and approval basis differ")
-        payload = self.model_dump(mode="json", exclude={"scope_sha256"})
+        if self.purpose == "directional_wood_material_correction":
+            if self.source_dependencies is not None:
+                raise ValueError("historical wood extension cannot add source dependencies")
+        elif self.source_dependencies is None:
+            raise ValueError("reference-fidelity extension requires source dependency closure")
+        payload = self.model_dump(
+            mode="json",
+            exclude={"scope_sha256"},
+            exclude_none=True,
+        )
         if stable_json_digest(payload) != self.scope_sha256:
             raise ValueError("development preview extension scope digest differs")
         return self

@@ -204,6 +204,11 @@ def _build_initial_preview_budget_extension(
         "activation_authority": False,
         "campaign_evidence": False,
     }
+    if purpose == "reference_fidelity_structural_correction":
+        payload["source_dependencies"] = [
+            item.model_dump(mode="json")
+            for item in _development_source_dependencies(root, source)
+        ]
     return DevelopmentPreviewBudgetExtensionV01.model_validate(
         {**payload, "scope_sha256": _scope_digest(payload)}
     )
@@ -231,7 +236,11 @@ def publish_development_preview_budget_extension(
             purpose="directional_wood_material_correction",
             execution_request_basis="current_task_explicit_bounded_execution",
         )
-        write_immutable_json(root, extension_path, extension.model_dump(mode="json"))
+        write_immutable_json(
+            root,
+            extension_path,
+            extension.model_dump(mode="json", exclude_none=True),
+        )
     return artifact_at(root, extension_path)
 
 
@@ -284,7 +293,11 @@ def publish_development_preview_reference_fidelity_extension(
         )
         if extension.scope_sha256 != approved_scope_sha256:
             raise PermissionError("reference-fidelity extension lacks exact scope approval")
-        write_immutable_json(root, extension_path, extension.model_dump(mode="json"))
+        write_immutable_json(
+            root,
+            extension_path,
+            extension.model_dump(mode="json", exclude_none=True),
+        )
     return artifact_at(root, extension_path)
 
 
@@ -326,6 +339,12 @@ def _load_preview_extensions(
         EXTENDED_PREVIEW_ATTEMPT_LIMIT
     ):
         raise ValueError("development preview extension has an unexpected cumulative limit")
+    if (
+        first.source_dependencies is not None
+        and _development_source_dependencies(root, first.source)
+        != first.source_dependencies
+    ):
+        raise ValueError("first extension source dependency closure differs")
     loaded: list[
         tuple[
             DevelopmentPreviewBudgetExtensionV01
