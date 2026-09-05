@@ -66,6 +66,58 @@
       "default": null,
       "title": "Source Dependencies"
     },
+    "build_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Build Fingerprint"
+    },
+    "implementation_fingerprint": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Implementation Fingerprint"
+    },
+    "blender_executable_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Blender Executable Sha256"
+    },
+    "blender_version": {
+      "anyOf": [
+        {
+          "const": "5.0.1",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Blender Version"
+    },
     "primary_run_id": {
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
       "title": "Primary Run Id",

@@ -205,10 +205,15 @@ def _build_initial_preview_budget_extension(
         "campaign_evidence": False,
     }
     if purpose == "reference_fidelity_structural_correction":
+        blender_sha256, blender_version = _development_blender_environment()
         payload["source_dependencies"] = [
             item.model_dump(mode="json")
             for item in _development_source_dependencies(root, source)
         ]
+        payload["build_fingerprint"] = _development_build_fingerprint(root, job_id, source)
+        payload["implementation_fingerprint"] = _development_implementation_fingerprint()
+        payload["blender_executable_sha256"] = blender_sha256
+        payload["blender_version"] = blender_version
     return DevelopmentPreviewBudgetExtensionV01.model_validate(
         {**payload, "scope_sha256": _scope_digest(payload)}
     )
@@ -472,6 +477,30 @@ def _load_preview_extensions(
             raise ValueError("material-refinement extension prior completion differs")
         loaded.append((fourth, fourth_artifact))
     return tuple(loaded)
+
+
+def _validate_first_extension_runtime(
+    root: Path,
+    job_id: str,
+    extension: DevelopmentPreviewBudgetExtensionV01,
+) -> None:
+    """Verify generic first-extension implementation and Blender without changing legacy meaning."""
+
+    if extension.purpose == "directional_wood_material_correction":
+        return
+    if (
+        _development_build_fingerprint(root, job_id, extension.source)
+        != extension.build_fingerprint
+    ):
+        raise ValueError("first extension build fingerprint differs")
+    if _development_implementation_fingerprint() != extension.implementation_fingerprint:
+        raise ValueError("first extension implementation fingerprint differs")
+    blender_sha256, blender_version = _development_blender_environment()
+    if (
+        blender_sha256 != extension.blender_executable_sha256
+        or blender_version != extension.blender_version
+    ):
+        raise ValueError("first extension Blender environment differs")
 
 
 def _validate_extension_runtime(
@@ -1081,6 +1110,7 @@ def _extended_attempt_binding(
             raise PermissionError("extended preview source differs from its exact contract")
         if run_id != first.primary_run_id:
             raise PermissionError("extended preview must use its exact primary run ID")
+        _validate_first_extension_runtime(root, job_id, first)
         return first_artifact, "bounded_primary"
     if attempt_count == BASE_PREVIEW_ATTEMPT_LIMIT + 1:
         if len(loaded) >= 2:
@@ -1099,6 +1129,7 @@ def _extended_attempt_binding(
             raise PermissionError("extended preview source differs from its exact contract")
         if run_id != first.retry_run_id:
             raise PermissionError("extended preview must use its exact technical-retry run ID")
+        _validate_first_extension_runtime(root, job_id, first)
         primary = load_json(
             root,
             root / "fidelity/preview_reservations" / f"{BASE_PREVIEW_ATTEMPT_LIMIT:04d}.json",

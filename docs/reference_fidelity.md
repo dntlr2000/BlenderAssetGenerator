@@ -84,8 +84,9 @@ AQ가 아닌 격리 개발 preview의 기본 상한은 6회다. 전역 상수를
 추가 실증이 명시적으로 허용되면 `DevelopmentPreviewBudgetExtensionV01`이 exact job, SceneSpec SHA,
 primary/retry run ID에 `+2`를 묶는다. 과거 directional-wood 계약은 기존 의미로 계속 읽는다. 신규 자산의
 구조 보정은 asset-neutral 계획 함수가 SceneSpec과 recursive geometry/material dependency closure를 함께
-묶은 scope SHA-256을 먼저 제시하고, 그 exact hash의 사용자 승인 뒤에만 동일 계약을 발행한다. 승인 뒤
-nested payload가 바뀌면 실행 전에 fail closed한다. 첫 슬롯의 `DevelopmentPreviewAttemptOutcomeV01`이
+묶고, 전체 Python implementation fingerprint 및 Blender 5.0.1 executable hash도 포함한 scope SHA-256을
+먼저 제시한다. 그 exact hash의 사용자 승인 뒤에만 동일 계약을 발행하며, 승인 뒤 source·nested payload·
+구현·Blender 중 하나라도 바뀌면 실행 전에 fail closed한다. 첫 슬롯의 `DevelopmentPreviewAttemptOutcomeV01`이
 `technical_failure`일 때만 byte-identical source의 두 번째 슬롯을 쓸 수 있다. 정상 beauty가 생성된 뒤의
 미관 재시도에는 사용할 수 없다. 이 계약은 인간 판정, package acceptance, campaign 또는 Activation 권한이 아니다.
 

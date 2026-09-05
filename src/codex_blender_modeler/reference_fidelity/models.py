@@ -177,6 +177,10 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
     job_id: JobId
     source: FidelityArtifact
     source_dependencies: list[FidelityArtifact] | None = Field(default=None, max_length=1024)
+    build_fingerprint: Sha256 | None = None
+    implementation_fingerprint: Sha256 | None = None
+    blender_executable_sha256: Sha256 | None = None
+    blender_version: Literal["5.0.1"] | None = None
     primary_run_id: StableId
     retry_run_id: StableId
     purpose: Literal[
@@ -213,11 +217,23 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
         }[self.purpose]
         if self.execution_request_basis != required_basis:
             raise ValueError("development preview purpose and approval basis differ")
+        runtime_bindings = (
+            self.build_fingerprint,
+            self.implementation_fingerprint,
+            self.blender_executable_sha256,
+            self.blender_version,
+        )
         if self.purpose == "directional_wood_material_correction":
-            if self.source_dependencies is not None:
-                raise ValueError("historical wood extension cannot add source dependencies")
-        elif self.source_dependencies is None:
-            raise ValueError("reference-fidelity extension requires source dependency closure")
+            if self.source_dependencies is not None or any(
+                value is not None for value in runtime_bindings
+            ):
+                raise ValueError("historical wood extension cannot add generic exact bindings")
+        elif self.source_dependencies is None or any(
+            value is None for value in runtime_bindings
+        ):
+            raise ValueError(
+                "reference-fidelity extension requires source and runtime bindings"
+            )
         payload = self.model_dump(
             mode="json",
             exclude={"scope_sha256"},

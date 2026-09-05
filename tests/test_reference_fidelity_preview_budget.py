@@ -495,6 +495,10 @@ def test_asset_neutral_first_extension_requires_exact_scope_approval(tmp_path, m
     extension_path = root / "fidelity/preview_budget_extensions/0000.json"
     assert plan.purpose == "reference_fidelity_structural_correction"
     assert plan.execution_request_basis == "exact_scope_sha256_user_approval"
+    assert plan.build_fingerprint is not None
+    assert plan.implementation_fingerprint is not None
+    assert plan.blender_executable_sha256 == "a" * 64
+    assert plan.blender_version == "5.0.1"
     assert not extension_path.exists()
     with pytest.raises(PermissionError, match="lacks exact scope approval"):
         preview.publish_development_preview_reference_fidelity_extension(
@@ -538,6 +542,10 @@ def test_asset_neutral_first_extension_is_source_bound_and_legacy_stays_readable
     assert legacy_payload["purpose"] == "directional_wood_material_correction"
     assert legacy_payload["execution_request_basis"] == "current_task_explicit_bounded_execution"
     assert "source_dependencies" not in legacy_payload
+    assert "build_fingerprint" not in legacy_payload
+    assert "implementation_fingerprint" not in legacy_payload
+    assert "blender_executable_sha256" not in legacy_payload
+    assert "blender_version" not in legacy_payload
 
 
 def test_asset_neutral_first_extension_binds_nested_geometry_dependencies(
@@ -587,6 +595,42 @@ def test_asset_neutral_first_extension_binds_nested_geometry_dependencies(
     )
     with pytest.raises(ValueError, match="first extension source dependency closure differs"):
         preview._load_preview_extensions(root, JOB)
+
+
+def test_asset_neutral_first_extension_rejects_runtime_drift(tmp_path, monkeypatch) -> None:
+    """Fail before reservation when code or Blender differs from the exact generic scope."""
+
+    root, scene, source = _fixture(tmp_path, monkeypatch)
+    _base_ledger(root, source)
+    plan = _generic_plan(root, scene)
+    preview.publish_development_preview_reference_fidelity_extension(
+        JOB,
+        scene_path=scene.relative_to(root),
+        primary_run_id=plan.primary_run_id,
+        retry_run_id=plan.retry_run_id,
+        approved_scope_sha256=plan.scope_sha256,
+    )
+    monkeypatch.setattr(
+        preview,
+        "_development_implementation_fingerprint",
+        lambda: "f" * 64,
+    )
+    assert len(preview._load_preview_extensions(root, JOB)) == 1
+    with pytest.raises(ValueError, match="first extension implementation fingerprint differs"):
+        preview._reserve_preview_attempt(root, JOB, source, plan.primary_run_id)
+
+    monkeypatch.setattr(
+        preview,
+        "_development_implementation_fingerprint",
+        lambda: plan.implementation_fingerprint,
+    )
+    monkeypatch.setattr(
+        preview,
+        "_development_blender_environment",
+        lambda: ("b" * 64, "5.0.1"),
+    )
+    with pytest.raises(ValueError, match="first extension Blender environment differs"):
+        preview._reserve_preview_attempt(root, JOB, source, plan.primary_run_id)
 
 
 def test_first_extension_rejects_crossed_legacy_and_exact_approval_semantics(
