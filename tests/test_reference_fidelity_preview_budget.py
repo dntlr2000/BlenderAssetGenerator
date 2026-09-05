@@ -11,6 +11,7 @@ from codex_blender_modeler.autonomy.io import write_immutable_json
 from codex_blender_modeler.blender_artifacts import stable_json_digest
 from codex_blender_modeler.reference_fidelity import preview
 from codex_blender_modeler.reference_fidelity.models import (
+    DevelopmentPreviewBudgetExtensionV01,
     FeatureAssessment,
     FidelityArtifact,
     FidelityEvaluationV01,
@@ -82,6 +83,17 @@ def _publish(root: Path, scene: Path) -> FidelityArtifact:
         scene_path=scene.relative_to(root),
         primary_run_id="material-directional",
         retry_run_id="material-directional-retry",
+    )
+
+
+def _generic_plan(root: Path, scene: Path):
+    """Build one asset-neutral first-extension scope used by exact-approval tests."""
+
+    return preview.plan_development_preview_reference_fidelity_extension(
+        JOB,
+        scene_path=scene.relative_to(root),
+        primary_run_id="structural-correction",
+        retry_run_id="structural-correction-retry",
     )
 
 
@@ -188,9 +200,7 @@ def _complete_strategy_switch_primary(
     alternate, alternate_source = _alternate_scene(root, base_scene)
     _publish_strategy_switch(root, alternate)
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
         == 7
     )
     result_path = root / "fidelity/previews/material-strategy-switch/result.json"
@@ -252,10 +262,7 @@ def _complete_fidelity_correction_primary(
     correction, correction_source = _correction_scene(root, previous)
     _publish_correction(root, correction)
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, correction_source, "fidelity-correction"
-        )
-        == 8
+        preview._reserve_preview_attempt(root, JOB, correction_source, "fidelity-correction") == 8
     )
     result_path = root / "fidelity/previews/fidelity-correction/result.json"
     result_path.write_text('{"completed": true}', encoding="utf-8")
@@ -479,6 +486,75 @@ def test_six_attempt_cap_remains_without_exact_extension(tmp_path, monkeypatch) 
         preview._reserve_preview_attempt(root, JOB, source, "material-directional")
 
 
+def test_asset_neutral_first_extension_requires_exact_scope_approval(tmp_path, monkeypatch) -> None:
+    """Plan without writes and reject a mismatched hash before publishing any authority."""
+
+    root, scene, _ = _fixture(tmp_path, monkeypatch)
+    _base_ledger(root, artifact_at(root, scene))
+    plan = _generic_plan(root, scene)
+    extension_path = root / "fidelity/preview_budget_extensions/0000.json"
+    assert plan.purpose == "reference_fidelity_structural_correction"
+    assert plan.execution_request_basis == "exact_scope_sha256_user_approval"
+    assert not extension_path.exists()
+    with pytest.raises(PermissionError, match="lacks exact scope approval"):
+        preview.publish_development_preview_reference_fidelity_extension(
+            JOB,
+            scene_path=scene.relative_to(root),
+            primary_run_id=plan.primary_run_id,
+            retry_run_id=plan.retry_run_id,
+            approved_scope_sha256="0" * 64,
+        )
+    assert not extension_path.exists()
+
+
+def test_asset_neutral_first_extension_is_source_bound_and_legacy_stays_readable(
+    tmp_path, monkeypatch
+) -> None:
+    """Publish the generic scope once while preserving the historical wood contract meaning."""
+
+    root, scene, source = _fixture(tmp_path, monkeypatch)
+    _base_ledger(root, source)
+    plan = _generic_plan(root, scene)
+    extension = preview.publish_development_preview_reference_fidelity_extension(
+        JOB,
+        scene_path=scene.relative_to(root),
+        primary_run_id=plan.primary_run_id,
+        retry_run_id=plan.retry_run_id,
+        approved_scope_sha256=plan.scope_sha256,
+    )
+    payload = json.loads((root / extension.path).read_text(encoding="utf-8"))
+    assert payload["purpose"] == "reference_fidelity_structural_correction"
+    assert (
+        preview._reserve_preview_attempt(root, JOB, source, plan.primary_run_id)
+        == preview.BASE_PREVIEW_ATTEMPT_LIMIT
+    )
+
+    other_parent = tmp_path / "legacy"
+    other_parent.mkdir()
+    other_root, other_scene, other_source = _fixture(other_parent, monkeypatch)
+    _base_ledger(other_root, other_source)
+    legacy = _publish(other_root, other_scene)
+    legacy_payload = json.loads((other_root / legacy.path).read_text(encoding="utf-8"))
+    assert legacy_payload["purpose"] == "directional_wood_material_correction"
+    assert legacy_payload["execution_request_basis"] == "current_task_explicit_bounded_execution"
+
+
+def test_first_extension_rejects_crossed_legacy_and_exact_approval_semantics(
+    tmp_path, monkeypatch
+) -> None:
+    """Prevent a new structural purpose from inheriting the historical implicit basis."""
+
+    root, scene, source = _fixture(tmp_path, monkeypatch)
+    _base_ledger(root, source)
+    plan = _generic_plan(root, scene)
+    payload = plan.model_dump(mode="json", exclude={"scope_sha256"})
+    payload["execution_request_basis"] = "current_task_explicit_bounded_execution"
+    with pytest.raises(ValueError, match="purpose and approval basis differ"):
+        DevelopmentPreviewBudgetExtensionV01.model_validate(
+            {**payload, "scope_sha256": stable_json_digest(payload)}
+        )
+
+
 def test_extension_requires_exact_exhausted_job_and_untampered_scope(tmp_path, monkeypatch) -> None:
     """Reject early, cross-job, malformed, and self-digest-tampered extensions."""
 
@@ -602,9 +678,7 @@ def test_strategy_switch_primary_and_retry_are_append_only_and_source_bound(
     assert extension_payload["maximum_total_reservations"] == 9
     assert extension_payload["reclaims_closed_retry_slot"] is False
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
         == 7
     )
     preview._record_preview_outcome(
@@ -617,9 +691,7 @@ def test_strategy_switch_primary_and_retry_are_append_only_and_source_bound(
     )
     changed = FidelityArtifact(path=alternate_source.path, sha256=stable_json_digest("changed"))
     with pytest.raises(PermissionError, match="source differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, changed, "material-strategy-switch-retry"
-        )
+        preview._reserve_preview_attempt(root, JOB, changed, "material-strategy-switch-retry")
     assert (
         preview._reserve_preview_attempt(
             root, JOB, alternate_source, "material-strategy-switch-retry"
@@ -656,9 +728,7 @@ def test_strategy_switch_extension_tamper_fails_before_reservation(tmp_path, mon
     data["primary_run_id"] = "tampered-run"
     path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match="scope digest differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
 
 
 def test_strategy_switch_nested_dependency_tamper_fails_before_reservation(
@@ -675,15 +745,14 @@ def test_strategy_switch_nested_dependency_tamper_fails_before_reservation(
     extension = _publish_strategy_switch(root, alternate)
     data = json.loads((root / extension.path).read_text(encoding="utf-8"))
     paths = [item["path"] for item in data["source_dependencies"]]
-    assert alternate.parent.joinpath("textures/texture_manifest.json").relative_to(
-        root
-    ).as_posix() in paths
+    assert (
+        alternate.parent.joinpath("textures/texture_manifest.json").relative_to(root).as_posix()
+        in paths
+    )
     assert image.relative_to(root).as_posix() in paths
     image.write_bytes(b"changed-after-exact-approval")
     with pytest.raises(ValueError, match="source dependency closure differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
 
 
 def test_strategy_switch_implementation_drift_fails_before_reservation(
@@ -702,9 +771,7 @@ def test_strategy_switch_implementation_drift_fails_before_reservation(
         lambda: "f" * 64,
     )
     with pytest.raises(ValueError, match="implementation fingerprint differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
 
 
 def test_strategy_switch_blender_environment_drift_fails_before_reservation(
@@ -723,9 +790,7 @@ def test_strategy_switch_blender_environment_drift_fails_before_reservation(
         lambda: ("b" * 64, "5.0.1"),
     )
     with pytest.raises(ValueError, match="Blender environment differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, alternate_source, "material-strategy-switch"
-        )
+        preview._reserve_preview_attempt(root, JOB, alternate_source, "material-strategy-switch")
 
 
 def test_completed_historical_runtime_does_not_block_a_new_exact_extension(
@@ -763,8 +828,7 @@ def test_fidelity_correction_primary_is_exact_and_closes_visual_retry(
     assert payload["closed_prior_retry_slots"] == 2
     assert payload["maximum_total_reservations"] == 10
     assert (
-        preview._reserve_preview_attempt(root, JOB, correction_source, "fidelity-correction")
-        == 8
+        preview._reserve_preview_attempt(root, JOB, correction_source, "fidelity-correction") == 8
     )
     result_path = root / "fidelity/previews/fidelity-correction/result.json"
     result_path.write_text('{"completed": true}', encoding="utf-8")
@@ -777,9 +841,7 @@ def test_fidelity_correction_primary_is_exact_and_closes_visual_retry(
         result=artifact_at(root, result_path),
     )
     with pytest.raises(PermissionError, match="technical failure"):
-        preview._reserve_preview_attempt(
-            root, JOB, correction_source, "fidelity-correction-retry"
-        )
+        preview._reserve_preview_attempt(root, JOB, correction_source, "fidelity-correction-retry")
 
 
 def test_fidelity_correction_active_runtime_drift_fails_before_reservation(
@@ -798,9 +860,7 @@ def test_fidelity_correction_active_runtime_drift_fails_before_reservation(
         lambda: "e" * 64,
     )
     with pytest.raises(ValueError, match="fidelity-correction implementation fingerprint"):
-        preview._reserve_preview_attempt(
-            root, JOB, correction_source, "fidelity-correction"
-        )
+        preview._reserve_preview_attempt(root, JOB, correction_source, "fidelity-correction")
 
 
 def test_material_refinement_requires_exact_review_and_scope_approval(
@@ -810,9 +870,7 @@ def test_material_refinement_requires_exact_review_and_scope_approval(
 
     root, base_scene, base_source = _fixture(tmp_path, monkeypatch)
     _base_ledger(root, base_source)
-    refinement, _ = _prepare_material_refinement(
-        root, base_scene, base_source
-    )
+    refinement, _ = _prepare_material_refinement(root, base_scene, base_source)
     plan = _material_refinement_plan(root, refinement)
     assert plan.schema_version == "0.4.0"
     assert plan.revision_route == "material_revision"
@@ -832,25 +890,18 @@ def test_material_refinement_requires_exact_review_and_scope_approval(
     assert not (root / "fidelity/preview_budget_extensions/0003.json").exists()
 
 
-def test_material_refinement_primary_closes_aesthetic_retry(
-    tmp_path, monkeypatch
-) -> None:
+def test_material_refinement_primary_closes_aesthetic_retry(tmp_path, monkeypatch) -> None:
     """Permit one exact material primary and close its retry after a completed beauty."""
 
     root, base_scene, base_source = _fixture(tmp_path, monkeypatch)
     _base_ledger(root, base_source)
-    refinement, refinement_source = _prepare_material_refinement(
-        root, base_scene, base_source
-    )
+    refinement, refinement_source = _prepare_material_refinement(root, base_scene, base_source)
     extension = _publish_material_refinement(root, refinement)
     payload = json.loads((root / extension.path).read_text(encoding="utf-8"))
     assert payload["schema_version"] == "0.4.0"
     assert payload["prior_evaluation"]["path"].endswith("evaluation.json")
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, refinement_source, "material-refinement"
-        )
-        == 9
+        preview._reserve_preview_attempt(root, JOB, refinement_source, "material-refinement") == 9
     )
     result_path = root / "fidelity/previews/material-refinement/result.json"
     result_path.write_text('{"completed": true}', encoding="utf-8")
@@ -863,9 +914,7 @@ def test_material_refinement_primary_closes_aesthetic_retry(
         result=artifact_at(root, result_path),
     )
     with pytest.raises(PermissionError, match="technical failure"):
-        preview._reserve_preview_attempt(
-            root, JOB, refinement_source, "material-refinement-retry"
-        )
+        preview._reserve_preview_attempt(root, JOB, refinement_source, "material-refinement-retry")
 
 
 def test_material_refinement_retry_is_identical_input_and_new_outcome_version(
@@ -875,15 +924,10 @@ def test_material_refinement_retry_is_identical_input_and_new_outcome_version(
 
     root, base_scene, base_source = _fixture(tmp_path, monkeypatch)
     _base_ledger(root, base_source)
-    refinement, refinement_source = _prepare_material_refinement(
-        root, base_scene, base_source
-    )
+    refinement, refinement_source = _prepare_material_refinement(root, base_scene, base_source)
     _publish_material_refinement(root, refinement)
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, refinement_source, "material-refinement"
-        )
-        == 9
+        preview._reserve_preview_attempt(root, JOB, refinement_source, "material-refinement") == 9
     )
     preview._record_preview_outcome(
         root,
@@ -898,13 +942,9 @@ def test_material_refinement_retry_is_identical_input_and_new_outcome_version(
         sha256=stable_json_digest("changed-material-refinement"),
     )
     with pytest.raises(PermissionError, match="source differs"):
-        preview._reserve_preview_attempt(
-            root, JOB, changed, "material-refinement-retry"
-        )
+        preview._reserve_preview_attempt(root, JOB, changed, "material-refinement-retry")
     assert (
-        preview._reserve_preview_attempt(
-            root, JOB, refinement_source, "material-refinement-retry"
-        )
+        preview._reserve_preview_attempt(root, JOB, refinement_source, "material-refinement-retry")
         == 10
     )
     result_path = root / "fidelity/previews/material-refinement-retry/result.json"
@@ -922,16 +962,12 @@ def test_material_refinement_retry_is_identical_input_and_new_outcome_version(
         preview._reserve_preview_attempt(root, JOB, refinement_source, "third-try")
 
 
-def test_material_refinement_review_tamper_fails_before_reservation(
-    tmp_path, monkeypatch
-) -> None:
+def test_material_refinement_review_tamper_fails_before_reservation(tmp_path, monkeypatch) -> None:
     """Reject changed visual findings after the exact fourth scope is published."""
 
     root, base_scene, base_source = _fixture(tmp_path, monkeypatch)
     _base_ledger(root, base_source)
-    refinement, refinement_source = _prepare_material_refinement(
-        root, base_scene, base_source
-    )
+    refinement, refinement_source = _prepare_material_refinement(root, base_scene, base_source)
     _publish_material_refinement(root, refinement)
     findings = root / "fidelity/inspection/fidelity-correction/visual_findings.json"
     payload = json.loads(findings.read_text(encoding="utf-8"))
@@ -939,6 +975,4 @@ def test_material_refinement_review_tamper_fails_before_reservation(
     findings.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(PermissionError, match="exact unresolved nonhuman material finding"):
-        preview._reserve_preview_attempt(
-            root, JOB, refinement_source, "material-refinement"
-        )
+        preview._reserve_preview_attempt(root, JOB, refinement_source, "material-refinement")

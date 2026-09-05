@@ -61,12 +61,18 @@
       "type": "string"
     },
     "purpose": {
-      "const": "directional_wood_material_correction",
+      "enum": [
+        "directional_wood_material_correction",
+        "reference_fidelity_structural_correction"
+      ],
       "title": "Purpose",
       "type": "string"
     },
     "execution_request_basis": {
-      "const": "current_task_explicit_bounded_execution",
+      "enum": [
+        "current_task_explicit_bounded_execution",
+        "exact_scope_sha256_user_approval"
+      ],
       "title": "Execution Request Basis",
       "type": "string"
     },

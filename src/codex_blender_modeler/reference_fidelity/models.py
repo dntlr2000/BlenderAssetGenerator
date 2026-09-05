@@ -53,9 +53,7 @@ class DirectionalMappingEvidenceV01(FidelityModel):
     """Bind image-plane coordinate coverage to exact texture and geometry evidence."""
 
     schema_version: Literal["0.1.0"] = "0.1.0"
-    contract_kind: Literal["directional_mapping_evidence"] = (
-        "directional_mapping_evidence"
-    )
+    contract_kind: Literal["directional_mapping_evidence"] = "directional_mapping_evidence"
     job_id: JobId
     mapping_id: StableId
     texture_manifest: FidelityArtifact
@@ -70,9 +68,9 @@ class DirectionalMappingEvidenceV01(FidelityModel):
         Annotated[float, Field(gt=0, le=1000000)],
     ]
     sampled_tile_span: float = Field(gt=0, le=1000000)
-    measurement_basis: Literal[
+    measurement_basis: Literal["image_plane_coordinate_extent_times_runtime_mapping_scale"] = (
         "image_plane_coordinate_extent_times_runtime_mapping_scale"
-    ] = "image_plane_coordinate_extent_times_runtime_mapping_scale"
+    )
     limitations: list[str] = Field(default_factory=list, max_length=32)
 
     @model_validator(mode="after")
@@ -91,9 +89,7 @@ class DirectionalMappingEvidenceV01(FidelityModel):
             9,
         )
         if abs(self.sampled_tile_span - expected) > 1.0e-9:
-            raise ValueError(
-                "sampled_tile_span differs from coordinate extent times runtime scale"
-            )
+            raise ValueError("sampled_tile_span differs from coordinate extent times runtime scale")
         return self
 
 
@@ -157,10 +153,7 @@ class DirectionalMaterialPreflightV01(FidelityModel):
             detected = "x" if self.gradient_x < self.gradient_y else "y"
             if detected != self.expected_fibre_axis:
                 expected.append("direction_mismatch")
-        if (
-            self.dominant_harmonic_fraction
-            > self.thresholds.maximum_dominant_harmonic_fraction
-        ):
+        if self.dominant_harmonic_fraction > self.thresholds.maximum_dominant_harmonic_fraction:
             expected.append("single_period_dominance")
         if self.sampled_tile_span < self.thresholds.minimum_sampled_tile_span:
             expected.append("insufficient_sampled_span")
@@ -185,8 +178,14 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
     source: FidelityArtifact
     primary_run_id: StableId
     retry_run_id: StableId
-    purpose: Literal["directional_wood_material_correction"]
-    execution_request_basis: Literal["current_task_explicit_bounded_execution"]
+    purpose: Literal[
+        "directional_wood_material_correction",
+        "reference_fidelity_structural_correction",
+    ]
+    execution_request_basis: Literal[
+        "current_task_explicit_bounded_execution",
+        "exact_scope_sha256_user_approval",
+    ]
     base_attempt_limit: Literal[6] = 6
     additional_attempt_limit: Literal[2] = 2
     primary_attempts: Literal[1] = 1
@@ -207,6 +206,12 @@ class DevelopmentPreviewBudgetExtensionV01(FidelityModel):
 
         if self.primary_run_id == self.retry_run_id:
             raise ValueError("primary and technical-retry run IDs must differ")
+        required_basis = {
+            "directional_wood_material_correction": ("current_task_explicit_bounded_execution"),
+            "reference_fidelity_structural_correction": ("exact_scope_sha256_user_approval"),
+        }[self.purpose]
+        if self.execution_request_basis != required_basis:
+            raise ValueError("development preview purpose and approval basis differ")
         payload = self.model_dump(mode="json", exclude={"scope_sha256"})
         if stable_json_digest(payload) != self.scope_sha256:
             raise ValueError("development preview extension scope digest differs")
@@ -337,9 +342,7 @@ class UVSpatialPreservationV01(FidelityModel):
     """Prove that a material-only candidate preserves the bound spatial geometry."""
 
     schema_version: Literal["0.1.0"] = "0.1.0"
-    contract_kind: Literal["fidelity_uv_spatial_preservation"] = (
-        "fidelity_uv_spatial_preservation"
-    )
+    contract_kind: Literal["fidelity_uv_spatial_preservation"] = "fidelity_uv_spatial_preservation"
     job_id: JobId
     source_scene: FidelityArtifact
     candidate_scene: FidelityArtifact

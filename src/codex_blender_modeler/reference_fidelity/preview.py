@@ -157,6 +157,58 @@ def _development_blender_environment() -> tuple[str, str]:
     return sha256_file(resolved), version
 
 
+def _build_initial_preview_budget_extension(
+    root: Path,
+    job_id: str,
+    *,
+    scene_path: Path,
+    primary_run_id: str,
+    retry_run_id: str,
+    extension_id: str,
+    purpose: str,
+    execution_request_basis: str,
+) -> DevelopmentPreviewBudgetExtensionV01:
+    """Build one exact first extension without publishing or implying approval."""
+
+    _validate_run_id(primary_run_id)
+    _validate_run_id(retry_run_id)
+    source = _development_scene_source(root, job_id, scene_path)
+    extension_path = root / "fidelity/preview_budget_extensions/0000.json"
+    reservations = root / "fidelity/preview_reservations"
+    attempts = sorted(reservations.glob("*.json"))
+    expected = [f"{index:04d}.json" for index in range(len(attempts))]
+    if [item.name for item in attempts] != expected:
+        raise ValueError("development preview reservation ledger is not contiguous")
+    if len(attempts) != BASE_PREVIEW_ATTEMPT_LIMIT:
+        raise PermissionError("preview extension requires the exact exhausted six-attempt ledger")
+    if extension_path.exists() or extension_path.parent.exists():
+        raise FileExistsError("development preview budget extension already exists")
+    payload = {
+        "schema_version": "0.1.0",
+        "contract_kind": "fidelity_development_preview_budget_extension",
+        "extension_id": extension_id,
+        "job_id": job_id,
+        "source": source.model_dump(mode="json"),
+        "primary_run_id": primary_run_id,
+        "retry_run_id": retry_run_id,
+        "purpose": purpose,
+        "execution_request_basis": execution_request_basis,
+        "base_attempt_limit": BASE_PREVIEW_ATTEMPT_LIMIT,
+        "additional_attempt_limit": 2,
+        "primary_attempts": 1,
+        "maximum_identical_input_technical_retries": 1,
+        "resets_existing_budget": False,
+        "canonical_write_authority": False,
+        "human_quality_disposition": "not_recorded",
+        "package_acceptance_authority": False,
+        "activation_authority": False,
+        "campaign_evidence": False,
+    }
+    return DevelopmentPreviewBudgetExtensionV01.model_validate(
+        {**payload, "scope_sha256": _scope_digest(payload)}
+    )
+
+
 def publish_development_preview_budget_extension(
     job_id: str,
     *,
@@ -167,46 +219,71 @@ def publish_development_preview_budget_extension(
     """Publish one job-local +2 contract after the immutable six-attempt lab budget is spent."""
 
     root = job_dir(job_id).resolve()
-    _validate_run_id(primary_run_id)
-    _validate_run_id(retry_run_id)
-    source = _development_scene_source(root, job_id, scene_path)
     extension_path = root / "fidelity/preview_budget_extensions/0000.json"
-    reservations = root / "fidelity/preview_reservations"
     with autonomy_session_lock(root, root / "fidelity", owner_id="fidelity-preview-extension"):
-        attempts = sorted(reservations.glob("*.json"))
-        expected = [f"{index:04d}.json" for index in range(len(attempts))]
-        if [item.name for item in attempts] != expected:
-            raise ValueError("development preview reservation ledger is not contiguous")
-        if len(attempts) != BASE_PREVIEW_ATTEMPT_LIMIT:
-            raise PermissionError(
-                "preview extension requires the exact exhausted six-attempt ledger"
-            )
-        if extension_path.exists() or extension_path.parent.exists():
-            raise FileExistsError("development preview budget extension already exists")
-        payload = {
-            "schema_version": "0.1.0",
-            "contract_kind": "fidelity_development_preview_budget_extension",
-            "extension_id": "directional-wood-material-correction-01",
-            "job_id": job_id,
-            "source": source.model_dump(mode="json"),
-            "primary_run_id": primary_run_id,
-            "retry_run_id": retry_run_id,
-            "purpose": "directional_wood_material_correction",
-            "execution_request_basis": "current_task_explicit_bounded_execution",
-            "base_attempt_limit": BASE_PREVIEW_ATTEMPT_LIMIT,
-            "additional_attempt_limit": 2,
-            "primary_attempts": 1,
-            "maximum_identical_input_technical_retries": 1,
-            "resets_existing_budget": False,
-            "canonical_write_authority": False,
-            "human_quality_disposition": "not_recorded",
-            "package_acceptance_authority": False,
-            "activation_authority": False,
-            "campaign_evidence": False,
-        }
-        extension = DevelopmentPreviewBudgetExtensionV01.model_validate(
-            {**payload, "scope_sha256": _scope_digest(payload)}
+        extension = _build_initial_preview_budget_extension(
+            root,
+            job_id,
+            scene_path=scene_path,
+            primary_run_id=primary_run_id,
+            retry_run_id=retry_run_id,
+            extension_id="directional-wood-material-correction-01",
+            purpose="directional_wood_material_correction",
+            execution_request_basis="current_task_explicit_bounded_execution",
         )
+        write_immutable_json(root, extension_path, extension.model_dump(mode="json"))
+    return artifact_at(root, extension_path)
+
+
+def plan_development_preview_reference_fidelity_extension(
+    job_id: str,
+    *,
+    scene_path: Path,
+    primary_run_id: str,
+    retry_run_id: str,
+) -> DevelopmentPreviewBudgetExtensionV01:
+    """Return an asset-neutral structural-preview scope without publishing authority."""
+
+    root = job_dir(job_id).resolve()
+    return _build_initial_preview_budget_extension(
+        root,
+        job_id,
+        scene_path=scene_path,
+        primary_run_id=primary_run_id,
+        retry_run_id=retry_run_id,
+        extension_id="reference-fidelity-structural-correction-01",
+        purpose="reference_fidelity_structural_correction",
+        execution_request_basis="exact_scope_sha256_user_approval",
+    )
+
+
+def publish_development_preview_reference_fidelity_extension(
+    job_id: str,
+    *,
+    scene_path: Path,
+    primary_run_id: str,
+    retry_run_id: str,
+    approved_scope_sha256: str,
+) -> FidelityArtifact:
+    """Publish an asset-neutral first extension only for its exact reviewed scope hash."""
+
+    root = job_dir(job_id).resolve()
+    extension_path = root / "fidelity/preview_budget_extensions/0000.json"
+    with autonomy_session_lock(
+        root, root / "fidelity", owner_id="fidelity-preview-reference-fidelity"
+    ):
+        extension = _build_initial_preview_budget_extension(
+            root,
+            job_id,
+            scene_path=scene_path,
+            primary_run_id=primary_run_id,
+            retry_run_id=retry_run_id,
+            extension_id="reference-fidelity-structural-correction-01",
+            purpose="reference_fidelity_structural_correction",
+            execution_request_basis="exact_scope_sha256_user_approval",
+        )
+        if extension.scope_sha256 != approved_scope_sha256:
+            raise PermissionError("reference-fidelity extension lacks exact scope approval")
         write_immutable_json(root, extension_path, extension.model_dump(mode="json"))
     return artifact_at(root, extension_path)
 
@@ -283,10 +360,8 @@ def _load_preview_extensions(
             or prior_outcome.run_id != first.primary_run_id
             or prior_outcome.source != first.source
             or prior_outcome.outcome != "completed"
-            or second.cumulative_authorized_attempt_limit
-            != STRATEGY_SWITCH_PREVIEW_ATTEMPT_LIMIT
-            or second.maximum_total_reservations
-            != STRATEGY_SWITCH_MAXIMUM_RESERVATIONS
+            or second.cumulative_authorized_attempt_limit != STRATEGY_SWITCH_PREVIEW_ATTEMPT_LIMIT
+            or second.maximum_total_reservations != STRATEGY_SWITCH_MAXIMUM_RESERVATIONS
         ):
             raise ValueError("strategy-switch extension prior completion differs")
         loaded.append((second, second_artifact))
@@ -323,8 +398,7 @@ def _load_preview_extensions(
             or prior_outcome.outcome != "completed"
             or third.cumulative_authorized_attempt_limit
             != FIDELITY_CORRECTION_PREVIEW_ATTEMPT_LIMIT
-            or third.maximum_total_reservations
-            != FIDELITY_CORRECTION_MAXIMUM_RESERVATIONS
+            or third.maximum_total_reservations != FIDELITY_CORRECTION_MAXIMUM_RESERVATIONS
         ):
             raise ValueError("fidelity-correction extension prior completion differs")
         loaded.append((third, third_artifact))
@@ -374,8 +448,7 @@ def _load_preview_extensions(
             or fourth.source_spatial_preservation != evidence[3]
             or fourth.cumulative_authorized_attempt_limit
             != MATERIAL_REFINEMENT_PREVIEW_ATTEMPT_LIMIT
-            or fourth.maximum_total_reservations
-            != MATERIAL_REFINEMENT_MAXIMUM_RESERVATIONS
+            or fourth.maximum_total_reservations != MATERIAL_REFINEMENT_MAXIMUM_RESERVATIONS
         ):
             raise ValueError("material-refinement extension prior completion differs")
         loaded.append((fourth, fourth_artifact))
@@ -470,9 +543,7 @@ def _build_strategy_switch_extension(
         raise PermissionError(
             "strategy-switch extension requires exactly one completed first-extension primary"
         )
-    prior_outcome, prior_outcome_artifact = _load_preview_outcome(
-        root, BASE_PREVIEW_ATTEMPT_LIMIT
-    )
+    prior_outcome, prior_outcome_artifact = _load_preview_outcome(root, BASE_PREVIEW_ATTEMPT_LIMIT)
     if (
         prior_outcome.job_id != job_id
         or prior_outcome.run_id != first.primary_run_id
@@ -742,12 +813,8 @@ def _load_material_refinement_evidence(
         root,
         (root / source.path).parent / "uv_spatial_preservation.json",
     )
-    findings = VisualFindingSetV01.model_validate_json(
-        read_artifact(root, findings_artifact)
-    )
-    evaluation = FidelityEvaluationV01.model_validate_json(
-        read_artifact(root, evaluation_artifact)
-    )
+    findings = VisualFindingSetV01.model_validate_json(read_artifact(root, findings_artifact))
+    evaluation = FidelityEvaluationV01.model_validate_json(read_artifact(root, evaluation_artifact))
     prior_spatial = UVSpatialPreservationV01.model_validate_json(
         read_artifact(root, prior_spatial_artifact)
     )
@@ -792,10 +859,7 @@ def _load_material_refinement_evidence(
     source_material_ids = [item.id for item in source_scene.materials]
     prior_assignments = [(item.id, item.material_id) for item in prior_scene.objects]
     source_assignments = [(item.id, item.material_id) for item in source_scene.objects]
-    if (
-        prior_material_ids != source_material_ids
-        or prior_assignments != source_assignments
-    ):
+    if prior_material_ids != source_material_ids or prior_assignments != source_assignments:
         raise PermissionError(
             "material-refinement source changed stable objects or material assignments"
         )
@@ -895,9 +959,7 @@ def _build_material_refinement_extension(
         "prior_evaluation": evaluation_artifact.model_dump(mode="json"),
         "prior_spatial_preservation": prior_spatial_artifact.model_dump(mode="json"),
         "source": source.model_dump(mode="json"),
-        "source_dependencies": [
-            item.model_dump(mode="json") for item in source_dependencies
-        ],
+        "source_dependencies": [item.model_dump(mode="json") for item in source_dependencies],
         "source_spatial_preservation": source_spatial_artifact.model_dump(mode="json"),
         "revision_route": "material_revision",
         "build_fingerprint": build_fingerprint,
@@ -1067,9 +1129,7 @@ def _extended_attempt_binding(
         _validate_extension_runtime(root, job_id, second)
         primary = load_json(
             root,
-            root
-            / "fidelity/preview_reservations"
-            / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 1:04d}.json",
+            root / "fidelity/preview_reservations" / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 1:04d}.json",
         )
         if (
             primary.get("run_id") != second.primary_run_id
@@ -1120,9 +1180,7 @@ def _extended_attempt_binding(
         _validate_extension_runtime(root, job_id, third)
         primary = load_json(
             root,
-            root
-            / "fidelity/preview_reservations"
-            / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 2:04d}.json",
+            root / "fidelity/preview_reservations" / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 2:04d}.json",
         )
         if (
             primary.get("run_id") != third.primary_run_id
@@ -1162,9 +1220,7 @@ def _extended_attempt_binding(
         _validate_extension_runtime(root, job_id, fourth)
         primary = load_json(
             root,
-            root
-            / "fidelity/preview_reservations"
-            / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 3:04d}.json",
+            root / "fidelity/preview_reservations" / f"{BASE_PREVIEW_ATTEMPT_LIMIT + 3:04d}.json",
         )
         if (
             primary.get("run_id") != fourth.primary_run_id
@@ -1213,10 +1269,14 @@ def _validate_extension_build_fingerprint(
     elif attempt_index == BASE_PREVIEW_ATTEMPT_LIMIT + 2 and len(extensions) == 2:
         extension = extensions[1][0]
         label = "strategy-switch"
-    elif attempt_index in {
-        BASE_PREVIEW_ATTEMPT_LIMIT + 2,
-        BASE_PREVIEW_ATTEMPT_LIMIT + 3,
-    } and len(extensions) == 3:
+    elif (
+        attempt_index
+        in {
+            BASE_PREVIEW_ATTEMPT_LIMIT + 2,
+            BASE_PREVIEW_ATTEMPT_LIMIT + 3,
+        }
+        and len(extensions) == 3
+    ):
         extension = extensions[2][0]
         label = "fidelity-correction"
     elif attempt_index == BASE_PREVIEW_ATTEMPT_LIMIT + 3 and len(extensions) == 4:
@@ -1306,9 +1366,7 @@ def _record_preview_outcome(
         "result": result.model_dump(mode="json") if result is not None else None,
         "error_type": None if error is None else type(error).__name__[:128],
         "error_message": (
-            None
-            if error is None
-            else (str(error) or "unspecified technical failure")[:2048]
+            None if error is None else (str(error) or "unspecified technical failure")[:2048]
         ),
         "canonical_write_authority": False,
         "human_quality_disposition": "not_recorded",
