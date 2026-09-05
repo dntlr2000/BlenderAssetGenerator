@@ -371,7 +371,7 @@ def _run_structural_controller_round(root: Path, session_id: str) -> None:
             root,
             root / "blender/scene.blend",
             artifact_id=f"canonical-blend-{execution_id}",
-            kind="baseline-scene",
+            kind="baseline-blend",
         ),
     ]
     scene = geometry_smoke._scene_v03(job_id, authorization.primary_reference.path)

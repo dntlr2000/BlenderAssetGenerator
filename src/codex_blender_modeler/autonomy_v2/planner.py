@@ -39,7 +39,7 @@ _PHASE_PROFILE_SPECS: tuple[tuple[str, list[str], list[str]], ...] = (
     ("reference_readonly", ["reference", "workflow-request"], []),
     (
         "geometry_authoring",
-        ["reference", "camera", "assignment", "baseline-scene"],
+        ["reference", "camera", "assignment", "baseline-scene", "baseline-blend"],
         ["modeling_plan.json", "scene_spec_v03.json", "completion.json"],
     ),
     (

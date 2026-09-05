@@ -84,6 +84,19 @@ def test_v2_internal_plan_binds_standard_dispatch_and_phase_profiles(
     for artifact in plan.provenance:
         validate_v2_artifact(root, artifact)
 
+    geometry_profile = json.loads(
+        (session_root / "tool_profiles" / "geometry_authoring.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert geometry_profile["allowed_input_roles"] == [
+        "reference",
+        "camera",
+        "assignment",
+        "baseline-scene",
+        "baseline-blend",
+    ]
+
     workflow_request = json.loads(
         (
             root
