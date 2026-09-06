@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..autonomy.worker import autonomy_session_lock
 from ..blender_artifacts import publish_bytes_create_once, sha256_file
+from ..integrated_quality.v02_models import IntegratedQualityReportV02, ReentryDecisionV02
 from ..reference_fidelity.models import (
     FidelityArtifact,
     FidelityEvaluationV01,
@@ -37,6 +38,77 @@ from .quality_revision_models import (
 )
 
 REENTRY_KIND = "reference_fidelity_reentry_v01"
+
+_ROUTE_PRIORITY = (
+    "review_required",
+    "technical_recovery",
+    "calibration",
+    "evidence_required",
+    "structural_reentry",
+    "parametric_revision",
+    "material_revision",
+)
+
+
+def _quality_submission_report(
+    root: Path, submission_artifact: FidelityArtifact
+) -> IntegratedQualityReportV02:
+    """Load the exact IQ report named by one immutable quality submission."""
+
+    from .supervisor_service import QualitySubmissionV2
+
+    submission = QualitySubmissionV2.model_validate_json(
+        read_artifact(root, submission_artifact)
+    )
+    report_artifact = FidelityArtifact(
+        path=submission.integrated_quality_report.path,
+        sha256=submission.integrated_quality_report.sha256,
+    )
+    return IntegratedQualityReportV02.model_validate_json(
+        read_artifact(root, report_artifact)
+    )
+
+
+def _iq_reentry_route(decision: ReentryDecisionV02) -> str:
+    """Map one IQ stage recommendation onto the bounded fidelity-loop route vocabulary."""
+
+    if decision.destination == "v0.4_structural_authoring":
+        return "calibration" if decision.category == "camera" else "structural_reentry"
+    return {
+        "v0.6_parametric_convergence": "parametric_revision",
+        "v0.7_production_repair": "technical_recovery",
+        "manual_evidence_review": "evidence_required",
+        "restricted_scope_required": "review_required",
+    }[decision.destination]
+
+
+def _combined_attempt_routing(
+    evaluation: FidelityEvaluationV01,
+    report: IntegratedQualityReportV02,
+) -> tuple[str, list[str]]:
+    """Select the strictest visual-or-IQ route and bind every unresolved evidence ID."""
+
+    visual_ids = [item.feature_id for item in evaluation.findings]
+    iq_ids = (
+        [f"iq:{item.finding_id}" for item in report.findings]
+        if not report.quality_accepted
+        else []
+    )
+    routes = [] if evaluation.next_action == "quality_ready" else [evaluation.next_action]
+    if not report.quality_accepted:
+        routes.extend(_iq_reentry_route(item) for item in report.reentry)
+        if not report.findings:
+            iq_ids = ["iq:unclassified_nonpass"]
+            routes.append("review_required")
+    selected = next((route for route in _ROUTE_PRIORITY if route in routes), "quality_ready")
+    unresolved = list(dict.fromkeys([*visual_ids, *iq_ids]))
+    return selected, unresolved
+
+
+def _uses_integrated_attempt_routing(attempt: QualityAttemptV01) -> bool:
+    """Distinguish new combined attempts while preserving exact historical V0.1 bytes."""
+
+    return any(item.startswith("iq:") for item in attempt.unresolved_features)
 
 
 def _snapshot_source(root: Path, source: Path, destination: Path) -> FidelityArtifact:
@@ -229,14 +301,26 @@ def _validate_attempt_artifacts(root: Path, attempt: QualityAttemptV01) -> None:
         read_artifact(root, attempt.fidelity_evaluation)
     )
     review = VisualFindingSetV01.model_validate_json(read_artifact(root, attempt.visual_review))
-    if (
+    identity_changed = (
         evaluation.visual_review != attempt.visual_review
         or evaluation.hypothesis != review.hypothesis
         or review.evidence.scene_spec != attempt.scene_spec
-        or attempt.unresolved_features != [item.feature_id for item in evaluation.findings]
-        or attempt.next_action != evaluation.next_action
-    ):
+    )
+    visual_only = (
+        attempt.unresolved_features == [item.feature_id for item in evaluation.findings]
+        and attempt.next_action == evaluation.next_action
+    )
+    if identity_changed:
         raise ValueError("quality attempt differs from its exact evaluated findings or source")
+    if visual_only:
+        # Historical V0.1 attempts intentionally retain their original visual-only route.
+        return
+    if not _uses_integrated_attempt_routing(attempt):
+        raise ValueError("quality attempt differs from its exact evaluated findings or source")
+    report = _quality_submission_report(root, attempt.quality_submission)
+    route, unresolved = _combined_attempt_routing(evaluation, report)
+    if attempt.next_action != route or attempt.unresolved_features != unresolved:
+        raise ValueError("quality attempt differs from its exact visual and IQ findings")
 
 
 def _validate_evidence_supplement(
@@ -362,6 +446,25 @@ def fidelity_authoring_inputs(
         attempt = QualityAttemptV01.model_validate_json(read_artifact(root, reentry.attempt))
         review = VisualFindingSetV01.model_validate_json(read_artifact(root, attempt.visual_review))
         required += [marker, reentry.attempt, attempt.visual_review, attempt.fidelity_evaluation]
+        if _uses_integrated_attempt_routing(attempt):
+            submission = attempt.quality_submission
+            report = _quality_submission_report(root, submission)
+            from .supervisor_service import QualitySubmissionV2
+
+            quality_submission = QualitySubmissionV2.model_validate_json(
+                read_artifact(root, submission)
+            )
+            required.extend(
+                [
+                    submission,
+                    FidelityArtifact(
+                        path=quality_submission.integrated_quality_report.path,
+                        sha256=quality_submission.integrated_quality_report.sha256,
+                    ),
+                ]
+            )
+            if report.quality_accepted:
+                raise ValueError("combined reentry context cannot name an accepted IQ report")
         required += list(review.evidence.passes.values())
     result = list(inputs)
     for index, artifact in enumerate(required):
@@ -474,6 +577,7 @@ def submit_quality_attempt(
             review_artifact=review_artifact,
             legacy_direct_score=qa.direct_metrics.overall_direct_score,
         )
+        next_action, unresolved = _combined_attempt_routing(evaluation, validated.report)
         base = _fidelity_root(root, session_id)
         evaluation_artifact = publish(
             root, base / "evaluations" / f"{round_index:04d}.json", evaluation
@@ -503,8 +607,8 @@ def submit_quality_attempt(
             visual_review=review_artifact,
             fidelity_evaluation=evaluation_artifact,
             strategy=strategy,
-            unresolved_features=[item.feature_id for item in evaluation.findings],
-            next_action=evaluation.next_action,
+            unresolved_features=unresolved,
+            next_action=next_action,
             previous_attempt=previous[-1][1] if previous else None,
             paired_comparison=comparison,
         )
@@ -557,11 +661,19 @@ def supplement_quality_evidence(
             review_artifact=review_artifact,
             legacy_direct_score=qa.direct_metrics.overall_direct_score,
         )
+        if _uses_integrated_attempt_routing(original):
+            next_action, unresolved = _combined_attempt_routing(
+                evaluation,
+                _quality_submission_report(root, original.quality_submission),
+            )
+        else:
+            next_action = evaluation.next_action
+            unresolved = [item.feature_id for item in evaluation.findings]
         proposed = original.model_copy(
             update={
                 "visual_review": review_artifact,
-                "unresolved_features": [item.feature_id for item in evaluation.findings],
-                "next_action": evaluation.next_action,
+                "unresolved_features": unresolved,
+                "next_action": next_action,
                 "supplements_attempt": original_artifact,
             }
         )
@@ -761,11 +873,12 @@ def quality_revision_boundary(
     )
     if expected != evaluation:
         raise ValueError("fidelity evaluation differs from recomputed observation coverage")
+    routed_evaluation = evaluation.model_copy(update={"next_action": attempt.next_action})
     # A crash-surviving next reservation is adopted by begin_reentry, not charged twice.
     completed = entries[:current_round]
     last = completed[-1][0] if completed else None
     route, reason = select_revision_route(
-        evaluation,
+        routed_evaluation,
         [item[0] for item in attempts],
         loop=loop,
         structural_used=last.structural_used if last else 0,
@@ -922,7 +1035,28 @@ def begin_quality_reentry(
                 for item in evaluation.findings
                 if item.route in {"parametric_revision", "material_revision"}
             ]
-        targets = sorted({key for finding in selected for key in finding.target_ids})
+        feature_ids = [item.feature_id for item in selected]
+        targets = {key for finding in selected for key in finding.target_ids}
+        if _uses_integrated_attempt_routing(attempt):
+            report = _quality_submission_report(root, attempt.quality_submission)
+            findings_by_id = {item.finding_id: item for item in report.findings}
+            for decision in report.reentry:
+                if _iq_reentry_route(decision) != route:
+                    continue
+                finding = findings_by_id[decision.finding_id]
+                feature_ids.append(f"iq:{finding.finding_id}")
+                targets.update(finding.target_ids)
+        if not targets:
+            targets.update(
+                target
+                for requirement in hypothesis.requirements
+                if requirement.required and requirement.applicability == "applicable"
+                for target in requirement.target_ids
+            )
+        feature_ids = list(dict.fromkeys(feature_ids))
+        target_ids = sorted(targets)
+        if not feature_ids or not target_ids:
+            raise ValueError("correction route has no exact finding or affected target")
         base = _fidelity_root(root, session_id)
         snapshot = base / "sources" / f"{attempt.round_index + 1:04d}"
         sources = (
@@ -944,8 +1078,8 @@ def begin_quality_reentry(
             source_scene=planned_sources[0],
             source_modeling_plan=planned_sources[1],
             source_blend=planned_sources[2],
-            feature_ids=[item.feature_id for item in selected],
-            target_ids=targets,
+            feature_ids=feature_ids,
+            target_ids=target_ids,
             route=route,
             strategy=strategy,
             change_strategy=strategy_changed,

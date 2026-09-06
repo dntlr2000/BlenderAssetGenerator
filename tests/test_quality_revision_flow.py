@@ -335,6 +335,28 @@ def test_attempt_cannot_hide_unresolved_features_from_plateau_detection(tmp_path
         )
 
 
+def test_iq_structural_failure_precedes_a_visual_material_revision():
+    """Keep an authoritative IQ contour defect visible when visual review requests material work."""
+
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    report = SimpleNamespace(
+        quality_accepted=False,
+        findings=[SimpleNamespace(finding_id="finding.reference.contour_v02")],
+        reentry=[
+            SimpleNamespace(
+                destination="v0.4_structural_authoring",
+                category="contour",
+            )
+        ],
+    )
+    route, unresolved = service._combined_attempt_routing(evaluation, report)
+    assert route == "structural_reentry"
+    assert unresolved == ["plastic-wear", "iq:finding.reference.contour_v02"]
+
+
 def test_completed_reserved_qa_is_adopted_without_new_render_or_charge(tmp_path, monkeypatch):
     """Adopt published QA without rerendering the candidate or charging it twice."""
 

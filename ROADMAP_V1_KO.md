@@ -1210,7 +1210,7 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: A/B/C/D 완료·E clean commit/baseline canary 대기]
+8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: A/B/C/D 완료·IQ route 보강 검증 완료·E 새 clean commit/baseline 대기]
    - A: 기존 실패 evidence를 변경하지 않고 높은 contour/bbox 점수와 잘못된 부피의 공존을 재현;
      정상 volumetric/shell/sheet/cloth/균일 재질 positive control과 missing evidence/명시적 N/A를 구분
    - 관찰·불확실성/3D 가설, 구조 우선 저작, source-bound nonhuman finding, 실제 bounded reentry,
@@ -1282,6 +1282,12 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      pytest, actual Blender AQ/V0.9 gate와 16-anchor audit로 통합 확인했다. 새 companion 없는 과거 AQ 동작은
      유지하고, actual Blender vertical에서 발견한 긴 material promotion 경로 결함은 native long-path I/O로
      수정한 뒤 gate 전체를 재실행해 통과함 [완료]
+   - E 준비 중 `07efa1a` Plastic structure-07은 실제 shell/rim/notch와 direct `.770792→.924653` 개선을
+     만들었지만 wear finding이 남았고, IQ contour/visibility hard finding은 V0.4 structural reentry를 요구했다.
+     visual-only attempt가 `material_revision`을 선택한 공통 결함을 발견해 D를 재개방했다. 신규 attempt는 exact
+     IQ finding을 `iq:` ID로 결속하고 visual/IQ 중 더 엄격한 route를 고르며, 과거 attempt의 bytes/의미는 유지한다.
+     full host **2245 passed/73 skipped**, AQ focused **1147 passed/32 skipped**, actual Blender **56 passed/1 skipped**
+     게이트로 수정 경로를 재검증했다. 해당 Plastic 실행은 source 변경 전 개발 증거이므로 새 E campaign 1/5로 세지 않음 [완료]
    - 실제 기술·시각 개선·인간 disposition을 별도 집계; 검증/수정/needs_revision 횟수를 품질 KPI로 세지 않음
    - 같은 결함·전략의 정체는 경로에 맞는 전략 변경 또는 bounded review로 종료; material 정체를
      geometry/장식 증량으로 해결하지 않으며 재개/새 child로 예산을 초기화하지 않음

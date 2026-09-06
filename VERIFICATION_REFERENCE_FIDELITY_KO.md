@@ -1,16 +1,19 @@
 # Reference Fidelity 생성·평가·수정 루프 — 구현/실증 기록
 
-기록일: 2026-09-05 KST. 시작 source commit:
+기록일: 2026-09-06 KST. 시작 source commit:
 `5e5b1726523c461248d82e9484b3e4c8dedb9393`.
 
 ## 판정
 
 계획 A/P0의 공통 계약과 host 수정 경로, B 목재 실증, C의 Plastic/Rust/Crystal/Laser 전이 실증 및
-D 최신 통합 호환성 검증을 완료했다. **전체 계획 완료가 아니다.** 다섯 reference 모두 고정된 관찰 feature에서 실제 개선을
+D 최신 통합 호환성 검증을 완료했다. 이후 첫 E 준비 실행에서 visual finding과 IQ reentry의 경로 불일치를
+발견해 D를 다시 열었고, 신규 attempt가 둘 중 더 엄격한 경로를 보존하도록 수정·재검증했다. **전체 계획 완료가 아니다.**
+다섯 reference 모두 고정된 관찰 feature에서 실제 개선을
 source-bound 비인간 평가로 입증했지만 인간 수락은 0/5다. 실제 새 AQ multi-round host/Blender vertical은
 fixture 범위에서 통과했다. B의 격리 external-intake normalization, exact 승인된 V0.7 derived optimization,
 512px CPU portable PBR 변환과 최소 immutable static-payload GLB/fresh clean import도 완료했다. 최신 D에서
-전체 host 회귀, 실제 Blender AQ gate, V0.9 package/handoff 및 과거 anchor 불변을 다시 통과했다. E clean
+전체 host 회귀, 실제 Blender AQ gate, V0.9 package/handoff 및 과거 anchor 불변을 다시 통과했다. 수정 전
+`07efa1a` Plastic 실행은 개발 증거로 보존하며 새 source의 campaign 실적으로 소급 사용하지 않는다. E clean
 commit/baseline 기반 AQ canary+5자산 캠페인과 F delivery/Activation 재평가는 남아
 있다. GLB clean import의 별도 beauty는 생성하지 않았으므로 package 외관을 인간이 수락했거나 destination
 shader parity가 입증됐다는 뜻은 아니다.
@@ -25,7 +28,8 @@ shader parity가 입증됐다는 뜻은 아니다.
 | 새 격리 Rust | fresh 구조/재질 preview와 historical paired preview, 누락 dependency로 인한 기술 실패 1회 및 동일 source 교정 retry 1회 | paired baseline의 4개 defect를 모두 해소해 `improved`; direct score는 `.969142→.612656` | not_recorded |
 | 새 격리 Crystal | fresh 구조 preview 2회와 historical paired preview | 초안의 floating-frame defect를 실제 V0.4 재진입으로 해소, paired baseline의 5개 defect 해소; direct `.919345→.447594` | not_recorded |
 | 새 격리 Laser | fresh 구조 preview 2회와 historical paired preview | floating sight/돌출 module을 재진입으로 수정, paired baseline의 5개 defect 해소; direct `.987376→.526329` | not_recorded |
-| 새 AQ 수정 루프 | schema/host/비용/재개/legacy 회귀와 실제 Blender multi-round vertical | 고정 fixture의 `defect→structural reentry→satisfied` 배선만 입증; 실제 자산 품질 판정 아님 | 없음 |
+| `07efa1a` Plastic 구조 실행 | 실제 Blender build/7-pass QA/IQ/비terminal attempt 완료; base state는 `quality/running`, terminal·freeze 없음 | structure-07은 shell/rim/notch를 충족했지만 wear 부족, IQ contour/visibility hard finding이 남음; source 변경 전 개발 실행 | not_recorded |
+| 새 AQ 수정 루프 | schema/host/비용/재개/legacy 회귀와 실제 Blender multi-round vertical; 신규 attempt는 visual/IQ route를 함께 결속 | 고정 fixture의 route 배선만 입증; 실제 자산 품질 판정 아님 | 없음 |
 | raw GLB diagnostic | export 및 clean process import/inspection 실행 | 부피 유지 관찰, procedural 재질 손실 | package acceptance 아님 |
 
 ## 구현
@@ -34,6 +38,8 @@ shader parity가 입증됐다는 뜻은 아니다.
   nonhuman finding, defect별 route, 고정 조건 비교, 제한된 개발 preview.
 - `autonomy_v2/quality_revision_*`: 초기 opt-in, 비terminal attempt, source-bound reentry 계획,
   root/companion 교차 예산, 회차별 receipt 선택, crash/resume 원장, 누락 관찰 보충.
+- 신규 quality attempt는 exact IQ report의 finding/reentry도 `iq:` ID로 결속하고 visual route와 IQ route 중
+  더 엄격한 경로를 host가 선택한다. 과거 visual-only attempt는 기존 bytes와 당시 경로 의미를 유지한다.
 - geometry promotion의 initial 집계를 재사용하지 않는 structural/parametric wrapper와 material-only
   geometry receipt carry-forward. 기존 atomic promotion/rollback과 exact host-issued policy를 재사용한다.
 - supervisor/One-Prompt/skill adapter의 새 companion dispatch. legacy nonpass terminal은 유지한다.
@@ -375,6 +381,11 @@ Plastic abrasion 위치와 UV는 단일-view 개발 근사다. 이 한계를 숨
 | long-path promotion correction | `copy2`와 rollback staging을 기존 `native_io_path` 경계로 통일. focused `.b/pytest-mplp-0905a` **16 passed/1 skipped**, 실패했던 exact Blender vertical `.b/pytest-fidelity-vertical-0905b` **1 passed, 37.26 s** |
 | final AQ gate `.b/aqg-0905e` | **최종 exit 0**. focused **1141 passed/32 skipped/8 warnings, 183.17 s**; actual Blender **56 passed/1 skipped/6 warnings, 932.58 s**; Ruff/doctor/Blender compat/benchmark/diff 통과 |
 | final AQ benchmark 0.1/0.2 `.b/aqg-0905e` | 0.1 report SHA `0946535b3e148ddc159248ef0bc14aac2c3388fce33715dcdfe9056efa0adb39`; 0.2 report SHA `57959f5d5e2fbe7155136b2fb71746c7006f6c02ef7dafae5a1d7da26f0d9d71`; 실제 다섯 자산의 인간 판정이 아님 |
+| IQ/visual route focused `.t/aqg-iq-route-focused` | **최종 exit 0**. focused **1147 passed/32 skipped/8 warnings, 208.87 s**; Ruff/doctor/Activation contract/diff 통과. profile은 `disabled_experimental`, campaign 생성과 Activation은 없음 |
+| IQ/visual route actual vertical `.t/qrv3` | **1 passed, 39.89 s**. informative observed fixture에서 IQ structural finding이 visual 만족 뒤에도 attempt에 남고, 남은 root/material 예산이 없으면 premature legacy terminal 대신 bounded `review_required`를 반환 |
+| IQ/visual route full `.t/ifrfull` | **2245 passed/73 skipped/8 warnings, 406.72 s**; Standard/AQ/V0.7~V0.9 host 회귀 포함 |
+| IQ/visual route AQ gate `.t/aqg-iq-route-blender` | **최종 exit 0**. focused **1147 passed/32 skipped/8 warnings, 206.58 s**; actual Blender **56 passed/1 skipped/6 warnings, 963.52 s**; Ruff/doctor/Blender 5.0.1 compat/benchmark/diff 통과 |
+| IQ/visual route AQ benchmark 0.1/0.2 `.t/aqg-iq-route-blender` | 0.1 report SHA `0946535b3e148ddc159248ef0bc14aac2c3388fce33715dcdfe9056efa0adb39`; 0.2 report SHA `e9a24affd24f53d5ded9da96bed165e55b8381127819d066c7425ff37de20b8c`; synthetic fixture이며 실제 5자산 인간 판정이 아님 |
 | final V0.9 isolated gate `reports/v09_smoke/20260904T172452884Z-16928` | **최종 exit 0**. full **2238 passed/73 skipped/8 warnings, 329.86 s**, actual external-intake **1 passed**, Blender 5.0.1 package/clean import/handoff/audit/stability PDF 통과. 중복 V0.8 gate는 생략했지만 V0.8 tests는 full suite에 포함 |
 | final historical preservation `.t/reference-fidelity-history-audit-final.json` | **16/16 matched**, report SHA `691ff006e6a5bdfb9edda52cf4dd04337d05a6785be231c76c17d65c2210aaf1`; history/human disposition/Activation authority 변경 없음 |
 | Activation preflight `reports/activation_readiness/validation_runs/ad4e5e8167469161-20260904t174048z` | 실제 source commit `ad4e5e816746916130e834d64a38a6b94afe6d7c`에서 full **2238 passed/73 skipped**, 필수 host/V0.7~V0.9/지침/무결성 검사는 통과했으나 actual AQ Blender가 **54 passed/2 failed/1 skipped**로 실패. 실패는 262자 converted Blend 존재 확인과 더 깊은 identity-split shadow 생성의 Windows 장경로 I/O였으며 manifest/baseline/readiness는 발행하지 않음 |
@@ -399,6 +410,28 @@ IoU `0.800760`이다. source/dependency/build binding은 그대로였고 canonic
 결함을 satisfied로 놓친 데서 생긴 finding-set 차이이며, 이번 재질 변경이 그 형상을 새로 악화시켰다는
 주장으로 사용하지 않는다. 인간 disposition은 기록하지 않았다.
 
+### `07efa1a` Plastic 구조 실행에서 발견한 IQ route 결함
+
+승인 scope `6a2ff14195fec6ec3d94d59f36255c3f08183c762b800fa6e29af0b6596ba0c4`로
+`aq_ref_fidelity_07efa1a_01_plastic_shard_retry02`의 structure-07 preview를 실제 Blender 5.0.1에서 실행했다.
+beauty SHA는 `116a68e95501965a483210cd6f55d8497821b13e758f085cf16efbf44db7f045`, review SHA는
+`336293192405212157c1b831003f42774530d906accc3a7522342e5db96fd676`, attempt SHA는
+`a053eb4208ee93cc0803525cd6d55c04470e6ef9ef5ffd60862c67c488e9e6b3`다. direct score는
+`.770792→.924653`, silhouette IoU는 `.694864→.908298`로 올랐고 shell/ribs/right notch 관찰은 충족했지만
+plastic wear finding은 남았다. 이는 인간 수락이 아니다.
+
+동일 회차 IQ SHA `f7e59719a793fcc3ff20b0512dd9bcc0f0d1f46f0164890c0193d2f9dbc8b118`은
+`blocked`이며 contour boundary F `.4140 < .8`, fixed-camera interior-edge retention `.3304 < .35`를 근거로
+V0.4 structural reentry를 요구했다. 당시 attempt는 visual 평가만 소비해 `material_revision`을 기록했다.
+기존 attempt와 state `717a5e275a9aa88b6f665fd651c08c6b7aca0c51bc117aab4c18c3de77a4f35a`는 그대로 보존하며
+`quality/running/run_integrated_quality`, terminal/freeze 없음이다.
+
+수정 후 신규 attempt는 visual finding과 IQ finding/reentry를 함께 읽고 `iq:` prefix로 exact ID를 보존한 뒤
+더 엄격한 route를 고른다. historical visual-only attempt를 소급 해석하지 않는다. 실제 Blender vertical의
+초기 장경로 publication race와 균일 reference 때문에 나온 `evidence_required` 진단 실행은 실패/진단 증거로
+보존하고 통과로 세지 않았으며, informative reference를 사용한 `.t/qrv3`와 최종 AQ gate만 현재 통과 근거다.
+이 source 수정 때문에 위 Plastic 실행은 새 E baseline의 canary 1/5가 아니고 개발 중 시각/결함 발견 증거다.
+
 조건부 skipped는 실행 통과가 아니다. mocked renderer/promotion fixture는 실제 visual/AQ campaign 증거가 아니다.
 현재 플랫폼 외 지원·runtime parity를 주장하지 않는다. 최종 검증 결과는 아래 후속 항목에 추가한다.
 
@@ -418,8 +451,9 @@ package acceptance, destination write, baseline 갱신, profile Activation은 �
 
 ## 다음 진입 조건
 
-현재 A/B/C 구현·실증과 D 통합 호환성은 완료됐다. D는 최신 full pytest, schema/repository parity,
-doctor, Blender 5.0.1 compatibility, actual AQ/V0.9 gate와 과거 16개 anchor 불변으로 닫았다. 다음 순서는
+현재 A/B/C 구현·실증과 D 통합 호환성은 완료됐다. Plastic 실행에서 발견한 IQ/visual route 결함을 수정하고
+최신 full pytest와 actual AQ Blender gate로 D를 다시 닫았다. 기존 V0.9 package 경로와 과거 16개 anchor의
+마지막 검증 의미는 유지되며, 새 clean baseline 검증에서 필수 gate를 다시 결속한다. 다음 순서는
 아래와 같다.
 
 1. **E clean baseline 캠페인:** D가 통과한 변경을 clean commit으로 고정하고 새 Activation source manifest,

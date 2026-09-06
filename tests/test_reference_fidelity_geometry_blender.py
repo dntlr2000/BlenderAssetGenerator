@@ -40,6 +40,19 @@ def _bound_fidelity_geometry_fixture(
 
     old_modeling = geometry_smoke._modeling_plan
     old_advance = geometry_smoke._advance_reference
+    old_image_new = geometry_smoke.Image.new
+
+    def informative_reference(mode, size, color=0):
+        """Give the vertical fixture measurable image detail instead of missing evidence."""
+
+        image = old_image_new(mode, size, color)
+        if mode == "RGB" and size == (32, 32):
+            pixels = image.load()
+            for y in range(size[1]):
+                for x in range(size[0]):
+                    offset = 52 if (x // 4 + y // 4) % 2 else 0
+                    pixels[x, y] = (48 + offset, 96 + offset, 144 - offset // 2)
+        return image
 
     def spatial_modeling(job_id, note):
         """Declare one authored inferred spatial hull using the existing ModelingPlan contract."""
@@ -119,6 +132,7 @@ def _bound_fidelity_geometry_fixture(
 
     monkeypatch.setattr(geometry_smoke, "_modeling_plan", spatial_modeling)
     monkeypatch.setattr(geometry_smoke, "_advance_reference", bind_then_advance)
+    monkeypatch.setattr(geometry_smoke.Image, "new", informative_reference)
     # Reuse the full legacy smoke's real controller/policy/build/idempotent promotion assertions.
     geometry_smoke.test_geometry_controller_candidate_builds_and_promotes_exactly(
         tmp_path, monkeypatch

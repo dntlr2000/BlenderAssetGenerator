@@ -50,7 +50,6 @@ from codex_blender_modeler.autonomy_v2.quality_revision_service import (
 )
 from codex_blender_modeler.autonomy_v2.supervisor_service import (
     QualitySubmissionV2,
-    _advance_quality_action,
     _controller_validation_boundary,
 )
 from codex_blender_modeler.blender_artifacts import sha256_file, write_json_atomic
@@ -739,20 +738,23 @@ def test_actual_blender_revision_vertical_keeps_round_receipts_and_stops_safely(
     )
     _run_structural_controller_round(root, session_id)
     _run_material_round(root, session_id)
-    second_submission, second_attempt_ref = _submit_actual_quality_round(
+    _second_submission, second_attempt_ref = _submit_actual_quality_round(
         root,
         session_id,
         run_id="fidelity-vertical-01",
         outcome="satisfied",
     )
-    root, session, plan, budget, state, _state_artifact = _session_bundle(
+    root, session, plan, _budget, state, _state_artifact = _session_bundle(
         root.name, session_id
     )
     second_boundary = quality_revision_boundary(root, plan, state)
     assert second_boundary is not None
-    assert second_boundary["next_action"] == "quality_ready"
+    assert second_boundary["next_action"] == "review_required"
+    assert "budget" in second_boundary["reason"].lower()
     assert first_attempt_ref != second_attempt_ref
     second_attempt = json.loads(read_artifact(root, second_attempt_ref))
+    assert second_attempt["next_action"] == "structural_reentry"
+    assert any(item.startswith("iq:") for item in second_attempt["unresolved_features"])
     comparison_ref = FidelityArtifact.model_validate(second_attempt["paired_comparison"])
     comparison = FidelityComparisonV01.model_validate_json(read_artifact(root, comparison_ref))
     assert comparison.outcome == "improved"
@@ -761,25 +763,10 @@ def test_actual_blender_revision_vertical_keeps_round_receipts_and_stops_safely(
     )
     assert len(current_receipts) > len(first_receipts)
     assert current_receipts[-2:] != first_receipts[-2:]
-    authorization = RootAuthorizationV2.model_validate_json(
-        (root / plan.root_authorization.path).read_bytes()
-    )
-    terminal = _advance_quality_action(
-        root=root,
-        session_root=session,
-        plan=plan,
-        budget=budget,
-        state=state,
-        authorization=authorization,
-        submission=second_submission,
-    )
-    assert terminal["outcome"] == "blocked"
-    assert terminal["source_freeze"] is None
-    assert terminal["review_bundle"] is None
-    final_state = terminal["state"]
-    assert final_state["status"] == "blocked"
-    assert final_state["next_action"] == "none"
-    assert final_state["source_freeze"] is None
+    assert state.phase == "quality"
+    assert state.status == "running"
+    assert state.next_action == "run_integrated_quality"
+    assert state.quality_terminal is None
     decisions = [
         json.loads(path.read_bytes())
         for path in sorted(

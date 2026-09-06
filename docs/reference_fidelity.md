@@ -41,11 +41,13 @@ Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태�
    similarity나 인간 판정을 대신하지 않는다. legacy `procedural_wood_v1` 바이트는 고정하고, additive
    `procedural_wood_v2`가 명시적인 2D fibre axis와 비단일주기 deterministic channel을 제공한다.
 5. `QualityAttemptV01`은 현재 source state, geometry/material receipt tuple, 동일 V0.6를 사용하는 IQ
-   submission과 시각 평가를 비terminal로 기록한다. 후속 회차에는 exact paired comparison이 필요하다.
-6. host가 결함 종류와 잔여 예산에서 route를 선택한다. 수정 계획·source snapshot·reservation을 먼저
-   게시하고 원래 controller/build/closure/atomic promotion/rollback 경로를 재사용한다.
-7. 관찰 조건이 충족되면 `quality_ready`로 기존 IQ/source-freeze/delivery 경계에 돌아간다. 이 상태가
-   IQ pass, 인간 accepted 또는 production package를 의미하지는 않는다. 최종 IQ submission 교체도 거부한다.
+   submission과 시각 평가를 비terminal로 기록한다. 신규 attempt는 IQ finding ID도 별도 prefix로 결속하며,
+   이미 기록된 visual-only attempt의 경로는 소급 변경하지 않는다. 후속 회차에는 exact paired comparison이 필요하다.
+6. host가 시각·IQ 결함 종류와 잔여 예산에서 더 엄격한 route를 선택한다. 수정 계획·source snapshot·reservation을
+   먼저 게시하고 원래 controller/build/closure/atomic promotion/rollback 경로를 재사용한다. IQ가 contour나
+   semantic hard finding을 보존하면 재질 finding만 해소되어도 구조 재진입을 건너뛰지 않는다.
+7. 관찰 조건과 현재 exact IQ가 모두 충족되면 `quality_ready`로 기존 source-freeze/delivery 경계에 돌아간다.
+   이 상태가 인간 accepted 또는 production package를 의미하지는 않는다. 최종 IQ submission 교체도 거부한다.
 8. 정체·예산 소진은 typed fidelity review bundle/terminal로 보존한다. 기존 IQ 결과를 nonpass로
    다시 쓰거나 인간 `needs_revision`을 대신 생성하지 않는다.
 
@@ -154,7 +156,7 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 - camera 기본 가설은 측정이라고 표시하지 않는다. 자동 calibration/re-render-both 실행 경로는 아직 없다.
 - 추가 시점 artifact는 consistency-only로 읽는다. required IQ landmark/multiview를 flag만 켜서 통과시키지 않는다.
 - 실제 개발 목재 preview는 AQ root/policy loop 실행 증거가 아니다. 별도 고정 fixture에서 실제 Blender
-  multi-round geometry/material/quality/structural-policy-reentry/terminal vertical은 통과했지만, fixture의
+  multi-round geometry/material/quality/structural-policy-reentry vertical은 통과했지만, fixture의
   `defect/satisfied` 입력은 배선 검증용이다. 대표 목재는 별도 exact attempt09에서 고정 관찰 4/4와
   attempt08 대비 `improved`를 기록했으며, 이는 비인간 시각 평가이지 AQ campaign 또는 인간 수락이 아니다.
 - `procedural_wood_v2`와 방향성 preflight의 unit 증거는 생성 패턴과 실행 전 차단 능력만 보여 준다.
