@@ -1146,10 +1146,14 @@ def _validate_policy_action_result_binding(
         return
     if receipt.action_result is None:
         raise ValueError("applied policy decision requires an action result")
-    if receipt.gate_kind in {
+    geometry_result = receipt.gate_kind in {
         "geometry_candidate_promotion",
         "structural_candidate_promotion",
-    }:
+    } or (
+        receipt.gate_kind == "bounded_parametric_revision"
+        and receipt.exact_target_artifact.kind == "controller-result"
+    )
+    if geometry_result:
         _validate_geometry_policy_result(
             root,
             receipt,
@@ -1993,8 +1997,9 @@ def _validate_current_eligibility(
     envelope_artifact: ApprovalArtifact,
     current_budget: AQV2ApprovalBudget,
     previous_receipt: ApprovalArtifact | None,
+    revalidate_gate_preconditions: bool = True,
 ) -> None:
-    """Recompute a persisted eligibility report immediately before authorization."""
+    """Recompute persisted eligibility, optionally before an applied postcondition exists."""
 
     for artifact in [
         report.exact_target_artifact,
@@ -2045,15 +2050,16 @@ def _validate_current_eligibility(
         report.budget_after,
         report.gate_kind,
     )
-    expected_forbidden.extend(
-        _gate_specific_forbidden_conditions(
-            root,
-            envelope,
-            report.gate_kind,
-            report.exact_target_artifact,
-            report.dependency_artifacts,
+    if revalidate_gate_preconditions:
+        expected_forbidden.extend(
+            _gate_specific_forbidden_conditions(
+                root,
+                envelope,
+                report.gate_kind,
+                report.exact_target_artifact,
+                report.dependency_artifacts,
+            )
         )
-    )
     expected_forbidden = list(dict.fromkeys(expected_forbidden))
     if (
         report.eligibility != ("passed" if not expected_forbidden else "failed")
@@ -2238,13 +2244,14 @@ def _validated_current_policy_authorization(
     policy_authorization_path: str | Path,
     expected_gate_kind: RoutineGateKind | None = None,
     expected_target_path: str | Path | None = None,
+    allow_applied_parametric_geometry_postcondition: bool = False,
 ) -> tuple[
     Path,
     AQV2RoutinePolicyAuthorization,
     ApprovalArtifact,
     AQV2RoutineGateEligibilityReport,
 ]:
-    """Replay one canonical issued authorization and prove that it is still unused."""
+    """Replay unused authority, allowing only the exact applied parametric postcondition."""
 
     boundary = _load_approval_boundary(job_id, session_id)
     (
@@ -2327,6 +2334,11 @@ def _validated_current_policy_authorization(
         envelope_artifact=envelope_artifact,
         current_budget=current_budget,
         previous_receipt=previous_receipt,
+        revalidate_gate_preconditions=not (
+            allow_applied_parametric_geometry_postcondition
+            and authorization.gate_kind == "bounded_parametric_revision"
+            and authorization.exact_target_artifact.kind == "controller-result"
+        ),
     )
     expected_id = _stable_id(
         "policy-auth",
@@ -2469,6 +2481,7 @@ def _publish_policy_decision_receipt_unlocked(
             job_id,
             session_id,
             policy_authorization_path=policy_authorization_path,
+            allow_applied_parametric_geometry_postcondition=(outcome == "applied"),
         )
     )
     if validated_root.resolve() != root.resolve():

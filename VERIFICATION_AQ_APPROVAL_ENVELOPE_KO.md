@@ -132,6 +132,34 @@ AQ focused gate가 exit code 0으로 통과했다.
 전체 opt-in bundle은 verified다. 다만 이는 repository fixture 기반 Blender 검증이며 실제 사용자
 reference에서 One-Prompt geometry→material→IQ→GLB/FBX를 완주한 실행은 아니다.
 
+### 5.1 2026-09-07 bounded parametric 적용 후 조건 회귀
+
+reference-fidelity E canary에서 exact `bounded_parametric_revision` authorization이 atomic geometry
+promotion 직전까지 유효했고 실제 Blender candidate validation receipt도 통과했지만, 적용 뒤 decision
+publication이 mutable controller baseline을 적용 전 조건으로 다시 검사해 정상 canonical 변경을 stale로
+오인했다. host rollback은 원 SceneSpec/ModelingPlan/Blend SHA를 복구했고 failed terminal과
+technical-failed decision을 append-only로 보존했다.
+
+수정 뒤 일반 authorization replay는 같은 변경 상태에서 계속 fail-closed하고, 오직 exact applied
+controller-result decision만 geometry validation receipt, controller target, candidate SceneSpec과 현재
+canonical ModelingPlan/SceneSpec/Blend를 적용 후 조건으로 재검증한다. rejected, rolled-back,
+technical-failed 결과는 원 canonical digest 보존 요구를 유지한다. exact 실패 evidence의 격리 재생은
+single-use non-user applied decision을 발행했으며 원본 terminal은 변경하지 않았다.
+
+- policy/quality focused: `68 passed`
+- 전체 Python 회귀: `2258 passed, 73 skipped, 8 warnings in 330.03s`, exit code 0
+- 전체 회귀 JUnit SHA-256:
+  `bb3a44a4bed7d6a528469347c9eca075b93c86b1cdbed584522257f758a49217`
+- 실제 Blender 5.0.1 candidate/fidelity vertical: `3 passed in 52.88s`, exit code 0
+- Blender 회귀 JUnit SHA-256:
+  `b33315b7e97a25d3c64e7208617aa4e2faa99a074f32cc7cb1ef0a8c7d5d1ba7`
+- Ruff, doctor, Blender compatibility, agent-instruction checker, job-specific literal checker,
+  Activation contract, 16-anchor historical audit: passed
+
+이 검증은 정책 후조건 결함의 수정 증거다. 실패한 campaign의 성공 재분류, 인간 quality disposition,
+package acceptance, destination write 또는 Activation 증거가 아니다. 새 실행은 새 clean commit과 exact
+baseline/scope에 바인딩해야 한다.
+
 ## 6. 대표 KPI와 historical evidence
 
 `benchmarks/aq_approval_kpi/representative_asset_runs.json`은 6개 대표 contract asset과 autonomous

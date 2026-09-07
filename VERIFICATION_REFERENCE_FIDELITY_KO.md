@@ -494,6 +494,69 @@ basetemp에서는 변경과 무관한 WinError 206 두 건이 발생했고, 동�
 `disabled_experimental`, campaign 생성과 Activation은 `false`를 유지했다. 과거 anchor 감사도 16/16 일치,
 SHA-256 `691ff006e6a5bdfb9edda52cf4dd04337d05a6785be231c76c17d65c2210aaf1`이다.
 
+## E 두 번째 clean-baseline canary와 parametric policy postcondition 결함
+
+2026-09-07 KST source commit `e37f230096303adef5b91e96b62dd6ebda0690b8`, source manifest
+logical SHA `16bd6fb7eefdda1e46a5c3a0e540cd92b869843504fb2bea8d0ab899b615c7b1`, baseline logical SHA
+`4e6fae0a1084735a6bfe73c12ea6a02bd3d46df53cf4d6b2a951b0db51e5676c`, readiness logical SHA
+`06aed53be966f337444eae19e074be892200a9a2c5abb97893f905319b99e55c`에서 새 campaign
+`reference-fidelity-e37f230-e06`을 준비했다. exact scope SHA-256
+`f8e8a7f2c419ed825054e56a332c386495642b28c530b081e09889ff60733cc8`의 명시적 승인은 sequence 1
+canary와 모든 canary 조건 통과 뒤 sequence 2~5 실행만 허용했다. 인간 quality disposition, package
+acceptance, destination write와 Activation은 포함하지 않았다.
+
+sequence 1 `aq_ref_fidelity_e37f230_01_plastic_shard`, session
+`aqv2-20260907t130831274609z-bee9cf28`은 initial geometry/material host promotion과 실제 Blender 5.0.1
+일곱-pass를 완료했다. round 0 direct score는 `.945003`, silhouette IoU는 `.949274`, beauty SHA는
+`296bbccc6cbd31ea8ea75042cd6b6fb26e704ce3b396f2a693844937b06ded4a`다. 직접 reference/beauty/normal/
+depth/wireframe 확인에서 broad bowed shell, attached ribs와 right notch 구조는 충족했지만 광범위한 scratch,
+brown scuff, worn perimeter와 국소 roughness가 부족했다. source-bound 비인간 review SHA
+`d9d3ee879e9a57f3734fe75336f99e1dd899a1e05e799cbf05cf698e2202e7ce`, attempt SHA
+`d9234472a49c5dbfb931e3faaa7988ec15410b3e6548e618bc285de71ff1fbde`이며 인간 판정은
+`not_recorded`다.
+
+IQ는 contour boundary F `.7900478233 < .8`와 fixed-camera interior edge retention
+`.3362386701 < .35`로 `blocked`였지만 chamfer `.0050437507 <= .05`였다. causal V0.2는 이를 큰 구조
+재저작이 아닌 `parametric_revision`으로 선택했다. exact reentry plan SHA
+`0ab1c959c785a21f00aba3446bad554a8b2e0cc7d589fd6e814099f33224ef49`와 source-bound local candidate
+SHA `0bf5186168b86651cdbc3726b9cc522a56da337c42cbbc50d730984b67069701`은 세 attached object에 같은
+소규모 X/Z scale·translation만 적용하고 camera, topology, rotation, material ID와 전략을 유지했다.
+
+후보의 실제 Blender compile/build/inspect/validate와 candidate→canonical survival 자체는 통과했고
+geometry validation receipt SHA는
+`a9b1aec925335e55fef8a291cf9e38e38861bc9f7b9cae418146f327757bd9b2`다. 그러나 atomic canonical
+replacement 뒤 `bounded_parametric_revision` PolicyDecisionReceipt 발행이 controller request의 mutable
+canonical baseline을 다시 적용 전 조건으로 검증해 정상 변경을 stale로 오인했다. host는 예외 경계에서
+canonical을 다음 원 SHA로 복구했다.
+
+- SceneSpec `b9c464ffc1191c39334c97bf36c4485cbf8371b02ddee866206d8b3ca1a486bc`
+- ModelingPlan `ae1e62f66c5fbea4bb62f9565291839479bdd003ebf0308737a87c9cb0938660`
+- Blend `f0797864e94728f9d33db4be2220630d70f66919b9e7938440db78826001300d`
+
+technical-failed policy decision SHA
+`7a45440c03a6354d54ecbfaba9ea6b75a44fb27996974ff64a57f7e32ea4791c`와 base state `0011 / failed /
+none`은 append-only로 남았다. canonical corruption은 0이고 sequence 2~5는 실행하지 않았다. 이 terminal,
+scope와 authorization을 재사용하지 않는다.
+
+수정은 적용 전과 적용 후 검증을 분리한다. 일반 authorization replay와 atomic promotion 직전에는 기존 exact
+gate/source/controller 전조건을 모두 다시 검사한다. 오직 controller-result를 대상으로 이미 적용된
+`bounded_parametric_revision` decision publication만 해당 전조건의 재평가를 생략하고, exact geometry
+receipt, controller target, candidate SceneSpec 및 현재 canonical ModelingPlan/SceneSpec/Blend의 일치로
+적용 후 조건을 검증한다. rejected/rolled-back/technical-failed는 계속 적용 전 canonical 보존을 요구한다.
+
+원본 캠페인을 수정하지 않은 격리 복제본에서 위 exact candidate/receipt/authorization과 promoted canonical을
+재생한 결과 applied decision SHA
+`a3a7b6628af2f787cbe66d92cd26f74334ad55891521c976e2dc3cf3dae19221`이 single-use non-user policy로
+정상 발행됐다. 이는 격리 진단 결과이며 원본 failed terminal의 재분류나 campaign 성공이 아니다. tracked
+policy/quality focused 회귀는 **68 passed**다. repository-local 전체 Python 회귀는 **2258 passed, 73
+skipped, 8 warnings in 330.03s**이고 JUnit SHA-256은
+`bb3a44a4bed7d6a528469347c9eca075b93c86b1cdbed584522257f758a49217`이다. 현재 변경 상태에서 실제
+Blender 5.0.1 initial/structural geometry vertical을 다시 실행해 **3 passed in 52.88s**, JUnit SHA-256
+`b33315b7e97a25d3c64e7208617aa4e2faa99a074f32cc7cb1ef0a8c7d5d1ba7`을 확인했다. Ruff, doctor,
+Blender compatibility, agent instruction, job-specific literal, Activation contract와 16-anchor audit도 모두
+통과했다. Activation profile은 `disabled_experimental`, campaign 생성과 Activation은 `false`를 유지한다.
+새 clean commit/baseline/scope는 이 기록 뒤 별도로 고정한다.
+
 ## 과거 증거 보존
 
 [historical anchor fixture](tests/fixtures/reference_fidelity/historical_5e5b172.json)의 16개 reference/beauty/

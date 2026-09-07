@@ -1210,7 +1210,7 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: E의 b617 canary가 안전한 review terminal로 종료·D causal routing/root reserve 보완 후 새 clean commit/baseline 대기]
+8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: e37f230 E canary의 parametric policy postcondition 결함을 rollback 보존 후 수정·회귀 통과, fresh baseline/scope 재시작 준비]
    - A: 기존 실패 evidence를 변경하지 않고 높은 contour/bbox 점수와 잘못된 부피의 공존을 재현;
      정상 volumetric/shell/sheet/cloth/균일 재질 positive control과 missing evidence/명시적 N/A를 구분
    - 관찰·불확실성/3D 가설, 구조 우선 저작, source-bound nonhuman finding, 실제 bounded reentry,
@@ -1309,6 +1309,19 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
      promotion 비용이 없는 이번과 같은 구성은 새 세션에서 실행 전에 차단한다. 이 보완은 source 변경이므로
      b617 canary나 그 scope를 재사용하지 않는다. full host 2257/73 skipped, AQ focused 1156/32 skipped,
      실제 Blender 56/1 skipped 및 16-anchor audit를 통과했으며 clean commit 후 새 baseline/scope로 E를 재시작한다.
+   - clean source `e37f230096303adef5b91e96b62dd6ebda0690b8`와 exact scope
+     `f8e8a7f2c419ed825054e56a332c386495642b28c530b081e09889ff60733cc8`에서 두 번째 E sequence 1
+     Plastic canary를 실행했다. initial geometry/material과 실제 일곱-pass/IQ까지 통과한 뒤 causal V0.2는
+     contour deficit을 `parametric_revision`으로 정확히 선택했다. 첫 local correction은 새 geometry를
+     Blender로 검증했으나, atomic promotion 뒤 PolicyDecisionReceipt가 mutable controller baseline을
+     적용 전 조건으로 다시 검사해 정상 변경을 stale로 오인했다. host는 canonical SceneSpec/ModelingPlan/
+     Blend를 원 SHA로 rollback하고 technical-failed decision과 terminal을 append-only로 보존했으며,
+     sequence 2~5는 열지 않았다.
+   - 이 결함은 authority 확대나 후보 우회가 아니라 policy precondition/postcondition 순서 문제로 수정한다.
+     적용 전 authorization replay는 계속 exact controller/source 조건을 요구하고, 적용 후
+     `bounded_parametric_revision`은 exact geometry receipt·controller target·candidate와 현재 canonical
+     세 파일이 일치할 때만 single-use `applied` decision을 허용한다. 실패 e37f230 terminal과 기존 scope는
+     재개·재사용하지 않으며, full 회귀와 새 clean commit/baseline/scope 뒤 sequence 1부터 다시 시작한다.
    - 실제 기술·시각 개선·인간 disposition을 별도 집계; 검증/수정/needs_revision 횟수를 품질 KPI로 세지 않음
    - 같은 결함·전략의 정체는 경로에 맞는 전략 변경 또는 bounded review로 종료; material 정체를
      geometry/장식 증량으로 해결하지 않으며 재개/새 child로 예산을 초기화하지 않음

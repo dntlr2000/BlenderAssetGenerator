@@ -50,6 +50,11 @@ Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태�
    시각적으로 확인된 구조 결함과 일반 semantic IQ 결함은 계속 structural이다. 시각 finding이 없으면
    visibility 부족을 구조 권한으로 추정하지 않고 evidence-required로 중단한다. 두 버전 모두 수정 계획·
    source snapshot·reservation을 먼저 게시하고 기존 controller/build/closure/atomic promotion/rollback을 재사용한다.
+   `bounded_parametric_revision`의 eligibility는 canonical 변경 전 조건이다. host는 atomic promotion 직전에
+   이를 다시 검사하고, 적용 뒤에는 이미 변경된 mutable alias에 같은 전조건을 재적용하지 않는다. 대신 exact
+   geometry receipt, controller target, candidate SceneSpec과 현재 canonical ModelingPlan/SceneSpec/Blend가 모두
+   일치하는 적용 후 조건으로 single-use decision을 검증한다. rejected/rolled-back/technical-failed 결과는 계속
+   적용 전 canonical SHA 보존을 요구한다.
 7. 관찰 조건과 현재 exact IQ가 모두 충족되면 `quality_ready`로 기존 source-freeze/delivery 경계에 돌아간다.
    이 상태가 인간 accepted 또는 production package를 의미하지는 않는다. 최종 IQ submission 교체도 거부한다.
 8. 정체·예산 소진은 typed fidelity review bundle/terminal로 보존한다. 기존 IQ 결과를 nonpass로
@@ -205,6 +210,9 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 AQ gate 두 shell 버전에 같은 focused 목록을 등록하며, `test_reference_fidelity_aq_blender_vertical.py`는
 실제 Blender opt-in에서 초기 회차와 구조 재진입 회차를 함께 실행한다. 이 fixture 통과는 실제 자산의
 시각 품질이나 인간 수락을 뜻하지 않는다.
+Approval Envelope 회귀는 parametric controller 전조건이 atomic promotion으로 정상 소모된 뒤에는 exact
+geometry receipt/current-canonical 적용 후 조건으로 전환되는지, 일반 authorization replay는 계속 stale로
+차단되는지를 별도로 검사한다.
 `scripts/audit_reference_fidelity_history.py --manifest tests/fixtures/reference_fidelity/historical_5e5b172.json`
 은 지정된 16개 과거 anchor만 읽고 비교하며, 모든 workspace 파일의 보존을 증명하는 전체 snapshot은 아니다.
 신규 baseline/campaign 진입은 [로드맵 8-B](../ROADMAP_V1_KO.md)의 순서와 성공 기준을 따른다.

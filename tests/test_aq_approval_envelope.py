@@ -15,6 +15,7 @@ from codex_blender_modeler.autonomy_v2 import (
     AQV2ApprovalTelemetryReport,
     AQV2RoutinePolicyAuthorization,
     AutonomyApprovalEnvelope,
+    approval_policy_service,
     assert_user_approval_category_allowed,
     authorize_routine_gate,
     autonomy_v2_profile_status,
@@ -358,6 +359,98 @@ def test_applied_decision_lookup_treats_prior_canonical_as_history(
     )
     assert replay["status"] == "applied"
     assert replay["authorization_consumed_once"] is True
+
+
+def test_applied_parametric_geometry_consumes_prevalidated_policy_postcondition(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Accept an exact applied geometry result after its precondition aliases changed."""
+
+    root, base = _base_plan(
+        tmp_path,
+        monkeypatch,
+        job_id="approval_parametric_postcondition",
+    )
+    job_id, session_id = _enable_autonomous_envelope(base)
+    session = root / "production" / "autonomy_v2" / session_id
+    target = session / "parametric-controller-result.json"
+    dependency = session / "parametric-controller-dependency.json"
+    action_result = session / "parametric-geometry-receipt.json"
+    write_json_atomic(target, {"status": "completed", "canonical_unchanged": True})
+    write_json_atomic(dependency, {"status": "exact"})
+    write_json_atomic(action_result, {"status": "passed"})
+    canonical = root / str(base["root_authorization"]["primary_reference"]["path"])  # type: ignore[index]
+
+    monkeypatch.setattr(
+        approval_policy_service,
+        "_gate_specific_forbidden_conditions",
+        lambda *_args, **_kwargs: [],
+    )
+    eligibility = evaluate_routine_gate_eligibility(
+        job_id,
+        session_id,
+        gate_kind="bounded_parametric_revision",
+        exact_target_path=target,
+        exact_target_kind="controller-result",
+        current_canonical_snapshot_path=canonical,
+        current_canonical_snapshot_kind="canonical-reference-snapshot",
+        dependency_paths=[dependency],
+        dependency_kinds=["controller-output"],
+        allow_disabled_experimental=True,
+    )
+    issued = authorize_routine_gate(
+        job_id,
+        session_id,
+        eligibility_report_path=str(eligibility["report_artifact"]["path"]),  # type: ignore[index]
+        allow_disabled_experimental=True,
+    )
+    authorization_path = str(issued["authorization_artifact"]["path"])  # type: ignore[index]
+
+    monkeypatch.setattr(
+        approval_policy_service,
+        "_gate_specific_forbidden_conditions",
+        lambda *_args, **_kwargs: ["PARAMETRIC_PRECONDITION_ALREADY_APPLIED"],
+    )
+    with pytest.raises(PermissionError, match="no longer matches"):
+        validate_routine_policy_authorization(
+            job_id,
+            session_id,
+            policy_authorization_path=authorization_path,
+        )
+
+    observed: list[bool] = []
+
+    def validate_geometry_result(
+        _root: Path,
+        _receipt: object,
+        *,
+        require_current_canonical: bool,
+    ) -> None:
+        """Record that the applied parametric decision used geometry postconditions."""
+
+        observed.append(require_current_canonical)
+
+    monkeypatch.setattr(
+        approval_policy_service,
+        "_validate_geometry_policy_result",
+        validate_geometry_result,
+    )
+    decision = publish_policy_decision_receipt(
+        job_id,
+        session_id,
+        policy_authorization_path=authorization_path,
+        canonical_snapshot_after_path=canonical,
+        canonical_snapshot_after_kind="canonical-reference-snapshot",
+        outcome="applied",
+        action_result_path=action_result,
+        action_result_kind="geometry_candidate_validation_receipt",
+        allow_disabled_experimental=True,
+    )
+    assert decision["status"] == "applied"
+    assert decision["authorization_consumed_once"] is True
+    assert decision["is_user_approval"] is False
+    assert observed == [True]
 
 
 def test_missing_delegation_fails_before_companion_or_one_prompt_job_creation(

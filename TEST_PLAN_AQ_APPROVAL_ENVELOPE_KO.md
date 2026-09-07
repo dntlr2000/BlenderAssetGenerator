@@ -58,6 +58,13 @@ object set/target/scope 유지, allowlist-only diff, constraint non-regression, 
 rollback baseline과 preflight를 모두 통과한 case만 eligible이어야 한다. geometry/UV/reference/target
 drift와 regression은 실패한다.
 
+`bounded_parametric_revision` controller promotion은 eligibility 발행과 atomic replacement 직전에 exact
+mutable baseline을 전조건으로 재검사한다. 적용 뒤 decision publication은 이미 변경된 baseline에 같은
+전조건을 반복하지 않고, exact geometry validation receipt·controller target·candidate SceneSpec과 현재
+canonical ModelingPlan/SceneSpec/Blend 일치를 적용 후 조건으로 검사한다. 일반 authorization replay는
+동일 시점에 계속 stale로 실패해야 하며, rejected/rolled-back/technical-failed는 원 canonical SHA를
+보존해야 한다.
+
 ### 5.2 material identity split
 
 - exact clone, paired SceneSpec/ModelingPlan-only diff, exclusive assignment 통과

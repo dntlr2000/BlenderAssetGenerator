@@ -13,6 +13,10 @@
 - Added a host-only registry for 13 routine gates. Every action is rebound to the current root,
   envelope, policy profile, budget, exact target and canonical snapshot. Policy authorization is never
   serialized or counted as user approval and is consumed at most once.
+- Fixed bounded parametric geometry decision publication so the host rechecks the exact precondition
+  before atomic promotion, then validates the exact geometry receipt and current canonical artifacts as
+  the applied postcondition. A successful canonical change is no longer misclassified as stale policy;
+  rejected, rolled-back and technical-failure decisions still require the original canonical digest.
 - Added separate policy-authority adapters for bounded Material Identity Split, Material Closure
   promotion, IQ acceptance, optimization/package delivery and review terminals. Existing specialized
   identity-split, material-appearance, and V0.7 user-approval paths remain available and retain their
