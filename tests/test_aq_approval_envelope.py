@@ -49,7 +49,11 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
     _validate_geometry_policy_authority,
 )
 from codex_blender_modeler.autonomy_v2.delivery_service import artifact_for_v2
-from codex_blender_modeler.autonomy_v2.models import AutonomyPlanV2, AutonomyStateV2
+from codex_blender_modeler.autonomy_v2.models import (
+    AutonomyBudgetV2,
+    AutonomyPlanV2,
+    AutonomyStateV2,
+)
 from codex_blender_modeler.autonomy_v2.transitions import transition_state
 from codex_blender_modeler.blender_artifacts import (
     native_io_path,
@@ -1394,6 +1398,40 @@ def test_one_prompt_status_resume_and_cancel_preserve_current_task_boundaries(
     assert telemetry.additional_user_decision_count == 0
     assert telemetry.technical_user_approval_request_count == 0
     assert telemetry.canonical_corruption_count == 0
+
+
+def test_one_prompt_plan_propagates_exact_initial_budget_limits(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Carry a pre-run budget choice into the immutable base plan without changing defaults."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    planned = plan_one_prompt_run(
+        "Create the prop with one extra bounded material correction available.",
+        reference_path=_reference(tmp_path / "one-prompt-budget.png"),
+        target_subject="small procedural prop",
+        requested_delivery_profiles=["review_only"],
+        approval_mode="autonomous",
+        explicit_autonomy_delegation_observed=True,
+        job_id="approval_one_prompt_budget",
+        initial_budget_limits={"material_rounds": 3},
+        allow_disabled_experimental=True,
+    )
+
+    session_root = (
+        workspace
+        / "approval_one_prompt_budget"
+        / "production"
+        / "autonomy_v2"
+        / str(planned["session_id"])
+    )
+    budget = AutonomyBudgetV2.model_validate_json(
+        (session_root / "budget.json").read_bytes()
+    )
+    assert budget.material_rounds == 3
+    assert budget.delivery_runs == 0
 
 
 def test_interactive_one_prompt_preserves_legacy_approval_waits(

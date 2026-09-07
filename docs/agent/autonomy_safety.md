@@ -15,6 +15,13 @@ plan profile or that derivation, so arbitrary relocation and in-place retry over
 fail-closed. Approval telemetry reports policy-issued promotion authority separately from canonical
 promotions observed in the AQ state transition budget.
 
+An explicitly scoped new AQ session may select non-default initial budget limits through the
+in-process host planner when every value remains inside the versioned `AutonomyBudgetV2` bounds.
+The complete resolved budget is written before execution and is bound by its exact artifact hash in
+`RootAuthorizationV2`; it cannot amend or reopen an existing session. Derived delivery counts and
+fixed retry limits are not caller-configurable. Campaign adapters must still verify the exact user
+scope that selected a larger initial budget before planning, and CLI/MCP defaults remain unchanged.
+
 Quality pass, review-required, package, and handoff terminals remain distinct. Missing evidence is unscorable, never an invented pass. Preserve best-known evidence on budget, plateau, cycle, rollback, or bounded failure.
 
 New AQ v2 material attempts collect one deterministic dependency closure, perform

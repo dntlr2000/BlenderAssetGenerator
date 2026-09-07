@@ -10,6 +10,7 @@ import pytest
 from PIL import Image
 
 from codex_blender_modeler.autonomy_v2 import (
+    AutonomyBudgetV2,
     AutonomyPlanV2,
     RootAuthorizationV2,
     plan_autonomous_static_prop_v2,
@@ -175,3 +176,61 @@ def test_v2_delivery_scope_is_validated_before_dispatch_mutation(
             allow_disabled_experimental=True,
         )
     assert not (workspace / "aq_v2_invalid_scope").exists()
+
+
+def test_v2_initial_budget_limits_are_validated_before_dispatch_mutation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject unsupported or out-of-range initial limits before creating a job."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    reference = _reference(tmp_path / "budget-reference.png")
+    for job_id, limits, message in (
+        ("aq_v2_budget_derived", {"delivery_runs": 2}, "unsupported"),
+        ("aq_v2_budget_range", {"material_rounds": 4}, "exceeds"),
+    ):
+        with pytest.raises((TypeError, ValueError), match=message):
+            plan_autonomous_static_prop_v2(
+                "Create an object under exact initial limits.",
+                reference_path=reference,
+                target_subject="object",
+                requested_delivery_profiles=["portable_gltf"],
+                job_id=job_id,
+                initial_budget_limits=limits,
+                allow_disabled_experimental=True,
+            )
+        assert not (workspace / job_id).exists()
+
+
+def test_v2_initial_budget_limits_bind_the_exact_root_authorization(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Persist a bounded non-default initial budget and bind it through RootAuthorization."""
+
+    workspace = tmp_path / "workspaces"
+    monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
+    result = plan_autonomous_static_prop_v2(
+        "Create an object with one additionally funded material correction.",
+        reference_path=_reference(tmp_path / "budget-bound-reference.png"),
+        target_subject="object",
+        requested_delivery_profiles=["portable_gltf"],
+        job_id="aq_v2_budget_bound",
+        initial_budget_limits={"material_rounds": 3},
+        allow_disabled_experimental=True,
+    )
+
+    root = workspace / "aq_v2_budget_bound"
+    session_root = root / "production" / "autonomy_v2" / str(result["session_id"])
+    budget_path = session_root / "budget.json"
+    budget = AutonomyBudgetV2.model_validate_json(budget_path.read_bytes())
+    authorization = RootAuthorizationV2.model_validate_json(
+        (session_root / "root_authorization.json").read_bytes()
+    )
+    assert budget.material_rounds == 3
+    assert budget.total_blender_builds == 14
+    assert authorization.budget.sha256 == hashlib.sha256(
+        budget_path.read_bytes()
+    ).hexdigest()

@@ -53,6 +53,70 @@ _PHASE_PROFILE_SPECS: tuple[tuple[str, list[str], list[str]], ...] = (
     ("admin_audit", ["session-evidence", "receipt-chain"], []),
 )
 
+_INITIAL_BUDGET_FIELDS: tuple[str, ...] = (
+    "initial_candidates",
+    "structural_rounds",
+    "candidates_per_structural_round",
+    "parametric_convergence_iterations",
+    "material_rounds",
+    "total_blender_builds",
+    "total_quality_evaluations",
+    "controller_invocations",
+    "delivery_runs",
+    "canonical_promotions",
+    "package_repairs",
+    "global_action_limit",
+    "repeated_identical_failure_limit",
+    "transient_retry_limit",
+)
+_OVERRIDABLE_INITIAL_BUDGET_FIELDS = frozenset(
+    field
+    for field in _INITIAL_BUDGET_FIELDS
+    if field
+    not in {
+        "delivery_runs",
+        "repeated_identical_failure_limit",
+        "transient_retry_limit",
+    }
+)
+
+
+def _resolve_initial_budget_limits(
+    overrides: dict[str, int] | None,
+    *,
+    delivery_runs: int,
+) -> dict[str, int]:
+    """Validate optional pre-run limits and return one complete immutable budget map."""
+
+    supplied = dict(overrides or {})
+    unknown = sorted(set(supplied) - _OVERRIDABLE_INITIAL_BUDGET_FIELDS)
+    if unknown:
+        raise ValueError(
+            "unsupported initial AQ budget limit: " + ", ".join(unknown)
+        )
+    for name, value in supplied.items():
+        if type(value) is not int:
+            raise TypeError(f"initial AQ budget limit must be an integer: {name}")
+        field = AutonomyBudgetV2.model_fields[name]
+        for constraint in field.metadata:
+            minimum = getattr(constraint, "ge", None)
+            maximum = getattr(constraint, "le", None)
+            if minimum is not None and value < minimum:
+                raise ValueError(
+                    f"initial AQ budget limit is below its minimum: {name}"
+                )
+            if maximum is not None and value > maximum:
+                raise ValueError(
+                    f"initial AQ budget limit exceeds its maximum: {name}"
+                )
+    resolved = {
+        name: int(AutonomyBudgetV2.model_fields[name].default)
+        for name in _INITIAL_BUDGET_FIELDS
+    }
+    resolved.update(supplied)
+    resolved["delivery_runs"] = delivery_runs
+    return resolved
+
 
 def _session_id() -> str:
     """Create one sortable, portable AQ v2 session identifier."""
@@ -196,6 +260,7 @@ def plan_autonomous_static_prop_v2(
     job_id: str | None = None,
     controller_execution_mode: str = "desktop_in_session",
     destination_hint: str = "engine_neutral",
+    initial_budget_limits: dict[str, int] | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
     """Create a standard, object-only v2 session without granting later approvals."""
@@ -222,6 +287,12 @@ def plan_autonomous_static_prop_v2(
         "custom_unverified",
     }:
         raise ValueError("unsupported AQ v2 destination hint")
+    resolved_budget_limits = _resolve_initial_budget_limits(
+        initial_budget_limits,
+        delivery_runs=sum(
+            profile != "review_only" for profile in requested_delivery_profiles
+        ),
+    )
     profile_status, profile_activation_evidence = _runtime_profile_binding(
         allow_disabled_experimental=allow_disabled_experimental,
     )
@@ -351,9 +422,7 @@ def plan_autonomous_static_prop_v2(
         producer="codex_blender_modeler.autonomy_v2.planner",
         provenance=[dispatch_plan_artifact, quality_policy_artifact, *phase_profiles],
         created_at=created_at,
-        delivery_runs=sum(
-            profile != "review_only" for profile in requested_delivery_profiles
-        ),
+        **resolved_budget_limits,
     )
     budget_artifact = write_immutable_v2_model(
         root,

@@ -957,6 +957,7 @@ def plan_one_prompt_run(
     job_id: str | None = None,
     controller_execution_mode: str = "desktop_in_session",
     destination_hint: str = "engine_neutral",
+    initial_budget_limits: dict[str, int] | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
     """Create the base AQ session, exact envelope, and one-prompt supervisor plan."""
@@ -978,6 +979,7 @@ def plan_one_prompt_run(
         job_id=job_id,
         controller_execution_mode=controller_execution_mode,
         destination_hint=destination_hint,
+        initial_budget_limits=initial_budget_limits,
         allow_disabled_experimental=True,
     )
     created_job_id = str(base["job_id"])
