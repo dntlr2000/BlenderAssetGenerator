@@ -200,6 +200,7 @@ BlenderAssetGenerator/
   schemas/aq_quality_attempt_v01.schema.json
   schemas/aq_quality_render_reservation_v01.schema.json
   schemas/aq_quality_revision_loop_v01.schema.json
+  schemas/aq_quality_revision_loop_v02.schema.json
   schemas/aq_skill_adapter_plan.schema.json
   schemas/aq_skill_adapter_state.schema.json
   schemas/aq_skill_adapter_terminal.schema.json

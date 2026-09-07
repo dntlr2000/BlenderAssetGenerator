@@ -17,6 +17,8 @@ def reference_fidelity_capability() -> dict[str, object]:
         "canonical_scene_spec": "0.2.0",
         "standard_mode": "advisory_with_existing_approvals",
         "aq_mode": "explicit_new_session_companion",
+        "quality_revision_loop_versions": ["0.1.0", "0.2.0"],
+        "quality_revision_routing": {"0.1.0": "legacy_strictest", "0.2.0": "causal_v2"},
         "correction_routes": ["structural_reentry", "parametric_revision", "material_revision"],
         "hold_routes": ["evidence_required", "calibration", "technical_recovery"],
         "legacy_behavior_changed": False,

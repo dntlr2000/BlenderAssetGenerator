@@ -1,4 +1,4 @@
-# Reference Fidelity 0.1 — disabled-experimental companion
+# Reference Fidelity 0.1/0.2 — disabled-experimental companion
 
 프로젝트는 `0.9.0`, canonical SceneSpec은 `0.2.0`이다. 이 기능은 reference 관찰과 실제 렌더를
 연결하는 별도 계약이다. 기존 V0.6/IQ 점수, 인간 quality disposition, package acceptance 또는
@@ -9,8 +9,9 @@ Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태�
 
 - Standard: 공통 관찰·저작·평가·비교를 advisory로 사용한다. 기존 `manual_guarded`, candidate review,
   exact geometry/material/QA/package 승인 경계가 canonical 변경을 통제한다.
-- AQ: 새 autonomous Envelope 세션에만 `AQQualityRevisionLoopV01`을 초기 geometry 이전에 명시적으로
-  bind한다. 기존 세션, checkpointed/interactive 세션, 이미 종료된 세션은 자동 변환하지 않는다.
+- AQ: 새 autonomous Envelope 세션에만 `AQQualityRevisionLoopV01` 또는 additive
+  `AQQualityRevisionLoopV02`를 초기 geometry 이전에 명시적으로 bind한다. 기존 세션,
+  checkpointed/interactive 세션, 이미 종료된 세션은 자동 변환하지 않는다.
 - optional companion이 없는 AQ는 기존 nonpass → review terminal 경로를 유지한다.
 - Codex 시각 평가는 인간 승인이 아니며 canonical writer도 아니다. source/receipt/policy를 재검증한
   기존 host promotion만 canonical을 변경할 수 있다.
@@ -43,9 +44,12 @@ Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태�
 5. `QualityAttemptV01`은 현재 source state, geometry/material receipt tuple, 동일 V0.6를 사용하는 IQ
    submission과 시각 평가를 비terminal로 기록한다. 신규 attempt는 IQ finding ID도 별도 prefix로 결속하며,
    이미 기록된 visual-only attempt의 경로는 소급 변경하지 않는다. 후속 회차에는 exact paired comparison이 필요하다.
-6. host가 시각·IQ 결함 종류와 잔여 예산에서 더 엄격한 route를 선택한다. 수정 계획·source snapshot·reservation을
-   먼저 게시하고 원래 controller/build/closure/atomic promotion/rollback 경로를 재사용한다. IQ가 contour나
-   semantic hard finding을 보존하면 재질 finding만 해소되어도 구조 재진입을 건너뛰지 않는다.
+6. V0.1 host는 시각·IQ 결함에서 더 엄격한 legacy route를 유지한다. V0.2의 `causal_v2`는 fixed-camera
+   visibility를 source-bound 시각 finding의 정확한 route에 연결하고, chamfer가 이미 통과한 채 boundary
+   F-score가 `meaningful_gain_min` 이내로 부족한 contour만 bounded parametric으로 분류한다. 큰 contour,
+   시각적으로 확인된 구조 결함과 일반 semantic IQ 결함은 계속 structural이다. 시각 finding이 없으면
+   visibility 부족을 구조 권한으로 추정하지 않고 evidence-required로 중단한다. 두 버전 모두 수정 계획·
+   source snapshot·reservation을 먼저 게시하고 기존 controller/build/closure/atomic promotion/rollback을 재사용한다.
 7. 관찰 조건과 현재 exact IQ가 모두 충족되면 `quality_ready`로 기존 source-freeze/delivery 경계에 돌아간다.
    이 상태가 인간 accepted 또는 production package를 의미하지는 않는다. 최종 IQ submission 교체도 거부한다.
 8. 정체·예산 소진은 typed fidelity review bundle/terminal로 보존한다. 기존 IQ 결과를 nonpass로
@@ -70,6 +74,12 @@ companion의 최대값은 최초 후보 후 structural `3`, shared local `2`, st
 이 최대값은 기존 AQ root budget을 확대하지 않는다. 예를 들어 root structural `2`이면 loop `3`은 bind할 수 없다.
 Material rounds, builds, materializations, QA/IQ, promotions와 action budget도 각각 충족해야 한다.
 모든 관찰이 optional/N-A인 checklist는 새 AQ loop에 bind할 수 없다.
+
+V0.2는 `initial_pipeline_reserve`를 필수로 받아 최초 geometry materialization/build, material closure,
+QA/IQ와 두 canonical promotion의 최소 비용을 명시한다. host는 이 reserve와 전체 revision `cost_limit`을
+합산해 root builds/material rounds/quality/promotions 안에 모두 들어가는지 bind 전에 검사한다. 따라서
+이론상 회차 수가 남아 있어도 실제 closure나 promotion 비용을 감당할 수 없는 loop는 첫 geometry 전에
+fail closed한다. V0.1의 이미 발행된 예산 의미와 bytes는 그대로 유지한다.
 
 `RevisionCostV01`은 materialization/build/QA/closure/diagnostic view/promotion을 분리한다. 구조 수정은
 geometry와 material 재build/promotion, 갱신된 closure와 다음 QA를 모두 예약해야 한다. source를 복사하기

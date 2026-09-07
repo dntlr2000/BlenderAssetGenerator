@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Literal, Self
+import json
+from typing import Literal, Self, TypeAlias
 
 from pydantic import Field, model_validator
 
@@ -43,6 +44,53 @@ class AQQualityRevisionLoopV01(FidelityModel):
     execution_lifetime: Literal["current_codex_task"] = "current_codex_task"
     human_approval_authority: Literal[False] = False
     destination_write: Literal[False] = False
+
+
+class AQQualityRevisionLoopV02(AQQualityRevisionLoopV01):
+    """Add causal IQ routing and an honest root-budget reserve without changing V0.1."""
+
+    schema_version: Literal["0.2.0"] = "0.2.0"
+    routing_policy: Literal["causal_v2"] = "causal_v2"
+    initial_pipeline_reserve: RevisionCostV01
+
+    @model_validator(mode="after")
+    def validate_initial_pipeline_reserve(self) -> Self:
+        """Require the minimum initial geometry, material, render, IQ and promotion costs."""
+
+        minimums = {
+            "materializations": 1,
+            "builds": 3,
+            "qa_runs": 2,
+            "closure_runs": 1,
+            "promotions": 2,
+        }
+        for field, minimum in minimums.items():
+            if getattr(self.initial_pipeline_reserve, field) < minimum:
+                raise ValueError(
+                    f"initial_pipeline_reserve.{field} must cover at least {minimum}"
+                )
+        return self
+
+
+AQQualityRevisionLoop: TypeAlias = AQQualityRevisionLoopV01 | AQQualityRevisionLoopV02
+
+
+def parse_quality_revision_loop(payload: bytes) -> AQQualityRevisionLoop:
+    """Dispatch an exact loop schema version without coercing or migrating historical bytes."""
+
+    try:
+        decoded = json.loads(payload)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("quality revision loop is not valid JSON") from exc
+    if not isinstance(decoded, dict):
+        raise ValueError("quality revision loop must be a JSON object")
+    model = {
+        "0.1.0": AQQualityRevisionLoopV01,
+        "0.2.0": AQQualityRevisionLoopV02,
+    }.get(decoded.get("schema_version"))
+    if model is None:
+        raise ValueError("unsupported quality revision loop schema_version")
+    return model.model_validate_json(payload)
 
 
 class QualityAttemptV01(FidelityModel):

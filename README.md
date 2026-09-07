@@ -30,7 +30,7 @@
 | Material Closure Stabilization | additive strict `0.1.0`; graph-derived closure, host rebinding, preapproval shadow compile, single-use appearance approval; local full regression 통과, authorized promotion/IQ 미검증 |
 | Material Identity Split | additive strict `0.1.0`; paired SceneSpec/ModelingPlan, Blender shadow validation, specialized root-scope approval, guarded apply/recovery; 실제 자산은 승인 요청 경계에서 정지 |
 | SceneSpec V03 structural derivative | `0.3.0` opt-in, canonical 기본값은 `0.2.0` |
-| Reference Fidelity / AQ quality revision loop | additive `0.1.0`, 새 exact session opt-in만 적용; 구조/finding/수정 연결 및 실제 Blender multi-round fixture vertical 통과, 목재 부분 개선, 실제 5자산 전이 미완료; `disabled_experimental` |
+| Reference Fidelity / AQ quality revision loop | additive `0.1.0` legacy routing + `0.2.0` causal routing/root reserve, 새 exact session opt-in만 적용; 구조/finding/수정 연결 및 실제 Blender multi-round fixture vertical 통과, 목재 부분 개선, 실제 5자산 전이 미완료; `disabled_experimental` |
 | GLB numerical geometry survival | raw corner evidence `0.1.0`, numerical report `0.2.0`; Blender 5.0.1 전용 additive proof, 기존 exact snapshot/report 의미 유지 |
 | 실제 검증 환경 | Windows 11, Python 3.14.6, Blender 5.0.1/Python 3.11.13, EEVEE |
 | AQ 구현 전 Python 기준선 | 945 passed, 6 skipped; Ruff passed |
@@ -43,6 +43,7 @@
 | 2026-08-14 Material Closure Stabilization | full `1750 passed, 62 skipped, 8 warnings`; actual Blender 5.0.1 승인 전 fixture `1 passed`; Crystalgun retry02는 missing UV coverage로 권한 소비 전 `preflight_failed`; authorized promotion/`MaterialPhaseReceiptV2`/IQ는 미검증 |
 | 2026-08-14 Material Identity Split 승인 전 검증 | Crystalgun paired candidate를 실제 Blender 5.0.1 build/inspect/validate 3 processes로 검증하고 `framework_ready_for_explicit_scope_approval`에서 정지; ApprovalRequest `1`, 사용자 승인·consumption·ApplyIntent·canonical write·controller/promotion/IQ `0`; 최종 full `1809 passed, 63 skipped, 8 warnings`, 실제 opt-in Blender node `1 passed` |
 | 2026-09-04 Reference Fidelity host/vertical | full `2224 passed, 73 skipped, 8 warnings`; AQ focused `1136 passed, 32 skipped`; 실제 Blender 5.0.1 `56 passed, 1 skipped`; multi-round fixture vertical, implementation/Blender-bound Wood v2, V03 correction 및 공통 loft cap/winding 회귀 포함, 실제 5자산 품질·인간 수락은 미검증 |
+| 2026-09-07 causal quality routing/root reserve | full `2257 passed, 73 skipped, 8 warnings`; AQ focused `1156 passed, 32 skipped, 9 warnings`; 실제 Blender 5.0.1 `56 passed, 1 skipped, 7 warnings`; V0.1 과거 의미를 유지한 additive loop V0.2, b617 canary는 안전한 review terminal이며 새 5자산 캠페인·인간 수락·Activation은 아직 미수행 |
 
 2026-08-14 Crystalgun incident 감사에서 보고된 AQ state `0011`이 최신이 아님을 확인했습니다. 실제 head는 `0012 / terminal / cancelled / none`이며 canonical MaterialPlan, `MaterialPhaseReceiptV2`, neutral material preview와 IQ 진입 evidence가 없습니다. 기존 technical retry와 승인은 새 material controller 권한이 아니며, append-only failure/discrepancy/supersession evidence와 별도 material repair session만 허용합니다. supersession 게시, 새 repair dry-run, 사용자 appearance approval과 production promotion은 각각 실제 evidence가 생성되기 전까지 완료로 간주하지 않습니다.
 

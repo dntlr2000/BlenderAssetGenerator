@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from ..reference_fidelity.models import FidelityArtifact, FidelityEvaluationV01
 from .quality_revision_models import (
-    AQQualityRevisionLoopV01,
+    AQQualityRevisionLoop,
     QualityAttemptV01,
     RevisionCostV01,
     RevisionLedgerEntryV01,
@@ -32,7 +32,7 @@ def select_revision_route(
     structural_used: int,
     local_used: int,
     strategy_switches_used: int,
-    loop: AQQualityRevisionLoopV01,
+    loop: AQQualityRevisionLoop,
 ) -> tuple[str, str]:
     """Stop on limits/plateau rather than treating a missing approval as a quality fix."""
 
@@ -65,7 +65,7 @@ def select_revision_route(
 
 
 def reserve_revision(
-    loop: AQQualityRevisionLoopV01,
+    loop: AQQualityRevisionLoop,
     plan: StructuralReentryPlanV01,
     *,
     loop_artifact: FidelityArtifact,

@@ -18,7 +18,7 @@ description: Adapt one explicit AQ v2 One-Prompt session into traceable referenc
 
 ## Explicit reference-fidelity companion
 
-For an explicitly selected `AQQualityRevisionLoopV01` only, bind the exact hypothesis/root/envelope/state through `bind_aq_quality_revision_loop` before initial geometry. Missing companion means legacy behavior, never auto-migration. Keep this session and its consumed root/round budgets across every resume.
+Bind only an explicitly selected, exact-version `AQQualityRevisionLoopV01` or `AQQualityRevisionLoopV02` through `bind_aq_quality_revision_loop` before initial geometry. V0.1 preserves legacy strictest routing. For a new reference-fidelity campaign, use V0.2 only when its `causal_v2` policy and explicit `initial_pipeline_reserve` plus revision `cost_limit` fit the frozen AQ root; never silently upgrade V0.1 evidence. Missing companion means legacy behavior, never auto-migration. Keep this session and its consumed root/round budgets across every resume.
 
 When status includes `reference_fidelity`, inspect the exact reference and seven actual passes. Submit a `VisualFindingSetV01` with observation coverage and a matching IQ submission through `submit_aq_quality_attempt`. Do not let an empty assessment or high silhouette/detail score substitute for this step. Dispatch `begin_aq_quality_reentry` only for the host-selected structural, scalar, or material route and a cost that covers materialization, build, closure, QA and promotion. Then continue the same controller assignment/policy path. Evidence/calibration/technical holds are not requests for beauty approval.
 

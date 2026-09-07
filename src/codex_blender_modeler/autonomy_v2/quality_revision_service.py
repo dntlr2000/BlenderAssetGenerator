@@ -29,12 +29,14 @@ from .quality_revision_budget import (
     select_revision_route,
 )
 from .quality_revision_models import (
-    AQQualityRevisionLoopV01,
+    AQQualityRevisionLoop,
+    AQQualityRevisionLoopV02,
     QualityAttemptV01,
     QualityRenderReservationV01,
     RevisionCostV01,
     RevisionLedgerEntryV01,
     StructuralReentryPlanV01,
+    parse_quality_revision_loop,
 )
 
 REENTRY_KIND = "reference_fidelity_reentry_v01"
@@ -70,7 +72,7 @@ def _quality_submission_report(
 
 
 def _iq_reentry_route(decision: ReentryDecisionV02) -> str:
-    """Map one IQ stage recommendation onto the bounded fidelity-loop route vocabulary."""
+    """Preserve the exact V0.1 IQ-to-loop route mapping for historical companions."""
 
     if decision.destination == "v0.4_structural_authoring":
         return "calibration" if decision.category == "camera" else "structural_reentry"
@@ -82,11 +84,64 @@ def _iq_reentry_route(decision: ReentryDecisionV02) -> str:
     }[decision.destination]
 
 
+def _contour_is_bounded_parametric(report: IntegratedQualityReportV02) -> bool:
+    """Recognize a small boundary-only miss when distance agreement already passes policy."""
+
+    contour = report.contour
+    policy = report.policy
+    if (
+        contour.status != "scored"
+        or contour.boundary_f_score is None
+        or contour.edge_distance_transform_chamfer_norm is None
+    ):
+        return False
+    deficit = policy.minimum_boundary_f_score - contour.boundary_f_score
+    return (
+        0.0 < deficit <= policy.meaningful_gain_min + 1.0e-12
+        and contour.edge_distance_transform_chamfer_norm
+        <= policy.maximum_edge_distance_transform_chamfer_norm
+    )
+
+
+def _iq_reentry_route_for_loop(
+    decision: ReentryDecisionV02,
+    evaluation: FidelityEvaluationV01,
+    report: IntegratedQualityReportV02,
+    loop: AQQualityRevisionLoop | None,
+) -> str:
+    """Use causal V0.2 routing only when the exact bound loop selected that policy."""
+
+    if not isinstance(loop, AQQualityRevisionLoopV02):
+        return _iq_reentry_route(decision)
+    if decision.destination != "v0.4_structural_authoring":
+        return _iq_reentry_route(decision)
+    if decision.category == "camera":
+        return "calibration"
+    if decision.finding_id == "finding.reference.fixed_camera_visibility_v02":
+        if evaluation.next_action in {
+            "calibration",
+            "evidence_required",
+            "structural_reentry",
+            "parametric_revision",
+            "material_revision",
+        }:
+            return evaluation.next_action
+        return "evidence_required"
+    if decision.finding_id == "finding.reference.contour_v02":
+        if evaluation.next_action == "structural_reentry":
+            return "structural_reentry"
+        if _contour_is_bounded_parametric(report):
+            return "parametric_revision"
+    return _iq_reentry_route(decision)
+
+
 def _combined_attempt_routing(
     evaluation: FidelityEvaluationV01,
     report: IntegratedQualityReportV02,
+    *,
+    loop: AQQualityRevisionLoop | None = None,
 ) -> tuple[str, list[str]]:
-    """Select the strictest visual-or-IQ route and bind every unresolved evidence ID."""
+    """Combine exact visual and IQ routes under the bound versioned routing policy."""
 
     visual_ids = [item.feature_id for item in evaluation.findings]
     iq_ids = (
@@ -96,7 +151,10 @@ def _combined_attempt_routing(
     )
     routes = [] if evaluation.next_action == "quality_ready" else [evaluation.next_action]
     if not report.quality_accepted:
-        routes.extend(_iq_reentry_route(item) for item in report.reentry)
+        routes.extend(
+            _iq_reentry_route_for_loop(item, evaluation, report, loop)
+            for item in report.reentry
+        )
         if not report.findings:
             iq_ids = ["iq:unclassified_nonpass"]
             routes.append("review_required")
@@ -138,14 +196,14 @@ def _fidelity_root(root: Path, session_id: str) -> Path:
 
 def load_optional_loop(
     root: Path, session_id: str
-) -> tuple[AQQualityRevisionLoopV01, FidelityArtifact] | None:
+) -> tuple[AQQualityRevisionLoop, FidelityArtifact] | None:
     """Load only an explicitly bound exact companion; absence preserves legacy behavior."""
 
     path = _fidelity_root(root, session_id) / "plan.json"
     if not path.exists():
         return None
     artifact = artifact_at(root, path)
-    loop = AQQualityRevisionLoopV01.model_validate_json(read_artifact(root, artifact))
+    loop = parse_quality_revision_loop(read_artifact(root, artifact))
     if loop.session_id != session_id:
         raise ValueError("quality revision companion belongs to another session")
     for item in (
@@ -166,7 +224,7 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
 
     root, session, plan, budget, state, state_artifact = _session_bundle(job_id, session_id)
     source = artifact_at(root, plan_path if plan_path.is_absolute() else root / plan_path)
-    loop = AQQualityRevisionLoopV01.model_validate_json(read_artifact(root, source))
+    loop = parse_quality_revision_loop(read_artifact(root, source))
     with autonomy_session_lock(root, session, owner_id="reference-fidelity-bind"):
         _root, _session, current_plan, _budget, current, current_artifact = _session_bundle(
             job_id,
@@ -189,7 +247,7 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
         boundary = _load_approval_boundary(job_id, session_id)
         envelope, envelope_artifact = boundary[8:10]
         if envelope.approval_mode != "autonomous":
-            raise PermissionError("revision loop v0.1 requires an explicit autonomous envelope")
+            raise PermissionError("quality revision loop requires an explicit autonomous envelope")
         if loop.approval_envelope != FidelityArtifact(
             path=envelope_artifact.path, sha256=envelope_artifact.sha256
         ):
@@ -206,6 +264,25 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
             raise PermissionError("loop promotion costs exceed the frozen AQ root budget")
         if loop.cost_limit.qa_runs > budget.total_quality_evaluations:
             raise PermissionError("loop quality costs exceed the frozen AQ root budget")
+        if isinstance(loop, AQQualityRevisionLoopV02):
+            reserve = loop.initial_pipeline_reserve
+            required = {
+                "total_blender_builds": (
+                    reserve.materializations
+                    + reserve.builds
+                    + loop.cost_limit.materializations
+                    + loop.cost_limit.builds
+                ),
+                "material_rounds": reserve.closure_runs + loop.cost_limit.closure_runs,
+                "canonical_promotions": reserve.promotions + loop.cost_limit.promotions,
+                "total_quality_evaluations": reserve.qa_runs + loop.cost_limit.qa_runs,
+            }
+            for field, amount in required.items():
+                if amount > getattr(budget, field):
+                    raise PermissionError(
+                        "loop initial-plus-revision "
+                        f"{field} reserve exceeds the frozen AQ root budget"
+                    )
         hypothesis = ModelingHypothesisV01.model_validate_json(read_artifact(root, loop.hypothesis))
         if not any(
             item.required and item.applicability == "applicable"
@@ -222,7 +299,7 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
 
 
 def _load_ledger(
-    root: Path, session_id: str, loop: AQQualityRevisionLoopV01, loop_artifact: FidelityArtifact
+    root: Path, session_id: str, loop: AQQualityRevisionLoop, loop_artifact: FidelityArtifact
 ) -> list[tuple[RevisionLedgerEntryV01, FidelityArtifact]]:
     """Recompute the entire reservation chain so renamed children cannot reset consumption."""
 
@@ -317,8 +394,9 @@ def _validate_attempt_artifacts(root: Path, attempt: QualityAttemptV01) -> None:
         return
     if not _uses_integrated_attempt_routing(attempt):
         raise ValueError("quality attempt differs from its exact evaluated findings or source")
+    loop = parse_quality_revision_loop(read_artifact(root, attempt.loop))
     report = _quality_submission_report(root, attempt.quality_submission)
-    route, unresolved = _combined_attempt_routing(evaluation, report)
+    route, unresolved = _combined_attempt_routing(evaluation, report, loop=loop)
     if attempt.next_action != route or attempt.unresolved_features != unresolved:
         raise ValueError("quality attempt differs from its exact visual and IQ findings")
 
@@ -577,7 +655,11 @@ def submit_quality_attempt(
             review_artifact=review_artifact,
             legacy_direct_score=qa.direct_metrics.overall_direct_score,
         )
-        next_action, unresolved = _combined_attempt_routing(evaluation, validated.report)
+        next_action, unresolved = _combined_attempt_routing(
+            evaluation,
+            validated.report,
+            loop=loop,
+        )
         base = _fidelity_root(root, session_id)
         evaluation_artifact = publish(
             root, base / "evaluations" / f"{round_index:04d}.json", evaluation
@@ -665,6 +747,7 @@ def supplement_quality_evidence(
             next_action, unresolved = _combined_attempt_routing(
                 evaluation,
                 _quality_submission_report(root, original.quality_submission),
+                loop=loop,
             )
         else:
             next_action = evaluation.next_action
@@ -1041,7 +1124,7 @@ def begin_quality_reentry(
             report = _quality_submission_report(root, attempt.quality_submission)
             findings_by_id = {item.finding_id: item for item in report.findings}
             for decision in report.reentry:
-                if _iq_reentry_route(decision) != route:
+                if _iq_reentry_route_for_loop(decision, evaluation, report, loop) != route:
                     continue
                 finding = findings_by_id[decision.finding_id]
                 feature_ids.append(f"iq:{finding.finding_id}")

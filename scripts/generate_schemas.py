@@ -139,6 +139,7 @@ from codex_blender_modeler.autonomy_v2.models import (
 )
 from codex_blender_modeler.autonomy_v2.quality_revision_models import (
     AQQualityRevisionLoopV01,
+    AQQualityRevisionLoopV02,
     FidelityReviewBundleV01,
     FidelityReviewTerminalV01,
     QualityAttemptV01,
@@ -1006,6 +1007,7 @@ SCHEMAS.update({
     "fidelity_render_evidence_v01.schema.json": RenderEvidenceV01,
     "structure_authoring_v01.schema.json": StructureAuthoringV01,
     "aq_quality_revision_loop_v01.schema.json": AQQualityRevisionLoopV01,
+    "aq_quality_revision_loop_v02.schema.json": AQQualityRevisionLoopV02,
     "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
     "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
     "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,

@@ -14,9 +14,12 @@ from codex_blender_modeler.autonomy_v2 import controller_bridge, supervisor_serv
 from codex_blender_modeler.autonomy_v2 import quality_revision_service as service
 from codex_blender_modeler.autonomy_v2.delivery_service import artifact_for_v2
 from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+    AQQualityRevisionLoopV01,
+    AQQualityRevisionLoopV02,
     QualityAttemptV01,
     QualityRenderReservationV01,
     RevisionCostV01,
+    parse_quality_revision_loop,
 )
 from codex_blender_modeler.autonomy_v2.transitions import validate_state_transition
 from codex_blender_modeler.reference_fidelity.models import (
@@ -161,6 +164,72 @@ def correction_cost():
     """Reserve one geometry materialization, both builds/promotions and its next quality render."""
 
     return RevisionCostV01(materializations=1, builds=2, promotions=2, qa_runs=1, closure_runs=1)
+
+
+def causal_loop() -> AQQualityRevisionLoopV02:
+    """Create a minimal exact V0.2 loop for pure causal-routing tests."""
+
+    artifact = FidelityArtifact(path="fixture.json", sha256="a" * 64)
+    return AQQualityRevisionLoopV02(
+        job_id="fidelity_fixture",
+        session_id="session",
+        root_authorization=artifact,
+        approval_envelope=artifact,
+        hypothesis=artifact,
+        initial_state=artifact,
+        initial_pipeline_reserve=RevisionCostV01(
+            materializations=1,
+            builds=3,
+            qa_runs=2,
+            closure_runs=1,
+            promotions=2,
+        ),
+        cost_limit=RevisionCostV01(
+            materializations=2,
+            builds=3,
+            qa_runs=2,
+            closure_runs=1,
+            promotions=2,
+        ),
+        allow_disabled_experimental=True,
+    )
+
+
+def iq_report(*, boundary_f_score: float, visibility: bool = True):
+    """Build only the typed attributes exercised by the pure routing function."""
+
+    finding_ids = ["finding.reference.contour_v02"]
+    decisions = [
+        SimpleNamespace(
+            finding_id="finding.reference.contour_v02",
+            destination="v0.4_structural_authoring",
+            category="contour",
+        )
+    ]
+    if visibility:
+        finding_ids.append("finding.reference.fixed_camera_visibility_v02")
+        decisions.append(
+            SimpleNamespace(
+                finding_id="finding.reference.fixed_camera_visibility_v02",
+                destination="v0.4_structural_authoring",
+                category="semantic",
+            )
+        )
+    return SimpleNamespace(
+        quality_accepted=False,
+        findings=[SimpleNamespace(finding_id=item) for item in finding_ids],
+        reentry=decisions,
+        contour=SimpleNamespace(
+            status="scored",
+            boundary_f_score=boundary_f_score,
+            edge_distance_transform_chamfer_norm=0.005,
+        ),
+        policy=SimpleNamespace(
+            minimum_boundary_f_score=0.8,
+            maximum_edge_distance_transform_chamfer_norm=0.05,
+            meaningful_gain_min=0.01,
+        ),
+    )
 
 
 def test_reentry_crash_resume_adopts_one_reservation_and_same_sources(tmp_path, monkeypatch):
@@ -355,6 +424,132 @@ def test_iq_structural_failure_precedes_a_visual_material_revision():
     route, unresolved = service._combined_attempt_routing(evaluation, report)
     assert route == "structural_reentry"
     assert unresolved == ["plastic-wear", "iq:finding.reference.contour_v02"]
+
+
+def test_v02_near_contour_and_visibility_use_parametric_before_material():
+    """A passing chamfer and tiny boundary miss must not consume structural strategy authority."""
+
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    route, unresolved = service._combined_attempt_routing(
+        evaluation,
+        iq_report(boundary_f_score=0.7900478232623135),
+        loop=causal_loop(),
+    )
+    assert route == "parametric_revision"
+    assert unresolved == [
+        "plastic-wear",
+        "iq:finding.reference.contour_v02",
+        "iq:finding.reference.fixed_camera_visibility_v02",
+    ]
+
+
+def test_v02_material_review_does_not_hide_a_large_contour_failure():
+    """A contour miss beyond the meaningful-gain band remains structural in causal V0.2."""
+
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        iq_report(boundary_f_score=0.75),
+        loop=causal_loop(),
+    )
+    assert route == "structural_reentry"
+
+
+def test_v02_near_boundary_stays_structural_when_chamfer_fails():
+    """A small F-score miss is not local when the independent distance gate also fails."""
+
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    report = iq_report(boundary_f_score=0.795, visibility=False)
+    report.contour.edge_distance_transform_chamfer_norm = 0.051
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        report,
+        loop=causal_loop(),
+    )
+    assert route == "structural_reentry"
+
+
+def test_v02_visual_structure_keeps_near_contour_structural():
+    """A source-bound major structure finding outranks a numerically small contour residual."""
+
+    evaluation = SimpleNamespace(
+        next_action="structural_reentry",
+        findings=[SimpleNamespace(feature_id="major-volume")],
+    )
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        iq_report(boundary_f_score=0.795, visibility=False),
+        loop=causal_loop(),
+    )
+    assert route == "structural_reentry"
+
+
+def test_v02_visibility_uses_exact_visual_material_route():
+    """Visibility loss diagnosed on the same pixels follows the source-bound material finding."""
+
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    report = iq_report(boundary_f_score=0.8)
+    report.findings = [
+        SimpleNamespace(finding_id="finding.reference.fixed_camera_visibility_v02")
+    ]
+    report.reentry = [report.reentry[1]]
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        report,
+        loop=causal_loop(),
+    )
+    assert route == "material_revision"
+
+
+def test_v02_unlocalized_visibility_requires_evidence_not_structure():
+    """IQ visibility alone cannot invent structural rewrite authority from a satisfied review."""
+
+    evaluation = SimpleNamespace(next_action="quality_ready", findings=[])
+    report = iq_report(boundary_f_score=0.8)
+    report.findings = [
+        SimpleNamespace(finding_id="finding.reference.fixed_camera_visibility_v02")
+    ]
+    report.reentry = [report.reentry[1]]
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        report,
+        loop=causal_loop(),
+    )
+    assert route == "evidence_required"
+
+
+def test_exact_v01_bytes_retain_legacy_strictest_routing():
+    """Parsing a historical V0.1 plan never opts its attempts into causal V0.2 semantics."""
+
+    v02 = causal_loop()
+    v01 = AQQualityRevisionLoopV01.model_validate(
+        v02.model_dump(exclude={"schema_version", "routing_policy", "initial_pipeline_reserve"})
+    )
+    parsed = parse_quality_revision_loop(v01.model_dump_json().encode("utf-8"))
+    evaluation = SimpleNamespace(
+        next_action="material_revision",
+        findings=[SimpleNamespace(feature_id="plastic-wear")],
+    )
+    route, _unresolved = service._combined_attempt_routing(
+        evaluation,
+        iq_report(boundary_f_score=0.799),
+        loop=parsed,
+    )
+    assert isinstance(parsed, AQQualityRevisionLoopV01)
+    assert not isinstance(parsed, AQQualityRevisionLoopV02)
+    assert route == "structural_reentry"
 
 
 def test_completed_reserved_qa_is_adopted_without_new_render_or_charge(tmp_path, monkeypatch):

@@ -435,6 +435,65 @@ V0.4 structural reentry를 요구했다. 당시 attempt는 visual 평가만 소�
 조건부 skipped는 실행 통과가 아니다. mocked renderer/promotion fixture는 실제 visual/AQ campaign 증거가 아니다.
 현재 플랫폼 외 지원·runtime parity를 주장하지 않는다. 최종 검증 결과는 아래 후속 항목에 추가한다.
 
+## E 첫 clean-baseline canary와 causal route 보완
+
+source commit `b617baea8d91d9ff0a107cb2c79fa68946e4aad2`, campaign
+`reference-fidelity-b617bae-e05`, scope SHA-256
+`9593f9188b64119b8a01b23e06c81ef6405a3493876abe20ae3f1d7fbcf7022d`에서 sequence 1
+`aq_ref_fidelity_b617bae_01_plastic_shard`만 실행했다. scope는 canary가 기술 delivery, reference fidelity,
+source/reference 불변성과 corruption 0을 모두 만족할 때만 sequence 2~5를 허용했다.
+
+controller 결과를 안전하게 채택한 구조 회차는 canonical SceneSpec
+`ec38aa51377eb490c46dbff238c8c9c04cd6149453fb124a72f2eb8a9e2500f2`를 만들었다. fixed-camera
+V0.6의 direct score는 `.924653→.945003`, silhouette IoU는 `.908298→.949274`였고, beauty SHA-256은
+`9094e84c54f880474db1f78fc5a8868bd4d70377e99e06bf0e0025d20f8567be`다. 직접 확인한 beauty/normal/
+depth/wireframe에서는 broad bowed shell, 연결된 ribs와 깊은 asymmetric notch가 확인됐지만, reference의
+광범위한 scratch/scuff/worn edge가 거의 보이지 않았다. texture 자체에는 wear pixels가 있으므로
+source-bound 비인간 review는 `plastic-wear`, `next_action=material_revision`으로 기록했다. review SHA는
+`4f298c78c831fa42cd146f2619b548c86e8de09be713ed6437e59ef09008e1fa`, attempt SHA는
+`04f7f078698cd290f3552b355d818bf77dd7719ee392013ab4ce44dd23af2f9e`이며 인간 quality disposition은
+`not_recorded`다.
+
+동일 source의 IQ SHA `f3aecb8b3b6fec414b1858fe45b402d07f1a14315097da3c6fbbcc3b2401c1f8`은 contour
+boundary F `.7900478233 < .8`와 fixed-camera interior-edge retention `.3362386701 < .35` 때문에
+`blocked`였다. chamfer `.0050437507 <= .05`와 high-frequency/luminance visibility는 통과했다. 기존
+`AQQualityRevisionLoopV01`의 strictest 결합은 visual material finding과 두 IQ finding을
+`structural_reentry`로 분류했고, 이미 structural/strategy budget을 사용했으므로 source를 더 바꾸지 않고
+`review_required`로 닫았다.
+
+정확한 terminal은 다음과 같다.
+
+| 증거 | SHA-256 / 상태 |
+|---|---|
+| fidelity review bundle | `0a6b360b4de7c312934eeb144064244f5e2139cbda90a835c0ffd6bb85f35f99` |
+| fidelity terminal | `7b9513e9be3f10160754cef74d20dd2e558e4ac7a2fc459dff342f9424f92616`, `review_required` |
+| One-Prompt terminal | `8224aa5497ee4a2b8dd5bae1f5ff4bf449e5b7bdf06cf57db517846a7b9759e3`, `review_bundle` |
+| 안전성 | canonical corruption `0`, rollback restored `true`, destination write `false` |
+| 승인 telemetry | initial request `1`, additional user decisions `0`, technical approval requests `0` |
+| campaign 조건 | `technical_delivery_verified=false`, `continue_remaining_sequences=false`; sequence 2~5 미실행 |
+
+이 결과는 production success나 human `needs_revision`이 아니라 정상적인 fail-closed canary negative다.
+기존 terminal/QA/reference/receipt를 수정하거나 다시 열지 않았다.
+
+원인 수정은 기존 bytes를 소급 해석하지 않도록 additive `AQQualityRevisionLoopV02`로 구현했다.
+
+- exact `schema_version=0.2.0`, `routing_policy=causal_v2`를 선택한 새 세션만 원인 기반 routing을 사용한다.
+- chamfer가 통과하고 boundary F 부족분이 IQ policy의 `meaningful_gain_min` 이내일 때만 contour를 bounded
+  parametric으로 내린다. 큰 contour, chamfer 동시 실패 또는 source-bound 구조 finding은 structural이다.
+- fixed-camera visibility는 동일 source-bound visual route를 사용한다. visual finding이 없으면 IQ만으로
+  구조 권한을 만들지 않고 `evidence_required`로 중단한다.
+- `initial_pipeline_reserve`와 전체 revision `cost_limit`을 root build/material-round/quality/promotion에
+  합산해 bind 전에 검사한다. 과거 V0.1 parser/routing/budget 의미는 그대로 유지한다.
+
+focused routing/host/schema 36/36, reference-fidelity 91/91, AQ 승인·후보·재질·terminal/skill compatibility
+115/115와 실제 Blender 5.0.1 geometry/multi-round vertical 2/2를 분리 실행했다. 첫 전체 회귀의 긴
+basetemp에서는 변경과 무관한 WinError 206 두 건이 발생했고, 동일 두 테스트는 저장소 내부 짧은 basetemp에서
+2/2 통과했다. 최종 전체 suite를 짧은 basetemp로 처음부터 재실행한 결과는 **2257 passed, 73 skipped,
+8 warnings**다. AQ gate는 focused **1156 passed, 32 skipped, 9 warnings**, 실제 Blender 5.0.1
+**56 passed, 1 skipped, 7 warnings**로 통과했다. skip은 실행 성공으로 세지 않으며 profile은
+`disabled_experimental`, campaign 생성과 Activation은 `false`를 유지했다. 과거 anchor 감사도 16/16 일치,
+SHA-256 `691ff006e6a5bdfb9edda52cf4dd04337d05a6785be231c76c17d65c2210aaf1`이다.
+
 ## 과거 증거 보존
 
 [historical anchor fixture](tests/fixtures/reference_fidelity/historical_5e5b172.json)의 16개 reference/beauty/
@@ -451,14 +510,15 @@ package acceptance, destination write, baseline 갱신, profile Activation은 �
 
 ## 다음 진입 조건
 
-현재 A/B/C 구현·실증과 D 통합 호환성은 완료됐다. Plastic 실행에서 발견한 IQ/visual route 결함을 수정하고
-최신 full pytest와 actual AQ Blender gate로 D를 다시 닫았다. 기존 V0.9 package 경로와 과거 16개 anchor의
-마지막 검증 의미는 유지되며, 새 clean baseline 검증에서 필수 gate를 다시 결속한다. 다음 순서는
-아래와 같다.
+현재 A/B/C 구현·실증은 완료됐다. b617 E canary에서 드러난 V0.1 strictest route와 root 예산 합산 누락은
+additive V0.2로 수정했고, 최신 full pytest·AQ focused·actual Blender gate와 과거 16개 anchor 감사로 D를
+다시 닫았다. 기존 V0.9 package 경로와 b617 terminal의 의미는 유지하며, source가 바뀌었으므로 새 clean
+baseline에서 필수 gate를 다시 결속한다. 다음 순서는 아래와 같다.
 
 1. **E clean baseline 캠페인:** D가 통과한 변경을 clean commit으로 고정하고 새 Activation source manifest,
-   baseline, readiness를 만든다. 동일 baseline에서 sequence 1 canary를 먼저 실행해 정상 terminal과 source
-   불변성을 확인한 뒤 sequence 2~5를 실행한다. 이번 격리 전이 결과를 새 캠페인 실적으로 재사용하지 않는다.
+   baseline, readiness 및 exact campaign scope를 만든다. 새 scope의 명시적 승인 뒤 동일 baseline에서
+   sequence 1 canary를 먼저 실행해 정상 terminal·실제 시각 조건·source 불변성을 확인한 경우에만
+   sequence 2~5를 실행한다. b617 canary와 이전 격리 전이 결과를 새 캠페인 실적으로 재사용하지 않는다.
 2. **F 분리 재평가:** 기술 terminal/clean import, 실제 시각 개선, exact 인간 quality disposition을 별도 집계한
    뒤 delivery와 Activation 가능 여부를 판단한다. 현재 5개 모두 인간 판정은 `not_recorded`다.
 

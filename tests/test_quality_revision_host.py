@@ -17,6 +17,7 @@ from codex_blender_modeler.autonomy_v2.approval_policy_service import _load_appr
 from codex_blender_modeler.autonomy_v2.controller_bridge import _session_bundle
 from codex_blender_modeler.autonomy_v2.quality_revision_models import (
     AQQualityRevisionLoopV01,
+    AQQualityRevisionLoopV02,
     RevisionCostV01,
 )
 from codex_blender_modeler.autonomy_v2.supervisor_service import QualitySubmissionV2
@@ -62,6 +63,28 @@ def prepare_loop(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     return root, job, session, loop, path
 
 
+def causal_loop(loop: AQQualityRevisionLoopV01, *, closure_runs: int) -> AQQualityRevisionLoopV02:
+    """Upgrade a fixture proposal explicitly while retaining all exact V0.1 bindings."""
+
+    return AQQualityRevisionLoopV02.model_validate(
+        {
+            **loop.model_dump(exclude={"schema_version"}),
+            "schema_version": "0.2.0",
+            "routing_policy": "causal_v2",
+            "initial_pipeline_reserve": RevisionCostV01(
+                materializations=1,
+                builds=3,
+                qa_runs=2,
+                closure_runs=1,
+                promotions=2,
+            ).model_dump(),
+            "cost_limit": loop.cost_limit.model_copy(
+                update={"closure_runs": closure_runs}
+            ).model_dump(),
+        }
+    )
+
+
 def test_loop_binding_keeps_root_state_and_reference_immutable(tmp_path, monkeypatch) -> None:
     """Opt-in is additive, before initial geometry, and grants no human/canonical authority."""
 
@@ -82,6 +105,59 @@ def test_loop_binding_keeps_root_state_and_reference_immutable(tmp_path, monkeyp
     for name, content in frozen.items():
         assert (root / name).read_bytes() == content
     assert loop.human_approval_authority is False
+
+
+def test_v02_loop_reserves_initial_and_revision_costs_before_geometry(tmp_path, monkeypatch):
+    """An honest V0.2 reserve binds only when both pipeline phases fit the frozen root."""
+
+    root, job, session, loop, _path = prepare_loop(tmp_path, monkeypatch)
+    proposal = causal_loop(loop, closure_runs=1)
+    path = root / "fidelity/proposed_loop_v02.json"
+    publish(root, path, proposal)
+    selected = service.bind_quality_revision_loop(job, session, path)
+    loaded = service.load_optional_loop(root, session)
+    assert loaded == (proposal, selected)
+    assert isinstance(loaded[0], AQQualityRevisionLoopV02)
+
+
+def test_v02_loop_rejects_unfunded_closure_round_before_geometry(tmp_path, monkeypatch):
+    """Initial closure plus advertised revisions cannot exceed immutable material rounds."""
+
+    root, job, session, loop, _path = prepare_loop(tmp_path, monkeypatch)
+    proposal = causal_loop(loop, closure_runs=2)
+    path = root / "fidelity/unfunded_loop_v02.json"
+    publish(root, path, proposal)
+    with pytest.raises(PermissionError, match="initial-plus-revision material_rounds"):
+        service.bind_quality_revision_loop(job, session, path)
+    assert service.load_optional_loop(root, session) is None
+
+
+@pytest.mark.parametrize(
+    ("cost_update", "dimension"),
+    [
+        ({"materializations": 8, "builds": 3}, "total_blender_builds"),
+        ({"promotions": 4}, "canonical_promotions"),
+        ({"qa_runs": 9}, "total_quality_evaluations"),
+    ],
+)
+def test_v02_loop_rejects_other_unfunded_root_reserves(
+    tmp_path,
+    monkeypatch,
+    cost_update,
+    dimension,
+):
+    """Build, promotion and quality sums fail at bind rather than during a future round."""
+
+    root, job, session, loop, _path = prepare_loop(tmp_path, monkeypatch)
+    proposal = causal_loop(loop, closure_runs=1)
+    proposal = proposal.model_copy(
+        update={"cost_limit": proposal.cost_limit.model_copy(update=cost_update)}
+    )
+    path = root / f"fidelity/unfunded_{dimension}_v02.json"
+    publish(root, path, proposal)
+    with pytest.raises(PermissionError, match=f"initial-plus-revision {dimension}"):
+        service.bind_quality_revision_loop(job, session, path)
+    assert service.load_optional_loop(root, session) is None
 
 
 def test_loop_cannot_expand_the_frozen_root_budget(tmp_path, monkeypatch) -> None:
