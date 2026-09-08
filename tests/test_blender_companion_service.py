@@ -256,6 +256,21 @@ def _plan(job_id: str) -> ModelingPlan:
                     "subject_side": "MIN",
                     "reference_side": "MAX",
                     "min_transverse_overlap_ratio": 0.1,
+                },
+                {
+                    "id": "fixture.cap.overlap",
+                    "kind": "bbox_overlap",
+                    "subject_id": "fixture.cap",
+                    "reference_id": "fixture.base",
+                    "evidence_status": "authored",
+                    "source_ids": [],
+                    "confidence": 1.0,
+                    "required": True,
+                    "tolerance": {"mode": "relative", "value": 0.01},
+                    "instance_policy": "pairwise",
+                    "notes": [],
+                    "axes": ["X", "Y"],
+                    "minimum_overlap_ratio": 0.1,
                 }
             ],
             "surface_detail_policy": None,
@@ -311,8 +326,11 @@ def test_static_prop_authoring_companions_are_hash_bound_and_read_only(
 
     assert result.assembly_report.status == "passed"
     semantic = [item for item in result.assembly_report.findings if item.phase == "semantic"]
-    assert len(semantic) == 1
-    assert semantic[0].severity == "info"
+    assert {item.code for item in semantic} == {
+        "SEMANTIC_BBOX_OVERLAP",
+        "SEMANTIC_SURFACE_CONTACT",
+    }
+    assert all(item.severity == "info" for item in semantic)
     assert result.topology_report.profile.name == "static_prop_closed"
     assert len(result.topology_report.results) == 18
     assert result.topology_report.status == "passed"

@@ -102,7 +102,8 @@ def _assembly_consistency_instructions() -> list[str]:
         ),
         (
             "For manufactured or bilaterally symmetric assets, classify functional parts "
-            "with center_plane, coaxial, bbox_containment, or surface_contact intent as "
+            "with center_plane, coaxial, bbox_containment, bbox_overlap, or surface_contact "
+            "intent as "
             "applicable; "
             "examples include triggers, levers, handles, and wheels, but never infer policy "
             "from an object name alone."
@@ -149,9 +150,10 @@ def _scene_assembly_instructions() -> list[str]:
         ),
         (
             "Satisfy each spatial_v1 relationship in the declared parent-local frame, "
-            "including center_plane, coaxial, bbox_containment, surface_contact, and evidenced "
-            "side_specific placement, plus signed axis_alignment and axis_clearance when "
-            "declared. Preserve every object's required_assembly_checks membership."
+            "including center_plane, coaxial, bbox_containment, bbox_overlap, surface_contact, "
+            "and evidenced side_specific placement, plus signed axis_alignment and "
+            "axis_clearance when declared. Preserve every object's required_assembly_checks "
+            "membership."
         ),
         (
             "Never copy a reference-image screen-space offset into an unobserved SceneSpec "

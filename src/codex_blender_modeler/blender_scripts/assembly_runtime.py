@@ -460,6 +460,70 @@ def _transverse_overlap_metrics(
     )
 
 
+def _bbox_overlap_metrics(
+    subject: dict[str, list[float]],
+    reference: dict[str, list[float]],
+    axes: list[str],
+    minimum_ratio: float,
+) -> tuple[float, dict[str, Any]]:
+    """Measure selected-axis bbox overlap and reject malformed evaluated bounds."""
+
+    if not 1 <= len(axes) <= 3 or len(axes) != len(set(axes)):
+        raise ValueError("BBox-overlap axes must contain one to three unique values")
+    if any(axis_name not in _AXIS for axis_name in axes):
+        raise ValueError("BBox-overlap axes must use only X, Y, or Z")
+    if not math.isfinite(minimum_ratio) or not 0.0 < minimum_ratio <= 1.0:
+        raise ValueError("BBox-overlap minimum_overlap_ratio must be in (0, 1]")
+    for label, bounds in (("subject", subject), ("reference", reference)):
+        if set(bounds) != {"min", "max"} or not all(
+            isinstance(bounds[key], (list, tuple)) and len(bounds[key]) == 3
+            for key in ("min", "max")
+        ):
+            raise ValueError(
+                f"BBox-overlap {label} bounds must contain exact 3D min/max arrays"
+            )
+    all_bounds = [
+        *[float(value) for value in subject["min"]],
+        *[float(value) for value in subject["max"]],
+        *[float(value) for value in reference["min"]],
+        *[float(value) for value in reference["max"]],
+    ]
+    if not all(math.isfinite(value) for value in all_bounds):
+        raise ValueError("BBox-overlap evaluated bounds must be finite")
+    subject_dimensions = _dimensions(subject)
+    reference_dimensions = _dimensions(reference)
+    overlap_lengths: dict[str, float] = {}
+    overlap_ratios: dict[str, float] = {}
+    for axis_name in axes:
+        axis = _AXIS[axis_name]
+        denominator = min(subject_dimensions[axis], reference_dimensions[axis])
+        if denominator <= 1.0e-12:
+            raise ValueError(
+                f"BBox-overlap axis {axis_name} has a zero-sized evaluated bound"
+            )
+        overlap = max(
+            0.0,
+            min(float(subject["max"][axis]), float(reference["max"][axis]))
+            - max(float(subject["min"][axis]), float(reference["min"][axis])),
+        )
+        overlap_lengths[axis_name] = overlap
+        overlap_ratios[axis_name] = overlap / denominator
+    residual = max(
+        max(minimum_ratio - ratio, 0.0) for ratio in overlap_ratios.values()
+    )
+    return residual, {
+        "evaluation_basis": "evaluated_bbox_corners_in_assembly_frame_meters",
+        "overlap_length_m_by_axis": {
+            key: round(value, 9) for key, value in sorted(overlap_lengths.items())
+        },
+        "overlap_ratio_by_axis": {
+            key: round(value, 9) for key, value in sorted(overlap_ratios.items())
+        },
+        "minimum_overlap_ratio": minimum_ratio,
+        "overlap_denominator_basis": "min_subject_or_reference_extent",
+    }
+
+
 def _evaluate_bounds_relation(
     relation: dict[str, Any],
     subject: dict[str, list[float]],
@@ -523,6 +587,31 @@ def _evaluate_bounds_relation(
                 )
             )
         return max(value[0] for value in values), values[0][1], values[0][2], metrics
+    if kind == "bbox_overlap":
+        axes_value = relation.get("axes")
+        if not isinstance(axes_value, list) or not all(
+            isinstance(value, str) for value in axes_value
+        ):
+            raise ValueError("BBox-overlap axes must be a string array")
+        mode = str(tolerance.get("mode", "relative"))
+        allowed = float(tolerance.get("value", 0.01))
+        minimum_ratio = float(relation.get("minimum_overlap_ratio", 0.05))
+        if mode != "relative":
+            raise ValueError("BBox-overlap tolerance must use relative mode")
+        if not math.isfinite(allowed) or allowed <= 0.0:
+            raise ValueError("BBox-overlap tolerance must be finite and positive")
+        if allowed >= minimum_ratio:
+            raise ValueError(
+                "BBox-overlap tolerance must be smaller than minimum_overlap_ratio"
+            )
+        residual, overlap_metrics = _bbox_overlap_metrics(
+            subject,
+            reference,
+            axes_value,
+            minimum_ratio,
+        )
+        metrics.update(overlap_metrics)
+        return residual, allowed, mode, metrics
     if kind == "surface_contact":
         axis_name = str(relation["axis"])
         axis = _AXIS[axis_name]

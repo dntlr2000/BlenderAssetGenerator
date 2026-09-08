@@ -1070,6 +1070,7 @@ def get_modeling_capabilities() -> dict:
                 "center_plane",
                 "coaxial",
                 "bbox_containment",
+                "bbox_overlap",
                 "surface_contact",
                 "side_specific",
                 "bilateral_pair",

@@ -488,6 +488,109 @@
       "title": "BBoxContainmentRelationship",
       "type": "object"
     },
+    "BBoxOverlapRelationship": {
+      "additionalProperties": false,
+      "description": "Require broad-phase interval overlap on every selected assembly-frame axis.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bbox_overlap",
+          "default": "bbox_overlap",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "minimum_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "BBoxOverlapRelationship",
+      "type": "object"
+    },
     "BilateralPairRelationship": {
       "additionalProperties": false,
       "description": "Require two peer subjects to mirror around one reference center plane.",
@@ -1470,6 +1573,7 @@
             "axis_alignment": "#/$defs/AxisAlignmentRelationship",
             "axis_clearance": "#/$defs/AxisClearanceRelationship",
             "bbox_containment": "#/$defs/BBoxContainmentRelationship",
+            "bbox_overlap": "#/$defs/BBoxOverlapRelationship",
             "bilateral_pair": "#/$defs/BilateralPairRelationship",
             "center_plane": "#/$defs/CenterPlaneRelationship",
             "coaxial": "#/$defs/CoaxialRelationship",
@@ -1487,6 +1591,9 @@
           },
           {
             "$ref": "#/$defs/BBoxContainmentRelationship"
+          },
+          {
+            "$ref": "#/$defs/BBoxOverlapRelationship"
           },
           {
             "$ref": "#/$defs/SurfaceContactRelationship"

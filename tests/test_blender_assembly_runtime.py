@@ -11,6 +11,8 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from codex_blender_modeler.analysis.assembly import AssemblyBounds, _evaluate_pair
+from codex_blender_modeler.analysis.models import BBoxOverlapRelationship
 from codex_blender_modeler.blender_runner import run_blender
 from codex_blender_modeler.config import get_settings
 from codex_blender_modeler.qa.multiview_sanity import (
@@ -39,6 +41,7 @@ def _load_runtime(monkeypatch: pytest.MonkeyPatch):
         / "blender_scripts"
         / "assembly_runtime.py"
     )
+    monkeypatch.syspath_prepend(str(path.parent))
     spec = importlib.util.spec_from_file_location("_test_assembly_runtime", path)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
@@ -116,6 +119,95 @@ def test_runtime_contact_and_bilateral_checks_match_host_semantics(
     )
     assert bilateral_residual == pytest.approx(0.2)
     assert bilateral_residual > bilateral_tolerance
+
+
+def test_runtime_bbox_overlap_matches_contract_metrics_and_fails_closed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Score genuine overlap while rejecting disjoint, degenerate, or malformed inputs."""
+
+    runtime = _load_runtime(monkeypatch)
+    relation = {
+        "kind": "bbox_overlap",
+        "axes": ["X", "Y"],
+        "minimum_overlap_ratio": 0.25,
+        "tolerance": {"mode": "relative", "value": 0.01},
+    }
+    reference = {"min": [-5.0, -1.0, -1.0], "max": [5.0, 1.0, 1.0]}
+    partial = {"min": [-6.0, -0.2, -0.5], "max": [-4.0, 0.2, 0.5]}
+    residual, allowed, mode, metrics = runtime._evaluate_bounds_relation(
+        relation,
+        partial,
+        reference,
+        None,
+    )
+    assert residual == pytest.approx(0.0)
+    assert allowed == pytest.approx(0.01)
+    assert mode == "relative"
+    assert metrics["overlap_length_m_by_axis"] == {"X": 1.0, "Y": 0.4}
+    assert metrics["overlap_ratio_by_axis"] == {"X": 0.5, "Y": 1.0}
+    assert metrics["minimum_overlap_ratio"] == pytest.approx(0.25)
+    assert metrics["overlap_denominator_basis"] == (
+        "min_subject_or_reference_extent"
+    )
+    assert metrics["evaluation_basis"] == (
+        "evaluated_bbox_corners_in_assembly_frame_meters"
+    )
+    host_relation = BBoxOverlapRelationship.model_validate(
+        {
+            **relation,
+            "id": "overlap.parity",
+            "subject_id": "asset.subject",
+            "reference_id": "asset.reference",
+        }
+    )
+    host_result = _evaluate_pair(
+        host_relation,
+        AssemblyBounds(0, tuple(partial["min"]), tuple(partial["max"])),
+        AssemblyBounds(0, tuple(reference["min"]), tuple(reference["max"])),
+        None,
+    )
+    assert host_result[0] == pytest.approx(residual)
+    assert host_result[1] == pytest.approx(allowed)
+    assert host_result[2] == mode
+    assert host_result[4] == metrics
+
+    disjoint = {"min": [6.0, -0.2, -0.5], "max": [7.0, 0.2, 0.5]}
+    residual, allowed, _, metrics = runtime._evaluate_bounds_relation(
+        relation,
+        disjoint,
+        reference,
+        None,
+    )
+    assert residual == pytest.approx(0.25)
+    assert residual > allowed
+    assert metrics["overlap_ratio_by_axis"]["X"] == pytest.approx(0.0)
+
+    for invalid_relation, invalid_subject, message in (
+        ({**relation, "axes": ["Y", "Y"]}, partial, "unique"),
+        (
+            {**relation, "tolerance": {"mode": "meters", "value": 0.01}},
+            partial,
+            "relative mode",
+        ),
+        (
+            relation,
+            {"min": [0.0, 0.0, 0.0], "max": [0.0, 1.0, 1.0]},
+            "zero-sized",
+        ),
+        (
+            relation,
+            {"min": [float("nan"), 0.0, 0.0], "max": [1.0, 1.0, 1.0]},
+            "finite",
+        ),
+    ):
+        with pytest.raises(ValueError, match=message):
+            runtime._evaluate_bounds_relation(
+                invalid_relation,
+                invalid_subject,
+                reference,
+                None,
+            )
 
 
 def test_runtime_axis_alignment_and_clearance_match_host_semantics(

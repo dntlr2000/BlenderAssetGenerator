@@ -438,6 +438,10 @@ signed longitudinal/lateral/vertical frame과 directed `axis_alignment`로 검�
 `assembly_relationships`에 별도로 보존됩니다. 마스크가 없으면 이 객체별 지표는
 degraded/unscorable이며 bbox 정밀도로 대체하지 않습니다.
 
+`bbox_overlap`은 선택한 assembly-frame 축마다 두 bbox 중 더 작은 extent를 분모로 한
+interval overlap 비율을 검사합니다. 이는 containment나 triangle 접촉을 뜻하지 않으며,
+disjoint 또는 zero-extent bounds와 non-relative tolerance는 fail-closed입니다.
+
 같은 5-view host 진단을 workflow 밖에서 별도로 실행할 때는 다음 공개 표면을
 사용할 수 있습니다.
 

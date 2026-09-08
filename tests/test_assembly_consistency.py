@@ -15,7 +15,12 @@ from codex_blender_modeler.analysis.assembly import (
 )
 from codex_blender_modeler.analysis.models import AssemblyValidationReport, ModelingPlan
 from codex_blender_modeler.build_provenance import collect_build_provenance
+from codex_blender_modeler.mcp_server import get_modeling_capabilities
 from codex_blender_modeler.models import SceneSpec
+from codex_blender_modeler.orchestration.planner import (
+    _assembly_consistency_instructions,
+    _scene_assembly_instructions,
+)
 from codex_blender_modeler.validation import load_scene_spec
 
 
@@ -137,6 +142,15 @@ def _spatial_plan() -> ModelingPlan:
                     "subject_id": "asset.guard",
                     "reference_id": "asset.root",
                     "axes": ["X", "Y", "Z"],
+                },
+                {
+                    "id": "overlap.guard",
+                    "kind": "bbox_overlap",
+                    "subject_id": "asset.guard",
+                    "reference_id": "asset.root",
+                    "axes": ["X", "Y", "Z"],
+                    "minimum_overlap_ratio": 0.25,
+                    "tolerance": {"mode": "relative", "value": 0.01},
                 },
                 {
                     "id": "contact.sight",
@@ -283,6 +297,18 @@ def test_assembly_schemas_match_strict_host_contracts() -> None:
         assert schema == model.model_json_schema()
 
 
+def test_bbox_overlap_is_disclosed_on_public_and_authoring_surfaces() -> None:
+    """Keep MCP capability discovery and both authoring prompts aligned with the union."""
+
+    kinds = get_modeling_capabilities()["assembly_consistency"]["relationship_kinds"]
+    instructions = [
+        *_assembly_consistency_instructions(),
+        *_scene_assembly_instructions(),
+    ]
+    assert "bbox_overlap" in kinds
+    assert sum("bbox_overlap" in instruction for instruction in instructions) >= 2
+
+
 def test_spatial_plan_rejects_unclassified_or_unrelated_attached_objects() -> None:
     """Spatial authored plans fail closed when assembly classification is incomplete."""
 
@@ -311,6 +337,79 @@ def test_side_specific_requires_non_inferred_evidence() -> None:
     side["evidence_status"] = "inferred"
     with pytest.raises(ValidationError, match="side_specific"):
         ModelingPlan.model_validate(payload)
+
+
+def test_bbox_overlap_contract_rejects_ambiguous_or_permissive_inputs() -> None:
+    """Reject duplicate axes, absolute tolerance, and disjoint-permitting tolerance."""
+
+    payload = _spatial_plan().model_dump(mode="json")
+    overlap = next(
+        item for item in payload["assembly_relationships"] if item["kind"] == "bbox_overlap"
+    )
+    overlap["axes"] = ["Y", "Y"]
+    with pytest.raises(ValidationError, match="axes must be unique"):
+        ModelingPlan.model_validate(payload)
+
+    payload = _spatial_plan().model_dump(mode="json")
+    overlap = next(
+        item for item in payload["assembly_relationships"] if item["kind"] == "bbox_overlap"
+    )
+    overlap["tolerance"] = {"mode": "meters", "value": 0.01}
+    with pytest.raises(ValidationError, match="relative mode"):
+        ModelingPlan.model_validate(payload)
+
+    payload = _spatial_plan().model_dump(mode="json")
+    overlap = next(
+        item for item in payload["assembly_relationships"] if item["kind"] == "bbox_overlap"
+    )
+    overlap["tolerance"]["value"] = overlap["minimum_overlap_ratio"]
+    with pytest.raises(ValidationError, match="smaller than minimum_overlap_ratio"):
+        ModelingPlan.model_validate(payload)
+
+
+def test_bbox_overlap_accepts_intersection_without_containment_and_rejects_disjoint() -> None:
+    """Distinguish truthful broad overlap from containment and detached intervals."""
+
+    plan = _spatial_plan()
+    partial_bounds = _bounds()
+    partial_bounds["asset.guard"] = [
+        AssemblyBounds(0, (-6.0, -0.2, -0.9), (-4.0, 0.2, 0.1))
+    ]
+    partial = evaluate_assembly_bounds(plan, _scene(), partial_bounds)
+    containment = next(
+        item
+        for item in partial.checks
+        if item.relation_id == "contain.guard" and item.id.startswith("assembly.bounds")
+    )
+    overlap = next(
+        item
+        for item in partial.checks
+        if item.relation_id == "overlap.guard" and item.id.startswith("assembly.bounds")
+    )
+    assert containment.status == "failed"
+    assert overlap.status == "passed"
+    assert overlap.residual == pytest.approx(0.0)
+    assert overlap.tolerance == pytest.approx(0.01)
+    assert overlap.tolerance_mode == "relative"
+    assert overlap.metrics["overlap_length_m_by_axis"]["X"] == pytest.approx(1.0)
+    assert overlap.metrics["overlap_ratio_by_axis"]["X"] == pytest.approx(0.5)
+    assert overlap.metrics["overlap_denominator_basis"] == (
+        "min_subject_or_reference_extent"
+    )
+
+    disjoint_bounds = _bounds()
+    disjoint_bounds["asset.guard"] = [
+        AssemblyBounds(0, (6.0, -0.2, -0.9), (7.0, 0.2, 0.1))
+    ]
+    disjoint = evaluate_assembly_bounds(plan, _scene(), disjoint_bounds)
+    overlap = next(
+        item
+        for item in disjoint.checks
+        if item.relation_id == "overlap.guard" and item.id.startswith("assembly.bounds")
+    )
+    assert overlap.status == "failed"
+    assert overlap.residual == pytest.approx(0.25)
+    assert overlap.metrics["overlap_ratio_by_axis"]["X"] == pytest.approx(0.0)
 
 
 def test_required_orientation_and_clearance_checks_are_explicit_and_complete() -> None:

@@ -16,6 +16,7 @@ from .models import (
     AxisAlignmentRelationship,
     AxisClearanceRelationship,
     BBoxContainmentRelationship,
+    BBoxOverlapRelationship,
     BilateralPairRelationship,
     CenterPlaneRelationship,
     CoaxialRelationship,
@@ -472,6 +473,46 @@ def _transverse_overlap_metrics(
     )
 
 
+def _bbox_overlap_metrics(
+    subject: AssemblyBounds,
+    reference: AssemblyBounds,
+    axes: Sequence[str],
+    minimum_ratio: float,
+) -> tuple[float, dict[str, Any]]:
+    """Measure selected-axis bbox overlap against the smaller operand extent."""
+
+    overlap_lengths: dict[str, float] = {}
+    overlap_ratios: dict[str, float] = {}
+    for axis_name in axes:
+        axis = _AXIS[axis_name]
+        denominator = min(subject.dimensions[axis], reference.dimensions[axis])
+        if denominator <= 1.0e-12:
+            raise ValueError(
+                f"BBox-overlap axis {axis_name} has a zero-sized evaluated bound"
+            )
+        overlap = max(
+            0.0,
+            min(subject.maximum[axis], reference.maximum[axis])
+            - max(subject.minimum[axis], reference.minimum[axis]),
+        )
+        overlap_lengths[axis_name] = overlap
+        overlap_ratios[axis_name] = overlap / denominator
+    residual = max(
+        max(minimum_ratio - ratio, 0.0) for ratio in overlap_ratios.values()
+    )
+    return residual, {
+        "evaluation_basis": "evaluated_bbox_corners_in_assembly_frame_meters",
+        "overlap_length_m_by_axis": {
+            key: round(value, 9) for key, value in sorted(overlap_lengths.items())
+        },
+        "overlap_ratio_by_axis": {
+            key: round(value, 9) for key, value in sorted(overlap_ratios.items())
+        },
+        "minimum_overlap_ratio": minimum_ratio,
+        "overlap_denominator_basis": "min_subject_or_reference_extent",
+    }
+
+
 def _evaluate_pair(
     relation: AssemblyRelationship,
     subject: AssemblyBounds,
@@ -549,6 +590,21 @@ def _evaluate_pair(
             relation.tolerance.value,
             relation.tolerance.mode,
             f"bbox_containment axes={relation.axes}",
+            metrics,
+        )
+    if isinstance(relation, BBoxOverlapRelationship):
+        residual, overlap_metrics = _bbox_overlap_metrics(
+            subject,
+            reference,
+            relation.axes,
+            relation.minimum_overlap_ratio,
+        )
+        metrics.update(overlap_metrics)
+        return (
+            residual,
+            relation.tolerance.value,
+            relation.tolerance.mode,
+            f"bbox_overlap axes={relation.axes}",
             metrics,
         )
     if isinstance(relation, SurfaceContactRelationship):

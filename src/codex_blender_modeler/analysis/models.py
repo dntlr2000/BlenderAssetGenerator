@@ -273,6 +273,31 @@ class BBoxContainmentRelationship(AssemblyRelationshipBase):
         return self
 
 
+class BBoxOverlapRelationship(AssemblyRelationshipBase):
+    """Require broad-phase interval overlap on every selected assembly-frame axis."""
+
+    kind: Literal["bbox_overlap"] = "bbox_overlap"
+    axes: list[Axis] = Field(min_length=1, max_length=3)
+    minimum_overlap_ratio: float = Field(default=0.05, gt=0, le=1)
+    tolerance: AssemblyTolerance = Field(
+        default_factory=lambda: AssemblyTolerance(mode="relative", value=0.01)
+    )
+
+    @model_validator(mode="after")
+    def validate_overlap_contract(self) -> BBoxOverlapRelationship:
+        """Keep overlap axes unique and make every disjoint interval fail closed."""
+
+        if len(self.axes) != len(set(self.axes)):
+            raise ValueError("BBox-overlap axes must be unique")
+        if self.tolerance.mode != "relative":
+            raise ValueError("BBox-overlap tolerance must use relative mode")
+        if self.tolerance.value >= self.minimum_overlap_ratio:
+            raise ValueError(
+                "BBox-overlap tolerance must be smaller than minimum_overlap_ratio"
+            )
+        return self
+
+
 class SurfaceContactRelationship(AssemblyRelationshipBase):
     """Require one subject bound face to meet one reference bound face."""
 
@@ -422,6 +447,7 @@ AssemblyRelationship = Annotated[
     CenterPlaneRelationship
     | CoaxialRelationship
     | BBoxContainmentRelationship
+    | BBoxOverlapRelationship
     | SurfaceContactRelationship
     | SideSpecificRelationship
     | BilateralPairRelationship
