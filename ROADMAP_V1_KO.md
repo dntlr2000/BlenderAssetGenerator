@@ -1210,7 +1210,19 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: e37f230 E canary의 parametric policy postcondition 결함을 rollback 보존 후 수정·회귀 통과, fresh baseline/scope 재시작 준비]
+8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: 47e3928의 1 production/3 review/1 technical failure 보존, Laser 예산 오류 분류 수정과 새 유한 funding 계약 회귀 진행]
+   - 2026-09-09 재검증에서 47e3928 캠페인의 실제 개선은 1/5, 인간 수용은 0/5다. 기존 terminal과
+     approval/package/history를 보존하며 Activation 적격으로 재분류하지 않는다.
+   - Laser의 실제 21-object 후보는 materialization 21 + geometry build 1을 요구했으나 root build 상한은
+     14였다. 후보/현재 입력 검증은 통과했고 Blender·canonical promotion 이전에 예산 예외가 발생했다.
+     source `3956274`는 이를 policy 발행 전 job-local candidate-budget failure로 분류하고 receipt가 있는
+     crash continuation에서는 exact 적용 후 증거를 재사용한다.
+   - 새 선택형 funding epoch는 structural 최대 3, shared local/material 최대 2, strategy switch 1을
+     실제 materialization/build/closure/QA/promotion 비용과 함께 고정한다. 동일 reference의 과거 소비량은
+     additive lifetime 합계에 남기며 이름 변경, 이미 소비한 epoch 재사용과 concurrent epoch를 거절한다.
+   - 새 전체 회귀와 Blender/V0.7~V0.9/AQ gate를 통과한 clean source에서 manifest → baseline → readiness →
+     exact scope를 다시 작성한다. scope SHA 승인 전 새 캠페인은 시작하지 않는다. sequence 1의 정상 terminal,
+     source 불변·canonical corruption 0·실제 paired improvement·중대 구조 결함 없음 확인 후에만 2~5를 연다.
    - A: 기존 실패 evidence를 변경하지 않고 높은 contour/bbox 점수와 잘못된 부피의 공존을 재현;
      정상 volumetric/shell/sheet/cloth/균일 재질 positive control과 missing evidence/명시적 N/A를 구분
    - 관찰·불확실성/3D 가설, 구조 우선 저작, source-bound nonhuman finding, 실제 bounded reentry,

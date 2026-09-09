@@ -678,3 +678,26 @@ human disposition 0/5는 새 source의 성과로 재사용하지 않는다. 이 
 - Blender 5.0.1에서 geometry promotion, hypothesis 전달, 다회차 revision vertical 3 passed (`.t/rf09/laser-blender2.*`). 적용 완료된 policy와 exact receipt의 재사용을 확인했다. 이 fixture는 production reference receipt를 구성하지 않으므로 전체 production supervisor 재개 성공을 주장하지 않는다.
 - GLB/FBX/OBJ 실제 export probe 통과. 명령·버전·결과는 `.t/rf09/laser-compat/`에 새로 기록했으며 기존 compatibility report를 덮어쓰지 않았다.
 - 위 결과는 host 결함 수정 검증이다. 기존 5자산의 시각 개선·인간 수용·Activation 실적을 추가하거나 재분류하지 않는다.
+
+### 2026-09-09 유한 수정 예산과 lifetime 보존 계약
+
+선택적 `FidelityBudgetEpochV01`은 같은 reference SHA의 기존 AQ v2 history를 읽기 전용으로 결속한다.
+budget 0.3.0과 quality loop 0.3.0을 함께 선택할 때만 초기 object 수, 구조 수정 최대 3회,
+parametric/material 합계 최대 2회의 실제 materialization·build·closure·QA·promotion 비용을 예약한다.
+상한을 임의로 늘리거나 예전 session을 재개하지 않는다. 이름을 바꿔도 과거 소비량과 epoch 사용 여부를
+이어받으며, 계획 뒤 history가 달라지면 실행 전에 거절한다. closure는 별도 6-process 예산을 사용한다.
+
+- focused funding/receipt 검증 13 passed. stale source, mixed receipt, duplicate reservation,
+  crash/resume, 공유 local quota, active/reused epoch, 예산 소진 시 exact attempt 보존을 포함한다.
+- 전체 Python `.t/rf09/funding-full3.*`: 2,302 passed / 75 skipped. 실제 Blender
+  `.t/rf09/funding-blender3.*`: 4 passed. 초기 geometry policy의 exact idempotent promotion,
+  실제 material graph compile/rebuild, structural re-entry, 후속 전략 예산을 검증했다.
+  generic closure의 6-process 예산은 별도 resource ledger이며 AQ build 단위와 섞지 않는다.
+- material phase 및 closure의 strict budget reader를 명시적 0.2/0.3 dispatch로 연결했다.
+  기존 canonical SceneSpec 0.2.0, AQ state 0.2.0, 프로젝트 0.9.0과 기존 evidence는 유지한다.
+- 시작 snapshot 35,187개 파일을 재해시했으며 변경·읽기 실패 0개다.
+  `.t/rf09/preservation-after-funding.json`은 그 범위를 기록하며 전체 저장소의 과거 snapshot으로
+  확대 해석하지 않는다. 별도 AQ/delivery gate와 clean source baseline은 최종 결속 단계에서 확인한다.
+
+이 기록은 실물 reference의 개선이나 인간 수락을 추가하지 않는다. 기존 47e 캠페인의 production 1/5,
+review 3/5, failure 1/5, paired improvement 1/5, human quality disposition 0/5를 유지한다.

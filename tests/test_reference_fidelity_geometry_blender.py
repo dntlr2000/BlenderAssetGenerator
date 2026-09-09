@@ -34,13 +34,28 @@ pytestmark = pytest.mark.skipif(
 
 
 def _bound_fidelity_geometry_fixture(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, funded: bool = False,
 ) -> tuple[Path, str]:
-    """Build one real initial AQ geometry round and return its bound session."""
+    """Build an initial AQ geometry round using an explicit legacy or funded test contract."""
 
     old_modeling = geometry_smoke._modeling_plan
     old_advance = geometry_smoke._advance_reference
     old_image_new = geometry_smoke.Image.new
+    old_plan = geometry_smoke.plan_autonomous_static_prop_v2
+
+    def funded_plan(request, **kwargs):
+        """Select the finite companion before creating any test-owned root authorization."""
+
+        from codex_blender_modeler.autonomy_v2.fidelity_budget_service import (
+            plan_fidelity_budget_epoch,
+        )
+
+        kwargs["fidelity_budget_plan"] = plan_fidelity_budget_epoch(
+            epoch_id="fixture-epoch", job_id=kwargs["job_id"],
+            reference_path=kwargs["reference_path"],
+            initial_object_limit=1, correction_object_limit=1,
+        )
+        return old_plan(request, **kwargs)
 
     def informative_reference(mode, size, color=0):
         """Give the vertical fixture measurable image detail instead of missing evidence."""
@@ -125,6 +140,18 @@ def _bound_fidelity_geometry_fixture(
             ),
             allow_disabled_experimental=True,
         )
+        if funded:
+            from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+                AQQualityRevisionLoopV03,
+            )
+
+            epoch = _budget.funding
+            loop = AQQualityRevisionLoopV03.model_validate({
+                **loop.model_dump(), "schema_version": "0.3.0", "funding": epoch,
+                "structural_revision_limit": epoch.structural_rounds,
+                "initial_pipeline_reserve": RevisionCostV01(**epoch.initial_cost()),
+                "cost_limit": RevisionCostV01(**epoch.revision_cost()),
+            })
         proposal = root / "fidelity/proposed_loop.json"
         publish(root, proposal, loop)
         bind_quality_revision_loop(job_id, session_id, proposal)
@@ -133,6 +160,8 @@ def _bound_fidelity_geometry_fixture(
     monkeypatch.setattr(geometry_smoke, "_modeling_plan", spatial_modeling)
     monkeypatch.setattr(geometry_smoke, "_advance_reference", bind_then_advance)
     monkeypatch.setattr(geometry_smoke.Image, "new", informative_reference)
+    if funded:
+        monkeypatch.setattr(geometry_smoke, "plan_autonomous_static_prop_v2", funded_plan)
     # Reuse the full legacy smoke's real controller/policy/build/idempotent promotion assertions.
     geometry_smoke.test_geometry_controller_candidate_builds_and_promotes_exactly(
         tmp_path, monkeypatch

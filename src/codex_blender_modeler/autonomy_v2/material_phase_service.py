@@ -82,11 +82,13 @@ from .material_phase_models import (
 )
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyStateV2,
     BudgetUsageV2,
     RootAuthorizationV2,
+    parse_autonomy_budget,
 )
 
 ModelT = TypeVar("ModelT", bound=BaseModel)
@@ -195,8 +197,11 @@ def _read_exact_model(
     path = validate_v2_artifact(root, artifact)
     try:
         with open(native_io_path(path), "rb") as handle:
-            return model.model_validate_json(handle.read())
-    except (OSError, ValidationError) as exc:
+            payload = handle.read()
+            if model is AutonomyBudgetV2:
+                return parse_autonomy_budget(payload)
+            return model.model_validate_json(payload)
+    except (OSError, ValueError) as exc:
         raise MaterialPhaseError(f"invalid {model.__name__} material evidence") from exc
 
 
@@ -1184,6 +1189,10 @@ def _validate_budget_binding(
         plan.session_id,
     ):
         raise MaterialPhaseError("material phase budget differs from its plan binding")
+    if isinstance(bound, AutonomyBudgetV03):
+        from .fidelity_budget_service import require_funded_loop
+
+        require_funded_loop(root, plan.session_id, bound)
 
 
 def _canonical_scene_and_scope(

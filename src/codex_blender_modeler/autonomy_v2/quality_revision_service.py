@@ -22,8 +22,15 @@ from ..reference_fidelity.service import (
     read_artifact,
     validate_review_evidence,
 )
-from .models import AQV2Artifact, AutonomyBudgetV2, AutonomyPlanV2, AutonomyStateV2
+from .models import (
+    AQV2Artifact,
+    AutonomyBudgetV03,
+    AutonomyPlanV2,
+    AutonomyStateV2,
+    parse_autonomy_budget,
+)
 from .quality_revision_budget import (
+    funded_route_usage,
     require_strategy_change,
     reserve_revision,
     select_revision_route,
@@ -31,6 +38,7 @@ from .quality_revision_budget import (
 from .quality_revision_models import (
     AQQualityRevisionLoop,
     AQQualityRevisionLoopV02,
+    AQQualityRevisionLoopV03,
     QualityAttemptV01,
     QualityRenderReservationV01,
     RevisionCostV01,
@@ -236,6 +244,10 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
             raise PermissionError("quality revision loop must bind before initial geometry")
         if (loop.job_id, loop.session_id) != (job_id, session_id):
             raise ValueError("loop identity differs from AQ root")
+        if isinstance(loop, AQQualityRevisionLoopV03) != isinstance(budget, AutonomyBudgetV03):
+            raise ValueError("funded root and loop versions must be selected together")
+        if isinstance(loop, AQQualityRevisionLoopV03) and loop.funding != budget.funding:
+            raise ValueError("loop funding differs from the exact root budget epoch")
         if loop.initial_state != FidelityArtifact(
             path=current_artifact.path, sha256=current_artifact.sha256
         ):
@@ -971,26 +983,39 @@ def quality_revision_boundary(
     if route in {"structural_reentry", "parametric_revision", "material_revision"}:
         from ..models import SceneSpec
 
-        budget = AutonomyBudgetV2.model_validate_json(
+        budget = parse_autonomy_budget(
             read_artifact(root, FidelityArtifact(path=plan.budget.path, sha256=plan.budget.sha256))
         )
         minimum = 1 if route == "material_revision" else 2
+        promotions = minimum
         scene = SceneSpec.model_validate_json(read_artifact(root, attempt.scene_spec))
         materializations = len(scene.objects) if route != "material_revision" else 0
+        funded_insufficient = False
+        if isinstance(loop, AQQualityRevisionLoopV03):
+            costs = loop.funding.route_cost(route)
+            minimum, promotions = costs["builds"], costs["promotions"]
+            funded_insufficient = (
+                funded_route_usage(last)[route] >= loop.funding.route_limits()[route]
+                or materializations > costs["materializations"]
+            )
+            materializations = costs["materializations"]
         renders = len(_render_reservations(root, plan.session_id, loop_artifact))
         used = last.cost_used if last else RevisionCostV01()
         insufficient = (
-            state.budget_usage.material_rounds >= budget.material_rounds
+            funded_insufficient
+            or state.budget_usage.material_rounds >= budget.material_rounds
             or state.budget_usage.total_blender_builds + minimum + materializations
             > budget.total_blender_builds
-            or state.budget_usage.canonical_promotions + minimum > budget.canonical_promotions
-            or state.budget_usage.total_quality_evaluations + renders + 3
+            or state.budget_usage.canonical_promotions + promotions > budget.canonical_promotions
+            or state.budget_usage.total_quality_evaluations + renders
+            + (4 if isinstance(loop, AQQualityRevisionLoopV03) else 3)
             > budget.total_quality_evaluations
             or used.builds + minimum > loop.cost_limit.builds
             or used.materializations + materializations > loop.cost_limit.materializations
-            or used.promotions + minimum > loop.cost_limit.promotions
+            or used.promotions + promotions > loop.cost_limit.promotions
             or used.closure_runs + 1 > loop.cost_limit.closure_runs
-            or used.qa_runs + 1 > loop.cost_limit.qa_runs
+            or used.qa_runs + (3 if isinstance(loop, AQQualityRevisionLoopV03) else 1)
+            > loop.cost_limit.qa_runs
         )
         if insufficient:
             route = "review_required"
@@ -1084,6 +1109,10 @@ def begin_quality_reentry(
             raise PermissionError("remaining AQ promotion budget cannot cover the correction")
         minimum_promotions = 1 if route == "material_revision" else 2
         minimum_builds = 1 if route == "material_revision" else 2
+        if isinstance(loop, AQQualityRevisionLoopV03):
+            if cost.model_dump() != loop.funding.route_cost(route):
+                raise PermissionError("correction must reserve its exact funded route cost")
+            minimum_builds += 1
         if cost.promotions < minimum_promotions or cost.builds < minimum_builds:
             raise PermissionError(
                 "correction must reserve every geometry/material rebuild and promotion"
@@ -1101,7 +1130,7 @@ def begin_quality_reentry(
         if (
             state.budget_usage.total_quality_evaluations
             + len(_render_reservations(root, session_id, loop_artifact))
-            + 2
+            + (1 if isinstance(loop, AQQualityRevisionLoopV03) else 2)
             + cost.qa_runs
             > budget.total_quality_evaluations
         ):

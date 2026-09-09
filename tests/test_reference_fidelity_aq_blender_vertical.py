@@ -799,3 +799,37 @@ def test_actual_blender_revision_vertical_keeps_round_receipts_and_stops_safely(
     )
     assert sha256_file(reference_path) == reference_sha
     assert not list(root.rglob("*activation*receipt*.json"))
+
+
+def test_funded_blender_round_prices_graph_compile_and_keeps_switch_reserve(tmp_path, monkeypatch):
+    """Verify real funded receipts and retain a structural strategy reserve."""
+
+    root, session_id = _bound_fidelity_geometry_fixture(tmp_path, monkeypatch, funded=True)
+    reference_path = next((root / "input").glob("*"))
+    original_reference = sha256_file(reference_path)
+    _write_fixture_reference_mask(root, reference_path)
+    _run_material_round(root, session_id)
+    _submission, first_attempt = _submit_actual_quality_round(
+        root, session_id, run_id="funded-vertical-00", outcome="defect",
+    )
+    _, _, plan, budget, state, _artifact = _session_bundle(root.name, session_id)
+    assert state.budget_usage.total_blender_builds == 4  # 1 mesh + geometry + graph + rebuild
+    loop, _loop_artifact = load_optional_loop(root, session_id)
+    assert quality_revision_boundary(root, plan, state)["next_action"] == "structural_reentry"
+    cost = RevisionCostV01(**loop.funding.route_cost("structural_reentry"))
+    begin_structural_reentry(root.name, session_id, strategy="section-loft", cost=cost)
+    _run_structural_controller_round(root, session_id)
+    _run_material_round(root, session_id)
+    _submission, second_attempt = _submit_actual_quality_round(
+        root, session_id, run_id="funded-vertical-01", outcome="defect",
+    )
+    _, _, plan, budget, state, _artifact = _session_bundle(root.name, session_id)
+    assert state.budget_usage.total_blender_builds == 8
+    assert state.budget_usage.material_rounds == 2
+    assert state.budget_usage.canonical_promotions == 4
+    boundary = quality_revision_boundary(root, plan, state)
+    assert boundary["next_action"] == "structural_reentry"
+    assert budget.total_blender_builds - state.budget_usage.total_blender_builds == 12
+    assert first_attempt != second_attempt
+    assert sha256_file(reference_path) == original_reference
+    assert state.source_freeze is None

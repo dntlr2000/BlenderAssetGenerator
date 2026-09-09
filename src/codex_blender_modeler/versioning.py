@@ -64,3 +64,8 @@ SKILL_ORCHESTRATION_SCHEMA_VERSION = "0.1.0"
 
 # Storage retention is a CLI-only operational companion and grants no evidence authority.
 STORAGE_RETENTION_SCHEMA_VERSION = "0.1.0"
+
+# Explicit finite fidelity epochs are optional; AQ state and authorization stay 0.2.0.
+FIDELITY_BUDGET_EPOCH_SCHEMA_VERSION = "0.1.0"
+AUTONOMY_FIDELITY_BUDGET_SCHEMA_VERSION = "0.3.0"
+AQ_QUALITY_REVISION_FUNDED_LOOP_SCHEMA_VERSION = "0.3.0"

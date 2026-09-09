@@ -61,11 +61,13 @@ from .delivery_service import (
 from .execution_profile_service import validate_plan_or_execution_phase_profile
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyStateV2,
     BudgetUsageV2,
     RootAuthorizationV2,
+    parse_autonomy_budget,
 )
 from .quality_revision_models import StructuralReentryPlanV01
 
@@ -899,6 +901,11 @@ def preflight_geometry_candidate_budget_v2(
 
     from .quality_revision_service import active_reentry, load_optional_loop
 
+    if isinstance(budget, AutonomyBudgetV03):
+        from .fidelity_budget_service import require_funded_loop
+
+        require_funded_loop(root, plan.session_id, budget)
+
     if state.next_action != "validate_candidate" or not state.provenance:
         raise PermissionError("geometry budget preflight requires the current candidate boundary")
     result_artifact = state.provenance[-1]
@@ -1334,11 +1341,15 @@ def _validate_and_promote_geometry_core(
     planned_plan = AutonomyPlanV2.model_validate_json(
         _read_bytes(validate_v2_artifact(root, state.plan))
     )
-    planned_budget = AutonomyBudgetV2.model_validate_json(
+    planned_budget = parse_autonomy_budget(
         _read_bytes(validate_v2_artifact(root, plan.budget))
     )
     if plan != planned_plan or budget != planned_budget:
         raise PermissionError("AQ v2 plan or budget differs from immutable session evidence")
+    if isinstance(budget, AutonomyBudgetV03):
+        from .fidelity_budget_service import require_funded_loop
+
+        require_funded_loop(root, plan.session_id, budget)
     authorization_path = validate_v2_artifact(root, plan.root_authorization)
     planned_authorization = RootAuthorizationV2.model_validate_json(
         _read_bytes(authorization_path)

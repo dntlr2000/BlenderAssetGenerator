@@ -56,6 +56,7 @@ from .autonomy_v2 import (
     get_autonomy_v2_status,
     get_escalation_status,
     get_one_prompt_status,
+    parse_autonomy_budget,
     plan_approval_envelope,
     plan_autonomous_static_prop_v2,
     plan_one_prompt_run,
@@ -427,7 +428,7 @@ def _load_codex_image_material_promotion_inputs(
     base_status = get_autonomy_v2_status(job_id, session_id)
     budget_path = validate_v2_artifact(root, plan.budget)
     with open(native_io_path(budget_path), "rb") as handle:
-        budget = AutonomyBudgetV2.model_validate_json(handle.read())
+        budget = parse_autonomy_budget(handle.read())
     state_artifact = AQV2Artifact.model_validate(base_status["state_artifact"])
     state_path = validate_v2_artifact(root, state_artifact)
     with open(native_io_path(state_path), "rb") as handle:

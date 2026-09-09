@@ -112,6 +112,7 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
 from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
+from codex_blender_modeler.autonomy_v2.fidelity_budget_models import FidelityBudgetEpochV01
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundaryV2,
@@ -122,6 +123,7 @@ from codex_blender_modeler.autonomy_v2.material_phase_models import (
     MaterialPromotionIntentV2,
 )
 from codex_blender_modeler.autonomy_v2.models import (
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyCancellationV2,
     AutonomyPlanV2,
@@ -140,6 +142,7 @@ from codex_blender_modeler.autonomy_v2.models import (
 from codex_blender_modeler.autonomy_v2.quality_revision_models import (
     AQQualityRevisionLoopV01,
     AQQualityRevisionLoopV02,
+    AQQualityRevisionLoopV03,
     FidelityReviewBundleV01,
     FidelityReviewTerminalV01,
     QualityAttemptV01,
@@ -1020,6 +1023,9 @@ SCHEMAS.update({
     "structure_authoring_v01.schema.json": StructureAuthoringV01,
     "aq_quality_revision_loop_v01.schema.json": AQQualityRevisionLoopV01,
     "aq_quality_revision_loop_v02.schema.json": AQQualityRevisionLoopV02,
+    "aq_quality_revision_loop_v03.schema.json": AQQualityRevisionLoopV03,
+    "autonomy_fidelity_budget_v03.schema.json": AutonomyBudgetV03,
+    "fidelity_budget_epoch_v01.schema.json": FidelityBudgetEpochV01,
     "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
     "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
     "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,

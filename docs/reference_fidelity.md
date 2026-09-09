@@ -166,6 +166,41 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 
 ## 현재 제한과 남은 입증
 
+### 명시적 유한 funding epoch (2026-09-09)
+
+새 실행은 host planner의 선택 인자 `fidelity_budget_plan`으로 `FidelityBudgetEpochV01`을 고정할 수 있다.
+이때만 budget 0.3.0과 `AQQualityRevisionLoopV03`을 함께 선택한다. AQ state/RootAuthorization은 0.2.0,
+SceneSpec은 0.2.0, 프로젝트는 0.9.0을 유지한다. 기존 budget/loop의 bytes와 기본 CLI/MCP 동작은
+변경하지 않는다. 공개 budget reader는 정확한 0.2/0.3 버전을 dispatch하며 알 수 없는 버전은 거절한다.
+
+| 단계 | materialization | build | closure | QA/IQ 예산 | promotion |
+|---|---:|---:|---:|---:|---:|
+| 초기 저작 | 초기 object 상한 N | 3 | 1 | 3 | 2 |
+| structural/parametric 1회 | 수정 object 상한 R | 3 | 1 | 3 | 2 |
+| material 1회 | 0 | 2 | 1 | 3 | 1 |
+
+build는 geometry build와 material graph compile/rebuild를 포함하며 전체 Blender 프로세스 수가 아니다.
+closure 1회는 별도 preflight ledger의 Blender 6회(compile/build/inspect/validate/material inspect/neutral preview)를
+뜻한다. 새 epoch는 전체 `6 × (1 + S + P + M)`회 한도를 하나의 session-wide `MaterialPreflightBudget`에
+정확히 결속한다. 이 예산은 AQ build를 빌리지 않고, 승인·promotion·appearance·retry authority를 부여하지 않는다.
+실패한 closure는 소비량을 보존하며 추가 무제한 retry를 만들지 않는다. QA/IQ 3은 정상 render 1,
+IQ 1, 동일 입력의 실패 render에만 허용되는 retry 1이다. 성공한 render를 retry로 다시 실행하지 않는다.
+structural S는 최대 3, parametric P와 material M은 합계 최대 2다. 총 build 한도는
+`N + 3 + (S + P) × (R + 3) + 2M`이며 기존 Approval Envelope 상한 64 안에 들어야 한다.
+R은 초기 N을 커버해야 한다. 최초 후보나 변경 전략의 실제 object 수가 예약보다 크면 policy/Blender 전에
+거절한다. 후보를 단순히 자잘한 object로 늘리거나 구조 결함을 재질로 숨겨 비용 검사를 통과시키지 않는다.
+
+계약은 같은 reference SHA의 모든 기존 AQ v2 session을 job 이름과 무관하게 읽고, 검증된 state/예약 chain,
+session 및 closure JSON inventory digest, 별도 preflight 소비량, 관측·예약된 소비량을 함께 보존한다. 새 epoch는 과거 합계에 명시된 유한
+분량을 더한다. 옛 terminal은 재개하지 않으며 새 이름만으로 epoch를 재사용하거나 active epoch와 병행할 수
+없다. 계획 이후 과거 session이 추가·변경되면 active 실행은 다음 효과 전에 fail-closed한다.
+같은 결함·전략이 두 번 정체되면 남은 경로 예산 안에서 한 번 전략을 바꾸고, 소진 시 best-known attempt와
+remaining finding을 review evidence로 보존한다. 예약 뒤 crash는 exact ledger를 이어받고 중복 청구하지 않는다.
+
+funding proposal은 승인이 아니다. 새 캠페인에서는 clean source manifest/baseline/readiness와 함께 exact
+scope에 이 계약을 결속한 뒤 사용자 승인을 받아야 한다. 기존 campaign 실적이나 human beauty/package/
+Activation acceptance를 새 budget으로 승계하지 않는다.
+
 - typed observation/coverage와 source-bound nonhuman visual review가 구현된 것이며, arbitrary reference에서
   depth·landmark·part pose를 자동 복원하거나 자동 정답 판별하는 모델이 추가된 것은 아니다.
 - camera 기본 가설은 측정이라고 표시하지 않는다. 자동 calibration/re-render-both 실행 경로는 아직 없다.

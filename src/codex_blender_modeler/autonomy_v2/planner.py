@@ -9,7 +9,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from ..analysis.models import ModelingPlan
-from ..blender_artifacts import stable_json_digest
+from ..blender_artifacts import sha256_file, stable_json_digest
 from ..integrated_quality.v02_models import IntegratedQualityPolicyV02
 from ..production import create_asset_production_dispatch
 from ..production.controller_executor import (
@@ -24,8 +24,10 @@ from .delivery_service import (
     validate_v2_artifact,
     write_immutable_v2_model,
 )
+from .fidelity_budget_models import FidelityBudgetEpochV01
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyProfileV2,
@@ -261,6 +263,43 @@ def plan_autonomous_static_prop_v2(
     controller_execution_mode: str = "desktop_in_session",
     destination_hint: str = "engine_neutral",
     initial_budget_limits: dict[str, int] | None = None,
+    fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
+    allow_disabled_experimental: bool = False,
+) -> dict[str, object]:
+    """Plan unchanged legacy AQ or admit one explicitly funded reference-wide epoch."""
+
+    from .fidelity_budget_service import fidelity_epoch_admission
+
+    arguments = dict(
+        reference_path=reference_path, target_subject=target_subject,
+        requested_delivery_profiles=requested_delivery_profiles, job_id=job_id,
+        controller_execution_mode=controller_execution_mode, destination_hint=destination_hint,
+        initial_budget_limits=initial_budget_limits, fidelity_budget_plan=fidelity_budget_plan,
+        allow_disabled_experimental=allow_disabled_experimental,
+    )
+    if fidelity_budget_plan is None:
+        return _plan_autonomous_static_prop_v2(request, **arguments)
+    funding = FidelityBudgetEpochV01.model_validate_json(fidelity_budget_plan.model_dump_json())
+    if not allow_disabled_experimental or initial_budget_limits is not None:
+        raise PermissionError("explicit fidelity funding cannot mix with legacy budget overrides")
+    if job_id != funding.job_id or sha256_file(Path(reference_path)) != funding.reference_sha256:
+        raise ValueError("funding plan differs from the exact new job/reference scope")
+    arguments["fidelity_budget_plan"] = funding
+    with fidelity_epoch_admission(funding):
+        return _plan_autonomous_static_prop_v2(request, **arguments)
+
+
+def _plan_autonomous_static_prop_v2(
+    request: str,
+    *,
+    reference_path: str | Path,
+    target_subject: str,
+    requested_delivery_profiles: list[DeliveryProfileId],
+    job_id: str | None = None,
+    controller_execution_mode: str = "desktop_in_session",
+    destination_hint: str = "engine_neutral",
+    initial_budget_limits: dict[str, int] | None = None,
+    fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
     """Create a standard, object-only v2 session without granting later approvals."""
@@ -293,6 +332,10 @@ def plan_autonomous_static_prop_v2(
             profile != "review_only" for profile in requested_delivery_profiles
         ),
     )
+    if fidelity_budget_plan is not None:
+        resolved_budget_limits = fidelity_budget_plan.required_limits(
+            delivery_runs=sum(profile != "review_only" for profile in requested_delivery_profiles),
+        )
     profile_status, profile_activation_evidence = _runtime_profile_binding(
         allow_disabled_experimental=allow_disabled_experimental,
     )
@@ -376,6 +419,10 @@ def plan_autonomous_static_prop_v2(
     )
     if primary_reference.sha256 != primary_payload.get("sha256"):
         raise RuntimeError("standard workflow primary reference hash is inconsistent")
+    if fidelity_budget_plan is not None and (
+        primary_reference.sha256 != fidelity_budget_plan.reference_sha256
+    ):
+        raise ValueError("reference changed while creating the funded dispatch")
 
     quality_policy = IntegratedQualityPolicyV02(
         profile_id="autonomous_static_prop_v2",
@@ -408,7 +455,13 @@ def plan_autonomous_static_prop_v2(
         "quality_policy": quality_policy_artifact.sha256,
         "phase_profiles": [item.sha256 for item in phase_profiles],
     }
-    budget = AutonomyBudgetV2(
+    funded_arguments = {}
+    budget_type = AutonomyBudgetV2
+    if fidelity_budget_plan is not None:
+        budget_input["fidelity_funding"] = fidelity_budget_plan.digest()
+        funded_arguments["funding"] = fidelity_budget_plan
+        budget_type = AutonomyBudgetV03
+    budget = budget_type(
         contract_id=f"budget-{session_id}",
         budget_id=f"budget-{session_id}",
         job_id=created_job_id,
@@ -423,6 +476,7 @@ def plan_autonomous_static_prop_v2(
         provenance=[dispatch_plan_artifact, quality_policy_artifact, *phase_profiles],
         created_at=created_at,
         **resolved_budget_limits,
+        **funded_arguments,
     )
     budget_artifact = write_immutable_v2_model(
         root,

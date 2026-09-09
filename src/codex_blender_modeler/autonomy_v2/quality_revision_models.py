@@ -9,6 +9,7 @@ from pydantic import Field, model_validator
 
 from ..integrated_quality.v02_models import JobId, Sha256, StableId
 from ..reference_fidelity.models import FidelityArtifact, FidelityModel, RevisionRoute
+from .fidelity_budget_models import FidelityBudgetEpochV01
 
 
 class RevisionCostV01(FidelityModel):
@@ -72,7 +73,34 @@ class AQQualityRevisionLoopV02(AQQualityRevisionLoopV01):
         return self
 
 
-AQQualityRevisionLoop: TypeAlias = AQQualityRevisionLoopV01 | AQQualityRevisionLoopV02
+class AQQualityRevisionLoopV03(AQQualityRevisionLoopV02):
+    """Bind the same finite funding epoch as the root, including exact per-route reserves."""
+
+    schema_version: Literal["0.3.0"] = "0.3.0"
+    funding: FidelityBudgetEpochV01
+
+    @model_validator(mode="after")
+    def validate_funded_loop(self) -> Self:
+        """Require every initial and correction cost to match the immutable funded schedule."""
+
+        if self.job_id != self.funding.job_id:
+            raise ValueError("loop funding belongs to another job")
+        if self.structural_revision_limit != self.funding.structural_rounds:
+            raise ValueError("loop structural limit differs from funded reserve")
+        if self.local_revision_limit != (
+            self.funding.parametric_rounds + self.funding.material_corrections
+        ):
+            raise ValueError("loop shared local limit differs from funded reserve")
+        if self.initial_pipeline_reserve.model_dump() != self.funding.initial_cost():
+            raise ValueError("loop initial cost differs from funded reserve")
+        if self.cost_limit.model_dump() != self.funding.revision_cost():
+            raise ValueError("loop correction cost differs from funded reserve")
+        return self
+
+
+AQQualityRevisionLoop: TypeAlias = (
+    AQQualityRevisionLoopV01 | AQQualityRevisionLoopV02 | AQQualityRevisionLoopV03
+)
 
 
 def parse_quality_revision_loop(payload: bytes) -> AQQualityRevisionLoop:
@@ -87,6 +115,7 @@ def parse_quality_revision_loop(payload: bytes) -> AQQualityRevisionLoop:
     model = {
         "0.1.0": AQQualityRevisionLoopV01,
         "0.2.0": AQQualityRevisionLoopV02,
+        "0.3.0": AQQualityRevisionLoopV03,
     }.get(decoded.get("schema_version"))
     if model is None:
         raise ValueError("unsupported quality revision loop schema_version")

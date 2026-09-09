@@ -598,11 +598,11 @@ def plan_approval_envelope(
 def _load_model_from_v2_budget(root: Path, authorization: RootAuthorizationV2):
     """Load the exact immutable AQ v2 work budget referenced by RootAuthorizationV2."""
 
-    from .models import AutonomyBudgetV2
+    from .models import parse_autonomy_budget
 
     path = validate_v2_artifact(root, authorization.budget)
     with open(native_io_path(path), "rb") as handle:
-        return AutonomyBudgetV2.model_validate_json(handle.read())
+        return parse_autonomy_budget(handle.read())
 
 
 def _load_approval_boundary(

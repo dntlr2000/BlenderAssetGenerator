@@ -702,6 +702,7 @@ def _parse_common_root(
         AutonomyPlanV2,
         AutonomyProfileV2,
         RootAuthorizationV2,
+        parse_autonomy_budget,
     )
 
     model_types: dict[str, type[BaseModel]] = {
@@ -714,8 +715,10 @@ def _parse_common_root(
     }
     model_type = model_types[role]
     try:
-        parsed = model_type.model_validate_json(job_root.joinpath(*path.split("/")).read_bytes())
-    except (OSError, ValidationError) as exc:
+        payload = job_root.joinpath(*path.split("/")).read_bytes()
+        parsed = (parse_autonomy_budget(payload) if model_type is AutonomyBudgetV2
+                  else model_type.model_validate_json(payload))
+    except (OSError, ValueError) as exc:
         raise MaterialClosureCollectionError(
             [
                 MaterialClosureIssue(
@@ -863,10 +866,10 @@ def _validate_common_root_graph(
         GeometryCandidateValidationReceiptV2,
     )
     from ..autonomy_v2.models import (
-        AutonomyBudgetV2,
         AutonomyPlanV2,
         AutonomyProfileV2,
         RootAuthorizationV2,
+        parse_autonomy_budget,
     )
     from .models import (
         MaterialRepairSourceBinding,
@@ -980,7 +983,7 @@ def _validate_common_root_graph(
     authorization = RootAuthorizationV2.model_validate(parsed["aq_root_authorization"])
     plan = AutonomyPlanV2.model_validate(parsed["aq_autonomy_plan"])
     profile = AutonomyProfileV2.model_validate(parsed["aq_autonomy_profile"])
-    budget = AutonomyBudgetV2.model_validate(parsed["aq_autonomy_budget"])
+    budget = parse_autonomy_budget(parsed["aq_autonomy_budget"])
     tool_profile = PhaseToolProfile.model_validate(parsed["material_phase_tool_profile"])
     geometry = GeometryCandidateValidationReceiptV2.model_validate(
         parsed["geometry_candidate_validation_receipt"]

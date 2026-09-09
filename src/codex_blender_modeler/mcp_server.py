@@ -50,6 +50,7 @@ from .autonomy_v2 import (
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyStateV2,
+    parse_autonomy_budget,
 )
 from .autonomy_v2 import (
     advance_autonomy_v2 as advance_autonomy_v2_internal,
@@ -497,7 +498,7 @@ def _load_material_promotion_inputs(
     with open(native_io_path(plan_path), "rb") as handle:
         plan = AutonomyPlanV2.model_validate_json(handle.read())
     base_status = get_autonomy_v2_status_internal(job_id, session_id)
-    budget = AutonomyBudgetV2.model_validate(base_status["budget"])
+    budget = parse_autonomy_budget(base_status["budget"])
     state = AutonomyStateV2.model_validate(base_status["state"])
     if not state.provenance:
         raise ValueError("AQ v2 state has no formal controller or material receipt tail")

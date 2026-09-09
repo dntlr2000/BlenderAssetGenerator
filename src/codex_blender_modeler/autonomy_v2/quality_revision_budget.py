@@ -5,6 +5,7 @@ from __future__ import annotations
 from ..reference_fidelity.models import FidelityArtifact, FidelityEvaluationV01
 from .quality_revision_models import (
     AQQualityRevisionLoop,
+    AQQualityRevisionLoopV03,
     QualityAttemptV01,
     RevisionCostV01,
     RevisionLedgerEntryV01,
@@ -84,6 +85,12 @@ def reserve_revision(
     sequence = 1 if previous is None else previous.sequence + 1
     if plan.round_index != sequence:
         raise ValueError("reentry round would reset or skip the consumed budget")
+    if isinstance(loop, AQQualityRevisionLoopV03):
+        if plan.cost.model_dump() != loop.funding.route_cost(plan.route):
+            raise PermissionError("correction must use its exact fully funded route cost")
+        counts = funded_route_usage(previous)
+        if counts[plan.route] >= loop.funding.route_limits()[plan.route]:
+            raise PermissionError("funded correction route budget exhausted")
     structural = int(plan.route == "structural_reentry") + (
         previous.structural_used if previous else 0
     )
@@ -108,3 +115,16 @@ def reserve_revision(
         strategy_switches_used=switches,
         cost_used=RevisionCostV01(**values),
     )
+
+
+def funded_route_usage(previous: RevisionLedgerEntryV01 | None) -> dict[str, int]:
+    """Recover exact route counts from fixed V0.3 prices without adding or rewriting ledgers."""
+
+    if previous is None:
+        return {"structural_reentry": 0, "parametric_revision": 0, "material_revision": 0}
+    geometry = previous.cost_used.builds - 2 * previous.cost_used.closure_runs
+    return {
+        "structural_reentry": previous.structural_used,
+        "parametric_revision": geometry - previous.structural_used,
+        "material_revision": previous.cost_used.closure_runs - geometry,
+    }

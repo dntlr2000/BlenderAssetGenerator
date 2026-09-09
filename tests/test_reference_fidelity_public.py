@@ -81,9 +81,12 @@ def test_fidelity_capability_cannot_claim_activation_or_approval() -> None:
     capability = reference_fidelity_capability()
     assert capability["status"] == "disabled_experimental"
     assert capability["canonical_scene_spec"] == "0.2.0"
-    assert capability["quality_revision_loop_versions"] == ["0.1.0", "0.2.0"]
+    assert capability["quality_revision_loop_versions"] == ["0.1.0", "0.2.0", "0.3.0"]
     assert capability["quality_revision_routing"]["0.1.0"] == "legacy_strictest"
     assert capability["quality_revision_routing"]["0.2.0"] == "causal_v2"
+    assert capability["quality_revision_routing"]["0.3.0"] == "causal_v2"
+    assert capability["funded_autonomy_budget_version"] == "0.3.0"
+    assert capability["fidelity_budget_epoch_version"] == "0.1.0"
     assert capability["automatic_migration"] is False
     assert capability["nonhuman_review_is_approval"] is False
     assert capability["new_campaign_visual_success_claimed"] is False

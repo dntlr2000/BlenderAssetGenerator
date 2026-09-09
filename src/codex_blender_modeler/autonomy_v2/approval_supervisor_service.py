@@ -57,6 +57,7 @@ from .controller_bridge import (
     cancel_autonomy_v2,
     get_autonomy_v2_status,
 )
+from .fidelity_budget_models import FidelityBudgetEpochV01
 from .human_quality_review_service import validate_human_quality_review_bundle_v2
 from .models import AQV2Artifact, AutonomyStateV2
 from .planner import plan_autonomous_static_prop_v2
@@ -958,6 +959,7 @@ def plan_one_prompt_run(
     controller_execution_mode: str = "desktop_in_session",
     destination_hint: str = "engine_neutral",
     initial_budget_limits: dict[str, int] | None = None,
+    fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
     """Create the base AQ session, exact envelope, and one-prompt supervisor plan."""
@@ -980,6 +982,7 @@ def plan_one_prompt_run(
         controller_execution_mode=controller_execution_mode,
         destination_hint=destination_hint,
         initial_budget_limits=initial_budget_limits,
+        fidelity_budget_plan=fidelity_budget_plan,
         allow_disabled_experimental=True,
     )
     created_job_id = str(base["job_id"])

@@ -148,6 +148,7 @@ from .material_phase_service import (
 from .material_policy_adapter import publish_material_policy_promotion_boundary_v03
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyCancellationV2,
     AutonomyPlanV2,
@@ -167,6 +168,7 @@ from .models import (
     QualityReviewBundleV2,
     QualityTerminalV2,
     RootAuthorizationV2,
+    parse_autonomy_budget,
 )
 from .planner import plan_autonomous_static_prop_v2, plan_geometry_repair_session_v2
 from .profiles import (
@@ -205,6 +207,8 @@ __all__ = [
     "AutonomyApprovalEnvelope",
     "AutonomyApprovalPolicyProfile",
     "AutonomyBudgetV2",
+    "AutonomyBudgetV03",
+    "parse_autonomy_budget",
     "AutonomyCodexImageOverlay",
     "AutonomyCancellationV2",
     "AutonomyPlanV2",

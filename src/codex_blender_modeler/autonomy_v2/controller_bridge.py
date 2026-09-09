@@ -63,6 +63,7 @@ from .material_phase_models import (
 from .material_phase_service import validate_material_closure_promotion_boundary_v2
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyCancellationV2,
     AutonomyPlanV2,
@@ -70,6 +71,7 @@ from .models import (
     AutonomyStateV2,
     BudgetUsageV2,
     RootAuthorizationV2,
+    parse_autonomy_budget,
 )
 from .transitions import (
     transition_state,
@@ -127,6 +129,8 @@ def _read_aq_model(
     """Rehash and strict-parse one supported AQ v2 session model."""
 
     path = validate_v2_artifact(root, artifact)
+    if model is AutonomyBudgetV2:
+        return parse_autonomy_budget(_read_native_bytes(path))
     return model.model_validate_json(_read_native_bytes(path))
 
 
@@ -359,6 +363,10 @@ def _session_bundle(
     if any(observed_usage[key] > limit for key, limit in limits.items()):
         raise ValueError("AQ v2 state budget usage exceeds its immutable authorization")
     _validate_state_terminal_evidence(root, state)
+    if isinstance(budget, AutonomyBudgetV03) and state.next_action != "none":
+        from .fidelity_budget_service import validate_fidelity_epoch_history
+
+        validate_fidelity_epoch_history(budget.funding, active_session=(job_id, session_id))
     return root, session_root, plan, budget, state, state_artifact
 
 
@@ -368,6 +376,11 @@ def _validate_controller_authority(
     budget: AutonomyBudgetV2,
 ) -> None:
     """Recompute the exact active authorization, profile, budget, and plan bindings."""
+
+    if isinstance(budget, AutonomyBudgetV03):
+        from .fidelity_budget_service import require_funded_loop
+
+        require_funded_loop(root, plan.session_id, budget)
 
     authorization = cast(
         RootAuthorizationV2,
@@ -449,6 +462,8 @@ def _validate_controller_authority(
         "quality_policy": authorization.quality_profile.sha256,
         "phase_profiles": [item.sha256 for item in plan.phase_tool_profiles],
     }
+    if isinstance(budget, AutonomyBudgetV03):
+        budget_inputs["fidelity_funding"] = budget.funding.digest()
     expected_budget_provenance = [
         plan.production_dispatch_plan,
         authorization.quality_profile,

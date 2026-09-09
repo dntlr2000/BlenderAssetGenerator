@@ -127,7 +127,7 @@ def test_material_promotion_loader_replays_strict_datetime_models_from_json(
     )
     monkeypatch.setattr(builtins, "open", fake_open)
     monkeypatch.setattr(cli_module, "AutonomyPlanV2", FakePlanModel)
-    monkeypatch.setattr(cli_module, "AutonomyBudgetV2", FakeBudgetModel)
+    monkeypatch.setattr(cli_module, "parse_autonomy_budget", FakeBudgetModel.model_validate_json)
     monkeypatch.setattr(cli_module, "AutonomyStateV2", FakeStateModel)
     monkeypatch.setattr(
         cli_module,

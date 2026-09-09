@@ -22,11 +22,19 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
 )
 from codex_blender_modeler.autonomy_v2.controller_bridge import _session_bundle
 from codex_blender_modeler.autonomy_v2.models import RootAuthorizationV2
+from codex_blender_modeler.blender_artifacts import native_io_path
 from codex_blender_modeler.production.controller_executor.models import ControllerResult
 
 
 class _CandidateStaged(Exception):
     """Stop the shared controller fixture before eligibility, authorization or Blender."""
+
+
+def _read_fixture_bytes(path: Path) -> bytes:
+    """Read exact generated fixture evidence even beyond the Windows path-length boundary."""
+
+    with open(native_io_path(path), "rb") as handle:
+        return handle.read()
 
 
 def staged_candidate(tmp_path, monkeypatch, *, object_count=21):
@@ -82,7 +90,7 @@ def test_exact_materialization_count_reproduces_prebuild_budget_failure(tmp_path
         tmp_path, monkeypatch, object_count=observed["candidate_object_count"],
     )
     authorization = RootAuthorizationV2.model_validate_json(
-        (root / plan.root_authorization.path).read_bytes()
+        _read_fixture_bytes(root / plan.root_authorization.path)
     )
     before = (root / "analysis/modeling_plan.json").read_bytes()
     with pytest.raises(CandidateBudgetExhausted) as caught:
@@ -121,8 +129,8 @@ def test_supervisor_classifies_budget_without_policy_or_canonical_side_effects(
     failure, justification = supervisor._publish_blocked_failure_evidence(
         plan.job_id, plan.session_id, current, artifact,
     )
-    report = json.loads((root / failure.path).read_bytes())
-    classified = json.loads((root / justification.path).read_bytes())
+    report = json.loads(_read_fixture_bytes(root / failure.path))
+    classified = json.loads(_read_fixture_bytes(root / justification.path))
     assert report["category"] == "candidate_budget_exhaustion"
     assert report["user_approval_requested"] is False
     assert classified["classification"] == "job_local_candidate_error"
@@ -140,7 +148,7 @@ def test_preflight_rejects_stale_source_before_calling_it_a_budget_failure(tmp_p
 
     root, _session, plan, budget, state, _artifact = staged_candidate(tmp_path, monkeypatch)
     authorization = RootAuthorizationV2.model_validate_json(
-        (root / plan.root_authorization.path).read_bytes()
+        _read_fixture_bytes(root / plan.root_authorization.path)
     )
     path = root / "analysis/modeling_plan.json"
     path.write_bytes(path.read_bytes() + b"\n")
@@ -157,7 +165,7 @@ def test_funded_preflight_does_not_consume_builds_or_change_the_source(tmp_path,
         tmp_path, monkeypatch, object_count=1,
     )
     authorization = RootAuthorizationV2.model_validate_json(
-        (root / plan.root_authorization.path).read_bytes()
+        _read_fixture_bytes(root / plan.root_authorization.path)
     )
     reservation = preflight_geometry_candidate_budget_v2(
         root=root, plan=plan, budget=budget, state=state, authorization=authorization,
@@ -186,9 +194,11 @@ def test_an_unverified_receipt_cannot_bypass_preflight(tmp_path, monkeypatch):
 
     root, _session, plan, budget, state, _artifact = staged_candidate(tmp_path, monkeypatch)
     authorization = RootAuthorizationV2.model_validate_json(
-        (root / plan.root_authorization.path).read_bytes()
+        _read_fixture_bytes(root / plan.root_authorization.path)
     )
-    result = ControllerResult.model_validate_json((root / state.provenance[-1].path).read_bytes())
+    result = ControllerResult.model_validate_json(
+        _read_fixture_bytes(root / state.provenance[-1].path)
+    )
     receipt_root = _candidate_validation_root(root, plan, result)
     receipt_root.mkdir(parents=True)
     (receipt_root / "receipt.json").write_text("{}", encoding="utf-8")

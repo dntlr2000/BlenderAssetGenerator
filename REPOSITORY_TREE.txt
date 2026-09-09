@@ -201,6 +201,7 @@ BlenderAssetGenerator/
   schemas/aq_quality_render_reservation_v01.schema.json
   schemas/aq_quality_revision_loop_v01.schema.json
   schemas/aq_quality_revision_loop_v02.schema.json
+  schemas/aq_quality_revision_loop_v03.schema.json
   schemas/aq_skill_adapter_plan.schema.json
   schemas/aq_skill_adapter_state.schema.json
   schemas/aq_skill_adapter_terminal.schema.json
@@ -239,6 +240,7 @@ BlenderAssetGenerator/
   schemas/autonomy_budget.schema.json
   schemas/autonomy_codex_image_overlay.schema.json
   schemas/autonomy_controller_binding.schema.json
+  schemas/autonomy_fidelity_budget_v03.schema.json
   schemas/autonomy_iteration_receipt.schema.json
   schemas/autonomy_plan.schema.json
   schemas/autonomy_profile.schema.json
@@ -334,6 +336,7 @@ BlenderAssetGenerator/
   schemas/external_asset_intake_validation.schema.json
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
+  schemas/fidelity_budget_epoch_v01.schema.json
   schemas/fidelity_comparison_v01.schema.json
   schemas/fidelity_development_preview_attempt_outcome_v01.schema.json
   schemas/fidelity_development_preview_attempt_outcome_v02.schema.json
@@ -677,6 +680,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
   src/codex_blender_modeler/autonomy_v2/execution_profile_service.py
+  src/codex_blender_modeler/autonomy_v2/fidelity_budget_models.py
+  src/codex_blender_modeler/autonomy_v2/fidelity_budget_service.py
   src/codex_blender_modeler/autonomy_v2/fidelity_terminal_service.py
   src/codex_blender_modeler/autonomy_v2/human_quality_review_service.py
   src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
@@ -1121,6 +1126,8 @@ BlenderAssetGenerator/
   tests/test_controller_executor_v02.py
   tests/test_external_static_asset_intake.py
   tests/test_feature_config.py
+  tests/test_fidelity_budget_epoch.py
+  tests/test_fidelity_budget_flow.py
   tests/test_geometry_delivery_equivalence.py
   tests/test_geometry_intent_v02_reachability.py
   tests/test_geometry_models.py

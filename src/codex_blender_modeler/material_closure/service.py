@@ -399,6 +399,39 @@ def _validate_live_material_baseline(
     validate_exact_artifact(job_root, snapshot.material_plan)
 
 
+def _validate_fidelity_preflight_budget(
+    job_root: Path,
+    closure: MaterialDependencyClosure,
+    budget: MaterialPreflightBudget,
+    *,
+    require_current: bool,
+) -> None:
+    """Bind opt-in funding to the full finite shadow allowance without borrowing AQ build units."""
+
+    from ..autonomy_v2.fidelity_budget_service import require_funded_loop
+    from ..autonomy_v2.models import AutonomyBudgetV03, parse_autonomy_budget
+
+    entry = next((item for item in closure.entries if item.role == "aq_autonomy_budget"), None)
+    if entry is None:
+        return
+    path = validate_exact_artifact(job_root, entry)
+    funding_budget = parse_autonomy_budget(path.read_bytes())
+    if not isinstance(funding_budget, AutonomyBudgetV03):
+        return
+    if _binding_tuple(funding_budget) != _binding_tuple(budget):
+        raise MaterialPreflightValidationError("funded preflight budget targets another session")
+    if (
+        budget.limits.model_dump() != funding_budget.funding.preflight_limits()
+        or any(budget.consumed.model_dump().values())
+        or SHADOW_BLENDER_RUN_COUNT != 6
+    ):
+        raise MaterialPreflightValidationError(
+            "preflight budget differs from exact funded schedule"
+        )
+    if require_current:
+        require_funded_loop(job_root, budget.session_id, funding_budget)
+
+
 def _validate_request_dependencies(
     job_root: Path,
     request: MaterialPromotionPreflightRequest,
@@ -433,6 +466,9 @@ def _validate_request_dependencies(
             raise MaterialPreflightValidationError(
                 f"{type(contract).__name__} targets another material session"
             )
+    _validate_fidelity_preflight_budget(
+        job_root, closure, budget, require_current=require_current_canonical,
+    )
     if snapshot != request.framework_failure_context.canonical_snapshot:
         raise MaterialPreflightValidationError(
             "preflight canonical snapshot differs from its strict failure context"

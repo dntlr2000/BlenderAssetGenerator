@@ -72,6 +72,9 @@ FOCUSED_TESTS=(
   tests/test_quality_revision_budget.py
   tests/test_quality_revision_host.py
   tests/test_quality_revision_flow.py
+  tests/test_fidelity_budget_epoch.py
+  tests/test_fidelity_budget_flow.py
+  tests/test_aq_candidate_budget_preflight.py
   tests/test_reference_fidelity_public.py
   tests/test_autonomous_quality_benchmarks.py
   tests/test_autonomous_quality_schemas.py

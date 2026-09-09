@@ -48,7 +48,11 @@ from codex_blender_modeler.autonomy_v2.supervisor_service import (
     _controller_validation_boundary,
 )
 from codex_blender_modeler.autonomy_v2.transitions import transition_state
-from codex_blender_modeler.blender_artifacts import sha256_file, write_json_atomic
+from codex_blender_modeler.blender_artifacts import (
+    native_io_path,
+    sha256_file,
+    write_json_atomic,
+)
 from codex_blender_modeler.production.controller_executor import (
     FakeControllerForTests,
 )
@@ -453,7 +457,7 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
     )
     controller_result_artifact = state.provenance[-1]
     controller_result = ControllerResult.model_validate_json(
-        (root / controller_result_artifact.path).read_bytes()
+        Path(native_io_path(root / controller_result_artifact.path)).read_bytes()
     )
     eligibility = evaluate_routine_gate_eligibility(
         "aqv2_candidate_smoke",

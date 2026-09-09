@@ -59,6 +59,7 @@ from .candidate_validation_models import GeometryCandidateValidationReceiptV2
 from .material_phase_models import MaterialPhaseReceiptV2
 from .models import (
     AQV2Artifact,
+    AutonomyBudgetV03,
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyProfileV2,
@@ -70,6 +71,7 @@ from .models import (
     DeliveryTerminalV2,
     QualityApprovedSourceFreeze,
     RootAuthorizationV2,
+    parse_autonomy_budget,
 )
 from .profiles import autonomy_v2_profile_status, delivery_profile
 
@@ -120,6 +122,8 @@ def _load_model(root: Path, artifact: AQV2Artifact, model: type[ModelT]) -> Mode
 
     path = validate_v2_artifact(root, artifact)
     with open(native_io_path(path), "rb") as handle:
+        if model is AutonomyBudgetV2:
+            return parse_autonomy_budget(handle.read())
         return model.model_validate_json(handle.read())
 
 
@@ -254,6 +258,8 @@ def validate_root_authorization_boundary_v2(
         "quality_policy": authorization.quality_profile.sha256,
         "phase_profiles": [item.sha256 for item in authorization.phase_tool_profiles],
     }
+    if isinstance(budget, AutonomyBudgetV03):
+        budget_input["fidelity_funding"] = budget.funding.digest()
     profile_input = {
         "budget": authorization.budget.sha256,
         "quality_policy": authorization.quality_profile.sha256,

@@ -132,6 +132,7 @@ from .models import (
     AutonomyProfileV2,
     AutonomyStateV2,
     QualityApprovedSourceFreeze,
+    parse_autonomy_budget,
 )
 from .quality_terminal_service import (
     validate_quality_review_bundle_v2,
@@ -270,6 +271,8 @@ def _read_model(root: Path, artifact: AQV2Artifact, model_type: type[BaseModel])
 
     path = validate_v2_artifact(root, artifact)
     with open(native_io_path(path), "rb") as handle:
+        if model_type is AutonomyBudgetV2:
+            return parse_autonomy_budget(handle.read())
         return model_type.model_validate_json(handle.read())
 
 
@@ -3532,7 +3535,7 @@ def _execute_recovery_material_controller(
             json.dumps(status["state"], ensure_ascii=False)
         )
         state_artifact = AQV2Artifact.model_validate(status["state_artifact"])
-        budget = AutonomyBudgetV2.model_validate_json(
+        budget = parse_autonomy_budget(
             json.dumps(status["budget"], ensure_ascii=False)
         )
         if state_artifact.sha256 != plan.current_state.sha256 or (
@@ -4034,7 +4037,7 @@ def promote_codex_image_material_loop(
     current_state = AutonomyStateV2.model_validate_json(
         json.dumps(current_status["state"], ensure_ascii=False)
     )
-    current_budget = AutonomyBudgetV2.model_validate_json(
+    current_budget = parse_autonomy_budget(
         json.dumps(current_status["budget"], ensure_ascii=False)
     )
     if current_budget != budget:

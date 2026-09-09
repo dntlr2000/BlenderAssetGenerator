@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import json
 from datetime import datetime
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..stabilization.models import JobId, PortableId, RelativePath, Sha256, WorkflowId
+from .fidelity_budget_models import FidelityBudgetEpochV01
 
 AUTONOMY_SCHEMA_VERSION = "0.2.0"
 DELIVERY_SCHEMA_VERSION = "0.1.0"
@@ -97,6 +99,44 @@ class AutonomyBudgetV2(AQV2Evidence):
     global_action_limit: int = Field(default=72, ge=1, le=128)
     repeated_identical_failure_limit: Literal[1] = 1
     transient_retry_limit: Literal[1] = 1
+
+
+class AutonomyBudgetV03(AutonomyBudgetV2):
+    """Select explicitly funded fidelity costs without changing the AQ v2 state contract."""
+
+    schema_version: Literal["0.3.0"] = "0.3.0"
+    funding: FidelityBudgetEpochV01
+    material_rounds: int = Field(ge=1, le=6)
+    total_blender_builds: int = Field(ge=1, le=64)
+    total_quality_evaluations: int = Field(ge=1, le=18)
+    canonical_promotions: int = Field(ge=1, le=12)
+
+    @model_validator(mode="after")
+    def validate_exact_funded_limits(self) -> AutonomyBudgetV03:
+        """Reject arbitrary expanded caps or funding bound to another new job."""
+
+        if self.job_id != self.funding.job_id:
+            raise ValueError("budget funding belongs to another job")
+        for key, value in self.funding.required_limits(delivery_runs=self.delivery_runs).items():
+            if getattr(self, key) != value:
+                raise ValueError(f"funded budget {key} differs from its priced schedule")
+        return self
+
+
+def parse_autonomy_budget(payload: bytes | str | dict | AutonomyBudgetV2) -> AutonomyBudgetV2:
+    """Strictly revalidate the selected budget from JSON or an existing typed boundary."""
+
+    raw = payload.model_dump_json() if isinstance(payload, AutonomyBudgetV2) else payload
+    raw = json.dumps(raw) if isinstance(raw, dict) else raw
+    decoded = json.loads(raw)
+    if not isinstance(decoded, dict):
+        raise ValueError("AQ budget must be a JSON object")
+    model = {"0.2.0": AutonomyBudgetV2, "0.3.0": AutonomyBudgetV03}.get(
+        decoded.get("schema_version")
+    )
+    if model is None:
+        raise ValueError("unsupported AQ budget schema_version")
+    return model.model_validate_json(raw)
 
 
 class BudgetUsageV2(AQV2StrictModel):

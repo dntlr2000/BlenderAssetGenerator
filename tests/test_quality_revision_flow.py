@@ -35,8 +35,10 @@ from codex_blender_modeler.reference_fidelity.service import (
 )
 
 
-def quality_fixture(tmp_path, monkeypatch, *, missing=False, object_count=1, builds_used=0):
-    """Combine a real schema/QA file fixture with explicitly mocked prior AQ promotions."""
+def quality_fixture(
+    tmp_path, monkeypatch, *, missing=False, object_count=1, builds_used=0, funded=False,
+):
+    """Combine schema/QA evidence and mocked prior promotions with an optional funded test loop."""
 
     (tmp_path / "planner").mkdir()
     _planner_root, job, session_id, loop, _path = prepare_loop(tmp_path / "planner", monkeypatch)
@@ -93,6 +95,26 @@ def quality_fixture(tmp_path, monkeypatch, *, missing=False, object_count=1, bui
             "initial_state": state_ref,
         }
     )
+    if funded:
+        from test_fidelity_budget_epoch import funding
+
+        from codex_blender_modeler.autonomy_v2.models import AutonomyBudgetV03
+        from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+            AQQualityRevisionLoopV03,
+        )
+
+        epoch = funding(job_id=root.name, initial_object_limit=object_count,
+                        correction_object_limit=object_count)
+        budget = AutonomyBudgetV03.model_validate({
+            **budget.model_dump(), "schema_version": "0.3.0", "job_id": root.name,
+            "funding": epoch, **epoch.required_limits(delivery_runs=0),
+        })
+        loop = AQQualityRevisionLoopV03.model_validate({
+            **loop.model_dump(), "schema_version": "0.3.0", "funding": epoch,
+            "structural_revision_limit": epoch.structural_rounds,
+            "initial_pipeline_reserve": RevisionCostV01(**epoch.initial_cost()),
+            "cost_limit": RevisionCostV01(**epoch.revision_cost()),
+        })
     loop_ref = publish(root, root / "fidelity/bound_loop.json", loop)
     budget_ref = publish(root, root / "fidelity/budget.json", budget)
     plan = plan.model_copy(
