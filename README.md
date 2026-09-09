@@ -983,6 +983,34 @@ Audit는 canonical job을 repair하거나 migration하지 않습니다. Archive�
 job은 fail closed합니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고
 agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
 
+## 증거 보존형 임시 저장소 정리
+
+`.b/`와 `.t/`는 Windows short-path pytest 및 Blender gate의 run-owned 임시 트리입니다.
+정리 기능은 이 두 루트의 immediate child만 대상으로 하고 `workspaces/`,
+`workspace_archive/`, `reports/`, 입력 reference, 승인, QA, package 및 terminal history는
+삭제 후보로 만들지 않습니다.
+
+```powershell
+# 삭제 없이 경로별 분류·크기·보호 사유를 발행
+uv run cbm storage-inventory
+# inventory에서 eligible인 unchanged 트리만 exact plan으로 고정
+uv run cbm storage-cleanup-plan <inventory-id>
+# 출력된 exact plan file SHA-256을 사용자가 별도로 확인한 뒤에만 적용
+uv run cbm storage-cleanup-apply <plan-id> `
+  --confirm-plan-sha256 <exact-plan-file-sha256>
+uv run cbm storage-cleanup-verify <receipt-id>
+# 성공 gate의 정리만 실패해 격리된 경우 append-only 복구
+uv run cbm storage-gate-retention-resume <run-id>
+```
+
+상태가 불명확하거나 24시간보다 새롭거나, 문서·machine JSON·SHA-256에서 참조되거나,
+lock/PID/ACL/link 문제가 있는 트리는 보존됩니다. 기존 gate 결과는 소급 정리하지 않습니다.
+새 V0.7~V0.9/AQ gate는 성공했을 때만 durable gate receipt를 발행한 뒤 run-owned
+pytest scratch를 compact하며, 실패·중단 실행은 그대로 남깁니다. 각 gate의
+`Preserve`/`--retention-policy preserve` 옵션으로 성공 실행도 보존할 수 있습니다.
+정리 중 파일 시스템 오류가 나면 gate 성공과 정리 실패가 분리 기록되며,
+`storage-gate-retention-resume`은 원래 source를 건드리지 않고 해당 run의 격리소만 재개합니다.
+
 Passed round-trip package에 대해 전달 봉투를 만들려면 먼저 계획을 생성하고 그 정확한 SHA-256을 확인합니다.
 
 ```powershell
@@ -1191,8 +1219,8 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
 - Skill registry SHA-256: f220fd3c3902eaf59f3decc63116af157d7dabf32263abca62603f1c6318c5a7
-- CLI commands: 188
-- CLI registry SHA-256: 8331013fdc74a1856cc7b88aa3c73ec912081a3c2ba08270471b75745987b74c
+- CLI commands: 194
+- CLI registry SHA-256: 305d67112a900d015d9f2a62c582962b3d2e3199346f450f937850e992fe8e51
 - MCP server tools: 179
 - MCP server registry SHA-256: 934b80c247505d17274eede6a23ebe94b9f7859b194be3b8a0e49d12e7b61e88
 - Project-enabled MCP tools: 178

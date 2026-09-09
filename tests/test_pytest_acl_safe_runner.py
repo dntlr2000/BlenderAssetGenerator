@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
 from pathlib import Path
 from types import ModuleType
@@ -69,6 +70,10 @@ def test_acl_environment_restores_mkdir_after_scoped_creation(
         assert module.tempfile.tempdir.endswith("base-process-temp")
         assert os.environ["TEMP"] == module.tempfile.tempdir
         assert os.environ["TMP"] == module.tempfile.tempdir
+        marker = basetemp.with_name("base-process-temp") / ".retention-owner.json"
+        payload = json.loads(marker.read_text(encoding="utf-8"))
+        assert payload["pid"] == os.getpid()
+        assert payload["basetemp_name"] == "base"
 
     assert module.os.mkdir is original_mkdir
     assert module.tempfile.tempdir == original_tempdir

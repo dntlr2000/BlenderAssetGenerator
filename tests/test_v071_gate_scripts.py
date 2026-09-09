@@ -63,6 +63,8 @@ def test_v071_gates_use_short_repository_local_pytest_roots() -> None:
         source = _source(path)
         assert "--basetemp" in source
         assert ".t/v7p-" in source
+        assert "scripts/finalize_gate_run.py" in source
+        assert "retention-policy" in source.lower()
         if path.suffix == ".ps1":
             assert "scripts/run_pytest_acl_safe.py" in source
 

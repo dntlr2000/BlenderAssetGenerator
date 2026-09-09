@@ -5,11 +5,15 @@ param(
     [switch]$SkipVision,
     [switch]$SkipTextureBake,
     [string]$OutputRoot,
-    [string]$PytestRoot
+    [string]$PytestRoot,
+    [ValidateSet("CompactSuccess", "Preserve")]
+    [string]$RetentionPolicy = "CompactSuccess"
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
+$GateStartedAt = [DateTime]::UtcNow.ToString("o")
+$PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
 
 # Runs one uv command and converts a native non-zero exit into a terminating gate failure.
 function Invoke-Uv {
@@ -33,6 +37,7 @@ function Invoke-LegacyRegressionGates {
     $LegacyArguments = @()
     if ($SkipVision) { $LegacyArguments += "-SkipVision" }
     if ($SkipTextureBake) { $LegacyArguments += "-SkipTextureBake" }
+    $LegacyArguments += @("-RetentionPolicy", $RetentionPolicy)
     & (Join-Path $PSScriptRoot "run_v09_gates.ps1") @LegacyArguments
 }
 
@@ -46,9 +51,16 @@ New-Item -ItemType Directory -Path $OutputRoot -Force | Out-Null
 if (-not $PytestRoot) {
     # Deep ImageGen material-loop fixtures can otherwise exceed Windows MAX_PATH.
     # Keep this root distinct from TEMP/TMP because pytest clears --basetemp.
-    $PytestRoot = Join-Path (Get-Location) ".b"
+    $PytestRoot = Join-Path (Get-Location) ".b/aqg-${PytestStamp}-$PID"
 }
 $PytestRoot = [System.IO.Path]::GetFullPath($PytestRoot)
+$PytestRootRelative = [System.IO.Path]::GetRelativePath(
+    (Get-Location).Path,
+    $PytestRoot
+).Replace("\", "/")
+if ($PytestRootRelative -notmatch '^\.(b|t)/[^/]+$') {
+    throw "PytestRoot must be one immediate repository-local child of .b or .t."
+}
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 $BenchmarkReport = Join-Path $OutputRoot "autonomous_quality_benchmark.json"
 $BenchmarkV02Report = Join-Path $OutputRoot "autonomous_quality_benchmark_v02.json"
@@ -166,7 +178,11 @@ $FocusedTests = @(
     "tests/test_autonomous_quality_benchmarks_v02.py",
     "tests/test_repository_catalog.py",
     "tests/test_repository_summary_generator.py",
-    "tests/test_ci_workflows.py"
+    "tests/test_ci_workflows.py",
+    "tests/test_storage_retention.py",
+    "tests/test_storage_retention_contracts.py",
+    "tests/test_storage_retention_public.py",
+    "tests/test_pytest_acl_safe_runner.py"
 )
 Invoke-Uv run python scripts/check_no_job_specific_framework_literals.py
 Invoke-Uv run python scripts/check_activation_readiness_contract.py
@@ -405,6 +421,17 @@ if ($RunBlender) {
 Invoke-Uv @BenchmarkArguments
 Invoke-Uv @BenchmarkV02Arguments
 Invoke-Native -Command "git" -Arguments @("diff", "--check")
+
+$RetentionPolicyValue = if ($RetentionPolicy -eq "Preserve") {
+    "preserve"
+}
+else {
+    "compact-success"
+}
+Invoke-Uv run python scripts/finalize_gate_run.py `
+    --run-id "aq-gate-${PytestStamp}-$PID" --gate-id aq `
+    --run-root $PytestRootRelative --retention-policy $RetentionPolicyValue `
+    --started-at $GateStartedAt
 
 Write-Host "AQ 0.1 gates and AQ 0.2 host/smoke checks completed; v2 remains disabled_experimental: $OutputRoot" `
     -ForegroundColor Green

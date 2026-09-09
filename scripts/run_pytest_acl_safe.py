@@ -2,15 +2,37 @@
 
 from __future__ import annotations
 
+import json
 import os
 import sys
 import tempfile
 from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
+
+
+def write_retention_owner_marker(process_temp_root: Path, basetemp: Path) -> Path:
+    """Record the active pytest owner without making the marker quality evidence."""
+
+    marker = process_temp_root / ".retention-owner.json"
+    marker.write_text(
+        json.dumps(
+            {
+                "schema_version": "0.1.0",
+                "pid": os.getpid(),
+                "basetemp_name": basetemp.name,
+                "started_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            },
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return marker
 
 
 def selected_basetemp(arguments: Sequence[str]) -> Path | None:
@@ -83,6 +105,7 @@ def pytest_basetemp_acl_environment(arguments: Sequence[str]) -> Iterator[None]:
     os.mkdir = inherited_acl_mkdir
     try:
         process_temp_root.mkdir(parents=True, exist_ok=True)
+        write_retention_owner_marker(process_temp_root, basetemp)
         tempfile.tempdir = str(process_temp_root)
         os.environ["TEMP"] = str(process_temp_root)
         os.environ["TMP"] = str(process_temp_root)

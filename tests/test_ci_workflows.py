@@ -190,9 +190,13 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
     assert "tests/test_geometry_delivery_equivalence.py" in powershell
     assert "tests/test_geometry_delivery_equivalence.py" in bash
     assert "PytestRoot" in powershell
-    assert 'Join-Path (Get-Location) ".b"' in powershell
+    assert 'Join-Path (Get-Location) ".b/aqg-' in powershell
     assert "scripts/run_pytest_acl_safe.py" in powershell
     assert "--pytest-root" in bash
+    assert "scripts/finalize_gate_run.py" in powershell
+    assert "scripts/finalize_gate_run.py" in bash
+    assert "--retention-policy" in powershell
+    assert "--retention-policy" in bash
     for token in expected_env:
         assert token not in python_commands
     assert "codex_blender_modeler.autonomy_benchmarks.v02_cli" in powershell

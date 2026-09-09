@@ -5,14 +5,23 @@ cd "$(dirname "$0")/.."
 SKIP_VISION=0
 SKIP_COMPATIBILITY=0
 SKIP_TEXTURE_BAKE=0
-for arg in "$@"; do
-  case "$arg" in
-    --skip-vision) SKIP_VISION=1 ;;
-    --skip-compatibility) SKIP_COMPATIBILITY=1 ;;
-    --skip-texture-bake) SKIP_TEXTURE_BAKE=1 ;;
-    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+RETENTION_POLICY="compact-success"
+GATE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-vision) SKIP_VISION=1; shift ;;
+    --skip-compatibility) SKIP_COMPATIBILITY=1; shift ;;
+    --skip-texture-bake) SKIP_TEXTURE_BAKE=1; shift ;;
+    --retention-policy)
+      [[ $# -ge 2 ]] || { echo "--retention-policy requires a value" >&2; exit 2; }
+      RETENTION_POLICY="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+[[ "$RETENTION_POLICY" == "compact-success" || "$RETENTION_POLICY" == "preserve" ]] || {
+  echo "--retention-policy must be compact-success or preserve" >&2
+  exit 2
+}
 
 if [[ "$SKIP_VISION" -eq 1 ]]; then
   uv sync --frozen --extra dev
@@ -21,7 +30,9 @@ else
 fi
 
 # Keep nested fixtures below a short repository-local path on every platform.
-PYTEST_ROOT="$PWD/.t/v7p-$(date -u +%H%M%S)-$$"
+PYTEST_STAMP="$(date -u +%H%M%S)"
+PYTEST_ROOT_RELATIVE=".t/v7p-$PYTEST_STAMP-$$"
+PYTEST_ROOT="$PWD/$PYTEST_ROOT_RELATIVE"
 mkdir -p "$PYTEST_ROOT"
 uv run pytest --basetemp "$PYTEST_ROOT"
 uv run ruff check .
@@ -117,5 +128,10 @@ if [[ ! -f "$MATERIAL_CONVERSION" || ! -f "$PACKAGE_MANIFEST" || ! -f "$ROUNDTRI
   echo "V0.7 material conversion, package, or round-trip evidence is missing from the isolated smoke workspace." >&2
   exit 1
 fi
+
+uv run python scripts/finalize_gate_run.py \
+  --run-id "v07-gate-$PYTEST_STAMP-$$" --gate-id v07 \
+  --run-root "$PYTEST_ROOT_RELATIVE" --retention-policy "$RETENTION_POLICY" \
+  --started-at "$GATE_STARTED_AT"
 
 echo "V0.7.4 isolated portable static-asset gates completed: $SMOKE_ROOT"

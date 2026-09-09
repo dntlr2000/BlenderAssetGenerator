@@ -1,0 +1,147 @@
+{
+  "$defs": {
+    "StorageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-relative storage-control artifact by exact bytes.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "storage_inventory",
+            "storage_cleanup_plan",
+            "storage_cleanup_receipt",
+            "gate_run_preflight",
+            "gate_run_receipt",
+            "gate_retention_recovery_receipt",
+            "gate_retained_artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 1,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "StorageArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record append-only recovery of scratch quarantined by a passed gate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "recovery_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Recovery Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "gate_receipt": {
+      "$ref": "#/$defs/StorageArtifact"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "partial"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "expected_roots": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Expected Roots",
+      "type": "array"
+    },
+    "removed_roots": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Removed Roots",
+      "type": "array"
+    },
+    "remaining_roots": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Remaining Roots",
+      "type": "array"
+    },
+    "source_tree_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Tree Sha256",
+      "type": "string"
+    },
+    "source_byte_size": {
+      "minimum": 0,
+      "title": "Source Byte Size",
+      "type": "integer"
+    },
+    "reclaimed_byte_size": {
+      "minimum": 0,
+      "title": "Reclaimed Byte Size",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "message": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "recovery_id",
+    "run_id",
+    "gate_receipt",
+    "status",
+    "expected_roots",
+    "removed_roots",
+    "remaining_roots",
+    "source_tree_sha256",
+    "source_byte_size",
+    "reclaimed_byte_size",
+    "completed_at",
+    "message",
+    "input_sha256"
+  ],
+  "title": "GateRetentionRecoveryReceiptV01",
+  "type": "object"
+}

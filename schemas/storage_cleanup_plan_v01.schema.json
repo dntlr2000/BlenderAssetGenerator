@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "StorageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-relative storage-control artifact by exact bytes.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "storage_inventory",
+            "storage_cleanup_plan",
+            "storage_cleanup_receipt",
+            "gate_run_preflight",
+            "gate_run_receipt",
+            "gate_retention_recovery_receipt",
+            "gate_retained_artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 1,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "StorageArtifact",
+      "type": "object"
+    },
+    "StorageCleanupCandidate": {
+      "additionalProperties": false,
+      "description": "Bind one deletion candidate to its exact pre-cleanup tree identity.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "root": {
+          "enum": [
+            ".b",
+            ".t"
+          ],
+          "title": "Root",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "cache",
+            "gate_run",
+            "process_temp",
+            "pytest_basetemp",
+            "unknown"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "tree_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tree Sha256",
+          "type": "string"
+        },
+        "file_count": {
+          "minimum": 0,
+          "title": "File Count",
+          "type": "integer"
+        },
+        "directory_count": {
+          "minimum": 1,
+          "title": "Directory Count",
+          "type": "integer"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "path",
+        "root",
+        "kind",
+        "tree_sha256",
+        "file_count",
+        "directory_count",
+        "byte_size"
+      ],
+      "title": "StorageCleanupCandidate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Freeze one exact, non-expanding set of repository-local deletion candidates.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "plan_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "inventory": {
+      "$ref": "#/$defs/StorageArtifact"
+    },
+    "repository_commit": {
+      "pattern": "^[0-9a-f]{40,64}$",
+      "title": "Repository Commit",
+      "type": "string"
+    },
+    "protection_source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protection Source Sha256",
+      "type": "string"
+    },
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/StorageCleanupCandidate"
+      },
+      "title": "Candidates",
+      "type": "array"
+    },
+    "expected_reclaimable_bytes": {
+      "minimum": 0,
+      "title": "Expected Reclaimable Bytes",
+      "type": "integer"
+    },
+    "excluded_entry_count": {
+      "minimum": 0,
+      "title": "Excluded Entry Count",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "plan_id",
+    "inventory",
+    "repository_commit",
+    "protection_source_sha256",
+    "candidates",
+    "expected_reclaimable_bytes",
+    "excluded_entry_count",
+    "created_at",
+    "input_sha256"
+  ],
+  "title": "StorageCleanupPlanV01",
+  "type": "object"
+}

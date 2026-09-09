@@ -476,6 +476,13 @@ from codex_blender_modeler.stabilization.models import (
     WorkspaceAuditReport,
 )
 from codex_blender_modeler.standard_custom_mesh import StandardCustomMeshPayload
+from codex_blender_modeler.storage_retention.models import (
+    GateRetentionRecoveryReceiptV01,
+    GateRunReceiptV01,
+    StorageCleanupPlanV01,
+    StorageCleanupReceiptV01,
+    StorageInventoryV01,
+)
 from codex_blender_modeler.structural_geometry.geometry_delivery_equivalence import (
     GeometryDeliveryCornerEvidenceV02,
     GeometryNumericalSurvivalReportV02,
@@ -619,6 +626,11 @@ SCHEMAS = {
     "workspace_audit.schema.json": WorkspaceAuditReport,
     "workspace_relocation_plan.schema.json": WorkspaceRelocationPlan,
     "workspace_relocation_receipt.schema.json": WorkspaceRelocationReceipt,
+    "storage_inventory_v01.schema.json": StorageInventoryV01,
+    "storage_cleanup_plan_v01.schema.json": StorageCleanupPlanV01,
+    "storage_cleanup_receipt_v01.schema.json": StorageCleanupReceiptV01,
+    "gate_run_receipt_v01.schema.json": GateRunReceiptV01,
+    "gate_retention_recovery_receipt_v01.schema.json": GateRetentionRecoveryReceiptV01,
     "local_workflow_queue.schema.json": LocalWorkflowQueue,
     "queue_attempt_receipt.schema.json": QueueAttemptReceipt,
     "queue_lock.schema.json": QueueLock,

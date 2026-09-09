@@ -64,8 +64,10 @@ def test_v09_posix_gate_uses_isolated_workspace_and_queue_boundary() -> None:
     assert "test_blender_external_intake_splits_materials_and_strips_scripts" in text
     assert 'in {"passed","warning"}' in text
     assert "V08_ARGS=()" in text
-    assert 'PYTEST_ROOT="$PWD/.t/v9p-' in text
+    assert 'PYTEST_ROOT_RELATIVE=".t/v9p-' in text
     assert 'uv run pytest --basetemp "$PYTEST_ROOT"' in text
+    assert "scripts/finalize_gate_run.py" in text
+    assert '--retention-policy "$RETENTION_POLICY"' in text
     assert "${RUN_STAMP,,}" not in text
     assert "rm -" not in text
 

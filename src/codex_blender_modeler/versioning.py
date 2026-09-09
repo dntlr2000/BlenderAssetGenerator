@@ -61,3 +61,6 @@ FRAMEWORK_CHANGE_JUSTIFICATION_SCHEMA_VERSION = "0.1.0"
 
 # Skill Orchestration snapshots and traces are additive adapters over V0.8 and AQ v2.
 SKILL_ORCHESTRATION_SCHEMA_VERSION = "0.1.0"
+
+# Storage retention is a CLI-only operational companion and grants no evidence authority.
+STORAGE_RETENTION_SCHEMA_VERSION = "0.1.0"

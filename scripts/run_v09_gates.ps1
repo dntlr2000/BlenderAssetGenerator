@@ -3,11 +3,14 @@ param(
     [switch]$SkipV08,
     [switch]$SkipV07,
     [switch]$SkipCompatibility,
-    [switch]$SkipTextureBake
+    [switch]$SkipTextureBake,
+    [ValidateSet("CompactSuccess", "Preserve")]
+    [string]$RetentionPolicy = "CompactSuccess"
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
+$GateStartedAt = [DateTime]::UtcNow.ToString("o")
 
 # Runs one uv command and converts a native non-zero exit into a terminating gate failure.
 function Invoke-Uv {
@@ -193,7 +196,8 @@ else {
 }
 
 $PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
-$PytestRoot = Join-Path (Get-Location) ".t/v9p-${PytestStamp}-$PID"
+$PytestRootRelative = ".t/v9p-${PytestStamp}-$PID"
+$PytestRoot = Join-Path (Get-Location) $PytestRootRelative
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot
 Invoke-Uv run ruff check .
@@ -229,6 +233,7 @@ if (-not $SkipV08) {
     if ($SkipVision) { $V08Arguments += "-SkipVision" }
     if ($SkipCompatibility) { $V08Arguments += "-SkipCompatibility" }
     if ($SkipTextureBake) { $V08Arguments += "-SkipTextureBake" }
+    $V08Arguments += @("-RetentionPolicy", $RetentionPolicy)
     & (Join-Path $PSScriptRoot "run_v08_gates.ps1") @V08Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "V0.8 regression gate failed with exit code ${LASTEXITCODE}."
@@ -320,6 +325,18 @@ finally {
         $env:CBM_WORKSPACE_ROOT = $PreviousWorkspace
     }
 }
+
+$RetentionPolicyValue = if ($RetentionPolicy -eq "Preserve") {
+    "preserve"
+}
+else {
+    "compact-success"
+}
+Invoke-Uv run python scripts/finalize_gate_run.py `
+    --run-id "v09-gate-${PytestStamp}-$PID" --gate-id v09 `
+    --run-root $PytestRootRelative `
+    --process-temp-root "${PytestRootRelative}-process-temp" `
+    --retention-policy $RetentionPolicyValue --started-at $GateStartedAt
 
 Write-Host "V0.9 isolated stabilization gates completed: $SmokeRoot" `
     -ForegroundColor Green

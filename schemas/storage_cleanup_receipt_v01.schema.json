@@ -1,0 +1,148 @@
+{
+  "$defs": {
+    "StorageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-relative storage-control artifact by exact bytes.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "storage_inventory",
+            "storage_cleanup_plan",
+            "storage_cleanup_receipt",
+            "gate_run_preflight",
+            "gate_run_receipt",
+            "gate_retention_recovery_receipt",
+            "gate_retained_artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 1,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "StorageArtifact",
+      "type": "object"
+    },
+    "StorageCleanupResult": {
+      "additionalProperties": false,
+      "description": "Record the result for one exact candidate without claiming recoverability.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "tree_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Tree Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "removed",
+            "remaining"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "message": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "tree_sha256",
+        "byte_size",
+        "status",
+        "message"
+      ],
+      "title": "StorageCleanupResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove the bounded outcome of one exact cleanup plan execution.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "receipt_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/StorageArtifact"
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "partial",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "results": {
+      "items": {
+        "$ref": "#/$defs/StorageCleanupResult"
+      },
+      "title": "Results",
+      "type": "array"
+    },
+    "reclaimed_byte_size": {
+      "minimum": 0,
+      "title": "Reclaimed Byte Size",
+      "type": "integer"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "plan",
+    "status",
+    "results",
+    "reclaimed_byte_size",
+    "completed_at",
+    "input_sha256"
+  ],
+  "title": "StorageCleanupReceiptV01",
+  "type": "object"
+}

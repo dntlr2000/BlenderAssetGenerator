@@ -1,11 +1,14 @@
 param(
     [switch]$SkipVision,
     [switch]$SkipCompatibility,
-    [switch]$SkipTextureBake
+    [switch]$SkipTextureBake,
+    [ValidateSet("CompactSuccess", "Preserve")]
+    [string]$RetentionPolicy = "CompactSuccess"
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
+$GateStartedAt = [DateTime]::UtcNow.ToString("o")
 
 # Runs one uv command and turns a native non-zero exit into a terminating gate failure.
 function Invoke-Uv {
@@ -78,7 +81,8 @@ else {
 
 # Keeps deeply nested Windows fixtures below a short repository-local path.
 $PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
-$PytestRoot = Join-Path (Get-Location) ".t/v7p-${PytestStamp}-$PID"
+$PytestRootRelative = ".t/v7p-${PytestStamp}-$PID"
+$PytestRoot = Join-Path (Get-Location) $PytestRootRelative
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot
 Invoke-Uv run ruff check .
@@ -139,6 +143,18 @@ finally {
         $env:CBM_WORKSPACE_ROOT = $PreviousWorkspace
     }
 }
+
+$RetentionPolicyValue = if ($RetentionPolicy -eq "Preserve") {
+    "preserve"
+}
+else {
+    "compact-success"
+}
+Invoke-Uv run python scripts/finalize_gate_run.py `
+    --run-id "v07-gate-${PytestStamp}-$PID" --gate-id v07 `
+    --run-root $PytestRootRelative `
+    --process-temp-root "${PytestRootRelative}-process-temp" `
+    --retention-policy $RetentionPolicyValue --started-at $GateStartedAt
 
 Write-Host "V0.7.4 isolated portable static-asset gates completed: $SmokeRoot" `
     -ForegroundColor Green

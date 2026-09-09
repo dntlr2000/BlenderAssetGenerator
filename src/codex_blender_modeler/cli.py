@@ -253,6 +253,14 @@ from .stabilization import (
     resume_workspace_relocation,
     run_local_workflow_queue,
 )
+from .storage_retention import (
+    apply_storage_cleanup,
+    inventory_repository_storage,
+    plan_storage_cleanup,
+    resume_gate_run_retention,
+    resume_storage_cleanup,
+    verify_storage_cleanup_receipt,
+)
 from .structural_geometry.migration_service import (
     apply_scene_spec_v03_migration,
     plan_scene_spec_v03_migration,
@@ -4455,6 +4463,107 @@ def workspace_archive_candidates_command(
 
     result = list_workspace_archive_candidates(allow_failed=allow_failed)
     console.print_json(json.dumps({"candidates": result}, ensure_ascii=False))
+
+
+@app.command("storage-inventory")
+def storage_inventory_command(
+    minimum_age_hours: Annotated[
+        int,
+        typer.Option("--minimum-age-hours", min=1, max=8760),
+    ] = 24,
+) -> None:
+    """Inventory `.b` and `.t` without deleting or changing retained evidence."""
+
+    inventory = inventory_repository_storage(minimum_age_hours=minimum_age_hours)
+    path = (
+        get_settings().repo_root
+        / "reports"
+        / "storage_retention"
+        / "inventories"
+        / f"{inventory.inventory_id}.json"
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "inventory": inventory.model_dump(mode="json"),
+                "inventory_file_sha256": sha256_file(path),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("storage-cleanup-plan")
+def storage_cleanup_plan_command(inventory_id: str) -> None:
+    """Freeze exact unchanged inventory-eligible trees into a cleanup plan."""
+
+    plan = plan_storage_cleanup(inventory_id)
+    path = (
+        get_settings().repo_root
+        / "reports"
+        / "storage_retention"
+        / "plans"
+        / f"{plan.plan_id}.json"
+    )
+    console.print_json(
+        json.dumps(
+            {
+                "plan": plan.model_dump(mode="json"),
+                "plan_file_sha256": sha256_file(path),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
+@app.command("storage-cleanup-apply")
+def storage_cleanup_apply_command(
+    plan_id: str,
+    confirm_plan_sha256: Annotated[str, typer.Option("--confirm-plan-sha256")],
+) -> None:
+    """Apply only one externally confirmed exact cleanup plan."""
+
+    receipt = apply_storage_cleanup(
+        plan_id,
+        confirm_plan_sha256=confirm_plan_sha256,
+    )
+    console.print_json(receipt.model_dump_json())
+    if receipt.status != "completed":
+        raise typer.Exit(code=3)
+
+
+@app.command("storage-cleanup-resume")
+def storage_cleanup_resume_command(
+    plan_id: str,
+    confirm_plan_sha256: Annotated[str, typer.Option("--confirm-plan-sha256")],
+) -> None:
+    """Resume or exact-adopt one previously confirmed cleanup plan."""
+
+    receipt = resume_storage_cleanup(
+        plan_id,
+        confirm_plan_sha256=confirm_plan_sha256,
+    )
+    console.print_json(receipt.model_dump_json())
+    if receipt.status != "completed":
+        raise typer.Exit(code=3)
+
+
+@app.command("storage-cleanup-verify")
+def storage_cleanup_verify_command(receipt_id: str) -> None:
+    """Verify one receipt and every exact path it claims was removed."""
+
+    receipt = verify_storage_cleanup_receipt(receipt_id)
+    console.print_json(receipt.model_dump_json())
+
+
+@app.command("storage-gate-retention-resume")
+def storage_gate_retention_resume_command(run_id: str) -> None:
+    """Resume only quarantined scratch from one exact failed gate retention pass."""
+
+    receipt = resume_gate_run_retention(run_id)
+    console.print_json(receipt.model_dump_json())
+    if receipt.status != "completed":
+        raise typer.Exit(code=3)
 
 
 @app.command("workspace-archive")

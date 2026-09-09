@@ -9,6 +9,9 @@ SKIP_VISION=0
 SKIP_TEXTURE_BAKE=0
 OUTPUT_ROOT=""
 PYTEST_ROOT=""
+RETENTION_POLICY="compact-success"
+GATE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+PYTEST_STAMP="$(date -u +%H%M%S)"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --run-blender) RUN_BLENDER=1; shift ;;
@@ -22,19 +25,33 @@ while [[ $# -gt 0 ]]; do
     --pytest-root)
       [[ $# -ge 2 ]] || { echo "--pytest-root requires a path" >&2; exit 2; }
       PYTEST_ROOT="$2"; shift 2 ;;
+    --retention-policy)
+      [[ $# -ge 2 ]] || { echo "--retention-policy requires a value" >&2; exit 2; }
+      RETENTION_POLICY="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+[[ "$RETENTION_POLICY" == "compact-success" || "$RETENTION_POLICY" == "preserve" ]] || {
+  echo "--retention-policy must be compact-success or preserve" >&2
+  exit 2
+}
 
 if [[ -z "$OUTPUT_ROOT" ]]; then
   # Keep the default short for deeply nested Blender/package evidence.
-  OUTPUT_ROOT="${TMPDIR:-/tmp}/aqg-$$"
+  OUTPUT_ROOT="$PWD/.codex_test/aqg-$$"
 fi
 mkdir -p "$OUTPUT_ROOT"
 # Accept an exact short pytest root while retaining the established default.
 if [[ -z "$PYTEST_ROOT" ]]; then
-  PYTEST_ROOT="${TMPDIR:-/tmp}/aqp-$$"
+  PYTEST_ROOT="$PWD/.b/aqg-$PYTEST_STAMP-$$"
 fi
+mkdir -p "$(dirname "$PYTEST_ROOT")"
+PYTEST_ROOT="$(cd "$(dirname "$PYTEST_ROOT")" 2>/dev/null && pwd)/$(basename "$PYTEST_ROOT")"
+PYTEST_ROOT_RELATIVE="${PYTEST_ROOT#"$PWD"/}"
+[[ "$PYTEST_ROOT_RELATIVE" =~ ^\.(b|t)/[^/]+$ ]] || {
+  echo "--pytest-root must be one immediate repository-local child of .b or .t" >&2
+  exit 2
+}
 mkdir -p "$PYTEST_ROOT"
 BENCHMARK_REPORT="$OUTPUT_ROOT/autonomous_quality_benchmark.json"
 BENCHMARK_V02_REPORT="$OUTPUT_ROOT/autonomous_quality_benchmark_v02.json"
@@ -148,6 +165,10 @@ FOCUSED_TESTS=(
   tests/test_repository_catalog.py
   tests/test_repository_summary_generator.py
   tests/test_ci_workflows.py
+  tests/test_storage_retention.py
+  tests/test_storage_retention_contracts.py
+  tests/test_storage_retention_public.py
+  tests/test_pytest_acl_safe_runner.py
 )
 uv run python scripts/check_no_job_specific_framework_literals.py
 uv run python scripts/check_activation_readiness_contract.py
@@ -222,6 +243,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
     LEGACY_ARGS=()
     [[ "$SKIP_VISION" -eq 1 ]] && LEGACY_ARGS+=(--skip-vision)
     [[ "$SKIP_TEXTURE_BAKE" -eq 1 ]] && LEGACY_ARGS+=(--skip-texture-bake)
+    LEGACY_ARGS+=(--retention-policy "$RETENTION_POLICY")
     # The V0.9 gate transitively runs the existing V0.8 and V0.7 regression gates.
     ./scripts/run_v09_gates.sh "${LEGACY_ARGS[@]}"
   fi
@@ -230,4 +252,8 @@ fi
 uv "${BENCHMARK_ARGS[@]}"
 uv "${BENCHMARK_V02_ARGS[@]}"
 git diff --check
+uv run python scripts/finalize_gate_run.py \
+  --run-id "aq-gate-$PYTEST_STAMP-$$" --gate-id aq \
+  --run-root "$PYTEST_ROOT_RELATIVE" --retention-policy "$RETENTION_POLICY" \
+  --started-at "$GATE_STARTED_AT"
 printf 'AQ 0.1 gates and AQ 0.2 host/smoke checks completed; v2 remains disabled_experimental: %s\n' "$OUTPUT_ROOT"

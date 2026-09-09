@@ -1,0 +1,210 @@
+{
+  "$defs": {
+    "StorageTreeEntry": {
+      "additionalProperties": false,
+      "description": "Describe one exact immediate child of an allowed temporary root.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "root": {
+          "enum": [
+            ".b",
+            ".t"
+          ],
+          "title": "Root",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "cache",
+            "gate_run",
+            "process_temp",
+            "pytest_basetemp",
+            "unknown"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "eligible",
+            "protected"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Reasons",
+          "type": "array"
+        },
+        "file_count": {
+          "minimum": 0,
+          "title": "File Count",
+          "type": "integer"
+        },
+        "directory_count": {
+          "minimum": 1,
+          "title": "Directory Count",
+          "type": "integer"
+        },
+        "byte_size": {
+          "minimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        },
+        "tree_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tree Sha256"
+        },
+        "newest_mtime_ns": {
+          "minimum": 0,
+          "title": "Newest Mtime Ns",
+          "type": "integer"
+        },
+        "matched_protected_hashes": {
+          "items": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "title": "Matched Protected Hashes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "root",
+        "kind",
+        "disposition",
+        "reasons",
+        "file_count",
+        "directory_count",
+        "byte_size",
+        "newest_mtime_ns"
+      ],
+      "title": "StorageTreeEntry",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record a conservative inventory of repository-local temporary roots.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "inventory_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Inventory Id",
+      "type": "string"
+    },
+    "repository_commit": {
+      "pattern": "^[0-9a-f]{40,64}$",
+      "title": "Repository Commit",
+      "type": "string"
+    },
+    "protection_source_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Protection Source Sha256",
+      "type": "string"
+    },
+    "roots": {
+      "items": {
+        "enum": [
+          ".b",
+          ".t"
+        ],
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 1,
+      "title": "Roots",
+      "type": "array"
+    },
+    "minimum_age_hours": {
+      "maximum": 8760,
+      "minimum": 1,
+      "title": "Minimum Age Hours",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/StorageTreeEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "inaccessible_paths": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Inaccessible Paths",
+      "type": "array"
+    },
+    "total_byte_size": {
+      "minimum": 0,
+      "title": "Total Byte Size",
+      "type": "integer"
+    },
+    "eligible_byte_size": {
+      "minimum": 0,
+      "title": "Eligible Byte Size",
+      "type": "integer"
+    },
+    "protected_byte_size": {
+      "minimum": 0,
+      "title": "Protected Byte Size",
+      "type": "integer"
+    },
+    "generated_at": {
+      "format": "date-time",
+      "title": "Generated At",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "inventory_id",
+    "repository_commit",
+    "protection_source_sha256",
+    "roots",
+    "minimum_age_hours",
+    "status",
+    "entries",
+    "total_byte_size",
+    "eligible_byte_size",
+    "protected_byte_size",
+    "generated_at",
+    "input_sha256"
+  ],
+  "title": "StorageInventoryV01",
+  "type": "object"
+}

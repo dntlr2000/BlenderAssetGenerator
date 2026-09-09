@@ -29,6 +29,7 @@ build/
 /.b/
 /.b[0-9a-z]/
 /.codex_test
+/.cbm/storage_retention/
 /.codex_tmp
 /.codex-temp/
 /.codex_temp/

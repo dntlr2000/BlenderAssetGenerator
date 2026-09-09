@@ -7,16 +7,25 @@ SKIP_V08=0
 SKIP_V07=0
 SKIP_COMPATIBILITY=0
 SKIP_TEXTURE_BAKE=0
-for arg in "$@"; do
-  case "$arg" in
-    --skip-vision) SKIP_VISION=1 ;;
-    --skip-v08) SKIP_V08=1 ;;
-    --skip-v07) SKIP_V07=1 ;;
-    --skip-compatibility) SKIP_COMPATIBILITY=1 ;;
-    --skip-texture-bake) SKIP_TEXTURE_BAKE=1 ;;
-    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+RETENTION_POLICY="compact-success"
+GATE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-vision) SKIP_VISION=1; shift ;;
+    --skip-v08) SKIP_V08=1; shift ;;
+    --skip-v07) SKIP_V07=1; shift ;;
+    --skip-compatibility) SKIP_COMPATIBILITY=1; shift ;;
+    --skip-texture-bake) SKIP_TEXTURE_BAKE=1; shift ;;
+    --retention-policy)
+      [[ $# -ge 2 ]] || { echo "--retention-policy requires a value" >&2; exit 2; }
+      RETENTION_POLICY="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+[[ "$RETENTION_POLICY" == "compact-success" || "$RETENTION_POLICY" == "preserve" ]] || {
+  echo "--retention-policy must be compact-success or preserve" >&2
+  exit 2
+}
 
 # Builds one real GLB package and validates a movable Codex handoff in isolation.
 run_destination_handoff_gate() {
@@ -136,7 +145,9 @@ else
   uv sync --frozen --extra dev --extra vision
 fi
 
-PYTEST_ROOT="$PWD/.t/v9p-$$-$(date -u +%H%M%S)"
+PYTEST_STAMP="$(date -u +%H%M%S)"
+PYTEST_ROOT_RELATIVE=".t/v9p-$PYTEST_STAMP-$$"
+PYTEST_ROOT="$PWD/$PYTEST_ROOT_RELATIVE"
 mkdir -p "$PYTEST_ROOT"
 uv run pytest --basetemp "$PYTEST_ROOT"
 uv run ruff check .
@@ -157,6 +168,7 @@ if [[ "$SKIP_V08" -eq 0 ]]; then
   [[ "$SKIP_VISION" -eq 1 ]] && V08_ARGS+=(--skip-vision)
   [[ "$SKIP_COMPATIBILITY" -eq 1 ]] && V08_ARGS+=(--skip-compatibility)
   [[ "$SKIP_TEXTURE_BAKE" -eq 1 ]] && V08_ARGS+=(--skip-texture-bake)
+  V08_ARGS+=(--retention-policy "$RETENTION_POLICY")
   ./scripts/run_v08_gates.sh "${V08_ARGS[@]}"
 fi
 
@@ -216,5 +228,10 @@ uv run cbm stability-report-pdf --probe-id "$PROBE_ID" \
 PDF_ROOT="$PWD/output/pdf/v09/$REPORT_ID"
 [[ -f "$PDF_ROOT/stability_report.pdf" ]]
 [[ -f "$PDF_ROOT/stability_report.manifest.json" ]]
+
+uv run python scripts/finalize_gate_run.py \
+  --run-id "v09-gate-$PYTEST_STAMP-$$" --gate-id v09 \
+  --run-root "$PYTEST_ROOT_RELATIVE" --retention-policy "$RETENTION_POLICY" \
+  --started-at "$GATE_STARTED_AT"
 
 echo "V0.9 isolated stabilization gates completed: $SMOKE_ROOT"

@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "StorageArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-relative storage-control artifact by exact bytes.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "storage_inventory",
+            "storage_cleanup_plan",
+            "storage_cleanup_receipt",
+            "gate_run_preflight",
+            "gate_run_receipt",
+            "gate_retention_recovery_receipt",
+            "gate_retained_artifact"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "minimum": 1,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "StorageArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Separate one gate result from the retention outcome of its run-owned scratch tree.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "gate_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Gate Id",
+      "type": "string"
+    },
+    "repository_commit": {
+      "pattern": "^[0-9a-f]{40,64}$",
+      "title": "Repository Commit",
+      "type": "string"
+    },
+    "run_root": {
+      "title": "Run Root",
+      "type": "string"
+    },
+    "process_temp_root": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Process Temp Root"
+    },
+    "gate_outcome": {
+      "enum": [
+        "passed",
+        "failed",
+        "interrupted"
+      ],
+      "title": "Gate Outcome",
+      "type": "string"
+    },
+    "retention_policy": {
+      "enum": [
+        "compact_success",
+        "preserve"
+      ],
+      "title": "Retention Policy",
+      "type": "string"
+    },
+    "retention_outcome": {
+      "enum": [
+        "compacted",
+        "preserved_by_policy",
+        "preserved_failure",
+        "preserved_retention_failure"
+      ],
+      "title": "Retention Outcome",
+      "type": "string"
+    },
+    "source_tree_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Tree Sha256"
+    },
+    "source_file_count": {
+      "minimum": 0,
+      "title": "Source File Count",
+      "type": "integer"
+    },
+    "source_directory_count": {
+      "minimum": 0,
+      "title": "Source Directory Count",
+      "type": "integer"
+    },
+    "source_byte_size": {
+      "minimum": 0,
+      "title": "Source Byte Size",
+      "type": "integer"
+    },
+    "retained_artifacts": {
+      "items": {
+        "$ref": "#/$defs/StorageArtifact"
+      },
+      "title": "Retained Artifacts",
+      "type": "array"
+    },
+    "started_at": {
+      "format": "date-time",
+      "title": "Started At",
+      "type": "string"
+    },
+    "completed_at": {
+      "format": "date-time",
+      "title": "Completed At",
+      "type": "string"
+    },
+    "message": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Message",
+      "type": "string"
+    },
+    "input_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "gate_id",
+    "repository_commit",
+    "run_root",
+    "gate_outcome",
+    "retention_policy",
+    "retention_outcome",
+    "source_file_count",
+    "source_directory_count",
+    "source_byte_size",
+    "started_at",
+    "completed_at",
+    "message",
+    "input_sha256"
+  ],
+  "title": "GateRunReceiptV01",
+  "type": "object"
+}

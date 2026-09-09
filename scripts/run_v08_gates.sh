@@ -6,15 +6,24 @@ SKIP_VISION=0
 SKIP_V07=0
 SKIP_COMPATIBILITY=0
 SKIP_TEXTURE_BAKE=0
-for arg in "$@"; do
-  case "$arg" in
-    --skip-vision) SKIP_VISION=1 ;;
-    --skip-v07) SKIP_V07=1 ;;
-    --skip-compatibility) SKIP_COMPATIBILITY=1 ;;
-    --skip-texture-bake) SKIP_TEXTURE_BAKE=1 ;;
-    *) echo "Unknown option: $arg" >&2; exit 2 ;;
+RETENTION_POLICY="compact-success"
+GATE_STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --skip-vision) SKIP_VISION=1; shift ;;
+    --skip-v07) SKIP_V07=1; shift ;;
+    --skip-compatibility) SKIP_COMPATIBILITY=1; shift ;;
+    --skip-texture-bake) SKIP_TEXTURE_BAKE=1; shift ;;
+    --retention-policy)
+      [[ $# -ge 2 ]] || { echo "--retention-policy requires a value" >&2; exit 2; }
+      RETENTION_POLICY="$2"; shift 2 ;;
+    *) echo "Unknown option: $1" >&2; exit 2 ;;
   esac
 done
+[[ "$RETENTION_POLICY" == "compact-success" || "$RETENTION_POLICY" == "preserve" ]] || {
+  echo "--retention-policy must be compact-success or preserve" >&2
+  exit 2
+}
 
 if [[ "$SKIP_VISION" -eq 1 ]]; then
   uv sync --frozen --extra dev
@@ -23,7 +32,9 @@ else
 fi
 
 # Keep nested fixtures below a short repository-local path on every platform.
-PYTEST_ROOT="$PWD/.t/v8p-$(date -u +%H%M%S)-$$"
+PYTEST_STAMP="$(date -u +%H%M%S)"
+PYTEST_ROOT_RELATIVE=".t/v8p-$PYTEST_STAMP-$$"
+PYTEST_ROOT="$PWD/$PYTEST_ROOT_RELATIVE"
 mkdir -p "$PYTEST_ROOT"
 uv run pytest --basetemp "$PYTEST_ROOT"
 uv run ruff check .
@@ -34,6 +45,7 @@ if [[ "$SKIP_V07" -eq 0 ]]; then
   [[ "$SKIP_VISION" -eq 1 ]] && V07_ARGS+=(--skip-vision)
   [[ "$SKIP_COMPATIBILITY" -eq 1 ]] && V07_ARGS+=(--skip-compatibility)
   [[ "$SKIP_TEXTURE_BAKE" -eq 1 ]] && V07_ARGS+=(--skip-texture-bake)
+  V07_ARGS+=(--retention-policy "$RETENTION_POLICY")
   ./scripts/run_v07_gates.sh "${V07_ARGS[@]}"
 fi
 
@@ -103,5 +115,10 @@ PORTABLE_LATEST="$SMOKE_WORKSPACE/geometry_showcase/workflows/latest.json"
 PORTABLE_WORKFLOW_ID="$(uv run python -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["workflow_id"])' "$PORTABLE_LATEST")"
 PORTABLE_PLAN="$SMOKE_WORKSPACE/geometry_showcase/workflows/$PORTABLE_WORKFLOW_ID/plan.json"
 uv run python -c 'import json,sys; p=json.load(open(sys.argv[1], encoding="utf-8")); s={x["step_id"]:x for x in p["steps"]}; assert p["destination"]["status"] == "unsupported" and p["destination"]["terminal_boundary"] == "portable_package" and p["terminal_step_id"] == "destination.handoff"; assert s["destination.handoff"]["depends_on"] == ["portable.final_approval"]' "$PORTABLE_PLAN"
+
+uv run python scripts/finalize_gate_run.py \
+  --run-id "v08-gate-$PYTEST_STAMP-$$" --gate-id v08 \
+  --run-root "$PYTEST_ROOT_RELATIVE" --retention-policy "$RETENTION_POLICY" \
+  --started-at "$GATE_STARTED_AT"
 
 echo "V0.8 isolated orchestration gates completed: $SMOKE_ROOT"

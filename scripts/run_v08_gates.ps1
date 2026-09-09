@@ -2,11 +2,14 @@ param(
     [switch]$SkipVision,
     [switch]$SkipV07,
     [switch]$SkipCompatibility,
-    [switch]$SkipTextureBake
+    [switch]$SkipTextureBake,
+    [ValidateSet("CompactSuccess", "Preserve")]
+    [string]$RetentionPolicy = "CompactSuccess"
 )
 
 $ErrorActionPreference = "Stop"
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot ".."))
+$GateStartedAt = [DateTime]::UtcNow.ToString("o")
 
 # Runs one uv command and converts a native non-zero exit into a terminating gate failure.
 function Invoke-Uv {
@@ -25,7 +28,8 @@ else {
 
 # Keeps deeply nested Windows fixtures below a short repository-local path.
 $PytestStamp = [DateTime]::UtcNow.ToString("HHmmssfff")
-$PytestRoot = Join-Path (Get-Location) ".t/v8p-${PytestStamp}-$PID"
+$PytestRootRelative = ".t/v8p-${PytestStamp}-$PID"
+$PytestRoot = Join-Path (Get-Location) $PytestRootRelative
 New-Item -ItemType Directory -Path $PytestRoot -Force | Out-Null
 Invoke-Uv run python scripts/run_pytest_acl_safe.py --basetemp $PytestRoot
 Invoke-Uv run ruff check .
@@ -36,6 +40,7 @@ if (-not $SkipV07) {
     if ($SkipVision) { $V07Arguments += "-SkipVision" }
     if ($SkipCompatibility) { $V07Arguments += "-SkipCompatibility" }
     if ($SkipTextureBake) { $V07Arguments += "-SkipTextureBake" }
+    $V07Arguments += @("-RetentionPolicy", $RetentionPolicy)
     & (Join-Path $PSScriptRoot "run_v07_gates.ps1") @V07Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "V0.7 regression gate failed with exit code ${LASTEXITCODE}."
@@ -197,6 +202,18 @@ finally {
         $env:CBM_WORKSPACE_ROOT = $PreviousWorkspace
     }
 }
+
+$RetentionPolicyValue = if ($RetentionPolicy -eq "Preserve") {
+    "preserve"
+}
+else {
+    "compact-success"
+}
+Invoke-Uv run python scripts/finalize_gate_run.py `
+    --run-id "v08-gate-${PytestStamp}-$PID" --gate-id v08 `
+    --run-root $PytestRootRelative `
+    --process-temp-root "${PytestRootRelative}-process-temp" `
+    --retention-policy $RetentionPolicyValue --started-at $GateStartedAt
 
 Write-Host "V0.8 isolated orchestration gates completed: $SmokeRoot" `
     -ForegroundColor Green
