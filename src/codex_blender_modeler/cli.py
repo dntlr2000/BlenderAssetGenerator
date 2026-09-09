@@ -83,6 +83,7 @@ from .autonomy_v2.codex_image_material_quality_service import (
 from .autonomy_v2.codex_image_planner import (
     plan_autonomous_static_prop_v2_codex_imagegen,
 )
+from .autonomy_v2.fidelity_budget_service import load_fidelity_budget_proposal
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -3705,8 +3706,11 @@ def aq_one_prompt_skill_plan_command(
         typer.Option("--enable-v2/--disable-v2"),
     ] = False,
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    fidelity_budget_plan: Annotated[
+        Path | None, typer.Option("--fidelity-budget-plan"),
+    ] = None,
 ) -> None:
-    """Plan the disabled AQ stage adapter over one exact One-Prompt session."""
+    """Plan the disabled AQ adapter with an optional strict, reference-bound funding proposal."""
 
     result = plan_aq_one_prompt_skill(
         request,
@@ -3727,6 +3731,7 @@ def aq_one_prompt_skill_plan_command(
         destination_hint=destination_hint,
         experimental_opt_in=experimental_opt_in,
         run_id=run_id,
+        fidelity_budget_plan=load_fidelity_budget_proposal(fidelity_budget_plan),
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 

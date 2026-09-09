@@ -35,6 +35,7 @@ from ..autonomy_v2 import (
     run_one_prompt,
 )
 from ..autonomy_v2.approval_models import AQV2OnePromptRunTerminal
+from ..autonomy_v2.fidelity_budget_models import FidelityBudgetEpochV01
 from ..autonomy_v2.models import DeliveryTerminalV2, QualityApprovedSourceFreeze
 from ..blender_artifacts import (
     deterministic_json_bytes,
@@ -4830,8 +4831,9 @@ def plan_aq_one_prompt_skill(
     destination_hint: str = "engine_neutral",
     experimental_opt_in: bool = False,
     run_id: str | None = None,
+    fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
 ) -> dict[str, object]:
-    """Plan an AQ One-Prompt session and bind the experimental AQ skill bundle."""
+    """Bind the AQ skill bundle to one One-Prompt session and its optional exact funding epoch."""
 
     if not experimental_opt_in:
         raise PermissionError("AQ skill adapter remains disabled_experimental")
@@ -4847,6 +4849,10 @@ def plan_aq_one_prompt_skill(
         controller_execution_mode=controller_execution_mode,
         destination_hint=destination_hint,
         allow_disabled_experimental=True,
+        **(
+            {"fidelity_budget_plan": fidelity_budget_plan}
+            if fidelity_budget_plan is not None else {}
+        ),
     )
     created_job_id = str(base["job_id"])
     session_id = str(base["session_id"])

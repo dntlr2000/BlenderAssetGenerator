@@ -173,6 +173,11 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 SceneSpec은 0.2.0, 프로젝트는 0.9.0을 유지한다. 기존 budget/loop의 bytes와 기본 CLI/MCP 동작은
 변경하지 않는다. 공개 budget reader는 정확한 0.2/0.3 버전을 dispatch하며 알 수 없는 버전은 거절한다.
 
+AQ skill adapter도 같은 선택 인자를 One-Prompt host로 전달하고 새 session의 exact skill bundle을
+함께 고정한다. CLI `aq-one-prompt-skill-plan --fidelity-budget-plan <JSON>`과 MCP
+`plan_aq_one_prompt_skill(fidelity_budget_plan_path=...)`는 이 엄격한 proposal을 읽는다.
+생략 시 기존 동작을 유지하며, 파일 자체가 자율 위임·experimental opt-in·인간 artifact 승인을 대체하지 않는다.
+
 | 단계 | materialization | build | closure | QA/IQ 예산 | promotion |
 |---|---:|---:|---:|---:|---:|
 | 초기 저작 | 초기 object 상한 N | 3 | 1 | 3 | 2 |

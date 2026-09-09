@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
 
-from ..blender_artifacts import sha256_file, stable_json_digest
+from ..blender_artifacts import native_io_path, sha256_file, stable_json_digest
 from ..config import get_settings
 from ..production.validation import ensure_contained_production_path
 from .fidelity_budget_models import (
@@ -170,6 +170,14 @@ def plan_fidelity_budget_epoch(
         structural_rounds=structural_rounds, parametric_rounds=parametric_rounds,
         material_corrections=material_corrections,
     )
+
+
+def load_fidelity_budget_proposal(path: str | Path | None) -> FidelityBudgetEpochV01 | None:
+    """Read an optional strict proposal without granting authority or modifying its evidence."""
+
+    if path is None:
+        return None
+    return FidelityBudgetEpochV01.model_validate_json(Path(native_io_path(Path(path))).read_bytes())
 
 
 def validate_fidelity_epoch_history(

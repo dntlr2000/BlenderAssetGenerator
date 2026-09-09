@@ -701,3 +701,12 @@ parametric/material 합계 최대 2회의 실제 materialization·build·closure
 
 이 기록은 실물 reference의 개선이나 인간 수락을 추가하지 않는다. 기존 47e 캠페인의 production 1/5,
 review 3/5, failure 1/5, paired improvement 1/5, human quality disposition 0/5를 유지한다.
+
+### 2026-09-10 캠페인 진입점 호환성 보완
+
+캠페인 준비에서 AQ 스킬의 V0.3 안내 누락과 adapter의 funding 전달 누락을 확인했다.
+기존 One-Prompt host가 검증하는 같은 proposal을 skill adapter, CLI의 `--fidelity-budget-plan`,
+MCP의 `fidelity_budget_plan_path`에서 전달하도록 연결했다. 기존 기본값·tool 이름·allowlist는
+유지하며, proposal이 위임·experimental opt-in·인간 artifact 승인을 대체하지 않는다.
+host/CLI/MCP에서 실제 funded root와 exact skill bundle을 생성하는 3개 사례, 과도한 권한을
+담은 파일을 job 생성 전에 거절하는 2개 사례를 추가했다. 과거 skill snapshot은 수정하지 않는다.

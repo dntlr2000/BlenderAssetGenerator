@@ -112,6 +112,7 @@ from .autonomy_v2.codex_image_material_quality_service import (
 from .autonomy_v2.codex_image_planner import (
     plan_autonomous_static_prop_v2_codex_imagegen as plan_codex_imagegen_internal,
 )
+from .autonomy_v2.fidelity_budget_service import load_fidelity_budget_proposal
 from .baking import bake_job_materials
 from .blender_artifact_runner import (
     inspect_job_materials,
@@ -1305,8 +1306,9 @@ def plan_aq_one_prompt_skill(
     destination_hint: str = "engine_neutral",
     experimental_opt_in: bool = False,
     run_id: str | None = None,
+    fidelity_budget_plan_path: str | None = None,
 ) -> dict:
-    """Plan the disabled AQ stage adapter only after explicit delegation and opt-in."""
+    """Plan the disabled AQ adapter with explicit delegation and optional exact funding."""
 
     return plan_aq_one_prompt_skill_internal(
         request,
@@ -1321,6 +1323,7 @@ def plan_aq_one_prompt_skill(
         destination_hint=destination_hint,
         experimental_opt_in=experimental_opt_in,
         run_id=run_id,
+        fidelity_budget_plan=load_fidelity_budget_proposal(fidelity_budget_plan_path),
     )
 
 

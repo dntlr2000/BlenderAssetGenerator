@@ -2056,6 +2056,90 @@ def test_aq_skill_plan_remains_disabled_without_explicit_opt_in(tmp_path: Path) 
         )
 
 
+@pytest.mark.parametrize("surface", ["host", "cli", "mcp"])
+def test_aq_skill_funding_reaches_exact_root_and_bundle(tmp_path, monkeypatch, surface):
+    """Exercise each planning entrypoint through real funded root creation and bundle binding."""
+
+    from test_fidelity_budget_epoch import propose, reference_fixture
+    from typer.testing import CliRunner
+
+    from codex_blender_modeler import mcp_server
+    from codex_blender_modeler.autonomy_v2.controller_bridge import _session_bundle
+    from codex_blender_modeler.autonomy_v2.models import AutonomyBudgetV03
+    from codex_blender_modeler.cli import app
+
+    reference = reference_fixture(tmp_path, monkeypatch)
+    funding = propose(reference)
+    proposal = tmp_path / "funding.json"
+    proposal.write_text(funding.model_dump_json(), encoding="utf-8")
+    options = dict(
+        reference_path=str(reference), target_subject="funded fixture",
+        requested_delivery_profiles=["review_only"], job_id=funding.job_id,
+        experimental_opt_in=True, explicit_autonomy_delegation_observed=True,
+        run_id="funded-skill",
+    )
+    if surface == "host":
+        plan_aq_one_prompt_skill("Build the fixture.", fidelity_budget_plan=funding, **options)
+    elif surface == "mcp":
+        mcp_server.plan_aq_one_prompt_skill(
+            "Build the fixture.", fidelity_budget_plan_path=str(proposal), **options,
+        )
+    else:
+        result = CliRunner().invoke(app, [
+            "aq-one-prompt-skill-plan", "Build the fixture.", "--reference", str(reference),
+            "--target-subject", "funded fixture", "--deliveries", "review_only",
+            "--job-id", funding.job_id, "--run-id", "funded-skill", "--enable-v2",
+            "--delegate-routine-actions", "--fidelity-budget-plan", str(proposal),
+        ])
+        assert result.exit_code == 0, result.output
+    status = skill_service.get_aq_one_prompt_skill_status(funding.job_id, "funded-skill")
+    root, _session, _plan, budget, state, _artifact = _session_bundle(
+        funding.job_id, status["session_id"],
+    )
+    assert isinstance(budget, AutonomyBudgetV03)
+    assert budget.funding == funding
+    assert state.budget_usage.total_blender_builds == 0
+    assert status["profile_status"] == "disabled_experimental"
+    assert status["approval_authority"] is False
+    assert _audit_skill_runs(root, funding.job_id) == []
+
+
+@pytest.mark.parametrize("surface", ["cli", "mcp"])
+def test_aq_skill_rejects_overbroad_funding_before_job_creation(tmp_path, monkeypatch, surface):
+    """Reject an invalid proposal at either file-loading surface without creating an AQ job."""
+
+    from test_fidelity_budget_epoch import propose, reference_fixture
+    from typer.testing import CliRunner
+
+    from codex_blender_modeler import mcp_server
+    from codex_blender_modeler.cli import app
+
+    reference = reference_fixture(tmp_path, monkeypatch)
+    funding = propose(reference)
+    value = funding.model_dump(mode="json")
+    value["destination_write"] = True
+    proposal = tmp_path / "invalid-funding.json"
+    proposal.write_text(json.dumps(value), encoding="utf-8")
+    if surface == "mcp":
+        with pytest.raises(ValueError, match="destination_write"):
+            mcp_server.plan_aq_one_prompt_skill(
+                "Build the fixture.", reference_path=str(reference),
+                target_subject="funded fixture", requested_delivery_profiles=["review_only"],
+                job_id=funding.job_id, experimental_opt_in=True,
+                explicit_autonomy_delegation_observed=True,
+                fidelity_budget_plan_path=str(proposal),
+            )
+    else:
+        result = CliRunner().invoke(app, [
+            "aq-one-prompt-skill-plan", "Build the fixture.", "--reference", str(reference),
+            "--target-subject", "funded fixture", "--deliveries", "review_only",
+            "--job-id", funding.job_id, "--enable-v2", "--delegate-routine-actions",
+            "--fidelity-budget-plan", str(proposal),
+        ])
+        assert result.exit_code != 0
+    assert not (tmp_path / "workspaces" / funding.job_id).exists()
+
+
 def test_aq_skill_plan_and_cancel_preserve_disabled_profile_and_receipt_chain(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
