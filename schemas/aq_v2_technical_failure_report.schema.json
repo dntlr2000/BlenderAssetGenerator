@@ -125,6 +125,7 @@
     },
     "category": {
       "enum": [
+        "candidate_budget_exhaustion",
         "dependency_closure",
         "manifest_missing",
         "path_rebinding",

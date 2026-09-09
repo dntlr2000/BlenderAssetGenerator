@@ -1247,7 +1247,13 @@ def _publish_blocked_failure_evidence(
     for artifact in failure_sources:
         validate_approval_artifact(root, artifact)
     failure_id = f"one-prompt-technical-failure-{session_id}"
-    failure_category: TechnicalFailureCategory = "repeated_framework_failure"
+    from .candidate_validation_service import CANDIDATE_BUDGET_FAILURE_PREFIX
+
+    failure_category: TechnicalFailureCategory = (
+        "candidate_budget_exhaustion"
+        if (state.terminal_reason or "").startswith(CANDIDATE_BUDGET_FAILURE_PREFIX)
+        else "repeated_framework_failure"
+    )
     failure = AQV2TechnicalFailureReport(
         contract_id=failure_id,
         failure_id=failure_id,
@@ -1580,10 +1586,34 @@ def _reconcile_interrupted_policy_authorization(
     gate_kind: str,
     exact_target: ApprovalArtifact,
 ) -> ApprovalArtifact | None:
-    """Reuse an exact orphan authorization or close a stale one as technical failure."""
+    """Adopt exact pending/applied geometry authority, or close a stale orphan safely."""
 
     pending = _current_unconsumed_policy_authorization(job_id, session_id)
     if pending is None:
+        if gate_kind in {
+            "geometry_candidate_promotion", "structural_candidate_promotion",
+            "bounded_parametric_revision",
+        }:
+            from .approval_policy_service import get_applied_policy_decision_receipt
+
+            root = job_dir(job_id)
+            for path in sorted((_approval_root(root, session_id) / "decisions").glob("*.json")):
+                decision, _artifact = _decision_receipt_from_path(root, path)
+                if (
+                    decision.gate_kind == gate_kind
+                    and decision.outcome == "applied"
+                    and decision.action_result is not None
+                    and decision.exact_target_artifact.path == exact_target.path
+                    and decision.exact_target_artifact.sha256 == exact_target.sha256
+                    and decision.exact_target_artifact.byte_size == exact_target.byte_size
+                ):
+                    # Exact completed actions are adopted; they never obtain another approval.
+                    get_applied_policy_decision_receipt(
+                        job_id, session_id,
+                        policy_authorization_path=decision.policy_authorization.path,
+                        action_result_path=decision.action_result.path,
+                    )
+                    return decision.policy_authorization
         return None
     authorization, artifact = pending
     same_target = (
@@ -1695,13 +1725,35 @@ def _advance_geometry_with_policy(
         profile = PhaseToolProfile.model_validate_json(handle.read())
     if profile.profile_id != "geometry_authoring":
         return None
+    from .candidate_validation_service import (
+        CandidateBudgetExhausted,
+        preflight_geometry_candidate_budget_v2,
+    )
+    from .controller_bridge import _session_bundle
+    from .models import RootAuthorizationV2
+
+    bundle = _session_bundle(job_id, session_id)
+    if bundle[4] != state:
+        raise ValueError("geometry budget preflight state changed")
+    base_plan, budget = bundle[2:4]
+    authorization = _load_model(root, base_plan.root_authorization, RootAuthorizationV2)
+    try:
+        preflight_geometry_candidate_budget_v2(
+            root=root, plan=base_plan, budget=budget, state=state, authorization=authorization,
+        )
+    except CandidateBudgetExhausted as exc:
+        return _fail_current_policy_action(
+            job_id, session_id, failure_evidence_path=result_artifact.path,
+            failure_evidence_kind=result_artifact.kind,
+            expected_next_action="validate_candidate", reason=exc.terminal_reason(),
+            allow_disabled_experimental=True,
+        )
     canonical_before_path, canonical_before_kind = _geometry_policy_snapshot(
         root,
         job_id,
         session_id,
     )
     dependencies = [result.request, result.tool_profile, *result.outputs]
-    from .controller_bridge import _session_bundle
     from .quality_revision_service import active_reentry
 
     base_plan = _session_bundle(job_id, session_id)[2]
@@ -1756,8 +1808,11 @@ def _advance_geometry_with_policy(
             allow_disabled_experimental=True,
             policy_authorization_path=authorization_artifact.path,
         )
-    except Exception:
-        failure_reason = "Geometry policy action ended in an ordinary technical exception."
+    except Exception as exc:
+        failure_reason = (
+            exc.terminal_reason() if isinstance(exc, CandidateBudgetExhausted)
+            else "Geometry policy action ended in an ordinary technical exception."
+        )
         decision_artifact = _close_failed_policy_authorization(
             job_id,
             session_id,

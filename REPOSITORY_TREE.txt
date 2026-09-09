@@ -1032,6 +1032,7 @@ BlenderAssetGenerator/
   tests/blender_scripts/probe_portable_json_long_path.py
   tests/cli_help_support.py
   tests/fixtures/integrated_quality_v02/masks.json
+  tests/fixtures/reference_fidelity/candidate_budget_failure.json
   tests/fixtures/reference_fidelity/historical_5e5b172.json
   tests/test_activation_readiness.py
   tests/test_advanced_material_handoff_v02.py
@@ -1042,6 +1043,7 @@ BlenderAssetGenerator/
   tests/test_aq_approval_envelope_schemas.py
   tests/test_aq_approval_kpi.py
   tests/test_aq_approval_public_surface.py
+  tests/test_aq_candidate_budget_preflight.py
   tests/test_aq_evidence_envelopes.py
   tests/test_aq_v02_delivery_executor_blender.py
   tests/test_aq_v02_delivery_geometry_blender.py

@@ -868,6 +868,94 @@ def _build_isolated_candidate(
     )
 
 
+CANDIDATE_BUDGET_FAILURE_PREFIX = "Candidate budget exhausted before Blender: "
+
+
+class CandidateBudgetExhausted(PermissionError):
+    """Distinguish an unfunded exact candidate from a controller or Blender failure."""
+
+    def __init__(self, field: str, required: int, limit: int) -> None:
+        """Retain the checked resource dimension and finite required/available amounts."""
+
+        self.field = field
+        self.required = required
+        self.limit = limit
+        super().__init__(f"AQ v2 {field} budget is exhausted: required={required}, limit={limit}")
+
+    def terminal_reason(self) -> str:
+        """Produce a host-owned classification marker without granting new authority."""
+
+        return (
+            f"{CANDIDATE_BUDGET_FAILURE_PREFIX}{self.field} "
+            f"required={self.required}, limit={self.limit}."
+        )
+
+
+def preflight_geometry_candidate_budget_v2(
+    *, root: Path, plan: AutonomyPlanV2, budget: AutonomyBudgetV2,
+    state: AutonomyStateV2, authorization: RootAuthorizationV2,
+) -> BudgetUsageV2:
+    """Rehash candidate inputs and check real object costs before issuing promotion policy."""
+
+    from .quality_revision_service import active_reentry, load_optional_loop
+
+    if state.next_action != "validate_candidate" or not state.provenance:
+        raise PermissionError("geometry budget preflight requires the current candidate boundary")
+    result_artifact = state.provenance[-1]
+    result = ControllerResult.model_validate_json(
+        _read_bytes(validate_v2_artifact(root, result_artifact))
+    )
+    receipt_path = _candidate_validation_root(root, plan, result) / "receipt.json"
+    if os.path.isfile(native_io_path(receipt_path)):
+        # A receipt-bearing crash continuation validates postconditions, not replaced aliases.
+        receipt, _artifact = _validate_existing_receipt(
+            root=root, plan=plan, path=receipt_path, expected_result=result_artifact,
+        )
+        return receipt.budget_usage_after
+    bundle = _validate_controller_bundle(root=root, plan=plan, state=state)
+    _require_current_inputs(root=root, authorization=authorization, bundle=bundle)
+    _modeling, scene = _validate_candidate_contracts(
+        root=root, authorization=authorization, bundle=bundle,
+    )
+    reentry = active_reentry(root, plan, state)
+    usage = _reserve_candidate_budget(
+        state.budget_usage, budget, materialization_builds=len(scene.objects),
+        structural_reentry=reentry is not None and reentry.route == "structural_reentry",
+        parametric_reentry=reentry is not None and reentry.route == "parametric_revision",
+    )
+    binding = load_optional_loop(root, plan.session_id)
+    _require_candidate_materialization_reserve(binding, reentry, len(scene.objects))
+    return usage
+
+
+def _candidate_validation_root(
+    root: Path, plan: AutonomyPlanV2, result: ControllerResult,
+) -> Path:
+    """Derive the unchanged execution-owned receipt/compile directory without creating it."""
+
+    validation_id = stable_json_digest(
+        {"session_id": plan.session_id, "execution_id": result.execution_id}
+    )[:20]
+    return ensure_contained_production_path(
+        root, root / "aq2" / validation_id, must_exist=False,
+    )
+
+
+def _require_candidate_materialization_reserve(binding, reentry, object_count: int) -> None:
+    """Enforce the same declared object reserve in preflight and the canonical host path."""
+
+    from .quality_revision_models import AQQualityRevisionLoopV02
+
+    if reentry is None and binding is not None and isinstance(binding[0], AQQualityRevisionLoopV02):
+        limit = binding[0].initial_pipeline_reserve.materializations
+        if object_count > limit:
+            raise CandidateBudgetExhausted("initial_materializations", object_count, limit)
+    if reentry is not None and object_count > reentry.cost.materializations:
+        raise CandidateBudgetExhausted(
+            "revision_materializations", object_count, reentry.cost.materializations,
+        )
+
+
 def _reserve_candidate_budget(
     usage: BudgetUsageV2,
     budget: AutonomyBudgetV2,
@@ -904,7 +992,7 @@ def _reserve_candidate_budget(
     }
     for field, limit in limits.items():
         if getattr(updated, field) > limit:
-            raise PermissionError(f"AQ v2 {field} budget is exhausted")
+            raise CandidateBudgetExhausted(field, getattr(updated, field), limit)
     return updated
 
 
@@ -1297,17 +1385,7 @@ def _validate_and_promote_geometry_core(
         != identity
     ):
         raise ValueError("current geometry result is incomplete or belongs to another session")
-    validation_id = stable_json_digest(
-        {
-            "session_id": plan.session_id,
-            "execution_id": current_result.execution_id,
-        }
-    )[:20]
-    validation_root = ensure_contained_production_path(
-        root,
-        root / "aq2" / validation_id,
-        must_exist=False,
-    )
+    validation_root = _candidate_validation_root(root, plan, current_result)
     receipt_path = validation_root / "receipt.json"
     policy_required = _validate_geometry_policy_authority(
         plan,
@@ -1366,8 +1444,7 @@ def _validate_and_promote_geometry_core(
         structural_reentry=reentry is not None and reentry.route == "structural_reentry",
         parametric_reentry=reentry is not None and reentry.route == "parametric_revision",
     )
-    if reentry is not None and len(scene_v03.objects) > reentry.cost.materializations:
-        raise PermissionError("candidate exceeds reserved structural materialization cost")
+    _require_candidate_materialization_reserve(binding, reentry, len(scene_v03.objects))
     os.makedirs(native_io_path(validation_root), exist_ok=False)
     compilation = _compile_scene_v03(
         root=root,

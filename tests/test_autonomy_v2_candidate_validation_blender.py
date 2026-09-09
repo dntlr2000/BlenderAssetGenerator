@@ -10,16 +10,21 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
+from codex_blender_modeler.autonomy_v2.approval_models import ApprovalArtifact
 from codex_blender_modeler.autonomy_v2.approval_policy_service import (
     authorize_routine_gate,
     evaluate_routine_gate_eligibility,
     get_applied_policy_decision_receipt,
     plan_approval_envelope,
 )
+from codex_blender_modeler.autonomy_v2.approval_supervisor_service import (
+    _reconcile_interrupted_policy_authorization,
+)
 from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
     GeometryAuthoringCompletionV2,
 )
 from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
+    preflight_geometry_candidate_budget_v2,
     validate_and_promote_geometry_candidate_v2,
 )
 from codex_blender_modeler.autonomy_v2.controller_bridge import (
@@ -521,15 +526,22 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
     )
     assert recovered == receipt
     assert recovered_artifact == receipt_artifact
+    resumed_budget = preflight_geometry_candidate_budget_v2(
+        root=root, plan=plan, budget=budget, state=state, authorization=authorization,
+    )
+    assert resumed_budget == receipt.budget_usage_after
 
+    recovered_policy = _reconcile_interrupted_policy_authorization(
+        plan.job_id, plan.session_id, gate_kind="geometry_candidate_promotion",
+        exact_target=ApprovalArtifact.model_validate(
+            eligibility["report"]["exact_target_artifact"],
+        ),
+    )
+    assert recovered_policy is not None
+    assert recovered_policy.path == policy_authorization_path
     advanced = _controller_validation_boundary(
-        root,
-        session_root,
-        plan,
-        budget,
-        state,
-        authorization,
-        policy_authorization_path=policy_authorization_path,
+        root, session_root, plan, budget, state, authorization,
+        policy_authorization_path=recovered_policy.path,
     )
     assert advanced["outcome"] == "geometry_candidate_validated"
     root, _session_root, plan, _budget, material_boundary, _artifact = _session_bundle(

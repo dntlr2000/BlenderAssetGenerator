@@ -1,0 +1,36 @@
+{
+  "schema_version": "0.1.0",
+  "kind": "incident_regression_fixture_not_campaign_authority",
+  "original_head": "47e39286fec6e1ed5a706b5b422edde3b33a95d8",
+  "candidate_object_count": 21,
+  "root_build_limit": 14,
+  "initial_materialization_reserve": 5,
+  "geometry_builds_required": 22,
+  "original_exception": "AQ v2 total_blender_builds budget is exhausted",
+  "original_artifacts": [
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/states/0003.json",
+      "sha256": "01172c35cf5764d123f3298885af4634a5d8c756f27bd842b1b4ad8018f32c3b"
+    },
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/budget.json",
+      "sha256": "46b96f640a338a14da92272f916589cd24d845f72a2407ed769d441ac63b1f57"
+    },
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/fidelity/plan.json",
+      "sha256": "28f687c819ae7fa315958a83f398447326406797df242c38dafa8a4614d7ef97"
+    },
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/controller_outputs/geometry_authoring/exec-0002-geometry_authoring/scene_spec_v03.json",
+      "sha256": "0e10ce4efdbe1db1c82085fb7dd1182f83782e447a660800116348e0a6229a74"
+    },
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/approval_envelope/decisions/0001.json",
+      "sha256": "710d576685088989d9e8546e41949fa0877dab24012551ede02183be1d0083ca"
+    },
+    {
+      "path": "workspaces/aq_ref_fidelity_47e3928_05_multi_material_laser/production/autonomy_v2/aqv2-20260908t172041489147z-bca99be6/approval_envelope/one_prompt/terminal.json",
+      "sha256": "9dc5568f8ad55ba9d5d2d4581438e6357051fb29120b9bab293331fbf120ea5a"
+    }
+  ]
+}

@@ -43,6 +43,7 @@ _ModelT = TypeVar("_ModelT", bound=BaseModel)
 _PRODUCER = "codex_blender_modeler.autonomy_v2.approval_policy_service"
 _TECHNICAL_FAILURE_CATEGORIES = frozenset(
     {
+        "candidate_budget_exhaustion",
         "dependency_closure",
         "manifest_missing",
         "path_rebinding",

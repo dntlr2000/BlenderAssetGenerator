@@ -67,6 +67,7 @@ FrameworkChangeClassification = Literal[
     "reference_specific_ambiguity",
 ]
 TechnicalFailureCategory = Literal[
+    "candidate_budget_exhaustion",
     "dependency_closure",
     "manifest_missing",
     "path_rebinding",

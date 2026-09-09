@@ -641,3 +641,40 @@ SHA는 `29d20f588ac2e90267143819690ffc5aa7de5909566d2153af31aa8ec114f6a0`, round
 이 gate 내부의 자동 approval 문자열은 격리 fixture의 테스트 입력일 뿐 실제 인간 approval이나 현재 자산
 package acceptance가 아니다. dev-only gate 뒤에는 `uv sync --frozen --extra dev --extra vision`으로 환경을
 유지했다. 과거 16개 anchor audit도 마지막으로 16/16 일치했고 기존 판정이나 Activation 권한을 만들지 않았다.
+
+## 2026-09-09 재개: storage 고정 및 Laser 예산 오류 격리
+
+재개 시 HEAD는 `47e39286fec6e1ed5a706b5b422edde3b33a95d8`, branch는 `main`이었다.
+기존 staged 35개 파일은 storage-retention 구현과 CLI/schema/gate/문서 투영에 한정됐고,
+unstaged/untracked 사용자 변경은 없었다. focused `51 passed, 1 skipped`, ruff, doctor,
+192개 invariant, repository summary, whitespace 검사 후 storage만
+`a680633073bb6700e75db80eb2856f93cf5cccfd`로 독립 커밋했다. 추가 저장공간 정리는 하지 않았다.
+과거 anchor 16/16과 exact discard plan/receipt 연결은 재확인했지만, 이것을 전체 workspace의
+과거 snapshot 검증이라고 확대 해석하지 않는다. `.b/fid`와 빈 quarantine 두 경로는 보존했다.
+
+Laser의 실제 workspace는 `aq_ref_fidelity_47e3928_05_multi_material_laser`, session은
+`aqv2-20260908t172041489147z-bca99be6`이다. 원본 `states/0003.json`의 exact controller/result/
+completion, 현재 reference/camera/canonical source, candidate schema/semantic 및 structural
+authoring 검사를 읽기 전용으로 재생했고 모두 통과했다. 다음 `_reserve_candidate_budget`에서
+`PermissionError: AQ v2 total_blender_builds budget is exhausted`를 재현했다.
+후보는 21개 객체라 geometry materialization 21회와 candidate build 1회가 필요하지만 root의
+build 상한은 14, 초기 materialization reserve는 5였다. stale/hash 오류나 Blender 실패가 아니다.
+
+설정 측 원인은 후보 부품 수와 예약 비용의 불일치다. 공통 host 측 결함은 이 확정 가능한 부족을
+promotion policy 발행 뒤 일반 예외로 처리해 `repeated_framework_failure`로 기록한 것이다.
+새 실행은 exact candidate preflight에서 실제 객체 비용과 declared initial/revision reserve를
+검사하고, 부족하면 policy 발행 및 Blender 실행 전에 중단한다. 새 technical category
+`candidate_budget_exhaustion`은 job-local로 분류하고 사용자 승인 factory에서 거부한다.
+실제 canonical host 경로도 같은 reserve를 재검사한다. 기존 Approval Envelope 0.3 schema의
+허용 category를 추가했으며 기존 evidence 바이트나 category를 다시 쓰지 않는다.
+
+원본 failed terminal, policy decision, QA/approval/package/history는 그대로다. 기존 캠페인의
+technical delivery 1/5, safe review 3/5, technical failure 1/5, paired visual improvement 1/5,
+human disposition 0/5는 새 source의 성과로 재사용하지 않는다. 이 수정은 새 scope나 budget을
+승인하지 않으며 Rust/Wood/Crystal 비용·전략 계약과 새 baseline 검증은 별도 단계다.
+### 2026-09-09 Laser 예산 오류 격리 검증
+
+- 집중 검증 48 passed, 전체 Python 2,289 passed / 74 skipped. 전체 로그와 JUnit은 `.t/rf09/laser-final-full.*`에 보존한다.
+- Blender 5.0.1에서 geometry promotion, hypothesis 전달, 다회차 revision vertical 3 passed (`.t/rf09/laser-blender2.*`). 적용 완료된 policy와 exact receipt의 재사용을 확인했다. 이 fixture는 production reference receipt를 구성하지 않으므로 전체 production supervisor 재개 성공을 주장하지 않는다.
+- GLB/FBX/OBJ 실제 export probe 통과. 명령·버전·결과는 `.t/rf09/laser-compat/`에 새로 기록했으며 기존 compatibility report를 덮어쓰지 않았다.
+- 위 결과는 host 결함 수정 검증이다. 기존 5자산의 시각 개선·인간 수용·Activation 실적을 추가하거나 재분류하지 않는다.
