@@ -314,11 +314,22 @@ def _advance_reference(root: Path, session_id: str) -> None:
     )
 
 
+def test_preflighted_geometry_controller_candidate_builds_and_promotes_exactly(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Run the exact new preflight binding through real Blender validation and atomic promotion."""
+
+    test_geometry_controller_candidate_builds_and_promotes_exactly(
+        tmp_path, monkeypatch, with_preflight=True,
+    )
+
+
 def test_geometry_controller_candidate_builds_and_promotes_exactly(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    with_preflight: bool = False,
 ) -> None:
-    """Bind exact controller, policy, Blender, promotion, and decision evidence."""
+    """Bind exact controller/policy/Blender evidence, optionally through explicit preflight."""
 
     workspace = tmp_path / "workspaces"
     monkeypatch.setenv("CBM_WORKSPACE_ROOT", str(workspace))
@@ -434,6 +445,31 @@ def test_geometry_controller_candidate_builds_and_promotes_exactly(
             },
         ],
     )
+    if with_preflight:
+        from codex_blender_modeler.autonomy_v2.geometry_preflight_service import (
+            GEOMETRY_PREFLIGHT_KIND,
+            preflight_aq_geometry_authoring,
+        )
+
+        staging = root / "fidelity/preflight"
+        staging.mkdir(parents=True)
+        # Preflight and controller must use identical bytes, including Windows newlines.
+        for name, contents in (
+            ("modeling_plan.json", candidate_modeling_bytes),
+            ("scene_spec_v03.json", scene_v03_bytes),
+        ):
+            with open(native_io_path(staging / name), "xb") as handle:
+                handle.write(contents)
+        report = preflight_aq_geometry_authoring(
+            root.name, session_id, modeling_plan_path="fidelity/preflight/modeling_plan.json",
+            scene_spec_v03_path="fidelity/preflight/scene_spec_v03.json",
+        )
+        assert report.outcome == "passed"
+        _write_json(staging / "report.json", report)
+        immutable_inputs.append(artifact_for_v2(
+            root, staging / "report.json", artifact_id="geometry-preflight",
+            kind=GEOMETRY_PREFLIGHT_KIND,
+        ))
     controller = FakeControllerForTests(
         payloads={
             "modeling_plan.json": candidate_modeling_bytes,

@@ -1218,13 +1218,13 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental delivery roles: portable_fbx, review_only
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
-- Skill registry SHA-256: f220fd3c3902eaf59f3decc63116af157d7dabf32263abca62603f1c6318c5a7
-- CLI commands: 194
-- CLI registry SHA-256: 305d67112a900d015d9f2a62c582962b3d2e3199346f450f937850e992fe8e51
-- MCP server tools: 179
-- MCP server registry SHA-256: 934b80c247505d17274eede6a23ebe94b9f7859b194be3b8a0e49d12e7b61e88
-- Project-enabled MCP tools: 178
-- Project-enabled MCP SHA-256: 09bd8fa370d31d8f3f90d3d7613429da91db94e6d2ea61570f161e28c72a2fab
+- Skill registry SHA-256: 36eacd2d747a7c27ba06fdf67c51160dd63163141882a91ecf0b0b5c6a73dafe
+- CLI commands: 195
+- CLI registry SHA-256: 8501cc6588213d5efa6dffbe58b82e9d3327471cb206134a914c5745cd1e9691
+- MCP server tools: 180
+- MCP server registry SHA-256: 39042a7f7ef7f69174554ce66e058e46ff2a8fa4bcc005296c4f79afdadefef6
+- Project-enabled MCP tools: 179
+- Project-enabled MCP SHA-256: 5db11becf8a97a01a160eca0af2105c600df2d34b93f4c3e845ebf7a558a1934
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
 - Latest reported test count: 2238

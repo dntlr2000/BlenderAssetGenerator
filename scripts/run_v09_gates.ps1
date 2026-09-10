@@ -228,12 +228,12 @@ if (-not $SkipCompatibility -and -not $SkipV07) {
 }
 
 if (-not $SkipV08) {
-    $V08Arguments = @()
-    if ($SkipV07) { $V08Arguments += "-SkipV07" }
-    if ($SkipVision) { $V08Arguments += "-SkipVision" }
-    if ($SkipCompatibility) { $V08Arguments += "-SkipCompatibility" }
-    if ($SkipTextureBake) { $V08Arguments += "-SkipTextureBake" }
-    $V08Arguments += @("-RetentionPolicy", $RetentionPolicy)
+    # Hashtable splatting binds child-script parameter names instead of positional strings.
+    $V08Arguments = @{ RetentionPolicy = $RetentionPolicy }
+    if ($SkipV07) { $V08Arguments.SkipV07 = $true }
+    if ($SkipVision) { $V08Arguments.SkipVision = $true }
+    if ($SkipCompatibility) { $V08Arguments.SkipCompatibility = $true }
+    if ($SkipTextureBake) { $V08Arguments.SkipTextureBake = $true }
     & (Join-Path $PSScriptRoot "run_v08_gates.ps1") @V08Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "V0.8 regression gate failed with exit code ${LASTEXITCODE}."

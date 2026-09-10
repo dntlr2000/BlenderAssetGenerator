@@ -3793,6 +3793,27 @@ def aq_one_prompt_skill_resume_command(
     console.print_json(json.dumps(result, ensure_ascii=False))
 
 
+@app.command("aq-geometry-preflight")
+def aq_geometry_preflight_command(
+    job_id: str,
+    session_id: str,
+    modeling_plan: Annotated[Path, typer.Option("--modeling-plan")],
+    scene_spec_v03: Annotated[Path, typer.Option("--scene-spec-v03")],
+    structure_authoring: Annotated[Path | None, typer.Option("--structure-authoring")] = None,
+) -> None:
+    """Print read-only candidate/source diagnostics and finite cost before controller submission."""
+
+    from .autonomy_v2.geometry_preflight_service import preflight_aq_geometry_authoring
+
+    report = preflight_aq_geometry_authoring(
+        job_id, session_id, modeling_plan_path=modeling_plan,
+        scene_spec_v03_path=scene_spec_v03, structure_authoring_path=structure_authoring,
+    )
+    console.print_json(report.model_dump_json())
+    if report.outcome != "passed":
+        raise typer.Exit(code=1)
+
+
 @app.command("aq-one-prompt-skill-status")
 def aq_one_prompt_skill_status_command(job_id: str, run_id: str) -> None:
     """Read the AQ skill adapter and underlying One-Prompt status without execution."""

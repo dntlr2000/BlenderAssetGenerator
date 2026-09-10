@@ -32,12 +32,11 @@ function Invoke-Native {
     }
 }
 
-# Runs the existing V0.9 gate, which transitively preserves the V0.8 and V0.7 gates.
+# Runs the V0.9/V0.8/V0.7 chain with named switches and the exact retention setting.
 function Invoke-LegacyRegressionGates {
-    $LegacyArguments = @()
-    if ($SkipVision) { $LegacyArguments += "-SkipVision" }
-    if ($SkipTextureBake) { $LegacyArguments += "-SkipTextureBake" }
-    $LegacyArguments += @("-RetentionPolicy", $RetentionPolicy)
+    $LegacyArguments = @{ RetentionPolicy = $RetentionPolicy }
+    if ($SkipVision) { $LegacyArguments.SkipVision = $true }
+    if ($SkipTextureBake) { $LegacyArguments.SkipTextureBake = $true }
     & (Join-Path $PSScriptRoot "run_v09_gates.ps1") @LegacyArguments
 }
 
@@ -85,6 +84,7 @@ $FocusedTests = @(
     "tests/test_fidelity_budget_epoch.py",
     "tests/test_fidelity_budget_flow.py",
     "tests/test_aq_candidate_budget_preflight.py",
+    "tests/test_aq_geometry_preflight.py",
     "tests/test_reference_fidelity_public.py",
     "tests/test_autonomous_quality_benchmarks.py",
     "tests/test_autonomous_quality_schemas.py",

@@ -36,11 +36,11 @@ Invoke-Uv run ruff check .
 Invoke-Uv run cbm doctor
 
 if (-not $SkipV07) {
-    $V07Arguments = @()
-    if ($SkipVision) { $V07Arguments += "-SkipVision" }
-    if ($SkipCompatibility) { $V07Arguments += "-SkipCompatibility" }
-    if ($SkipTextureBake) { $V07Arguments += "-SkipTextureBake" }
-    $V07Arguments += @("-RetentionPolicy", $RetentionPolicy)
+    # Hashtable splatting preserves named switches and the exact child retention policy.
+    $V07Arguments = @{ RetentionPolicy = $RetentionPolicy }
+    if ($SkipVision) { $V07Arguments.SkipVision = $true }
+    if ($SkipCompatibility) { $V07Arguments.SkipCompatibility = $true }
+    if ($SkipTextureBake) { $V07Arguments.SkipTextureBake = $true }
     & (Join-Path $PSScriptRoot "run_v07_gates.ps1") @V07Arguments
     if ($LASTEXITCODE -ne 0) {
         throw "V0.7 regression gate failed with exit code ${LASTEXITCODE}."

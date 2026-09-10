@@ -113,6 +113,9 @@ from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
 from codex_blender_modeler.autonomy_v2.fidelity_budget_models import FidelityBudgetEpochV01
+from codex_blender_modeler.autonomy_v2.geometry_preflight_models import (
+    GeometryAuthoringPreflightV01,
+)
 from codex_blender_modeler.autonomy_v2.material_phase_models import (
     MaterialClosurePolicyPromotionBoundaryV03,
     MaterialClosurePromotionBoundaryV2,
@@ -785,6 +788,7 @@ SCHEMAS = {
     "autonomy_v02_state.schema.json": AutonomyStateV2,
     "autonomy_v02_cancellation.schema.json": AutonomyCancellationV2,
     "autonomy_v02_geometry_authoring_completion.schema.json": (GeometryAuthoringCompletionV2),
+    "aq_geometry_authoring_preflight_v01.schema.json": GeometryAuthoringPreflightV01,
     "autonomy_v02_geometry_candidate_validation_receipt.schema.json": (
         GeometryCandidateValidationReceiptV2
     ),

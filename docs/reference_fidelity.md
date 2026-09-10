@@ -159,6 +159,36 @@ append-only로 보충할 수 있다. 기존 defect/satisfied 판단의 변경, �
 | `aq-quality-supplement JOB SESSION REVIEW` | `supplement_aq_quality_evidence` | 같은 증거의 누락 관찰 1회 보충 |
 | `aq-structural-reentry JOB SESSION STRATEGY COST` | `begin_aq_structural_reentry` | structural-only wrapper |
 | `aq-quality-reentry JOB SESSION STRATEGY COST` | `begin_aq_quality_reentry` | 진단된 structural/local/material route |
+| `aq-geometry-preflight JOB SESSION --modeling-plan PATH --scene-spec-v03 PATH [--structure-authoring PATH]` | `preflight_aq_geometry_authoring` | 제출 전 source/후보 계약과 실제 object 비용 검사 |
+
+### Geometry authoring preflight 0.1
+
+새 reference-fidelity 캠페인은 immutable controller 요청 전에 staging 후보를 검사한다.
+`GeometryAuthoringPreflightV01`은 현재 AQ state, RootAuthorization, budget, reference/diagnostics,
+기존 canonical source, 선택한 StructureAuthoring 및 두 후보의 exact hash를 결합한다.
+QA role 누락·충돌·ModelingPlan 불일치와 material/source/geometry/camera 계약을 최종 host와 같은
+검사로 확인한다. 실제 object별 materialization, candidate build, controller, promotion 비용은
+기존 root/round reserve에 대조하며 보고서가 예산을 소비하거나 예약하지는 않는다.
+
+CLI/MCP는 보고서를 반환할 뿐 파일이나 controller 요청을 만들지 않는다. CLI는 후보 오류 또는
+예산 부족 보고서에도 JSON을 출력하고 exit 1을 반환한다. stale/hash/path/권한 문제는 별도 예외로
+거절하며 후보 작성 오류로 재분류하지 않는다. 보고서는 shape·render·quality 통과 증거가 아니다.
+
+캠페인 adapter는 보고서를 새 staging 파일로 보존하고 `geometry_authoring_preflight` kind의
+artifact를 필수로 받는 `submit_preflighted_geometry_candidate_v2`를 사용한다. 이 host helper는
+기존 desktop controller 경로를 호출한다. 요청 생성 직전에 보고서를 재계산하고 모든 dependency를
+기존 read-only assignment 입력으로 결합하며, 두 output hash를 실제 후보에 고정한다.
+resume은 기존 pending request와 그 입력·출력 hash를 재사용한다. 최종 host의 controller receipt,
+source, geometry, Blender 및 atomic promotion 검증은 계속 필수다.
+
+기존 request/profile/schema에는 companion을 자동 추가하지 않는다. 새로 제출된 후보의 데이터
+계약 실패만 `CandidateContractInvalid`를 통해 `schema_serialization` 및
+`job_local_candidate_error`로 종료한다. budget exhaustion은 별도 분류를 유지하고, 기존
+terminal/history는 수정하지 않는다. 닫힌 session의 이름 변경·재제출·예산 환급 권한도 생기지 않는다.
+
+회귀는 `test_aq_geometry_preflight.py`와 기존 후보/예산 검사에 있으며 두 AQ gate에 포함된다.
+기존 Blender candidate smoke에는 preflight를 거치는 별도 실행을 추가했다. 이 검증은 캠페인의
+실제 시각 개선이나 인간 beauty/package/Activation 수용과 별도로 보고한다.
 
 경로는 job-relative contained path이며 exact 해시를 검사한다. MCP project allowlist는 controller phase
 authority가 아니다. material closure의 이미 고정된 입력 multiset은 늘리지 않는다. 최신 스킬 변경은

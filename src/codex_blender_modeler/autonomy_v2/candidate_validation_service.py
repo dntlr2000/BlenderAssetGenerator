@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -12,6 +13,8 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 from uuid import uuid4
+
+from pydantic import ValidationError
 
 from ..analysis.assembly import validate_assembly_prebuild_contract
 from ..analysis.models import CameraSolution, ModelingPlan, ReferenceAnalysis
@@ -81,6 +84,17 @@ _ROLE_TAGS = {
     "qa_role:supporting": "supporting",
     "role:supporting": "supporting",
 }
+
+CANDIDATE_CONTRACT_FAILURE_PREFIX = "Candidate contract invalid before Blender: "
+
+
+class CandidateContractInvalid(ValueError):
+    """Identify invalid authored data without relabeling stale evidence or missing authority."""
+
+    def terminal_reason(self) -> str:
+        """Describe a new host-owned candidate failure without granting retry authority."""
+
+        return f"{CANDIDATE_CONTRACT_FAILURE_PREFIX}{self}"
 
 
 def _read_bytes(path: Path) -> bytes:
@@ -424,7 +438,9 @@ def _object_role(tags: list[str], object_id: str) -> str:
         if tag in {str(value).strip().casefold() for value in tags}
     }
     if len(roles) != 1:
-        raise ValueError(f"{object_id} requires exactly one primary/supporting QA role")
+        raise CandidateContractInvalid(
+            f"{object_id} requires exactly one primary/supporting QA role"
+        )
     return next(iter(roles))
 
 
@@ -434,25 +450,31 @@ def _validate_camera_binding(root: Path, scene: SceneSpecV03) -> None:
     solution = CameraSolution.model_validate_json(
         _read_bytes(root / "analysis/camera_solution.json")
     )
-    if solution.job_id != scene.job_id or solution.projection != scene.camera.projection:
-        raise ValueError("SceneSpecV03 camera projection differs from its camera solution")
+    if solution.job_id != scene.job_id:
+        raise ValueError("camera solution belongs to another job")
+    if solution.projection != scene.camera.projection:
+        raise CandidateContractInvalid(
+            "SceneSpecV03 camera projection differs from its camera solution"
+        )
     if abs(solution.focal_length_mm - scene.camera.focal_length_mm) > 1.0e-6:
-        raise ValueError("SceneSpecV03 focal length differs from its camera solution")
+        raise CandidateContractInvalid("SceneSpecV03 focal length differs from its camera solution")
     direction = [
         scene.camera.target[index] - scene.camera.location[index] for index in range(3)
     ]
     length = math.sqrt(sum(value * value for value in direction))
     reference_length = math.sqrt(sum(value * value for value in solution.view_direction))
     if length <= 1.0e-9 or reference_length <= 1.0e-9:
-        raise ValueError("SceneSpecV03 camera has a degenerate view direction")
+        raise CandidateContractInvalid("SceneSpecV03 camera has a degenerate view direction")
     dot = sum(
         direction[index] * solution.view_direction[index] for index in range(3)
     ) / (length * reference_length)
     if dot < 0.95:
-        raise ValueError("SceneSpecV03 camera direction conflicts with its camera solution")
+        raise CandidateContractInvalid(
+            "SceneSpecV03 camera direction conflicts with its camera solution"
+        )
     width, height = scene.camera.resolution
     if min(width, height) <= 0 or max(width, height) > 8192:
-        raise ValueError("SceneSpecV03 camera resolution is outside [1, 8192]")
+        raise CandidateContractInvalid("SceneSpecV03 camera resolution is outside [1, 8192]")
 
 
 def _validate_modeling_diagnostic_bindings(modeling: Any) -> tuple[str, str]:
@@ -464,7 +486,9 @@ def _validate_modeling_diagnostic_bindings(modeling: Any) -> tuple[str, str]:
         modeling.reference_analysis_path != expected_reference_path
         or modeling.camera_solution_path != expected_camera_path
     ):
-        raise ValueError("ModelingPlan does not bind the canonical reference diagnostics")
+        raise CandidateContractInvalid(
+            "ModelingPlan does not bind the canonical reference diagnostics"
+        )
     return expected_reference_path, expected_camera_path
 
 
@@ -474,18 +498,52 @@ def _validate_candidate_contracts(
     authorization: RootAuthorizationV2,
     bundle: _ControllerBundle,
 ) -> tuple[ModelingPlan, SceneSpecV03]:
-    """Validate object-only semantic, material, source, and camera candidate contracts."""
+    """Load exact controller candidates and reuse the same pre-submission data checks."""
 
-    modeling = ModelingPlan.model_validate_json(
-        _read_bytes(root / bundle.modeling_artifact.path)
+    modeling, scene = load_geometry_candidate_contracts(
+        root=root, modeling_artifact=bundle.modeling_artifact,
+        scene_artifact=bundle.scene_v03_artifact,
     )
-    scene = SceneSpecV03.model_validate_json(
-        _read_bytes(root / bundle.scene_v03_artifact.path)
+    validate_geometry_candidate_data(
+        root=root, authorization=authorization, modeling=modeling, scene=scene,
     )
+    return modeling, scene
+
+
+def load_geometry_candidate_contracts(
+    *, root: Path, modeling_artifact: AQV2Artifact, scene_artifact: AQV2Artifact,
+) -> tuple[ModelingPlan, SceneSpecV03]:
+    """Rehash both candidate files before classifying only their JSON/schema errors."""
+
+    modeling_bytes = _read_bytes(validate_v2_artifact(root, modeling_artifact))
+    scene_bytes = _read_bytes(validate_v2_artifact(root, scene_artifact))
+    for contents, artifact in ((modeling_bytes, modeling_artifact), (scene_bytes, scene_artifact)):
+        if hashlib.sha256(contents).hexdigest() != artifact.sha256:
+            raise ValueError(f"candidate changed while reading: {artifact.path}")
+    try:
+        return (
+            ModelingPlan.model_validate_json(modeling_bytes),
+            SceneSpecV03.model_validate_json(scene_bytes),
+        )
+    except ValidationError as exc:
+        # Do not serialize rejected input values or turn an I/O/hash failure into this category.
+        issues = [
+            {"loc": list(item["loc"]), "type": item["type"]}
+            for item in exc.errors(include_url=False, include_context=False, include_input=False)
+        ]
+        raise CandidateContractInvalid(f"candidate schema validation failed: {issues}") from exc
+
+
+def validate_geometry_candidate_data(
+    *, root: Path, authorization: RootAuthorizationV2,
+    modeling: ModelingPlan, scene: SceneSpecV03,
+) -> None:
+    """Check staged or submitted authored data without a controller, Blender, or any write."""
+
     if modeling.job_id != authorization.job_id or scene.job_id != authorization.job_id:
-        raise ValueError("geometry controller authored contracts for another job")
+        raise CandidateContractInvalid("geometry controller authored contracts for another job")
     if modeling.stage != "authored" or scene.mode != "concept":
-        raise ValueError("AQ v2 geometry candidate must be an authored concept")
+        raise CandidateContractInvalid("AQ v2 geometry candidate must be an authored concept")
     metadata_payload = json.loads(_read_bytes(root / "job.json"))
     if not isinstance(metadata_payload, dict):
         raise ValueError("job metadata must be a JSON object")
@@ -513,23 +571,25 @@ def _validate_candidate_contracts(
     plan_ids = [item.id for item in modeling.objects]
     scene_ids = [item.id for item in scene.objects]
     if plan_ids != scene_ids:
-        raise ValueError("ModelingPlan and SceneSpecV03 semantic IDs/order differ")
+        raise CandidateContractInvalid("ModelingPlan and SceneSpecV03 semantic IDs/order differ")
     plan_roles = {item.id: item.scope_role for item in modeling.objects}
     for item in scene.objects:
         if _object_role(list(item.tags), item.id) != plan_roles[item.id]:
-            raise ValueError(f"semantic QA role differs between contracts: {item.id}")
+            raise CandidateContractInvalid(f"semantic QA role differs between contracts: {item.id}")
     if not scene.objects or not scene.materials:
-        raise ValueError("SceneSpecV03 requires nonempty objects and materials")
+        raise CandidateContractInvalid("SceneSpecV03 requires nonempty objects and materials")
     if any(
         _STABLE_ID.fullmatch(item.id) is None or not item.name.strip()
         for item in scene.materials
     ):
-        raise ValueError("SceneSpecV03 material IDs must be stable portable identities")
+        raise CandidateContractInvalid(
+            "SceneSpecV03 material IDs must be stable portable identities"
+        )
     if any(
         any(channel < 0.0 or channel > 1.0 for channel in item.base_color)
         for item in scene.materials
     ):
-        raise ValueError("SceneSpecV03 material colors must stay within [0, 1]")
+        raise CandidateContractInvalid("SceneSpecV03 material colors must stay within [0, 1]")
     if any(item.texture_manifest is not None for item in scene.materials):
         raise PermissionError("geometry_authoring cannot introduce texture manifests")
     structural = [item for item in scene.objects if item.geometry.kind in _STRUCTURAL_KINDS]
@@ -539,7 +599,7 @@ def _validate_candidate_contracts(
             for item in scene.objects
             if item.geometry.kind not in _STRUCTURAL_KINDS
         )
-        raise ValueError(
+        raise CandidateContractInvalid(
             "AQ v2 geometry candidate accepts only whitelisted structural V03 "
             f"objects: {unsupported}"
         )
@@ -548,7 +608,7 @@ def _validate_candidate_contracts(
             item.geometry_intent is None
             or item.geometry_intent.smoothing_policy.mode == "legacy"
         ):
-            raise ValueError(
+            raise CandidateContractInvalid(
                 f"{item.id} requires explicit non-legacy GeometryIntent for MeshPayload 0.2"
             )
         if item.modifiers or item.generator is not None or item.editable:
@@ -557,13 +617,13 @@ def _validate_candidate_contracts(
             )
     reference_sources = [item for item in scene.sources if item.kind == "reference"]
     if len(reference_sources) != 1:
-        raise ValueError("SceneSpecV03 requires one primary reference source")
+        raise CandidateContractInvalid("SceneSpecV03 requires one primary reference source")
     source_ids = [item.id for item in scene.sources]
     if (
         len(source_ids) != len(set(source_ids))
         or any(_STABLE_ID.fullmatch(item) is None for item in source_ids)
     ):
-        raise ValueError("SceneSpecV03 source IDs must be unique stable identities")
+        raise CandidateContractInvalid("SceneSpecV03 source IDs must be unique stable identities")
     declared_sources = set(source_ids)
     missing_evidence_sources = sorted(
         {
@@ -581,7 +641,7 @@ def _validate_candidate_contracts(
         {item.source_id for item in reference.images} - declared_sources
     )
     if missing_evidence_sources or missing_plan_sources or missing_reference_sources:
-        raise ValueError(
+        raise CandidateContractInvalid(
             "candidate semantic evidence references undeclared sources: "
             f"scene={missing_evidence_sources}, plan={missing_plan_sources}, "
             f"analysis={missing_reference_sources}"
@@ -599,7 +659,6 @@ def _validate_candidate_contracts(
             raise PermissionError("SceneSpecV03 source is not immutable contained evidence")
     _finite_tree(scene.model_dump(mode="json"), label="SceneSpecV03")
     _validate_camera_binding(root, scene)
-    return modeling, scene
 
 
 def _compile_scene_v03(

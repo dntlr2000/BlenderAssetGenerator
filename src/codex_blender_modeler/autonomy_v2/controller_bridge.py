@@ -803,7 +803,7 @@ def execute_autonomy_v2_controller(
     expected_output_sha256: dict[str, str] | None = None,
     timeout_seconds: int = 900,
 ) -> dict[str, object]:
-    """Run or recover one locked controller action and publish one immutable next state."""
+    """Run one locked action, replaying any explicit geometry preflight before request creation."""
 
     root, session_root, _plan, _budget, _state, _state_artifact = _session_bundle(
         job_id,
@@ -824,6 +824,10 @@ def execute_autonomy_v2_controller(
             from .quality_revision_service import fidelity_authoring_inputs
 
             immutable_inputs = fidelity_authoring_inputs(root, plan, state, immutable_inputs)
+        if phase_profile_id == "geometry_authoring":
+            from .geometry_preflight_service import geometry_preflight_inputs
+
+            immutable_inputs = geometry_preflight_inputs(root, immutable_inputs)
         if state.next_action == "none" or state.status in {
             "cancelled",
             "blocked",
@@ -841,6 +845,17 @@ def execute_autonomy_v2_controller(
             raise PermissionError(
                 "AQ v2 controller execution requires an authoring phase profile"
             )
+        if phase_profile_id != "geometry_authoring" and any(
+            item.kind == "geometry_authoring_preflight" for item in immutable_inputs
+        ):
+            raise PermissionError("geometry preflight cannot bind another controller phase")
+        controller_inputs = [
+            _controller_artifact(
+                item, role=("assignment" if item.kind == "geometry_authoring_preflight"
+                            else item.kind),
+            )
+            for item in immutable_inputs
+        ]
         if state.status == "waiting_for_controller":
             pending_request, _pending_path, pending_profile = _pending_controller_request(
                 root,
@@ -850,9 +865,7 @@ def execute_autonomy_v2_controller(
                 state,
             )
             supplied_assignment = _controller_artifact(assignment, role="assignment")
-            supplied_inputs = [
-                _controller_artifact(item, role=item.kind) for item in immutable_inputs
-            ]
+            supplied_inputs = controller_inputs
             if (
                 phase_profile_id != pending_profile
                 or controller.controller_kind != pending_request.controller_kind
@@ -893,6 +906,19 @@ def execute_autonomy_v2_controller(
         expected_paths = set((expected_output_sha256 or {}).keys())
         template_paths = set(template.allowed_output_paths)
         derived_paths = set(execution_output_paths(template, execution_id))
+        if phase_profile_id == "geometry_authoring":
+            from .geometry_preflight_service import validate_geometry_preflight_submission
+
+            proposed_paths = (
+                template.allowed_output_paths
+                if expected_paths and expected_paths.issubset(template_paths)
+                else list(execution_output_paths(template, execution_id))
+            )
+            expected_output_sha256 = validate_geometry_preflight_submission(
+                root=root, job_id=job_id, session_id=session_id, inputs=immutable_inputs,
+                allowed_output_paths=proposed_paths, expected_output_sha256=expected_output_sha256,
+            )
+            expected_paths = set((expected_output_sha256 or {}).keys())
         if expected_paths and expected_paths.issubset(template_paths):
             profile, profile_artifact = template, template_artifact
         else:
@@ -937,20 +963,14 @@ def execute_autonomy_v2_controller(
             producer="codex_blender_modeler.autonomy_v2.controller_bridge",
             provenance=[
                 _controller_artifact(assignment, role="assignment"),
-                *[
-                    _controller_artifact(item, role=item.kind)
-                    for item in immutable_inputs
-                ],
+                *controller_inputs,
                 _controller_artifact(profile_artifact, role="tool_profile"),
             ],
             created_at=datetime.now(UTC),
             execution_id=execution_id,
             controller_kind=cast(str, controller.controller_kind),
             assignment=_controller_artifact(assignment, role="assignment"),
-            immutable_inputs=[
-                _controller_artifact(item, role=item.kind)
-                for item in immutable_inputs
-            ],
+            immutable_inputs=controller_inputs,
             tool_profile=_controller_artifact(profile_artifact, role="tool_profile"),
             output_root=next(iter(output_parents)),
             allowed_output_paths=list(profile.allowed_output_paths),

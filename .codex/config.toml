@@ -19,6 +19,7 @@ enabled_tools = [
   "supplement_aq_quality_evidence",
   "begin_aq_structural_reentry",
   "begin_aq_quality_reentry",
+  "preflight_aq_geometry_authoring",
   "create_job",
   "add_view",
   "get_job_status",

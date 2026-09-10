@@ -1250,11 +1250,16 @@ def _publish_blocked_failure_evidence(
     for artifact in failure_sources:
         validate_approval_artifact(root, artifact)
     failure_id = f"one-prompt-technical-failure-{session_id}"
-    from .candidate_validation_service import CANDIDATE_BUDGET_FAILURE_PREFIX
+    from .candidate_validation_service import (
+        CANDIDATE_BUDGET_FAILURE_PREFIX,
+        CANDIDATE_CONTRACT_FAILURE_PREFIX,
+    )
 
     failure_category: TechnicalFailureCategory = (
         "candidate_budget_exhaustion"
         if (state.terminal_reason or "").startswith(CANDIDATE_BUDGET_FAILURE_PREFIX)
+        else "schema_serialization"
+        if (state.terminal_reason or "").startswith(CANDIDATE_CONTRACT_FAILURE_PREFIX)
         else "repeated_framework_failure"
     )
     failure = AQV2TechnicalFailureReport(
@@ -1730,6 +1735,7 @@ def _advance_geometry_with_policy(
         return None
     from .candidate_validation_service import (
         CandidateBudgetExhausted,
+        CandidateContractInvalid,
         preflight_geometry_candidate_budget_v2,
     )
     from .controller_bridge import _session_bundle
@@ -1744,7 +1750,7 @@ def _advance_geometry_with_policy(
         preflight_geometry_candidate_budget_v2(
             root=root, plan=base_plan, budget=budget, state=state, authorization=authorization,
         )
-    except CandidateBudgetExhausted as exc:
+    except (CandidateBudgetExhausted, CandidateContractInvalid) as exc:
         return _fail_current_policy_action(
             job_id, session_id, failure_evidence_path=result_artifact.path,
             failure_evidence_kind=result_artifact.kind,

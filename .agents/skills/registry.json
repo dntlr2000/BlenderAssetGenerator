@@ -258,7 +258,7 @@
       "execution_modes": ["aq"],
       "dependencies": [],
       "route_keys": ["aq.geometry.execute_controller", "aq.geometry.validate_candidate"],
-      "allowed_tools": ["run_autonomy_v2_one_prompt", "resume_autonomy_v2_one_prompt"]
+      "allowed_tools": ["run_autonomy_v2_one_prompt", "resume_autonomy_v2_one_prompt", "preflight_aq_geometry_authoring"]
     },
     {
       "skill_id": "aq-material-stage",

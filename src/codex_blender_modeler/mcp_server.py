@@ -2258,6 +2258,26 @@ def cancel_autonomous_quality_v2(job_id: str, session_id: str, reason: str) -> d
 
 
 @mcp.tool()
+def preflight_aq_geometry_authoring(
+    job_id: str,
+    session_id: str,
+    modeling_plan_path: str,
+    scene_spec_v03_path: str,
+    structure_authoring_path: str | None = None,
+) -> dict:
+    """Read exact staged geometry contracts and costs without executing or authorizing a phase."""
+
+    from .autonomy_v2.geometry_preflight_service import (
+        preflight_aq_geometry_authoring as preflight_internal,
+    )
+
+    return preflight_internal(
+        job_id, session_id, modeling_plan_path=modeling_plan_path,
+        scene_spec_v03_path=scene_spec_v03_path, structure_authoring_path=structure_authoring_path,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
 def plan_aq_approval_envelope(
     job_id: str,
     session_id: str,

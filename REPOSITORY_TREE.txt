@@ -197,6 +197,7 @@ BlenderAssetGenerator/
   schemas/advanced_material_handoff_plan.schema.json
   schemas/advanced_material_handoff_receipt.schema.json
   schemas/advanced_material_handoff_request.schema.json
+  schemas/aq_geometry_authoring_preflight_v01.schema.json
   schemas/aq_quality_attempt_v01.schema.json
   schemas/aq_quality_render_reservation_v01.schema.json
   schemas/aq_quality_revision_loop_v01.schema.json
@@ -683,6 +684,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/fidelity_budget_models.py
   src/codex_blender_modeler/autonomy_v2/fidelity_budget_service.py
   src/codex_blender_modeler/autonomy_v2/fidelity_terminal_service.py
+  src/codex_blender_modeler/autonomy_v2/geometry_preflight_models.py
+  src/codex_blender_modeler/autonomy_v2/geometry_preflight_service.py
   src/codex_blender_modeler/autonomy_v2/human_quality_review_service.py
   src/codex_blender_modeler/autonomy_v2/identity_split_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/material_phase_models.py
@@ -1050,6 +1053,7 @@ BlenderAssetGenerator/
   tests/test_aq_approval_public_surface.py
   tests/test_aq_candidate_budget_preflight.py
   tests/test_aq_evidence_envelopes.py
+  tests/test_aq_geometry_preflight.py
   tests/test_aq_v02_delivery_executor_blender.py
   tests/test_aq_v02_delivery_geometry_blender.py
   tests/test_aq_v02_geometry.py
