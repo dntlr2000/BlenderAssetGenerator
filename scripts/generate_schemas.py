@@ -301,6 +301,11 @@ from codex_blender_modeler.material_closure.models import (
     MaterialShadowCompileReceipt,
     MaterialStateConsistencyReport,
 )
+from codex_blender_modeler.material_closure.round_models import (
+    MaterialClosureSourceBindingV02,
+    MaterialGraphRebindingPlanV02,
+    MaterialGraphRebindingReceiptV02,
+)
 from codex_blender_modeler.material_graph.models import MaterialGraphSpec
 from codex_blender_modeler.material_graph.runtime_models import (
     MaterialGraphCompileReport,
@@ -828,6 +833,9 @@ SCHEMAS = {
     "material_dependency_closure_receipt.schema.json": MaterialDependencyClosureReceipt,
     "material_graph_rebinding_plan.schema.json": MaterialGraphRebindingPlan,
     "material_graph_rebinding_receipt.schema.json": MaterialGraphRebindingReceipt,
+    "material_closure_source_binding_v02.schema.json": MaterialClosureSourceBindingV02,
+    "material_graph_rebinding_plan_v02.schema.json": MaterialGraphRebindingPlanV02,
+    "material_graph_rebinding_receipt_v02.schema.json": MaterialGraphRebindingReceiptV02,
     "material_promotion_preflight_request.schema.json": MaterialPromotionPreflightRequest,
     "material_promotion_preflight_report.schema.json": MaterialPromotionPreflightReport,
     "material_promotion_preflight_failure.schema.json": MaterialPromotionPreflightFailure,

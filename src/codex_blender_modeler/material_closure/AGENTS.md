@@ -7,10 +7,12 @@ Before editing this directory, read:
 - [Autonomy and controller safety](../../../docs/agent/autonomy_safety.md)
 - [Testing and verification](../../../docs/agent/testing_and_verification.md)
 
-Material Closure 0.1.0 is an additive, fail-closed companion layer. Keep it generic:
+Material Closure 0.1.0 is an additive, fail-closed companion layer. Explicit 0.2.0
+source-binding and graph-rebinding companions add immutable rounds in the same AQ
+session; all other contracts and historical singleton bindings retain their version.
+Keep both versions generic:
 never embed a job, semantic, session, execution, retry, sequence, or artifact hash from
 an incident. Collect and project exact declared dependencies deterministically. Host-owned
 repairs may only change declared path/hash provenance; they never change material semantics
 or synthesize approval. Only the existing authorized promotion path may write canonical
 state, and historical evidence is append-only.
-

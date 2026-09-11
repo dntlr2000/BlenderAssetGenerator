@@ -266,6 +266,14 @@ class MaterialClosureSourceBindingArtifact(MaterialClosureBoundContract):
     uv_layout_fingerprint: Sha256
     source_evidence: MaterialClosureSourceBinding
 
+    def source_binding_path(self) -> str:
+        """Keep the legacy source-binding publication leaf unchanged."""
+        return f"production/material_closure/{self.session_id}/source_binding.json"
+
+    def canonical_observation_prefix(self) -> str:
+        """Keep legacy canonical observation paths independent of new round companions."""
+        return f"production/material_closure/{self.session_id}/canonical_observations/"
+
     @model_validator(mode="after")
     def validate_material_baseline(self) -> MaterialClosureSourceBindingArtifact:
         """Require complete canonical/AQ roots plus an exact MaterialPlan baseline."""
@@ -274,9 +282,7 @@ class MaterialClosureSourceBindingArtifact(MaterialClosureBoundContract):
             raise ValueError("source binding must name the canonical SceneSpec path")
         if self.modeling_plan_path != "analysis/modeling_plan.json":
             raise ValueError("source binding must name the canonical ModelingPlan path")
-        observation_prefix = (
-            f"production/material_closure/{self.session_id}/canonical_observations/"
-        )
+        observation_prefix = self.canonical_observation_prefix()
         if self.canonical_build_provenance_path not in {
             "reports/build_provenance.json",
             f"{observation_prefix}build_provenance.json",
@@ -686,6 +692,10 @@ class MaterialGraphRebindingPlan(MaterialClosureBoundContract):
     source_graph_immutable: Literal[True] = True
     semantics_may_change: Literal[False] = False
 
+    def source_binding_path(self) -> str:
+        """Preserve the legacy rebinding authority's single source-binding leaf."""
+        return f"production/material_closure/{self.session_id}/source_binding.json"
+
     @model_validator(mode="after")
     def validate_changes(self) -> MaterialGraphRebindingPlan:
         """Reject overlapping pointer edits and in-place graph replacement."""
@@ -694,9 +704,7 @@ class MaterialGraphRebindingPlan(MaterialClosureBoundContract):
             raise ValueError("rebound graph must use a distinct derivative path")
         if self.source_binding.kind != "material_closure_source_binding":
             raise ValueError("rebind plan requires the exact Material Closure source binding")
-        expected_binding = (
-            f"production/material_closure/{self.session_id}/source_binding.json"
-        )
+        expected_binding = self.source_binding_path()
         if self.source_binding.path != expected_binding:
             raise ValueError("rebind plan source binding path is not canonical")
         expected = (
@@ -730,15 +738,17 @@ class MaterialGraphRebindingReceipt(MaterialClosureBoundContract):
     source_graph_unchanged: Literal[True] = True
     issues: list[MaterialClosureIssue] = Field(default_factory=list)
 
+    def source_binding_path(self) -> str:
+        """Preserve the exact historical source-binding path in legacy receipts."""
+        return f"production/material_closure/{self.session_id}/source_binding.json"
+
     @model_validator(mode="after")
     def validate_result(self) -> MaterialGraphRebindingReceipt:
         """Permit a passed receipt only for a separate semantics-preserving derivative."""
 
         if self.source_binding.kind != "material_closure_source_binding":
             raise ValueError("rebind receipt requires the exact source binding")
-        expected_binding = (
-            f"production/material_closure/{self.session_id}/source_binding.json"
-        )
+        expected_binding = self.source_binding_path()
         if self.source_binding.path != expected_binding:
             raise ValueError("rebind receipt source binding path is not canonical")
         if self.plan.kind != "material_graph_rebinding_plan":

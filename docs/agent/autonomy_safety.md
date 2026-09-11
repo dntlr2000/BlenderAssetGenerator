@@ -32,6 +32,19 @@ terminal sessions are never resumed through technical retry evidence; a new repa
 must bind the exact old terminal, current geometry, scope, rollback baseline, and source
 bytes without synthesizing authority.
 
+Material Closure source binding, graph rebinding plan, and graph rebinding receipt may
+explicitly select the additive 0.2.0 round companions. Other Material Closure contracts
+remain 0.1.0. A round owns `bindings/<binding_id>/source_binding.json` and immutable
+canonical observations within the same AQ session. It pins the current authoring state,
+predictable execution ID, latest geometry receipt, and any subsequent successful material
+promotion receipt. A material receipt from before the latest geometry cannot supersede that
+geometry. The current Blend and observations must match the promoted snapshots. A new
+binding never grants a new session, resets counters, or replaces a prior binding; every
+round consumes the same exact session-wide preflight budget. Historical 0.1.0 singleton
+bindings retain their bytes and meaning. Unknown versions and mixed-round receipts fail
+closed. Completed preflights remain readable after controller progression, while a fresh
+preflight or approval check requires the exact current source state.
+
 If closure reports a `scope_change` caused by material identity or object assignment, do not weaken
 the closure or reuse appearance approval. Material Identity Split validates an exact semantic clone,
 paired SceneSpec/ModelingPlan diff and isolated Blender shadow, then stops at an ApprovalRequest.

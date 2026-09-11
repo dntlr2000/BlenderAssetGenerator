@@ -185,12 +185,13 @@ def _write_model(
 
 
 def _load_model(job_root: Path, artifact: ExactArtifact, model: type[ModelT]) -> ModelT:
-    """Load one exact strict model after replaying its path, size, and digest."""
+    """Rehash and exact-dispatch legacy or explicitly selected round companion evidence."""
 
+    from .round_models import parse_material_closure_contract
     path = validate_exact_artifact(job_root, artifact)
     try:
-        return model.model_validate_json(path.read_bytes())
-    except (OSError, ValidationError) as exc:
+        return parse_material_closure_contract(path.read_bytes(), model)
+    except (OSError, ValueError) as exc:
         raise MaterialPreflightValidationError(
             f"{artifact.kind} artifact is not valid {model.__name__} evidence"
         ) from exc
@@ -241,7 +242,7 @@ def _validate_current_state_context(
     job_root: Path,
     request: MaterialPromotionPreflightRequest,
 ) -> None:
-    """Strict-parse AQ/attempt state or the documented minimal Standard state envelope."""
+    """Read persisted AQ/attempt timestamps through strict JSON, retaining Standard state."""
 
     artifact = request.framework_failure_context.current_state
     payload = _read_exact_json_object(job_root, artifact)
@@ -272,7 +273,7 @@ def _validate_current_state_context(
         from .models import MaterialAttemptState
 
         try:
-            state = MaterialAttemptState.model_validate(payload)
+            state = MaterialAttemptState.model_validate_json(json.dumps(payload))
         except ValidationError as exc:
             raise MaterialPreflightValidationError(
                 "current MaterialAttemptState is invalid"
@@ -286,7 +287,7 @@ def _validate_current_state_context(
         from ..autonomy_v2.models import AutonomyStateV2
 
         try:
-            state_v2 = AutonomyStateV2.model_validate(payload)
+            state_v2 = AutonomyStateV2.model_validate_json(json.dumps(payload))
         except ValidationError as exc:
             raise MaterialPreflightValidationError("current AQ v2 state is invalid") from exc
         if _binding_tuple(state_v2) != _binding_tuple(request):
@@ -524,6 +525,17 @@ def _validate_request_dependencies(
         closure.source_binding,
         MaterialClosureSourceBindingArtifact,
     )
+    from .round_models import MaterialClosureSourceBindingV02
+    from .round_service import validate_round_preflight_state
+
+    if isinstance(source_binding, MaterialClosureSourceBindingV02):
+        try:
+            validate_round_preflight_state(
+                job_root, source_binding, request.framework_failure_context.current_state,
+                require_current=require_current_canonical,
+            )
+        except (OSError, ValueError) as exc:
+            raise MaterialPreflightValidationError(str(exc)) from exc
     validate_preflight_uv_source_binding(request, source_binding)
     inventory_entry = next(
         (

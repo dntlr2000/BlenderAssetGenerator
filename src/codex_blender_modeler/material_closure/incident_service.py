@@ -144,8 +144,9 @@ def load_material_closure_model(
     artifact: ExactArtifact,
     model_type: type[ModelT],
 ) -> ModelT:
-    """Rehash and strict-parse one companion artifact without mutating it."""
+    """Rehash and exact-dispatch one historical or round companion without mutation."""
 
+    from .round_models import parse_material_closure_contract
     root = job_root.expanduser().resolve(strict=True)
     path = ensure_autonomy_path(
         root,
@@ -157,7 +158,7 @@ def load_material_closure_model(
         or path.stat().st_size != artifact.byte_size
     ):
         raise ValueError(f"material companion artifact changed: {artifact.path}")
-    return model_type.model_validate_json(Path(native_io_path(path)).read_bytes())
+    return parse_material_closure_contract(Path(native_io_path(path)).read_bytes(), model_type)
 
 
 def _publish_immutable_json_object(

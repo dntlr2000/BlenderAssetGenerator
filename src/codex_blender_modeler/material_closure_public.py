@@ -105,10 +105,12 @@ def _contained_file(root: Path, relative_path: str) -> Path:
 
 
 def _load_model(root: Path, relative_path: str, model: type[ModelT]) -> ModelT:
-    """Load one strict JSON model from a contained immutable-evidence path."""
+    """Load exact legacy or round companion versions from a contained immutable path."""
 
-    return model.model_validate_json(
-        Path(native_io_path(_contained_file(root, relative_path))).read_bytes()
+    from .material_closure.round_models import parse_material_closure_contract
+
+    return parse_material_closure_contract(
+        Path(native_io_path(_contained_file(root, relative_path))).read_bytes(), model,
     )
 
 
@@ -906,8 +908,14 @@ def rebind_material_graph(
     source_graph_path: str,
     plan_path: str,
 ) -> dict[str, Any]:
-    """Publish one path/hash-only graph derivative and exact passed receipt."""
+    """Publish a path-only derivative with the same explicit version and round as its source."""
 
+    from .material_closure.round_models import (
+        MaterialClosureSourceBindingV02,
+        MaterialGraphRebindingPlanV02,
+        MaterialGraphRebindingReceiptV02,
+        parse_material_closure_contract,
+    )
     root = _job_root(job_id)
     source = json.loads(
         Path(native_io_path(_contained_file(root, source_graph_path))).read_text(
@@ -934,6 +942,17 @@ def rebind_material_graph(
         )
         if (current.sha256, current.byte_size) != (artifact.sha256, artifact.byte_size):
             raise ValueError(f"material graph rebinding input changed: {artifact.path}")
+    if isinstance(plan, MaterialGraphRebindingPlanV02):
+        binding = _load_model(root, plan.source_binding.path, MaterialClosureSourceBindingArtifact)
+        if (
+            not isinstance(binding, MaterialClosureSourceBindingV02)
+            or binding.binding_id != plan.binding_id
+            or (binding.job_id, binding.workflow_id, binding.dispatch_id, binding.session_id)
+            != (plan.job_id, plan.workflow_id, plan.dispatch_id, plan.session_id)
+            or binding.graph_rebinding_plan_path != plan_path
+            or binding.material_graph_path != source_graph_path
+        ):
+            raise ValueError("graph rebinding plan and source binding target different rounds")
     expected_plan_path = (
         f"production/material_closure/{plan.session_id}/graph_rebindings/"
         f"{plan.plan_id}/plan.json"
@@ -961,13 +980,21 @@ def rebind_material_graph(
     )
     receipt_path = root.joinpath(*receipt_relative.split("/"))
     created_at = (
-        MaterialGraphRebindingReceipt.model_validate_json(
-            Path(native_io_path(receipt_path)).read_bytes()
+        parse_material_closure_contract(
+            Path(native_io_path(receipt_path)).read_bytes(), MaterialGraphRebindingReceipt,
         ).created_at
         if os.path.isfile(native_io_path(receipt_path))
         else datetime.now(UTC)
     )
-    receipt = MaterialGraphRebindingReceipt(
+    receipt_type = (
+        MaterialGraphRebindingReceiptV02
+        if isinstance(plan, MaterialGraphRebindingPlanV02) else MaterialGraphRebindingReceipt
+    )
+    receipt = receipt_type(
+        **(
+            {"binding_id": plan.binding_id}
+            if isinstance(plan, MaterialGraphRebindingPlanV02) else {}
+        ),
         receipt_id=f"receipt-{plan.plan_id}",
         job_id=plan.job_id,
         workflow_id=plan.workflow_id,

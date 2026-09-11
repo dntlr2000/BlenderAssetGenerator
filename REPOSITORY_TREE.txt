@@ -422,12 +422,15 @@ BlenderAssetGenerator/
   schemas/material_canonical_material_plan_absence.schema.json
   schemas/material_canonical_snapshot.schema.json
   schemas/material_closure_source_binding.schema.json
+  schemas/material_closure_source_binding_v02.schema.json
   schemas/material_dependency_closure.schema.json
   schemas/material_dependency_closure_receipt.schema.json
   schemas/material_fidelity_report.schema.json
   schemas/material_framework_failure_report.schema.json
   schemas/material_graph_rebinding_plan.schema.json
+  schemas/material_graph_rebinding_plan_v02.schema.json
   schemas/material_graph_rebinding_receipt.schema.json
+  schemas/material_graph_rebinding_receipt_v02.schema.json
   schemas/material_graph_runtime_compile_report.schema.json
   schemas/material_graph_runtime_compile_request.schema.json
   schemas/material_graph_runtime_dependency_manifest.schema.json
@@ -873,6 +876,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/material_closure/preflight.py
   src/codex_blender_modeler/material_closure/projector.py
   src/codex_blender_modeler/material_closure/repair_session.py
+  src/codex_blender_modeler/material_closure/round_models.py
+  src/codex_blender_modeler/material_closure/round_service.py
   src/codex_blender_modeler/material_closure/service.py
   src/codex_blender_modeler/material_closure/shadow_compile.py
   src/codex_blender_modeler/material_closure/state_consistency.py
@@ -1148,8 +1153,10 @@ BlenderAssetGenerator/
   tests/test_material_closure_aq_integration.py
   tests/test_material_closure_contracts.py
   tests/test_material_closure_controller_repair.py
+  tests/test_material_closure_execution_profiles.py
   tests/test_material_closure_incident_service.py
   tests/test_material_closure_public.py
+  tests/test_material_closure_rounds.py
   tests/test_material_closure_schemas.py
   tests/test_material_closure_service.py
   tests/test_material_contract_long_paths.py

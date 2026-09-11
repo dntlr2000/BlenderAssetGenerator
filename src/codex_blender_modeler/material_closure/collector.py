@@ -9,7 +9,7 @@ import stat
 from collections.abc import Collection
 from datetime import datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ValidationError
 
@@ -59,6 +59,10 @@ from .models import (
     _closure_payload_digest,
     material_plan_absence_context_sha256,
 )
+from .round_models import MaterialClosureSourceBindingV02, parse_material_closure_contract
+
+if TYPE_CHECKING:
+    from ..autonomy_v2.models import AQV2Artifact, AutonomyPlanV2
 
 
 class MaterialClosureCollectionError(ValueError):
@@ -758,6 +762,66 @@ def _contains_exact_artifact(items: list[object], expected: object) -> bool:
     return any(_exact_binding(item) == expected_binding for item in items)
 
 
+def _validate_closure_phase_profile(
+    job_root: Path,
+    plan: AutonomyPlanV2,
+    artifact: object,
+    *,
+    profile_id: str,
+    expected_execution_id: str | None = None,
+) -> tuple[AQV2Artifact, str | None]:
+    """Resolve a legacy profile or strict execution derivative to its frozen plan authority."""
+
+    from ..autonomy_v2.execution_profile_service import (
+        select_plan_phase_profile,
+        validate_plan_or_execution_phase_profile,
+    )
+    from ..autonomy_v2.models import AQV2Artifact
+
+    _template, template_artifact = select_plan_phase_profile(job_root, plan, profile_id)
+    path, sha256, byte_size = _exact_binding(artifact)
+    if (path, sha256, byte_size) == _exact_binding(template_artifact):
+        return template_artifact, None
+    parts = PurePosixPath(path).parts
+    prefix = ("production", "autonomy_v2", plan.session_id, "controller_executions")
+    if len(parts) != 6 or parts[:4] != prefix or parts[-1] != "phase_tool_profile.json":
+        raise ValueError("phase profile is outside the exact AQ execution root")
+    execution_id = parts[-2]
+    if expected_execution_id is not None and execution_id != expected_execution_id:
+        raise ValueError("phase profile belongs to another controller execution")
+    validate_plan_or_execution_phase_profile(
+        job_root, plan,
+        AQV2Artifact(artifact_id="closure-phase-profile", kind="controller_phase_tool_profile",
+                      path=path, sha256=sha256, byte_size=byte_size),
+        profile_id=profile_id, execution_id=execution_id,
+    )
+    return template_artifact, execution_id
+
+
+def _validate_geometry_execution_request(
+    job_root: Path,
+    geometry: Any,
+    profile: PhaseToolProfile,
+    execution_id: str,
+) -> None:
+    """Keep a derived geometry profile bound to the exact receipt's completed request."""
+
+    from ..production.controller_executor.models import ControllerExecutionRequest
+
+    request = ControllerExecutionRequest.model_validate_json(
+        job_root.joinpath(*geometry.controller_request.path.split("/")).read_bytes()
+    )
+    identity_fields = ("job_id", "workflow_id", "dispatch_id", "session_id")
+    if (
+        request.execution_id != execution_id
+        or tuple(getattr(request, name) for name in identity_fields)
+        != tuple(getattr(geometry, name) for name in identity_fields)
+        or _exact_binding(request.tool_profile) != _exact_binding(geometry.phase_tool_profile)
+        or request.allowed_output_paths != profile.allowed_output_paths
+    ):
+        raise ValueError("geometry request and receipt use different execution authority")
+
+
 def _repair_source_matches_authority(
     repair_source: Any,
     authorization: Any,
@@ -858,8 +922,9 @@ def _validate_common_root_graph(
     *,
     binding: MaterialClosureSourceBindingArtifact,
     producer: str,
+    planned_outputs: list[MaterialPlannedOutput],
 ) -> None:
-    """Validate and recursively collect every required AQ/canonical material root."""
+    """Collect exact AQ roots, retaining template authority across bounded execution profiles."""
 
     # See _parse_common_root: imports stay local to avoid autonomy_v2 package cycles.
     from ..autonomy_v2.candidate_validation_models import (
@@ -988,6 +1053,35 @@ def _validate_common_root_graph(
     geometry = GeometryCandidateValidationReceiptV2.model_validate(
         parsed["geometry_candidate_validation_receipt"]
     )
+    round_material = None
+    if isinstance(binding, MaterialClosureSourceBindingV02):
+        from .round_service import validate_round_source
+
+        try:
+            round_material = validate_round_source(job_root, binding, plan)
+        except (OSError, ValueError) as exc:
+            raise MaterialClosureCollectionError(
+                [MaterialClosureIssue(code="MATERIAL_ROUND_SOURCE_INVALID",
+                                      message=str(exc)[:1600], path=binding.source_state.path)]
+            ) from exc
+        round_dependencies = [binding.source_state]
+        if round_material is not None:
+            assert binding.previous_material_phase_receipt is not None
+            round_dependencies.extend([
+                binding.previous_material_phase_receipt, *round_material.provenance,
+            ])
+        for dependency in round_dependencies:
+            _add_path(
+                job_root, entries, role="material_round_lineage_dependency", path=dependency.path,
+                source_kind="policy_evidence", ownership="canonical", producer=producer,
+                expected_sha256=dependency.sha256,
+            )
+            if entries[dependency.path].byte_size != dependency.byte_size:
+                raise MaterialClosureCollectionError(
+                    [MaterialClosureIssue(code="STALE_MATERIAL_ROUND_DEPENDENCY",
+                                          message="round dependency byte size changed",
+                                          path=dependency.path)]
+                )
     if repair_source is not None:
         for artifact, entry, label in (
             (repair_source.scene_spec, entries[binding.scene_spec_path], "SceneSpec"),
@@ -1098,8 +1192,35 @@ def _validate_common_root_graph(
                 )
             ]
         )
+    try:
+        material_template, material_execution = _validate_closure_phase_profile(
+            job_root, plan, root_entries["tool"], profile_id="material_authoring",
+            expected_execution_id=(
+                binding.execution_id
+                if isinstance(binding, MaterialClosureSourceBindingV02) else None
+            ),
+        )
+        if isinstance(binding, MaterialClosureSourceBindingV02) and material_execution is None:
+            raise ValueError("material round requires an exact execution-scoped profile")
+        if material_execution is not None:
+            completions = [
+                item for item in planned_outputs if item.output_kind == "controller_completion"
+            ]
+            if (
+                {item.path for item in planned_outputs} != set(tool_profile.allowed_output_paths)
+                or len(completions) != 1
+                or completions[0].expected_field_bindings.get("execution_id") != material_execution
+            ):
+                raise ValueError("material closure outputs do not bind the exact execution profile")
+    except (OSError, ValueError) as exc:
+        raise MaterialClosureCollectionError(
+            [MaterialClosureIssue(
+                code="MATERIAL_PHASE_TOOL_PROFILE_BINDING_MISMATCH",
+                message=str(exc)[:1600], path=binding.material_phase_tool_profile_path,
+            )]
+        ) from exc
     if tool_profile.profile_id != "material_authoring" or any(
-        not _contains_exact_artifact(items, root_entries["tool"])
+        not _contains_exact_artifact(items, material_template)
         for items in (
             list(plan.phase_tool_profiles),
             list(authorization.phase_tool_profiles),
@@ -1215,7 +1336,10 @@ def _validate_common_root_graph(
             producer=producer,
         )
         current_blend_entry = entries["blender/scene.blend"]
-    if _exact_binding(geometry.canonical_blend) != _entry_binding(current_blend_entry):
+    if (
+        _exact_binding(geometry.canonical_blend) != _entry_binding(current_blend_entry)
+        and round_material is None
+    ):
         if repair_source is None:
             raise MaterialClosureCollectionError(
                 [
@@ -1262,13 +1386,13 @@ def _validate_common_root_graph(
         parent = entries[root_path].entry_id
         for location, path, sha256, byte_size in _iter_sized_exact_artifact_refs(parsed[root_role]):
             if (
-                repair_source is not None
+                (repair_source is not None or round_material is not None)
                 and root_role == "geometry_candidate_validation_receipt"
                 and path == "blender/scene.blend"
                 and sha256 == geometry.canonical_blend.sha256
             ):
                 # The exact historical geometry Blend remains bound by the receipt itself;
-                # the current canonical Blend is separately proven by rollback restoration.
+                # Current Blend bytes are proven by rollback or the exact material promotion.
                 continue
             _add_path(
                 job_root,
@@ -1315,20 +1439,32 @@ def _validate_common_root_graph(
         str(binding.dispatch_id),
         expected_authority_session,
     )
-    if (
-        geometry_identity != expected_identity
-        or geometry_tool.profile_id != "geometry_authoring"
-        or not _contains_exact_artifact(list(plan.phase_tool_profiles), geometry.phase_tool_profile)
-    ):
+    try:
+        if (
+            geometry_identity != expected_identity
+            or geometry_tool.profile_id != "geometry_authoring"
+        ):
+            raise ValueError("geometry receipt profile belongs to another authority scope")
+        _template, geometry_execution = _validate_closure_phase_profile(
+            job_root, plan, geometry.phase_tool_profile, profile_id="geometry_authoring",
+        )
+        if geometry_execution is not None:
+            _validate_geometry_execution_request(
+                job_root, geometry, geometry_tool, geometry_execution,
+            )
+    except (OSError, ValueError) as exc:
         raise MaterialClosureCollectionError(
             [
                 MaterialClosureIssue(
                     code="GEOMETRY_TOOL_PROFILE_BINDING_MISMATCH",
-                    message="geometry receipt tool profile is not current plan-bound authority",
+                    message=(
+                        "geometry receipt tool profile is not current plan-bound authority: "
+                        f"{str(exc)[:1600]}"
+                    ),
                     path=geometry.phase_tool_profile.path,
                 )
             ]
-        )
+        ) from exc
 
     build_payload = _read_json_object(job_root, binding.canonical_build_provenance_path)
     try:
@@ -2086,9 +2222,15 @@ def collect_material_dependency_closure_from_roots(
     """Recursively derive all material-plan, manifest, graph, image, mask, and reference inputs."""
 
     expected_binding_path = f"production/material_closure/{session_id}/source_binding.json"
+    binding_parts = PurePosixPath(source_binding.path).parts
+    round_path = (
+        len(binding_parts) == 6
+        and binding_parts[:4] == ("production", "material_closure", session_id, "bindings")
+        and binding_parts[-1] == "source_binding.json"
+    )
     if (
         source_binding.kind != "material_closure_source_binding"
-        or source_binding.path != expected_binding_path
+        or (source_binding.path != expected_binding_path and not round_path)
         or source_binding.media_type != "application/json"
     ):
         raise MaterialClosureCollectionError(
@@ -2116,10 +2258,12 @@ def collect_material_dependency_closure_from_roots(
             ]
         )
     try:
-        binding = MaterialClosureSourceBindingArtifact.model_validate_json(
-            binding_path.read_bytes()
+        binding = parse_material_closure_contract(
+            binding_path.read_bytes(), MaterialClosureSourceBindingArtifact,
         )
-    except ValidationError as exc:
+        if source_binding.path != binding.source_binding_path():
+            raise ValueError("source binding path does not match its exact version and identity")
+    except ValueError as exc:
         raise MaterialClosureCollectionError(
             [
                 MaterialClosureIssue(
@@ -2358,6 +2502,7 @@ def collect_material_dependency_closure_from_roots(
         entries,
         binding=binding,
         producer=producer,
+        planned_outputs=planned_outputs,
     )
     if binding.material_plan_baseline_snapshot_path is not None:
         observation = entries["analysis/material_plan.json"]
@@ -2395,16 +2540,23 @@ def collect_material_dependency_closure_from_roots(
         source_material_graph = MaterialGraphSpec.model_validate_json(
             job_root.joinpath(*binding.material_graph_path.split("/")).read_bytes()
         )
-        graph_rebinding_plan = MaterialGraphRebindingPlan.model_validate_json(
-            job_root.joinpath(*binding.graph_rebinding_plan_path.split("/")).read_bytes()
+        graph_rebinding_plan = parse_material_closure_contract(
+            job_root.joinpath(*binding.graph_rebinding_plan_path.split("/")).read_bytes(),
+            MaterialGraphRebindingPlan,
         )
-        graph_rebinding_receipt = MaterialGraphRebindingReceipt.model_validate_json(
-            job_root.joinpath(*binding.graph_rebinding_receipt_path.split("/")).read_bytes()
+        graph_rebinding_receipt = parse_material_closure_contract(
+            job_root.joinpath(*binding.graph_rebinding_receipt_path.split("/")).read_bytes(),
+            MaterialGraphRebindingReceipt,
         )
+        if not (
+            binding.schema_version == graph_rebinding_plan.schema_version
+            == graph_rebinding_receipt.schema_version
+        ):
+            raise ValueError("source binding and graph rebinding companion versions differ")
         material_graph = MaterialGraphSpec.model_validate_json(
             job_root.joinpath(*binding.rebound_material_graph_path.split("/")).read_bytes()
         )
-    except ValidationError as exc:
+    except ValueError as exc:
         raise MaterialClosureCollectionError(
             [
                 MaterialClosureIssue(

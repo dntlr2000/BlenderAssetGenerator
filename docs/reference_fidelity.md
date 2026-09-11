@@ -236,6 +236,21 @@ funding proposal은 승인이 아니다. 새 캠페인에서는 clean source man
 scope에 이 계약을 결속한 뒤 사용자 승인을 받아야 한다. 기존 campaign 실적이나 human beauty/package/
 Activation acceptance를 새 budget으로 승계하지 않는다.
 
+재질 closure의 새 회차는 명시적 0.2.0 source binding·graph rebinding plan·receipt를 사용할 수 있다.
+기존 0.1.0 singleton binding은 그대로 읽으며 자동 변환하지 않는다. 나머지 closure 계약과 AQ v2,
+SceneSpec 버전은 유지한다. 새 binding은 같은 session의 `bindings/<binding_id>/` 아래에서 source
+AQ state, 예상 execution ID, 최신 geometry receipt와 필요한 최신 material promotion receipt를
+고정한다. 관찰 snapshot과 source binding은 회차마다 새 경로를 사용한다. 재질 promotion으로 Blend가
+달라졌다면 해당 host receipt·Blend snapshot·inventory·build provenance가 현재 canonical과 일치해야
+한다. 이후 geometry가 다시 변경됐으면 과거 material receipt로 새 geometry를 덮어 설명할 수 없다.
+회차 이름을 바꿔도 session-wide closure 예산과 AQ lifetime 사용량은 이어진다.
+
+collector는 기존 plan profile과 엄격히 파생된 execution profile을 모두 검증한다. 파생 profile은 같은
+session·단계·도구 권한을 유지하고, 선언된 output 경로에 해당 execution ID만 삽입해야 한다. Geometry
+receipt의 controller request와 material completion의 예상 execution ID도 동일해야 한다. 새 회차의
+receipt 혼합, stale source, 임의 경로·권한 확대는 Blender 전에 차단한다. controller 다음 상태에서는
+이미 완료된 preflight를 이력으로 읽을 수 있지만, 새 실행·승인 검사는 현재 source state를 요구한다.
+
 - typed observation/coverage와 source-bound nonhuman visual review가 구현된 것이며, arbitrary reference에서
   depth·landmark·part pose를 자동 복원하거나 자동 정답 판별하는 모델이 추가된 것은 아니다.
 - camera 기본 가설은 측정이라고 표시하지 않는다. 자동 calibration/re-render-both 실행 경로는 아직 없다.

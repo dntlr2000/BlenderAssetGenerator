@@ -192,15 +192,16 @@ def _read_exact_model(
     artifact: AQV2Artifact,
     model: type[ModelT],
 ) -> ModelT:
-    """Rehash and strict-parse one exact AQ v2 material-phase artifact."""
+    """Rehash AQ material evidence and explicitly selected closure companion versions."""
 
+    from ..material_closure.round_models import parse_material_closure_contract
     path = validate_v2_artifact(root, artifact)
     try:
         with open(native_io_path(path), "rb") as handle:
             payload = handle.read()
             if model is AutonomyBudgetV2:
                 return parse_autonomy_budget(payload)
-            return model.model_validate_json(payload)
+            return parse_material_closure_contract(payload, model)
     except (OSError, ValueError) as exc:
         raise MaterialPhaseError(f"invalid {model.__name__} material evidence") from exc
 

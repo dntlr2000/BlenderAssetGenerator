@@ -152,6 +152,8 @@ FOCUSED_TESTS=(
   tests/test_codex_image_material_loop_public.py
   tests/test_material_closure_contracts.py
   tests/test_material_closure_service.py
+  tests/test_material_closure_execution_profiles.py
+  tests/test_material_closure_rounds.py
   tests/test_material_closure_aq_integration.py
   tests/test_material_closure_schemas.py
   tests/test_material_closure_controller_repair.py
@@ -239,6 +241,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
       tests/test_codex_image_material_loop_blender.py \
       tests/test_codex_image_material_loop_delivery_blender.py \
       tests/test_material_closure_service.py::test_complete_preflight_runs_actual_blender_5_and_stops_before_approval \
+      tests/test_material_closure_rounds.py::test_rounds_run_two_real_blender_preflights_with_one_finite_budget \
       tests/test_material_identity_split_service.py::test_identity_split_runs_actual_blender_5_and_stops_before_scope_approval
   BENCHMARK_ARGS+=(--run-blender)
   BENCHMARK_V02_ARGS+=(--run-blender)

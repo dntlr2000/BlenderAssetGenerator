@@ -46,6 +46,11 @@ from codex_blender_modeler.material_closure.models import (
     MaterialShadowCompileReceipt,
     MaterialStateConsistencyReport,
 )
+from codex_blender_modeler.material_closure.round_models import (
+    MaterialClosureSourceBindingV02,
+    MaterialGraphRebindingPlanV02,
+    MaterialGraphRebindingReceiptV02,
+)
 from codex_blender_modeler.versioning import (
     MATERIAL_CLOSURE_SCHEMA_VERSION,
     MATERIAL_PREFLIGHT_SCHEMA_VERSION,
@@ -97,6 +102,25 @@ MATERIAL_CLOSURE_SCHEMAS = {
         JobSpecificRecoverySourceInventory
     ),
 }
+MATERIAL_ROUND_SCHEMAS = {
+    "material_closure_source_binding_v02.schema.json": MaterialClosureSourceBindingV02,
+    "material_graph_rebinding_plan_v02.schema.json": MaterialGraphRebindingPlanV02,
+    "material_graph_rebinding_receipt_v02.schema.json": MaterialGraphRebindingReceiptV02,
+}
+
+
+@pytest.mark.parametrize(("schema_name", "model"), MATERIAL_ROUND_SCHEMAS.items())
+def test_round_schemas_are_explicit_additive_registry_entries(
+    schema_name: str, model: type,
+) -> None:
+    """Check separate 0.2 schemas without changing any legacy 0.1 projection."""
+    checked = json.loads((ROOT / "schemas" / schema_name).read_text(encoding="utf-8"))
+    Draft202012Validator.check_schema(checked)
+    assert checked == model.model_json_schema()
+    assert checked["properties"]["schema_version"]["const"] == "0.2.0"
+    assert checked["additionalProperties"] is False
+    registry = runpy.run_path(str(ROOT / "scripts/generate_schemas.py"))["SCHEMAS"]
+    assert registry[schema_name] is model
 
 
 @pytest.mark.parametrize(("schema_name", "model"), MATERIAL_CLOSURE_SCHEMAS.items())
