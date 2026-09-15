@@ -32,6 +32,7 @@ MATERIAL_CLOSURE_HOST_TESTS = (
     "tests/test_material_closure_aq_integration.py",
     "tests/test_material_closure_schemas.py",
     "tests/test_material_closure_controller_repair.py",
+    "tests/test_material_closure_controller_lifecycle.py",
     "tests/test_material_closure_incident_service.py",
     "tests/test_material_closure_public.py",
     "tests/test_autonomy_v2_supervisor_material_closure.py",

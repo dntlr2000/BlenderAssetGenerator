@@ -251,6 +251,14 @@ receipt의 controller request와 material completion의 예상 execution ID도 �
 receipt 혼합, stale source, 임의 경로·권한 확대는 Blender 전에 차단한다. controller 다음 상태에서는
 이미 완료된 preflight를 이력으로 읽을 수 있지만, 새 실행·승인 검사는 현재 source state를 요구한다.
 
+재질 controller의 권한 소비 receipt는 host가 session lock 아래에서 exact request에 결속하고,
+executor의 protected inventory를 만들기 전에 기록한다. controller callback은 선언된 staging
+출력만 작성한다. Windows 확장 경로에서 host 경로를 역으로 추론하거나 controller 내부에서
+receipt를 기록하지 않는다. desktop 대기와 출력 adoption은 같은 request·권한·예산을 재사용한다.
+promotion은 source → waiting → completed의 정확한 state/receipt chain도 검증하며, 다른 request나
+추가 회차를 섞지 않는다. controller 실패 뒤에는 기존 consumption과 실제 failed result를 반환하고
+terminal 상태에서 권한을 다시 발행하지 않는다. 공개 CLI/MCP/schema와 기존 terminal 의미는 유지한다.
+
 - typed observation/coverage와 source-bound nonhuman visual review가 구현된 것이며, arbitrary reference에서
   depth·landmark·part pose를 자동 복원하거나 자동 정답 판별하는 모델이 추가된 것은 아니다.
 - camera 기본 가설은 측정이라고 표시하지 않는다. 자동 calibration/re-render-both 실행 경로는 아직 없다.

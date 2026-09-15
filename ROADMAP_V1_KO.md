@@ -1210,7 +1210,12 @@ import 계획용 계약이지 자동 engine adapter나 runtime parity 증거가 
    - focused schema/policy/projection/negative gate, 전체 pytest, Ruff, doctor, Blender compatibility,
      실제 Blender 5.0.1 gate, V0.7~V0.9/AQ gate와 `git diff --check`를 통과했고 이 변경을 clean
      source commit으로 고정 [완료]
-8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: 47e3928의 1 production/3 review/1 technical failure 보존, Laser 예산 오류 분류 수정과 새 유한 funding 계약 회귀 진행]
+8-B. reference 충실도 생성·평가·수정 루프 개선 후 fresh current-baseline 5-reference campaign [현재: 기존 캠페인 보존, e93eea7e Plastic canary의 material controller 실패 격리 및 공통 host 경계 회귀 진행]
+   - 2026-09-16: exact material-context continuation 승인 후 추가 preflight는 통과했지만 Windows 경로
+     처리 오류로 controller 출력 전에 failed terminal이 됐다. canonical SceneSpec/Blend는 보존됐다.
+     sequence 2–5는 시작하지 않았고 새 baseline의 production/시각 개선/인간 수용 실적은 모두 0/5다.
+     이 terminal을 재개하지 않는다. 공통 수정의 전체 회귀·clean commit 후 새 source manifest,
+     baseline, readiness와 exact scope를 준비하며 새로운 scope 승인은 별도로 받는다.
    - 2026-09-09 재검증에서 47e3928 캠페인의 실제 개선은 1/5, 인간 수용은 0/5다. 기존 terminal과
      approval/package/history를 보존하며 Activation 적격으로 재분류하지 않는다.
    - Laser의 실제 21-object 후보는 materialization 21 + geometry build 1을 요구했으나 root build 상한은

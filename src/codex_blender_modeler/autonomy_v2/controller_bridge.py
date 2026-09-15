@@ -803,7 +803,7 @@ def execute_autonomy_v2_controller(
     expected_output_sha256: dict[str, str] | None = None,
     timeout_seconds: int = 900,
 ) -> dict[str, object]:
-    """Run one locked action, replaying any explicit geometry preflight before request creation."""
+    """Bind one locked request and material authority before starting the isolated executor."""
 
     root, session_root, _plan, _budget, _state, _state_artifact = _session_bundle(
         job_id,
@@ -857,7 +857,7 @@ def execute_autonomy_v2_controller(
             for item in immutable_inputs
         ]
         if state.status == "waiting_for_controller":
-            pending_request, _pending_path, pending_profile = _pending_controller_request(
+            pending_request, pending_path, pending_profile = _pending_controller_request(
                 root,
                 session_root,
                 plan,
@@ -880,6 +880,8 @@ def execute_autonomy_v2_controller(
                 raise ValueError(
                     "controller resume arguments differ from the exact pending request"
                 )
+            if isinstance(controller, _ApprovalConsumingController):
+                controller.prepare_request(pending_path)
             return _resume_pending_controller_locked(
                 root=root,
                 session_root=session_root,
@@ -978,6 +980,9 @@ def execute_autonomy_v2_controller(
             timeout_seconds=timeout_seconds,
         )
         request = _write_or_adopt_request(root, request_path, request)
+        if isinstance(controller, _ApprovalConsumingController):
+            # Host receipt publication must precede the executor's protected inventory.
+            controller.prepare_request(request_path)
         result_path = execution_root / "result.json"
         if os.path.exists(native_io_path(result_path)):
             result = validate_controller_execution_result(
@@ -1493,7 +1498,7 @@ class ExactMaterialClosureAdoptionController:
 
 
 class _ApprovalConsumingController:
-    """Consume exact user or policy authority before delegating controller work."""
+    """Keep host-owned authority preparation outside the isolated controller callback."""
 
     def __init__(
         self,
@@ -1503,13 +1508,45 @@ class _ApprovalConsumingController:
         plan: AutonomyPlanV2,
         boundary_artifact: AQV2Artifact,
     ) -> None:
-        """Bind the delegate to the unchanged or additive closure authority boundary."""
+        """Bind one delegate and leave its authority unavailable until the host prepares it."""
 
         self.controller_kind = delegate.controller_kind
         self._delegate = delegate
         self._root = root
         self._plan = plan
         self._boundary_artifact = boundary_artifact
+        self._consumption: tuple[
+            MaterialAppearanceApprovalConsumptionReceipt
+            | MaterialPolicyAuthorizationConsumptionReceiptV03,
+            AQV2Artifact,
+        ] | None = None
+
+    def prepare_request(self, request_path: Path) -> None:
+        """Publish or revalidate exact authority under the host lock before executor inventory."""
+
+        request = ControllerExecutionRequest.model_validate_json(
+            _read_native_bytes(request_path)
+        )
+        request_artifact = artifact_for_v2(
+            self._root,
+            request_path,
+            artifact_id=request.contract_id,
+            kind="controller-request",
+        )
+        self._consumption = _publish_material_authority_consumption(
+            self._root, self._plan, self._boundary_artifact, request_artifact,
+        )
+
+    def authority_consumption(self) -> tuple[
+        MaterialAppearanceApprovalConsumptionReceipt
+        | MaterialPolicyAuthorizationConsumptionReceiptV03,
+        AQV2Artifact,
+    ]:
+        """Return the prepared receipt without issuing authority after controller progression."""
+
+        if self._consumption is None:
+            raise PermissionError("material controller authority was not prepared by the host")
+        return self._consumption
 
     def execute(
         self,
@@ -1520,37 +1557,9 @@ class _ApprovalConsumingController:
         tool_profile: PhaseToolProfile,
         timeout_seconds: int,
     ) -> str:
-        """Publish one authority-specific consumption before controller invocation."""
+        """Delegate only after host preparation; never write receipts or derive host paths here."""
 
-        if not allowed_output_paths:
-            raise ValueError("material closure controller has no request-owned output")
-        output = allowed_output_paths[0]
-        workspace_root = next(
-            (
-                parent
-                for parent in output.parents
-                if parent.name == "controller_workspace"
-            ),
-            None,
-        )
-        if workspace_root is None:
-            raise ValueError("material controller output is outside its request workspace")
-        request_path = workspace_root.parent / "request.json"
-        request = ControllerExecutionRequest.model_validate_json(
-            _read_native_bytes(request_path)
-        )
-        request_artifact = artifact_for_v2(
-            self._root,
-            request_path,
-            artifact_id=request.contract_id,
-            kind="controller-request",
-        )
-        _publish_material_authority_consumption(
-            self._root,
-            self._plan,
-            self._boundary_artifact,
-            request_artifact,
-        )
+        self.authority_consumption()
         return self._delegate.execute(
             assignment=assignment,
             immutable_inputs=immutable_inputs,
@@ -1568,17 +1577,21 @@ def execute_material_closure_controller_v2(
     controller: CandidateAuthoringController,
     timeout_seconds: int = 900,
 ) -> dict[str, object]:
-    """Execute one authorized closure and persist its authority-specific receipt."""
+    """Execute or resume one closure with pre-executor, single-use host authority evidence."""
 
-    root, _session_root, plan, _budget, state, _state_artifact = _session_bundle(
+    root, session_root, plan, budget, state, _state_artifact = _session_bundle(
         job_id,
         session_id,
     )
+    source_state = state
+    if state.status == "waiting_for_controller":
+        _pending_controller_request(root, session_root, plan, budget, state)
+        source_state = _state_chain(root, session_root)[-2][0]
     _boundary, closure = validate_material_closure_promotion_boundary_v2(
         root,
         plan,
         boundary_artifact,
-        state=state,
+        state=source_state,
         require_boundary_state=True,
         require_current_canonical=True,
     )
@@ -1608,30 +1621,7 @@ def execute_material_closure_controller_v2(
         expected_output_sha256=closure.project_planned_output_map(),
         timeout_seconds=timeout_seconds,
     )
-    request = ControllerExecutionRequest.model_validate_json(
-        json.dumps(response["request"], ensure_ascii=False)
-    )
-    request_path = (
-        root
-        / "production"
-        / "autonomy_v2"
-        / session_id
-        / "controller_executions"
-        / request.execution_id
-        / "request.json"
-    )
-    request_artifact = artifact_for_v2(
-        root,
-        request_path,
-        artifact_id=request.contract_id,
-        kind="controller-request",
-    )
-    consumption, consumption_artifact = _publish_material_authority_consumption(
-        root,
-        plan,
-        boundary_artifact,
-        request_artifact,
-    )
+    consumption, consumption_artifact = consuming_controller.authority_consumption()
     return {
         **response,
         "material_closure_boundary": boundary_artifact.model_dump(mode="json"),

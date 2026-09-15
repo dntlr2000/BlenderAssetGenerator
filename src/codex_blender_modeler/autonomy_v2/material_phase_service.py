@@ -404,6 +404,67 @@ def _validate_canonical_snapshot_current(
         raise MaterialPhaseError("canonical build provenance changed after preflight")
 
 
+def _validate_material_controller_progression(
+    root: Path,
+    plan: AutonomyPlanV2,
+    boundary_artifact: AQV2Artifact,
+    source: AutonomyStateV2,
+    current: AutonomyStateV2,
+) -> None:
+    """Accept only direct completion or one exact desktop wait/adoption from the closure source."""
+
+    if (source.phase, source.status, source.next_action) != (
+        "authoring", "running", "execute_controller",
+    ) or (current.phase, current.status, current.next_action) != (
+        "authoring", "running", "validate_candidate",
+    ):
+        raise MaterialPhaseError(
+            "material closure boundary is not the controller predecessor state"
+        )
+    if current.sequence == source.sequence + 1:
+        return
+    if current.sequence != source.sequence + 2:
+        raise MaterialPhaseError(
+            "material closure boundary is not the controller predecessor state"
+        )
+
+    from .controller_bridge import _state_chain
+
+    session = root / "production/autonomy_v2" / plan.session_id
+    chain = _state_chain(root, session)
+    if len(chain) < 3 or chain[-3][0] != source or chain[-1][0] != current:
+        raise MaterialPhaseError("material desktop adoption is not the exact current state chain")
+    waiting = chain[-2][0]
+    if (waiting.phase, waiting.status, waiting.next_action) != (
+        "authoring", "waiting_for_controller", "execute_controller",
+    ) or waiting.budget_usage != current.budget_usage:
+        raise MaterialPhaseError("material desktop adoption changed its waiting state or budget")
+    first = _read_exact_model(root, waiting.provenance[-1], ControllerResult)
+    adopted = _read_exact_model(root, current.provenance[-1], ControllerResult)
+    request_path = root / first.request.path
+    request = ControllerExecutionRequest.model_validate_json(
+        _read_native_material_bytes(request_path)
+    )
+    execution_id = f"exec-{source.sequence + 1:04d}-material_authoring"
+    prefix = f"production/autonomy_v2/{plan.session_id}/controller_executions/{execution_id}"
+    if (
+        first.status != "waiting_for_output"
+        or adopted.status != "completed"
+        or first.controller_kind != "desktop_in_session"
+        or adopted.controller_kind != "desktop_in_session"
+        or first.request != adopted.request
+        or first.tool_profile != adopted.tool_profile
+        or first.execution_id != execution_id
+        or adopted.execution_id != execution_id
+        or request.execution_id != execution_id
+        or not _same_artifact_bytes(request.assignment, boundary_artifact)
+        or first.request.path != f"{prefix}/request.json"
+        or waiting.provenance[-1].path != f"{prefix}/result.json"
+        or current.provenance[-1].path != f"{prefix}/adoption/result.json"
+    ):
+        raise MaterialPhaseError("material desktop adoption mixes requests or closure authority")
+
+
 def validate_material_closure_promotion_boundary_v2(
     root: Path,
     plan: AutonomyPlanV2,
@@ -414,7 +475,7 @@ def validate_material_closure_promotion_boundary_v2(
     require_current_canonical: bool = True,
     revalidate_published_preflight: bool = True,
 ) -> tuple[MaterialClosurePromotionBoundary, MaterialDependencyClosure]:
-    """Revalidate one unchanged user boundary or additive exact policy boundary."""
+    """Revalidate exact closure authority across direct or receipt-bound desktop completion."""
 
     job_root = ensure_contained_production_path(root, root, must_exist=True)
     boundary = _read_material_closure_boundary(
@@ -441,18 +502,9 @@ def validate_material_closure_promotion_boundary_v2(
     if state is not None and boundary_state.sequence > state.sequence:
         raise MaterialPhaseError("material closure boundary state is ahead of promotion state")
     if state is not None and boundary_state.sequence < state.sequence:
-        if state.sequence != boundary_state.sequence + 1 or (
-            boundary_state.phase,
-            boundary_state.status,
-            boundary_state.next_action,
-        ) != ("authoring", "running", "execute_controller") or (
-            state.phase,
-            state.status,
-            state.next_action,
-        ) != ("authoring", "running", "validate_candidate"):
-            raise MaterialPhaseError(
-                "material closure boundary is not the controller predecessor state"
-            )
+        _validate_material_controller_progression(
+            job_root, plan, boundary_artifact, boundary_state, state,
+        )
 
     closure = _read_exact_model(
         job_root,

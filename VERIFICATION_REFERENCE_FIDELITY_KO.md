@@ -710,3 +710,30 @@ MCP의 `fidelity_budget_plan_path`에서 전달하도록 연결했다. 기존 �
 유지하며, proposal이 위임·experimental opt-in·인간 artifact 승인을 대체하지 않는다.
 host/CLI/MCP에서 실제 funded root와 exact skill bundle을 생성하는 3개 사례, 과도한 권한을
 담은 파일을 job 생성 전에 거절하는 2개 사례를 추가했다. 과거 skill snapshot은 수정하지 않는다.
+
+### 2026-09-16 Plastic material controller 경계 실패 보존
+
+source `e93eea7e809efefad9a9f2b7e71196300aa79b00`의 Plastic canary에서 exact continuation
+`a23efd7634f64634b537231e4f38a1863e06a06c3f0207fdaf36bbe7944c2632`를 기록했다.
+추가 material-context preflight는 통과했고 기존 6회와 합쳐 12/36회의 별도 Blender 소비를 보존했다.
+누락된 옛 closure의 미사용 policy는 host의 `rejected` decision으로 종결하고 원본을 유지했다.
+
+새 policy에 대한 controller 호출은 출력 전에 실패했다. session
+`aqv2-20260915t145937890055z-838d45b8`의 `states/0005.json` SHA는
+`40cfef81e2b1edcbab605e6b0bf8f80919872d77d840421e9bb5318d3127b950`이다.
+AQ 사용량은 build 4, controller 2, promotion 1, action 4이며 material promotion과 QA는 0이다.
+SceneSpec과 Blend는 geometry 승격 당시 hash를 유지했다. 실패 terminal은 재개·수정하지 않는다.
+
+읽기 전용 진단은 Windows 확장 경로와 일반 root 경로의 비교에서
+`production path escapes its owning job workspace`가 발생함을 재현했다. 권한 소비를 controller
+내부에서 쓰는 구조도 executor의 보호 경계와 맞지 않아 host의 request 준비 단계로 옮겼다.
+정상 desktop wait/adoption은 동일 receipt와 소비량을 유지하고, 실패 후 부가 policy 검사로
+실제 결과를 가리지 않도록 했다. source → waiting → completed 뒤 material promotion 검증은
+정확한 predecessor/request/receipt chain을 요구한다.
+
+사고 보고서와 원본 hash는
+`reports/activation_readiness/campaign_scopes/rf-preflight-e93eea7e-20260911t121221z/continuations/material-context-01/material_controller_incident.json`
+에 보존했다. 첫 incident inventory는 일반 경로 열거로 읽힌 408개 파일의 범위이며, 확장 경로를
+사용한 격리 재생에서는 원본 469개 파일 모두의 전후 hash가 동일했다 (`.t/ml15r2/replay_result.json`).
+이 재생은 복사본의 transport 검증이며 실제 canary 재개·시각 개선·인간 수용 증거가 아니다.
+새 source/baseline/scoped campaign과 5/5 paired improvement 및 package/clean import는 여전히 필요하다.

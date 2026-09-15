@@ -1152,6 +1152,7 @@ BlenderAssetGenerator/
   tests/test_material_authoring_v02.py
   tests/test_material_closure_aq_integration.py
   tests/test_material_closure_contracts.py
+  tests/test_material_closure_controller_lifecycle.py
   tests/test_material_closure_controller_repair.py
   tests/test_material_closure_execution_profiles.py
   tests/test_material_closure_incident_service.py
