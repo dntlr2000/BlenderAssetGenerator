@@ -49,6 +49,45 @@ class FidelityArtifact(FidelityModel):
     sha256: Sha256
 
 
+class ReferenceMaskSeedV01(FidelityModel):
+    """Describe an observed interior segmentation sample, never a whole-part extent."""
+
+    object_id: StableId
+    source_id: StableId
+    observation_id: StableId
+    bbox_norm: Region
+    confidence: float = Field(ge=0.5, le=1)
+
+    @model_validator(mode="after")
+    def validate_region(self) -> Self:
+        """Reject empty or inverted interior seed rectangles."""
+        x0, y0, x1, y1 = self.bbox_norm
+        if x0 >= x1 or y0 >= y1:
+            raise ValueError("reference segmentation seed must have positive area")
+        return self
+
+
+class ReferenceMaskSeedEvidenceV01(FidelityModel):
+    """Explicit additive segmentation evidence separate from SceneSpec semantic boxes."""
+
+    schema_version: Literal["0.1.0"] = "0.1.0"
+    contract_kind: Literal["reference_mask_seed_evidence"] = "reference_mask_seed_evidence"
+    job_id: JobId
+    reference: FidelityArtifact
+    seeds: list[ReferenceMaskSeedV01] = Field(min_length=1, max_length=32)
+    semantic_extent_authority: Literal[False] = False
+    canonical_write_authority: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_seed_identity(self) -> Self:
+        """Require one explicit sample per object and no reused observation identity."""
+        for field in ("object_id", "observation_id"):
+            values = [getattr(item, field) for item in self.seeds]
+            if len(values) != len(set(values)):
+                raise ValueError(f"reference segmentation repeats {field}")
+        return self
+
+
 class DirectionalMappingEvidenceV01(FidelityModel):
     """Bind image-plane coordinate coverage to exact texture and geometry evidence."""
 
@@ -611,6 +650,7 @@ class ModelingHypothesisV01(FidelityModel):
     part_relations: str = Field(min_length=8)
     hidden_geometry_assumptions: list[str] = Field(min_length=1)
     authoring_strategy: StableId
+    reference_mask_seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None
     reference_derived_from_candidate: Literal[False] = False
     canonical_write_authority: Literal[False] = False
 
@@ -635,6 +675,18 @@ class ModelingHypothesisV01(FidelityModel):
             raise ValueError("camera names an unknown observation")
         if not any(item.status == "observed" for item in self.observations):
             raise ValueError("a reference hypothesis needs observed evidence")
+        if self.reference_mask_seed_evidence is not None:
+            seed_evidence = self.reference_mask_seed_evidence
+            if seed_evidence.job_id != self.job_id or seed_evidence.reference != self.reference:
+                raise ValueError("segmentation seed evidence binds another job or reference")
+            for seed in seed_evidence.seeds:
+                observation = observed.get(seed.observation_id)
+                if (
+                    observation is None or observation.status != "observed"
+                    or observation.region != seed.bbox_norm
+                    or observation.confidence != seed.confidence
+                ):
+                    raise ValueError("segmentation seed must match an exact observed region")
         return self
 
 

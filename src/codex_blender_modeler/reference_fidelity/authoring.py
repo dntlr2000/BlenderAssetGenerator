@@ -55,6 +55,25 @@ def validate_structure_authoring(
     planned = {item.id: item for item in authoring.modeling_plan.objects}
     if set(planned) != set(objects):
         raise ValueError("spatial plan and structural scene semantic membership differ")
+    if hypothesis.reference_mask_seed_evidence is not None:
+        from ..qa.reference_mask import validate_explicit_reference_seeds
+
+        seeds = validate_explicit_reference_seeds(
+            root, root / hypothesis.reference.path, authoring.scene,
+            hypothesis.reference_mask_seed_evidence,
+            allowed_object_ids={key for key, obj in planned.items()
+                                if obj.scope_role in {"primary", "supporting"}},
+        )
+        for seed in seeds:
+            observed = [item for item in objects[seed.object_id].evidence
+                        if item.status == "observed" and item.source_id in {
+                            source.id for source in authoring.scene.sources
+                            if source.kind == "reference"
+                        }]
+            if max(observed, key=lambda item: item.confidence).bbox_norm != (
+                planned[seed.object_id].bbox_norm
+            ):
+                raise ValueError("semantic comparison must retain the planned whole-part extent")
     if (authoring.source_candidate is None) != (authoring.reuse_purpose == "none"):
         raise ValueError("candidate reuse must declare its exact source and limited purpose")
     if authoring.source_candidate is not None:

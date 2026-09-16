@@ -1,0 +1,141 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    },
+    "ReferenceMaskSeedV01": {
+      "additionalProperties": false,
+      "description": "Describe an observed interior segmentation sample, never a whole-part extent.",
+      "properties": {
+        "object_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "source_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Source Id",
+          "type": "string"
+        },
+        "observation_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0.5,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "object_id",
+        "source_id",
+        "observation_id",
+        "bbox_norm",
+        "confidence"
+      ],
+      "title": "ReferenceMaskSeedV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Explicit additive segmentation evidence separate from SceneSpec semantic boxes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "reference_mask_seed_evidence",
+      "default": "reference_mask_seed_evidence",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "reference": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "seeds": {
+      "items": {
+        "$ref": "#/$defs/ReferenceMaskSeedV01"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "title": "Seeds",
+      "type": "array"
+    },
+    "semantic_extent_authority": {
+      "const": false,
+      "default": false,
+      "title": "Semantic Extent Authority",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "reference",
+    "seeds"
+  ],
+  "title": "ReferenceMaskSeedEvidenceV01",
+  "type": "object"
+}

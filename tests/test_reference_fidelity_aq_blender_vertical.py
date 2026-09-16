@@ -503,8 +503,11 @@ def _quality_submission(
     session_id: str,
     run_id: str,
     evidence: RenderEvidenceV01,
+    *,
+    candidate_blend_path: str = "blender/scene.blend",
+    include_canonical_sources: bool = False,
 ) -> QualitySubmissionV2:
-    """Build one host-recomputable non-passing IQ submission from actual QA pixels."""
+    """Build actual IQ with an explicitly selected canonical or immutable candidate Blend."""
 
     root, _session, plan, _budget, _state, _state_artifact = _session_bundle(
         root.name, session_id
@@ -655,13 +658,28 @@ def _quality_submission(
     representative_path = iq_root / "representative.png"
     representative_path.parent.mkdir(parents=True, exist_ok=True)
     representative_path.write_bytes((root / evidence.passes["beauty"].path).read_bytes())
+    canonical_sources = {}
+    if include_canonical_sources:
+        material_ref = next(
+            item for item in reversed(_state.provenance) if item.kind == "material_phase_receipt"
+        )
+        material = json.loads((root / material_ref.path).read_bytes())
+        for field, path in (
+            ("scene_spec", "analysis/scene_spec.json"),
+            ("authoring_blend", "blender/scene.blend"),
+            ("material_plan", "analysis/material_plan.json"),
+            ("build_provenance", material["build_provenance_snapshot"]["path"]),
+        ):
+            canonical_sources[field] = _artifact(
+                root, root / path, artifact_id=f"{field.replace('_', '-')}-{run_id}", kind=field,
+            )
     return QualitySubmissionV2(
         integrated_quality_report=report_artifact,
         quality_evidence=quality_evidence,
         camera_artifact=camera,
         candidate_blend=_artifact(
             root,
-            root / "blender/scene.blend",
+            root / candidate_blend_path,
             artifact_id=f"candidate-blend-{run_id}",
             kind="candidate_blend",
         ),
@@ -671,6 +689,7 @@ def _quality_submission(
             artifact_id=f"representative-{run_id}",
             kind="representative_render",
         ),
+        **canonical_sources,
     )
 
 
@@ -680,8 +699,10 @@ def _submit_actual_quality_round(
     *,
     run_id: str,
     outcome: str,
+    candidate_blend_path: str = "blender/scene.blend",
+    include_canonical_sources: bool = False,
 ) -> tuple[QualitySubmissionV2, FidelityArtifact]:
-    """Render seven passes and publish one explicit fixture-only visual assessment."""
+    """Render seven passes and bind fixture findings to the explicitly selected Blend source."""
 
     rendered = render_quality_evidence(root.name, session_id, run_id=run_id)
     evidence = RenderEvidenceV01.model_validate_json(
@@ -719,7 +740,10 @@ def _submit_actual_quality_round(
     )
     review_path = root / "fidelity/vertical_reviews" / f"{run_id}.json"
     publish(root, review_path, review)
-    submission = _quality_submission(root, session_id, run_id, evidence)
+    submission = _quality_submission(
+        root, session_id, run_id, evidence, candidate_blend_path=candidate_blend_path,
+        include_canonical_sources=include_canonical_sources,
+    )
     submission_path = root / "fidelity/vertical_submissions" / f"{run_id}.json"
     publish(root, submission_path, submission)
     attempt = submit_quality_attempt(

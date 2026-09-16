@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps
 
@@ -10,6 +10,9 @@ from ..blender_artifacts import write_json_atomic
 from ..models import EvidenceSpec, ObjectSpec, SceneSpec
 from ..reference_scope import subject_object_ids
 from ..workspace import sha256_file
+
+if TYPE_CHECKING:
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
 
 
 @dataclass(frozen=True)
@@ -20,6 +23,53 @@ class EvidenceSeed:
     object_id: str
     bbox_norm: tuple[float, float, float, float]
     confidence: float
+
+
+def validate_explicit_reference_seeds(
+    root: Path,
+    reference_path: Path,
+    spec: SceneSpec,
+    evidence: ReferenceMaskSeedEvidenceV01,
+    *,
+    allowed_object_ids: set[str] | None = None,
+) -> list[EvidenceSeed]:
+    """Validate exact observed interior samples without changing semantic extent evidence."""
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
+    from ..reference_fidelity.service import read_artifact
+
+    evidence = ReferenceMaskSeedEvidenceV01.model_validate_json(evidence.model_dump_json())
+    if evidence.job_id != spec.job_id:
+        raise ValueError("segmentation seed evidence belongs to another job")
+    read_artifact(root, evidence.reference)
+    if (root / evidence.reference.path).resolve() != reference_path.resolve():
+        raise ValueError("segmentation seed evidence names another reference path")
+    objects = {obj.id: obj for obj in spec.objects}
+    reference_ids = {
+        source.id for source in spec.sources if source.kind == "reference"
+        and (root / source.path).resolve() == reference_path.resolve()
+    }
+    result = []
+    for seed in evidence.seeds:
+        obj = objects.get(seed.object_id)
+        if obj is None or seed.source_id not in reference_ids:
+            raise ValueError("segmentation seed names an unknown object or reference source")
+        if allowed_object_ids is not None and obj.id not in allowed_object_ids:
+            raise ValueError("segmentation seed escapes the selected subject")
+        x0, y0, x1, y1 = seed.bbox_norm
+        if not any(
+            item.status == "observed" and item.source_id == seed.source_id
+            and item.bbox_norm[0] <= x0 and item.bbox_norm[1] <= y0
+            and item.bbox_norm[2] >= x1 and item.bbox_norm[3] >= y1
+            for item in obj.evidence
+        ):
+            raise ValueError("segmentation sample is outside observed whole-part bounds")
+        result.append(EvidenceSeed(
+            group_id=_semantic_group_id(obj.id), object_id=obj.id,
+            bbox_norm=seed.bbox_norm, confidence=seed.confidence,
+        ))
+    if len({seed.group_id for seed in result}) != len(result):
+        raise ValueError("explicit segmentation requires one sample per semantic group")
+    return sorted(result, key=lambda seed: seed.group_id)
 
 
 def _semantic_group_id(object_id: str) -> str:
@@ -323,6 +373,7 @@ def prepare_run_reference_mask(
     analysis_mask_path: Path,
     spec: SceneSpec,
     reference_content_scope: str = "full_reference",
+    seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None,
 ) -> tuple[Path, Path]:
     """Write one immutable run-local mask honoring the selected reference content."""
 
@@ -358,9 +409,11 @@ def prepare_run_reference_mask(
         )
     elif reference_content_scope != "full_reference":
         raise ValueError("unsupported reference_content_scope for QA")
-    seeds = select_reference_evidence_seeds(
-        spec,
-        allowed_object_ids=selected_subject_ids,
+    seeds = (
+        select_reference_evidence_seeds(spec, allowed_object_ids=selected_subject_ids)
+        if seed_evidence is None else validate_explicit_reference_seeds(
+            root, reference_path, spec, seed_evidence, allowed_object_ids=selected_subject_ids
+        )
     )
 
     method = "analysis_mask_fallback"
@@ -371,10 +424,16 @@ def prepare_run_reference_mask(
     try:
         candidate = _grabcut_refinement(reference, analysis_mask, seeds)
         trustworthy, reason = _mask_is_trustworthy(analysis_mask, candidate, seeds)
+        if seed_evidence is not None and not trustworthy:
+            raise ValueError(f"explicit reference segmentation failed: {reason}")
         if trustworthy:
             method = "opencv_grabcut_evidence_seeded"
             selected = candidate
     except (RuntimeError, ValueError, OSError) as exc:
+        if seed_evidence is not None:
+            raise ValueError(
+                "explicit reference segmentation cannot use a silent fallback"
+            ) from exc
         reason = f"{type(exc).__name__}: {exc}"
 
     if closed_exterior_fill:
@@ -420,5 +479,10 @@ def prepare_run_reference_mask(
             for seed in seeds
         ],
     }
+    if seed_evidence is not None:
+        from ..blender_artifacts import stable_json_digest
+
+        manifest["seed_evidence"] = seed_evidence.model_dump(mode="json")
+        manifest["seed_evidence_sha256"] = stable_json_digest(manifest["seed_evidence"])
     write_json_atomic(manifest_path, manifest)
     return output_path, manifest_path

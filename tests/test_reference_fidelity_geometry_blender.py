@@ -24,7 +24,12 @@ from codex_blender_modeler.autonomy_v2.quality_revision_service import (
 )
 from codex_blender_modeler.production.controller_executor.models import ControllerExecutionRequest
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
-from codex_blender_modeler.reference_fidelity.models import FidelityArtifact
+from codex_blender_modeler.reference_fidelity.models import (
+    FidelityArtifact,
+    ReferenceMaskSeedEvidenceV01,
+    ReferenceMaskSeedV01,
+    ReferenceObservation,
+)
 from codex_blender_modeler.reference_fidelity.service import publish
 
 pytestmark = pytest.mark.skipif(
@@ -35,8 +40,9 @@ pytestmark = pytest.mark.skipif(
 
 def _bound_fidelity_geometry_fixture(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, funded: bool = False,
+    segmentation_seed: bool = False,
 ) -> tuple[Path, str]:
-    """Build an initial AQ geometry round using an explicit legacy or funded test contract."""
+    """Build a legacy/funded AQ fixture, optionally binding separate observed segmentation."""
 
     old_modeling = geometry_smoke._modeling_plan
     old_advance = geometry_smoke._advance_reference
@@ -66,7 +72,10 @@ def _bound_fidelity_geometry_fixture(
             for y in range(size[1]):
                 for x in range(size[0]):
                     offset = 52 if (x // 4 + y // 4) % 2 else 0
-                    pixels[x, y] = (48 + offset, 96 + offset, 144 - offset // 2)
+                    pixels[x, y] = (
+                        (210, 210, 210) if segmentation_seed and not (7 <= x < 25 and 7 <= y < 25)
+                        else (48 + offset, 96 + offset, 144 - offset // 2)
+                    )
         return image
 
     def spatial_modeling(job_id, note):
@@ -123,6 +132,21 @@ def _bound_fidelity_geometry_fixture(
                 ),
             }
         )
+        if segmentation_seed:
+            patch = ReferenceObservation(
+                observation_id="fixture-interior", region=(.4, .4, .6, .6), status="observed",
+                confidence=.9, description="Known foreground in the independent synthetic image.",
+                uncertainty="Synthetic transport evidence; never a real asset judgment.",
+            )
+            observed = observed.model_copy(update={
+                "observations": [*observed.observations, patch],
+                "reference_mask_seed_evidence": ReferenceMaskSeedEvidenceV01(
+                    job_id=job_id, reference=observed.reference,
+                    seeds=[ReferenceMaskSeedV01(object_id="asset.hull", source_id="ref.main",
+                        observation_id=patch.observation_id, bbox_norm=patch.region,
+                        confidence=patch.confidence)],
+                ),
+            })
         observed_ref = publish(root, root / "fidelity/hypothesis.json", observed)
         loop = AQQualityRevisionLoopV01(
             job_id=job_id,

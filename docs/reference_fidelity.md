@@ -1,5 +1,32 @@
 # Reference Fidelity 0.1/0.2 — disabled-experimental companion
 
+## Reference mask seed와 부품 전체 크기 증거
+
+`ModelingHypothesisV01.reference_mask_seed_evidence`는 명시적으로 선택하는
+`ReferenceMaskSeedEvidenceV01` (`0.1.0`) 동반 계약이다. 내부 foreground 표본은 hypothesis의
+정확한 `observed` observation에 결속하고, SceneSpec의 부품 전체 `EvidenceSpec.bbox_norm`과
+분리한다. seed의 confidence가 높아도 V0.6 semantic bbox 비교에 사용하지 않는다.
+
+저작 사전 검사는 reference hash, job/source/object, primary/supporting 범위, 전체 관찰 영역 안의
+seed 포함 관계를 확인한다. seed 대상의 semantic 비교는 ModelingPlan의 전체 부품 bbox를 유지해야
+한다. AQ는 동일 hypothesis에 결속된 seed를 render 예약 전에 검증하고, QA mask manifest에
+seed 계약과 digest를 기록한다. 실제 review에서도 hypothesis·mask bytes·manifest를 다시 확인한다.
+명시적 seed의 stale/unknown/범위 오류나 segmentation 실패는 fallback 없이 중단한다.
+
+동반 계약이 없는 과거 hypothesis와 Standard/AQ QA는 기존 seed 선택과 fallback 의미를 유지한다.
+SceneSpec 0.2.0, 기존 V0.6 request/report, CLI/MCP 도구와 allowlist는 변경하지 않는다. 과거 QA를
+새 seed 계약으로 다시 계산하거나 수정하지 않는다. 캠페인의 고정 seed 계약을 바꾸는 경우에는
+새 clean source/baseline/scope와 해당 exact 승인이 필요하다.
+
+## 구조 수정 후 이전 quality source 보존
+
+Material Closure는 이전 quality submission의 canonical alias와 receipt-owned immutable snapshot을
+구분한다. `candidate_blend`, `authoring_blend`, `scene_spec`, `material_plan`의 역사적 alias만 정확한
+material promotion receipt와 reentry snapshot의 hash·크기·bytes를 함께 확인한 후 closure 내부에서
+해결한다. 이미 immutable snapshot 경로이면 그대로 유지한다. 같은 bytes를 가진 임의 복제본,
+다른 round, 변조된 snapshot은 허용하지 않는다. 원본 submission·QA·receipt와 현재 canonical 파일은
+수정하지 않으며, 이 호환성 처리는 새로운 승인이나 campaign 성공을 의미하지 않는다.
+
 프로젝트는 `0.9.0`, canonical SceneSpec은 `0.2.0`이다. 이 기능은 reference 관찰과 실제 렌더를
 연결하는 별도 계약이다. 기존 V0.6/IQ 점수, 인간 quality disposition, package acceptance 또는
 Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태는

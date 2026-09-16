@@ -351,8 +351,13 @@ def _prepare_closure(root, session_id):
     )
 
 
-def test_actual_structural_preflight_promotion_and_full_material_closure(tmp_path, monkeypatch):
-    """Verify the revision bridge and protected deep paths before appearance authority."""
+@pytest.mark.parametrize(
+    "quality_blend_form", ["canonical_alias", "material_snapshot", "full_snapshot_submission"]
+)
+def test_actual_structural_preflight_promotion_and_full_material_closure(
+    tmp_path, monkeypatch, quality_blend_form
+):
+    """Verify both valid QA Blend forms through real structural promotion and full closure."""
 
     from test_reference_fidelity_aq_blender_vertical import (
         _run_material_round,
@@ -362,10 +367,27 @@ def test_actual_structural_preflight_promotion_and_full_material_closure(tmp_pat
     )
     from test_reference_fidelity_geometry_blender import _bound_fidelity_geometry_fixture
 
-    root, session_id = _bound_fidelity_geometry_fixture(tmp_path, monkeypatch, funded=True)
+    root, session_id = _bound_fidelity_geometry_fixture(
+        tmp_path, monkeypatch, funded=True,
+        segmentation_seed=quality_blend_form == "full_snapshot_submission",
+    )
     _write_fixture_reference_mask(root, next((root / "input").glob("*")))
     _run_material_round(root, session_id)
-    _submit_actual_quality_round(root, session_id, run_id="closure-source-00", outcome="defect")
+    state = _session_bundle(root.name, session_id)[4]
+    material_ref = next(
+        item for item in reversed(state.provenance) if item.kind == "material_phase_receipt"
+    )
+    material = json.loads(_read(root, material_ref.path))
+    immutable_blend = material["authoring_blend_snapshot"]
+    quality_blend_path = (
+        immutable_blend["path"] if quality_blend_form != "canonical_alias"
+        else "blender/scene.blend"
+    )
+    _submit_actual_quality_round(
+        root, session_id, run_id="closure-source-00", outcome="defect",
+        candidate_blend_path=quality_blend_path,
+        include_canonical_sources=quality_blend_form == "full_snapshot_submission",
+    )
     budget = _session_bundle(root.name, session_id)[3]
     begin_structural_reentry(
         root.name,
@@ -397,14 +419,27 @@ def test_actual_structural_preflight_promotion_and_full_material_closure(tmp_pat
     )
     context = collect_fidelity_closure_context(root, binding)
     assert len(context.render_paths) == 7
-    assert len(context.snapshot_substitutions) == 1
-    archived_path, archived_sha = next(iter(context.snapshot_substitutions.values()))
+    if quality_blend_form == "canonical_alias":
+        assert len(context.snapshot_substitutions) == 1
+        archived_path, archived_sha = next(iter(context.snapshot_substitutions.values()))
+    else:
+        if quality_blend_form == "full_snapshot_submission":
+            assert {key[1] for key in context.snapshot_substitutions} == {
+                "$.scene_spec", "$.authoring_blend", "$.material_plan",
+            }
+        else:
+            assert context.snapshot_substitutions == {}
+        archived_path, archived_sha = immutable_blend["path"], immutable_blend["sha256"]
     assert closure.project_immutable_input_map()[archived_path] == archived_sha
     assert closure.project_immutable_input_map()["blender/scene.blend"] == sha256_file(
         root / "blender/scene.blend"
     )
     # Negative mutations affect only this isolated fixture, then restore its exact saved bytes.
-    for relative in (archived_path, sorted(context.render_paths)[0]):
+    mutation_paths = {
+        archived_path, sorted(context.render_paths)[0],
+        *(path for path, _sha in context.snapshot_substitutions.values()),
+    }
+    for relative in sorted(mutation_paths):
         path = Path(native_io_path(root / relative))
         saved = path.read_bytes()
         try:

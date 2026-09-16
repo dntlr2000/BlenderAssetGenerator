@@ -512,6 +512,7 @@ BlenderAssetGenerator/
   schemas/reference_analysis.schema.json
   schemas/reference_evidence.schema.json
   schemas/reference_evidence_run_result.schema.json
+  schemas/reference_mask_seed_evidence_v01.schema.json
   schemas/render_pass_manifest.schema.json
   schemas/review_bundle_manifest.schema.json
   schemas/review_bundle_receipt.schema.json
@@ -1157,6 +1158,7 @@ BlenderAssetGenerator/
   tests/test_material_closure_controller_lifecycle.py
   tests/test_material_closure_controller_repair.py
   tests/test_material_closure_execution_profiles.py
+  tests/test_material_closure_fidelity_snapshot.py
   tests/test_material_closure_geometry_source.py
   tests/test_material_closure_incident_service.py
   tests/test_material_closure_public.py
@@ -1208,6 +1210,7 @@ BlenderAssetGenerator/
   tests/test_reference_fidelity_preview_budget.py
   tests/test_reference_fidelity_public.py
   tests/test_reference_mask_refinement.py
+  tests/test_reference_mask_seed_evidence.py
   tests/test_repository_catalog.py
   tests/test_repository_summary_generator.py
   tests/test_revision.py

@@ -795,7 +795,7 @@ def supplement_quality_evidence(
 
 
 def render_quality_evidence(job_id: str, session_id: str, *, run_id: str) -> dict[str, object]:
-    """Reserve one exact companion QA render before Blender and capture its immutable inputs."""
+    """Validate explicit observation seeds, reserve bounded QA, and capture immutable inputs."""
 
     from ..build_provenance import collect_build_provenance
     from ..qa.service import _validate_run_id, run_scene_spec_visual_qa_snapshot
@@ -823,6 +823,23 @@ def render_quality_evidence(job_id: str, session_id: str, *, run_id: str) -> dic
         reservations = _fidelity_root(root, session_id) / "render_reservations"
         records = _render_reservations(root, session_id, loop_artifact)
         source = artifact_at(root, root / "analysis/scene_spec.json")
+        hypothesis = ModelingHypothesisV01.model_validate_json(read_artifact(root, loop.hypothesis))
+        seed_evidence = hypothesis.reference_mask_seed_evidence
+        if seed_evidence is not None:
+            from ..models import SceneSpec
+            from ..qa.reference_mask import validate_explicit_reference_seeds
+            from ..reference_scope import subject_object_ids
+            from ..workspace import find_reference, load_job
+
+            scene = SceneSpec.model_validate_json(read_artifact(root, source))
+            selected = (
+                subject_object_ids(scene)
+                if load_job(job_id).get("reference_content_scope") == "primary_object_only"
+                else None
+            )
+            validate_explicit_reference_seeds(
+                root, find_reference(job_id), scene, seed_evidence, allowed_object_ids=selected
+            )
         build = collect_build_provenance(root, job_id)["fingerprint"]
         existing = [entry for entry, _artifact in records if entry.run_id == run_id]
         if existing:
@@ -886,6 +903,8 @@ def render_quality_evidence(job_id: str, session_id: str, *, run_id: str) -> dic
             run_dir=run_dir,
             run_id=run_id,
             record_fidelity_conditions=True,
+            **({"reference_mask_seed_evidence": seed_evidence}
+               if seed_evidence is not None else {}),
         )
         read_artifact(root, source)
         evidence = capture_render_evidence(

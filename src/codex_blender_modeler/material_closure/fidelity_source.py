@@ -4,15 +4,20 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from ..blender_artifacts import native_io_path
 from .models import MaterialClosureSourceBindingArtifact
 from .round_models import MaterialClosureSourceBindingV02
 
+if TYPE_CHECKING:
+    from ..autonomy_v2.models import AQV2Artifact
+    from ..reference_fidelity.models import FidelityArtifact
+
 
 @dataclass(frozen=True)
 class FidelityClosureContext:
-    """Separate exact rendered files and one proved historical Blend alias from current inputs."""
+    """Separate exact rendered files and proved historical source aliases from current inputs."""
 
     input_hashes: dict[str, str] = field(default_factory=dict)
     render_paths: frozenset[str] = frozenset()
@@ -22,11 +27,40 @@ class FidelityClosureContext:
     )
 
 
+def _quality_snapshot_target(
+    root: Path,
+    original: AQV2Artifact,
+    promoted_snapshot: AQV2Artifact,
+    reserved: FidelityArtifact,
+    *,
+    canonical_path: str,
+) -> tuple[str, str] | None:
+    """Resolve a historical canonical alias only through its exact promoted and reserved bytes."""
+    from ..reference_fidelity.models import FidelityArtifact
+    from ..reference_fidelity.service import read_artifact
+
+    material_bytes = read_artifact(
+        root, FidelityArtifact(path=promoted_snapshot.path, sha256=promoted_snapshot.sha256)
+    )
+    snapshot = read_artifact(root, reserved)
+    if (
+        original.path not in {canonical_path, promoted_snapshot.path}
+        or original.sha256 != reserved.sha256
+        or original.sha256 != promoted_snapshot.sha256
+        or original.byte_size != len(snapshot)
+        or promoted_snapshot.byte_size != len(material_bytes)
+        or snapshot != material_bytes
+    ):
+        raise ValueError("fidelity quality source is not its exact promoted/reserved snapshot")
+    # An immutable receipt snapshot already has the correct path; only the old live alias moves.
+    return (reserved.path, reserved.sha256) if original.path == canonical_path else None
+
+
 def collect_fidelity_closure_context(
     root: Path,
     binding: MaterialClosureSourceBindingArtifact,
 ) -> FidelityClosureContext:
-    """Use only an exact reserved round to resolve its rendered PNGs and prior Blend snapshot."""
+    """Use an exact reserved round to resolve rendered PNGs and prior promoted source snapshots."""
 
     if not isinstance(binding, MaterialClosureSourceBindingV02):
         return FidelityClosureContext()
@@ -74,34 +108,29 @@ def collect_fidelity_closure_context(
     material = MaterialPhaseReceiptV2.model_validate_json(
         read_artifact(root, attempt.material_receipt)
     )
-    material_blend = material.authoring_blend_snapshot
-    material_bytes = read_artifact(
-        root, FidelityArtifact(path=material_blend.path, sha256=material_blend.sha256)
+    substitutions = {}
+    # Full submissions can carry the same historical scene/material aliases as their Blend.
+    sources = (
+        ("candidate_blend", "blender/scene.blend", material.authoring_blend_snapshot,
+         reentry.source_blend),
+        ("authoring_blend", "blender/scene.blend", material.authoring_blend_snapshot,
+         reentry.source_blend),
+        ("scene_spec", "analysis/scene_spec.json", material.canonical_scene_snapshot,
+         reentry.source_scene),
+        ("material_plan", "analysis/material_plan.json", material.canonical_material_snapshot,
+         FidelityArtifact(path=material.canonical_material_snapshot.path,
+                          sha256=material.canonical_material_snapshot.sha256)),
     )
-    snapshot = read_artifact(root, reentry.source_blend)
-    original = submission.candidate_blend
-    if (
-        original.path != "blender/scene.blend"
-        or original.sha256 != reentry.source_blend.sha256
-        or original.sha256 != material_blend.sha256
-        or original.byte_size != len(snapshot)
-        or material_blend.byte_size != len(material_bytes)
-        or snapshot != material_bytes
-    ):
-        raise ValueError("fidelity quality Blend is not its exact reserved material snapshot")
-    substitutions = (
-        {
-            (
-                attempt.quality_submission.path,
-                "$.candidate_blend",
-                original.path,
-                original.sha256,
-            ): (
-                reentry.source_blend.path,
-                reentry.source_blend.sha256,
-            )
-        }
-        if attempt.quality_submission.path in hashes
-        else {}
-    )
+    for field_name, canonical_path, promoted, reserved in sources:
+        original = getattr(submission, field_name)
+        if original is None:
+            continue
+        target = _quality_snapshot_target(
+            root, original, promoted, reserved, canonical_path=canonical_path
+        )
+        if target is not None and attempt.quality_submission.path in hashes:
+            substitutions[(
+                attempt.quality_submission.path, f"$.{field_name}",
+                original.path, original.sha256,
+            )] = target
     return FidelityClosureContext(hashes, renders, substitutions)

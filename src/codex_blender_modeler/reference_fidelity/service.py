@@ -211,6 +211,8 @@ def validate_review_evidence(
         raise ValueError("QA request does not bind the pass manifest")
     if request.reference_sha256 != hypothesis.reference.sha256:
         raise ValueError("QA reference differs from independently observed reference")
+    if hypothesis.reference_mask_seed_evidence is not None:
+        _validate_reference_seed_manifest(root, hypothesis, scene, request, evidence.qa_request)
     if {request.scene_spec_sha256, manifest.scene_spec_sha256} != {evidence.scene_spec.sha256}:
         raise ValueError("render scene snapshot differs")
     if {
@@ -271,6 +273,50 @@ def validate_review_evidence(
     if request.preview_sha256 != evidence.passes["beauty"].sha256:
         raise ValueError("review beauty differs from QA request")
     return report
+
+
+def _validate_reference_seed_manifest(
+    root: Path,
+    hypothesis: ModelingHypothesisV01,
+    scene: SceneSpec,
+    request: VisualQARequest,
+    request_artifact: FidelityArtifact,
+) -> None:
+    """Require the rendered mask to retain the exact separately bound segmentation evidence."""
+    from ..blender_artifacts import stable_json_digest
+    from ..qa.reference_mask import validate_explicit_reference_seeds
+    from ..reference_scope import subject_object_ids
+
+    expected = hypothesis.reference_mask_seed_evidence
+    if expected is None:
+        raise ValueError("explicit seed validation requires its hypothesis companion")
+    directory = (root / request_artifact.path).parent
+    manifest = json.loads(read_artifact(
+        root, artifact_at(root, directory / "reference_mask_manifest.json")
+    ))
+    seeds = validate_explicit_reference_seeds(
+        root, root / hypothesis.reference.path, scene, expected,
+        allowed_object_ids=(subject_object_ids(scene) if manifest.get(
+            "reference_content_scope"
+        ) == "primary_object_only" else None),
+    )
+    projection = expected.model_dump(mode="json")
+    if (
+        manifest.get("seed_evidence") != projection
+        or manifest.get("seed_evidence_sha256") != stable_json_digest(projection)
+        or manifest.get("reference_sha256") != hypothesis.reference.sha256
+        or manifest.get("output_sha256") != request.reference_mask_sha256
+        or manifest.get("seeds") != [
+            {"group_id": seed.group_id, "object_id": seed.object_id,
+             "bbox_norm": list(seed.bbox_norm), "confidence": seed.confidence}
+            for seed in seeds
+        ]
+        or not str(manifest.get("method", "")).startswith("opencv_grabcut_evidence_seeded")
+    ):
+        raise ValueError("rendered reference mask differs from its explicit segmentation evidence")
+    mask = artifact_at(root, directory / "reference_mask.png")
+    if mask.sha256 != request.reference_mask_sha256:
+        raise ValueError("rendered reference mask bytes changed")
 
 
 def _comparison_conditions(root: Path, review: VisualFindingSetV01) -> object:

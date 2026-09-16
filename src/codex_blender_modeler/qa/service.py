@@ -4,7 +4,7 @@ import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from ..analysis import validate_job_surface_details
 from ..auto_revision.candidate_builder import build_revision_candidates
@@ -30,6 +30,9 @@ from .reporting import merge_advisory_target_result
 from .request import create_visual_qa_request, validate_visual_qa_request
 from .suggestion_enrichment import enrich_direct_qa_suggestions
 from .target_provider import QATargetProvider, generate_optional_qa_target
+
+if TYPE_CHECKING:
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
 
 _RUN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
 
@@ -454,6 +457,7 @@ def run_scene_spec_visual_qa_snapshot(
     render_engine: str = "eevee",
     render_device: str = "auto",
     record_fidelity_conditions: bool = False,
+    reference_mask_seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None,
 ) -> dict[str, Any]:
     """Create immutable direct QA evidence for an isolated candidate without updating latest."""
 
@@ -479,6 +483,16 @@ def run_scene_spec_visual_qa_snapshot(
     if spec.job_id != job_id:
         raise ValueError("candidate QA SceneSpec belongs to another job")
     metadata = load_job(job_id)
+    if reference_mask_seed_evidence is not None:
+        from ..reference_scope import subject_object_ids
+        from .reference_mask import validate_explicit_reference_seeds
+
+        validate_explicit_reference_seeds(
+            root, find_reference(job_id), spec, reference_mask_seed_evidence,
+            allowed_object_ids=(subject_object_ids(spec) if metadata.get(
+                "reference_content_scope", "full_reference"
+            ) == "primary_object_only" else None),
+        )
     spec_hash = sha256_file(scene_spec_path)
     fingerprint = camera_fingerprint(spec)
     run_dir.mkdir(parents=True, exist_ok=False)
@@ -512,6 +526,8 @@ def run_scene_spec_visual_qa_snapshot(
         analysis_mask_path=_reference_content_mask(root),
         spec=spec,
         reference_content_scope=str(metadata.get("reference_content_scope", "full_reference")),
+        **({"seed_evidence": reference_mask_seed_evidence}
+           if reference_mask_seed_evidence is not None else {}),
     )
     request = create_visual_qa_request(
         job_id=job_id,
