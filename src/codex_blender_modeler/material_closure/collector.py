@@ -228,9 +228,9 @@ def material_plan_parent_fingerprint(job_root: Path) -> str:
 
 
 def _read_json_object(job_root: Path, relative_path: str) -> dict[str, Any]:
-    """Read one contained non-link JSON object without accepting path escape."""
+    """Read contained non-link JSON through native paths without accepting path escape."""
 
-    root = job_root.resolve(strict=True)
+    root = Path(native_io_path(job_root)).resolve(strict=True)
     candidate = root.joinpath(*relative_path.split("/"))
     try:
         resolved = candidate.resolve(strict=True)
@@ -291,9 +291,9 @@ def _entry_from_path(
     dependency_parent: str | None = None,
     material_id: str | None = None,
 ) -> MaterialDependencyEntry:
-    """Create one exact entry from host-observed current file bytes."""
+    """Hash native file paths while retaining portable dependency identities and containment."""
 
-    root = job_root.resolve(strict=True)
+    root = Path(native_io_path(job_root)).resolve(strict=True)
     candidate = root.joinpath(*path.split("/"))
     try:
         resolved = candidate.resolve(strict=True)
@@ -342,7 +342,7 @@ def _resolve_manifest_owned_dependency_path(
     manifest_path: str,
     declared_path: str,
 ) -> str:
-    """Resolve one TextureManifest-owned path from its manifest parent, fail closed."""
+    """Resolve a manifest-owned native path while rejecting escape and link dependencies."""
 
     raw_parts = declared_path.split("/")
     declared = PurePosixPath(declared_path)
@@ -363,7 +363,7 @@ def _resolve_manifest_owned_dependency_path(
             ]
         )
     relative = (PurePosixPath(manifest_path).parent / declared).as_posix()
-    root = job_root.resolve(strict=True)
+    root = Path(native_io_path(job_root)).resolve(strict=True)
     candidate = root.joinpath(*relative.split("/"))
     current = root
     for part in relative.split("/"):
@@ -924,7 +924,7 @@ def _validate_common_root_graph(
     producer: str,
     planned_outputs: list[MaterialPlannedOutput],
 ) -> None:
-    """Collect exact AQ roots, retaining template authority across bounded execution profiles."""
+    """Bind AQ roots and the recorded build selection to exact geometry or material lineage."""
 
     # See _parse_common_root: imports stay local to avoid autonomy_v2 package cycles.
     from ..autonomy_v2.candidate_validation_models import (
@@ -1467,15 +1467,31 @@ def _validate_common_root_graph(
         ) from exc
 
     build_payload = _read_json_object(job_root, binding.canonical_build_provenance_path)
+    mode = build_payload.get("material_plan_mode", "current")
+    if mode == "scene_spec_only" and (
+        round_material is not None
+        or _exact_binding(geometry.canonical_blend) != _entry_binding(current_blend_entry)
+        or build_payload != _read_json_object(job_root, geometry.candidate_build_provenance.path)
+    ):
+        raise MaterialClosureCollectionError(
+            [MaterialClosureIssue(
+                code="UNPROVEN_GEOMETRY_BUILD_SELECTION",
+                message="geometry-only provenance must describe the exact promoted geometry Blend",
+                path=binding.canonical_build_provenance_path,
+            )]
+        )
     try:
         from ..build_provenance import collect_build_provenance
 
+        if mode not in ("current", "scene_spec_only"):
+            raise ValueError("canonical build provenance has an unknown material-plan mode")
         recomputed_build = collect_build_provenance(
             job_root,
             str(binding.job_id),
             surface_detail_inventory_path=job_root.joinpath(
                 *binding.canonical_scene_inventory_path.split("/")
             ),
+            material_plan_mode=mode,
         )
     except (OSError, ValueError) as exc:
         raise MaterialClosureCollectionError(
@@ -1912,7 +1928,19 @@ def _collect_source_evidence(
     contract_binding: MaterialClosureSourceBindingArtifact,
     producer: str,
 ) -> dict[str, BaseModel]:
-    """Collect typed source roots and every exact nested artifact they reference."""
+    """Collect exact source dependencies, resolving only proved fidelity snapshots and pixels."""
+
+    from .fidelity_source import collect_fidelity_closure_context
+
+    try:
+        fidelity = collect_fidelity_closure_context(job_root, contract_binding)
+    except (OSError, ValueError) as exc:
+        raise MaterialClosureCollectionError(
+            [MaterialClosureIssue(
+                code="INVALID_FIDELITY_SOURCE_CONTEXT", message=str(exc)[:1600],
+                path=contract_binding.source_binding_path(),
+            )]
+        ) from exc
 
     repair_source = None
     expected_imagegen_session = str(contract_binding.session_id)
@@ -1972,6 +2000,7 @@ def _collect_source_evidence(
     )
     typed_models: dict[str, BaseModel] = {}
     for role, path, recursively_collect in roots:
+        fidelity_input = role == "additional_material_evidence" and path in fidelity.input_hashes
         _add_path(
             job_root,
             entries,
@@ -1980,13 +2009,14 @@ def _collect_source_evidence(
             source_kind="generated_evidence",
             ownership="staging",
             producer=producer,
+            expected_sha256=fidelity.input_hashes[path] if fidelity_input else None,
         )
         if role in _TYPED_IMAGEGEN_MODELS and reusable_imagegen_bindings is not None:
             _require_repair_imagegen_root_listed(
                 entries[path],
                 reusable_imagegen_bindings,
             )
-        if not recursively_collect:
+        if not recursively_collect or (fidelity_input and path in fidelity.render_paths):
             continue
         payload = _read_json_object(job_root, path)
         if role in _TYPED_IMAGEGEN_MODELS:
@@ -2008,7 +2038,11 @@ def _collect_source_evidence(
                 )
             payload = parsed.model_dump(mode="json")
         parent_id = entries[path].entry_id
-        for _location, nested_path, expected_sha256 in _iter_exact_artifact_refs(payload):
+        for location, nested_path, expected_sha256 in _iter_exact_artifact_refs(payload):
+            if fidelity_input:
+                nested_path, expected_sha256 = fidelity.snapshot_substitutions.get(
+                    (path, location, nested_path, expected_sha256), (nested_path, expected_sha256),
+                )
             _add_path(
                 job_root,
                 entries,
@@ -2985,9 +3019,9 @@ def validate_declared_dependencies(
     *,
     required_roles: Collection[str] = (),
 ) -> list[MaterialClosureIssue]:
-    """Check containment, regular files, exact sizes/hashes, collisions, and required roles."""
+    """Recheck native dependency paths, exact bytes, containment, collisions and roles."""
 
-    root = job_root.resolve(strict=True)
+    root = Path(native_io_path(job_root)).resolve(strict=True)
     issues: list[MaterialClosureIssue] = []
     seen_paths: dict[str, MaterialDependencyEntry] = {}
     seen_casefold: dict[str, str] = {}

@@ -737,3 +737,69 @@ SceneSpec과 Blend는 geometry 승격 당시 hash를 유지했다. 실패 termin
 사용한 격리 재생에서는 원본 469개 파일 모두의 전후 hash가 동일했다 (`.t/ml15r2/replay_result.json`).
 이 재생은 복사본의 transport 검증이며 실제 canary 재개·시각 개선·인간 수용 증거가 아니다.
 새 source/baseline/scoped campaign과 5/5 paired improvement 및 package/clean import는 여전히 필요하다.
+
+### 2026-09-16 geometry 사전 검사에서 구조 수정 진입 실패 보존
+
+source `1a07abc6e5bf246dacc3b426039ca363c23dd2f0`, exact scope
+`5fbadd038008da02e4e3ca7b5308b888e94d87f9747bfb4dae03f1347bc118a7`의 새 Plastic canary는
+초기 geometry/material promotion과 실제 일곱-pass QA를 완료했다. 고정 관찰 6개는 모두 defect이며
+IQ는 blocked였다. 첫 structural 후보의 사전 검사는 통과했지만 제출 요청에서 canonical Blend의
+binding을 빠뜨린 공통 오류가 Blender 검증·policy promotion 전에 발생했다.
+
+session `aqv2-20260916t054925777305z-d703b2aa`는 기존 host의 failed terminal `states/0011.json`
+(`095936970a6c82945af827c75ddd2a263999733d341fcc644abe363cc04f4452`)로 닫았다. QA, 초기 material,
+미승격 수정 후보와 요청, 원장 및 524개 파일의 최종 inventory를
+`reports/activation_readiness/campaign_scopes/rf-subject-evidence-1a07abc6-20260916t023403z/structural_failure_terminal_audit.json`
+에 보존했다. structural reservation 1을 포함한 lifetime 소비를 취소하거나 다른 epoch로 옮기지 않는다.
+
+격리 테스트는 canonical Blend가 있는 경우의 제출 실패와 사전 검사 후 생성·변경·소실 누락을 재현했다.
+별도 fixture는 구조 수정의 `scene_spec_only` build provenance를 closure에서 일반 모드로 다시 계산하는
+후속 계약 오류도 재현했다. 두 오류를 asset 이름과 무관하게 수정하며 기존 schema, CLI/MCP/allowlist,
+AQ terminal과 과거 approval/receipt 의미를 유지한다. 새로운 actual-Blender 통합 검증은 사전 검사부터
+구조 promotion과 후속 full material closure까지 연결한다. fixture는 실제 자산 품질 증거가 아니다.
+
+이 canary의 production delivery, paired visual improvement, human beauty/package acceptance는 모두 0이다.
+sequence 2–5는 실행하지 않았다. source 변경 후에는 새 manifest/baseline/readiness 및 exact scope가 필요하며,
+기존 47e 캠페인의 1/5 개선이나 다른 실패 session을 새 baseline의 성공으로 가져오지 않는다.
+
+같은 수정의 actual-Blender fixture에서는 구조 promotion 다음 full closure에서 이전 QA가 가리키는
+canonical Blend alias와 렌더 PNG의 처리를 추가로 재현했다. exact reserved snapshot과 과거 material
+receipt의 byte 일치를 검증해 그 alias만 보관 경로로 수집하고, source-bound 일곱 PNG를 JSON으로
+읽지 않도록 했다. 원본 QA를 고치거나 현재 Blend의 해시 검사를 생략하지 않는다. 재수집한 실제
+fixture의 278개 파일은 전후 동일했고 closure의 exact entry 97개가 수집됐다
+(`.t/rf18/closure-fixture-qualified-01.json`). 실제 자산의 paired improvement는 여전히 0이다.
+
+수정 후 focused closure `68 passed, 2 skipped`, 전체 host `2377 passed, 78 skipped`를 통과했다.
+Blender 5.0.1 실제 구조 사전 검사→promotion→full material closure 통합은 `1 passed`이며,
+closure의 6회 process 소비, exact resume, stale snapshot/render와 mixed source 거절 및 보호 파일
+불변성을 확인했다 (`.t/rf18/structural-blender-03.json`). 초기 fixture 준비 오류와 수정 전 실제
+closure 실패 로그는 각각 `structural-blender-01/02`로 보존한다. 이 결과는 기술 검증이며 자산 품질이나
+인간 수락으로 집계하지 않는다. 최종 AQ 및 V0.7–V0.9의 같은 Git tree gate는 새 baseline receipt에 결속한다.
+
+확장 AQ gate의 더 긴 격리 경로에서는 새 통합 테스트가 260자 material graph를 일반 경로로 읽어
+실패했다. 실패한 fixture와 gate 출력은 보존하고, 테스트의 읽기·일시적 negative mutation 및 전체
+보호 파일 열거에 기존 Windows extended-path helper를 적용했다. 이 보완은 테스트 I/O 범위이며
+공통 host, 기존 campaign receipt 또는 production 경로의 의미를 변경하지 않는다.
+
+이후 같은 깊이의 실제 Blender 재검증(`structural-blender-04`)에서는 공통 collector의 일반 경로
+`resolve(strict=True)`도 존재하는 긴 dependency를 누락으로 처리했다. `collector-deep-red-01`의
+세 재현 case를 보존하고 JSON/entry/manifest 수집과 declared-dependency 재검증에 native I/O 경로를
+적용했다. 직렬화되는 상대 경로, containment, link 거절, SHA-256 및 크기 검사는 유지한다.
+수정 후 focused 검증은 `collector-deep-focused-01`의 101 passed, 2 skipped이며, 최종 전체·Blender
+gate는 이 공통 수정까지 포함한 같은 Git tree를 새로 검증해야 한다.
+
+`structural-blender-05`는 구조 promotion과 dependency 수집 후 고정 MaterialGraph compiler의
+긴 출력 경로 재조회에서 실패했다. 이 실행과 `runtime-deep-red-01` 최소 재현을 보존한다.
+compiler도 기존 native-path helper로 root를 일관되게 처리하도록 보완하며, 허용 node·경로 계약과
+상대 경로 artifact 형식은 바꾸지 않는다. Python-only 검증은 bpy 모듈을 import하지 않고 해당
+순수 path helper만 검사하며, 실제 compile·reopen·inventory는 별도의 Blender gate로 검증한다.
+
+`structural-blender-06`는 compiler를 통과한 뒤 neutral swatch의 일반 출력 경로에서 실패했다.
+swatch 렌더 파일명에도 기존 native-path helper를 적용했다. 후속 shadow report/preview manifest의
+긴 경로 읽기 결함은 `preview-deep-red-01`로 재현하고 함께 수정했다. PNG의 실제 decode와 size·hash,
+renderer snapshot 및 상대 경로 artifact 검사는 유지하며, 이전 실패를 통과로 재분류하지 않는다.
+
+후속 전체 Python 검증은 `pytest-full-06`의 2,385 passed, 79 skipped이며, 같은 깊이의 새
+Blender 5.0.1 fixture `structural-blender-07`는 1 passed다. 이 통합 실행은 실제 구조 promotion,
+full closure의 6회 process, neutral preview, 정확한 resume, stale snapshot/PNG 및 mixed source 거절과
+원본 파일 보존을 확인했다. 최종 source 적격성은 별도의 같은 Git tree AQ 및 V0.7–V0.9 receipt로 결속한다.

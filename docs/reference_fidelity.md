@@ -251,6 +251,21 @@ receipt의 controller request와 material completion의 예상 execution ID도 �
 receipt 혼합, stale source, 임의 경로·권한 확대는 Blender 전에 차단한다. controller 다음 상태에서는
 이미 완료된 preflight를 이력으로 읽을 수 있지만, 새 실행·승인 검사는 현재 source state를 요구한다.
 
+geometry 사전 검사에는 현재 canonical SceneSpec뿐 아니라 존재하는 `blender/scene.blend`의 exact
+binding도 포함한다. 최초 저작의 파일 부재는 그대로 유지하며, 사전 검사 이후 Blend의 생성·변경·소실은
+제출 또는 desktop resume에서 차단한다. 과거의 불완전한 immutable 요청을 보정하거나 재개하지 않는다.
+구조 수정 빌드의 명시적 `scene_spec_only` provenance는 같은 모드로 재계산한다. 남아 있는 과거
+MaterialPlan을 새 geometry Blend에 이미 적용된 재질로 해석하지 않는다. closure는 geometry-only
+관찰과 최신 geometry receipt의 build payload·canonical Blend 일치를 추가로 요구하며, geometry 이후의
+material promotion receipt를 geometry-only 관찰과 혼합할 수 없다. 알 수 없는 모드는 추론하지 않는다.
+이 검사는 source의 기술적 일관성만 증명하며 visual finding이나 appearance authority를 대체하지 않는다.
+
+후속 Material Closure 0.2는 exact reentry의 이전 QualitySubmission을 변경하지 않고 읽는다. 그 제출의
+canonical Blend alias는 같은 attempt·material receipt·reserved source snapshot의 bytes가 모두 일치할 때만
+보관 snapshot으로 수집하며, 현재 canonical Blend도 별도 exact input으로 유지한다. VisualFindingSet에
+결속된 일곱 render는 PNG bytes로 검증한다. 다른 임의 파일에 JSON 검사를 생략하거나 다른 회차의
+snapshot을 대신 적용하지 않는다. 최초 회차와 기존 0.1 source binding의 의미는 유지한다.
+
 재질 controller의 권한 소비 receipt는 host가 session lock 아래에서 exact request에 결속하고,
 executor의 protected inventory를 만들기 전에 기록한다. controller callback은 선언된 staging
 출력만 작성한다. Windows 확장 경로에서 host 경로를 역으로 추론하거나 controller 내부에서
@@ -303,6 +318,15 @@ terminal 상태에서 권한을 다시 발행하지 않는다. 공개 CLI/MCP/sc
 AQ gate 두 shell 버전에 같은 focused 목록을 등록하며, `test_reference_fidelity_aq_blender_vertical.py`는
 실제 Blender opt-in에서 초기 회차와 구조 재진입 회차를 함께 실행한다. 이 fixture 통과는 실제 자산의
 시각 품질이나 인간 수락을 뜻하지 않는다.
+`test_aq_structural_closure_blender.py`는 canonical Blend 사전 결속, 실제 구조 promotion, 과거 QA와
+현재 geometry를 포함한 full closure의 연결을 검증한다. 별도 closure Blender 예산, 정확한 resume,
+stale snapshot/render와 mixed source 거절, 원본 파일 불변성도 같은 격리 fixture에서 검사한다.
+Windows의 깊은 dependency 경로는 collector의 strict resolution과 파일 읽기에도 native I/O 경로를
+사용한다. closure에는 기존 상대 경로만 기록하며 containment, link 거절과 정확한 byte 검증을 유지한다.
+Blender의 고정 MaterialGraph compiler도 같은 native 경로 원칙을 사용해 긴 shadow 출력의 재조회와
+artifact hash 수집을 지원한다. node whitelist와 상대 경로 report 계약은 그대로 유지한다.
+Neutral swatch의 실제 저장과 shadow report/preview manifest 읽기에도 native I/O를 사용한다.
+PNG decode·크기·해시 및 기존 renderer snapshot 검증은 유지한다.
 Approval Envelope 회귀는 parametric controller 전조건이 atomic promotion으로 정상 소모된 뒤에는 exact
 geometry receipt/current-canonical 적용 후 조건으로 전환되는지, 일반 authorization replay는 계속 stale로
 차단되는지를 별도로 검사한다.

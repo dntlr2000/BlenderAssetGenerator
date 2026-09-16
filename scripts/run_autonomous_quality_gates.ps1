@@ -78,6 +78,7 @@ $FocusedTests = @(
     "tests/test_reference_fidelity_preview_budget.py",
     "tests/test_reference_fidelity_geometry_blender.py",
     "tests/test_reference_fidelity_aq_blender_vertical.py",
+    "tests/test_aq_structural_closure_blender.py",
     "tests/test_quality_revision_budget.py",
     "tests/test_quality_revision_host.py",
     "tests/test_quality_revision_flow.py",
@@ -163,6 +164,7 @@ $FocusedTests = @(
     "tests/test_material_closure_service.py",
     "tests/test_material_closure_execution_profiles.py",
     "tests/test_material_closure_rounds.py",
+    "tests/test_material_closure_geometry_source.py",
     "tests/test_material_closure_aq_integration.py",
     "tests/test_material_closure_schemas.py",
     "tests/test_material_closure_controller_repair.py",
@@ -273,6 +275,7 @@ if ($RunBlender) {
             tests/test_autonomy_v2_candidate_validation_blender.py `
             tests/test_reference_fidelity_geometry_blender.py `
             tests/test_reference_fidelity_aq_blender_vertical.py `
+            tests/test_aq_structural_closure_blender.py `
             tests/test_geometry_intent_v02_reachability.py `
             tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5 `
             tests/test_autonomous_quality_benchmarks_v02.py::test_v02_fixed_blender_probe_smoke `

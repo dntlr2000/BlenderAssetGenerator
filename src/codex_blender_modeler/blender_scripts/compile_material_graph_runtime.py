@@ -24,6 +24,7 @@ from material_graph_runtime_registry import (  # noqa: E402
     REGISTRY_SHA256,
     registry_for_sha256,
 )
+from portable_asset_common import native_io_path  # noqa: E402
 
 BLENDER_NODE_TYPES = {
     "texture_coordinate": "ShaderNodeTexCoord",
@@ -226,9 +227,10 @@ def _validate_relative_path(value: object, label: str) -> str:
 
 
 def _resolve_contained(root: Path, relative_path: object, *, must_exist: bool) -> Path:
-    """Resolve one path inside a declared root and reject symlink traversal."""
+    """Resolve native file paths inside their declared root and reject symlink traversal."""
 
     normalized = _validate_relative_path(relative_path, "compiler path")
+    root = Path(native_io_path(root)).resolve(strict=True)
     candidate = root.joinpath(*normalized.split("/"))
     current = root
     for part in normalized.split("/"):
@@ -1141,11 +1143,11 @@ def _artifact(role: str, run_root: Path, relative_path: str) -> dict:
 
 
 def main() -> None:
-    """Validate, compile, reopen, inventory, and report one atomic staging run."""
+    """Validate, compile and report one atomic staging run with consistent native roots."""
 
     args = _parse_args()
-    job_root = Path(args.job_root).resolve(strict=True)
-    run_root = Path(args.run_root).resolve(strict=True)
+    job_root = Path(native_io_path(Path(args.job_root))).resolve(strict=True)
+    run_root = Path(native_io_path(Path(args.run_root))).resolve(strict=True)
     if not job_root.is_dir() or not run_root.is_dir():
         raise CompilerContractError("job root and run root must be existing directories")
     request_path, request = _load_request(run_root, args.request)

@@ -366,8 +366,11 @@ def test_structure_authoring_binds_the_exact_scene_and_authorized_reference(auth
     assert _tree_hashes(root) == before
 
 
-def test_preflighted_controller_output_still_passes_the_final_host_contract(tmp_path, monkeypatch):
-    """Revalidate a completed exact request through the same mandatory post-controller checker."""
+@pytest.mark.parametrize("existing_blend", [False, True])
+def test_preflighted_controller_output_still_passes_the_final_host_contract(
+    tmp_path, monkeypatch, existing_blend,
+):
+    """Revalidate a completed request with absent or existing canonical rollback bytes."""
 
     from codex_blender_modeler.autonomy_v2.candidate_validation_service import (
         preflight_geometry_candidate_budget_v2,
@@ -375,6 +378,17 @@ def test_preflighted_controller_output_still_passes_the_final_host_contract(tmp_
     from codex_blender_modeler.autonomy_v2.models import RootAuthorizationV2
 
     original = geometry_fixture.test_geometry_controller_candidate_builds_and_promotes_exactly
+    advance = geometry_fixture._advance_reference
+
+    def advance_with_baseline(root, session_id):
+        """Supply prior canonical bytes to reproduce the revision-only input requirement."""
+
+        advance(root, session_id)
+        if existing_blend:
+            (root / "blender").mkdir(exist_ok=True)
+            (root / "blender/scene.blend").write_bytes(b"prior-canonical-fixture-blend")
+
+    monkeypatch.setattr(geometry_fixture, "_advance_reference", advance_with_baseline)
 
     def with_preflight(tmp_path, monkeypatch):
         """Select the new exact preflight path in the existing controller-only fixture."""
@@ -403,6 +417,51 @@ def test_preflighted_controller_output_still_passes_the_final_host_contract(tmp_
     )
     assert projected.total_blender_builds == 4
     assert _tree_hashes(root) == before
+
+
+@pytest.mark.parametrize("change", ["added", "changed", "removed"])
+def test_preflight_canonical_blend_change_cannot_issue_or_resume_a_request(authoring, change):
+    """Reject stale canonical Blend presence or bytes before consuming another invocation."""
+
+    root, session_id, _scene = authoring
+    blend = root / "blender/scene.blend"
+    blend.parent.mkdir(exist_ok=True)
+    if change != "added":
+        blend.write_bytes(b"prior-canonical-fixture-blend")
+    report = _preflight(authoring)
+    if change == "removed":
+        blend.rename(blend.with_suffix(".preserved"))
+    else:
+        blend.write_bytes(b"different-canonical-fixture-blend")
+    before = _session_bundle(root.name, session_id)[4]
+    with pytest.raises(
+        (ValueError, FileNotFoundError), match=r"changed|current inputs|scene\.blend",
+    ):
+        _request(authoring, report)
+    assert _session_bundle(root.name, session_id)[4] == before
+    assert not (root / "production/autonomy_v2" / session_id / "controller_executions").exists()
+
+
+def test_waiting_preflight_request_retains_canonical_blend_binding(authoring):
+    """Bind rollback bytes exactly once and reject their mutation during desktop resume."""
+
+    root, session_id, _scene = authoring
+    blend = root / "blender/scene.blend"
+    blend.parent.mkdir(exist_ok=True)
+    blend.write_bytes(b"prior-canonical-fixture-blend")
+    report = _preflight(authoring)
+    waiting = _request(authoring, report)
+    bound = [
+        item for item in waiting["request"]["immutable_inputs"]
+        if item["path"] == "blender/scene.blend"
+    ]
+    assert len(bound) == 1 and bound[0]["sha256"] == sha256_file(blend)
+    before = _session_bundle(root.name, session_id)[4]
+    assert _request(authoring, report)["request"] == waiting["request"]
+    blend.write_bytes(b"different-canonical-fixture-blend")
+    with pytest.raises(ValueError, match="changed"):
+        _request(authoring, report)
+    assert _session_bundle(root.name, session_id)[4] == before
 
 
 def test_submitted_role_failure_terminal_keeps_consumption_and_job_local_classification(

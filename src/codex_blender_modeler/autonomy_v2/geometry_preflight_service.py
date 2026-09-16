@@ -101,7 +101,7 @@ def preflight_aq_geometry_authoring(
     scene_spec_v03_path: str | Path,
     structure_authoring_path: str | Path | None = None,
 ) -> GeometryAuthoringPreflightV01:
-    """Return candidate diagnostics and projected cost without publishing or consuming state."""
+    """Check candidates and cost while binding any existing canonical scene and rollback Blend."""
 
     from .controller_bridge import (
         _consume_controller_budget,
@@ -137,8 +137,11 @@ def preflight_aq_geometry_authoring(
         "analysis/camera_solution.json",
         "analysis/modeling_plan.json",
         "analysis/scene_spec.json",
+        "blender/scene.blend",
     ):
-        if name == "analysis/scene_spec.json" and not os.path.exists(native_io_path(root / name)):
+        if name in {"analysis/scene_spec.json", "blender/scene.blend"} and not os.path.exists(
+            native_io_path(root / name)
+        ):
             continue
         sources.append(
             artifact_for_v2(

@@ -176,10 +176,10 @@ def _publish_shadow_inputs(
 
 
 def _read_passed_json(path: Path, *, label: str) -> dict[str, Any]:
-    """Load a Blender report and require its explicit ok=true result."""
+    """Read a native-path Blender report and require its explicit ok=true result."""
 
     try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload = json.loads(Path(native_io_path(path)).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise MaterialPreflightValidationError(f"{label} report is invalid") from exc
     if not isinstance(payload, dict) or payload.get("ok") is not True:
@@ -194,10 +194,10 @@ def _validate_preview(
     expected_material_id: str,
     expected_size: int,
 ) -> tuple[ExactArtifact, ExactArtifact, str]:
-    """Verify one actual fixed neutral swatch and its renderer/color-management evidence."""
+    """Verify native-path neutral swatch bytes and their fixed renderer/color evidence."""
 
     try:
-        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        payload = json.loads(Path(native_io_path(manifest_path)).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise MaterialPreflightValidationError("neutral preview manifest is invalid") from exc
     swatches = payload.get("swatches")

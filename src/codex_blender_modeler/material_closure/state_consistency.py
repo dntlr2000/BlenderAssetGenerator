@@ -68,7 +68,7 @@ def canonical_build_provenance_artifact_fingerprint(
     build_provenance: ExactArtifact,
     expected_job_id: str,
 ) -> str:
-    """Return the exact provenance-file digest after proving its payload is current."""
+    """Recompute the recorded build selection without treating retained materials as applied."""
 
     validate_exact_artifact_current(
         job_root,
@@ -78,10 +78,16 @@ def canonical_build_provenance_artifact_fingerprint(
     provenance_path = job_root.joinpath(*build_provenance.path.split("/"))
     try:
         stored = json.loads(provenance_path.read_text(encoding="utf-8"))
+        if not isinstance(stored, dict):
+            raise ValueError("canonical build provenance must be an object")
+        mode = stored.get("material_plan_mode", "current")
+        if mode not in ("current", "scene_spec_only"):
+            raise ValueError("canonical build provenance has an unknown material-plan mode")
         current = collect_build_provenance(
             job_root,
             expected_job_id,
             validate_surface_details=False,
+            material_plan_mode=mode,
         )
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         raise MaterialClosureCollectionError(

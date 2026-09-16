@@ -870,6 +870,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/material_closure/approval_policy.py
   src/codex_blender_modeler/material_closure/collector.py
   src/codex_blender_modeler/material_closure/failure_reporting.py
+  src/codex_blender_modeler/material_closure/fidelity_source.py
   src/codex_blender_modeler/material_closure/graph_rebinding.py
   src/codex_blender_modeler/material_closure/incident_service.py
   src/codex_blender_modeler/material_closure/models.py
@@ -1059,6 +1060,7 @@ BlenderAssetGenerator/
   tests/test_aq_candidate_budget_preflight.py
   tests/test_aq_evidence_envelopes.py
   tests/test_aq_geometry_preflight.py
+  tests/test_aq_structural_closure_blender.py
   tests/test_aq_v02_delivery_executor_blender.py
   tests/test_aq_v02_delivery_geometry_blender.py
   tests/test_aq_v02_geometry.py
@@ -1155,6 +1157,7 @@ BlenderAssetGenerator/
   tests/test_material_closure_controller_lifecycle.py
   tests/test_material_closure_controller_repair.py
   tests/test_material_closure_execution_profiles.py
+  tests/test_material_closure_geometry_source.py
   tests/test_material_closure_incident_service.py
   tests/test_material_closure_public.py
   tests/test_material_closure_rounds.py

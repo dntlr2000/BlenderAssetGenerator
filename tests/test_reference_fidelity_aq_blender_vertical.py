@@ -312,8 +312,10 @@ def _run_material_round(root: Path, session_id: str) -> None:
     assert promoted["outcome"] == "material_candidate_validated"
 
 
-def _run_structural_controller_round(root: Path, session_id: str) -> None:
-    """Execute and policy-promote one actual Blender structural re-entry candidate."""
+def _run_structural_controller_round(
+    root: Path, session_id: str, *, with_preflight: bool = False,
+) -> None:
+    """Promote an actual structural revision through legacy or explicit preflight inputs."""
 
     job_id = root.name
     root, session, plan, budget, state, _state_artifact = _session_bundle(job_id, session_id)
@@ -385,6 +387,37 @@ def _run_structural_controller_round(root: Path, session_id: str) -> None:
         _spatial_modeling(job_id, "fixture-only bounded structural re-entry")
     )
     scene_bytes = _json_bytes(scene)
+    if with_preflight:
+        from codex_blender_modeler.autonomy_v2.geometry_preflight_service import (
+            GEOMETRY_PREFLIGHT_KIND,
+            preflight_aq_geometry_authoring,
+        )
+        from codex_blender_modeler.reference_fidelity.authoring import StructureAuthoringV01
+
+        staging = root / "fidelity/preflight" / execution_id
+        staging.mkdir(parents=True)
+        (staging / "modeling_plan.json").write_bytes(modeling_bytes)
+        (staging / "scene_spec_v03.json").write_bytes(scene_bytes)
+        loop, _loop_ref = load_optional_loop(root, session_id)
+        structure = StructureAuthoringV01.model_validate_json(json.dumps({
+            "schema_version": "0.1.0", "hypothesis": loop.hypothesis.model_dump(),
+            "scene": scene, "modeling_plan": json.loads(modeling_bytes),
+            "representation_rationale": "Fixture section change tests the bounded transport path.",
+        }))
+        _write_json(staging / "structure.json", structure)
+        preflight = preflight_aq_geometry_authoring(
+            job_id, session_id,
+            modeling_plan_path=(staging / "modeling_plan.json").relative_to(root),
+            scene_spec_v03_path=(staging / "scene_spec_v03.json").relative_to(root),
+            structure_authoring_path=(staging / "structure.json").relative_to(root),
+        )
+        assert preflight.outcome == "passed", preflight.issues
+        _write_json(staging / "report.json", preflight)
+        # No manually supplied canonical alias may hide a missing preflight dependency.
+        immutable_inputs = [_artifact(
+            root, staging / "report.json", artifact_id="structural-preflight",
+            kind=GEOMETRY_PREFLIGHT_KIND,
+        )]
     completion = GeometryAuthoringCompletionV2(
         job_id=job_id,
         workflow_id=plan.workflow_id,

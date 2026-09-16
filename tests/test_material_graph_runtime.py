@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import json
 import os
@@ -550,6 +551,74 @@ def test_dependency_resolver_supports_extended_length_paths(tmp_path: Path) -> N
     ).hexdigest()
     with open(native_io_path(resolved), "rb") as handle:
         assert handle.read() == b'{"kind":"generated-image-evidence"}\n'
+
+
+def _runtime_path_helpers() -> dict:
+    """Load only pure fixed-script path helpers without importing its bpy-dependent module."""
+
+    from codex_blender_modeler.blender_scripts.portable_asset_common import (
+        native_io_path as runtime_native_io_path,
+    )
+
+    script = (Path(__file__).resolve().parents[1] / "src/codex_blender_modeler"
+              / "blender_scripts/compile_material_graph_runtime.py")
+    names = {
+        "CompilerContractError", "_validate_relative_path", "_resolve_contained",
+        "_sha256_file", "_artifact", "_load_json",
+    }
+    nodes = [node for node in ast.parse(script.read_text(encoding="utf-8")).body
+             if isinstance(node, (ast.ClassDef, ast.FunctionDef)) and node.name in names]
+    assert {node.name for node in nodes} == names
+    namespace = {"Path": Path, "hashlib": hashlib, "json": json,
+                 "native_io_path": runtime_native_io_path}
+    exec(compile(ast.Module(body=nodes, type_ignores=[]), str(script), "exec"), namespace)
+    return namespace
+
+
+def test_fixed_compiler_collects_deep_artifact_without_changing_identity(tmp_path: Path) -> None:
+    """Read a real deep runtime artifact and retain its relative path, exact hash and size."""
+
+    runtime = _runtime_path_helpers()
+    relative = "/".join(["compiled" * 10] * 4 + ["inventory.json"])
+    path = Path(native_io_path(tmp_path / relative))
+    path.parent.mkdir(parents=True)
+    payload = b'{"sentinel":1}\n'
+    path.write_bytes(payload)
+    assert len(str(tmp_path / relative)) > 260
+    assert runtime["_artifact"]("inventory", tmp_path, relative) == {
+        "role": "inventory", "path": relative,
+        "sha256": hashlib.sha256(payload).hexdigest(), "byte_size": len(payload),
+    }
+    resolved = runtime["_resolve_contained"](tmp_path, relative, must_exist=True)
+    assert runtime["_load_json"](resolved, "inventory") == {"sentinel": 1}
+    pending = runtime["_resolve_contained"](tmp_path, relative + ".new", must_exist=False)
+    assert not pending.exists() and pending.parent == resolved.parent
+    with pytest.raises(runtime["CompilerContractError"], match="missing"):
+        runtime["_resolve_contained"](tmp_path, relative + ".missing", must_exist=True)
+
+
+@pytest.mark.parametrize("relative", ["../outside.json", "/absolute.json", "C:/outside.json"])
+def test_fixed_compiler_native_resolution_rejects_unsafe_paths(tmp_path, relative):
+    """Keep relative-path authority strict when the fixed runtime uses native I/O spelling."""
+
+    runtime = _runtime_path_helpers()
+    with pytest.raises(runtime["CompilerContractError"]):
+        runtime["_resolve_contained"](tmp_path, relative, must_exist=True)
+
+
+def test_fixed_compiler_native_resolution_rejects_link_traversal(tmp_path: Path) -> None:
+    """Reject linked ancestors even when the target bytes are inside the declared root."""
+
+    runtime = _runtime_path_helpers()
+    target = tmp_path / "ordinary"
+    target.mkdir()
+    (target / "input.json").write_bytes(b"{}")
+    try:
+        os.symlink(target, tmp_path / "linked", target_is_directory=True)
+    except OSError as exc:
+        pytest.skip(f"symlink creation is unavailable: {exc}")
+    with pytest.raises(runtime["CompilerContractError"], match="symlink"):
+        runtime["_resolve_contained"](tmp_path, "linked/input.json", must_exist=True)
 
 
 def test_dependency_resolver_still_rejects_link_traversal(tmp_path: Path) -> None:

@@ -161,7 +161,7 @@ def _selected_materials(requested: list[str]) -> list[bpy.types.Material]:
 
 
 def main() -> None:
-    """Render one deterministic sphere/plane swatch per selected material."""
+    """Render fixed material swatches through native paths while recording portable evidence."""
 
     args = parse_args()
     output_dir = Path(args.output_dir).expanduser().resolve()
@@ -188,7 +188,7 @@ def main() -> None:
         material_id = _material_id(material)
         swatch_path = output_dir / safe_artifact_name(material_id) / "swatch.png"
         os.makedirs(native_io_path(swatch_path.parent), exist_ok=True)
-        scene.render.filepath = str(swatch_path)
+        scene.render.filepath = native_io_path(swatch_path)
         bpy.ops.render.render(write_still=True)
         records.append(
             {
