@@ -32,7 +32,7 @@ from .suggestion_enrichment import enrich_direct_qa_suggestions
 from .target_provider import QATargetProvider, generate_optional_qa_target
 
 if TYPE_CHECKING:
-    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidence
 
 _RUN_ID_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,95}$")
 
@@ -457,9 +457,9 @@ def run_scene_spec_visual_qa_snapshot(
     render_engine: str = "eevee",
     render_device: str = "auto",
     record_fidelity_conditions: bool = False,
-    reference_mask_seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None,
+    reference_mask_seed_evidence: ReferenceMaskSeedEvidence | None = None,
 ) -> dict[str, Any]:
-    """Create immutable direct QA evidence for an isolated candidate without updating latest."""
+    """Validate selected reference constraints before rendering immutable isolated direct QA."""
 
     from ..blender_artifact_runner import render_scene_qa_passes
 

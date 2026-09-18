@@ -65,6 +65,8 @@ fi
 FOCUSED_TESTS=(
   tests/test_reference_fidelity.py
   tests/test_reference_fidelity_files.py
+  tests/test_reference_mask_seed_evidence.py
+  tests/test_reference_mask_constraints.py
   tests/test_reference_fidelity_material.py
   tests/test_reference_fidelity_preview_budget.py
   tests/test_reference_fidelity_geometry_blender.py

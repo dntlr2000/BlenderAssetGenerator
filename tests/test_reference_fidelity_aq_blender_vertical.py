@@ -890,3 +890,34 @@ def test_funded_blender_round_prices_graph_compile_and_keeps_switch_reserve(tmp_
     assert first_attempt != second_attempt
     assert sha256_file(reference_path) == original_reference
     assert state.source_freeze is None
+
+
+def test_exact_reference_trimap_reaches_actual_seven_pass_aq_render(tmp_path, monkeypatch):
+    """Carry a V0.2 reference constraint through actual geometry/material promotion and QA."""
+    from codex_blender_modeler.autonomy_v2.quality_revision_service import render_quality_evidence
+    from codex_blender_modeler.reference_fidelity.models import RenderEvidenceV01
+
+    root, session_id = _bound_fidelity_geometry_fixture(
+        tmp_path, monkeypatch, funded=True, segmentation_constraints=True,
+    )
+    reference = next((root / "input").glob("*"))
+    original_reference = sha256_file(reference)
+    _write_fixture_reference_mask(root, reference)
+    _run_material_round(root, session_id)
+    canonical = {name: sha256_file(root / name)
+                 for name in ("analysis/scene_spec.json", "blender/scene.blend")}
+    result = render_quality_evidence(root.name, session_id, run_id="trimap-fixed")
+    evidence = RenderEvidenceV01.model_validate_json(json.dumps(result["render_evidence"]))
+    assert len(evidence.passes) == 7
+    directory = root / "qa/runs/trimap-fixed"
+    manifest = json.loads((directory / "reference_mask_manifest.json").read_bytes())
+    assert manifest["method"] == "opencv_grabcut_evidence_seeded_trimap_v02"
+    assert manifest["seed_evidence"]["schema_version"] == "0.2.0"
+    assert (directory / "reference_trimap.png").read_bytes() == (
+        root / "fidelity/reference-trimap.png"
+    ).read_bytes()
+    assert all(sha256_file(root / name) == value for name, value in canonical.items())
+    assert sha256_file(reference) == original_reference
+    _, session, _plan, _budget, state, _artifact = _session_bundle(root.name, session_id)
+    assert len(list((session / "fidelity/render_reservations").glob("*.json"))) == 1
+    assert state.source_freeze is None and state.quality_terminal is None

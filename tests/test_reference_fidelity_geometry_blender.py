@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 import test_autonomy_v2_candidate_validation_blender as geometry_smoke
+from PIL import ImageDraw
 from test_reference_fidelity import hypothesis
 
 from codex_blender_modeler.autonomy_v2.approval_policy_service import _load_approval_boundary
@@ -26,11 +27,13 @@ from codex_blender_modeler.production.controller_executor.models import Controll
 from codex_blender_modeler.qa.camera_fingerprint import camera_fingerprint
 from codex_blender_modeler.reference_fidelity.models import (
     FidelityArtifact,
+    ReferenceMaskLabelObservationV02,
     ReferenceMaskSeedEvidenceV01,
+    ReferenceMaskSeedEvidenceV02,
     ReferenceMaskSeedV01,
     ReferenceObservation,
 )
-from codex_blender_modeler.reference_fidelity.service import publish
+from codex_blender_modeler.reference_fidelity.service import artifact_at, publish
 
 pytestmark = pytest.mark.skipif(
     os.environ.get("CBM_RUN_AQ_V02_CANDIDATE_VALIDATION_SMOKE") != "1",
@@ -41,8 +44,11 @@ pytestmark = pytest.mark.skipif(
 def _bound_fidelity_geometry_fixture(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, funded: bool = False,
     segmentation_seed: bool = False,
+    segmentation_constraints: bool = False,
 ) -> tuple[Path, str]:
-    """Build a legacy/funded AQ fixture, optionally binding separate observed segmentation."""
+    """Build a legacy/funded AQ fixture with optional observed V0.1 seeds or V0.2 trimap."""
+
+    segmentation_seed = segmentation_seed or segmentation_constraints
 
     old_modeling = geometry_smoke._modeling_plan
     old_advance = geometry_smoke._advance_reference
@@ -95,7 +101,7 @@ def _bound_fidelity_geometry_fixture(
         return result
 
     def bind_then_advance(root, session_id):
-        """Bind the companion at the real initial state without creating a human approval."""
+        """Bind exact observation/segmentation companions before real fixture geometry effects."""
 
         job_id = root.name
         _root, _session, plan, _budget, _state, state_artifact = _session_bundle(job_id, session_id)
@@ -146,6 +152,34 @@ def _bound_fidelity_geometry_fixture(
                         observation_id=patch.observation_id, bbox_norm=patch.region,
                         confidence=patch.confidence)],
                 ),
+            })
+        if segmentation_constraints:
+            background = ReferenceObservation(
+                observation_id="fixture-background", region=(.03, .03, .12, .12),
+                status="observed", confidence=.9,
+                description="Known exterior background in the independent synthetic reference.",
+                uncertainty="Synthetic transport fixture, not a real asset quality judgment.",
+            )
+            trimap = old_image_new("L", (32, 32), 0)
+            labels = ImageDraw.Draw(trimap)
+            labels.rectangle((5, 5, 26, 26), fill=85)
+            labels.rectangle((7, 7, 24, 24), fill=170)
+            labels.rectangle((9, 9, 22, 22), fill=255)
+            trimap_path = root / "fidelity/reference-trimap.png"
+            trimap_path.parent.mkdir(parents=True, exist_ok=True)
+            trimap.save(trimap_path)
+            selected = ReferenceMaskSeedEvidenceV02(
+                **observed.reference_mask_seed_evidence.model_dump(exclude={"schema_version"}),
+                trimap=artifact_at(root, trimap_path), reference_resolution=(32, 32),
+                reference_content_scope="primary_object_only", subject_object_ids=["asset.hull"],
+                label_observations=[ReferenceMaskLabelObservationV02(
+                    observation_id=item.observation_id, bbox_norm=item.region,
+                    confidence=item.confidence, label=label,
+                ) for item, label in ((patch, "foreground"), (background, "background"))],
+            )
+            observed = observed.model_copy(update={
+                "observations": [*observed.observations, background],
+                "reference_mask_seed_evidence": selected,
             })
         observed_ref = publish(root, root / "fidelity/hypothesis.json", observed)
         loop = AQQualityRevisionLoopV01(

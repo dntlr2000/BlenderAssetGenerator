@@ -9,7 +9,7 @@ from .models import (
 
 
 def reference_fidelity_capability() -> dict[str, object]:
-    """Describe the additive development boundary without claiming campaign or human success."""
+    """Describe selected companion versions without claiming campaign or human success."""
 
     return {
         "schema_version": "0.1.0",
@@ -23,6 +23,7 @@ def reference_fidelity_capability() -> dict[str, object]:
         },
         "funded_autonomy_budget_version": "0.3.0",
         "fidelity_budget_epoch_version": "0.1.0",
+        "reference_mask_seed_versions": ["0.1.0", "0.2.0"],
         "correction_routes": ["structural_reentry", "parametric_revision", "material_revision"],
         "hold_routes": ["evidence_required", "calibration", "technical_recovery"],
         "legacy_behavior_changed": False,

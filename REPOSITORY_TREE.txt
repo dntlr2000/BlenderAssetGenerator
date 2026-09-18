@@ -513,6 +513,7 @@ BlenderAssetGenerator/
   schemas/reference_evidence.schema.json
   schemas/reference_evidence_run_result.schema.json
   schemas/reference_mask_seed_evidence_v01.schema.json
+  schemas/reference_mask_seed_evidence_v02.schema.json
   schemas/render_pass_manifest.schema.json
   schemas/review_bundle_manifest.schema.json
   schemas/review_bundle_receipt.schema.json
@@ -969,6 +970,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/qa/models.py
   src/codex_blender_modeler/qa/multiview_sanity.py
   src/codex_blender_modeler/qa/reference_mask.py
+  src/codex_blender_modeler/qa/reference_mask_constraints.py
   src/codex_blender_modeler/qa/reporting.py
   src/codex_blender_modeler/qa/request.py
   src/codex_blender_modeler/qa/semantic_localizer.py
@@ -1209,6 +1211,7 @@ BlenderAssetGenerator/
   tests/test_reference_fidelity_material.py
   tests/test_reference_fidelity_preview_budget.py
   tests/test_reference_fidelity_public.py
+  tests/test_reference_mask_constraints.py
   tests/test_reference_mask_refinement.py
   tests/test_reference_mask_seed_evidence.py
   tests/test_repository_catalog.py

@@ -282,7 +282,7 @@ def _validate_reference_seed_manifest(
     request: VisualQARequest,
     request_artifact: FidelityArtifact,
 ) -> None:
-    """Require the rendered mask to retain the exact separately bound segmentation evidence."""
+    """Require exact selected seeds and any V0.2 run-owned constraint snapshot."""
     from ..blender_artifacts import stable_json_digest
     from ..qa.reference_mask import validate_explicit_reference_seeds
     from ..reference_scope import subject_object_ids
@@ -317,6 +317,12 @@ def _validate_reference_seed_manifest(
     mask = artifact_at(root, directory / "reference_mask.png")
     if mask.sha256 != request.reference_mask_sha256:
         raise ValueError("rendered reference mask bytes changed")
+    from .models import ReferenceMaskSeedEvidenceV02
+
+    if isinstance(expected, ReferenceMaskSeedEvidenceV02):
+        from ..qa.reference_mask_constraints import validate_trimap_manifest
+
+        validate_trimap_manifest(root, directory, manifest, expected)
 
 
 def _comparison_conditions(root: Path, review: VisualFindingSetV01) -> object:

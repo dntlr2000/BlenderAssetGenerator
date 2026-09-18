@@ -12,7 +12,7 @@ from ..reference_scope import subject_object_ids
 from ..workspace import sha256_file
 
 if TYPE_CHECKING:
-    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidence
 
 
 @dataclass(frozen=True)
@@ -29,15 +29,18 @@ def validate_explicit_reference_seeds(
     root: Path,
     reference_path: Path,
     spec: SceneSpec,
-    evidence: ReferenceMaskSeedEvidenceV01,
+    evidence: ReferenceMaskSeedEvidence,
     *,
     allowed_object_ids: set[str] | None = None,
 ) -> list[EvidenceSeed]:
-    """Validate exact observed interior samples without changing semantic extent evidence."""
-    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV01
+    """Validate exact interior seeds and optional trimap without changing semantic extents."""
+    from ..reference_fidelity.models import (
+        ReferenceMaskSeedEvidenceV02,
+        parse_reference_mask_seed_evidence,
+    )
     from ..reference_fidelity.service import read_artifact
 
-    evidence = ReferenceMaskSeedEvidenceV01.model_validate_json(evidence.model_dump_json())
+    evidence = parse_reference_mask_seed_evidence(evidence)
     if evidence.job_id != spec.job_id:
         raise ValueError("segmentation seed evidence belongs to another job")
     read_artifact(root, evidence.reference)
@@ -69,6 +72,12 @@ def validate_explicit_reference_seeds(
         ))
     if len({seed.group_id for seed in result}) != len(result):
         raise ValueError("explicit segmentation requires one sample per semantic group")
+    if isinstance(evidence, ReferenceMaskSeedEvidenceV02):
+        from .reference_mask_constraints import validate_reference_trimap
+
+        validate_reference_trimap(
+            root, reference_path, spec, evidence, allowed_object_ids=allowed_object_ids
+        )
     return sorted(result, key=lambda seed: seed.group_id)
 
 
@@ -373,14 +382,24 @@ def prepare_run_reference_mask(
     analysis_mask_path: Path,
     spec: SceneSpec,
     reference_content_scope: str = "full_reference",
-    seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None,
+    seed_evidence: ReferenceMaskSeedEvidence | None = None,
 ) -> tuple[Path, Path]:
-    """Write one immutable run-local mask honoring the selected reference content."""
+    """Freeze a run-local mask using the exact selected legacy seeds or V0.2 trimap."""
+    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV02
+    from .reference_mask_constraints import (
+        METHOD,
+        SNAPSHOT_NAME,
+        refine_reference_trimap,
+        validate_reference_trimap,
+    )
 
     output_path = run_dir / "reference_mask.png"
     manifest_path = run_dir / "reference_mask_manifest.json"
     if output_path.exists() or manifest_path.exists():
         raise FileExistsError("QA run-local reference mask artifacts already exist")
+    constrained = isinstance(seed_evidence, ReferenceMaskSeedEvidenceV02)
+    if constrained and (run_dir / SNAPSHOT_NAME).exists():
+        raise FileExistsError("QA run-local trimap snapshot already exists")
 
     with Image.open(reference_path) as opened_reference:
         reference = opened_reference.convert("RGB")
@@ -419,15 +438,29 @@ def prepare_run_reference_mask(
     method = "analysis_mask_fallback"
     reason = "OpenCV refinement was not attempted"
     selected = analysis_mask
-    closed_exterior_fill = _closed_exterior_subject(spec, selected_subject_ids)
+    closed_exterior_fill = not constrained and _closed_exterior_subject(spec, selected_subject_ids)
     filled_hole_pixels = 0
+    trimap_bytes = None
     try:
-        candidate = _grabcut_refinement(reference, analysis_mask, seeds)
+        if constrained:
+            from io import BytesIO
+
+            from ..reference_fidelity.service import read_artifact
+
+            trimap, trimap_bytes = validate_reference_trimap(
+                root, reference_path, spec, seed_evidence, allowed_object_ids=selected_subject_ids
+            )
+            reference_bytes = read_artifact(root, seed_evidence.reference)
+            with Image.open(BytesIO(reference_bytes)) as exact_reference:
+                reference = exact_reference.convert("RGB")
+            candidate = refine_reference_trimap(reference, trimap)
+        else:
+            candidate = _grabcut_refinement(reference, analysis_mask, seeds)
         trustworthy, reason = _mask_is_trustworthy(analysis_mask, candidate, seeds)
         if seed_evidence is not None and not trustworthy:
             raise ValueError(f"explicit reference segmentation failed: {reason}")
         if trustworthy:
-            method = "opencv_grabcut_evidence_seeded"
+            method = METHOD if constrained else "opencv_grabcut_evidence_seeded"
             selected = candidate
     except (RuntimeError, ValueError, OSError) as exc:
         if seed_evidence is not None:
@@ -445,6 +478,10 @@ def prepare_run_reference_mask(
                 "explicit primary scope:closed_exterior evidence"
             )
 
+    if constrained:
+        # Refuse source changes during segmentation before publishing any run mask.
+        read_artifact(root, seed_evidence.reference)
+        read_artifact(root, seed_evidence.trimap)
     selected.save(output_path, format="PNG", optimize=False)
     manifest: dict[str, Any] = {
         "schema_version": "0.6.0",
@@ -484,5 +521,15 @@ def prepare_run_reference_mask(
 
         manifest["seed_evidence"] = seed_evidence.model_dump(mode="json")
         manifest["seed_evidence_sha256"] = stable_json_digest(manifest["seed_evidence"])
+    if constrained:
+        from ..reference_fidelity.models import FidelityArtifact
+
+        assert trimap_bytes is not None
+        snapshot = run_dir / SNAPSHOT_NAME
+        with snapshot.open("xb") as stream:
+            stream.write(trimap_bytes)
+        manifest["trimap_snapshot"] = FidelityArtifact(
+            path=snapshot.relative_to(root).as_posix(), sha256=sha256_file(snapshot)
+        ).model_dump(mode="json")
     write_json_atomic(manifest_path, manifest)
     return output_path, manifest_path

@@ -18,6 +18,32 @@ SceneSpec 0.2.0, 기존 V0.6 request/report, CLI/MCP 도구와 allowlist는 변�
 새 seed 계약으로 다시 계산하거나 수정하지 않는다. 캠페인의 고정 seed 계약을 바꾸는 경우에는
 새 clean source/baseline/scope와 해당 exact 승인이 필요하다.
 
+## 선택적 reference trimap 제약 0.2
+
+`ReferenceMaskSeedEvidenceV02` (`0.2.0`)는 원본만으로 관찰한 foreground/background
+제약이 필요한 새 hypothesis에서 명시적으로 선택한다. 기존 `0.1.0`과 companion 부재의
+seed·fallback·직렬화 의미는 그대로다. 색이 같은 물체와 그림자는 내부 foreground 표본만으로
+구별되지 않을 수 있으므로, 이 경우 원본 reference SHA, trimap PNG SHA, 정확한 해상도,
+content scope와 subject IDs, 양쪽 label의 observed observation을 함께 고정한다.
+
+trimap은 단일 grayscale PNG로 `0=확실한 배경`, `85=배경 추정`, `170=물체 추정`,
+`255=확실한 물체`만 허용한다. 최대 4096×4096이며 실제 reference와 크기가 같아야 한다.
+관찰한 label 영역과 foreground seed core는 실제 trimap label과 일치해야 한다.
+primary-object 범위 밖의 foreground, 다른 source/subject, stale hash, unknown version,
+다른 label 값이나 해상도 변경은 render 예약 전에 거부한다. geometry 또는 render silhouette에서
+제약을 역으로 만들면 안 된다. 제약으로 강제한 표본의 일치는 독립적인 시각 검증이 아니다.
+
+기존 host가 난수 seed 0, GrabCut 5회로 처리하고 확실한 label을 보존한다. 명시적 제약 실패에
+fallback은 없으며, enclosed-hole fill로 background label을 덮지 않는다. 각 QA run은 원본
+trimap bytes의 별도 snapshot과 exact manifest를 보존한다. review는 hypothesis·source·trimap·
+run snapshot·output mask를 다시 검증하고 다른 회차 snapshot을 거부한다. 이전 QA mask나
+direct score를 다시 계산하지 않는다. CLI/MCP 명령·allowlist와 SceneSpec 0.2.0은 동일하고,
+새 제약은 geometry·promotion·예산·인간 승인 권한을 주지 않는다.
+
+trimap 계약 통과는 경계의 의미적 정확성을 증명하지 않는다. uncertain band와 전체 윤곽을
+reference에서 독립적으로 검증한 뒤 새로운 비교 조건으로 고정해야 한다. 실제 자산 수정은
+여전히 같은 조건의 일곱 Blender pass와 source-bound finding·paired comparison이 필요하다.
+
 ## 구조 수정 후 이전 quality source 보존
 
 Material Closure는 이전 quality submission의 canonical alias와 receipt-owned immutable snapshot을

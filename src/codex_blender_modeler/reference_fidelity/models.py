@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from ..integrated_quality.v02_models import JobId, RelativePath, Sha256, StableId
 
@@ -86,6 +86,72 @@ class ReferenceMaskSeedEvidenceV01(FidelityModel):
             if len(values) != len(set(values)):
                 raise ValueError(f"reference segmentation repeats {field}")
         return self
+
+
+class ReferenceMaskLabelObservationV02(FidelityModel):
+    """Bind one sure foreground/background region to an independent reference observation."""
+
+    observation_id: StableId
+    bbox_norm: Region
+    label: Literal["foreground", "background"]
+    confidence: float = Field(ge=0.5, le=1)
+
+    @model_validator(mode="after")
+    def validate_region(self) -> Self:
+        """Reject empty or inverted segmentation label regions."""
+        x0, y0, x1, y1 = self.bbox_norm
+        if x0 >= x1 or y0 >= y1:
+            raise ValueError("reference label observation must have positive area")
+        return self
+
+
+class ReferenceMaskSeedEvidenceV02(ReferenceMaskSeedEvidenceV01):
+    """Select bounded, source-observed trimap constraints without changing V0.1 behavior."""
+
+    schema_version: Literal["0.2.0"] = "0.2.0"
+    profile_status: Literal["disabled_experimental"] = "disabled_experimental"
+    trimap: FidelityArtifact
+    reference_resolution: tuple[
+        Annotated[int, Field(ge=1, le=4096)], Annotated[int, Field(ge=1, le=4096)]
+    ]
+    reference_content_scope: Literal["full_reference", "primary_object_only"]
+    subject_object_ids: list[StableId] = Field(max_length=256)
+    label_observations: list[ReferenceMaskLabelObservationV02] = Field(min_length=2, max_length=64)
+    label_encoding: Literal["bg0_probable_bg85_probable_fg170_fg255"] = (
+        "bg0_probable_bg85_probable_fg170_fg255"
+    )
+    constraint_origin: Literal["observed_reference"] = "observed_reference"
+    candidate_or_render_derived: Literal[False] = False
+    human_approval_authority: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_constraints(self) -> Self:
+        """Require explicit subject membership and both independent label classes."""
+        if self.subject_object_ids != sorted(set(self.subject_object_ids)):
+            raise ValueError("trimap subject IDs must be uniquely sorted")
+        if (self.reference_content_scope == "primary_object_only") != bool(self.subject_object_ids):
+            raise ValueError("trimap subject IDs must match the selected content scope")
+        ids = [item.observation_id for item in self.label_observations]
+        if len(ids) != len(set(ids)):
+            raise ValueError("trimap repeats an observed label identity")
+        if {item.label for item in self.label_observations} != {"foreground", "background"}:
+            raise ValueError("trimap requires observed foreground and background labels")
+        if self.trimap.path == self.reference.path:
+            raise ValueError("trimap cannot replace the original reference")
+        return self
+
+
+ReferenceMaskSeedEvidence = Annotated[
+    ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02,
+    Field(discriminator="schema_version"),
+]
+
+
+def parse_reference_mask_seed_evidence(
+    evidence: ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02,
+) -> ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02:
+    """Revalidate the exact selected companion version, including model-copy mutations."""
+    return TypeAdapter(ReferenceMaskSeedEvidence).validate_json(evidence.model_dump_json())
 
 
 class DirectionalMappingEvidenceV01(FidelityModel):
@@ -650,7 +716,7 @@ class ModelingHypothesisV01(FidelityModel):
     part_relations: str = Field(min_length=8)
     hidden_geometry_assumptions: list[str] = Field(min_length=1)
     authoring_strategy: StableId
-    reference_mask_seed_evidence: ReferenceMaskSeedEvidenceV01 | None = None
+    reference_mask_seed_evidence: ReferenceMaskSeedEvidence | None = None
     reference_derived_from_candidate: Literal[False] = False
     canonical_write_authority: Literal[False] = False
 
@@ -687,6 +753,15 @@ class ModelingHypothesisV01(FidelityModel):
                     or observation.confidence != seed.confidence
                 ):
                     raise ValueError("segmentation seed must match an exact observed region")
+            if isinstance(seed_evidence, ReferenceMaskSeedEvidenceV02):
+                for label in seed_evidence.label_observations:
+                    observation = observed.get(label.observation_id)
+                    if (
+                        observation is None or observation.status != "observed"
+                        or observation.region != label.bbox_norm
+                        or observation.confidence != label.confidence
+                    ):
+                        raise ValueError("trimap label must match an exact observed region")
         return self
 
 

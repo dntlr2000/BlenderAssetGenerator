@@ -196,6 +196,67 @@
       "title": "FidelityArtifact",
       "type": "object"
     },
+    "ReferenceMaskLabelObservationV02": {
+      "additionalProperties": false,
+      "description": "Bind one sure foreground/background region to an independent reference observation.",
+      "properties": {
+        "observation_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "label": {
+          "enum": [
+            "foreground",
+            "background"
+          ],
+          "title": "Label",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0.5,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "observation_id",
+        "bbox_norm",
+        "label",
+        "confidence"
+      ],
+      "title": "ReferenceMaskLabelObservationV02",
+      "type": "object"
+    },
     "ReferenceMaskSeedEvidenceV01": {
       "additionalProperties": false,
       "description": "Explicit additive segmentation evidence separate from SceneSpec semantic boxes.",
@@ -248,6 +309,142 @@
         "seeds"
       ],
       "title": "ReferenceMaskSeedEvidenceV01",
+      "type": "object"
+    },
+    "ReferenceMaskSeedEvidenceV02": {
+      "additionalProperties": false,
+      "description": "Select bounded, source-observed trimap constraints without changing V0.1 behavior.",
+      "properties": {
+        "schema_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "contract_kind": {
+          "const": "reference_mask_seed_evidence",
+          "default": "reference_mask_seed_evidence",
+          "title": "Contract Kind",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "reference": {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        "seeds": {
+          "items": {
+            "$ref": "#/$defs/ReferenceMaskSeedV01"
+          },
+          "maxItems": 32,
+          "minItems": 1,
+          "title": "Seeds",
+          "type": "array"
+        },
+        "semantic_extent_authority": {
+          "const": false,
+          "default": false,
+          "title": "Semantic Extent Authority",
+          "type": "boolean"
+        },
+        "canonical_write_authority": {
+          "const": false,
+          "default": false,
+          "title": "Canonical Write Authority",
+          "type": "boolean"
+        },
+        "profile_status": {
+          "const": "disabled_experimental",
+          "default": "disabled_experimental",
+          "title": "Profile Status",
+          "type": "string"
+        },
+        "trimap": {
+          "$ref": "#/$defs/FidelityArtifact"
+        },
+        "reference_resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "maximum": 4096,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "maximum": 4096,
+              "minimum": 1,
+              "type": "integer"
+            }
+          ],
+          "title": "Reference Resolution",
+          "type": "array"
+        },
+        "reference_content_scope": {
+          "enum": [
+            "full_reference",
+            "primary_object_only"
+          ],
+          "title": "Reference Content Scope",
+          "type": "string"
+        },
+        "subject_object_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "title": "Subject Object Ids",
+          "type": "array"
+        },
+        "label_observations": {
+          "items": {
+            "$ref": "#/$defs/ReferenceMaskLabelObservationV02"
+          },
+          "maxItems": 64,
+          "minItems": 2,
+          "title": "Label Observations",
+          "type": "array"
+        },
+        "label_encoding": {
+          "const": "bg0_probable_bg85_probable_fg170_fg255",
+          "default": "bg0_probable_bg85_probable_fg170_fg255",
+          "title": "Label Encoding",
+          "type": "string"
+        },
+        "constraint_origin": {
+          "const": "observed_reference",
+          "default": "observed_reference",
+          "title": "Constraint Origin",
+          "type": "string"
+        },
+        "candidate_or_render_derived": {
+          "const": false,
+          "default": false,
+          "title": "Candidate Or Render Derived",
+          "type": "boolean"
+        },
+        "human_approval_authority": {
+          "const": false,
+          "default": false,
+          "title": "Human Approval Authority",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "job_id",
+        "reference",
+        "seeds",
+        "trimap",
+        "reference_resolution",
+        "reference_content_scope",
+        "subject_object_ids",
+        "label_observations"
+      ],
+      "title": "ReferenceMaskSeedEvidenceV02",
       "type": "object"
     },
     "ReferenceMaskSeedV01": {
@@ -498,13 +695,28 @@
     "reference_mask_seed_evidence": {
       "anyOf": [
         {
-          "$ref": "#/$defs/ReferenceMaskSeedEvidenceV01"
+          "discriminator": {
+            "mapping": {
+              "0.1.0": "#/$defs/ReferenceMaskSeedEvidenceV01",
+              "0.2.0": "#/$defs/ReferenceMaskSeedEvidenceV02"
+            },
+            "propertyName": "schema_version"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ReferenceMaskSeedEvidenceV01"
+            },
+            {
+              "$ref": "#/$defs/ReferenceMaskSeedEvidenceV02"
+            }
+          ]
         },
         {
           "type": "null"
         }
       ],
-      "default": null
+      "default": null,
+      "title": "Reference Mask Seed Evidence"
     },
     "reference_derived_from_candidate": {
       "const": false,
