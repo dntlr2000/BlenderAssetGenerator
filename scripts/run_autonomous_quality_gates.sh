@@ -67,6 +67,8 @@ FOCUSED_TESTS=(
   tests/test_reference_fidelity_files.py
   tests/test_reference_mask_seed_evidence.py
   tests/test_reference_mask_constraints.py
+  tests/test_comparison_lighting.py
+  tests/test_comparison_lighting_blender.py
   tests/test_reference_fidelity_material.py
   tests/test_reference_fidelity_preview_budget.py
   tests/test_reference_fidelity_geometry_blender.py
@@ -204,6 +206,7 @@ BENCHMARK_V02_ARGS=(
 
 if [[ "$RUN_BLENDER" -eq 1 ]]; then
   uv run cbm blender-compat
+  CBM_RUN_COMPARISON_LIGHTING_BLENDER=1 \
   CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE=1 \
   CBM_RUN_AUTONOMY_E2E_SMOKE=1 \
   CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE=1 \
@@ -223,6 +226,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
   CBM_RUN_MATERIAL_CLOSURE_BLENDER_SMOKE=1 \
   CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE=1 \
     uv run pytest -q --basetemp "$PYTEST_ROOT/b" \
+      tests/test_comparison_lighting_blender.py \
       tests/test_autonomous_structural_geometry_blender.py \
       tests/test_autonomous_quality_blender_evidence.py::test_blender_scale_assembly_and_topology_evidence \
       tests/test_blender_companion_service.py::test_static_prop_authoring_companions_are_hash_bound_and_read_only \

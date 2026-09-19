@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -39,6 +40,7 @@ from .quality_revision_models import (
     AQQualityRevisionLoop,
     AQQualityRevisionLoopV02,
     AQQualityRevisionLoopV03,
+    AQQualityRevisionLoopV04,
     QualityAttemptV01,
     QualityRenderReservationV01,
     RevisionCostV01,
@@ -177,6 +179,25 @@ def _uses_integrated_attempt_routing(attempt: QualityAttemptV01) -> bool:
     return any(item.startswith("iq:") for item in attempt.unresolved_features)
 
 
+def _validate_selected_lighting(
+    root: Path, loop: AQQualityRevisionLoop, review: VisualFindingSetV01
+) -> None:
+    """Require V0.4 reviews to carry actual lighting matching their exact frozen policy."""
+    if not isinstance(loop, AQQualityRevisionLoopV04):
+        return
+    from ..comparison_lighting import validate_camera_studio_conditions
+
+    artifact = review.evidence.comparison_conditions
+    if artifact is None:
+        raise ValueError("selected comparison lighting requires actual render conditions")
+    recorded = json.loads(read_artifact(root, artifact))
+    source = json.loads(read_artifact(root, review.evidence.scene_spec))
+    validate_camera_studio_conditions(
+        source["camera"], recorded["conditions"],
+        implementation_sha256=loop.lighting_implementation_sha256,
+    )
+
+
 def _snapshot_source(root: Path, source: Path, destination: Path) -> FidelityArtifact:
     """Preserve current source bytes before a round; never point history at mutable canonical."""
 
@@ -248,6 +269,12 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
             raise ValueError("funded root and loop versions must be selected together")
         if isinstance(loop, AQQualityRevisionLoopV03) and loop.funding != budget.funding:
             raise ValueError("loop funding differs from the exact root budget epoch")
+        if isinstance(loop, AQQualityRevisionLoopV04):
+            from ..comparison_lighting import validate_lighting_selection
+
+            validate_lighting_selection(
+                loop.comparison_lighting_profile, loop.lighting_implementation_sha256
+            )
         if loop.initial_state != FidelityArtifact(
             path=current_artifact.path, sha256=current_artifact.sha256
         ):
@@ -390,6 +417,8 @@ def _validate_attempt_artifacts(root: Path, attempt: QualityAttemptV01) -> None:
         read_artifact(root, attempt.fidelity_evaluation)
     )
     review = VisualFindingSetV01.model_validate_json(read_artifact(root, attempt.visual_review))
+    loop = parse_quality_revision_loop(read_artifact(root, attempt.loop))
+    _validate_selected_lighting(root, loop, review)
     identity_changed = (
         evaluation.visual_review != attempt.visual_review
         or evaluation.hypothesis != review.hypothesis
@@ -406,7 +435,6 @@ def _validate_attempt_artifacts(root: Path, attempt: QualityAttemptV01) -> None:
         return
     if not _uses_integrated_attempt_routing(attempt):
         raise ValueError("quality attempt differs from its exact evaluated findings or source")
-    loop = parse_quality_revision_loop(read_artifact(root, attempt.loop))
     report = _quality_submission_report(root, attempt.quality_submission)
     route, unresolved = _combined_attempt_routing(evaluation, report, loop=loop)
     if attempt.next_action != route or attempt.unresolved_features != unresolved:
@@ -619,6 +647,7 @@ def submit_quality_attempt(
             raise ValueError("visual review does not evaluate current canonical geometry")
         hypothesis = ModelingHypothesisV01.model_validate_json(read_artifact(root, loop.hypothesis))
         qa = validate_review_evidence(root, hypothesis, review)
+        _validate_selected_lighting(root, loop, review)
         submission_artifact = artifact_at(root, root / quality_submission_path)
         submission = QualitySubmissionV2.model_validate_json(
             read_artifact(root, submission_artifact)
@@ -812,6 +841,17 @@ def render_quality_evidence(job_id: str, session_id: str, *, run_id: str) -> dic
             raise PermissionError("fidelity rendering requires a live bound quality session")
         loop, loop_artifact = binding
         current_round_receipts(root, plan, state)
+        lighting_arguments = {}
+        if isinstance(loop, AQQualityRevisionLoopV04):
+            from ..comparison_lighting import validate_lighting_selection
+
+            validate_lighting_selection(
+                loop.comparison_lighting_profile, loop.lighting_implementation_sha256
+            )
+            lighting_arguments = {
+                "comparison_lighting_profile": loop.comparison_lighting_profile,
+                "lighting_implementation_sha256": loop.lighting_implementation_sha256,
+            }
         entries = _load_ledger(root, session_id, loop, loop_artifact)
         round_index = sum(item.kind == REENTRY_KIND for item in state.provenance)
         limit = 1 + loop.same_input_technical_retries
@@ -903,6 +943,7 @@ def render_quality_evidence(job_id: str, session_id: str, *, run_id: str) -> dic
             run_dir=run_dir,
             run_id=run_id,
             record_fidelity_conditions=True,
+            **lighting_arguments,
             **({"reference_mask_seed_evidence": seed_evidence}
                if seed_evidence is not None else {}),
         )
@@ -979,6 +1020,7 @@ def quality_revision_boundary(
     review = VisualFindingSetV01.model_validate_json(read_artifact(root, attempt.visual_review))
     hypothesis = ModelingHypothesisV01.model_validate_json(read_artifact(root, loop.hypothesis))
     qa = validate_review_evidence(root, hypothesis, review)
+    _validate_selected_lighting(root, loop, review)
     expected = evaluate_review(
         hypothesis,
         review,

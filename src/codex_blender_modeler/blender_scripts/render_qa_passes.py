@@ -34,6 +34,11 @@ from codex_blender_modeler.build_provenance import (  # noqa: E402
     camera_contract_fingerprint,
     require_matching_build_provenance,
 )
+from codex_blender_modeler.comparison_lighting import (  # noqa: E402
+    CAMERA_STUDIO_PROFILE,
+    camera_studio_rig,
+    validate_lighting_selection,
+)
 
 PASS_KINDS = (
     "beauty",
@@ -60,6 +65,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--camera-fingerprint")
     parser.add_argument("--scene-spec-sha256")
     parser.add_argument("--comparison-conditions")
+    parser.add_argument("--comparison-lighting-profile", choices=(CAMERA_STUDIO_PROFILE,))
+    parser.add_argument("--lighting-implementation-sha256")
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     return parser.parse_args(argv)
 
@@ -459,10 +466,46 @@ def _comparison_lighting(scene: bpy.types.Scene) -> dict[str, Any]:
     }
 
 
+def _apply_comparison_lighting(scene: bpy.types.Scene, camera: dict[str, Any]) -> None:
+    """Apply the single camera-bound studio preset only to this unsaved render process."""
+    rig = camera_studio_rig(camera)
+    for obj in list(scene.objects):
+        if obj.type == "LIGHT":
+            bpy.data.objects.remove(obj, do_unlink=True)
+    for item in rig["lights"]:
+        data = bpy.data.lights.new(item["name"], type="AREA")
+        data.energy, data.shape, data.size = item["energy"], "DISK", item["size"]
+        data.color = (1.0, 1.0, 1.0)
+        light = bpy.data.objects.new(item["name"], data)
+        scene.collection.objects.link(light)
+        light.location = item["location"]
+        light.rotation_euler = (Vector(item["target"]) - light.location).to_track_quat(
+            "-Z", "Y"
+        ).to_euler()
+    world = bpy.data.worlds.new("CBM_QA_NeutralWorld")
+    world.use_nodes = True
+    world.node_tree.nodes.clear()
+    background = world.node_tree.nodes.new("ShaderNodeBackground")
+    background.inputs["Color"].default_value = rig["world_color"]
+    background.inputs["Strength"].default_value = rig["world_strength"]
+    output = world.node_tree.nodes.new("ShaderNodeOutputWorld")
+    world.node_tree.links.new(background.outputs["Background"], output.inputs["Surface"])
+    scene.world = world
+    for name in ("view_transform", "look", "exposure", "gamma"):
+        setattr(scene.view_settings, name, rig[name])
+    scene.render.film_transparent = rig["film_transparent"]
+    bpy.context.view_layer.update()
+
+
 def main() -> None:
-    """Render beauty and shader-independent QA passes plus a reproducibility manifest."""
+    """Render exact seven-pass evidence, optionally applying one bound unsaved lighting preset."""
 
     args = parse_args()
+    validate_lighting_selection(
+        args.comparison_lighting_profile, args.lighting_implementation_sha256
+    )
+    if args.comparison_lighting_profile is not None and not args.comparison_conditions:
+        raise ValueError("selected lighting requires comparison condition evidence")
     output_dir = Path(args.output_dir).expanduser().resolve()
     manifest_path = Path(args.manifest).expanduser().resolve()
     scene_spec_path = Path(args.scene_spec).expanduser().resolve()
@@ -491,7 +534,15 @@ def main() -> None:
             expected_camera_fingerprint=args.camera_fingerprint,
         )
     )
+    if args.comparison_lighting_profile is not None:
+        spec = json.loads(scene_spec_path.read_bytes())
+        _apply_comparison_lighting(scene, spec["camera"])
     conditions = _comparison_lighting(scene) if args.comparison_conditions else None
+    if args.comparison_lighting_profile is not None:
+        conditions.update({
+            "comparison_lighting_profile": args.comparison_lighting_profile,
+            "lighting_implementation_sha256": args.lighting_implementation_sha256,
+        })
     semantic_objects = [
         obj
         for obj in sorted(scene.objects, key=lambda item: item.name)

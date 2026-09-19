@@ -187,8 +187,11 @@ def test_route_reserves_cannot_borrow_or_duplicate_a_round():
                          previous=one, previous_artifact=artifact("l1"))
 
 
-def test_funded_planner_loop_and_public_readers_bind_exactly(tmp_path, monkeypatch):
-    """A real funded root/envelope accepts only its matching pre-geometry companion."""
+@pytest.mark.parametrize('selected_lighting', [False, True])
+def test_funded_planner_loop_and_public_readers_bind_exactly(
+    tmp_path, monkeypatch, selected_lighting,
+):
+    """A real funded root accepts legacy or exact opt-in lighting with identical reserves."""
 
     reference = reference_fixture(tmp_path, monkeypatch)
     proposal = propose(reference)
@@ -218,6 +221,20 @@ def test_funded_planner_loop_and_public_readers_bind_exactly(tmp_path, monkeypat
         "initial_state": FidelityArtifact(path=state_artifact.path, sha256=state_artifact.sha256),
     })
     # Revalidate the constructed fixture before publication, rather than relying on model_copy.
+    if selected_lighting:
+        from codex_blender_modeler.autonomy_v2.quality_revision_models import (
+            AQQualityRevisionLoopV04,
+        )
+        from codex_blender_modeler.comparison_lighting import (
+            CAMERA_STUDIO_PROFILE,
+            lighting_implementation_sha256,
+        )
+
+        selected = AQQualityRevisionLoopV04.model_validate({
+            **selected.model_dump(), 'schema_version': '0.4.0',
+            'comparison_lighting_profile': CAMERA_STUDIO_PROFILE,
+            'lighting_implementation_sha256': lighting_implementation_sha256(),
+        })
     selected = parse_quality_revision_loop(selected.model_dump_json().encode())
     path = root / "fidelity/proposal.json"
     publish(root, path, selected)

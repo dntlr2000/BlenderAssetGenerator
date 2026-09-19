@@ -252,7 +252,8 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 ### 명시적 유한 funding epoch (2026-09-09)
 
 새 실행은 host planner의 선택 인자 `fidelity_budget_plan`으로 `FidelityBudgetEpochV01`을 고정할 수 있다.
-이때만 budget 0.3.0과 `AQQualityRevisionLoopV03`을 함께 선택한다. AQ state/RootAuthorization은 0.2.0,
+이때만 budget 0.3.0과 `AQQualityRevisionLoopV03` 또는 명시적 조명 companion V0.4를 함께 선택한다.
+AQ state/RootAuthorization은 0.2.0,
 SceneSpec은 0.2.0, 프로젝트는 0.9.0을 유지한다. 기존 budget/loop의 bytes와 기본 CLI/MCP 동작은
 변경하지 않는다. 공개 budget reader는 정확한 0.2/0.3 버전을 dispatch하며 알 수 없는 버전은 거절한다.
 
@@ -288,6 +289,29 @@ remaining finding을 review evidence로 보존한다. 예약 뒤 crash는 exact 
 funding proposal은 승인이 아니다. 새 캠페인에서는 clean source manifest/baseline/readiness와 함께 exact
 scope에 이 계약을 결속한 뒤 사용자 승인을 받아야 한다. 기존 campaign 실적이나 human beauty/package/
 Activation acceptance를 새 budget으로 승계하지 않는다.
+
+### 고정 카메라 비교 조명 companion (2026-09-19)
+
+`AQQualityRevisionLoopV04`는 V0.3의 동일한 funding·reservation·receipt·정체 한도를 유지하면서
+`comparison_lighting_profile="camera_studio_v1"`과 `lighting_implementation_sha256`을 필수로 고정한다.
+V0.1–V0.3과 Standard의 기본 조명은 바꾸지 않는다. 기존 bind CLI/MCP는 exact loop JSON으로
+선택하며 새로운 도구·shell·Blender Python·임의 광원 설정 권한을 추가하지 않는다.
+
+조명은 고정 카메라 location·target에서만 유도한 중립 3개 area light와 world다. geometry bounding box를
+사용하지 않으므로 형상 수정만으로 비교 조명이 달라지지 않는다. 카메라 거리의 제곱으로 광원 에너지를,
+거리로 광원 크기를 정하며 candidate의 재질값이나 QA 점수로 조정하지 않는다. 선택은 초기 geometry 전
+loop binding에서 고정하고, 구현 hash가 바뀌면 새 render 예약 전에 거절한다.
+
+렌더 subprocess의 임시 scene에만 적용하고 canonical Blend를 저장하지 않는다. 실제 광원의 위치·방향·
+에너지·크기·색, world, color management 및 구현 hash를 comparison conditions에 남긴다. host는
+source-bound review 제출과 재검증에서 이 값을 카메라로 재산정해 검증한다. 이름만 동일한 profile,
+다른 camera/회차의 조건, 누락된 기록, 바뀐 구현을 통과 근거로 사용하지 않는다.
+
+이 companion은 조명 보정 효과나 재질 품질을 자동 통과시키지 않는다. 기존 조명과 새 조명 사이의 비교는
+형상·재질의 전후 개선 쌍이 아니다. 새로운 조명을 선택한 비교에서는 BEFORE와 AFTER 양쪽을 같은 정책과
+조건으로 실제 렌더해야 한다. 이미 성공한 렌더를 technical retry로 다시 실행할 수 없고, 닫힌 AQ terminal을
+재개하거나 미소비 슬롯을 재사용할 수 없다. source 변경 뒤에는 새 clean baseline·유한 scope·exact 승인
+경계를 지킨다. 검증용 합성 panel의 밝기 개선은 5자산 시각 개선이나 인간 수용으로 계산하지 않는다.
 
 재질 closure의 새 회차는 명시적 0.2.0 source binding·graph rebinding plan·receipt를 사용할 수 있다.
 기존 0.1.0 singleton binding은 그대로 읽으며 자동 변환하지 않는다. 나머지 closure 계약과 AQ v2,

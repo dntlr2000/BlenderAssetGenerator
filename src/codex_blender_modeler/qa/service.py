@@ -458,10 +458,17 @@ def run_scene_spec_visual_qa_snapshot(
     render_device: str = "auto",
     record_fidelity_conditions: bool = False,
     reference_mask_seed_evidence: ReferenceMaskSeedEvidence | None = None,
+    comparison_lighting_profile: str | None = None,
+    lighting_implementation_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Validate selected reference constraints before rendering immutable isolated direct QA."""
+    """Validate selected reference and lighting contracts before isolated direct QA effects."""
 
     from ..blender_artifact_runner import render_scene_qa_passes
+    from ..comparison_lighting import camera_studio_rig, validate_lighting_selection
+
+    validate_lighting_selection(comparison_lighting_profile, lighting_implementation_sha256)
+    if comparison_lighting_profile is not None and not record_fidelity_conditions:
+        raise ValueError("selected lighting requires actual comparison condition evidence")
 
     root = job_dir(job_id).resolve()
     scene_spec_path = scene_spec_path.expanduser().resolve()
@@ -482,6 +489,8 @@ def run_scene_spec_visual_qa_snapshot(
     spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
     if spec.job_id != job_id:
         raise ValueError("candidate QA SceneSpec belongs to another job")
+    if comparison_lighting_profile is not None:
+        camera_studio_rig(spec.camera.model_dump(mode="json"))
     metadata = load_job(job_id)
     if reference_mask_seed_evidence is not None:
         from ..reference_scope import subject_object_ids
@@ -512,6 +521,9 @@ def run_scene_spec_visual_qa_snapshot(
         surface_detail_inventory_path=surface_detail_inventory_path,
         **({"comparison_conditions_path": source_dir / "comparison_conditions.json"}
            if record_fidelity_conditions else {}),
+        **({"comparison_lighting_profile": comparison_lighting_profile,
+            "lighting_implementation_sha256": lighting_implementation_sha256}
+           if comparison_lighting_profile is not None else {}),
     )
     run_manifest, manifest_path, passes = _snapshot_render_passes(
         rendered,

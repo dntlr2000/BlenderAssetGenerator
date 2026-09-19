@@ -106,8 +106,16 @@ def render_scene_qa_passes(
     scene_spec_sha256: str | None = None,
     surface_detail_inventory_path: Path | None = None,
     comparison_conditions_path: Path | None = None,
+    comparison_lighting_profile: str | None = None,
+    lighting_implementation_sha256: str | None = None,
 ) -> RenderPassManifest:
-    """Render seven-pass QA against canonical or isolated inventory evidence."""
+    """Render seven-pass QA with an optional exact, unsaved comparison-lighting selection."""
+
+    from .comparison_lighting import validate_lighting_selection
+
+    validate_lighting_selection(comparison_lighting_profile, lighting_implementation_sha256)
+    if comparison_lighting_profile is not None and comparison_conditions_path is None:
+        raise ValueError("selected lighting requires actual comparison condition evidence")
 
     root = job_dir(job_id).resolve()
     scene_spec = scene_spec_path.expanduser().resolve()
@@ -168,6 +176,9 @@ def render_scene_qa_passes(
         if conditions_path.exists():
             raise FileExistsError("comparison conditions already exist; use a new QA run")
         optional["--comparison-conditions"] = str(conditions_path)
+    if comparison_lighting_profile is not None:
+        optional["--comparison-lighting-profile"] = comparison_lighting_profile
+        optional["--lighting-implementation-sha256"] = lighting_implementation_sha256
     for flag, value in optional.items():
         if value is not None:
             args.extend([flag, value])

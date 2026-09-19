@@ -203,6 +203,7 @@ BlenderAssetGenerator/
   schemas/aq_quality_revision_loop_v01.schema.json
   schemas/aq_quality_revision_loop_v02.schema.json
   schemas/aq_quality_revision_loop_v03.schema.json
+  schemas/aq_quality_revision_loop_v04.schema.json
   schemas/aq_skill_adapter_plan.schema.json
   schemas/aq_skill_adapter_state.schema.json
   schemas/aq_skill_adapter_terminal.schema.json
@@ -815,6 +816,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/codex_imagegen/reporting.py
   src/codex_blender_modeler/codex_imagegen/selection.py
   src/codex_blender_modeler/codex_runner.py
+  src/codex_blender_modeler/comparison_lighting.py
   src/codex_blender_modeler/config.py
   src/codex_blender_modeler/constraints/__init__.py
   src/codex_blender_modeler/constraints/evaluator.py
@@ -1136,6 +1138,8 @@ BlenderAssetGenerator/
   tests/test_codex_imagegen_public_surface.py
   tests/test_codex_imagegen_schemas.py
   tests/test_codex_imagegen_security.py
+  tests/test_comparison_lighting.py
+  tests/test_comparison_lighting_blender.py
   tests/test_constraints.py
   tests/test_controller_executor_v02.py
   tests/test_external_static_asset_intake.py

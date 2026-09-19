@@ -76,6 +76,8 @@ $FocusedTests = @(
     "tests/test_reference_fidelity_files.py",
     "tests/test_reference_mask_seed_evidence.py",
     "tests/test_reference_mask_constraints.py",
+    "tests/test_comparison_lighting.py",
+    "tests/test_comparison_lighting_blender.py",
     "tests/test_material_closure_fidelity_snapshot.py",
     "tests/test_reference_fidelity_material.py",
     "tests/test_reference_fidelity_preview_budget.py",
@@ -219,6 +221,7 @@ $BenchmarkV02Arguments = @(
 )
 
 if ($RunBlender) {
+    $PreviousComparisonLighting = $env:CBM_RUN_COMPARISON_LIGHTING_BLENDER
     $PreviousGeometrySmoke = $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE
     $PreviousAutonomySmoke = $env:CBM_RUN_AUTONOMY_E2E_SMOKE
     $PreviousQualitySmoke = $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE
@@ -242,6 +245,7 @@ if ($RunBlender) {
         $env:CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE
     $PreviousDeliveryExecutorSmoke = $env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E
     try {
+        $env:CBM_RUN_COMPARISON_LIGHTING_BLENDER = "1"
         $env:CBM_RUN_AUTONOMOUS_GEOMETRY_SMOKE = "1"
         $env:CBM_RUN_AUTONOMY_E2E_SMOKE = "1"
         $env:CBM_RUN_AUTONOMOUS_QUALITY_BLENDER_SMOKE = "1"
@@ -263,6 +267,7 @@ if ($RunBlender) {
         Invoke-Uv run cbm blender-compat
         Invoke-Uv run python scripts/run_pytest_acl_safe.py `
             -q --basetemp (Join-Path $PytestRoot "b") `
+            tests/test_comparison_lighting_blender.py `
             tests/test_autonomous_structural_geometry_blender.py `
             tests/test_autonomous_quality_blender_evidence.py::test_blender_scale_assembly_and_topology_evidence `
             tests/test_blender_companion_service.py::test_static_prop_authoring_companions_are_hash_bound_and_read_only `
@@ -293,6 +298,13 @@ if ($RunBlender) {
         $BenchmarkV02Arguments += "--run-blender"
     }
     finally {
+        # Restore the caller's exact comparison-lighting opt-in after the synthetic fixture.
+        if ($null -eq $PreviousComparisonLighting) {
+            Remove-Item Env:CBM_RUN_COMPARISON_LIGHTING_BLENDER -ErrorAction SilentlyContinue
+        }
+        else {
+            $env:CBM_RUN_COMPARISON_LIGHTING_BLENDER = $PreviousComparisonLighting
+        }
         # Restore the exact dual-format/deep-shader E2E opt-in after this gate.
         if ($null -eq $PreviousDeliveryExecutorSmoke) {
             Remove-Item Env:CBM_RUN_AQ_V02_DELIVERY_EXECUTOR_BLENDER_E2E `

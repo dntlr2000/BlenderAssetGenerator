@@ -98,8 +98,17 @@ class AQQualityRevisionLoopV03(AQQualityRevisionLoopV02):
         return self
 
 
+class AQQualityRevisionLoopV04(AQQualityRevisionLoopV03):
+    """Select one fixed comparison-lighting policy without expanding any correction budget."""
+
+    schema_version: Literal["0.4.0"] = "0.4.0"
+    comparison_lighting_profile: Literal["camera_studio_v1"]
+    lighting_implementation_sha256: Sha256
+
+
 AQQualityRevisionLoop: TypeAlias = (
     AQQualityRevisionLoopV01 | AQQualityRevisionLoopV02 | AQQualityRevisionLoopV03
+    | AQQualityRevisionLoopV04
 )
 
 
@@ -116,6 +125,7 @@ def parse_quality_revision_loop(payload: bytes) -> AQQualityRevisionLoop:
         "0.1.0": AQQualityRevisionLoopV01,
         "0.2.0": AQQualityRevisionLoopV02,
         "0.3.0": AQQualityRevisionLoopV03,
+        "0.4.0": AQQualityRevisionLoopV04,
     }.get(decoded.get("schema_version"))
     if model is None:
         raise ValueError("unsupported quality revision loop schema_version")
