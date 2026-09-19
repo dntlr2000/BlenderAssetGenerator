@@ -943,6 +943,110 @@
       "title": "TransformSpec",
       "type": "object"
     },
+    "TriangulatedShellGeometry": {
+      "additionalProperties": false,
+      "description": "Declare one closed oriented shell; no path, callback, code or material authority.",
+      "properties": {
+        "kind": {
+          "const": "triangulated_shell",
+          "default": "triangulated_shell",
+          "title": "Kind",
+          "type": "string"
+        },
+        "vertices": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "maximum": 1000000.0,
+                "minimum": -1000000.0,
+                "type": "number"
+              },
+              {
+                "maximum": 1000000.0,
+                "minimum": -1000000.0,
+                "type": "number"
+              },
+              {
+                "maximum": 1000000.0,
+                "minimum": -1000000.0,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 65536,
+          "minItems": 4,
+          "title": "Vertices",
+          "type": "array"
+        },
+        "triangles": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "maximum": 65535,
+                "minimum": 0,
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 131072,
+          "minItems": 4,
+          "title": "Triangles",
+          "type": "array"
+        },
+        "loop_uvs": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "maximum": 1000000.0,
+                    "minimum": -1000000.0,
+                    "type": "number"
+                  },
+                  {
+                    "maximum": 1000000.0,
+                    "minimum": -1000000.0,
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "maxItems": 393216,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop Uvs"
+        }
+      },
+      "required": [
+        "vertices",
+        "triangles"
+      ],
+      "title": "TriangulatedShellGeometry",
+      "type": "object"
+    },
     "WeightedEdge": {
       "additionalProperties": false,
       "description": "Attach one normalized crease or bevel weight to a canonical edge.",
@@ -997,7 +1101,8 @@
           "geometry_nodes_template": "#/$defs/GeometryNodesTemplateGeometry",
           "loft": "#/$defs/LoftGeometry",
           "multi_loop_extrude": "#/$defs/MultiLoopExtrudeGeometry",
-          "sweep": "#/$defs/SweepGeometry"
+          "sweep": "#/$defs/SweepGeometry",
+          "triangulated_shell": "#/$defs/TriangulatedShellGeometry"
         },
         "propertyName": "kind"
       },
@@ -1016,6 +1121,9 @@
         },
         {
           "$ref": "#/$defs/GeometryNodesTemplateGeometry"
+        },
+        {
+          "$ref": "#/$defs/TriangulatedShellGeometry"
         }
       ],
       "title": "Geometry"

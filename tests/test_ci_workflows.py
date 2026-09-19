@@ -129,7 +129,7 @@ def test_blender_smoke_is_manual_and_self_hosted() -> None:
 
 
 def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
-    """Keep AQ, lighting and LOD smokes explicit in both gate runners and outside host CI."""
+    """Keep AQ shell, lighting and LOD smokes explicit in both runners and outside host CI."""
 
     powershell = (ROOT / "scripts" / "run_autonomous_quality_gates.ps1").read_text(
         encoding="utf-8"
@@ -152,6 +152,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         "CBM_RUN_MATERIAL_IDENTITY_SPLIT_BLENDER_SMOKE",
     }
     expected_nodes = {
+        "tests/test_aq_triangle_shell_blender.py",
         "tests/test_comparison_lighting_blender.py",
         "tests/test_material_contract_long_paths.py::test_blender_build_and_inspect_preserve_deep_shader_provenance",
         "tests/test_aq_v02_geometry_blender.py",
@@ -169,6 +170,7 @@ def test_aq_v02_gate_scripts_wire_exact_opt_in_blender_nodes() -> None:
         assert token in powershell
         assert token in bash
     for token in (
+        "tests/test_aq_triangle_shell.py",
         "tests/test_comparison_lighting.py",
         "tests/test_material_contract_long_paths.py",
         "tests/test_aq_adapter_terminal_recovery.py",

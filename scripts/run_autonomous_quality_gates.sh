@@ -81,6 +81,8 @@ FOCUSED_TESTS=(
   tests/test_fidelity_budget_flow.py
   tests/test_aq_candidate_budget_preflight.py
   tests/test_aq_geometry_preflight.py
+  tests/test_aq_triangle_shell.py
+  tests/test_aq_triangle_shell_blender.py
   tests/test_reference_fidelity_public.py
   tests/test_autonomous_quality_benchmarks.py
   tests/test_autonomous_quality_schemas.py
@@ -240,6 +242,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
       tests/test_v07_lod_smoothing.py::test_real_blender_refresh_keeps_source_geometry_and_uv_unchanged \
       tests/test_aq_v02_delivery_geometry_blender.py \
       tests/test_autonomy_v2_candidate_validation_blender.py \
+      tests/test_aq_triangle_shell_blender.py \
       tests/test_reference_fidelity_geometry_blender.py \
       tests/test_reference_fidelity_aq_blender_vertical.py \
       tests/test_aq_structural_closure_blender.py \

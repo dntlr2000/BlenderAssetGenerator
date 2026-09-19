@@ -133,6 +133,7 @@ BlenderAssetGenerator/
   docs/agent/testing_and_verification.md
   docs/agent/workflow_reference.md
   docs/reference_fidelity.md
+  docs/triangulated_shell.md
   examples/autonomous_quality_benchmarks/manifest.json
   examples/autonomous_quality_benchmarks_v02/manifest.json
   examples/first_reference_test/geometry/city_underside.mesh.json
@@ -741,6 +742,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/builders/structural_registry.py
   src/codex_blender_modeler/blender_scripts/builders/sweep.py
   src/codex_blender_modeler/blender_scripts/builders/terrain.py
+  src/codex_blender_modeler/blender_scripts/builders/triangulated_shell.py
   src/codex_blender_modeler/blender_scripts/common.py
   src/codex_blender_modeler/blender_scripts/compat.py
   src/codex_blender_modeler/blender_scripts/compile_material_graph_runtime.py
@@ -1036,6 +1038,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/structural_geometry/models.py
   src/codex_blender_modeler/structural_geometry/relief_geometry.py
   src/codex_blender_modeler/structural_geometry/service.py
+  src/codex_blender_modeler/structural_geometry/triangle_shell.py
+  src/codex_blender_modeler/structural_geometry/triangle_shell_math.py
   src/codex_blender_modeler/structural_geometry/v02.py
   src/codex_blender_modeler/texturing/AGENTS.md
   src/codex_blender_modeler/texturing/__init__.py
@@ -1066,6 +1070,8 @@ BlenderAssetGenerator/
   tests/test_aq_evidence_envelopes.py
   tests/test_aq_geometry_preflight.py
   tests/test_aq_structural_closure_blender.py
+  tests/test_aq_triangle_shell.py
+  tests/test_aq_triangle_shell_blender.py
   tests/test_aq_v02_delivery_executor_blender.py
   tests/test_aq_v02_delivery_geometry_blender.py
   tests/test_aq_v02_geometry.py

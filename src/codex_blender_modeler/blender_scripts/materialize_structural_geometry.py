@@ -487,6 +487,11 @@ def main() -> None:
     actual_hash = _canonical_sha256(candidate)
     if actual_hash != args.candidate_sha256:
         raise RuntimeError("structural candidate changed after host validation")
+    if (
+        candidate["geometry"]["kind"] == "triangulated_shell"
+        and args.mesh_payload_version != "0.2.0"
+    ):
+        raise RuntimeError("triangulated shell requires explicit MeshPayload 0.2 materialization")
     bpy.ops.object.select_all(action="SELECT")
     bpy.ops.object.delete(use_global=False)
     obj = create_structural_geometry(candidate["geometry"], job_root)

@@ -19,6 +19,7 @@ from builders import (
     revolve,
     sweep,
     terrain,
+    triangulated_shell,
 )
 
 Builder = Callable[[dict, Path], bpy.types.Object]
@@ -35,6 +36,7 @@ _STRUCTURAL_BUILDERS: dict[str, Builder] = {
     "boolean_tree": boolean_tree.build,
     "multi_loop_extrude": multi_loop_extrude.build,
     "geometry_nodes_template": geometry_nodes_template.build,
+    "triangulated_shell": triangulated_shell.build,
 }
 
 

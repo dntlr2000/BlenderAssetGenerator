@@ -1211,7 +1211,7 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 
 - Catalog schema: 0.1.0
 - Legacy builders: curve, custom_mesh, primitive, profile_extrude, revolve, terrain
-- Structural builders: boolean_tree, curve, custom_mesh, geometry_nodes_template, loft, multi_loop_extrude, primitive, profile_extrude, revolve, sweep, terrain
+- Structural builders: boolean_tree, curve, custom_mesh, geometry_nodes_template, loft, multi_loop_extrude, primitive, profile_extrude, revolve, sweep, terrain, triangulated_shell
 - Active autonomy profiles: autonomous_static_prop_v1
 - Experimental profiles: autonomous_static_prop_v2, autonomous_static_prop_v2_codex_imagegen, autonomous_environment_v1, autonomous_architecture_v1, autonomous_measured_asset_v1
 - Existing delivery outputs: portable_gltf, obj_legacy

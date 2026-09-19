@@ -72,6 +72,9 @@ def materialize_structural_candidate(
         if isinstance(candidate, StructuralGeometryCandidate)
         else StructuralGeometryCandidate.model_validate(candidate)
     )
+    # The new data-only shell is explicit MeshPayload 0.2; legacy dispatch stays unchanged.
+    if validated.geometry.kind == "triangulated_shell" and mesh_payload_version != "0.2.0":
+        raise ValueError("triangulated_shell requires explicit MeshPayload 0.2 materialization")
     if mesh_payload_version == "0.2.0":
         if validated.geometry_intent is None:
             raise ValueError("MeshPayload 0.2 requires explicit GeometryIntent")

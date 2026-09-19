@@ -79,7 +79,10 @@ Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태�
    카메라 가설, 필수 관찰 항목과 비교 방법을 고정한다. candidate bbox를 기대값으로 역사용하지 않는다.
    얇은 sheet/shell, 단일 물체와 균일 재질에 불필요한 다부품·두께·디테일을 강제하지 않는다.
    적용 제외는 가설에서 이유와 함께 선언하며 평가자가 임의로 요구 사항을 지울 수 없다.
-2. `StructureAuthoringV01`은 기존 V03 loft/sweep 등의 strict recipe와 authored ModelingPlan을 연결한다.
+2. `StructureAuthoringV01`은 V03 loft/sweep 등의 strict recipe와 authored ModelingPlan을 연결한다.
+   명시적인 MeshPayload 0.2 경로에서는 [triangulated_shell](triangulated_shell.md)로 연결된
+   닫힌 삼각형 표면과 corner UV를 데이터로 저작할 수 있다. 직접 `custom_mesh` 제출,
+   임의 코드 실행, legacy 0.1 materialization이나 과거 evidence 변환 권한은 추가하지 않는다.
    새 opt-in geometry promotion도 같은 observation coverage, `spatial_v1`, assembly, camera 검사를 실행한다.
    controller에는 loop/hypothesis와 후속 회차의 exact finding·이전 패스가 읽기 전용 assignment 입력으로 전달된다.
    과거 후보는 명시적 비교/수정 시작점일 뿐 신규 reference의 sequence별 source replay 생성기가 아니다.
