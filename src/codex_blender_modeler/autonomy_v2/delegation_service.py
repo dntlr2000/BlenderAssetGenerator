@@ -157,13 +157,20 @@ def _validate_source(contract: FidelityCampaignDelegationV01) -> None:
         path = ensure_contained_production_path(root, root / item.path, must_exist=True)
         data = path.read_bytes()
         digest = hashlib.sha256(data).hexdigest()
-        # Source manifests use Git's LF-normalized text blobs on Windows. Immutable
-        # verification snapshots use -text and must still match their raw bytes.
+        # Git archives can materialize LF or CRLF according to Git configuration.
+        # Only ordinary text can use that equivalence; immutable -text snapshots stay raw.
         if digest != item.sha256 and not item.path.startswith("verification/evidence/"):
             if b"\0" not in data and "* text=auto" in (root / ".gitattributes").read_text():
-                digest = hashlib.sha256(data.replace(b"\r\n", b"\n")).hexdigest()
+                normalized = data.replace(b"\r\n", b"\n")
+                if b"\r" not in normalized:
+                    for payload in (normalized, normalized.replace(b"\n", b"\r\n")):
+                        if hashlib.sha256(payload).hexdigest() == item.sha256:
+                            digest = item.sha256
+                            break
         if digest != item.sha256:
-            raise ValueError("delegation source bytes differ from the approved checkpoint")
+            raise ValueError(
+                f"delegation source bytes differ from the approved checkpoint: {item.path}"
+            )
 
 
 def _validate_asset_evidence(asset: DelegationAsset) -> ModelingHypothesisV01:

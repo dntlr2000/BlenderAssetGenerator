@@ -588,17 +588,29 @@ def test_explicit_new_mandate_preserves_prior_reserved_capacity(tmp_path, monkey
 
 
 @pytest.mark.parametrize("change", ["clean", "dirty", "commit", "tree", "bytes"])
-def test_source_guard_checks_actual_bytes_and_clean_checkpoint(tmp_path, monkeypatch, change):
-    """Check source bytes and the clean checkpoint, with Git text EOL normalization."""
+@pytest.mark.parametrize(
+    ("working_eol", "manifest_eol", "immutable"),
+    [(b"\n", b"\n", False), (b"\r\n", b"\n", False), (b"\n", b"\r\n", False),
+     (b"\r\n", b"\r\n", False), (b"\n", b"\r\n", True), (b"\r\n", b"\n", True),
+     (b"\r\r\n", b"\r\n", False)],
+)
+def test_source_guard_checks_actual_bytes_and_clean_checkpoint(
+    tmp_path, monkeypatch, change, working_eol, manifest_eol, immutable
+):
+    """Accept Git LF/CRLF text, rejecting changed code, stray CR and immutable history drift."""
     import hashlib
 
     from codex_blender_modeler.production import activation_service
 
     fix = fixture(tmp_path, monkeypatch)
     (tmp_path / ".gitattributes").write_text("* text=auto\n", encoding="utf-8")
-    source = tmp_path / "source.py"
-    source.write_bytes(b"# fixture\r\n")
-    record = SimpleNamespace(path="source.py", sha256=hashlib.sha256(b"# fixture\n").hexdigest())
+    relative = "verification/evidence/source.py" if immutable else "source.py"
+    source = tmp_path / relative
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(b"# fixture" + working_eol)
+    record = SimpleNamespace(
+        path=relative, sha256=hashlib.sha256(b"# fixture" + manifest_eol).hexdigest()
+    )
     manifest = SimpleNamespace(
         git_commit_sha="a" * 40, git_tree_sha="b" * 40, source_files=[record]
     )
@@ -620,11 +632,44 @@ def test_source_guard_checks_actual_bytes_and_clean_checkpoint(tmp_path, monkeyp
     monkeypatch.setattr(
         activation_service, "inspect_activation_source_checkpoint", lambda *_a: checkpoint
     )
-    if change == "clean":
+    if change == "clean" and not immutable and working_eol != b"\r\r\n":
         SOURCE_VALIDATOR(fix.contract)
     else:
         with pytest.raises((ValueError, PermissionError)):
             SOURCE_VALIDATOR(fix.contract)
+
+
+def test_source_guard_accepts_actual_git_archive_text_and_preserves_binary(tmp_path, monkeypatch):
+    """Exercise actual Git archive CRLF conversion and preserve exact binary bytes."""
+    import subprocess
+
+    from codex_blender_modeler.production import activation_service
+
+    fix = fixture(tmp_path, monkeypatch)
+    (tmp_path / ".gitattributes").write_bytes(b"* text=auto\n")
+    (tmp_path / "source.py").write_bytes(b"# fixture\n")
+    (tmp_path / "binary.dat").write_bytes(b"\0fixture\r\n")
+    for arguments in (
+        ["init", "-q"], ["config", "core.autocrlf", "true"],
+        ["add", "-f", ".gitattributes", "source.py", "binary.dat"],
+        ["-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+         "commit", "-qm", "Synthetic source fixture"],
+    ):
+        subprocess.run(["git", *arguments], cwd=tmp_path, check=True, capture_output=True)
+    (tmp_path / ".git/info/exclude").write_text("*\n", encoding="utf-8")
+    checkpoint = activation_service.inspect_activation_source_checkpoint(tmp_path)
+    assert checkpoint["working_tree_clean"]
+    manifest = SimpleNamespace(
+        git_commit_sha=checkpoint["git_commit_sha"], git_tree_sha=checkpoint["git_tree_sha"],
+        source_files=activation_service._git_source_files(tmp_path),
+    )
+    baseline = SimpleNamespace(source_manifest=fix.contract.source_manifest)
+    monkeypatch.setattr(activation_service, "load_activation_source_manifest", lambda *_a: manifest)
+    monkeypatch.setattr(activation_service, "load_activation_baseline", lambda *_a: baseline)
+    SOURCE_VALIDATOR(fix.contract)
+    (tmp_path / "binary.dat").write_bytes(b"\0fixture\n")
+    with pytest.raises(PermissionError, match="not clean"):
+        SOURCE_VALIDATOR(fix.contract)
 
 
 def test_stale_parent_can_cancel_safely_but_cannot_run(tmp_path, monkeypatch):
