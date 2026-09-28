@@ -9,6 +9,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..stabilization.models import JobId, PortableId, RelativePath, Sha256, WorkflowId
+from .delegation_models import DelegationBindingV01
 from .fidelity_budget_models import FidelityBudgetEpochV01
 
 AUTONOMY_SCHEMA_VERSION = "0.2.0"
@@ -123,6 +124,13 @@ class AutonomyBudgetV03(AutonomyBudgetV2):
         return self
 
 
+class AutonomyBudgetV04(AutonomyBudgetV03):
+    """Bind an unchanged finite funding epoch to its once-approved campaign reservation."""
+
+    schema_version: Literal["0.4.0"] = "0.4.0"
+    delegation: DelegationBindingV01
+
+
 def parse_autonomy_budget(payload: bytes | str | dict | AutonomyBudgetV2) -> AutonomyBudgetV2:
     """Strictly revalidate the selected budget from JSON or an existing typed boundary."""
 
@@ -131,7 +139,8 @@ def parse_autonomy_budget(payload: bytes | str | dict | AutonomyBudgetV2) -> Aut
     decoded = json.loads(raw)
     if not isinstance(decoded, dict):
         raise ValueError("AQ budget must be a JSON object")
-    model = {"0.2.0": AutonomyBudgetV2, "0.3.0": AutonomyBudgetV03}.get(
+    model = {"0.2.0": AutonomyBudgetV2, "0.3.0": AutonomyBudgetV03,
+             "0.4.0": AutonomyBudgetV04}.get(
         decoded.get("schema_version")
     )
     if model is None:

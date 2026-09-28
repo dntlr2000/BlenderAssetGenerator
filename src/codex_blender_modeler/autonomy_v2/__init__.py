@@ -101,6 +101,17 @@ from .controller_bridge import (
     get_autonomy_v2_material_closure_status,
     get_autonomy_v2_status,
 )
+from .delegation_models import FidelityCampaignDelegationV01
+from .delegation_service import (
+    approve_fidelity_delegation,
+    close_fidelity_scope,
+    fidelity_scope_binding,
+    get_fidelity_delegation_status,
+    issue_fidelity_scope,
+    plan_fidelity_delegation,
+    publish_fidelity_preparation,
+    start_fidelity_scope,
+)
 from .delivery_executor import (
     execute_approved_delivery_plan_v2,
     execute_policy_authorized_delivery_plan_v2,
@@ -192,6 +203,15 @@ from .supervisor_service import (
 from .transitions import transition_state
 
 __all__ = [
+    "FidelityCampaignDelegationV01",
+    "approve_fidelity_delegation",
+    "close_fidelity_scope",
+    "fidelity_scope_binding",
+    "get_fidelity_delegation_status",
+    "issue_fidelity_scope",
+    "plan_fidelity_delegation",
+    "publish_fidelity_preparation",
+    "start_fidelity_scope",
     "ApprovalArtifact",
     "AQV2Artifact",
     "AQV2ApprovalBudget",

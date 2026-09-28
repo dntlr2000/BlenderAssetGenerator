@@ -197,8 +197,9 @@ def validate_fidelity_epoch_history(
 
 
 def require_funded_loop(root: Path, session_id: str, budget: AutonomyBudgetV03) -> None:
-    """Require the matching companion before the first funded controller or canonical action."""
+    """Require exact loop and campaign authority before funded controller or canonical effects."""
 
+    from .delegation_service import validate_delegated_budget
     from .quality_revision_models import AQQualityRevisionLoopV03
     from .quality_revision_service import load_optional_loop
 
@@ -207,6 +208,13 @@ def require_funded_loop(root: Path, session_id: str, budget: AutonomyBudgetV03) 
         raise PermissionError("funded execution requires the exact V0.3 quality loop first")
     if binding[0].funding != budget.funding:
         raise ValueError("funded loop differs from the root budget epoch")
+    from ..reference_fidelity.models import ModelingHypothesisV01
+    from ..reference_fidelity.service import read_artifact
+
+    hypothesis = ModelingHypothesisV01.model_validate_json(
+        read_artifact(root, binding[0].hypothesis)
+    )
+    validate_delegated_budget(root, budget, loop=binding[0], hypothesis=hypothesis)
     validate_fidelity_epoch_history(budget.funding, active_session=(root.name, session_id))
 
 

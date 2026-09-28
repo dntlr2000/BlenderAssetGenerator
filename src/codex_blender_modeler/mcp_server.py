@@ -4370,6 +4370,106 @@ def supplement_aq_quality_evidence(job_id: str, session_id: str, review_path: st
     ).model_dump(mode="json")
 
 
+@mcp.tool()
+def plan_fidelity_campaign_delegation(proposal_path: str,
+                                     experimental_opt_in: bool = False) -> dict:
+    """Publish a reviewed parent contract; no candidate or future artifact is yet approved."""
+    from .autonomy_v2.delegation_models import FidelityCampaignDelegationV01
+    from .autonomy_v2.delegation_service import plan_fidelity_delegation
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return plan_fidelity_delegation(FidelityCampaignDelegationV01.model_validate_json(
+        Path(proposal_path).read_bytes(),
+    ))
+
+
+@mcp.tool()
+def record_fidelity_campaign_delegation_approval(
+    delegation_id: str, contract_sha256: str, exact_user_text: str,
+    experimental_opt_in: bool = False,
+) -> dict:
+    """Record a single exact user mandate, never future beauty/package/Activation acceptance."""
+    from .autonomy_v2.delegation_service import approve_fidelity_delegation
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return approve_fidelity_delegation(delegation_id, contract_sha256=contract_sha256,
+                                       exact_user_text=exact_user_text)
+
+
+@mcp.tool()
+def issue_fidelity_campaign_scope(delegation_id: str, asset_id: str, job_id: str,
+                                 strategy: str, experimental_opt_in: bool = False) -> dict:
+    """Reserve an exact finite child scope through parent policy without another user question."""
+    from .autonomy_v2.delegation_service import issue_fidelity_scope
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return issue_fidelity_scope(delegation_id, asset_id=asset_id, job_id=job_id, strategy=strategy)
+
+
+@mcp.tool()
+def publish_fidelity_campaign_preparation(delegation_id: str, sequence: int, paths: list[str],
+                                         experimental_opt_in: bool = False) -> dict:
+    """Preserve one staged JSON/PNG candidate set and charge its bounded repair count."""
+    from .autonomy_v2.delegation_service import (
+        fidelity_scope_binding,
+        publish_fidelity_preparation,
+    )
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return publish_fidelity_preparation(fidelity_scope_binding(delegation_id, sequence),
+                                        [Path(path) for path in paths])
+
+
+@mcp.tool()
+def start_fidelity_campaign_scope(delegation_id: str, sequence: int,
+                                 experimental_opt_in: bool = False) -> dict:
+    """Admit exactly one native AQ skill session under its immutable aggregate reservation."""
+    from .autonomy_v2.delegation_service import fidelity_scope_binding, start_fidelity_scope
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return start_fidelity_scope(fidelity_scope_binding(delegation_id, sequence))
+
+
+@mcp.tool()
+def close_fidelity_campaign_scope(delegation_id: str, sequence: int, session_id: str,
+                                 experimental_opt_in: bool = False) -> dict:
+    """Recompute the terminal's technical and paired visual outcomes, retaining human zeroes."""
+    from .autonomy_v2.delegation_service import close_fidelity_scope, fidelity_scope_binding
+
+    if not experimental_opt_in:
+        raise PermissionError("campaign delegation remains disabled_experimental")
+    return close_fidelity_scope(
+        fidelity_scope_binding(delegation_id, sequence), session_id=session_id,
+    )
+
+
+@mcp.tool()
+def get_fidelity_campaign_delegation_status(delegation_id: str) -> dict:
+    """Read campaign reservations and exact outcomes without renewing or expanding authority."""
+    from .autonomy_v2.delegation_service import get_fidelity_delegation_status
+
+    return get_fidelity_delegation_status(delegation_id)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 def main() -> None:
     """Start stdio MCP after optional native runtimes are initialized on the main thread."""
 

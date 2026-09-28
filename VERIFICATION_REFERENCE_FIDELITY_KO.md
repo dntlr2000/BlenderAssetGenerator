@@ -803,3 +803,11 @@ renderer snapshot 및 상대 경로 artifact 검사는 유지하며, 이전 실�
 Blender 5.0.1 fixture `structural-blender-07`는 1 passed다. 이 통합 실행은 실제 구조 promotion,
 full closure의 6회 process, neutral preview, 정확한 resume, stale snapshot/PNG 및 mixed source 거절과
 원본 파일 보존을 확인했다. 최종 source 적격성은 별도의 같은 Git tree AQ 및 V0.7–V0.9 receipt로 결속한다.
+
+### 2026-09-28: 사전 위임 host 검증 계약
+
+부모 계약은 기존 history·reference·clean source/baseline·관찰 기준과 유한 후보/수정/실행
+비용을 고정한다. 최초 exact 확인 뒤 후속 scope는 host policy로 발행하며 질문을 반복하지
+않는다. native admission/resume과 promotion policy가 부모 예약을 재검증한다. 기존 승인
+경로·증거는 migration하지 않는다. 검증 fixture와 실제 시각 개선·인간 판정은 분리한다.
+실행 결과는 새 receipt로 기록하며 이 문구 자체는 gate 통과 증거가 아니다.

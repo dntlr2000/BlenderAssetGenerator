@@ -112,6 +112,13 @@ from codex_blender_modeler.autonomy_v2.candidate_validation_models import (
 from codex_blender_modeler.autonomy_v2.codex_image_overlay import (
     AutonomyCodexImageOverlay,
 )
+from codex_blender_modeler.autonomy_v2.delegation_models import (
+    DelegationDecisionV01,
+    DelegationOutcomeV01,
+    DelegationPreparationV01,
+    DelegationScopeV01,
+    FidelityCampaignDelegationV01,
+)
 from codex_blender_modeler.autonomy_v2.fidelity_budget_models import FidelityBudgetEpochV01
 from codex_blender_modeler.autonomy_v2.geometry_preflight_models import (
     GeometryAuthoringPreflightV01,
@@ -127,6 +134,7 @@ from codex_blender_modeler.autonomy_v2.material_phase_models import (
 )
 from codex_blender_modeler.autonomy_v2.models import (
     AutonomyBudgetV03,
+    AutonomyBudgetV04,
     AutonomyBudgetV2,
     AutonomyCancellationV2,
     AutonomyPlanV2,
@@ -1044,6 +1052,12 @@ SCHEMAS.update({
     "aq_quality_revision_loop_v04.schema.json": AQQualityRevisionLoopV04,
     "autonomy_fidelity_budget_v03.schema.json": AutonomyBudgetV03,
     "fidelity_budget_epoch_v01.schema.json": FidelityBudgetEpochV01,
+    "fidelity_campaign_delegation_v01.schema.json": FidelityCampaignDelegationV01,
+    "fidelity_delegation_decision_v01.schema.json": DelegationDecisionV01,
+    "fidelity_delegation_scope_v01.schema.json": DelegationScopeV01,
+    "fidelity_delegation_preparation_v01.schema.json": DelegationPreparationV01,
+    "fidelity_delegation_outcome_v01.schema.json": DelegationOutcomeV01,
+    "autonomy_delegated_budget_v04.schema.json": AutonomyBudgetV04,
     "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
     "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
     "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,

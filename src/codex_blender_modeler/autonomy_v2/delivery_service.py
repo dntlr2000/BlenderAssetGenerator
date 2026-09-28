@@ -159,7 +159,7 @@ def validate_root_authorization_boundary_v2(
     root_authorization_artifact: AQV2Artifact | None = None,
     now: datetime | None = None,
 ) -> tuple[RootAuthorizationV2, AutonomyPlanV2, AutonomyProfileV2, AutonomyBudgetV2]:
-    """Rebuild the exact active plan/profile/budget authorization boundary from disk."""
+    """Rebuild exact native and optional delegated budget digests from immutable evidence."""
 
     root = ensure_contained_production_path(job_root, job_root, must_exist=True)
     plan, plan_artifact = _load_current_plan_v2(root, session_id)
@@ -260,6 +260,10 @@ def validate_root_authorization_boundary_v2(
     }
     if isinstance(budget, AutonomyBudgetV03):
         budget_input["fidelity_funding"] = budget.funding.digest()
+    from .models import AutonomyBudgetV04
+
+    if isinstance(budget, AutonomyBudgetV04):
+        budget_input["campaign_delegation"] = budget.delegation.model_dump(mode="json")
     profile_input = {
         "budget": authorization.budget.sha256,
         "quality_policy": authorization.quality_profile.sha256,

@@ -438,6 +438,17 @@ def plan_approval_envelope(
     root, plan, authorization, root_artifact = _load_base_boundary(job_id, session_id)
     if initial_user_request_sha256 != authorization.original_request_sha256:
         raise PermissionError("initial request hash differs from RootAuthorizationV2")
+    from .models import AutonomyBudgetV04
+
+    delegated_budget = _load_model_from_v2_budget(root, authorization)
+    if isinstance(delegated_budget, AutonomyBudgetV04):
+        from .delegation_service import validate_delegated_budget
+
+        validate_delegated_budget(root, delegated_budget)
+        if approval_mode != "autonomous" or allowed_provider_scopes not in (None, ["local_only"]):
+            raise PermissionError("campaign delegation grants autonomous local policy only")
+        # Separate identity-split shadow transactions have no priced slot in this mandate.
+        max_identity_splits = 0
     observed_at = _utc_now(created_at)
     expiry = _utc_now(expires_at) if expires_at is not None else observed_at + timedelta(hours=24)
     if authorization.expires_at is not None and expiry > authorization.expires_at:
@@ -622,9 +633,12 @@ def _load_approval_boundary(
     AutonomyApprovalEnvelope,
     ApprovalArtifact,
 ]:
-    """Replay the complete additive policy boundary without migrating absent evidence."""
+    """Replay exact policy and optional campaign authority without migrating absent evidence."""
 
     root, plan, authorization, root_artifact = _load_base_boundary(job_id, session_id)
+    from .delegation_service import validate_delegated_budget
+
+    validate_delegated_budget(root, _load_model_from_v2_budget(root, authorization))
     session_root = _approval_root(root, session_id)
     required_paths = (
         session_root / "policy_profile.json",

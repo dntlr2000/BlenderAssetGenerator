@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve each published data set or repair without executing it or overwriting history.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "sequence": {
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/ActivationArtifact"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "scope",
+    "sequence",
+    "previous",
+    "artifacts",
+    "created_at"
+  ],
+  "title": "DelegationPreparationV01",
+  "type": "object"
+}

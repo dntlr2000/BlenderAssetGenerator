@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Host-verified terminal plus exact evidence; technical and visual success stay separate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "session_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "terminal_state": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "technical_passed": {
+      "title": "Technical Passed",
+      "type": "boolean"
+    },
+    "visual_passed": {
+      "title": "Visual Passed",
+      "type": "boolean"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/ActivationArtifact"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "remaining_findings": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Remaining Findings",
+      "type": "array"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    },
+    "human_package_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Human Package Acceptance",
+      "type": "boolean"
+    },
+    "human_activation_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Human Activation Acceptance",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "scope",
+    "session_id",
+    "terminal_state",
+    "technical_passed",
+    "visual_passed",
+    "evidence",
+    "remaining_findings",
+    "created_at"
+  ],
+  "title": "DelegationOutcomeV01",
+  "type": "object"
+}

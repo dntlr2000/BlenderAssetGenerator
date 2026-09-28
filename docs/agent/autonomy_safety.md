@@ -59,3 +59,11 @@ creating user approval; genuine escalation and current-task controller/IQ input 
 remain visible stops.
 
 Primary rules: CBM-INV-045..066, CBM-INV-072..112, CBM-INV-151..192.
+
+## Reference-fidelity campaign delegation
+
+The optional [finite campaign mandate](../fidelity_campaign_delegation.md) uses an
+AutonomyBudgetV04 parent binding, native history checks and nonrefundable aggregate
+reservations. Do not repeat exact-scope approval questions inside an approved mandate.
+Do not issue an unbound renamed session, reset counters, weaken observations, bypass
+canary ordering or label host policy as human beauty/package/Activation acceptance.

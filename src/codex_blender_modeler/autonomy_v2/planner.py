@@ -19,6 +19,7 @@ from ..production.controller_executor import (
 )
 from ..structural_geometry.models import SceneSpecV03
 from ..workspace import job_dir
+from .delegation_models import DelegationBindingV01
 from .delivery_service import (
     artifact_for_v2,
     validate_v2_artifact,
@@ -28,6 +29,7 @@ from .fidelity_budget_models import FidelityBudgetEpochV01
 from .models import (
     AQV2Artifact,
     AutonomyBudgetV03,
+    AutonomyBudgetV04,
     AutonomyBudgetV2,
     AutonomyPlanV2,
     AutonomyProfileV2,
@@ -264,10 +266,12 @@ def plan_autonomous_static_prop_v2(
     destination_hint: str = "engine_neutral",
     initial_budget_limits: dict[str, int] | None = None,
     fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
+    delegation_binding: DelegationBindingV01 | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
-    """Plan unchanged legacy AQ or admit one explicitly funded reference-wide epoch."""
+    """Admit legacy AQ or an exact finite epoch, enforcing an optional campaign mandate."""
 
+    from .delegation_service import delegated_admission
     from .fidelity_budget_service import fidelity_epoch_admission
 
     arguments = dict(
@@ -275,18 +279,27 @@ def plan_autonomous_static_prop_v2(
         requested_delivery_profiles=requested_delivery_profiles, job_id=job_id,
         controller_execution_mode=controller_execution_mode, destination_hint=destination_hint,
         initial_budget_limits=initial_budget_limits, fidelity_budget_plan=fidelity_budget_plan,
+        delegation_binding=delegation_binding,
         allow_disabled_experimental=allow_disabled_experimental,
     )
-    if fidelity_budget_plan is None:
-        return _plan_autonomous_static_prop_v2(request, **arguments)
-    funding = FidelityBudgetEpochV01.model_validate_json(fidelity_budget_plan.model_dump_json())
-    if not allow_disabled_experimental or initial_budget_limits is not None:
-        raise PermissionError("explicit fidelity funding cannot mix with legacy budget overrides")
-    if job_id != funding.job_id or sha256_file(Path(reference_path)) != funding.reference_sha256:
-        raise ValueError("funding plan differs from the exact new job/reference scope")
-    arguments["fidelity_budget_plan"] = funding
-    with fidelity_epoch_admission(funding):
-        return _plan_autonomous_static_prop_v2(request, **arguments)
+    with delegated_admission(
+        delegation_binding, reference_path=Path(reference_path), job_id=job_id,
+        funding=fidelity_budget_plan, request=request, target_subject=target_subject,
+        delivery_profiles=requested_delivery_profiles, destination_hint=destination_hint,
+    ):
+        if fidelity_budget_plan is None:
+            if delegation_binding is not None:
+                raise PermissionError("delegated admission requires its exact funded epoch")
+            return _plan_autonomous_static_prop_v2(request, **arguments)
+        funding = FidelityBudgetEpochV01.model_validate_json(fidelity_budget_plan.model_dump_json())
+        if not allow_disabled_experimental or initial_budget_limits is not None:
+            raise PermissionError("fidelity funding cannot mix with legacy budget overrides")
+        if (job_id != funding.job_id
+                or sha256_file(Path(reference_path)) != funding.reference_sha256):
+            raise ValueError("funding plan differs from the exact new job/reference scope")
+        arguments["fidelity_budget_plan"] = funding
+        with fidelity_epoch_admission(funding):
+            return _plan_autonomous_static_prop_v2(request, **arguments)
 
 
 def _plan_autonomous_static_prop_v2(
@@ -300,6 +313,7 @@ def _plan_autonomous_static_prop_v2(
     destination_hint: str = "engine_neutral",
     initial_budget_limits: dict[str, int] | None = None,
     fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
+    delegation_binding: DelegationBindingV01 | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
     """Create a standard, object-only v2 session without granting later approvals."""
@@ -461,6 +475,10 @@ def _plan_autonomous_static_prop_v2(
         budget_input["fidelity_funding"] = fidelity_budget_plan.digest()
         funded_arguments["funding"] = fidelity_budget_plan
         budget_type = AutonomyBudgetV03
+    if delegation_binding is not None:
+        funded_arguments["delegation"] = delegation_binding
+        budget_input["campaign_delegation"] = delegation_binding.model_dump(mode="json")
+        budget_type = AutonomyBudgetV04
     budget = budget_type(
         contract_id=f"budget-{session_id}",
         budget_id=f"budget-{session_id}",

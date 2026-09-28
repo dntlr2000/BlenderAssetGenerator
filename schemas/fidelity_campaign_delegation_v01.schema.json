@@ -1,0 +1,581 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "DelegationAsset": {
+      "additionalProperties": false,
+      "description": "Freeze one reference, observed criteria, prior consumption and additive candidate slots.",
+      "properties": {
+        "asset_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Asset Id",
+          "type": "string"
+        },
+        "target_subject": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Target Subject",
+          "type": "string"
+        },
+        "reference": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "hypothesis": {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        "comparison_lighting_profile": {
+          "const": "camera_studio_v1",
+          "default": "camera_studio_v1",
+          "title": "Comparison Lighting Profile",
+          "type": "string"
+        },
+        "minimum_boundary_f_score": {
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Boundary F Score",
+          "type": "number"
+        },
+        "minimum_direct_score": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Direct Score",
+          "type": "number"
+        },
+        "minimum_silhouette_iou": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Silhouette Iou",
+          "type": "number"
+        },
+        "prior_history": {
+          "items": {
+            "$ref": "#/$defs/FidelityHistoryEntryV01"
+          },
+          "title": "Prior History",
+          "type": "array"
+        },
+        "prior_initial_candidates": {
+          "minimum": 0,
+          "title": "Prior Initial Candidates",
+          "type": "integer"
+        },
+        "inherited_evidence": {
+          "items": {
+            "$ref": "#/$defs/ActivationArtifact"
+          },
+          "maxItems": 128,
+          "minItems": 1,
+          "title": "Inherited Evidence",
+          "type": "array"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/DelegationSlot"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Slots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "asset_id",
+        "target_subject",
+        "reference",
+        "hypothesis",
+        "prior_history",
+        "prior_initial_candidates",
+        "inherited_evidence",
+        "slots"
+      ],
+      "title": "DelegationAsset",
+      "type": "object"
+    },
+    "DelegationCost": {
+      "additionalProperties": false,
+      "description": "Count reserved capacity separately from native actual use; capacity is never refunded.",
+      "properties": {
+        "candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "preparation_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preparation Repairs",
+          "type": "integer"
+        },
+        "structural": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural",
+          "type": "integer"
+        },
+        "local": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Local",
+          "type": "integer"
+        },
+        "strategy_switches": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Strategy Switches",
+          "type": "integer"
+        },
+        "aq_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Aq Builds",
+          "type": "integer"
+        },
+        "closure_processes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Closure Processes",
+          "type": "integer"
+        },
+        "quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Quality Evaluations",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "delivery_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Delivery Runs",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Actions",
+          "type": "integer"
+        }
+      },
+      "title": "DelegationCost",
+      "type": "object"
+    },
+    "DelegationSlot": {
+      "additionalProperties": false,
+      "description": "Price one initial candidate and its finite correction, closure and delivery reserve.",
+      "properties": {
+        "initial_object_limit": {
+          "maximum": 48,
+          "minimum": 1,
+          "title": "Initial Object Limit",
+          "type": "integer"
+        },
+        "correction_object_limit": {
+          "maximum": 48,
+          "minimum": 1,
+          "title": "Correction Object Limit",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_rounds": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Parametric Rounds",
+          "type": "integer"
+        },
+        "material_corrections": {
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Material Corrections",
+          "type": "integer"
+        },
+        "strategy_switches": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Strategy Switches",
+          "type": "integer"
+        },
+        "preparation_repairs": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Preparation Repairs",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "initial_object_limit",
+        "correction_object_limit",
+        "structural_rounds",
+        "parametric_rounds",
+        "material_corrections",
+        "strategy_switches"
+      ],
+      "title": "DelegationSlot",
+      "type": "object"
+    },
+    "FidelityHistoryEntryV01": {
+      "additionalProperties": false,
+      "description": "Bind the full session JSON inventory and validated counters without reopening it.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "session_evidence_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Session Evidence Sha256",
+          "type": "string"
+        },
+        "last_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Last State Sha256",
+          "type": "string"
+        },
+        "budget_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Budget Sha256",
+          "type": "string"
+        },
+        "status": {
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "next_action": {
+          "minLength": 1,
+          "title": "Next Action",
+          "type": "string"
+        },
+        "funded_epoch": {
+          "title": "Funded Epoch",
+          "type": "boolean"
+        },
+        "epoch_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Epoch Id"
+        },
+        "usage": {
+          "$ref": "#/$defs/FidelityLifetimeUsageV01"
+        }
+      },
+      "required": [
+        "job_id",
+        "session_id",
+        "session_evidence_sha256",
+        "last_state_sha256",
+        "budget_sha256",
+        "status",
+        "next_action",
+        "funded_epoch",
+        "usage"
+      ],
+      "title": "FidelityHistoryEntryV01",
+      "type": "object"
+    },
+    "FidelityLifetimeUsageV01": {
+      "additionalProperties": false,
+      "description": "Keep observed or already reserved work visible across reference-identical sessions.",
+      "properties": {
+        "structural": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural",
+          "type": "integer"
+        },
+        "local": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Local",
+          "type": "integer"
+        },
+        "strategy_switches": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Strategy Switches",
+          "type": "integer"
+        },
+        "blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Blender Builds",
+          "type": "integer"
+        },
+        "preflight_blender_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preflight Blender Runs",
+          "type": "integer"
+        },
+        "quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Quality Evaluations",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        }
+      },
+      "title": "FidelityLifetimeUsageV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Reviewable one-time mandate over exact source, references, budgets and quality rules.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "fidelity_campaign_delegation",
+      "default": "fidelity_campaign_delegation",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "profile_status": {
+      "const": "disabled_experimental",
+      "default": "disabled_experimental",
+      "title": "Profile Status",
+      "type": "string"
+    },
+    "delegation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Delegation Id",
+      "type": "string"
+    },
+    "user_request": {
+      "maxLength": 32768,
+      "minLength": 1,
+      "title": "User Request",
+      "type": "string"
+    },
+    "source_manifest": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "baseline": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "supersedes": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "prior_delegated_reservations": {
+      "$ref": "#/$defs/DelegationCost"
+    },
+    "assets": {
+      "items": {
+        "$ref": "#/$defs/DelegationAsset"
+      },
+      "maxItems": 16,
+      "minItems": 1,
+      "title": "Assets",
+      "type": "array"
+    },
+    "total_budget": {
+      "$ref": "#/$defs/DelegationCost"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "delivery_profile": {
+      "const": "portable_gltf",
+      "default": "portable_gltf",
+      "title": "Delivery Profile",
+      "type": "string"
+    },
+    "provider": {
+      "const": "local_only",
+      "default": "local_only",
+      "title": "Provider",
+      "type": "string"
+    },
+    "extra_identity_split_operations": {
+      "const": 0,
+      "default": 0,
+      "title": "Extra Identity Split Operations",
+      "type": "integer"
+    },
+    "approval_mode": {
+      "const": "autonomous",
+      "default": "autonomous",
+      "title": "Approval Mode",
+      "type": "string"
+    },
+    "canary_then_ordered_assets": {
+      "const": true,
+      "default": true,
+      "title": "Canary Then Ordered Assets",
+      "type": "boolean"
+    },
+    "paired_improvement_required": {
+      "const": true,
+      "default": true,
+      "title": "Paired Improvement Required",
+      "type": "boolean"
+    },
+    "major_structure_findings_allowed": {
+      "const": 0,
+      "default": 0,
+      "title": "Major Structure Findings Allowed",
+      "type": "integer"
+    },
+    "same_defect_plateau_length": {
+      "const": 2,
+      "default": 2,
+      "title": "Same Defect Plateau Length",
+      "type": "integer"
+    },
+    "source_changes_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Source Changes Allowed",
+      "type": "boolean"
+    },
+    "historical_evidence_mutation": {
+      "const": false,
+      "default": false,
+      "title": "Historical Evidence Mutation",
+      "type": "boolean"
+    },
+    "future_artifacts_user_approved": {
+      "const": false,
+      "default": false,
+      "title": "Future Artifacts User Approved",
+      "type": "boolean"
+    },
+    "human_beauty_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Human Beauty Acceptance",
+      "type": "boolean"
+    },
+    "human_package_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Human Package Acceptance",
+      "type": "boolean"
+    },
+    "human_activation_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Human Activation Acceptance",
+      "type": "boolean"
+    },
+    "destination_write": {
+      "const": false,
+      "default": false,
+      "title": "Destination Write",
+      "type": "boolean"
+    },
+    "background_execution": {
+      "const": false,
+      "default": false,
+      "title": "Background Execution",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "delegation_id",
+    "user_request",
+    "source_manifest",
+    "baseline",
+    "assets",
+    "total_budget",
+    "expires_at"
+  ],
+  "title": "FidelityCampaignDelegationV01",
+  "type": "object"
+}

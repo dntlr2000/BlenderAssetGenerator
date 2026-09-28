@@ -38,6 +38,7 @@ Turn references, measured evidence, and user feedback into reproducible Blender 
 - [CBM-ROOT-TECHNICAL-NO-APPROVAL] Dependency, manifest, path/hash, schema/projection, deterministic normalization, controller packaging, retry, and rollback failures must not create a user approval request.
 - [CBM-ROOT-ENVELOPE-OPTIONAL] Approval Envelope 0.3 is an optional exact RootAuthorizationV2 companion. Missing historical evidence is not `interactive`, is never auto-created, and grants no retroactive authority.
 - [CBM-ROOT-ONE-PROMPT-SESSION] One-Prompt execution is bounded to the current Codex task. Repository code must not spawn a Codex task or claim execution after app exit; resume must reuse and revalidate the same state, budget, and assignment.
+- [CBM-ROOT-FINITE-DELEGATION] An explicitly approved `FidelityCampaignDelegationV01` authorizes host-issued successor scopes within its exact source, references, observations, candidate slots and total resource reserve. Use `AutonomyBudgetV04` and the native delegation host path; do not ask for each in-contract scope, candidate, routine promotion or package creation. Future artifact authority remains exact single-use host policy, never human beauty, package or Activation acceptance. Stop on source/scope expansion or exhausted finite reserves without rewriting past evidence. See [campaign delegation](docs/fidelity_campaign_delegation.md).
 
 ## Version and compatibility baseline
 

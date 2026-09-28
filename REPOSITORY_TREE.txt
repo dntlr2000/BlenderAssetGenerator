@@ -132,6 +132,7 @@ BlenderAssetGenerator/
   docs/agent/source_of_truth.md
   docs/agent/testing_and_verification.md
   docs/agent/workflow_reference.md
+  docs/fidelity_campaign_delegation.md
   docs/reference_fidelity.md
   docs/triangulated_shell.md
   examples/autonomous_quality_benchmarks/manifest.json
@@ -243,6 +244,7 @@ BlenderAssetGenerator/
   schemas/autonomy_budget.schema.json
   schemas/autonomy_codex_image_overlay.schema.json
   schemas/autonomy_controller_binding.schema.json
+  schemas/autonomy_delegated_budget_v04.schema.json
   schemas/autonomy_fidelity_budget_v03.schema.json
   schemas/autonomy_iteration_receipt.schema.json
   schemas/autonomy_plan.schema.json
@@ -340,7 +342,12 @@ BlenderAssetGenerator/
   schemas/external_asset_manifest.schema.json
   schemas/external_normalization_receipt.schema.json
   schemas/fidelity_budget_epoch_v01.schema.json
+  schemas/fidelity_campaign_delegation_v01.schema.json
   schemas/fidelity_comparison_v01.schema.json
+  schemas/fidelity_delegation_decision_v01.schema.json
+  schemas/fidelity_delegation_outcome_v01.schema.json
+  schemas/fidelity_delegation_preparation_v01.schema.json
+  schemas/fidelity_delegation_scope_v01.schema.json
   schemas/fidelity_development_preview_attempt_outcome_v01.schema.json
   schemas/fidelity_development_preview_attempt_outcome_v02.schema.json
   schemas/fidelity_development_preview_attempt_outcome_v03.schema.json
@@ -684,6 +691,8 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/autonomy_v2/codex_image_phase_service.py
   src/codex_blender_modeler/autonomy_v2/codex_image_planner.py
   src/codex_blender_modeler/autonomy_v2/controller_bridge.py
+  src/codex_blender_modeler/autonomy_v2/delegation_models.py
+  src/codex_blender_modeler/autonomy_v2/delegation_service.py
   src/codex_blender_modeler/autonomy_v2/delivery_executor.py
   src/codex_blender_modeler/autonomy_v2/delivery_policy_adapter.py
   src/codex_blender_modeler/autonomy_v2/delivery_service.py
@@ -1152,6 +1161,9 @@ BlenderAssetGenerator/
   tests/test_feature_config.py
   tests/test_fidelity_budget_epoch.py
   tests/test_fidelity_budget_flow.py
+  tests/test_fidelity_campaign_delegation.py
+  tests/test_fidelity_delegation_blender.py
+  tests/test_fidelity_delegation_public.py
   tests/test_geometry_delivery_equivalence.py
   tests/test_geometry_intent_v02_reachability.py
   tests/test_geometry_models.py

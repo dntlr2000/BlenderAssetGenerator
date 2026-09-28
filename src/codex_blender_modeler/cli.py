@@ -5023,5 +5023,92 @@ def aq_quality_supplement(job_id: str, session_id: str, review_path: Path) -> No
     console.print_json(result.model_dump_json())
 
 
+@app.command("fidelity-delegation-plan")
+def fidelity_delegation_plan(proposal: Path, experimental_opt_in: bool = False) -> None:
+    """Publish a finite campaign mandate for one exact user confirmation."""
+    from .mcp_server import plan_fidelity_campaign_delegation
+
+    console.print_json(json.dumps(plan_fidelity_campaign_delegation(str(proposal),
+                                           experimental_opt_in=experimental_opt_in)))
+
+
+@app.command("fidelity-delegation-approve")
+def fidelity_delegation_approve(delegation_id: str, contract_sha256: str,
+                               exact_user_text: str, experimental_opt_in: bool = False) -> None:
+    """Record only the actual user's exact parent mandate decision."""
+    from .mcp_server import record_fidelity_campaign_delegation_approval
+
+    console.print_json(json.dumps(record_fidelity_campaign_delegation_approval(
+        delegation_id, contract_sha256, exact_user_text, experimental_opt_in=experimental_opt_in,
+    )))
+
+
+@app.command("fidelity-delegation-scope")
+def fidelity_delegation_scope(delegation_id: str, asset_id: str, job_id: str,
+                             strategy: str, experimental_opt_in: bool = False) -> None:
+    """Issue a finite successor scope by host policy without requesting another user decision."""
+    from .mcp_server import issue_fidelity_campaign_scope
+
+    console.print_json(json.dumps(issue_fidelity_campaign_scope(
+        delegation_id, asset_id, job_id, strategy, experimental_opt_in=experimental_opt_in,
+    )))
+
+
+@app.command("fidelity-delegation-prepare")
+def fidelity_delegation_prepare(delegation_id: str, sequence: int, paths: list[Path],
+                               experimental_opt_in: bool = False) -> None:
+    """Publish a bounded data set or repair under the reserved staging directory."""
+    from .mcp_server import publish_fidelity_campaign_preparation
+
+    console.print_json(json.dumps(publish_fidelity_campaign_preparation(
+        delegation_id, sequence, [str(path) for path in paths],
+        experimental_opt_in=experimental_opt_in,
+    )))
+
+
+@app.command("fidelity-delegation-start")
+def fidelity_delegation_start(delegation_id: str, sequence: int,
+                             experimental_opt_in: bool = False) -> None:
+    """Start or recover the same reserved AQ skill session without resetting any allowance."""
+    from .mcp_server import start_fidelity_campaign_scope
+
+    console.print_json(json.dumps(start_fidelity_campaign_scope(
+        delegation_id, sequence, experimental_opt_in=experimental_opt_in,
+    )))
+
+
+@app.command("fidelity-delegation-close")
+def fidelity_delegation_close(delegation_id: str, sequence: int, session_id: str,
+                             experimental_opt_in: bool = False) -> None:
+    """Close an exact terminal and separate technical, visual and human outcomes."""
+    from .mcp_server import close_fidelity_campaign_scope
+
+    console.print_json(json.dumps(close_fidelity_campaign_scope(
+        delegation_id, sequence, session_id, experimental_opt_in=experimental_opt_in,
+    )))
+
+
+@app.command("fidelity-delegation-status")
+def fidelity_delegation_status(delegation_id: str) -> None:
+    """Read reserved capacity and verified outcomes without changing historical authority."""
+    from .autonomy_v2.delegation_service import get_fidelity_delegation_status
+
+    console.print_json(json.dumps(get_fidelity_delegation_status(delegation_id)))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     app()

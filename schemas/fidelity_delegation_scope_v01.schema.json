@@ -1,0 +1,481 @@
+{
+  "$defs": {
+    "ActivationArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one repository-contained activation artifact to exact immutable bytes.",
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "kind": {
+          "pattern": "^[a-z][a-z0-9_]{2,95}$",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_size": {
+          "exclusiveMinimum": 0,
+          "title": "Byte Size",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "kind",
+        "path",
+        "sha256",
+        "byte_size"
+      ],
+      "title": "ActivationArtifact",
+      "type": "object"
+    },
+    "DelegationCost": {
+      "additionalProperties": false,
+      "description": "Count reserved capacity separately from native actual use; capacity is never refunded.",
+      "properties": {
+        "candidates": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Candidates",
+          "type": "integer"
+        },
+        "preparation_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preparation Repairs",
+          "type": "integer"
+        },
+        "structural": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural",
+          "type": "integer"
+        },
+        "local": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Local",
+          "type": "integer"
+        },
+        "strategy_switches": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Strategy Switches",
+          "type": "integer"
+        },
+        "aq_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Aq Builds",
+          "type": "integer"
+        },
+        "closure_processes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Closure Processes",
+          "type": "integer"
+        },
+        "quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Quality Evaluations",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        },
+        "controller_invocations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Controller Invocations",
+          "type": "integer"
+        },
+        "delivery_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Delivery Runs",
+          "type": "integer"
+        },
+        "package_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Package Repairs",
+          "type": "integer"
+        },
+        "actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Actions",
+          "type": "integer"
+        }
+      },
+      "title": "DelegationCost",
+      "type": "object"
+    },
+    "FidelityBudgetEpochV01": {
+      "additionalProperties": false,
+      "description": "Freeze one additive allowance with exact history, object counts and route costs.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "contract_kind": {
+          "const": "fidelity_budget_epoch",
+          "default": "fidelity_budget_epoch",
+          "title": "Contract Kind",
+          "type": "string"
+        },
+        "profile_status": {
+          "const": "disabled_experimental",
+          "default": "disabled_experimental",
+          "title": "Profile Status",
+          "type": "string"
+        },
+        "epoch_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Epoch Id",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "reference_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Sha256",
+          "type": "string"
+        },
+        "prior_history": {
+          "items": {
+            "$ref": "#/$defs/FidelityHistoryEntryV01"
+          },
+          "title": "Prior History",
+          "type": "array"
+        },
+        "prior_usage": {
+          "$ref": "#/$defs/FidelityLifetimeUsageV01"
+        },
+        "initial_object_limit": {
+          "maximum": 48,
+          "minimum": 1,
+          "title": "Initial Object Limit",
+          "type": "integer"
+        },
+        "correction_object_limit": {
+          "maximum": 48,
+          "minimum": 1,
+          "title": "Correction Object Limit",
+          "type": "integer"
+        },
+        "structural_rounds": {
+          "default": 3,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Structural Rounds",
+          "type": "integer"
+        },
+        "parametric_rounds": {
+          "default": 0,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Parametric Rounds",
+          "type": "integer"
+        },
+        "material_corrections": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Material Corrections",
+          "type": "integer"
+        },
+        "strategy_switch_limit": {
+          "const": 1,
+          "default": 1,
+          "title": "Strategy Switch Limit",
+          "type": "integer"
+        },
+        "same_input_technical_retries": {
+          "const": 1,
+          "default": 1,
+          "title": "Same Input Technical Retries",
+          "type": "integer"
+        },
+        "human_approval_authority": {
+          "const": false,
+          "default": false,
+          "title": "Human Approval Authority",
+          "type": "boolean"
+        },
+        "historical_budget_mutation": {
+          "const": false,
+          "default": false,
+          "title": "Historical Budget Mutation",
+          "type": "boolean"
+        },
+        "destination_write": {
+          "const": false,
+          "default": false,
+          "title": "Destination Write",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "epoch_id",
+        "job_id",
+        "reference_sha256",
+        "prior_history",
+        "prior_usage",
+        "initial_object_limit",
+        "correction_object_limit"
+      ],
+      "title": "FidelityBudgetEpochV01",
+      "type": "object"
+    },
+    "FidelityHistoryEntryV01": {
+      "additionalProperties": false,
+      "description": "Bind the full session JSON inventory and validated counters without reopening it.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "session_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "session_evidence_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Session Evidence Sha256",
+          "type": "string"
+        },
+        "last_state_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Last State Sha256",
+          "type": "string"
+        },
+        "budget_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Budget Sha256",
+          "type": "string"
+        },
+        "status": {
+          "minLength": 1,
+          "title": "Status",
+          "type": "string"
+        },
+        "next_action": {
+          "minLength": 1,
+          "title": "Next Action",
+          "type": "string"
+        },
+        "funded_epoch": {
+          "title": "Funded Epoch",
+          "type": "boolean"
+        },
+        "epoch_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Epoch Id"
+        },
+        "usage": {
+          "$ref": "#/$defs/FidelityLifetimeUsageV01"
+        }
+      },
+      "required": [
+        "job_id",
+        "session_id",
+        "session_evidence_sha256",
+        "last_state_sha256",
+        "budget_sha256",
+        "status",
+        "next_action",
+        "funded_epoch",
+        "usage"
+      ],
+      "title": "FidelityHistoryEntryV01",
+      "type": "object"
+    },
+    "FidelityLifetimeUsageV01": {
+      "additionalProperties": false,
+      "description": "Keep observed or already reserved work visible across reference-identical sessions.",
+      "properties": {
+        "structural": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Structural",
+          "type": "integer"
+        },
+        "local": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Local",
+          "type": "integer"
+        },
+        "strategy_switches": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Strategy Switches",
+          "type": "integer"
+        },
+        "blender_builds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Blender Builds",
+          "type": "integer"
+        },
+        "preflight_blender_runs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preflight Blender Runs",
+          "type": "integer"
+        },
+        "quality_evaluations": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Quality Evaluations",
+          "type": "integer"
+        },
+        "promotions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Promotions",
+          "type": "integer"
+        }
+      },
+      "title": "FidelityLifetimeUsageV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Host-issued single-candidate scope with a nonrefundable aggregate reservation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "decision": {
+      "$ref": "#/$defs/ActivationArtifact"
+    },
+    "sequence": {
+      "minimum": 1,
+      "title": "Sequence",
+      "type": "integer"
+    },
+    "previous": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActivationArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "asset_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Asset Id",
+      "type": "string"
+    },
+    "slot_index": {
+      "maximum": 3,
+      "minimum": 0,
+      "title": "Slot Index",
+      "type": "integer"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "strategy": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Strategy",
+      "type": "string"
+    },
+    "strategy_switch_reserved_on_entry": {
+      "default": false,
+      "title": "Strategy Switch Reserved On Entry",
+      "type": "boolean"
+    },
+    "funding": {
+      "$ref": "#/$defs/FidelityBudgetEpochV01"
+    },
+    "reserved_before": {
+      "$ref": "#/$defs/DelegationCost"
+    },
+    "reserved_after": {
+      "$ref": "#/$defs/DelegationCost"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "authority": {
+      "const": "host_campaign_policy",
+      "default": "host_campaign_policy",
+      "title": "Authority",
+      "type": "string"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    },
+    "human_quality_disposition": {
+      "const": "not_recorded",
+      "default": "not_recorded",
+      "title": "Human Quality Disposition",
+      "type": "string"
+    }
+  },
+  "required": [
+    "contract",
+    "decision",
+    "sequence",
+    "previous",
+    "asset_id",
+    "slot_index",
+    "job_id",
+    "strategy",
+    "funding",
+    "reserved_before",
+    "reserved_after",
+    "created_at"
+  ],
+  "title": "DelegationScopeV01",
+  "type": "object"
+}

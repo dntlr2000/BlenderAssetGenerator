@@ -79,6 +79,9 @@ FOCUSED_TESTS=(
   tests/test_quality_revision_flow.py
   tests/test_fidelity_budget_epoch.py
   tests/test_fidelity_budget_flow.py
+  tests/test_fidelity_campaign_delegation.py
+  tests/test_fidelity_delegation_public.py
+  tests/test_fidelity_delegation_blender.py
   tests/test_aq_candidate_budget_preflight.py
   tests/test_aq_geometry_preflight.py
   tests/test_aq_triangle_shell.py
@@ -245,6 +248,7 @@ if [[ "$RUN_BLENDER" -eq 1 ]]; then
       tests/test_aq_triangle_shell_blender.py \
       tests/test_reference_fidelity_geometry_blender.py \
       tests/test_reference_fidelity_aq_blender_vertical.py \
+      tests/test_fidelity_delegation_blender.py \
       tests/test_aq_structural_closure_blender.py \
       tests/test_geometry_intent_v02_reachability.py \
       tests/test_material_graph_runtime.py::test_material_graph_compiles_reopens_and_inventories_in_blender_5 \

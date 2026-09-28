@@ -57,6 +57,7 @@ from .controller_bridge import (
     cancel_autonomy_v2,
     get_autonomy_v2_status,
 )
+from .delegation_models import DelegationBindingV01
 from .fidelity_budget_models import FidelityBudgetEpochV01
 from .human_quality_review_service import validate_human_quality_review_bundle_v2
 from .models import AQV2Artifact, AutonomyStateV2
@@ -960,9 +961,10 @@ def plan_one_prompt_run(
     destination_hint: str = "engine_neutral",
     initial_budget_limits: dict[str, int] | None = None,
     fidelity_budget_plan: FidelityBudgetEpochV01 | None = None,
+    delegation_binding: DelegationBindingV01 | None = None,
     allow_disabled_experimental: bool = False,
 ) -> dict[str, object]:
-    """Create the base AQ session, exact envelope, and one-prompt supervisor plan."""
+    """Create a bounded One-Prompt session, optionally under exact campaign policy authority."""
 
     if not allow_disabled_experimental:
         raise PermissionError("AQ one-prompt supervisor remains disabled_experimental")
@@ -973,6 +975,11 @@ def plan_one_prompt_run(
             "autonomous and checkpointed one-prompt modes require explicit delegation"
         )
     exact_request = str(request)
+    if delegation_binding is not None and (
+        approval_mode != "autonomous" or allowed_provider_scopes not in (None, ["local_only"])
+        or controller_execution_mode != "desktop_in_session"
+    ):
+        raise PermissionError("delegated session requires local autonomous current-task execution")
     base = plan_autonomous_static_prop_v2(
         exact_request,
         reference_path=reference_path,
@@ -983,6 +990,7 @@ def plan_one_prompt_run(
         destination_hint=destination_hint,
         initial_budget_limits=initial_budget_limits,
         fidelity_budget_plan=fidelity_budget_plan,
+        delegation_binding=delegation_binding,
         allow_disabled_experimental=True,
     )
     created_job_id = str(base["job_id"])

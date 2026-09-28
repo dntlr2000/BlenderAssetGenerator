@@ -27,3 +27,15 @@ V0.4 retains the same V0.3 funded budgets and adds only an exact `camera_studio_
 When status includes `reference_fidelity`, inspect the exact reference and seven actual passes. Submit a `VisualFindingSetV01` with observation coverage and a matching IQ submission through `submit_aq_quality_attempt`. Do not let an empty assessment or high silhouette/detail score substitute for this step. Dispatch `begin_aq_quality_reentry` only for the host-selected structural, scalar, or material route and a cost that covers materialization, build, closure, QA and promotion. Then continue the same controller assignment/policy path. Evidence/calibration/technical holds are not requests for beauty approval.
 
 The host publishes a non-production fidelity review terminal on bounded plateau/exhaustion; IQ and human disposition retain their separate meanings. Never reopen a historical terminal. Do not claim completion until actual before/after evidence resolves the major structural defects. Human beauty, exact package acceptance, destination write and Activation remain separate boundaries.
+
+## Optional finite campaign delegation
+
+When the user has approved an exact `FidelityCampaignDelegationV01`, use
+`fidelity-delegation-scope/prepare/start/close` or their MCP counterparts. The host
+issues successor scopes and binds `AutonomyBudgetV04`; do not ask again for a scope or
+routine candidate/promotion/package action inside that parent. Keep existing per-action
+policy eligibility/authorization/receipts and the exact funded V0.4 quality loop.
+Unapproved, absent, stale, changed or exhausted parent authority fails closed. Preserve
+all old consumption and terminal evidence; never infer human beauty, package or
+Activation acceptance from automatic policy. Source/reference/budget expansion requires
+a new concrete parent mandate. See `docs/fidelity_campaign_delegation.md`.

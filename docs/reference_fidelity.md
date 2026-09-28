@@ -423,3 +423,18 @@ quality나 human acceptance가 아니다.
 AQ/Blender v4 gate 뒤 추가한 implementation 및 Blender environment binding은 focused `13 passed`와
 최신 full host에서 검증했다. 실행 코드, lock 입력, Blender binary/version이 달라지면 exact preview
 reservation 전에 거절되며, 이는 기존 Blender smoke를 새 reference-quality 증거로 재분류하지 않는다.
+
+### 유한 캠페인 사전 위임 (2026-09-28)
+
+사용자가 반복 scope 승인을 사전 위임으로 바꾸도록 명시했다. 선택적
+`FidelityCampaignDelegationV01`의 exact hash를 한 번 확정한 뒤, 승인된 후보 수·
+자산별 구조 3/local 2/전략 교체 1 한도·전체 비용 안의 후속 scope, 데이터 준비·수정,
+렌더·QA·promotion·portable package 생성·clean import는 host policy로 자동 처리한다.
+후속 scope마다 사용자 승인을 다시 요청하지 않는다. `AutonomyBudgetV04`가 이 부모
+예약을 native AQ budget에 결속한다. 과거 V0.3 계약·소비·증거는 수정하지 않는다.
+
+[계약 및 실제 검증 경로](fidelity_campaign_delegation.md)에 예약, crash/resume,
+동일 reference 이름 변경 우회 차단, 고정 관찰, canary와 인간 판정 분리 규칙을 명시한다.
+source가 바뀌면 새 baseline을 사용하며 과거 성공을 새 캠페인의 성공으로 재분류하지 않는다.
+이 절은 사전 위임을 선택한 새 작업에 적용한다. 위의 날짜별 기존 exact scope 승인 기록과
+legacy 승인 경로는 그 당시 의미를 그대로 보존한다.

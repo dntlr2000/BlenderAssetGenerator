@@ -301,6 +301,8 @@ def _validate_state_terminal_evidence(
 def _session_bundle(
     job_id: str,
     session_id: str,
+    *,
+    validate_delegation: bool = True,
 ) -> tuple[
     Path,
     Path,
@@ -309,7 +311,7 @@ def _session_bundle(
     AutonomyStateV2,
     AQV2Artifact,
 ]:
-    """Load the exact plan, budget, and current state for one AQ v2 session."""
+    """Load exact session evidence and revalidate campaign authority only for active execution."""
 
     root = job_dir(job_id)
     session_root = ensure_contained_production_path(
@@ -364,8 +366,11 @@ def _session_bundle(
         raise ValueError("AQ v2 state budget usage exceeds its immutable authorization")
     _validate_state_terminal_evidence(root, state)
     if isinstance(budget, AutonomyBudgetV03) and state.next_action != "none":
+        from .delegation_service import validate_delegated_budget
         from .fidelity_budget_service import validate_fidelity_epoch_history
 
+        if validate_delegation:
+            validate_delegated_budget(root, budget)
         validate_fidelity_epoch_history(budget.funding, active_session=(job_id, session_id))
     return root, session_root, plan, budget, state, state_artifact
 
@@ -375,7 +380,7 @@ def _validate_controller_authority(
     plan: AutonomyPlanV2,
     budget: AutonomyBudgetV2,
 ) -> None:
-    """Recompute the exact active authorization, profile, budget, and plan bindings."""
+    """Recompute native authority and the optional campaign-bound budget fingerprint."""
 
     if isinstance(budget, AutonomyBudgetV03):
         from .fidelity_budget_service import require_funded_loop
@@ -464,6 +469,10 @@ def _validate_controller_authority(
     }
     if isinstance(budget, AutonomyBudgetV03):
         budget_inputs["fidelity_funding"] = budget.funding.digest()
+    from .models import AutonomyBudgetV04
+
+    if isinstance(budget, AutonomyBudgetV04):
+        budget_inputs["campaign_delegation"] = budget.delegation.model_dump(mode="json")
     expected_budget_provenance = [
         plan.production_dispatch_plan,
         authorization.quality_profile,
@@ -1891,7 +1900,7 @@ def cancel_autonomy_v2(
     *,
     reason: str,
 ) -> dict[str, object]:
-    """Cancel future v2 actions under the session lock without deleting any evidence."""
+    """Cancel future actions, including stale parent authority, without deleting any evidence."""
 
     normalized_reason = reason.strip()
     if not normalized_reason:
@@ -1899,6 +1908,7 @@ def cancel_autonomy_v2(
     root, session_root, _plan, _budget, _state, _artifact = _session_bundle(
         job_id,
         session_id,
+        validate_delegation=False,
     )
     with autonomy_session_lock(
         root,
@@ -1909,6 +1919,7 @@ def cancel_autonomy_v2(
         root, session_root, plan, _budget, state, state_artifact = _session_bundle(
             job_id,
             session_id,
+            validate_delegation=False,
         )
         if state.next_action == "none":
             raise PermissionError("terminal AQ v2 session cannot be cancelled again")

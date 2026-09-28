@@ -36,3 +36,12 @@ only the V0.7 planning route and does not replace optimization or final-package 
 `needs_revision` selects only the remaining guarded budget or a safe terminal.
 
 Primary rules: CBM-INV-020..024, CBM-INV-037, CBM-INV-047..052, CBM-INV-055..058, CBM-INV-064, CBM-INV-068, CBM-INV-074, CBM-INV-078..081, CBM-INV-101..112, CBM-INV-135..145, CBM-INV-148, CBM-INV-151..156, CBM-INV-157..179, CBM-INV-184, CBM-INV-187.
+
+## Explicit finite campaign mandate
+
+For explicitly delegated reference-fidelity campaigns, use the additive
+[FidelityCampaignDelegationV01 host path](../fidelity_campaign_delegation.md). One exact
+parent confirmation permits bounded successor scopes and routine AQ policy actions
+without per-scope user questions. Every future promotion/optimization/package gate
+still has exact single-use host policy authority; it is never human acceptance.
+Legacy specialized approval paths and immutable histories retain their meaning.

@@ -1442,3 +1442,12 @@ controller sandbox/tool-policy attestation은 future `client_mediated` capabilit
 그 한계를 local desktop base success count를 막는 필수 blocker로 사용하지 않습니다.
 
 현재 프로젝트, Stabilization과 Destination Handoff contract의 최상위는 `0.9.0`이며 Workflow contract는 `0.8.0`으로 유지됩니다. 선택적 AQ/Integrated Quality와 companion 계약 `0.1.0`, 비활성 실험 AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt `0.1.0`, Codex Built-in ImageGen core `0.1.0`/MaterialAuthoring companion `0.2.1`/additive Material Loop `0.1.0`, Material Closure Stabilization `0.1.0`, Material Identity Split `0.1.0`, derived-only SceneSpec V03 `0.3.0`의 존재는 프로젝트 버전 승격이 아닙니다. V0.9와 각 companion 지원 표시는 실제 검증 기록 범위에 한정되며 V1.0 승격은 중단 상태입니다.
+
+### 2026-09-28: reference-fidelity 유한 사전 위임 전환
+
+반복 exact scope 승인을 선택적 부모 위임 계약 한 번으로 대체한다. 계약·host 검증·회귀를
+완성하고 새 clean source/baseline 및 구체적인 추가 후보·수정·전체 실행 예산을 제시한 뒤
+부모 hash의 확정을 받는다. 범위 안의 후속 scope와 루틴 실행은 자동 policy이며 인간 수용이
+아니다. 기존 캠페인 결과·소비·approval은 유지하며 새 baseline 성공으로 승계하지 않는다.
+5/5 실제 paired 개선과 별도 인간 판정이라는 최종 목표는 유지한다.
+[계약 규칙](docs/fidelity_campaign_delegation.md)을 따른다.

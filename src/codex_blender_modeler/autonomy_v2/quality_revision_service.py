@@ -246,7 +246,7 @@ def load_optional_loop(
 
 
 def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) -> FidelityArtifact:
-    """Bind new-loop authority before the first geometry candidate; never reopen a terminal."""
+    """Bind the exact loop and delegated observation criteria before any initial candidate."""
 
     from .approval_policy_service import _load_approval_boundary
     from .controller_bridge import _session_bundle
@@ -334,6 +334,9 @@ def bind_quality_revision_loop(job_id: str, session_id: str, plan_path: Path) ->
             or hypothesis.reference.sha256 != authorization.primary_reference.sha256
         ):
             raise ValueError("hypothesis differs from the authorized reference")
+        from .delegation_service import validate_delegated_budget
+
+        validate_delegated_budget(root, budget, loop=loop, hypothesis=hypothesis)
         return publish(root, _fidelity_root(root, session_id) / "plan.json", loop)
 
 
@@ -989,7 +992,7 @@ def _render_reservations(
 def quality_revision_boundary(
     root: Path, plan: AutonomyPlanV2, state: AutonomyStateV2
 ) -> dict[str, object] | None:
-    """Block legacy terminal publication until the current exact visual attempt is satisfied."""
+    """Require exact visual satisfaction and enforce native plus delegated plateau limits."""
 
     binding = load_optional_loop(root, plan.session_id)
     if binding is None:
@@ -1033,13 +1036,19 @@ def quality_revision_boundary(
     # A crash-surviving next reservation is adopted by begin_reentry, not charged twice.
     completed = entries[:current_round]
     last = completed[-1][0] if completed else None
+    from .delegation_service import delegated_attempt_history, delegated_switch_offset
+
+    budget = parse_autonomy_budget(
+        read_artifact(root, FidelityArtifact(path=plan.budget.path, sha256=plan.budget.sha256))
+    )
+    switch_offset = delegated_switch_offset(budget)
     route, reason = select_revision_route(
         routed_evaluation,
-        [item[0] for item in attempts],
+        delegated_attempt_history(budget, [item[0] for item in attempts]),
         loop=loop,
         structural_used=last.structural_used if last else 0,
         local_used=last.local_used if last else 0,
-        strategy_switches_used=last.strategy_switches_used if last else 0,
+        strategy_switches_used=(last.strategy_switches_used if last else 0) + switch_offset,
     )
     if route in {"structural_reentry", "parametric_revision", "material_revision"}:
         from ..models import SceneSpec
@@ -1124,7 +1133,7 @@ def begin_quality_reentry(
     cost: RevisionCostV01,
     required_route: str | None = None,
 ) -> dict[str, object]:
-    """Reserve the diagnosed structural/scalar/material route before returning to its controller."""
+    """Reserve the diagnosed route and campaign strategy cost before controller reentry."""
 
     from .controller_bridge import _session_bundle
     from .delivery_service import artifact_for_v2
@@ -1266,6 +1275,13 @@ def begin_quality_reentry(
         )
         completed_entries = previous_entries[: attempt.round_index]
         previous, previous_artifact = completed_entries[-1] if completed_entries else (None, None)
+        from .delegation_service import validate_delegated_strategy
+
+        validate_delegated_strategy(
+            budget, [item[0] for item in attempts], strategy=strategy,
+            reserved_switches=(previous.strategy_switches_used if previous else 0)
+            + int(strategy_changed),
+        )
         reentry_path = base / "reentries" / f"{reentry.round_index:04d}.json"
         # Run pure limits before copying even a potentially large Blender snapshot.
         # The provisional hash is never published or used as execution authority.
