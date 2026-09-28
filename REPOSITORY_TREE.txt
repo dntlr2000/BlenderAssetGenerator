@@ -1163,6 +1163,7 @@ BlenderAssetGenerator/
   tests/test_fidelity_budget_flow.py
   tests/test_fidelity_campaign_delegation.py
   tests/test_fidelity_delegation_blender.py
+  tests/test_fidelity_delegation_lineage.py
   tests/test_fidelity_delegation_public.py
   tests/test_geometry_delivery_equivalence.py
   tests/test_geometry_intent_v02_reachability.py

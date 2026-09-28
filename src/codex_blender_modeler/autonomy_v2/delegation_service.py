@@ -222,31 +222,52 @@ def _history(contract: FidelityCampaignDelegationV01, scopes: list[DelegationSco
 
 
 def _validate_predecessor(contract: FidelityCampaignDelegationV01) -> None:
-    """Require an approved predecessor and retain all previously reserved capacity."""
-    if contract.supersedes is None:
-        return
-    previous = FidelityCampaignDelegationV01.model_validate_json(
-        _read(_workspace(), contract.supersedes)
-    )
-    parent, ref, decision = _load(previous.delegation_id, active=False)
-    if ref != contract.supersedes or {a.reference.sha256 for a in parent.assets} != {
-        a.reference.sha256 for a in contract.assets
-    }:
-        raise ValueError("successor must preserve its exact predecessor references")
-    scopes = _scopes(parent, ref, decision)
-    prior = parent.prior_delegated_reservations.plus(
-        scopes[-1].reserved_after if scopes else DelegationCost()
-    )
-    if contract.prior_delegated_reservations != prior:
-        raise ValueError("successor mandate cannot reset previously reserved capacity")
-    for asset in parent.assets:
-        observed = {item.job_id: item for item in read_fidelity_history(asset.reference.sha256)}
-        for scope in (item for item in scopes if item.asset_id == asset.asset_id):
-            entry = observed.get(scope.job_id)
-            if (entry is not None and entry.next_action != "none") or (
-                entry is None and (_workspace() / scope.job_id).exists()
-            ):
-                raise PermissionError("active delegated sessions must close before a new mandate")
+    """Require exact closed ancestry and retain every predecessor's reserved capacity."""
+    _predecessor_scopes(contract)
+
+
+def _predecessor_scopes(contract: FidelityCampaignDelegationV01) -> list[DelegationScopeV01]:
+    """Replay approved ancestry oldest first without resetting observations at a new parent."""
+    groups = []
+    seen = {contract.delegation_id}
+    jobs = set()
+    current = contract
+    while current.supersedes is not None:
+        previous = FidelityCampaignDelegationV01.model_validate_json(
+            _read(_workspace(), current.supersedes)
+        )
+        if previous.delegation_id in seen:
+            raise ValueError("delegation predecessor chain repeats an identity")
+        seen.add(previous.delegation_id)
+        parent, ref, decision = _load(previous.delegation_id, active=False)
+        if ref != current.supersedes or {a.reference.sha256 for a in parent.assets} != {
+            a.reference.sha256 for a in current.assets
+        }:
+            raise ValueError("successor must preserve its exact predecessor references")
+        scopes = _scopes(parent, ref, decision)
+        prior = parent.prior_delegated_reservations.plus(
+            scopes[-1].reserved_after if scopes else DelegationCost()
+        )
+        if current.prior_delegated_reservations != prior:
+            raise ValueError("successor mandate cannot reset previously reserved capacity")
+        closed = []
+        for scope in scopes:
+            if scope.job_id in jobs:
+                raise ValueError("delegation predecessor chain repeats a job")
+            jobs.add(scope.job_id)
+            outcome = _outcome(scope)
+            if outcome is None:
+                if (_workspace() / scope.job_id).exists():
+                    raise PermissionError(
+                        "active delegated sessions must close with an exact outcome "
+                        "before a new mandate"
+                    )
+                # A never-admitted reservation keeps its cost but supplies no observation.
+                continue
+            closed.append(scope)
+        groups.append(closed)
+        current = parent
+    return [scope for group in reversed(groups) for scope in group]
 
 
 def plan_fidelity_delegation(proposal: FidelityCampaignDelegationV01) -> dict[str, object]:
@@ -428,7 +449,7 @@ def _scope_binding(scope: DelegationScopeV01) -> DelegationBindingV01:
 
 
 def _bound_scope(binding: DelegationBindingV01, *, active: bool = True):
-    """Validate the exact parent, approval and full allocation chain before using a child scope."""
+    """Validate parent authority, ancestry and allocations before using an active child scope."""
     contract, artifact, decision = _load(binding.delegation_id, active=active)
     scopes = _scopes(contract, artifact, decision)
     if binding.scope_sequence > len(scopes) or artifact.sha256 != binding.contract_sha256:
@@ -437,6 +458,7 @@ def _bound_scope(binding: DelegationBindingV01, *, active: bool = True):
     if _scope_binding(scope) != binding:
         raise ValueError("delegation scope hash changed")
     if active:
+        _predecessor_scopes(contract)
         _history(contract, scopes)
     asset = next(a for a in contract.assets if a.asset_id == scope.asset_id)
     return contract, asset, scope, scopes
@@ -467,11 +489,12 @@ def _outcome(scope: DelegationScopeV01) -> DelegationOutcomeV01 | None:
 def issue_fidelity_scope(
     delegation_id: str, *, asset_id: str, job_id: str, strategy: str
 ) -> dict[str, object]:
-    """Reserve one successor scope automatically inside the once-approved finite mandate."""
+    """Reserve a bounded successor while retaining reference strategy history across parents."""
     with _guard():
         contract, artifact, decision = _load(delegation_id)
         scopes = _scopes(contract, artifact, decision)
         _history(contract, scopes)
+        predecessors = _predecessor_scopes(contract)
         for item in scopes:
             if item.job_id == job_id:
                 if (item.asset_id, item.strategy) != (asset_id, strategy):
@@ -496,9 +519,13 @@ def issue_fidelity_scope(
         if slot_index >= len(next_asset.slots):
             raise PermissionError("finite candidate budget exhausted; preserve best-known result")
         entry_switch = False
-        if prior_scopes:
+        strategy_scopes = [
+            item for item in predecessors
+            if item.funding.reference_sha256 == next_asset.reference.sha256
+        ] + prior_scopes
+        if strategy_scopes:
             entry_switch = _require_successor_strategy(
-                prior_scopes[-1],
+                strategy_scopes,
                 strategy,
                 next_asset,
                 slot_index,
@@ -740,15 +767,18 @@ def _verified_scope_attempts(scope: DelegationScopeV01) -> list:
 
 
 def delegated_attempt_history(budget, attempts: list) -> list:
-    """Join same-reference predecessor attempts so a session boundary cannot reset stagnation."""
+    """Join exact same-reference attempts across sessions and superseded parent mandates."""
     from .models import AutonomyBudgetV04
 
     if not isinstance(budget, AutonomyBudgetV04):
         return attempts
-    _contract, asset, scope, scopes = _bound_scope(budget.delegation, active=False)
+    contract, asset, scope, scopes = _bound_scope(budget.delegation, active=False)
     history = []
-    for previous in scopes:
-        if previous.sequence < scope.sequence and previous.asset_id == asset.asset_id:
+    previous_scopes = _predecessor_scopes(contract) + [
+        previous for previous in scopes if previous.sequence < scope.sequence
+    ]
+    for previous in previous_scopes:
+        if previous.funding.reference_sha256 == asset.reference.sha256:
             history.extend(_verified_scope_attempts(previous))
     return [*history, *attempts]
 
@@ -768,16 +798,15 @@ def delegated_switch_offset(budget) -> int:
 
 
 def _require_successor_strategy(
-    previous: DelegationScopeV01, strategy: str, asset: DelegationAsset, slot_index: int
+    scopes: list[DelegationScopeV01], strategy: str, asset: DelegationAsset, slot_index: int
 ) -> bool:
-    """Carry the last observed strategy and plateau across terminal sessions instead of renaming."""
+    """Charge strategy changes and reject inherited plateau, including a parent's first slot."""
     from .quality_revision_budget import require_strategy_change
-    _contract, _asset, _scope, scopes = _bound_scope(_scope_binding(previous), active=False)
+
     attempts = []
     for item in scopes:
-        if item.sequence <= previous.sequence and item.asset_id == asset.asset_id:
-            attempts.extend(_verified_scope_attempts(item))
-    last_strategy = attempts[-1].strategy if attempts else previous.strategy
+        attempts.extend(_verified_scope_attempts(item))
+    last_strategy = attempts[-1].strategy if attempts else scopes[-1].strategy
     changed = strategy != last_strategy
     if require_strategy_change(attempts) and not changed:
         raise PermissionError("successor cannot repeat the same stagnated defect strategy")

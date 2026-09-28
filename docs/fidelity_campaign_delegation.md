@@ -19,6 +19,12 @@ unchanged. Changed common source needs a new baseline and parent mandate.
 A replacement mandate names the exact previous contract in `supersedes` and carries
 forward all prior reserved capacity. The host requires its sessions to be terminal
 before approving the replacement. A new delegation ID does not clear consumption.
+The host also follows every approved predecessor, rehashes its closed scope outcomes,
+and joins observed attempts by reference SHA-256. Renaming a parent, asset or job cannot
+erase a plateau or the last observed strategy. A changed entry strategy consumes the new
+slot's explicit switch reserve, including the first slot of a replacement. A terminal
+session whose parent outcome is still missing must finish that exact closeout first.
+Never-admitted reservations retain their cost and contribute no invented observation.
 Separate material identity-split operations have a fixed allowance of zero because
 their additional shadow transactions are not priced by this contract.
 
