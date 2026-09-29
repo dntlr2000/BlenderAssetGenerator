@@ -25,6 +25,7 @@ from ..structural_geometry.models import (
     SweepGeometry,
 )
 from ..structural_geometry.service import materialize_structural_candidate
+from ..versioning import PROJECT_VERSION
 from .models import (
     BenchmarkCase,
     BenchmarkCaseResult,
@@ -197,7 +198,7 @@ def _run_topology_uv_failure(
         job_id="aq_benchmark",
         workflow_id="workflow-aq-benchmark",
         dispatch_id="dispatch-aq-benchmark",
-        project_version="0.9.0",
+        project_version=PROJECT_VERSION,
         inputs=[
             TopologyArtifact(
                 role="scene_spec",

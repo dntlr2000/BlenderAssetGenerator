@@ -66,6 +66,7 @@ BlenderAssetGenerator/
   GETTING_STARTED_V07_KO.md
   GETTING_STARTED_V08_KO.md
   GETTING_STARTED_V09_KO.md
+  HANDOFF_KO.md
   IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md
   INTERIOR_SCOPE_KO.md
   MATERIAL_AUTHORING_KO.md
@@ -134,6 +135,10 @@ BlenderAssetGenerator/
   docs/agent/workflow_reference.md
   docs/fidelity_campaign_delegation.md
   docs/reference_fidelity.md
+  docs/reference_fidelity_closeout/CHANGE_REVIEW_KO.md
+  docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md
+  docs/reference_fidelity_closeout/REASSESSMENT_KO.md
+  docs/reference_fidelity_closeout/VISUAL_EVIDENCE_KO.md
   docs/triangulated_shell.md
   examples/autonomous_quality_benchmarks/manifest.json
   examples/autonomous_quality_benchmarks_v02/manifest.json
@@ -1208,6 +1213,7 @@ BlenderAssetGenerator/
   tests/test_no_job_specific_framework_literals.py
   tests/test_normal_transfer_modifier.py
   tests/test_packaging_long_paths_aq.py
+  tests/test_patch_release_compatibility.py
   tests/test_pdf_reporting.py
   tests/test_procedural_pbr_provider.py
   tests/test_pytest_acl_safe_runner.py

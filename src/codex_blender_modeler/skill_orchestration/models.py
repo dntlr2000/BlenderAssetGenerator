@@ -102,7 +102,8 @@ class SkillRegistry(SkillStrictModel):
 
     schema_version: Literal["0.1.0"] = SCHEMA_VERSION
     registry_id: Literal["cbm-skill-registry"] = "cbm-skill-registry"
-    project_version: Literal["0.9.0"] = "0.9.0"
+    # Keep omitted-field legacy snapshots byte-stable during patch-release loading.
+    project_version: Literal["0.9.0", "0.9.1"] = "0.9.0"
     entry_skills: list[PortableId] = Field(min_length=2, max_length=2)
     skills: list[SkillDefinition] = Field(min_length=1)
 

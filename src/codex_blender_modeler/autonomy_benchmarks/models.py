@@ -42,7 +42,7 @@ class BenchmarkManifest(BenchmarkStrictModel):
 
     schema_version: Literal["0.1.0"] = "0.1.0"
     benchmark_id: str = Field(pattern=r"^[a-z0-9][a-z0-9_-]{0,63}$")
-    project_version: Literal["0.9.0"] = "0.9.0"
+    project_version: Literal["0.9.0", "0.9.1"] = "0.9.0"
     autonomy_contract_version: Literal["0.1.0"] = "0.1.0"
     cases: list[BenchmarkCase] = Field(min_length=7)
     limitations: list[str] = Field(min_length=1)

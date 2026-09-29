@@ -306,7 +306,7 @@ class BenchmarkManifestV02(BenchmarkV02StrictModel):
 
     schema_version: Literal["0.2.0"] = SCHEMA_VERSION
     benchmark_id: StableId
-    project_version: Literal["0.9.0"] = "0.9.0"
+    project_version: Literal["0.9.0", "0.9.1"] = "0.9.0"
     autonomy_contract_version: Literal["0.2.0"] = "0.2.0"
     external_downloads_allowed: Literal[False] = False
     human_review_status: HumanReviewStatusV02 = "not_reviewed"

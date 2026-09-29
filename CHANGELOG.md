@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.9.1 — 2026-09-30
+
+- Freeze the local reference-fidelity work after the user's closeout decision. Preserve the
+  existing geometry fixes, completed assets, unresolved findings, consumed budgets and evidence.
+- Set package and runtime metadata to 0.9.1. Accept explicit 0.9.0 and 0.9.1 producer metadata at
+  the existing material, activation, benchmark and skill-registry boundaries; retain historical
+  omitted-field defaults and all SceneSpec/V0.4–V0.9/AQ schema versions. No evidence migration.
+- Add project-local Korean handoff, reassessment and cleanup documentation. Keep exact original
+  reports, essential reproduction evidence and recoverable verification-clone source bundles.
+- No new campaign, reference-quality claim, human acceptance, profile activation or destination write.
+
+The following older development entries retain their original dates, versions and validation scope.
+
 ## Unreleased — AQ Approval Envelope 0.3 & One-Prompt Supervisor 0.1
 
 - Added strict additive `AutonomyApprovalEnvelope`, deterministic policy profile, separated approval

@@ -148,6 +148,8 @@ def _write_model(
 
 def _baseline_fixture(
     tmp_path: Path,
+    *,
+    project_version: str = "0.9.0",
 ) -> tuple[
     Path,
     ActivationSourceManifest,
@@ -215,7 +217,7 @@ def _baseline_fixture(
     )
     by_path = {item.path: item for item in records}
     source_payload: dict[str, Any] = {
-        "project_version": "0.9.0",
+        "project_version": project_version,
         "canonical_scenespec_version": "0.2.0",
         "git_commit_sha": "a" * 40,
         "git_tree_sha": "b" * 40,

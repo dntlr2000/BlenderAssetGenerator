@@ -209,7 +209,7 @@ def test_skill_capability_is_additive_and_non_authoritative() -> None:
     """Preserve project 0.9 while publishing traceability and disabled AQ semantics."""
 
     capability = mcp_server.get_modeling_capabilities()["skill_orchestration"]
-    assert PROJECT_VERSION == "0.9.0"
+    assert PROJECT_VERSION == "0.9.1"
     assert SKILL_ORCHESTRATION_SCHEMA_VERSION == "0.1.0"
     assert capability["contract_version"] == "0.1.0"
     assert capability["entry_skills"] == [

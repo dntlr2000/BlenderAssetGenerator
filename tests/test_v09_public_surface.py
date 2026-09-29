@@ -171,7 +171,7 @@ def test_v09_mcp_tools_are_explicitly_whitelisted() -> None:
 def test_v09_advances_project_only_and_preserves_workflow_contract() -> None:
     """Advance project stabilization without rewriting the V0.8 workflow contract."""
 
-    assert PROJECT_VERSION == "0.9.0"
+    assert PROJECT_VERSION == "0.9.1"
     assert STABILIZATION_SCHEMA_VERSION == "0.9.0"
     assert DESTINATION_HANDOFF_SCHEMA_VERSION == "0.9.0"
     assert WORKFLOW_SCHEMA_VERSION == "0.8.0"

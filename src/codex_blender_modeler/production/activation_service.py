@@ -30,6 +30,7 @@ from ..blender_artifacts import (
     stable_json_digest,
 )
 from ..production.validation import ensure_contained_production_path
+from ..versioning import PROJECT_VERSION
 from .activation_models import (
     ACTIVATION_CONTRACT_VERSION,
     ACTIVATION_PROFILE_ID,
@@ -502,7 +503,7 @@ def build_activation_source_manifest(
         by_path[path] for path in sorted(_CONTROLLER_PROMOTION_PATHS)
     ]
     payload: dict[str, Any] = {
-        "project_version": "0.9.0",
+        "project_version": PROJECT_VERSION,
         "canonical_scenespec_version": "0.2.0",
         "git_commit_sha": checkpoint["git_commit_sha"],
         "git_tree_sha": checkpoint["git_tree_sha"],

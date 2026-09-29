@@ -1,6 +1,6 @@
 """Central contract and project version constants."""
 
-PROJECT_VERSION = "0.9.0"
+PROJECT_VERSION = "0.9.1"
 SCENE_SPEC_VERSION = "0.2.0"
 REFERENCE_SCHEMA_VERSION = "0.4.0"
 CONSTRAINT_SCHEMA_VERSION = "0.4.0"

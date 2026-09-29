@@ -50,6 +50,7 @@ from ..texturing.models import (
     TextureManifest,
     TextureProvenance,
 )
+from ..versioning import PROJECT_VERSION
 from .codex_image_adapter import validate_codex_image_material_candidate
 from .codex_image_models import (
     CodexImageAuthoredMaterialManifestV021,
@@ -1695,7 +1696,7 @@ def _material_graph(
             job_id=request.job_id,
             workflow_id=request.workflow_id,
             dispatch_id=dispatch_id,
-            project_version="0.9.0",
+            project_version=PROJECT_VERSION,
             inputs=_deduplicate_graph_inputs([plan_output, *graph_inputs]),
         ),
         material_id=request.material_id,

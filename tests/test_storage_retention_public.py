@@ -44,5 +44,5 @@ def test_storage_retention_remains_cli_only_and_additive() -> None:
 
     tools = discover_mcp_server_tools(ROOT / "src/codex_blender_modeler/mcp_server.py")
     assert not any("storage_cleanup" in tool or "storage_inventory" in tool for tool in tools)
-    assert PROJECT_VERSION == "0.9.0"
+    assert PROJECT_VERSION == "0.9.1"
     assert STORAGE_RETENTION_SCHEMA_VERSION == "0.1.0"

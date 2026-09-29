@@ -22,6 +22,7 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -232,9 +233,10 @@ def build_repository_summary(
     catalog = _load_catalog_module(root)
     projection = catalog.repository_catalog_projection(root)
     verification = load_verification_summary(root, verification_summary_path)
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     return {
         "schema_version": "0.1.0",
-        "project_version": "0.9.0",
+        "project_version": project["version"],
         "hash_policy": {
             "path_source": "git_index_stage_zero",
             "payload_source": "git_blob",

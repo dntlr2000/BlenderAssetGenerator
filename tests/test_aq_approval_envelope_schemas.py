@@ -105,9 +105,9 @@ def test_schema_generator_registers_exact_approval_model_identities() -> None:
 
 
 def test_companion_versions_do_not_bump_project_or_scene_spec() -> None:
-    """Keep project 0.9.0 and canonical SceneSpec 0.2.0 unchanged."""
+    """Keep companion and canonical versions independent of the project patch release."""
 
-    assert PROJECT_VERSION == "0.9.0"
+    assert PROJECT_VERSION == "0.9.1"
     assert SCENE_SPEC_VERSION == "0.2.0"
     assert AUTONOMY_APPROVAL_ENVELOPE_SCHEMA_VERSION == "0.3.0"
     assert AUTONOMY_ONE_PROMPT_SCHEMA_VERSION == "0.1.0"

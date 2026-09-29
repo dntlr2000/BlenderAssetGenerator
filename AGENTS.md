@@ -1,4 +1,4 @@
-# Codex Blender Modeler v0.9.0 — Repository Instructions
+# Codex Blender Modeler v0.9.1 — Repository Instructions
 
 ## Mission
 
@@ -17,7 +17,7 @@ Turn references, measured evidence, and user feedback into reproducible Blender 
 <!-- RULE_POLICY project_skill=explicit_user_opt_in -->
 <!-- RULE_POLICY user_changes=preserve -->
 <!-- RULE_POLICY source_rollback=codex_owned -->
-<!-- RULE_POLICY project_version=0.9.0 -->
+<!-- RULE_POLICY project_version=0.9.1 -->
 <!-- RULE_POLICY canonical_scenespec=0.2.0 -->
 
 ## Absolute safety sentinels
@@ -42,7 +42,7 @@ Turn references, measured evidence, and user feedback into reproducible Blender 
 
 ## Version and compatibility baseline
 
-Project remains 0.9.0. Canonical geometry remains SceneSpec 0.2.0. SceneSpec V03 0.3.0 is derived-only. Approval Envelope 0.3.0 and One-Prompt 0.1.0 are additive disabled-experimental companions over unchanged AQ v2 0.2.0. Existing Reference/Constraint 0.4.0, Material/Shader/Texture 0.5.0, Visual QA 0.6.0, Portable Asset 0.7.0, Workflow 0.8.0, Stabilization/Handoff 0.9.0, standard, background_exterior, external intake, AQ 0.1, and autonomous_static_prop_v1 evidence remain readable and retain their original meaning.
+Project is 0.9.1. Canonical geometry remains SceneSpec 0.2.0. SceneSpec V03 0.3.0 is derived-only. Approval Envelope 0.3.0 and One-Prompt 0.1.0 are additive disabled-experimental companions over unchanged AQ v2 0.2.0. Existing Reference/Constraint 0.4.0, Material/Shader/Texture 0.5.0, Visual QA 0.6.0, Portable Asset 0.7.0, Workflow 0.8.0, Stabilization/Handoff 0.9.0, standard, background_exterior, external intake, AQ 0.1, and autonomous_static_prop_v1 evidence remain readable and retain their original meaning.
 
 New companion versions and profiles are additive and selected by exact schema_version plus profile/session binding. Unknown combinations are never guessed. Existing blocked, failed, cancelled, or completed evidence is never rewritten or retroactively reclassified.
 

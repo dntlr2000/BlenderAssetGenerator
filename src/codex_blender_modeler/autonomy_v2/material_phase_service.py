@@ -1365,7 +1365,7 @@ def _validate_graph_binding(
     scene: SceneSpec,
     scene_sha256: str,
 ) -> None:
-    """Bind MaterialGraphSpec identity, material, scope, and dependencies exactly."""
+    """Bind graph identity and dependencies, accepting the compatible 0.9 patch releases."""
 
     graph = bundle.material_graph
     plan = bundle.material_plan
@@ -1373,7 +1373,7 @@ def _validate_graph_binding(
         graph.provenance.job_id != bundle.result.job_id
         or graph.provenance.workflow_id != bundle.result.workflow_id
         or graph.provenance.dispatch_id != bundle.result.dispatch_id
-        or graph.provenance.project_version != "0.9.0"
+        or graph.provenance.project_version not in {"0.9.0", "0.9.1"}
     ):
         raise MaterialPhaseError("MaterialGraphSpec identity differs from the AQ session")
     scene_material_ids = {item.id for item in scene.materials}

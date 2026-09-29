@@ -10,11 +10,13 @@ from pydantic import Field, model_validator
 
 from ..blender_artifacts import stable_json_digest
 from ..stabilization.models import PortableId, RelativePath, Sha256, V09StrictModel
+from ..versioning import PROJECT_VERSION as PROJECT_VERSION
 
 ACTIVATION_CONTRACT_VERSION = "0.1.0"
 ACTIVATION_PROFILE_ID = "autonomous_static_prop_v2"
 ACTIVATION_PROFILE_VERSION = "0.2.0"
-PROJECT_VERSION = "0.9.0"
+# Preserve the historical default when loading a manifest that omitted this field.
+LEGACY_PROJECT_VERSION = "0.9.0"
 CANONICAL_SCENESPEC_VERSION = "0.2.0"
 
 GitSha = Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
@@ -191,7 +193,7 @@ class ActivationSourceManifest(V09StrictModel):
     contract_status: Literal["disabled_experimental"] = "disabled_experimental"
     manifest_id: PortableId
     manifest_sha256: Sha256
-    project_version: Literal["0.9.0"] = PROJECT_VERSION
+    project_version: Literal["0.9.0", "0.9.1"] = LEGACY_PROJECT_VERSION
     canonical_scenespec_version: Literal["0.2.0"] = CANONICAL_SCENESPEC_VERSION
     git_commit_sha: GitSha
     git_tree_sha: GitSha

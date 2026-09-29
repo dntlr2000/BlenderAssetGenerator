@@ -501,6 +501,7 @@ def _controller_result_bundle(
     profile: PhaseToolProfile,
     profile_controller_artifact: ControllerArtifact,
     graph_extra: dict[str, object] | None = None,
+    project_version: str = "0.9.0",
 ) -> AQV2Artifact:
     """Execute the real isolated controller around strict material output payloads."""
 
@@ -542,7 +543,7 @@ def _controller_result_bundle(
             job_id=job_id,
             workflow_id=workflow_id,
             dispatch_id=dispatch_id,
-            project_version="0.9.0",
+            project_version=project_version,
             inputs=[
                 MaterialGraphArtifact(
                     role="material_plan",
@@ -683,6 +684,7 @@ def _fixture(
     graph_extra: dict[str, object] | None = None,
     material_rounds: int = 2,
     execution_scoped: bool = False,
+    project_version: str = "0.9.0",
 ) -> tuple[
     Path,
     AutonomyPlanV2,
@@ -754,6 +756,7 @@ def _fixture(
         profile=profile,
         profile_controller_artifact=profile_controller,
         graph_extra=graph_extra,
+        project_version=project_version,
     )
     state = state.model_copy(update={"provenance": [*state.provenance, result]})
     import codex_blender_modeler.autonomy_v2.material_phase_service as service
@@ -789,13 +792,17 @@ def _fixture(
     return root, plan, budget, state, result, baseline_sha
 
 
+@pytest.mark.parametrize("project_version", ["0.9.0", "0.9.1"])
 def test_material_phase_promotes_only_after_compile_and_rebuild(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
+    project_version: str,
 ) -> None:
     """Promote an exact plan and retain compile, archive, and fresh build evidence."""
 
-    root, plan, budget, state, result, baseline_sha = _fixture(tmp_path, monkeypatch)
+    root, plan, budget, state, result, baseline_sha = _fixture(
+        tmp_path, monkeypatch, project_version=project_version
+    )
     receipt, artifact = validate_and_promote_material_controller_result_v2(
         root,
         plan,
@@ -1007,6 +1014,19 @@ def test_supervisor_material_boundary_transitions_to_integrated_quality(
     assert next_state.budget_usage.canonical_promotions == 1
     assert next_state.provenance[-1].kind == "material_phase_receipt"
     assert captured["authorized_profile_artifact"] is not None
+
+
+def test_material_phase_rejects_unknown_project_release_before_write(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Reject an unrecognized producer release without altering the canonical material."""
+    root, plan, budget, state, result, baseline_sha = _fixture(
+        tmp_path, monkeypatch, project_version="0.9.2"
+    )
+    with pytest.raises(MaterialPhaseError, match="identity differs"):
+        validate_and_promote_material_controller_result_v2(root, plan, budget, state, result)
+    assert sha256_file(root / "analysis" / "material_plan.json") == baseline_sha
 
 
 def test_material_phase_rejects_unknown_graph_before_canonical_write(

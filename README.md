@@ -1,6 +1,8 @@
-# BlenderAssetGenerator V0.9.0
+# BlenderAssetGenerator V0.9.1
 
-레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.0` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt Supervisor `0.1.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`과 Material Identity Split `0.1.0`은 기존 사용자 승인 경로를 보존하면서, 새 envelope session에서 exact non-user policy authority를 별도 adapter로 받을 수 있는 기반 capability입니다.
+Reference-fidelity 장기 개선 작업은 사용자 선택 A안으로 종료했습니다. 현재 버전과 중단 위치·성과·재개 조건은 [HANDOFF_KO.md](HANDOFF_KO.md), 임시 산출물 정리 결과는 [CLEANUP_RESULT_KO.md](docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md)를 참조하세요. v0.9.1은 종료 시점의 코드와 호환성을 고정한 릴리스이며 AQ v2 Activation 또는 5자산 시각 성공 선언이 아닙니다.
+
+레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.1` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt Supervisor `0.1.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`과 Material Identity Split `0.1.0`은 기존 사용자 승인 경로를 보존하면서, 새 envelope session에서 exact non-user policy authority를 별도 adapter로 받을 수 있는 기반 capability입니다.
 
 > 설계 원본은 `.blend`가 아니라 `workspaces/<job>/` 아래의 immutable 입력과 versioned JSON 계약입니다. `.blend`, 렌더, PDF, 최적화 장면과 export package는 검증 가능한 파생 산출물입니다.
 
@@ -8,7 +10,7 @@
 
 | 항목 | 현재 계약 또는 상태 |
 |---|---|
-| 프로젝트 | `0.9.0` |
+| 프로젝트 | `0.9.1` |
 | Geometry SceneSpec | `0.2.0` |
 | Reference / Constraint | `0.4.0` |
 | Optional InteriorScope | `0.1.0` |
@@ -1218,7 +1220,7 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Experimental delivery roles: portable_fbx, review_only
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
-- Skill registry SHA-256: 36eacd2d747a7c27ba06fdf67c51160dd63163141882a91ecf0b0b5c6a73dafe
+- Skill registry SHA-256: bb99243f8653a5518723f5b99bf0494106eeb808c0b531c3723beb82183b0362
 - CLI commands: 202
 - CLI registry SHA-256: b780c207809e31d4c5f928b25e7afae443d3c72892e1a8f75968d5d764fa0e45
 - MCP server tools: 187

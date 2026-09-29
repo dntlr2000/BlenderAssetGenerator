@@ -12,4 +12,4 @@
 
 <!-- RULE_POLICY project_skill=explicit_user_opt_in -->
 <!-- RULE_POLICY user_changes=preserve -->
-<!-- RULE_POLICY project_version=0.9.0 -->
+<!-- RULE_POLICY project_version=0.9.1 -->

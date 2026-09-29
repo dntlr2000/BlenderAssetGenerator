@@ -23,6 +23,7 @@ from ..materials.models import (
     ShaderRecipe,
     SurfaceSpec,
 )
+from ..versioning import PROJECT_VERSION
 from ..workspace import SUBDIRS, job_dir, metadata_path, sha256_file, validate_new_job_id
 from .models import (
     ExternalAssetIntakeApproval,
@@ -624,7 +625,7 @@ def plan_external_static_asset_intake(
             "job_id": job_id,
             "job_kind": "external_static_asset",
             "mode": "external_static_asset",
-            "project_version_created": "0.9.0",
+            "project_version_created": PROJECT_VERSION,
             "created_at": _utc_now().isoformat(),
             "updated_at": _utc_now().isoformat(),
             "sources": [

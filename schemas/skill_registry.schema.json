@@ -107,8 +107,11 @@
       "type": "string"
     },
     "project_version": {
-      "const": "0.9.0",
       "default": "0.9.0",
+      "enum": [
+        "0.9.0",
+        "0.9.1"
+      ],
       "title": "Project Version",
       "type": "string"
     },
