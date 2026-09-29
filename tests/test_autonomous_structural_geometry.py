@@ -476,6 +476,46 @@ def test_multi_loop_contract_rejects_crossing_and_compiles_sides() -> None:
         )
 
 
+@pytest.mark.parametrize("axis", ["X", "Y", "Z"])
+@pytest.mark.parametrize("reverse_outer", [False, True])
+@pytest.mark.parametrize("reverse_holes", [False, True])
+@pytest.mark.parametrize("hole_count", [0, 1, 2])
+def test_multi_loop_side_winding_faces_out_of_solid(
+    axis: str, reverse_outer: bool, reverse_holes: bool, hole_count: int
+) -> None:
+    """Keep outer normals outward and cavity normals inward for every axis and loop direction."""
+
+    outer = [[-2.0, -1.5], [2.0, -1.5], [2.0, 1.5], [-2.0, 1.5]]
+    centers = [(-0.75, 0.0), (0.75, 0.0)][:hole_count]
+    holes = [
+        [[x - 0.3, y - 0.3], [x - 0.3, y + 0.3],
+         [x + 0.3, y + 0.3], [x + 0.3, y - 0.3]]
+        for x, y in centers
+    ]
+    data = {
+        "kind": "multi_loop_extrude", "depth": 0.5, "axis": axis,
+        "outer_loop": list(reversed(outer)) if reverse_outer else outer,
+        "hole_loops": [list(reversed(hole)) if reverse_holes else hole for hole in holes],
+    }
+    original = json.dumps(data, sort_keys=True)
+    spec = MultiLoopExtrudeGeometry.model_validate_json(json.dumps(data))
+    payload = build_multi_loop_side_mesh(spec.model_dump(mode="json"))
+    profile_axes = {"X": (1, 2), "Y": (0, 2), "Z": (0, 1)}[axis]
+    for face_index, face in enumerate(payload["faces"]):
+        center = (0.0, 0.0) if face_index < 4 else centers[face_index // 4 - 1]
+        normal = _face_normal(payload["vertices"], face)
+        radial_dot = sum(
+            normal[coordinate]
+            * (sum(payload["vertices"][index][coordinate] for index in face) / 4 - center[i])
+            for i, coordinate in enumerate(profile_axes)
+        )
+        assert radial_dot > 0 if face_index < 4 else radial_dot < 0
+    incidence = _edge_incidence(payload["faces"])
+    balance = _edge_orientation_balance(payload["faces"])
+    assert all(balance[edge] == 0 for edge, count in incidence.items() if count == 2)
+    assert json.dumps(data, sort_keys=True) == original
+
+
 def test_boolean_tree_requires_complete_non_reusing_topology() -> None:
     """Accept all Boolean operations in one tree and reject invalid operand reuse."""
 

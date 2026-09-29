@@ -405,7 +405,7 @@ def map_extrude_point(axis: str, first: float, second: float, depth: float) -> V
 
 
 def build_multi_loop_side_mesh(spec: dict[str, Any]) -> dict[str, Any]:
-    """Compile deterministic outer and hole side walls; caps are triangulated in Blender."""
+    """Orient outer and cavity walls consistently with the selected extrusion axis."""
 
     outer = [_as_vec2(point) for point in spec["outer_loop"]]
     holes = [[_as_vec2(point) for point in loop] for loop in spec.get("hole_loops", [])]
@@ -423,13 +423,14 @@ def build_multi_loop_side_mesh(spec: dict[str, Any]) -> dict[str, Any]:
     faces: list[list[int]] = []
     total = len(flat)
     offset = 0
-    for loop_index, loop in enumerate(loops):
+    for loop in loops:
         for point_index in range(len(loop)):
             next_index = (point_index + 1) % len(loop)
             first = offset + point_index
             second = offset + next_index
             face = [first, second, total + second, total + first]
-            faces.append(face if loop_index == 0 else list(reversed(face)))
+            # Hole winding already faces the cavity; only the Y mapping reflects the basis.
+            faces.append(list(reversed(face)) if axis == "Y" else face)
         offset += len(loop)
     return {
         "vertices": vertices,

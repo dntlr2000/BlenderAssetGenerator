@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from pathlib import Path
 from typing import Any
@@ -192,6 +193,99 @@ def test_structural_builder_materializes_in_blender(
     assert payload.semantic_id == f"asset.{kind}"
     assert payload.vertices
     assert payload.faces
+
+
+@pytest.mark.parametrize("axis", ["X", "Y", "Z"])
+@pytest.mark.parametrize("reverse_loops", [False, True])
+@pytest.mark.parametrize("hole_count", [0, 1, 2])
+def test_multi_loop_caps_join_consistently_in_blender(
+    tmp_path: Path, axis: str, reverse_loops: bool, hole_count: int
+) -> None:
+    """Verify actual outer, cavity and cap winding across axes and normalized input directions."""
+
+    outer = [[-2.0, -1.5], [2.0, -1.5], [2.0, 1.5], [-2.0, 1.5]]
+    centers = [(-0.75, 0.0), (0.75, 0.0)][:hole_count]
+    holes = [
+        [[x - 0.3, y - 0.3], [x - 0.3, y + 0.3],
+         [x + 0.3, y + 0.3], [x + 0.3, y - 0.3]]
+        for x, y in centers
+    ]
+    candidate = StructuralGeometryCandidate.model_validate_json(json.dumps({
+        "semantic_id": "asset.holed-section",
+        "geometry": {
+            "kind": "multi_loop_extrude", "axis": axis, "depth": 0.5, "cap": True,
+            "outer_loop": list(reversed(outer)) if reverse_loops else outer,
+            "hole_loops": [list(reversed(hole)) if reverse_loops else hole for hole in holes],
+        },
+    }))
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "holed-section", candidate=candidate,
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+    )
+    incidence: dict[tuple[int, int], int] = {}
+    balance: dict[tuple[int, int], int] = {}
+    volume = 0.0
+    for face in payload.faces:
+        for first, second in zip(face, [*face[1:], face[0]], strict=True):
+            edge = tuple(sorted((first, second)))
+            incidence[edge] = incidence.get(edge, 0) + 1
+            balance[edge] = balance.get(edge, 0) + (1 if first < second else -1)
+        a = payload.vertices[face[0]]
+        for index in range(1, len(face) - 1):
+            b, c = (payload.vertices[face[i]] for i in (index, index + 1))
+            volume += (
+                a[0] * (b[1] * c[2] - b[2] * c[1])
+                + a[1] * (b[2] * c[0] - b[0] * c[2])
+                + a[2] * (b[0] * c[1] - b[1] * c[0])
+            ) / 6
+    assert set(incidence.values()) == {2}
+    assert set(balance.values()) == {0}
+    assert volume == pytest.approx((12.0 - hole_count * 0.36) * 0.5, abs=1e-6)
+
+
+def test_round_tube_v02_retains_inward_cavity_normals(tmp_path: Path) -> None:
+    """Materialize a dense hollow tube through the exact AQ v0.2 payload path without repairs."""
+
+    count = 64
+    outer = [[0.2 * math.cos(i * math.tau / count), 0.2 * math.sin(i * math.tau / count)]
+             for i in range(count)]
+    inner = [[0.16 * math.cos(i * math.tau / count), 0.16 * math.sin(i * math.tau / count)]
+             for i in reversed(range(count))]
+    candidate = StructuralGeometryCandidate.model_validate_json(json.dumps({
+        "semantic_id": "asset.hollow-tube",
+        "geometry": {"kind": "multi_loop_extrude", "outer_loop": outer,
+                     "hole_loops": [inner], "depth": 0.8, "axis": "Z", "cap": True},
+        "geometry_intent": {
+            "topology_policy": "static_prop_closed", "smoothing_policy": {"mode": "flat"},
+        },
+    }))
+    payload = materialize_structural_candidate(
+        job_root=tmp_path / "tube-v02", candidate=candidate,
+        candidate_relative_path="structural/candidate.json",
+        mesh_relative_path="geometry/materialized.mesh.json",
+        blend_relative_path="blender/materialized.blend",
+        report_relative_path="reports/materialization.json",
+        mesh_payload_version="0.2.0", material_id="mat.metal",
+    )
+    assert payload.schema_version == "0.2.0"
+    balance: dict[tuple[int, int], int] = {}
+    for face in payload.faces:
+        for first, second in zip(face, [*face[1:], face[0]], strict=True):
+            edge = tuple(sorted((first, second)))
+            balance[edge] = balance.get(edge, 0) + (1 if first < second else -1)
+    assert set(balance.values()) == {0}
+    for index, face in enumerate(payload.faces[:count * 2]):
+        a, b, c = (payload.vertices[i] for i in face[:3])
+        u = [b[i] - a[i] for i in range(3)]
+        v = [c[i] - a[i] for i in range(3)]
+        normal = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2])
+        dot = sum(normal[i] * sum(payload.vertices[j][i] for j in face) for i in range(2))
+        assert dot > 0 if index < count else dot < 0
+    assert payload.material_slots[0].material_id == "mat.metal"
+    assert len(payload.loop_uvs) == payload.loop_count
 
 
 def test_balanced_component_union_materializes_disconnected_parts_once(
