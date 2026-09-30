@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from PIL import Image
 from pydantic import ValidationError
 
 from codex_blender_modeler.autonomy.material_models import MaterialCandidateStrategy
+from codex_blender_modeler.material_authoring import service as material_authoring_service
 from codex_blender_modeler.material_authoring.models import (
     AdvancedPreviewPolicy,
     AuthoredMaterialManifest,
@@ -46,6 +48,21 @@ from codex_blender_modeler.structural_geometry.models import (
 from codex_blender_modeler.workspace import sha256_file
 
 NOW = datetime(2026, 8, 11, 3, 0, tzinfo=UTC)
+RECORDED_WOOD_FIXTURES = Path(__file__).parent / "fixtures" / "procedural_wood_v1_recorded"
+RECORDED_WOOD_PNG_SHA256 = {
+    "base_color": "b63194c7cc330abf09e4f5e2c58a291831458f008153296f10708971a68cf9b6",
+    "height": "aa24e49c23f970dd1422b02f699a503dc4903d0128289bf24e13bc2cf804777c",
+    "normal": "21078fbdfa38f258f321c285e7e227e35d75b06129aed6dfba72817cb11fd35d",
+    "occlusion": "32aa6698b9d3d85eb238dc5d5d29bae00d39108a61137247547021df37471115",
+    "roughness": "1f7cf01fbae846e4e36c0b96dd3837869e45ff95e65b5f1b69d9fabb65e69b6d",
+}
+RECORDED_WOOD_PIXEL_SHA256 = {
+    "base_color": "0fcacfbbc39a7e144f4cc35cf3271d0f7715bcc7ff7ab466628544f69883462d",
+    "height": "7e87b036bae8826f9283fe5fd544d7e901414de2c203792f16d54182d4bda31d",
+    "normal": "3af9eb6a4465e820eabfe84bdf23b457b4cebeb5508a8f737df3cbbbfd2a6264",
+    "occlusion": "371431521a283e61666e1ed35dcf0a7833da1cc40a1aad956436798d1d9ff855",
+    "roughness": "5f150d191e5d31b49d16cf6ae8ef77ba4952a5804a3fbe991d2cc94dde31449e",
+}
 
 
 def _write_json(path: Path, payload: Any) -> None:
@@ -778,8 +795,47 @@ def test_procedural_wood_v2_is_additive_deterministic_and_keeps_v1_distinct(
         )
 
 
-def test_procedural_wood_v1_recorded_candidate_bytes_remain_frozen(tmp_path: Path) -> None:
-    """Pin the exact legacy Wood bytes used by the preserved failed visual experiment."""
+def _assert_recorded_wood_pixels(path: Path, channel: str) -> None:
+    """Pin decoded Wood v1 pixels, dimensions and mode independently of PNG compression."""
+
+    with Image.open(path) as image:
+        assert image.format == "PNG"
+        assert image.size == (512, 512)
+        assert image.mode == ("RGB" if channel in {"base_color", "normal"} else "L")
+        assert hashlib.sha256(image.tobytes()).hexdigest() == RECORDED_WOOD_PIXEL_SHA256[channel]
+
+
+def test_procedural_wood_v1_recorded_candidate_bytes_remain_frozen() -> None:
+    """Preserve the recorded PNG byte hashes without regenerating historical evidence."""
+
+    paths = {path.stem: path for path in RECORDED_WOOD_FIXTURES.glob("*.png")}
+    assert {
+        channel: sha256_file(path) for channel, path in paths.items()
+    } == RECORDED_WOOD_PNG_SHA256
+    for channel, path in paths.items():
+        _assert_recorded_wood_pixels(path, channel)
+
+
+@pytest.mark.parametrize("compression_level", [None, 0], ids=["default", "uncompressed"])
+def test_procedural_wood_v1_recorded_candidate_pixels_remain_frozen(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    compression_level: int | None,
+) -> None:
+    """Keep generated pixels frozen and bind manifests to the actual encoded file bytes."""
+
+    if compression_level is not None:
+        save_png = material_authoring_service._save_png
+
+        def save_with_alternative_compression(image: Image.Image, path: Path) -> None:
+            """Exercise a different lossless encoding without changing the generated pixels."""
+
+            save_png(image, path)
+            image.save(path, format="PNG", compress_level=compression_level, optimize=False)
+
+        monkeypatch.setattr(
+            material_authoring_service, "_save_png", save_with_alternative_compression
+        )
 
     root = tmp_path / "job"
     root.mkdir()
@@ -816,10 +872,12 @@ def test_procedural_wood_v1_recorded_candidate_bytes_remain_frozen(tmp_path: Pat
         root,
         author_material_candidate(root, request).manifest.path,
     )
-    assert {item.channel: item.artifact.sha256 for item in manifest.channels} == {
-        "base_color": "b63194c7cc330abf09e4f5e2c58a291831458f008153296f10708971a68cf9b6",
-        "height": "aa24e49c23f970dd1422b02f699a503dc4903d0128289bf24e13bc2cf804777c",
-        "normal": "21078fbdfa38f258f321c285e7e227e35d75b06129aed6dfba72817cb11fd35d",
-        "occlusion": "32aa6698b9d3d85eb238dc5d5d29bae00d39108a61137247547021df37471115",
-        "roughness": "1f7cf01fbae846e4e36c0b96dd3837869e45ff95e65b5f1b69d9fabb65e69b6d",
-    }
+    assert {item.channel for item in manifest.channels} == set(RECORDED_WOOD_PIXEL_SHA256)
+    for item in manifest.channels:
+        path = root / item.artifact.path
+        assert (item.width, item.height) == (512, 512)
+        assert item.artifact.sha256 == sha256_file(path)
+        assert item.artifact.byte_size == path.stat().st_size
+        _assert_recorded_wood_pixels(path, item.channel)
+        if compression_level is not None:
+            assert item.artifact.sha256 != RECORDED_WOOD_PNG_SHA256[item.channel]

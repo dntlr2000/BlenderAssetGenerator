@@ -1,5 +1,15 @@
 # Changelog
 
+## Post-0.9.1 PNG regression portability — 2026-09-30
+
+- Separate the recorded Wood v1 PNG byte-preservation test from portable pixel
+  regression checks. Preserve the five original expected hashes in fixed test
+  fixtures, and verify new output pixels, dimensions, modes and exact manifest
+  file hashes under default and alternative lossless compression.
+- Keep material generation, production artifact hashes, schemas and historical
+  evidence unchanged; the test no longer assumes identical PNG compression
+  bytes across Windows and Linux environments.
+
 ## Post-0.9.1 documentation maintenance — 2026-09-30
 
 - Move 82 root documents into docs with a navigation index and relocation map. Keep two

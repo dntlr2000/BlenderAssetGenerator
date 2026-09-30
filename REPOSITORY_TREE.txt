@@ -1073,6 +1073,12 @@ BlenderAssetGenerator/
   tests/blender_scripts/probe_portable_json_long_path.py
   tests/cli_help_support.py
   tests/fixtures/integrated_quality_v02/masks.json
+  tests/fixtures/procedural_wood_v1_recorded/README.md
+  tests/fixtures/procedural_wood_v1_recorded/base_color.png
+  tests/fixtures/procedural_wood_v1_recorded/height.png
+  tests/fixtures/procedural_wood_v1_recorded/normal.png
+  tests/fixtures/procedural_wood_v1_recorded/occlusion.png
+  tests/fixtures/procedural_wood_v1_recorded/roughness.png
   tests/fixtures/reference_fidelity/candidate_budget_failure.json
   tests/fixtures/reference_fidelity/historical_5e5b172.json
   tests/test_activation_readiness.py
