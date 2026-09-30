@@ -1,10 +1,10 @@
-> 2026-09-30 프로젝트 보존용 열람본. 아래 평가는 당시 f55/0.9.0 상태의 기록이며 v0.9.1 검증으로 재분류하지 않습니다. 최신 종료·재개 기준은 [HANDOFF_KO.md](../../HANDOFF_KO.md)에 있습니다. 원본의 내용은 보존하고 링크만 프로젝트 보존본으로 연결했습니다.
+> 2026-09-30 프로젝트 보존용 열람본. 아래 평가는 당시 f55/0.9.0 상태의 기록이며 v0.9.1 검증으로 재분류하지 않습니다. 최신 종료·재개 기준은 [HANDOFF_KO.md](../HANDOFF_KO.md)에 있습니다. 원본의 내용은 보존하고 링크만 프로젝트 보존본으로 연결했습니다.
 
 # GitHub main → 로컬 HEAD: 변경별 사용자 가치 검토
 
 기준: `9759cd4d380cb1c9a1ec0e2085e08a8c35e2657c` → `f55e739ec072b40dc2ed9c408292899087ca7ccb`. 이번 문서는 분류·제안이며 commit, cherry-pick, push, rollback을 수행하지 않는다. 각 행은 실제 Git log와 변경 경로, 관련 코드·회귀/캠페인 기록을 함께 읽은 검토다. 검사 수나 commit 수는 품질 KPI가 아니다.
 
-전체 파일별 diff와 full SHA는 [STATE_AUDIT.json](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/STATE_AUDIT.json), 실제 결과/한계는 [본문](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/REPORT_KO.md)에 있다. 아래 “회귀/검증”은 기존 실행 근거이며 이번에 새 검사를 돌린 것이 아니다.
+전체 파일별 diff와 full SHA는 [STATE_AUDIT.json](E:/CodexValidation/rf-reassessment-20260929-run01/STATE_AUDIT.json), 실제 결과/한계는 [본문](E:/CodexValidation/rf-reassessment-20260929-run01/REPORT_KO.md)에 있다. 아래 “회귀/검증”은 기존 실행 근거이며 이번에 새 검사를 돌린 것이 아니다.
 
 | 순서·commit·날짜 | 가치 범주 | 출발 문제 | 변경·효과 근거 | 적용 범위·비용·판단 |
 | --- | --- | --- | --- | --- |

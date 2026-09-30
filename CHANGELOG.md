@@ -1,5 +1,16 @@
 # Changelog
 
+## Post-0.9.1 documentation maintenance — 2026-09-30
+
+- Move 82 root documents into docs with a navigation index and relocation map. Keep two
+  historical verification locators at their original paths and preserve all machine evidence.
+- Align current-version and closeout guidance; use external task-specific temporary/evidence
+  roots without changing the existing gate or workspace-archive implementation.
+- Deduplicate verified release-evidence copies and retain the remaining copies externally,
+  with exact restoration mappings and conservative scratch-reference protection data.
+- Keep the v0.9.1 tag, source functionality, assets, contracts and consumed budgets unchanged.
+  This is a local documentation commit, not a new release, campaign, Activation or push.
+
 ## 0.9.1 — 2026-09-30
 
 - Freeze the local reference-fidelity work after the user's closeout decision. Preserve the

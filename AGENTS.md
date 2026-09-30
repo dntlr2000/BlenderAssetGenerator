@@ -12,7 +12,7 @@ Turn references, measured evidence, and user feedback into reproducible Blender 
 - [CBM-ROOT-SKILL-OPTIN] Do not use a project skill unless the user explicitly requests it.
 - [CBM-ROOT-USER-CHANGES] Preserve user changes. Never discard, overwrite, or reclassify them to make a gate pass.
 - [CBM-ROOT-NO-RESET] Never use reset, clean, checkout, restore, or an equivalent destructive command against user work unless the user explicitly requests that exact operation.
-- [CBM-ROOT-TEMP-LOCAL] Keep every Codex-created temporary output, pytest basetemp, copied job, and isolated test workspace under the repository root. Never create them on a drive root, in a sibling project, or in a system/user temporary directory.
+- [CBM-ROOT-TEMP-EXTERNAL] Use unique task/run directories under E:\CodexTemp for temporary outputs, pytest basetemps and validation copies; set TEMP/TMP there. Retain necessary evidence under E:\CodexValidation\<task>\evidence and maintained documents under docs/. Never use C: for validation outputs. Legacy gates requiring repository-local scratch run only in a dedicated validation copy under E:\CodexTemp; their host boundaries remain unchanged. Cleanup requires exact ownership, reference and process checks; preserve unknown, linked, locked or ACL-inaccessible items.
 
 <!-- RULE_POLICY project_skill=explicit_user_opt_in -->
 <!-- RULE_POLICY user_changes=preserve -->

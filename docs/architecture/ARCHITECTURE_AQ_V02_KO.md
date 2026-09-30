@@ -1088,7 +1088,7 @@ material repair session을 사용한다.
 기존 `validate_and_promote_material_controller_result_v2`가 canonical promotion의 유일한 authority다.
 preflight와 shadow workspace는 canonical 또는 destination을 쓰지 않는다. 상세 계약과 현재 검증
 상태는 [Material Closure 아키텍처](ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)와
-[검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 이 연동으로
+[검증 기록](../verification/VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 이 연동으로
 `autonomous_static_prop_v2` 또는 ImageGen profile을 활성화하지 않으며 둘 다
 `disabled_experimental`이다.
 

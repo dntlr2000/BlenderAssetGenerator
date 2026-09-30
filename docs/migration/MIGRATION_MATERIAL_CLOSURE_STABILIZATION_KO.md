@@ -22,7 +22,7 @@ receipt나 workspace script copy는 검사 실패를 숨기기 위해 수정하�
 
 2026-08-14 incident recovery는 이 순서를 실제 적용했다. 두 source의 working bytes를 job-local
 history와 exact inventory에 먼저 게시한 뒤 executable common source에서 제거했다. 상세 path와
-hash는 [incident 기록](CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)에 한정하며 archive를 실행 가능한
+hash는 [incident 기록](../history/CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)에 한정하며 archive를 실행 가능한
 legacy adapter로 다시 로드하지 않는다.
 
 ## 4. historical session supersession

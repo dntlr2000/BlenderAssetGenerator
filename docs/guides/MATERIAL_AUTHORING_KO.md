@@ -118,7 +118,7 @@ source를 actual ImageGen으로 바꾸지 않는다. 보존된 historical actual
 semantic review가 `review_required`여서 promotion 전에 멈췄으며 기존 manifest의 `not_run`을 유지한다.
 
 provider assignment, fake/actual 분류와 ControllerExecutor 경계는
-[Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)를 따른다.
+[Codex Built-in ImageGen 아키텍처](../architecture/ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)를 따른다.
 
 ## 2. 불변 조건
 

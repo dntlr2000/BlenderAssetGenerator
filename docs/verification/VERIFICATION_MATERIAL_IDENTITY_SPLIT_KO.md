@@ -19,7 +19,7 @@ write, repair session, controller, promotion, MaterialPhaseReceiptV2, IQ, packag
 모두 실행하지 않았다.
 
 정확한 run ID, artifact SHA/size, canonical before/after와 zero-count 대장은
-[portable evidence index](verification/evidence/material_identity_split_20260814/README.md)에 있다.
+[portable evidence index](../../verification/evidence/material_identity_split_20260814/README.md)에 있다.
 
 ## 3. 해석 제한
 

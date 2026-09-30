@@ -1,6 +1,8 @@
 # v0.9.1 종료 후 저장공간 정리 결과
 
-2026-09-30. 사용자가 승인한 A안 종료와 임시 산출물 정리 요청을 수행했다. 캠페인·새 후보·렌더·QA·promotion·delivery는 재개하지 않았다. 기본 인계 문서는 프로젝트 루트 [HANDOFF_KO.md](../../HANDOFF_KO.md)다.
+> 아래 수치·경로 설명은 v0.9.1 릴리스 고정 작업 당시의 정리 기록이다. 후속 문서 재배치·외부 보관의 현재 위치와 추가 정리량은 [문서·저장공간 정리 안내](STORAGE_ORGANIZATION_KO.md)를 따른다. 과거 JSON과 receipt는 수정하지 않았다.
+
+2026-09-30. 사용자가 승인한 A안 종료와 임시 산출물 정리 요청을 수행했다. 캠페인·새 후보·렌더·QA·promotion·delivery는 재개하지 않았다. 현재 기본 인계 문서는 docs의 [HANDOFF_KO.md](../HANDOFF_KO.md)다.
 
 ## 실제 정리
 
@@ -51,4 +53,4 @@ native inventory는 릴리스 commit 전 읽기 전용 관측이며 후속 삭�
 - Blender의 형상 기능은 f55와 동일하다. 이전 Blender 5.0.1 winding 19 fixture·형식 호환성 증거를 보존했고 이번에 새 Blender campaign이나 납품 검증을 실행했다고 주장하지 않는다.
 - 기존 preservation snapshot에는 winding 수정 전 source hash와 허용된 수정 후 `current_sha256`이 함께 있었다. 최초 단순 비교의 source 1건 불일치를 원본대로 남기고, 그 명시된 수정 후 값과 f55 Git blob을 확인했다. 자산·계약 1,652개 파일에는 차이가 없었다.
 
-정확한 명령·로그·삭제/보존/잔여 항목은 [이번 운영 증거](../../reports/reference_fidelity_closeout/v0.9.1/operations/)에 있다. 미완료 reference-fidelity 목표를 성공으로 바꾸거나 소비 예산을 환급하지 않았다.
+정확한 명령·로그·삭제/보존/잔여 항목은 [이번 운영 증거](E:/CodexValidation/rf-release-v091-20260930-run01/evidence/)에 있다. 미완료 reference-fidelity 목표를 성공으로 바꾸거나 소비 예산을 환급하지 않았다.

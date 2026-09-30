@@ -1,4 +1,4 @@
-> 2026-09-30 프로젝트 보존용 열람본. 아래 평가는 당시 f55/0.9.0 상태의 기록이며 v0.9.1 검증으로 재분류하지 않습니다. 최신 종료·재개 기준은 [HANDOFF_KO.md](../../HANDOFF_KO.md)에 있습니다. 원본의 내용은 보존하고 링크만 프로젝트 보존본으로 연결했습니다.
+> 2026-09-30 프로젝트 보존용 열람본. 아래 평가는 당시 f55/0.9.0 상태의 기록이며 v0.9.1 검증으로 재분류하지 않습니다. 최신 종료·재개 기준은 [HANDOFF_KO.md](../HANDOFF_KO.md)에 있습니다. 원본의 내용은 보존하고 링크만 프로젝트 보존본으로 연결했습니다.
 
 # Reference-fidelity 작업 재평가와 중단 보고서
 
@@ -25,7 +25,7 @@
 
 Rust JSON의 `running`을 임의로 `paused`나 `cancelled`로 바꾸지 않았다. 이번 요청의 안전한 중단은 **새 실행이 없고 현재 원자적 작업이 없는 상태를 유지하는 것**이다. 광범위 검색 중 접근할 수 없었던 과거 scratch 일부는 조사 범위에서 제외했으며 소유권·ACL을 변경하지 않았다. 따라서 모든 과거 임시 디렉터리까지 전수 확인했다고 주장하지 않는다.
 
-서버 조회의 첫 시도는 Windows Schannel 자격증명 오류였고, 같은 읽기 전용 명령을 허용된 경로에서 재실행해 확인했다. 관련 근거는 [상태·40개 commit·308개 파일 목록](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/STATE_AUDIT.json), [파일 보존·패키지·lock 추가 조사](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/PRESERVATION_AND_LOCK_REVIEW.json)에 있다.
+서버 조회의 첫 시도는 Windows Schannel 자격증명 오류였고, 같은 읽기 전용 명령을 허용된 경로에서 재실행해 확인했다. 관련 근거는 [상태·40개 commit·308개 파일 목록](E:/CodexValidation/rf-reassessment-20260929-run01/STATE_AUDIT.json), [파일 보존·패키지·lock 추가 조사](E:/CodexValidation/rf-reassessment-20260929-run01/PRESERVATION_AND_LOCK_REVIEW.json)에 있다.
 
 ## 1) 무엇을 위해 시작했고 어떤 문제가 있었는가
 
@@ -40,13 +40,13 @@ GitHub main의 2026-09-01 버전은 이미 reference 분석, ModelingPlan·Scene
 - `item_plastic_standard_canary_01`과 `collectible_cloth_01`: GitHub 버전의 machine evidence에 실제 인간 beauty 수용과 최종 package 승인이 기록돼 있다. 잔존 silhouette·UV·교환 형식 한계도 함께 수용한 결과다. 이번에 최종 package approval 원본을 읽어 확인했다.
 - 별도 R5D Laser는 2026-09-01 exact technical recovery package 수용 receipt가 있다. 원래 실패한 AQ delivery terminal은 유지됐다. 이 package 수용은 profile Activation 수용과 다르다.
 
-따라서 “예전에는 좋은 에셋을 만들거나 납품할 수 없었다”는 설명은 틀리다. 다만 workspace는 실행 클라이언트를 모두 증명하지 않으므로 이 기록 전체를 ChatGPT Work에서 실행했다고 단정하지 않는다. **Work/Codex는 작업하는 에이전트·클라이언트이고, Standard/AQ는 저장소의 작업 경로**다. Work=Standard, Codex=AQ라는 구분도 맞지 않는다. [이전 Standard 실증](E:/Playground/BlenderAssetGenerator/verification/evidence/skill_orchestration_standard_20260826/standard_asset_evidence.json), [R5D 실제 package 수용](E:/Playground/BlenderAssetGenerator/workspaces/aq_stage9_prep_r5d_01_laser_perspective_canary/optimization/runs/delivery-plan-aqv2-20260831t115126214507z-605fc5bf-gltf-run/package_acceptances/r5d-recovery-r06-gltf/acceptance.json)
+따라서 “예전에는 좋은 에셋을 만들거나 납품할 수 없었다”는 설명은 틀리다. 다만 workspace는 실행 클라이언트를 모두 증명하지 않으므로 이 기록 전체를 ChatGPT Work에서 실행했다고 단정하지 않는다. **Work/Codex는 작업하는 에이전트·클라이언트이고, Standard/AQ는 저장소의 작업 경로**다. Work=Standard, Codex=AQ라는 구분도 맞지 않는다. [이전 Standard 실증](../../verification/evidence/skill_orchestration_standard_20260826/standard_asset_evidence.json), [R5D 실제 package 수용](../../workspaces/aq_stage9_prep_r5d_01_laser_perspective_canary/optimization/runs/delivery-plan-aqv2-20260831t115126214507z-605fc5bf-gltf-run/package_acceptances/r5d-recovery-r06-gltf/acceptance.json)
 
 ### 직접적인 출발점: 자동 캠페인의 높은 점수와 잘못된 부피
 
-기술적 5/5 production·clean import에 도달한 AQ 캠페인에서도 목재가 입체적인 부러진 보 대신 **얇은 판과 가는 막대**처럼 만들어졌다. Rust의 절곡 부피, Crystal의 내부/단면 표현도 문제로 기록됐다. 겉 윤곽이 비슷하고 파일이 정상 생성되는 것만으로는 reference를 제대로 재현했다고 할 수 없었던 사례다. 9월 5일 작업의 중심이 Activation 진행에서 관찰·형상 저작·수정 루프 개선으로 이동했다. [당시 목표 전환](E:/Playground/BlenderAssetGenerator/ROADMAP_V1_KO.md:24), [직접 재현](E:/Playground/BlenderAssetGenerator/VERIFICATION_REFERENCE_FIDELITY_KO.md:66)
+기술적 5/5 production·clean import에 도달한 AQ 캠페인에서도 목재가 입체적인 부러진 보 대신 **얇은 판과 가는 막대**처럼 만들어졌다. Rust의 절곡 부피, Crystal의 내부/단면 표현도 문제로 기록됐다. 겉 윤곽이 비슷하고 파일이 정상 생성되는 것만으로는 reference를 제대로 재현했다고 할 수 없었던 사례다. 9월 5일 작업의 중심이 Activation 진행에서 관찰·형상 저작·수정 루프 개선으로 이동했다. [당시 목표 전환](../roadmap/ROADMAP_V1_KO.md:24), [직접 재현](../../VERIFICATION_REFERENCE_FIDELITY_KO.md:66)
 
-문제의 Wood V0.6 direct score는 약 **0.989347**이었다. 이 값은 구조의 정답 여부가 아니라 주로 렌더된 silhouette와 화면상의 bounding box 일치도를 평가한다. 구현은 legacy에서 silhouette 75% + 전체 bbox 25%, semantic 관측이 있으면 silhouette 60% + 전체 bbox 15% + 부품 bbox 25%다. 목재가 두꺼운 보인지, 파손 단면이 실제로 입체인지, 보이지 않는 쪽이 올바른지는 이 점수만으로 보장되지 않는다. [실제 점수 계산](E:/Playground/BlenderAssetGenerator/src/codex_blender_modeler/qa/direct_compare.py:24)
+문제의 Wood V0.6 direct score는 약 **0.989347**이었다. 이 값은 구조의 정답 여부가 아니라 주로 렌더된 silhouette와 화면상의 bounding box 일치도를 평가한다. 구현은 legacy에서 silhouette 75% + 전체 bbox 25%, semantic 관측이 있으면 silhouette 60% + 전체 bbox 15% + 부품 bbox 25%다. 목재가 두꺼운 보인지, 파손 단면이 실제로 입체인지, 보이지 않는 쪽이 올바른지는 이 점수만으로 보장되지 않는다. [실제 점수 계산](../../src/codex_blender_modeler/qa/direct_compare.py:24)
 
 Integrated Quality의 구조 검사는 선언된 제약·조립 관계·mesh preflight를 확인한다. **애초 모델링 가설이 틀렸지만 수치적으로 유효한 모델**은 이 검사를 통과할 수 있다. 새 visibility 검사는 내부 edge·명암·고주파 신호 부족을 보완하지만, 텍스처가 복잡해졌다는 사실이 올바른 입체 구조라는 뜻은 아니다. 실제 7-pass 이미지가 있다는 사실과 그 의미를 올바르게 판단했다는 사실도 별개다.
 
@@ -117,13 +117,13 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 
 현재 AQ v2·One-Prompt·reference-fidelity/delegation의 관련 profile은 `disabled_experimental`이다. derived SceneSpec V03 구조 연산, ImageGen, interior, external intake, destination handoff 등은 선택 기능이다. 사진 한 장은 숨은 면과 절대 치수를 증명하지 않는다. measured 모드는 실제 측정 anchor가 있을 때만 의미가 있다.
 
-저작의 원본은 `.blend` 하나가 아니라 immutable input과 versioned JSON 계약이다. `.blend`, QA 이미지, 진단 보고서, 최적화 장면, baked map, package는 파생 산출물이다. 후보 staging은 canonical이 아니며 authorized host promotion이 검증 후 canonical을 바꾼다. 새 결과는 기존 QA/receipt/package를 덮어쓰지 않는다. [원본·버전 경계](E:/Playground/BlenderAssetGenerator/docs/agent/source_of_truth.md), [Standard/AQ 실제 단계](E:/Playground/BlenderAssetGenerator/docs/agent/workflow_reference.md), [납품 경계](E:/Playground/BlenderAssetGenerator/docs/agent/packaging_and_handoff.md)
+저작의 원본은 `.blend` 하나가 아니라 immutable input과 versioned JSON 계약이다. `.blend`, QA 이미지, 진단 보고서, 최적화 장면, baked map, package는 파생 산출물이다. 후보 staging은 canonical이 아니며 authorized host promotion이 검증 후 canonical을 바꾼다. 새 결과는 기존 QA/receipt/package를 덮어쓰지 않는다. [원본·버전 경계](../agent/source_of_truth.md), [Standard/AQ 실제 단계](../agent/workflow_reference.md), [납품 경계](../agent/packaging_and_handoff.md)
 
 ### Plastic 하나가 실제로 완성된 경로
 
 직전 `ab39d9b`에서는 기존 최선 형상·고정 관찰을 활용해 Plastic 초기 후보를 build하고 재질 closure 뒤 실제 QA를 렌더했다. 남은 문제는 구조가 아니라 파란 몸체와 테두리의 색 불일치, 이어진 넓은 회색 마모 띠였다. 형상·camera·lighting을 유지한 V0.5 재질 수정 한 번 후 실제 렌더를 비교했고, source-bound finding과 paired comparison을 기록했다. IQ 값은 **0.982965로 동일**했지만 이미지에서 색의 일관성과 마모 분포 개선이 확인됐다. host source freeze 후 portable GLTF package 및 별도 Blender clean import를 완료했다.
 
-이 예에서 **외관을 바꾼 것은 재질 저작 내용**이다. 계약·hash·receipt는 그 수정이 어느 source에 대해 이뤄졌으며 무엇을 검증했는지 보장한다. 관리 구조가 스스로 색이나 형상을 좋게 만드는 것은 아니다. 인간 beauty·package·Activation 수용은 아직 없다. [정확한 Plastic 결과](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf1001-20260929/evidence/plastic/RESULT_KO.md)
+이 예에서 **외관을 바꾼 것은 재질 저작 내용**이다. 계약·hash·receipt는 그 수정이 어느 source에 대해 이뤄졌으며 무엇을 검증했는지 보장한다. 관리 구조가 스스로 색이나 형상을 좋게 만드는 것은 아니다. 인간 beauty·package·Activation 수용은 아직 없다. [정확한 Plastic 결과](E:/CodexValidation/rf1001-20260929/evidence/plastic/RESULT_KO.md)
 
 ## 3) GitHub 버전과 지금 로컬 버전은 무엇이 다른가
 
@@ -144,7 +144,7 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 
 후속 수정으로 보완된 같은 문제도 있다. `2da54cb`의 확장 경로 처리는 `d0da720`에서 범위를 다시 제한했다. `1899ce9`→`ac4b6de`→`07efa1a`는 fidelity preview와 그 의존성·runtime 결속을 단계적으로 닫은 흐름이다. 초기 budget→finite epoch→skill 전달→delegation→계보 보존도 하나의 실행 문제를 점차 넓힌 연속 작업이다. 중복된 사용자 이득으로 합산하지 않는다.
 
-**유지 우선:** 재현된 winding, 경로, 정상적인 GLTF의 거짓 실패, stale/atomic promotion 보호 및 관련 회귀 검사. **효과 확인 대상:** 새로운 구조 저작 전략과 visual finding을 사용한 자동 수정, shell·mask·lighting의 일반화. **일반 도입 보류:** reference-fidelity 캠페인/추가 위임 계층을 모든 자산의 기본 사용 조건으로 삼는 것, 검증되지 않은 자동 Activation. 변경 사이 의존성이 있으므로 이 제안만으로 selective cherry-pick·삭제·롤백을 실행하면 안 된다. [40개 commit별 분류](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/CHANGE_REVIEW_KO.md)
+**유지 우선:** 재현된 winding, 경로, 정상적인 GLTF의 거짓 실패, stale/atomic promotion 보호 및 관련 회귀 검사. **효과 확인 대상:** 새로운 구조 저작 전략과 visual finding을 사용한 자동 수정, shell·mask·lighting의 일반화. **일반 도입 보류:** reference-fidelity 캠페인/추가 위임 계층을 모든 자산의 기본 사용 조건으로 삼는 것, 검증되지 않은 자동 Activation. 변경 사이 의존성이 있으므로 이 제안만으로 selective cherry-pick·삭제·롤백을 실행하면 안 된다. [40개 commit별 분류](E:/CodexValidation/rf-reassessment-20260929-run01/CHANGE_REVIEW_KO.md)
 
 ## 4) 실제로 얻은 성과와 입증하지 못한 부분은 무엇인가
 
@@ -160,9 +160,9 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 | 직전 `ab39d9b` / 계약 1001 | Plastic 1/5 완료. Rust는 quality 단계 미종료 | Plastic 1/5, 같은 geometry/camera/lighting의 실제 재질 개선. Rust 미달 | beauty·package·Activation 각각 0/5 |
 | 현재 `f55e739` | 새 자산 실행 0/5. winding 코드·fixture 검증만 완료 | 새 baseline의 paired improvement 0/5 | beauty 0/5, package 0/5, Activation 0/5 |
 
-`ab39d9b`의 인간 beauty·package·Activation도 각각 0/5다. 현재 baseline의 0/5를 전체 누적 성공 0/5로 설명하지 않는다. 반대로 과거 completed나 인간 수용을 현재 baseline에 자동 승계하지도 않는다. 과거 4bb 캠페인의 5개 exact beauty `needs_revision` 기록도 그대로 유지한다. [원래 인간 판단](E:/Playground/BlenderAssetGenerator/reports/activation_readiness/fresh_campaign/aq-first-completion-4bb2ce3/human_disposition_set.json)
+`ab39d9b`의 인간 beauty·package·Activation도 각각 0/5다. 현재 baseline의 0/5를 전체 누적 성공 0/5로 설명하지 않는다. 반대로 과거 completed나 인간 수용을 현재 baseline에 자동 승계하지도 않는다. 과거 4bb 캠페인의 5개 exact beauty `needs_revision` 기록도 그대로 유지한다. [원래 인간 판단](../../reports/activation_readiness/fresh_campaign/aq-first-completion-4bb2ce3/human_disposition_set.json)
 
-현재 소스 검증은 코드 수정의 신뢰도를 높이지만 자산 완성을 증명하지 않는다. 직전 전체 Python 2,605 passed 및 실제 Blender 회귀가 있고, AQ native 첫 gate에는 종료 timeout 실패가 남아 있다. 같은 소스의 실패 node 재실행은 통과했으나 첫 failed gate를 pass로 바꾸지 않았다. 이번 조사에서는 이를 재실행하지 않았다. [수정·검증·한계 원본](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-winding-fix-20260929-run01/evidence/REPORT_KO.md)
+현재 소스 검증은 코드 수정의 신뢰도를 높이지만 자산 완성을 증명하지 않는다. 직전 전체 Python 2,605 passed 및 실제 Blender 회귀가 있고, AQ native 첫 gate에는 종료 timeout 실패가 남아 있다. 같은 소스의 실패 node 재실행은 통과했으나 첫 failed gate를 pass로 바꾸지 않았다. 이번 조사에서는 이를 재실행하지 않았다. [수정·검증·한계 원본](E:/CodexValidation/rf-winding-fix-20260929-run01/evidence/REPORT_KO.md)
 
 ### 사용자 가치별 평가
 
@@ -176,7 +176,7 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 | 사용자 개입·승인 | 위임 계약 안의 routine scope·promotion·package 자동 처리 구현 | 전체 개입 감소는 미입증. 앞선 긴 exact scope 승인·재기준 설정 부담이 실제로 발생 |
 | 재현성과 보존 | source-bound pair, receipt 라운드 결속, 과거 소비·결과 보존을 강화 | 기존에도 versioned evidence/package가 있었음. 새 source 연결이 더 엄격해져 유용한 결과 재활용도 막을 수 있음 |
 
-새 이미지·점수는 만들지 않고 원본을 직접 확인했다. [기존/개선 결과 이미지와 비교 한계](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/VISUAL_EVIDENCE_KO.md)에 같은 reference의 Standard Plastic·Wood, 실패한 AQ Wood, 후속 Wood, ab39 Plastic 전후를 모았다. 서로 조건이 다른 그림에는 “엄밀한 전후”라는 이름을 붙이지 않았다.
+새 이미지·점수는 만들지 않고 원본을 직접 확인했다. [기존/개선 결과 이미지와 비교 한계](E:/CodexValidation/rf-reassessment-20260929-run01/VISUAL_EVIDENCE_KO.md)에 같은 reference의 Standard Plastic·Wood, 실패한 AQ Wood, 후속 Wood, ab39 Plastic 전후를 모았다. 서로 조건이 다른 그림에는 “엄밀한 전후”라는 이름을 붙이지 않았다.
 
 ### 비용: 소비, 예약, 품질을 구분
 
@@ -191,7 +191,7 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 | Laser | 13 | 125 | 0 | 13 |
 | 합계 | 118 | 990 | 230 | 188 |
 
-이는 관리 원장이 보존하는 투입 이력이지 성공·품질 개선 수가 아니다. 금전·시간으로 환산하지 않았다. [집계 범위·원래 계약 연결](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-reassessment-20260929-run01/COST_REVIEW.json)
+이는 관리 원장이 보존하는 투입 이력이지 성공·품질 개선 수가 아니다. 금전·시간으로 환산하지 않았다. [집계 범위·원래 계약 연결](E:/CodexValidation/rf-reassessment-20260929-run01/COST_REVIEW.json)
 
 계약 1001에서 추가로 실제 수행한 Plastic은 후보 1, 재질 수정 1, AQ build 8, 별도 closure 12, QA 2, promotion 3, delivery 1이다. Rust는 후보 1, AQ build 8, closure 6, promotion 2이며 실제 7-pass QA 1회가 있다. Rust state의 quality counter가 아직 0이라고 이 렌더를 없던 일로 처리하지 않는다.
 
@@ -207,10 +207,10 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 2. **형상 문제와 평가 문제를 교대로 만났다.** 윤곽 점수는 높지만 평면인 Wood, 마스크가 잘못된 비교, 조명 조건 차이를 구분해야 했다. 해결 과정에서 trimap·조명·finding 계약이 추가됐다. 평가를 올바르게 만드는 일은 필요하지만 실제 형상 저작보다 크게 확장됐다.
 3. **제작 경로의 비용·결속을 처음부터 충분히 반영하지 못했다.** 초기 build뿐 아니라 closure의 별도 Blender 호출, 다시 QA, promotion을 감당해야 했다. 재진입에서 old material receipt·baseline role·controller authority 문제도 드러났다. 일부 추가 코드는 새로운 품질 기능보다 기존 통합 누락을 수선한 것이다.
 4. **공통 코드 수정과 캠페인 권한이 강하게 결합돼 있다.** 버그 한 개를 고쳐도 source가 달라지고, 새 baseline·readiness·canary 요구가 생긴다. 이미 완료한 Plastic 재검증까지 새로운 candidate 비용을 요구한다. 반복적인 source reset은 에셋이 좋아지는 작업과 같은 것이 아니다.
-5. **유한성을 지키려 만든 계약이 현재는 정당한 재개도 막는다.** 새 successor는 같은 reference 집합, 각 asset 최소 slot 1, 이전 admitted session의 exact outcome을 요구한다. Plastic 잔여 slot 0과 미종료 Rust가 함께 있어 기존 host로 새 source를 연결할 수 없다. 이는 “예산을 더 주면 해결”이라는 문제가 아니다. [source 검증](E:/Playground/BlenderAssetGenerator/src/codex_blender_modeler/autonomy_v2/delegation_service.py:136), [predecessor 조건](E:/Playground/BlenderAssetGenerator/src/codex_blender_modeler/autonomy_v2/delegation_service.py:229), [slot 최소 조건](E:/Playground/BlenderAssetGenerator/src/codex_blender_modeler/autonomy_v2/delegation_models.py:119)
+5. **유한성을 지키려 만든 계약이 현재는 정당한 재개도 막는다.** 새 successor는 같은 reference 집합, 각 asset 최소 slot 1, 이전 admitted session의 exact outcome을 요구한다. Plastic 잔여 slot 0과 미종료 Rust가 함께 있어 기존 host로 새 source를 연결할 수 없다. 이는 “예산을 더 주면 해결”이라는 문제가 아니다. [source 검증](../../src/codex_blender_modeler/autonomy_v2/delegation_service.py:136), [predecessor 조건](../../src/codex_blender_modeler/autonomy_v2/delegation_service.py:229), [slot 최소 조건](../../src/codex_blender_modeler/autonomy_v2/delegation_models.py:119)
 6. **검사/문서/준비 완료가 실제 개선 완료처럼 느껴지기 쉬웠다.** full tests, clean commit, receipt 발행은 신뢰 근거다. 사용자가 만족할 에셋을 만드는 효율이나 아름다움을 직접 측정하지 않는다. 안전한 review 종료 역시 좋은 실패 처리이지만 납품 성공은 아니다.
 
-현재 Plastic pair를 새 baseline에서 그대로 재검증하는 native 예약 비용조차 후보 1, build 8, closure 12, QA 6, promotion 3, controller 4, delivery 1, action 72다. 외관을 더 좋게 만들려는 작업이 아니라 **새 baseline 자격을 다시 입증하는 비용**이다. Plastic 후보 잔여 0에 들어가지 않는다. 여기서 자동으로 새 부모·epoch·전체 재시작을 추가하는 것은 권하지 않는다. [기존 host 연결 불가와 정확한 비용](E:/Playground/BlenderAssetGenerator/reports/reference_fidelity_closeout/v0.9.1/archive/rf-winding-fix-20260929-run01/evidence/successor-feasibility.json)
+현재 Plastic pair를 새 baseline에서 그대로 재검증하는 native 예약 비용조차 후보 1, build 8, closure 12, QA 6, promotion 3, controller 4, delivery 1, action 72다. 외관을 더 좋게 만들려는 작업이 아니라 **새 baseline 자격을 다시 입증하는 비용**이다. Plastic 후보 잔여 0에 들어가지 않는다. 여기서 자동으로 새 부모·epoch·전체 재시작을 추가하는 것은 권하지 않는다. [기존 host 연결 불가와 정확한 비용](E:/CodexValidation/rf-winding-fix-20260929-run01/evidence/successor-feasibility.json)
 
 ## 6) 앞으로 어떤 방향이 합리적인가
 
@@ -235,7 +235,7 @@ Standard와 AQ는 같은 V0.4 형상, V0.5 재질, V0.6 QA, V0.7 납품 기능�
 
 대상은 기존 Rust reference `5a125a3d8a0b96f6bcfb7ec1438e59cdbff82fd02358f459126838e025386576`, `aq_rf_ab39_02r1` source/findings, 과거 `aq_rf_24632c6c_02_rust_outline`의 완료 package다. 먼저 이미 완료한 과거 package가 실제 수요를 충족하는지 판단한다. 새 작업의 질문은 “새 builder의 관 방향 오류 해소와 필요한 형상·재질 수정을 거쳐 이 납품 요구를 충족할 수 있는가?”로 한정한다.
 
-기존 Rust 마지막 slot을 사용한다고 **비용만 계산**하면 후보 1, preparation repair 최대 2, 구조 수정 최대 1, material 수정 최대 1, parameter 수정 0, 전략 전환 0이다. 기존 산식의 AQ build 18, 별도 closure process 18, QA evaluation 9, promotion 5, controller invocation 6, delivery 1, package repair 1, action 72가 최대 예약 범위다. QA 호출의 수를 독립적인 시각 개선 횟수로 세지 않는다. 추가 비교 render도 이 범위 밖으로 숨기지 않는다. [현재 비용 산식](E:/Playground/BlenderAssetGenerator/src/codex_blender_modeler/autonomy_v2/fidelity_budget_models.py:91)
+기존 Rust 마지막 slot을 사용한다고 **비용만 계산**하면 후보 1, preparation repair 최대 2, 구조 수정 최대 1, material 수정 최대 1, parameter 수정 0, 전략 전환 0이다. 기존 산식의 AQ build 18, 별도 closure process 18, QA evaluation 9, promotion 5, controller invocation 6, delivery 1, package repair 1, action 72가 최대 예약 범위다. QA 호출의 수를 독립적인 시각 개선 횟수로 세지 않는다. 추가 비교 render도 이 범위 밖으로 숨기지 않는다. [현재 비용 산식](../../src/codex_blender_modeler/autonomy_v2/fidelity_budget_models.py:91)
 
 이 계산은 현재 실행 권한이 아니다. 계약의 source 불일치·Plastic slot·미종료 predecessor 조건 때문에 현재 host는 연결을 거부한다. 이를 해결하려고 새 framework·추가 epoch·후보 환급을 기본 방안으로 삼지 않는다. **기존 native 경로와 소비 한도 안에서 권한이 성립하지 않으면 C는 착수하지 않고 끝낸다.** 만약 별도 지시 후 합법적인 경로가 확인될 때만, 실제 inner normals/접합 결함 해소, 같은 조건에서 절곡 부피·녹 분포 개선, 중대한 구조 finding 없음, package/import를 완료 기준으로 삼는다. 동일 결함이 두 번 정체되면 전략 전환 잔여 0이므로 최선 결과를 보존하고 종료한다. Wood→Crystal→Laser로 자동 확장하지 않는다.
 

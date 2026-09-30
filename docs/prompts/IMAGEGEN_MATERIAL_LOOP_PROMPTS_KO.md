@@ -9,9 +9,9 @@ MaterialAuthoring `0.2.1`과 additive Material Loop `0.1.0`을 유지한다.
 활성화, 사용자 승인, human review, production package acceptance 또는 destination parity를
 자동으로 만들지 않는다.
 
-상세 CLI 순서는 [Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md),
-계약과 권위 경계는 [아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md), 실제 확인된 범위는
-[검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+상세 CLI 순서는 [Material Loop 시작 가이드](../guides/GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md),
+계약과 권위 경계는 [아키텍처](../architecture/ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md), 실제 확인된 범위는
+[검증 기록](../verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 1. Placeholder
 

@@ -9,7 +9,7 @@
 독립 GLB+FBX clean import와 V0.7~V0.9 root smoke가 통과했다. 이것이 profile 활성화, 사람 승인,
 임의 reference 품질 또는 destination runtime 검증을 뜻하지는 않는다.
 
-- 현재 프로젝트 버전은 0.9.0으로 유지한다.
+- 도입 당시 프로젝트 버전은 0.9.0이었다. 현재 고정 프로젝트는 0.9.1이며 아래 계약 버전과 과거 검증의 의미는 유지한다.
 - canonical SceneSpec은 0.2.0으로 유지한다.
 - 기존 AQ 0.1, autonomous_static_prop_v1, standard, background_exterior의 의미와 공개 표면을
   변경하지 않는다.

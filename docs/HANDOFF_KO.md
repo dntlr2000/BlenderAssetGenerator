@@ -12,9 +12,9 @@
 | 이번 릴리스 차이 | 버전 표시, 0.9.0/0.9.1 producer 호환성, 종료·재개 문서. 새 형상 기능 없음 |
 | 계약 버전 | SceneSpec 0.2.0, V0.4~V0.9 및 AQ/IQ companion 버전 유지 |
 | AQ v2 상태 | `disabled_experimental`. 새 Activation 또는 실행 baseline 발행 없음 |
-| 배포 | 로컬 commit/tag로 고정. GitHub push는 별도 지시 사항 |
+| 배포 | 2026-09-30 읽기 전용 서버 확인: GitHub main은 릴리스 commit `b59094c8c6b795ba3bfc3e2a25982e18e479f179`. `v0.9.1` 태그는 로컬에만 존재. 이번 문서 정리는 로컬 후속 commit만 작성하며 push하지 않음 |
 
-정확한 릴리스 commit/tag와 이번 검사·정리 기록은 [릴리스 증거](reports/reference_fidelity_closeout/v0.9.1/RELEASE_RECEIPT.json)에 있다. 과거 f55의 Blender 검증을 새 릴리스에서 다시 실행했다고 표현하지 않는다. 사용자 원본·canonical·QA·approval·package·receipt·history·terminal은 정리 대상에서 제외했다.
+정확한 릴리스 commit/tag와 이번 검사·정리 기록은 [릴리스 증거](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/RELEASE_RECEIPT.json)에 있다. 과거 f55의 Blender 검증을 새 릴리스에서 다시 실행했다고 표현하지 않는다. 사용자 원본·canonical·QA·approval·package·receipt·history·terminal은 정리 대상에서 제외했다.
 
 기본 Standard 방식으로 기존 기능과 완성 자산을 활용할 수 있다. 전체 5자산 캠페인 성공을 일반 자산 제작의 선행조건으로 강제하지 않는다. 새 요청의 실제 형상·외관 문제를 기준으로 작업 범위를 정한다.
 
@@ -43,10 +43,10 @@ flowchart LR
 
 평가 누락 방지와 일부 실제 개선·버그 수정의 이득은 확인했다. 그러나 기존 사용 방식 대비 **평균 품질·시간·비용의 충분한 우월성은 미입증**이다. 예산·승인·증거 연결과 재시작 비용이 커졌고, 사용자는 이를 근거로 A를 선택했다. 투입 비용 때문에 추가 작업을 자동 정당화하지 않는다.
 
-- [전체 재평가와 파이프라인](docs/reference_fidelity_closeout/REASSESSMENT_KO.md)
-- [GitHub 대비 변경 가치·비용 검토](docs/reference_fidelity_closeout/CHANGE_REVIEW_KO.md)
-- [실제 시각 자료와 비교의 한계](docs/reference_fidelity_closeout/VISUAL_EVIDENCE_KO.md)
-- [원래 단계별 목표](ROADMAP_V1_KO.md), [개발 실증](VERIFICATION_REFERENCE_FIDELITY_KO.md), [구현 설명](docs/reference_fidelity.md)
+- [전체 재평가와 파이프라인](reference_fidelity_closeout/REASSESSMENT_KO.md)
+- [GitHub 대비 변경 가치·비용 검토](reference_fidelity_closeout/CHANGE_REVIEW_KO.md)
+- [실제 시각 자료와 비교의 한계](reference_fidelity_closeout/VISUAL_EVIDENCE_KO.md)
+- [원래 단계별 목표](roadmap/ROADMAP_V1_KO.md), [개발 실증](../VERIFICATION_REFERENCE_FIDELITY_KO.md), [구현 설명](reference_fidelity.md)
 
 ## 어느 단계에서 멈췄는가
 
@@ -71,7 +71,7 @@ flowchart LR
 
 Plastic: `aq_rf_ab39_01p` / `aqv2-20260929t015114075784z-a16a0f35`.
 Rust: `aq_rf_ab39_02r1` / `aqv2-20260929t072456688907z-c6aa698d`.
-Rust [state 0007](workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-20260929t072456688907z-c6aa698d/states/0007.json) SHA-256: `b488ad0858a588f8414de30022dfbf19586086e6ebd9799c77684e6a6143a0c4`.
+Rust [state 0007](../workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-20260929t072456688907z-c6aa698d/states/0007.json) SHA-256: `b488ad0858a588f8414de30022dfbf19586086e6ebd9799c77684e6a6143a0c4`.
 
 행정적인 캠페인 종료와 native terminal은 다르다. Rust state를 cancelled/completed로 직접 편집하지 않았다. 이번 릴리스 작업은 후보·QA·promotion·delivery를 재개하지 않았다.
 
@@ -88,7 +88,7 @@ Rust [state 0007](workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026092
 | promotion | 52 | 11 | 41 |
 | delivery | 9 | 2 | 7 |
 
-후보 잔여는 Plastic 0, Rust 1, 나머지 각 2다. 예약은 실제 사용과 다르며 미사용 예약을 환급하지 않는다. Rust state QA counter 0과 실제 7-pass QA 1회가 함께 존재한다. 실제 실행 비용을 0으로 만들지 않는다. 전체 계보·추가 자원은 [feasibility 원본 보존본](reports/reference_fidelity_closeout/v0.9.1/archive/rf-winding-fix-20260929-run01/evidence/successor-feasibility.json)에 있다.
+후보 잔여는 Plastic 0, Rust 1, 나머지 각 2다. 예약은 실제 사용과 다르며 미사용 예약을 환급하지 않는다. Rust state QA counter 0과 실제 7-pass QA 1회가 함께 존재한다. 실제 실행 비용을 0으로 만들지 않는다. 전체 계보·추가 자원은 [feasibility 원본 보존본](E:/CodexValidation/rf-winding-fix-20260929-run01/evidence/successor-feasibility.json)에 있다.
 
 ## 성과를 섞지 않는 기준
 
@@ -99,7 +99,9 @@ Rust [state 0007](workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026092
 
 ## 보존·정리와 향후 재개 절차
 
-문서는 이 프로젝트를 기본 위치로 사용한다. [정리 결과와 제외 항목](docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md), [보존 복사본과 SHA-256 매핑](reports/reference_fidelity_closeout/v0.9.1/project-preservation.json), [검증 복제본 보존 매핑](reports/reference_fidelity_closeout/v0.9.1/clone-preservation.json)을 먼저 확인한다. 원래 machine JSON의 절대경로는 바꿔 쓰지 않았다. 삭제한 검증 scratch는 검증된 source bundle·lock·명령으로 필요할 때 재현하는 자료이며 운영 workspace가 아니다.
+현재 문서는 `docs/`에 모았고, 종료 증거 사본은 외부 보존소로 정리했다. 최신 위치·파일별 해시 매핑·복원 절차와 원위치 보존 예외는 [문서·저장공간 정리 안내](reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 따른다. `.b/.t`와 AQ workspace는 보호·host 조건 때문에 남아 있으며, 폴더가 남았다는 이유로 실행을 재개하지 않는다.
+
+문서는 이 프로젝트를 기본 위치로 사용한다. [정리 결과와 제외 항목](reference_fidelity_closeout/CLEANUP_RESULT_KO.md), [보존 복사본과 SHA-256 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/project-preservation.json), [검증 복제본 보존 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/clone-preservation.json)을 먼저 확인한다. 원래 machine JSON의 절대경로는 바꿔 쓰지 않았다. 삭제한 검증 scratch는 검증된 source bundle·lock·명령으로 필요할 때 재현하는 자료이며 운영 workspace가 아니다.
 
 1. 별도 사용자 요청의 목적부터 확인한다. 이 종료 결정을 무효로 보고 예전 5자산 캠페인을 자동 재개하지 않는다.
 2. 현재 AGENTS.md, Git/tag/status, 프로세스, 계약·state·receipt 해시를 읽기 전용으로 확인한다. 사용자 변경을 보존한다.
@@ -112,4 +114,4 @@ Rust [state 0007](workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026092
 
 재개 요청 예시:
 
-> 프로젝트의 HANDOFF_KO.md와 현재 AGENTS.md를 먼저 읽고, 내가 이번에 요청하는 실제 자산 문제만 조사해. v0.9.1 태그·기존 결과·계약·소비·cleanup receipt를 재검증하고, 완료 Plastic을 재작성하거나 전체 5자산 캠페인을 자동 재시작하지 마. 기존 경로와 권한 안의 최소 작업 및 중단 조건을 제시해.
+> 프로젝트의 docs/HANDOFF_KO.md와 현재 AGENTS.md를 먼저 읽고, 내가 이번에 요청하는 실제 자산 문제만 조사해. v0.9.1 태그·기존 결과·계약·소비·cleanup receipt를 재검증하고, 완료 Plastic을 재작성하거나 전체 5자산 캠페인을 자동 재시작하지 마. 기존 경로와 권한 안의 최소 작업 및 중단 조건을 제시해.

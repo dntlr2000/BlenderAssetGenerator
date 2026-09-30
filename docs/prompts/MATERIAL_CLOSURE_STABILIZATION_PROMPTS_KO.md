@@ -4,7 +4,7 @@
 특정 자산의 job/session/semantic ID, 실제 SHA-256, sequence, retry 이름은 넣지 않는다. 해당 값은
 실행 시 current evidence에서 읽어 `<...>` placeholder를 채운다.
 
-프로젝트는 계속 `0.9.0`, canonical SceneSpec은 계속 `0.2.0`이다. Material Closure는 기존
+현재 고정 프로젝트는 `0.9.1`, canonical SceneSpec은 계속 `0.2.0`이다. Material Closure는 기존
 standard/background/AQ/ImageGen 계약을 재해석하지 않는 additive companion이며, profile 상태를
 활성화하지 않는다.
 

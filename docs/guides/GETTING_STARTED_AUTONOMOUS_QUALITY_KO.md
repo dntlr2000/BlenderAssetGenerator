@@ -2,7 +2,7 @@
 
 ## 1. 이 기능의 위치
 
-Autonomous Quality Extension(AQ)은 프로젝트 `0.9.0` 위에 명시적으로 선택하는 실험
+Autonomous Quality Extension(AQ)은 현재 프로젝트 `0.9.1` 위에 명시적으로 선택하는 실험
 overlay다. 기존 `standard` workflow를 내부 실행 경로로 사용하며, 별도의 세 번째 모델링
 파이프라인이나 V1.0 승격이 아니다. 기존 `standard`와 `background_exterior`의 기본 동작,
 승인, retry와 package 의미는 바뀌지 않는다.
@@ -370,7 +370,7 @@ authorization, receipt, manifest와 개별 file SHA-256이 권위 원본이다.
 - full Blender fault-injection interruption/resume E2E는 아직 별도 미검증이다.
 - macOS/Linux, Blender 4.x와 destination runtime import/parity는 검증하지 않았다.
 - AQ 활성화가 legacy job을 migration하거나 과거 blocked workflow를 복구하지 않는다.
-- 프로젝트 버전은 계속 `0.9.0`이며 V1.0 승격은 별도 결정과 release gate가 필요하다.
+- 현재 프로젝트 버전은 `0.9.1`이며 V1.0 승격은 별도 결정과 release gate가 필요하다.
 
 ## 12. 2026-08-10 검증 상태
 

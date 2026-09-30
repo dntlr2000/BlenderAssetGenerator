@@ -2,7 +2,7 @@
 
 > 최신 계약, CLI/MCP 표면과 검증 결과는
 > [Autonomous Quality 최신 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md)와
-> [검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)을 우선한다. 이 문서는 짧은 Codex
+> [검증 기록](../verification/VERIFICATION_AUTONOMOUS_QUALITY_KO.md)을 우선한다. 이 문서는 짧은 Codex
 > 요청 예시와 운영 흐름을 함께 보존한다.
 
 ## 1. 먼저 알아둘 점

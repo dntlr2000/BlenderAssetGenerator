@@ -5,7 +5,7 @@
 기계 판정의 원본은 JSON 계약과 보고서입니다. PDF는 사용자가 검토하기 쉬운 파생 보고서이며 JSON을 대체하지 않습니다.
 
 이미 완성된 수동 제작 `.blend`/`.fbx`/`.glb`를 가져오는 작업은 레퍼런스 이미지
-프롬프트가 아니라 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
+프롬프트가 아니라 [External Static Asset Intake 가이드](../guides/EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
 사용합니다.
 
 ## 사용 방법과 placeholder

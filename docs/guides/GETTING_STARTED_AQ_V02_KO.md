@@ -3,7 +3,7 @@
 ## 1. 현재 상태
 
 Autonomous Quality(AQ) 0.2는 기존 `standard` 제작 흐름 위에 놓이는 병렬 companion
-계층이다. 프로젝트 버전은 계속 `0.9.0`, canonical SceneSpec은 계속 `0.2.0`이며,
+계층이다. 현재 프로젝트 버전은 `0.9.1`, canonical SceneSpec은 계속 `0.2.0`이며,
 기존 `autonomous_static_prop_v1`, `standard`, `background_exterior`의 의미를 바꾸지 않는다.
 
 현재 profile 상태는 **`disabled_experimental`**이다. host/full 회귀, Blender 5.0.1 synthetic
@@ -291,9 +291,9 @@ controller-authored completion을 exact하게 결속한다. 기존 ControllerExe
 
 core workflow는 [ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md), staging 이후는
 [Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), 현재 Codex 작업에 붙여 넣는
-요청은 [Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 실제 확인 범위는
-[ImageGen core 검증](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)과
-[Material Loop 검증](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+요청은 [Material Loop 프롬프트 모음](../prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 실제 확인 범위는
+[ImageGen core 검증](../verification/VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)과
+[Material Loop 검증](../verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 10. 안전한 기본 선택
 
@@ -331,7 +331,7 @@ repair run은 geometry hash 확인, candidate, closure, rebind, preflight, shado
 자동으로 수행할 수 있지만 사용자 결정 없이 approval을 만들지 않는다. 정상 preapproval 종료는
 `approval_pending`이다. `material-appearance-approve`는 caller-authored exact decision을 current
 preflight에 검증·게시할 뿐 self-approval 명령이 아니다. 실제 명령 등록과 gate 상태는
-[Material Closure 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 확인한다.
+[Material Closure 검증 기록](../verification/VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 확인한다.
 
 현재 Crystalgun historical session은 verified head가 `0012 / terminal / cancelled / none`이므로
 이 경로로도 그 session을 resume하지 않는다. canonical MaterialPlan, MaterialPhaseReceiptV2,
@@ -350,7 +350,7 @@ ApprovalRequest 자체는 승인이 아니다.
 실제 사용자 결정이 별도 evidence로 제공되기 전에는 `material-identity-split-approve`, apply 또는
 recover를 호출하지 않는다. 승인 후 apply가 성공해도 기존 material repair를 resume하지 말고 새
 canonical observation/continuation에서 closure와 MaterialAppearanceApproval을 다시 만든다. 상세
-운영 문구는 [Material Identity Split 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)를 따른다.
+운영 문구는 [Material Identity Split 프롬프트](../prompts/MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)를 따른다.
 
 ## 13. Approval Envelope/One-Prompt 선택 사용
 

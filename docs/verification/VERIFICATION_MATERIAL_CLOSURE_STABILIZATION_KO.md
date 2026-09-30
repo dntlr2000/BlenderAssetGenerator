@@ -142,7 +142,7 @@ coverage가 완전한 새 candidate, 새 closure/preflight/preview를 요구하�
   index tree는 바뀌지 않았다. 최종 `git diff --check`도 line-ending notice 외 오류 없이 통과했다.
 
 Compact tracked index는
-[`verification/evidence/material_closure_stabilization_20260814/README.md`](verification/evidence/material_closure_stabilization_20260814/README.md)에
+[`verification/evidence/material_closure_stabilization_20260814/README.md`](../../verification/evidence/material_closure_stabilization_20260814/README.md)에
 기록한다. Job-local JSON이 권위이고 이 문서는 그 내용을 대체하지 않는다.
 
 ## 7. 후속 scope-change 분리 결과

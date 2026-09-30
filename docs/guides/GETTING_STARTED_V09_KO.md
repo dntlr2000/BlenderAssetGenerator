@@ -386,4 +386,4 @@ Gate는 Python/Ruff/doctor, Blender compatibility, V0.8 regression, 격리 workf
 - V0.9 queue나 audit 파일을 canonical SceneSpec의 대체물로 사용하지 않는다.
 - 기존 production dispatch, task binding과 advance receipt는 새 정책으로 rewrite하거나 재결속하지 않는다. 변경된 계약은 새 dispatch부터 사용한다.
 
-지원 범위와 실제 통과 결과는 [VERIFICATION_V09_KO.md](VERIFICATION_V09_KO.md)를 확인한다.
+지원 범위와 실제 통과 결과는 [VERIFICATION_V09_KO.md](../verification/VERIFICATION_V09_KO.md)를 확인한다.

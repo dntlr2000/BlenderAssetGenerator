@@ -12,7 +12,9 @@ Before an authorized regeneration, stage the intended source path set so the Git
 
 Never report an unexecuted command as passed. Contract-only, Blender-verified, engine-tested, experimental, not-run, and unavailable are distinct states.
 
-Codex-owned temporary outputs, pytest basetemps, copied jobs, and isolated test workspaces must use a unique repository-local path. They are never authoritative evidence and must not be created on a drive root, in a sibling project, or in a system/user temporary directory. Remove only exact Codex-owned temporary paths when the user requests cleanup; preserve immutable evidence and unrelated user work.
+Codex-owned temporary outputs, pytest basetemps, copied jobs and isolated validation workspaces use unique task/run directories under E:\CodexTemp; set TEMP and TMP there. Necessary original evidence belongs under E:\CodexValidation\<task>\evidence, and maintained handoff documents belong under docs/. Never create validation outputs on C:. Preserve immutable evidence, final assets, shared caches and unrelated user work. Remove only exact owned, unused, unreferenced temporary paths and report retained exceptions.
+
+Existing V0.7–V0.9 gates hard-code repository-local scratch, and the AQ pytest-root option accepts only immediate .b/.t children. Setting outer TEMP/TMP does not override every runner. When these gates are actually needed, use a dedicated fixed-source validation copy under E:\CodexTemp, preserve required results externally, then clean only that copy. Do not relax host containment or archive rules to implement the directory policy. Documentation-only maintenance does not require running these gates.
 
 Repository storage retention is an additive CLI-only operational boundary. Inventory and
 planning never delete data. Apply accepts only immediate children of `.b/` or `.t/`, exact

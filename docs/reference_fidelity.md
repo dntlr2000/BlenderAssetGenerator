@@ -53,7 +53,7 @@ material promotion receipt와 reentry snapshot의 hash·크기·bytes를 함께 
 다른 round, 변조된 snapshot은 허용하지 않는다. 원본 submission·QA·receipt와 현재 canonical 파일은
 수정하지 않으며, 이 호환성 처리는 새로운 승인이나 campaign 성공을 의미하지 않는다.
 
-프로젝트는 `0.9.0`, canonical SceneSpec은 `0.2.0`이다. 이 기능은 reference 관찰과 실제 렌더를
+현재 프로젝트는 `0.9.1`, canonical SceneSpec은 `0.2.0`이다. Reference-fidelity 장기 개선은 사용자 선택 A안으로 종료됐으며 E/F 단계는 미완료다. 현재 중단 위치와 재개 조건은 [인계 문서](HANDOFF_KO.md)를 따른다. 아래 과거 검증의 버전·baseline·수치는 당시 기록으로 유지한다. 이 기능은 reference 관찰과 실제 렌더를
 연결하는 별도 계약이다. 기존 V0.6/IQ 점수, 인간 quality disposition, package acceptance 또는
 Activation의 의미를 바꾸지 않는다. 구현과 실자산 입증 상태는
 [검증 기록](../VERIFICATION_REFERENCE_FIDELITY_KO.md)을 함께 읽는다.
@@ -257,7 +257,7 @@ authority가 아니다. material closure의 이미 고정된 입력 multiset은 
 새 실행은 host planner의 선택 인자 `fidelity_budget_plan`으로 `FidelityBudgetEpochV01`을 고정할 수 있다.
 이때만 budget 0.3.0과 `AQQualityRevisionLoopV03` 또는 명시적 조명 companion V0.4를 함께 선택한다.
 AQ state/RootAuthorization은 0.2.0,
-SceneSpec은 0.2.0, 프로젝트는 0.9.0을 유지한다. 기존 budget/loop의 bytes와 기본 CLI/MCP 동작은
+SceneSpec은 0.2.0이며 도입 당시 프로젝트는 0.9.0을 유지했다. 기존 budget/loop의 bytes와 기본 CLI/MCP 동작은
 변경하지 않는다. 공개 budget reader는 정확한 0.2/0.3 버전을 dispatch하며 알 수 없는 버전은 거절한다.
 
 AQ skill adapter도 같은 선택 인자를 One-Prompt host로 전달하고 새 session의 exact skill bundle을
@@ -389,8 +389,9 @@ terminal 상태에서 권한을 다시 발행하지 않는다. 공개 CLI/MCP/sc
   material-refinement extension SHA `4bff9b6e190d8b239aa70d7ae6915eaf207ade89693c987e8c6d07b1e782e6fe`는
   V03의 exact completion/review와 두 spatial audit, 변경 source 및 모든 dependency/runtime binding을
   검증해 한 번 발행·소비됐다. 닫힌 retry를 되살리거나 새 job으로 예산을 초기화하지 않는다.
-- geometry 개선이 나머지 네 reference로 전이됐다는 증거, clean baseline의 새 five-asset 캠페인,
-  실제 V0.7 bake/portable fidelity, package/human acceptance와 Activation은 별도 후속 조건이다.
+- 나머지 네 reference의 source-bound paired 개선은 격리 C 개발 실증으로 보존한다. 동일 clean baseline의
+  five-asset 완성, 실제 V0.7 bake/portable fidelity와 인간 beauty/package/Activation 수용은 별도 조건이며
+  E/F 단계는 미완료다. 기존 자산의 package·clean import와 과거 인간 수용을 새 baseline으로 승계하지 않는다.
 
 ## 검증
 
@@ -412,16 +413,17 @@ geometry receipt/current-canonical 적용 후 조건으로 전환되는지, 일�
 차단되는지를 별도로 검사한다.
 `scripts/audit_reference_fidelity_history.py --manifest tests/fixtures/reference_fidelity/historical_5e5b172.json`
 은 지정된 16개 과거 anchor만 읽고 비교하며, 모든 workspace 파일의 보존을 증명하는 전체 snapshot은 아니다.
-신규 baseline/campaign 진입은 [로드맵 8-B](../ROADMAP_V1_KO.md)의 순서와 성공 기준을 따른다.
+별도 사용자 재개 지시 후 신규 baseline/campaign 진입을 검토할 때는 [로드맵 8-B](roadmap/ROADMAP_V1_KO.md)의
+보존된 조건과 [현재 인계](HANDOFF_KO.md)의 소스·권한·잔여 자원 제약을 함께 확인한다.
 
-2026-09-04 최신 검증은 full host `2236 passed, 73 skipped`, AQ focused `1140 passed, 32 skipped`,
+2026-09-04 당시 검증은 full host `2236 passed, 73 skipped`, AQ focused `1140 passed, 32 skipped`,
 실제 Blender 5.0.1 `56 passed, 1 skipped`다. AQ benchmark 0.1은 8/8, 0.2는 10/10 matched이며
 후자의 `.t/aqg-v04-material` report SHA는
 `d25c7ecc46caffd162c47e6623924ce06b69f75b1e9ae2975ad649c3fd0cd40a`다. 이 수치는 실제 5-reference
 quality나 human acceptance가 아니다.
 
 AQ/Blender v4 gate 뒤 추가한 implementation 및 Blender environment binding은 focused `13 passed`와
-최신 full host에서 검증했다. 실행 코드, lock 입력, Blender binary/version이 달라지면 exact preview
+당시 full host에서 검증했다. 실행 코드, lock 입력, Blender binary/version이 달라지면 exact preview
 reservation 전에 거절되며, 이는 기존 Blender smoke를 새 reference-quality 증거로 재분류하지 않는다.
 
 ### 유한 캠페인 사전 위임 (2026-09-28)

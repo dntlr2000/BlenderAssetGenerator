@@ -1,6 +1,6 @@
 # Codex ImageGen 0.2 Material Loop 시작 가이드
 
-> 이 기능은 `disabled_experimental` profile의 host-side companion이다. Project `0.9.0`과
+> 이 기능은 `disabled_experimental` profile의 host-side companion이다. 현재 Project는 `0.9.1`이며
 > canonical SceneSpec `0.2.0`은 유지된다. API key, OpenAI SDK/HTTP provider, 새 Codex task, daemon,
 > user approval 또는 destination write를 제공하지 않는다.
 
@@ -263,19 +263,19 @@ plan/run을 만든다.
 - human review와 destination runtime parity는 수행하지 않았다.
 - 두 profile은 계속 `disabled_experimental`이다.
 
-상세 계약은 [아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md), 테스트 범위는
-[테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md), 실제 결과는
-[검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+상세 계약은 [아키텍처](../architecture/ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md), 테스트 범위는
+[테스트 계획](../testing/TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md), 실제 결과는
+[검증 기록](../verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 13. Codex에 붙여 넣는 프롬프트
 
 CLI를 직접 조합하지 않고 현재 Codex 작업에 목적과 안전 경계를 전달하려면
-[Material Loop 실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)을 사용한다.
+[Material Loop 실사용 프롬프트 모음](../prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)을 사용한다.
 새 reference부터 전체 제작 단계를 조율할 때는
-[새 레퍼런스 단계별 프롬프트](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)의 1.6과 5A를 사용한다.
+[새 레퍼런스 단계별 프롬프트](../prompts/NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)의 1.6과 5A를 사용한다.
 
 저장소 내부 agent-authored step에는
-[`prompts/imagegen_material_loop.md`](prompts/imagegen_material_loop.md)를 사용한다. 이 prompt는
+[`prompts/imagegen_material_loop.md`](../../prompts/imagegen_material_loop.md)를 사용한다. 이 prompt는
 별도 승인이나 provider 권한을 추가하지 않으며 다음 핵심 경계를 고정한다.
 
 - current Codex task의 built-in ImageGen만 사용
@@ -320,7 +320,7 @@ opt-in을 material appearance 승인으로 재사용하지 않는다.
 terminal historical session은 resume하지 않고 material-only repair session을 새로 만든다. repair
 session이 preview까지 통과해도 canonical promotion, `MaterialPhaseReceiptV2`, IQ와 package가 완료된
 것은 아니다. 상세 재사용 프롬프트는
-[Material Closure 프롬프트 모음](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 따른다.
+[Material Closure 프롬프트 모음](../prompts/MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)을 따른다.
 
 현재 검증은 한 procedural actual-Blender preapproval fixture와 current incident의 승인 전
 fail-closed 결과까지다. ImageGen+localized material의 이 전체 경로, 실제 사용자 승인 이후

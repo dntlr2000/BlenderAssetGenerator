@@ -120,7 +120,7 @@ fixture 통과를 실제 자산, built-in ImageGen, human review, accepted packa
 확대 해석하지 않는다.
 
 2026-08-14 현재 actual result는 별도
-[검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 특히 current incident는
+[검증 기록](../verification/VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)을 따른다. 특히 current incident는
 coverage 검사에서 `preflight_failed`로 멈췄고 Blender/preview/approval/controller/promotion은
 실행되지 않았다. 이 결과는 본 계획의 authorized success 및 chained V0.7–V0.9 항목을 충족하지
 않는다.

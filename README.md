@@ -1,6 +1,6 @@
 # BlenderAssetGenerator V0.9.1
 
-Reference-fidelity 장기 개선 작업은 사용자 선택 A안으로 종료했습니다. 현재 버전과 중단 위치·성과·재개 조건은 [HANDOFF_KO.md](HANDOFF_KO.md), 임시 산출물 정리 결과는 [CLEANUP_RESULT_KO.md](docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md)를 참조하세요. v0.9.1은 종료 시점의 코드와 호환성을 고정한 릴리스이며 AQ v2 Activation 또는 5자산 시각 성공 선언이 아닙니다.
+Reference-fidelity 장기 개선 작업은 사용자 선택 A안으로 종료했습니다. 현재 버전과 중단 위치·성과·재개 조건은 [HANDOFF_KO.md](docs/HANDOFF_KO.md), 임시 산출물 정리 결과는 [CLEANUP_RESULT_KO.md](docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md)를 참조하세요. v0.9.1은 종료 시점의 코드와 호환성을 고정한 릴리스이며 AQ v2 Activation 또는 5자산 시각 성공 선언이 아닙니다.
 
 레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.1` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt Supervisor `0.1.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`과 Material Identity Split `0.1.0`은 기존 사용자 승인 경로를 보존하면서, 새 envelope session에서 exact non-user policy authority를 별도 adapter로 받을 수 있는 기반 capability입니다.
 
@@ -111,7 +111,7 @@ V0.8 geometry build와 그 five-view structural review는 계획에 `material_pl
 
 AQ entry는 기존 One-Prompt state를 reference/geometry/material/closure/quality/delivery/recovery skill로 유일하게 route합니다. AQ v2 활성 상태나 approval 의미는 바꾸지 않습니다. 각 run은 registry와 transitive `SKILL.md` bundle을 snapshot하고 exact source-state route decision 및 before/after receipt chain을 남깁니다. 이 trace는 canonical write와 approval authority를 갖지 않습니다.
 
-구조는 [Skill Orchestration 아키텍처](SKILL_ORCHESTRATION_ARCHITECTURE_KO.md), 실행은 [시작 가이드](GETTING_STARTED_SKILL_ORCHESTRATION_KO.md), 호환성은 [마이그레이션](SKILL_ORCHESTRATION_MIGRATION_KO.md), 검증 범위는 [검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md)을 참조합니다.
+구조는 [Skill Orchestration 아키텍처](docs/architecture/SKILL_ORCHESTRATION_ARCHITECTURE_KO.md), 실행은 [시작 가이드](docs/guides/GETTING_STARTED_SKILL_ORCHESTRATION_KO.md), 호환성은 [마이그레이션](docs/migration/SKILL_ORCHESTRATION_MIGRATION_KO.md), 검증 범위는 [검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md)을 참조합니다.
 
 현재 machine-readable KPI에는 대표 계약 fixture와 함께 두 실제 Standard 자산의 exact
 human-reviewed E2E가 기록됩니다. 플라스틱 canary는 high silhouette 한계를 수용한 상태이고, 천
@@ -128,12 +128,12 @@ GLTF/clean import는 통과했으나 Wood·Crystal은 portable material conversi
 고정 카메라 지표 사전 검증을 통과했지만, 기존 실패 이력이나 새 캠페인의 성공으로 재분류하지 않습니다.
 수정 후 clean baseline에서 canary와 5-reference campaign을 다시 닫기 전까지 수정 후 outcome은
 `0/5`이고, 42aa beauty의 exact human disposition도 `0/5`이며 Activation은 수행되지 않습니다.
-정확한 캠페인·사전 검증 구분은 [5자산 캠페인 기록](VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)의
+정확한 캠페인·사전 검증 구분은 [5자산 캠페인 기록](docs/verification/VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md)의
 16절에 기록합니다.
 실제 상태와 명령은 [Skill Orchestration 검증 기록](VERIFICATION_SKILL_ORCHESTRATION_KO.md),
-[AQ Approval Envelope 검증 기록](VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
-[AQ One-Prompt 시작 가이드](GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는
-[AQ Approval KPI](AQ_APPROVAL_KPI_KO.md)를 참조합니다.
+[AQ Approval Envelope 검증 기록](docs/verification/VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md), 실행 방법은
+[AQ One-Prompt 시작 가이드](docs/guides/GETTING_STARTED_AQ_ONE_PROMPT_KO.md), KPI 정의는
+[AQ Approval KPI](docs/testing/AQ_APPROVAL_KPI_KO.md)를 참조합니다.
 
 ## 구현 범위
 
@@ -586,7 +586,7 @@ workflow-owned RevisionPlan 작성
 
 카메라 변경, semantic 추가·삭제, custom-mesh vertex 편집, 재질 변경 또는 큰 재설계는 이 경로에서 거부됩니다. 그 경우 `--revision-strategy manual_guarded`를 명시하거나 V0.4 authoring으로 돌아갑니다. 이미 생성된 legacy workflow에는 새 기본값을 소급 적용하지 않습니다.
 
-완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)을 따릅니다.
+완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](docs/guides/GETTING_STARTED_V08_KO.md)을 따릅니다.
 
 Portable workflow 뒤에 전달 계약까지 포함하려면 GLB 또는 FBX profile에서 선택 플래그를 사용합니다. 이 단계는 목적지 프로젝트를 수정하지 않습니다.
 
@@ -672,7 +672,7 @@ animation을 제거한 normalized authoring `.blend`를 생성합니다.
 이 경로는 가짜 SceneSpec을 만들지 않습니다. Blender master material은 normalized
 `.blend`에 보존하고, V0.7에서 실제 graph를 portable raw PBR로 bake한 뒤 package와
 clean-import round trip을 수행합니다. 목적 엔진 shader parity는 여전히 검증하지
-않습니다. 자세한 절차는 [External Static Asset Intake 가이드](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
+않습니다. 자세한 절차는 [External Static Asset Intake 가이드](docs/guides/EXTERNAL_STATIC_ASSET_INTAKE_KO.md)를
 참조하세요.
 
 정확한 delivery scope가 생성 형상뿐 아니라 비활성 delivery metadata도 제외하도록
@@ -826,8 +826,8 @@ hash에 결속된 derived copy와 receipt만 만들며 canonical SceneSpec `0.2.
 않습니다.
 
 일반 사용자는 PowerShell 대신 Codex/MCP로 요청할 수 있습니다. 실제 사용 범위와 종료
-결과는 [AQ 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md), 계약은
-[AQ 아키텍처](ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)를 따릅니다.
+결과는 [AQ 시작 가이드](docs/guides/GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md), 계약은
+[AQ 아키텍처](docs/architecture/ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)를 따릅니다.
 
 ## 실험적 Autonomous Quality 0.2
 
@@ -956,10 +956,10 @@ actual ImageGen이 아니다. historical actual PNG 재사용은 fresh invocatio
 non-human review가 `review_required`여서 promotion 전에 멈췄다. 승인 없는 raw GLB/FBX clean import는
 mechanism evidence일 뿐 production package가 아니고 human review/destination parity도 수행하지 않았다.
 
-core 사용법은 [ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md), staging 이후
-사용법은 [Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), Codex에 바로
-붙여 넣는 단계별 요청은 [Material Loop 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 정확한
-결과는 [Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다. 저장소 내부
+core 사용법은 [ImageGen 시작 가이드](docs/guides/GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md), staging 이후
+사용법은 [Material Loop 시작 가이드](docs/guides/GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md), Codex에 바로
+붙여 넣는 단계별 요청은 [Material Loop 프롬프트 모음](docs/prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md), 정확한
+결과는 [Material Loop 검증 기록](docs/verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다. 저장소 내부
 agent-authored 단계는 [`prompts/imagegen_material_loop.md`](prompts/imagegen_material_loop.md)의 같은
 권위 경계를 사용한다.
 
@@ -983,9 +983,11 @@ Audit는 canonical job을 repair하거나 migration하지 않습니다. Archive�
 전체를 `workspace_archive/`로 동일 볼륨 원자 이동하며 내부 증거를 고치지 않습니다.
 `failed` 상태는 명시적 `--allow-failed` 없이는 이동하지 않고, active/waiting/blocked/AQ
 job은 fail closed합니다. Queue는 이미 계획된 V0.8 workflow만 한 번에 하나씩 진행하고
-agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)을 따릅니다.
+agent 또는 승인 경계에서 멈춥니다. 전체 사용법은 [V0.9 빠른 시작](docs/guides/GETTING_STARTED_V09_KO.md)을 따릅니다.
 
 ## 증거 보존형 임시 저장소 정리
+
+현재 문서는 [docs 목차](docs/README.md)에 모았습니다. 이번 실제 정리 결과와 외부 보관·복원 경로는 [정리 안내](docs/reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 참조하세요. 새 검증 임시 자료는 `E:\CodexTemp`, 필수 보존 증거는 `E:\CodexValidation`의 작업별 경로를 사용합니다. 기존 gate가 repo-local `.b/.t`를 요구하면 외부 검증 복제본에서 실행합니다. 아래 native 정리 기능의 허용 범위는 바뀌지 않았습니다.
 
 `.b/`와 `.t/`는 Windows short-path pytest 및 Blender gate의 run-owned 임시 트리입니다.
 정리 기능은 이 두 루트의 immediate child만 대상으로 하고 `workspaces/`,
@@ -1074,7 +1076,7 @@ fingerprint·`uv_rect` 또는 hash-bound mask·적용할 image-backed PBR channe
 검토를 대체하지 않습니다. 기존 unbound TextureManifest는 계속 읽을 수 있지만 새
 workflow의 spatial 검증을 통과한 것으로 승격되지 않습니다.
 
-자세한 계약과 예시는 [표면 디테일 분류 가이드](SURFACE_DETAIL_ROUTING_KO.md)를
+자세한 계약과 예시는 [표면 디테일 분류 가이드](docs/guides/SURFACE_DETAIL_ROUTING_KO.md)를
 참조하세요.
 
 ## 안전 원칙
@@ -1132,7 +1134,7 @@ OK, Blender 5.0.1 compatibility GLB/FBX/OBJ 통과입니다. AQ gate는 focused
 `14 passed, 6 warnings in 352.03s`, benchmark `8/8`과
 V0.7~V0.9 chained regression을 포함해 exit 0으로 끝났습니다. 기준선 결과를 AQ 회귀
 통과로 재사용하지 않습니다. exact 경로와 hash는
-[AQ 검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)에 있습니다.
+[AQ 검증 기록](docs/verification/VERIFICATION_AUTONOMOUS_QUALITY_KO.md)에 있습니다.
 
 2026-08-13 Codex ImageGen Material Loop 최종 로컬 결과는 full
 `1569 passed, 56 skipped, 8 warnings`, focused `160 passed, 1 skipped`, fake 4-family actual
@@ -1140,7 +1142,7 @@ Blender `4 passed`, review/approval-free delivery 파일 `5 passed, 1 skipped`�
 source는 current-task non-human `review_required`에서 멈췄고 canonical promotion/package를 만들지
 않았다. 합성 사용자 승인을 만드는 legacy opt-in chained gate는 이번 실행에서 제외했으므로 fresh
 V0.7~V0.9 chained pass를 주장하지 않는다. exact 명령과 범위는
-[Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)에 있다.
+[Material Loop 검증 기록](docs/verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)에 있다.
 
 V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 
@@ -1148,62 +1150,62 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 .\scripts\run_v09_gates.ps1 -SkipV08
 ```
 
-실제 검증 결과는 [V0.9 검증 기록](VERIFICATION_V09_KO.md)에 있습니다. 테스트하지 않은 운영체제, Blender 버전, 엔진 또는 adapter는 지원된 것으로 표시하지 않습니다.
+실제 검증 결과는 [V0.9 검증 기록](docs/verification/VERIFICATION_V09_KO.md)에 있습니다. 테스트하지 않은 운영체제, Blender 버전, 엔진 또는 adapter는 지원된 것으로 표시하지 않습니다.
 
 ## 문서 안내
 
-- [V1.0 공식 로드맵](ROADMAP_V1_KO.md)
-- [Autonomous Quality 0.1.0 아키텍처](ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)
-- [Autonomous Quality 0.1.0 시작 가이드](GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md)
-- [Autonomous Quality 0.1.0 테스트 계획](TEST_PLAN_AUTONOMOUS_QUALITY_KO.md)
-- [Autonomous Quality 0.1.0 마이그레이션 정책](MIGRATION_AUTONOMOUS_QUALITY_KO.md)
-- [Autonomous Quality 0.1.0 검증 기록](VERIFICATION_AUTONOMOUS_QUALITY_KO.md)
-- [Autonomous Quality 0.2 아키텍처](ARCHITECTURE_AQ_V02_KO.md)
-- [Autonomous Quality 0.2 시작 가이드](GETTING_STARTED_AQ_V02_KO.md)
-- [Autonomous Quality 0.2 테스트 계획](TEST_PLAN_AQ_V02_KO.md)
-- [Autonomous Quality 0.2 마이그레이션 정책](MIGRATION_AQ_V02_KO.md)
-- [Autonomous Quality 0.2 검증 기록](VERIFICATION_AQ_V02_KO.md)
-- [ControllerExecutor 격리 경계](CONTROLLER_EXECUTOR_KO.md)
-- [AQ 0.2 delivery profile](DELIVERY_PROFILES_KO.md)
-- [AQ 0.2 material authoring](MATERIAL_AUTHORING_KO.md)
-- [AQ 0.2 quality benchmark](QUALITY_BENCHMARK_KO.md)
-- [Codex Built-in ImageGen 아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)
-- [Codex Built-in ImageGen 시작 가이드](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md)
-- [Codex Built-in ImageGen 테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)
-- [Codex Built-in ImageGen 마이그레이션 정책](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
-- [Codex Built-in ImageGen 검증 기록](VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
-- [Codex ImageGen Material Loop 아키텍처](ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)
-- [Codex ImageGen Material Loop 시작 가이드](GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)
-- [Codex ImageGen Material Loop 실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)
-- [Codex ImageGen Material Loop 테스트 계획](TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
-- [Codex ImageGen Material Loop 마이그레이션 정책](MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
-- [Codex ImageGen Material Loop 검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
-- [Material Closure Stabilization 아키텍처](ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)
-- [Material Closure Stabilization 테스트 계획](TEST_PLAN_MATERIAL_CLOSURE_STABILIZATION_KO.md)
-- [Material Closure Stabilization 마이그레이션 정책](MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
-- [Material Closure Stabilization 검증 기록](VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
-- [Material Closure Stabilization 재사용 프롬프트](MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
-- [Material Identity Split 아키텍처](ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md)
-- [Material Identity Split 테스트 계획](TEST_PLAN_MATERIAL_IDENTITY_SPLIT_KO.md)
-- [Material Identity Split 마이그레이션 정책](MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md)
-- [Material Identity Split 검증 기록](VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)
-- [Material Identity Split 재사용 프롬프트](MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)
-- [Crystalgun material framework incident](CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)
-- [새 레퍼런스 전체 단계별 프롬프트 모음](NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
+- [V1.0 공식 로드맵](docs/roadmap/ROADMAP_V1_KO.md)
+- [Autonomous Quality 0.1.0 아키텍처](docs/architecture/ARCHITECTURE_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 시작 가이드](docs/guides/GETTING_STARTED_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 테스트 계획](docs/testing/TEST_PLAN_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 마이그레이션 정책](docs/migration/MIGRATION_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.1.0 검증 기록](docs/verification/VERIFICATION_AUTONOMOUS_QUALITY_KO.md)
+- [Autonomous Quality 0.2 아키텍처](docs/architecture/ARCHITECTURE_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 시작 가이드](docs/guides/GETTING_STARTED_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 테스트 계획](docs/testing/TEST_PLAN_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 마이그레이션 정책](docs/migration/MIGRATION_AQ_V02_KO.md)
+- [Autonomous Quality 0.2 검증 기록](docs/verification/VERIFICATION_AQ_V02_KO.md)
+- [ControllerExecutor 격리 경계](docs/guides/CONTROLLER_EXECUTOR_KO.md)
+- [AQ 0.2 delivery profile](docs/guides/DELIVERY_PROFILES_KO.md)
+- [AQ 0.2 material authoring](docs/guides/MATERIAL_AUTHORING_KO.md)
+- [AQ 0.2 quality benchmark](docs/guides/QUALITY_BENCHMARK_KO.md)
+- [Codex Built-in ImageGen 아키텍처](docs/architecture/ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 시작 가이드](docs/guides/GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 테스트 계획](docs/testing/TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 마이그레이션 정책](docs/migration/MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex Built-in ImageGen 검증 기록](docs/verification/VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md)
+- [Codex ImageGen Material Loop 아키텍처](docs/architecture/ARCHITECTURE_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 시작 가이드](docs/guides/GETTING_STARTED_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 실사용 프롬프트 모음](docs/prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)
+- [Codex ImageGen Material Loop 테스트 계획](docs/testing/TEST_PLAN_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 마이그레이션 정책](docs/migration/MIGRATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Codex ImageGen Material Loop 검증 기록](docs/verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)
+- [Material Closure Stabilization 아키텍처](docs/architecture/ARCHITECTURE_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 테스트 계획](docs/testing/TEST_PLAN_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 마이그레이션 정책](docs/migration/MIGRATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 검증 기록](docs/verification/VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md)
+- [Material Closure Stabilization 재사용 프롬프트](docs/prompts/MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md)
+- [Material Identity Split 아키텍처](docs/architecture/ARCHITECTURE_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 테스트 계획](docs/testing/TEST_PLAN_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 마이그레이션 정책](docs/migration/MIGRATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 검증 기록](docs/verification/VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md)
+- [Material Identity Split 재사용 프롬프트](docs/prompts/MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md)
+- [Crystalgun material framework incident](docs/history/CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md)
+- [새 레퍼런스 전체 단계별 프롬프트 모음](docs/prompts/NEW_REFERENCE_VALIDATION_PROMPTS_KO.md)
 - [Portable verification evidence](verification/evidence/README.md)
-- [V0.9 아키텍처](ARCHITECTURE_V09_KO.md)
-- [V0.9 빠른 시작](GETTING_STARTED_V09_KO.md)
-- [V0.9 테스트 계획](TEST_PLAN_V09_KO.md)
-- [V0.9 검증 기록](VERIFICATION_V09_KO.md)
-- [External Static Asset Intake](EXTERNAL_STATIC_ASSET_INTAKE_KO.md)
-- [V0.8 아키텍처](ARCHITECTURE_V08_KO.md)
-- [V0.8 빠른 시작](GETTING_STARTED_V08_KO.md)
-- [V0.8 테스트 계획](TEST_PLAN_V08_KO.md)
-- [V0.8 검증 기록](VERIFICATION_V08_KO.md)
-- [V0.7 portable asset 아키텍처](ARCHITECTURE_V07_KO.md)
-- [V0.7.4 최적화 승인 경계](V074_PRE_OPTIMIZATION_REVIEW_KO.md)
-- [선택적 실내 범위와 다각도 QA](INTERIOR_SCOPE_KO.md)
-- [Blender 5 호환성](BLENDER_5_COMPATIBILITY_KO.md)
+- [V0.9 아키텍처](docs/architecture/ARCHITECTURE_V09_KO.md)
+- [V0.9 빠른 시작](docs/guides/GETTING_STARTED_V09_KO.md)
+- [V0.9 테스트 계획](docs/testing/TEST_PLAN_V09_KO.md)
+- [V0.9 검증 기록](docs/verification/VERIFICATION_V09_KO.md)
+- [External Static Asset Intake](docs/guides/EXTERNAL_STATIC_ASSET_INTAKE_KO.md)
+- [V0.8 아키텍처](docs/architecture/ARCHITECTURE_V08_KO.md)
+- [V0.8 빠른 시작](docs/guides/GETTING_STARTED_V08_KO.md)
+- [V0.8 테스트 계획](docs/testing/TEST_PLAN_V08_KO.md)
+- [V0.8 검증 기록](docs/verification/VERIFICATION_V08_KO.md)
+- [V0.7 portable asset 아키텍처](docs/architecture/ARCHITECTURE_V07_KO.md)
+- [V0.7.4 최적화 승인 경계](docs/history/V074_PRE_OPTIMIZATION_REVIEW_KO.md)
+- [선택적 실내 범위와 다각도 QA](docs/guides/INTERIOR_SCOPE_KO.md)
+- [Blender 5 호환성](docs/verification/BLENDER_5_COMPATIBILITY_KO.md)
 - [변경 기록](CHANGELOG.md)
 
 V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또는 목적 엔진 runtime parity를 의미하지 않습니다. V1.0 승격은 현재 중단되어 있으며, 자동 Unity/Unreal/custom Destination Adapter는 V1.1 이후에 목적지가 확정된 다음 별도로 설계·검증합니다.

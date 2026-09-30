@@ -1,7 +1,7 @@
 # Codex ImageGen 0.2 Material Loop 테스트 계획
 
 > 이 문서는 검증 항목을 정의한다. 실행하지 않은 명령을 pass로 기록하지 않으며 실제 결과는
-> [검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)에만 남긴다.
+> [검증 기록](../verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)에만 남긴다.
 
 ## 1. 판정 기준
 

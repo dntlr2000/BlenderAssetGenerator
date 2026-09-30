@@ -3,7 +3,7 @@
 > 상태: **additive companion 구현됨, profile 비활성**. 프로젝트는 `0.9.0`, canonical
 > SceneSpec은 `0.2.0`이며 `autonomous_static_prop_v2`와
 > `autonomous_static_prop_v2_codex_imagegen`은 모두 `disabled_experimental`이다. 실제 실행
-> 범위와 미검증 항목은 [검증 기록](VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
+> 범위와 미검증 항목은 [검증 기록](../verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md)을 따른다.
 
 ## 1. 목적과 권위 경계
 
@@ -275,7 +275,7 @@ fake family, historical built-in source와 실제 production 승인은 분리한
 
 따라서 두 experimental profile은 계속 비활성이다. 최종 실행 명령과 결과는 verification 문서에만
 기록한다. 사용자가 current Codex 작업에 붙여 넣는 prompt는 권위 artifact가 아니며
-[실사용 프롬프트 모음](IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)이 이 문서의 opt-in, native provenance,
+[실사용 프롬프트 모음](../prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md)이 이 문서의 opt-in, native provenance,
 host-only promotion, IQ와 approval/package 분리 경계를 그대로 투영한다.
 
 ## 13. Material Closure Stabilization 연동

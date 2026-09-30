@@ -3,7 +3,7 @@
 ## 1. 현재 상태
 
 AQ Approval Envelope `0.3.0`과 One-Prompt Supervisor `0.1.0`은 기존 AQ v2 위의 additive
-experimental companion이다. 프로젝트는 `0.9.0`이며 두 v2 profile은 계속
+experimental companion이다. 현재 프로젝트는 `0.9.1`이며 두 v2 profile은 계속
 `disabled_experimental`이다. 이 경로는 새 정적 hard-surface/static prop, concept,
 `primary_object_only`, current-task controller와 engine-neutral review/GLB/FBX 범위만 대상으로 한다.
 

@@ -25,10 +25,10 @@
 - 별도 additive Material Loop는 exact staging chain에서 controller/host promotion, actual
   `MaterialPhaseReceiptV2`와 IQ 경계까지 연결한다. 이 경로의 실행 결과는
   `VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md`가 권위 원본이다.
-- 관련 설계와 실행 절차는 [아키텍처](ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md),
-  [시작 안내](GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md),
-  [마이그레이션](MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
-  [테스트 계획](TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)을 기준으로 한다.
+- 관련 설계와 실행 절차는 [아키텍처](../architecture/ARCHITECTURE_CODEX_IMAGEGEN_PROVIDER_KO.md),
+  [시작 안내](../guides/GETTING_STARTED_CODEX_IMAGEGEN_PROVIDER_KO.md),
+  [마이그레이션](../migration/MIGRATION_CODEX_IMAGEGEN_PROVIDER_KO.md),
+  [테스트 계획](../testing/TEST_PLAN_CODEX_IMAGEGEN_PROVIDER_KO.md)을 기준으로 한다.
 
 ## 2. 구현 전 기준선
 
@@ -107,8 +107,8 @@ profile을 계획하려면 ImageGen overlay opt-in과 `disabled_experimental` �
 
 machine-readable 수동 검증 기록은 다음 두 파일이다.
 
-- [생성·선택 검증 기록](reports/codex_imagegen_manual_20260811/manual_codex_assisted_validation.json)
-- [MaterialAuthoring staging 검증 기록](reports/codex_imagegen_manual_20260811/manual_codex_assisted_material_validation.json)
+- [생성·선택 검증 기록](../../reports/codex_imagegen_manual_20260811/manual_codex_assisted_validation.json)
+- [MaterialAuthoring staging 검증 기록](../../reports/codex_imagegen_manual_20260811/manual_codex_assisted_material_validation.json)
 
 두 기록의 범위는 `isolated_material_boundary_fixture_not_full_production_session`이다. 전체 production
 session이나 package acceptance 증거로 확대 해석하지 않는다.
