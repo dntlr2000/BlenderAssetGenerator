@@ -12,7 +12,7 @@
 | 이번 릴리스 차이 | 버전 표시, 0.9.0/0.9.1 producer 호환성, 종료·재개 문서. 새 형상 기능 없음 |
 | 계약 버전 | SceneSpec 0.2.0, V0.4~V0.9 및 AQ/IQ companion 버전 유지 |
 | AQ v2 상태 | `disabled_experimental`. 새 Activation 또는 실행 baseline 발행 없음 |
-| 배포 | 2026-09-30 읽기 전용 서버 확인: GitHub main은 릴리스 commit `b59094c8c6b795ba3bfc3e2a25982e18e479f179`. `v0.9.1` 태그는 로컬에만 존재. 이번 문서 정리는 로컬 후속 commit만 작성하며 push하지 않음 |
+| 배포 | 이전 2026-09-30 tidy 작업의 서버 조회에서는 main이 `b59094c8c6b795ba3bfc3e2a25982e18e479f179`였고 원격 `v0.9.1` 태그는 없었다. 이번 scratch 정리의 최신 조회는 Schannel `SEC_E_NO_CREDENTIALS`로 실패해 현재 서버 상태는 미확인이다. cached `origin/main`은 b590이며 로컬 v0.9.1 태그는 유지한다. push 없음 |
 
 정확한 릴리스 commit/tag와 이번 검사·정리 기록은 [릴리스 증거](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/RELEASE_RECEIPT.json)에 있다. 과거 f55의 Blender 검증을 새 릴리스에서 다시 실행했다고 표현하지 않는다. 사용자 원본·canonical·QA·approval·package·receipt·history·terminal은 정리 대상에서 제외했다.
 
@@ -99,7 +99,9 @@ Rust [state 0007](../workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026
 
 ## 보존·정리와 향후 재개 절차
 
-현재 문서는 `docs/`에 모았고, 종료 증거 사본은 외부 보존소로 정리했다. 최신 위치·파일별 해시 매핑·복원 절차와 원위치 보존 예외는 [문서·저장공간 정리 안내](reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 따른다. `.b/.t`와 AQ workspace는 보호·host 조건 때문에 남아 있으며, 폴더가 남았다는 이유로 실행을 재개하지 않는다.
+현재 문서는 `docs/`에 모았다. 종료 증거 사본에 이어, `.b/.t/.tmp` 등에서 외부 보존을 검증한 임시자료의 프로젝트 사본도 정리했다. 이번 scratch 정리에서 일반 파일 2,225,268개, 논리 크기 23,290,572,744 bytes를 제거했으며, 이는 같은 용량의 디스크 공간을 확보했다는 뜻이 아니다. 읽을 수 있는 잔여 일반 파일은 3,273개이고 보호·접근 제한 하위 트리의 전체 크기는 미확정이다. AQ workspace·원본 reference·canonical·승인·소비·terminal은 원위치에 유지한다. 최신 보존 위치·수치·제외 사유는 [문서·저장공간 정리 안내](reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 따른다.
+
+역사 검증 문서의 `.b/fid` 링크 13개는 원문을 바꾸지 않고 [파일별 외부 locator](E:/CodexValidation/bag-v091-scratch-archive-20260930-run01/evidence/historical-evidence-locator.json)로 찾는다. 보관소는 같은 내용을 합쳐 저장하므로 경로 prefix만 바꿔 찾거나 실행하면 안 된다. 기존 host 검사가 필요하면 [복원 검증 기록](E:/CodexValidation/bag-v091-scratch-archive-20260930-run01/evidence/restored-file-integrity.json)처럼 새 외부 검증 사본에 원래 상대경로와 필요한 의존 파일을 재구성한다. 원본 machine JSON의 경로·hash·승인 의미는 그대로다. 이번 정리는 offline 보존 작업이며 native storage-cleanup apply와 캠페인 실행은 각각 0회다.
 
 문서는 이 프로젝트를 기본 위치로 사용한다. [정리 결과와 제외 항목](reference_fidelity_closeout/CLEANUP_RESULT_KO.md), [보존 복사본과 SHA-256 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/project-preservation.json), [검증 복제본 보존 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/clone-preservation.json)을 먼저 확인한다. 원래 machine JSON의 절대경로는 바꿔 쓰지 않았다. 삭제한 검증 scratch는 검증된 source bundle·lock·명령으로 필요할 때 재현하는 자료이며 운영 workspace가 아니다.
 
