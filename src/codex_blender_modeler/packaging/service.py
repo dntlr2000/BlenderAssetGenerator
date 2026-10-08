@@ -466,6 +466,58 @@ def _load_run_manifests(
     return (*core_manifests, cost)
 
 
+def _require_lod_quality_for_publication(
+    root: Path,
+    run_root: Path,
+    lod: LODManifest,
+    profile: AssetProfile,
+) -> list[str]:
+    """Reject known reduced-level failures without turning historical unknowns into passes."""
+
+    if lod.job_id != profile.job_id or lod.profile_id != profile.profile_id:
+        raise RuntimeError("LOD quality manifest has a foreign job or profile")
+    if lod.run_id != run_root.name or lod.status != "complete":
+        raise RuntimeError("LOD quality manifest has a foreign or incomplete run")
+    expected_levels = {0, *(target.level for target in profile.lod.targets)}
+    if not profile.lod.enabled:
+        expected_levels = {0}
+    for target_id in {entry.target_id for entry in lod.entries}:
+        levels = {entry.level for entry in lod.entries if entry.target_id == target_id}
+        if levels != expected_levels:
+            raise RuntimeError(f"LOD quality level coverage differs from profile: {target_id}")
+    blend = (run_root / "optimized" / "scene.blend").resolve()
+    blend_sha256 = sha256_file(blend)
+    floors = {target.level: target.minimum_silhouette_iou for target in profile.lod.targets}
+    for entry in lod.entries:
+        if (
+            resolve_inside(root, entry.mesh.path, "LOD mesh") != blend
+            or entry.mesh.sha256 != blend_sha256
+        ):
+            raise RuntimeError("LOD quality entries contain a stale or mixed derived source")
+        if lod.quality_status == "verified" and entry.silhouette_iou is None:
+            raise RuntimeError("Verified LOD quality contains an unmeasured silhouette entry")
+        if entry.level and entry.silhouette_iou is not None:
+            floor = floors[entry.level]
+            if entry.silhouette_iou < floor:
+                raise RuntimeError(
+                    f"Known LOD silhouette failure: {entry.target_id} LOD{entry.level} "
+                    f"IoU={entry.silhouette_iou} below profile floor={floor}"
+                )
+    if not profile.lod.enabled:
+        return ["Optional LODs are disabled; reduced-level silhouette checks are not applicable."]
+    if lod.quality_status != "verified" or any(
+        entry.silhouette_iou is None for entry in lod.entries
+    ):
+        return [
+            "Optional LOD silhouette quality remains unverified or partially verified; "
+            "package creation and clean import do not verify profile silhouette floors."
+        ]
+    return [
+        "Recorded LOD silhouette values meet profile floors; the legacy scalar manifest "
+        "does not establish discrete-view coverage or runtime switching quality."
+    ]
+
+
 def _bounded_resolution(width: int, height: int, maximum: int) -> tuple[int, int]:
     """Scale a derived packed texture down to one profile maximum without upscaling."""
 
@@ -497,7 +549,7 @@ def _verify_hashed_artifact(
 
 
 def _optimization_authorization_paths(run_root: Path) -> dict[str, Path]:
-    """Select exactly one complete user-approval or policy-authorization evidence set."""
+    """Select exactly one complete user, policy or delegated authority evidence set."""
 
     common = {
         "review_plan": run_root / "review_plan.json",
@@ -505,17 +557,56 @@ def _optimization_authorization_paths(run_root: Path) -> dict[str, Path]:
     }
     if not all(path.is_file() for path in common.values()):
         raise RuntimeError("Optimization review and approval evidence is incomplete")
-    user_approval = run_root / "optimization_approval.json"
-    policy_authorization = run_root / "optimization_policy_authorization.json"
-    if user_approval.is_file() and policy_authorization.is_file():
-        raise RuntimeError("Optimization run mixes user approval and policy authorization evidence")
-    if not user_approval.is_file() and not policy_authorization.is_file():
+    candidates = {
+        "optimization_approval": run_root / "optimization_approval.json",
+        "optimization_policy_authorization": run_root / "optimization_policy_authorization.json",
+        "optimization_delegated_authorization": run_root
+        / "optimization_delegated_authorization.json",
+    }
+    present = {key: path for key, path in candidates.items() if path.exists() or path.is_symlink()}
+    if len(present) > 1:
+        raise RuntimeError(
+            "Optimization run mixes user approval, policy or delegated authorization evidence"
+        )
+    if len(present) != 1 or not all(
+        path.is_file() and not path.is_symlink() for path in present.values()
+    ):
         raise RuntimeError("Optimization review and approval evidence is incomplete")
-    selected = dict(common)
-    if user_approval.is_file():
-        selected["optimization_approval"] = user_approval
-    else:
-        selected["optimization_policy_authorization"] = policy_authorization
+    if "optimization_delegated_authorization" not in present and any(
+        path.exists() or path.is_symlink() for path in run_root.glob("optimization_delegated_*")
+    ):
+        raise RuntimeError("Optimization run mixes partial delegated and other authority")
+    selected = {**common, **present}
+    if "optimization_delegated_authorization" in present:
+        for key, suffix in (
+            ("consumption", "json"),
+            ("scope", "json"),
+            ("text", "txt"),
+            ("confirmation", "txt"),
+            ("claim", "json"),
+            ("task_binding", "json"),
+            ("profile", "json"),
+        ):
+            name = f"optimization_delegated_{key}"
+            path = run_root / f"{name}.{suffix}"
+            if not path.is_file() or path.is_symlink():
+                raise RuntimeError("Delegated optimization evidence is incomplete")
+            selected[name] = path
+        quality = run_root / "optimization_delegated_source_quality.json"
+        if quality.exists() or quality.is_symlink():
+            if not quality.is_file() or quality.is_symlink():
+                raise RuntimeError("Delegated quality snapshot is invalid")
+            selected["optimization_delegated_source_quality"] = quality
+        binding = run_root / "optimization_delegated_workflow_binding.json"
+        if binding.exists() or binding.is_symlink():
+            if not binding.is_file() or binding.is_symlink():
+                raise RuntimeError("Delegated workflow binding is invalid")
+            selected["optimization_delegated_workflow_binding"] = binding
+            for name in ("plan", "request"):
+                path = run_root / f"optimization_delegated_workflow_{name}.json"
+                if not path.is_file() or path.is_symlink():
+                    raise RuntimeError("Delegated workflow snapshot is incomplete")
+                selected[f"optimization_delegated_workflow_{name}"] = path
     return selected
 
 
@@ -567,10 +658,14 @@ def _verify_optimization_authorization_evidence(
             raise RuntimeError("Optimization review approval does not match the completed run")
         return paths
 
+    if "optimization_delegated_authorization" in paths:
+        from ..optimization.delegated import validate_delegated_optimization_authorization
+
+        validate_delegated_optimization_authorization(root, run_root, plan, require_consumed=True)
+        return paths
+
     policy_path = paths["optimization_policy_authorization"]
-    raw_authorization = json.loads(
-        _read_package_bytes_long_path_safe(policy_path).decode("utf-8")
-    )
+    raw_authorization = json.loads(_read_package_bytes_long_path_safe(policy_path).decode("utf-8"))
     expected_target = paths["review_plan"].resolve().relative_to(root.resolve()).as_posix()
     if raw_authorization.get("schema_version") == "0.3.0":
         from ..autonomy_v2.approval_models import AQV2RoutinePolicyAuthorization
@@ -593,11 +688,9 @@ def _verify_optimization_authorization_evidence(
             ),
             "AQ v2 optimization policy authorization",
         )
-        if (
-            not os.path.isfile(native_io_path(canonical_path))
-            or _read_package_bytes_long_path_safe(canonical_path)
-            != _read_package_bytes_long_path_safe(policy_path)
-        ):
+        if not os.path.isfile(native_io_path(canonical_path)) or _read_package_bytes_long_path_safe(
+            canonical_path
+        ) != _read_package_bytes_long_path_safe(policy_path):
             raise RuntimeError(
                 "AQ v2 optimization policy snapshot differs from canonical authority"
             )
@@ -750,6 +843,18 @@ def _snapshot_package_metadata(
                 ),
             }
         )
+    if material_conversion is not None and material_conversion.plan.atlas_policy.uv_method == (
+        "validated_authored_uv_v1"
+    ):
+        sources["authored_uv_source"] = material_conversion.directory / "authored_uv_source.json"
+        sources["authored_uv_proof"] = material_conversion.directory / "authored_uv_proof.json"
+        if material_conversion.manifest.authored_uv_scalar_bake is not None:
+            sources["authored_uv_scalar_bake"] = (
+                material_conversion.directory / "authored_uv_scalar_bake.json"
+            )
+            sources["authored_uv_coverage"] = (
+                material_conversion.directory / "authored_uv_coverage.png"
+            )
     if (root / "intake" / "external_asset_manifest.json").is_file():
         external_sources = {
             "external_asset_manifest": root / "intake" / "external_asset_manifest.json",
@@ -763,7 +868,7 @@ def _snapshot_package_metadata(
     for key, source in sources.items():
         if not source.is_file():
             raise FileNotFoundError(source)
-        target = metadata_root / f"{key}.json"
+        target = metadata_root / f"{key}{source.suffix}"
         _copyfile_long_path_safe(source, target)
         if sha256_file(target) != sha256_file(source):
             raise RuntimeError(f"Portable metadata snapshot hash mismatch: {key}")
@@ -1892,6 +1997,42 @@ def _verify_package_receipts(
             checksum_paths[0],
             package.files,
         )
+    run_id = getattr(package, "run_id", None)
+    run_root = run_directory(root, run_id) if run_id is not None else None
+    has_delegated = run_root is not None and any(run_root.glob("optimization_delegated_*"))
+    package_delegated = any(
+        path.name.startswith("optimization_delegated_")
+        or path.name == "delegated_package_authority_manifest.json"
+        for path in verified.values()
+    )
+    if has_delegated or package_delegated:
+        if run_root is None:
+            raise RuntimeError("Delegated package lacks an exact optimization run identity")
+        if package.content_mode != "full_evidence":
+            raise RuntimeError("Delegated package requires complete authority evidence")
+        plan = load_model(run_root / "optimization_plan.json", OptimizationPlan)
+        paths = _verify_optimization_authorization_evidence(root, run_root, plan)
+        if "optimization_delegated_authorization" not in paths or plan.source != package.source:
+            raise RuntimeError("Package has foreign or mixed delegated authority")
+        for other in ("optimization_approval.json", "optimization_policy_authorization.json"):
+            if (package_root / "metadata" / other).exists() or (
+                package_root / "metadata" / other
+            ).is_symlink():
+                raise RuntimeError("Package mixes delegated and other authority")
+        from .delegated import validate_delegated_package_authority
+
+        validate_delegated_package_authority(package_root)
+        for key, source in paths.items():
+            snapshot = package_root / "metadata" / f"{key}{source.suffix}"
+            if (
+                not snapshot.is_file()
+                or snapshot.is_symlink()
+                or _read_package_bytes_long_path_safe(snapshot)
+                != _read_package_bytes_long_path_safe(source)
+            ):
+                raise RuntimeError(
+                    "Package delegated authority snapshot differs from exact host evidence"
+                )
     return verified
 
 
@@ -2064,13 +2205,79 @@ def package_asset(
     include_colliders: bool = True,
     content_mode: Literal["full_evidence", "static_payload"] = "full_evidence",
     primary_asset_stem: str | None = None,
+    delegated_authorization_sha256: str | None = None,
+    delegated_workflow_lock_owner: str | None = None,
+    _delegated_lock_owner: str | None = None,
 ) -> ExportPackageManifest:
     """Build one immutable package from a verified optimization and material run."""
 
     if not load_feature_config().features.portable_asset_core:
         raise RuntimeError("portable_asset_core is disabled in cbm.toml")
+    if delegated_authorization_sha256 is not None:
+        from ..orchestration.locks import workflow_write_lock
+        from ..workspace import current_job_write_lock_owner
+
+        if delegated_workflow_lock_owner is None and _delegated_lock_owner is None:
+            if run_id is None:
+                raise ValueError("delegated packaging requires an explicit run_id")
+            validate_filesystem_id(run_id, "run_id")
+            root = job_dir(job_id)
+            with workflow_write_lock(root, job_id, f"delegated-package-{run_id}") as lock:
+                return package_asset(
+                    job_id,
+                    profile_id=profile_id,
+                    run_id=run_id,
+                    package_id=package_id,
+                    material_conversion_id=material_conversion_id,
+                    include_colliders=include_colliders,
+                    content_mode=content_mode,
+                    primary_asset_stem=primary_asset_stem,
+                    delegated_authorization_sha256=delegated_authorization_sha256,
+                    _delegated_lock_owner=lock.workflow_id,
+                )
+        if delegated_workflow_lock_owner is not None and _delegated_lock_owner is not None:
+            raise ValueError("delegated packaging has conflicting host lock contexts")
+        if delegated_workflow_lock_owner is not None:
+            from ..optimization.delegated_workflow import load_delegated_workflow_binding
+
+            root = job_dir(job_id)
+            binding = load_delegated_workflow_binding(
+                root, root / "workflows" / delegated_workflow_lock_owner
+            )
+            if (
+                binding is None
+                or binding.run_id != run_id
+                or binding.authorization.sha256 != delegated_authorization_sha256
+            ):
+                raise ValueError("delegated packaging workflow lock has no matching exact binding")
+        if current_job_write_lock_owner(job_id) != (
+            delegated_workflow_lock_owner or _delegated_lock_owner
+        ):
+            raise ValueError("delegated packaging does not own its exact host job lock")
+    elif delegated_workflow_lock_owner is not None or _delegated_lock_owner is not None:
+        raise ValueError("delegated packaging lock supplied without exact authority")
     root, selected, run_root = _run_for_package(job_id, run_id)
     plan = load_model(run_root / "optimization_plan.json", OptimizationPlan)
+    delegated_path = run_root / "optimization_delegated_authorization.json"
+    if delegated_path.exists() or delegated_path.is_symlink():
+        if not run_id or not delegated_authorization_sha256:
+            raise ValueError(
+                "delegated packaging requires explicit run_id and authorization SHA-256"
+            )
+        if content_mode != "full_evidence":
+            raise ValueError("delegated packaging requires full_evidence authority snapshots")
+        from ..optimization.delegated import validate_delegated_optimization_authorization
+
+        validate_delegated_optimization_authorization(
+            root,
+            run_root,
+            plan,
+            require_consumed=True,
+            expected_authorization_sha256=delegated_authorization_sha256,
+            require_current_eligibility=True,
+        )
+    elif delegated_authorization_sha256 is not None:
+        raise ValueError("delegated packaging hash provided without delegated authority")
     profile = load_asset_profile(root, profile_id)
     if plan.profile_id != profile.profile_id:
         raise ValueError("Optimization plan and requested package profiles do not match")
@@ -2086,7 +2293,7 @@ def package_asset(
         primary_asset_stem = job_id
     _require_collider_export(profile, include_colliders)
     require_unchanged_source(plan.source, root, job_id)
-    _load_run_manifests(run_root, plan)
+    run_manifests = _load_run_manifests(run_root, plan)
     optimized_evidence = _verify_run_artifacts(root, run_root, plan, profile)
     has_material_plan = (root / "analysis" / "material_plan.json").is_file()
     if has_material_plan and not material_conversion_id:
@@ -2094,6 +2301,13 @@ def package_asset(
             "This job has V0.5 material contracts; run asset-material-convert and "
             "provide material_conversion_id before portable packaging"
         )
+    if plan.source.attachment_intent is not None and (
+        content_mode != "full_evidence" or profile.primary_format != "glb"
+    ):
+        raise ValueError("selected attachment checks currently require full_evidence GLB")
+    lod_quality_warnings = _require_lod_quality_for_publication(
+        root, run_root, run_manifests[0], profile
+    )
     material_conversion = (
         load_portable_material_conversion(
             root,
@@ -2215,6 +2429,20 @@ def package_asset(
                 clean_import_path,
             )
             _write_static_checksum_manifest(staging_root)
+        if delegated_authorization_sha256 is not None:
+            from .delegated import write_delegated_package_authority
+
+            write_delegated_package_authority(
+                staging_root, job_id=job_id, run_id=selected, package_id=chosen_package_id
+            )
+        attachment_closure = None
+        if plan.source.attachment_intent is not None:
+            from .attachment import verify_package_attachment
+
+            attachment_closure = verify_package_attachment(
+                root, plan.source, run_id=selected, package_id=chosen_package_id,
+                converted=export_blend, primary=primary, staging_root=staging_root,
+            )
         staged_files = _iter_package_files_long_path_safe(staging_root)
         absolute_path_findings = _embedded_absolute_path_findings(staged_files, staging_root)
         if absolute_path_findings:
@@ -2386,6 +2614,7 @@ def package_asset(
             warnings=sorted(
                 {
                     *conversion_warnings,
+                    *lod_quality_warnings,
                     *(str(value) for value in raw.get("warnings", [])),
                 }
             ),
@@ -2408,6 +2637,10 @@ def package_asset(
                     f"{static_findings}"
                 )
         require_unchanged_source(plan.source, root, job_id)
+        if attachment_closure is not None:
+            from .attachment import _verify_package_attachment_closure
+
+            _verify_package_attachment_closure(root, attachment_closure)
         os.replace(staging_root, final_root)
         return manifest
     except Exception:

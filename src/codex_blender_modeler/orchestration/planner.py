@@ -14,6 +14,8 @@ from .models import (
     WorkflowScope,
     WorkflowStep,
 )
+from .paired_revision import PAIRED_HASH_PARAMETER, PAIRED_PATH_PARAMETER
+from .revision_payloads import BINDING_PARAMETER
 
 
 def _artifact(
@@ -287,6 +289,7 @@ def _append_geometry_multiview_review(
     *,
     workflow_id: str,
     prefix: str,
+    review_policy: str = "exterior_geometry_review_v2",
 ) -> tuple[str, str]:
     """Append exact five-view renders plus a Codex visual reading of their geometry."""
 
@@ -334,7 +337,7 @@ def _append_geometry_multiview_review(
             parameters={
                 "run_id": run_id,
                 "resolution": 384,
-                "review_policy": "exterior_geometry_review_v2",
+                "review_policy": review_policy,
                 "material_plan_mode": "scene_spec_only",
             },
             instructions=[
@@ -363,7 +366,8 @@ def _append_geometry_multiview_review(
                     lifecycle="immutable_run",
                 )
             ],
-            parameters={"run_id": run_id},
+            parameters={"run_id": run_id, **({"review_policy": review_policy}
+                        if review_policy == "exterior_geometry_review_v3" else {})},
             instructions=[
                 "Read front, right, top, rear, and oblique beauty and wireframe images; "
                 "do not infer that merely generating them constitutes visual inspection.",
@@ -374,6 +378,28 @@ def _append_geometry_multiview_review(
                 "Reference likeness outside the calibrated canonical reference camera remains "
                 "unscorable; do not invent side/rear similarity or authorize a revision.",
                 "Recommend bounded V0.4 revision or manual redesign review when appropriate.",
+                *([
+                    "Exterior v3: read detail_review_contract and its exact primary reference "
+                    "and canonical beauty image. Whole silhouette/bbox and round-trip scores "
+                    "do not verify internal forms, ornament, material likeness, or attachments.",
+                    "Record detail_assessments for each declared internal-form and attachment "
+                    "target plus one reference_internal_detail assessment on the root for "
+                    "the whole "
+                    "visible reference; bind reviewed_detail_contract_sha256. Cover exact "
+                    "surface_detail_ids. "
+                    "Distinguish observed-reference "
+                    "targets from inferred-only geometry; never invent unseen reference detail. "
+                    "Record actual observations, evidence views, and limitations. This stage "
+                    "assesses "
+                    "geometry-required internal forms and routing, not finalized material/texture "
+                    "pixels or package fidelity; those remain independently unverified. "
+                    "Bounds/contact "
+                    "relations and texture bindings alone are not visual or physical proof.",
+                    "Defects require existing revision/redesign findings; unavailable evidence "
+                    "requires insufficient_evidence findings. These mandatory v3 assessments "
+                    "stop quality progression at this agent boundary until resolved, independently "
+                    "of numeric QA scores or generic approval. No human acceptance is implied.",
+                ] if review_policy == "exterior_geometry_review_v3" else []),
             ],
         )
     )
@@ -385,21 +411,49 @@ def _bind_revision_modeling_plan_contract(
     *,
     modeling_plan_sha256: str,
     assembly_consistency_policy: str,
+    paired_modeling_plan_path: str | None = None,
+    paired_modeling_plan_sha256: str | None = None,
+    paired_workflow_id: str | None = None,
+    attachment_metadata_before_sha256: str | None = None,
+    attachment_intent_path: str | None = None,
+    attachment_intent_sha256: str | None = None,
 ) -> None:
-    """Bind every post-approval revision step to one exact ModelingPlan contract."""
+    """Bind revision steps to the original contract and any exact paired replacement."""
 
     binding = {
         "expected_modeling_plan_sha256": modeling_plan_sha256,
         "expected_assembly_consistency_policy": assembly_consistency_policy,
     }
+    paired_binding = (
+        {
+            PAIRED_PATH_PARAMETER: paired_modeling_plan_path,
+            PAIRED_HASH_PARAMETER: str(paired_modeling_plan_sha256),
+            "paired_workflow_id": str(paired_workflow_id),
+        }
+        if paired_modeling_plan_path is not None else {}
+    )
+    if attachment_intent_path is not None:
+        if attachment_metadata_before_sha256 is None:
+            raise ValueError("attachment revision requires an exact original metadata hash")
+        paired_binding["attachment_metadata_before_sha256"] = attachment_metadata_before_sha256
+        paired_binding.update(attachment_intent_path=attachment_intent_path,
+                              attachment_intent_sha256=str(attachment_intent_sha256))
     for index, step in enumerate(steps):
-        if not step.step_id.startswith("revision.") or step.step_id in {
+        if not step.step_id.startswith("revision."):
+            continue
+        if step.step_id in {
             "revision.author",
             "revision.approval",
             "revision.promotion_approval",
         }:
+            if paired_binding:
+                steps[index] = step.model_copy(
+                    update={"parameters": {**step.parameters, **paired_binding}}
+                )
             continue
-        steps[index] = step.model_copy(update={"parameters": {**step.parameters, **binding}})
+        steps[index] = step.model_copy(
+            update={"parameters": {**step.parameters, **binding, **paired_binding}}
+        )
 
 
 def _append_candidate_review_revision_flow(
@@ -661,6 +715,7 @@ def _append_proxy_flow(
         validated,
         workflow_id=request.workflow_id,
         prefix="proxy",
+        review_policy="exterior_geometry_review_v2",
     )
     report = _append_pdf_report(
         steps,
@@ -837,6 +892,7 @@ def _append_background_geometry_flow(
         validated,
         workflow_id=request.workflow_id,
         prefix="background_geometry",
+        review_policy=request.geometry_review_policy,
     )
     return _append_pdf_report(
         steps,
@@ -885,6 +941,7 @@ def _append_detail_flow(
         validated,
         workflow_id=request.workflow_id,
         prefix="detail",
+        review_policy=request.geometry_review_policy,
     )
     report = _append_pdf_report(
         steps,
@@ -1864,20 +1921,44 @@ def build_workflow_plan(
     request_sha256: str,
     routing_sha256: str,
     existing_modeling_plan_sha256: str | None = None,
+    existing_attachment_metadata_sha256: str | None = None,
     existing_assembly_consistency_policy: str | None = None,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
+    reference_mask_scene_spec_sha256: str | None = None,
+    reference_mask_seed_version: str = "0.3.0",
 ) -> WorkflowPlan:
     """Build one immutable plan while preserving every specialized safety approval.
 
     Existing-job revision plans bind the exact ModelingPlan policy and hash so
     a legacy ``legacy_unbound`` job can omit the spatial-only review without a
-    later policy change silently altering that decision.
+    later policy change silently altering that decision. New Standard manual revisions
+    additionally freeze exact candidate geometry dependencies at author completion.
     """
 
+    from ..qa.evidence_selection import selection_artifact
+    from ..reference_fidelity.models import FidelityArtifact
+
+    selected_seed = selection_artifact(reference_mask_seed_path, reference_mask_seed_sha256)
+    if reference_mask_seed_version not in {"0.2.0", "0.3.0"}:
+        raise ValueError("unsupported explicit reference mask seed version")
+    if selected_seed is not None:
+        if (
+            request.execution_policy != "standard" or routing.intent != "visual_qa"
+            or request.intent_hint != "visual_qa" or request.requested_scope != "qa_only"
+        ):
+            raise ValueError("reference mask selection requires Standard visual_qa/qa_only")
+        FidelityArtifact(path="analysis/scene_spec.json", sha256=reference_mask_scene_spec_sha256)
+    elif (reference_mask_scene_spec_sha256 is not None
+          or reference_mask_seed_version != "0.3.0"):
+        raise ValueError("reference mask continuation binding is incomplete")
     if (
         request.execution_policy != routing.execution_policy
         or request.delivery_scope != routing.delivery_scope
     ):
         raise ValueError("workflow request and routing execution policies do not match")
+    if request.paired_modeling_plan_path is not None and routing.intent != "revise_asset":
+        raise ValueError("paired ModelingPlan requires revise_asset routing")
     steps: list[WorkflowStep] = []
     scope = _scope_for_routing(request, routing)
     if routing.intent == "revise_asset":
@@ -2045,6 +2126,27 @@ def build_workflow_plan(
                 assembly_consistency_policy=str(existing_assembly_consistency_policy),
             )
         else:
+            payload_parameters = (
+                {BINDING_PARAMETER: True} if request.execution_policy == "standard" else {}
+            )
+            payload_outputs = (
+                [_artifact(
+                    "revision.payload_binding",
+                    f"workflows/{request.workflow_id}/artifacts/revision_payload_binding.json",
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                )]
+                if payload_parameters else []
+            )
+            paired_outputs = (
+                [_artifact(
+                    "revision.candidate_modeling_plan",
+                    request.paired_modeling_plan_path,
+                    acceptance="valid_json",
+                    lifecycle="immutable_run",
+                )]
+                if request.paired_modeling_plan_path is not None else []
+            )
             steps.extend(
                 [
                     _step(
@@ -2059,8 +2161,16 @@ def build_workflow_plan(
                                 "analysis/revision_plan.json",
                                 acceptance="valid_json",
                                 canonical=True,
-                            )
+                            ),
+                            *payload_outputs,
+                            *paired_outputs,
+                            *([_artifact(
+                                "revision.candidate_attachment_intent",
+                                request.attachment_intent_path,
+                                acceptance="valid_json", lifecycle="immutable_run",
+                            )] if request.attachment_intent_path is not None else []),
                         ],
+                        parameters=payload_parameters,
                         instructions=(
                             [
                                 (
@@ -2082,7 +2192,11 @@ def build_workflow_plan(
                                     "multi-view evidence; migration requires a separate review."
                                 )
                             ]
-                        ),
+                        ) + ([
+                            "Preserve the exact paired candidate ModelingPlan bytes bound at "
+                            "workflow planning. Never overwrite the canonical ModelingPlan; "
+                            "the guarded host transaction promotes both approved candidates.",
+                        ] if paired_outputs else []),
                     ),
                     _step(
                         "revision.approval",
@@ -2091,6 +2205,7 @@ def build_workflow_plan(
                         "approval",
                         depends_on=["revision.author"],
                         gate="detailed_geometry",
+                        parameters=payload_parameters,
                     ),
                     _step(
                         "revision.apply",
@@ -2111,8 +2226,27 @@ def build_workflow_plan(
                                 "reports/revision_diff.json",
                                 acceptance="valid_json",
                             ),
+                            *([_artifact(
+                                "revision.modeling_plan",
+                                "analysis/modeling_plan.json",
+                                acceptance="valid_json",
+                                canonical=True,
+                            ), _artifact(
+                                "revision.paired_transaction",
+                                f"workflows/{request.workflow_id}/paired_revision/receipt.json",
+                                acceptance="valid_json",
+                                lifecycle="immutable_run",
+                            )] if paired_outputs else []),
+                            *([_artifact(
+                                "revision.job_metadata", "job.json", acceptance="valid_json",
+                                canonical=True,
+                            ), _artifact(
+                                "revision.attachment_revision",
+                                f"production/surface_attachment/revisions/{request.workflow_id}/revision.json",
+                                acceptance="valid_json", lifecycle="immutable_run",
+                            )] if request.attachment_intent_path is not None else []),
                         ],
-                        parameters={"require_new_output": True},
+                        parameters={"require_new_output": True, **payload_parameters},
                     ),
                 ]
             )
@@ -2123,6 +2257,7 @@ def build_workflow_plan(
                     terminal,
                     workflow_id=request.workflow_id,
                     prefix="revision",
+                    review_policy=request.geometry_review_policy,
                 )
                 terminal = _append_pdf_report(
                     steps,
@@ -2142,6 +2277,12 @@ def build_workflow_plan(
             steps,
             modeling_plan_sha256=str(existing_modeling_plan_sha256),
             assembly_consistency_policy=str(existing_assembly_consistency_policy),
+            attachment_metadata_before_sha256=existing_attachment_metadata_sha256,
+            paired_modeling_plan_path=request.paired_modeling_plan_path,
+            paired_modeling_plan_sha256=request.paired_modeling_plan_sha256,
+            attachment_intent_path=request.attachment_intent_path,
+            attachment_intent_sha256=request.attachment_intent_sha256,
+            paired_workflow_id=request.workflow_id,
         )
     elif routing.intent == "interior_scope":
         steps.extend(
@@ -2357,7 +2498,37 @@ def build_workflow_plan(
                     ),
                 },
             )
+    if request.geometry_review_policy == "exterior_geometry_review_v3" and not any(
+        step.tool_name == "review_geometry_multiview"
+        and step.parameters.get("review_policy") == request.geometry_review_policy
+        for step in steps
+    ):
+        raise ValueError("exterior v3 requires a detailed or revision geometry workflow; "
+                         "it cannot silently fall back to a proxy-only or package-only route")
     steps = _bind_artifact_lifecycle(steps, request.workflow_id)
+    if selected_seed is not None:
+        qa_step = next(step for step in steps if step.step_id == "qa.run")
+        qa_step.parameters.update({
+            "reference_mask_seed_path": selected_seed.path,
+            "reference_mask_seed_sha256": selected_seed.sha256,
+            "reference_mask_scene_spec_sha256": reference_mask_scene_spec_sha256,
+        })
+        if reference_mask_seed_version != "0.3.0":
+            qa_step.parameters["reference_mask_seed_version"] = reference_mask_seed_version
+        run_root = f"qa/runs/{qa_step.parameters['run_id']}"
+        qa_step.outputs.extend(
+            _artifact(
+                f"qa.run.{kind}", f"{run_root}/{filename}",
+                acceptance="valid_json" if filename.endswith(".json") else "exists",
+                lifecycle="immutable_run",
+            )
+            for kind, filename in (
+                ("seed_evidence", "reference_mask_seed_evidence.json"),
+                ("subject_extent", "reference_subject_extent.json"),
+                ("trimap", "reference_trimap.png"),
+            )
+            if kind != "subject_extent" or reference_mask_seed_version == "0.3.0"
+        )
     return WorkflowPlan(
         workflow_id=request.workflow_id,
         job_id=request.job_id,

@@ -59,6 +59,7 @@ def test_fidelity_companion_schemas_match_the_authoritative_generator() -> None:
                 "fidelity",
                 "modeling_hypothesis",
                 "reference_mask_seed",
+                "reference_subject_extent",
                 "quality_revision_loop",
                 "quality_attempt_v01",
                 "quality_render_reservation",
@@ -77,7 +78,7 @@ def test_fidelity_companion_schemas_match_the_authoritative_generator() -> None:
 
 
 def test_fidelity_capability_cannot_claim_activation_or_approval() -> None:
-    """Keep experimental route support separate from human acceptance and campaign evidence."""
+    """Expose exact companion versions without implying human or campaign acceptance."""
 
     capability = reference_fidelity_capability()
     assert capability["status"] == "disabled_experimental"
@@ -88,7 +89,7 @@ def test_fidelity_capability_cannot_claim_activation_or_approval() -> None:
     assert capability["quality_revision_routing"]["0.3.0"] == "causal_v2"
     assert capability["funded_autonomy_budget_version"] == "0.3.0"
     assert capability["fidelity_budget_epoch_version"] == "0.1.0"
-    assert capability["reference_mask_seed_versions"] == ["0.1.0", "0.2.0"]
+    assert capability["reference_mask_seed_versions"] == ["0.1.0", "0.2.0", "0.3.0"]
     assert capability["automatic_migration"] is False
     assert capability["nonhuman_review_is_approval"] is False
     assert capability["new_campaign_visual_success_claimed"] is False

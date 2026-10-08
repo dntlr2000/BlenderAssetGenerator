@@ -120,6 +120,13 @@ from .models import (
     WorkflowStepState,
 )
 from .planner import build_workflow_plan
+from .revision_payloads import (
+    BINDING_PARAMETER,
+    binding_path,
+    create_binding,
+    revision_evidence_hashes,
+    validate_binding,
+)
 from .router import destination_adapters, route_intent
 
 _GENERIC_GATES = {
@@ -660,7 +667,9 @@ def _revision_modeling_plan_contract(root: Path) -> tuple[str, str]:
     """
 
     from ..analysis.models import ModelingPlan
+    from .paired_revision import assert_no_pending_pair
 
+    assert_no_pending_pair(root)
     path = root / "analysis" / "modeling_plan.json"
     if not path.is_file():
         raise FileNotFoundError("revise_asset requires analysis/modeling_plan.json before planning")
@@ -681,6 +690,11 @@ def plan_workflow(
     target_subject: str | None = None,
     execution_policy: str = "standard",
     revision_strategy: str = "candidate_review",
+    geometry_review_policy: str = "exterior_geometry_review_v2",
+    paired_modeling_plan_path: str | None = None,
+    paired_modeling_plan_sha256: str | None = None,
+    attachment_intent_path: str | None = None,
+    attachment_intent_sha256: str | None = None,
     delivery_scope: str | None = None,
     mode: str = "concept",
     view_kind: str | None = None,
@@ -692,9 +706,16 @@ def plan_workflow(
     destination_version: str | None = None,
     include_destination_handoff: bool = False,
     budgets: WorkflowBudgets | None = None,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
 ) -> WorkflowState:
-    """Create one immutable workflow with explicit content and revision boundaries."""
+    """Create immutable workflows with optional exact mask evidence for QA-only continuation."""
 
+    from ..qa.evidence_selection import load_reference_mask_selection, selection_artifact
+
+    if geometry_review_policy not in {"exterior_geometry_review_v2", "exterior_geometry_review_v3"}:
+        raise ValueError("unsupported geometry review policy")
+    selected_seed = selection_artifact(reference_mask_seed_path, reference_mask_seed_sha256)
     lock_ttl = _require_orchestration()
     normalized_request = request_text.strip()
     if not normalized_request:
@@ -757,6 +778,27 @@ def plan_workflow(
                 "Existing job ID cannot be reused for a different reference. Use a new job ID "
                 "or provide an explicit auxiliary view kind."
             )
+    paired_selected = (
+        paired_modeling_plan_path is not None or paired_modeling_plan_sha256 is not None
+    )
+    if paired_selected and not (
+        existing
+        and intent == "revise_asset"
+        and execution_policy == "standard"
+        and revision_strategy == "manual_guarded"
+        and paired_modeling_plan_path is not None
+        and paired_modeling_plan_sha256 is not None
+    ):
+        raise ValueError(
+            "paired ModelingPlan requires explicit existing Standard manual_guarded revise_asset"
+        )
+    attachment_selected = attachment_intent_path is not None or attachment_intent_sha256 is not None
+    if attachment_selected and not (
+        paired_selected
+        and attachment_intent_path is not None
+        and attachment_intent_sha256 is not None
+    ):
+        raise ValueError("attachment intent revision requires exact paired ModelingPlan and intent")
     new_job = not existing
     if new_job and reference is None:
         raise ValueError("new asset workflow requires reference_path")
@@ -792,6 +834,12 @@ def plan_workflow(
                 "Create a new job to change primary_object_only/full_reference "
                 "or target_subject."
             )
+    if selected_seed is not None and (
+        new_job or intent != "visual_qa" or scope != "qa_only" or execution_policy != "standard"
+    ):
+        raise ValueError(
+            "reference mask selection requires an existing-job Standard visual_qa/qa_only workflow"
+        )
     workflow_id = _new_workflow_id()
     destination = DestinationRequest(
         kind=destination_kind,  # type: ignore[arg-type]
@@ -884,6 +932,35 @@ def plan_workflow(
                 destination_kind=destination_kind,
                 include_destination_handoff=include_destination_handoff,
             )
+        selected_scene_hash = None
+        selected_seed_version = "0.3.0"
+        if selected_seed is not None:
+            # Validate before workflow publication and pin this exact canonical continuation.
+            scene_path = root / "analysis/scene_spec.json"
+            selected_scene_hash = sha256_file(scene_path)
+            selected_evidence, _ = load_reference_mask_selection(
+                root,
+                find_reference(selected_job_id),
+                load_scene_spec(scene_path),
+                resolved_content_scope,
+                selected_seed,
+            )
+            selected_seed_version = selected_evidence.schema_version
+            if sha256_file(scene_path) != selected_scene_hash:
+                raise ValueError("reference mask continuation SceneSpec changed during planning")
+        if paired_selected:
+            from .paired_revision import assert_no_pending_pair, validate_candidate_path
+
+            assert_no_pending_pair(root)
+            validate_candidate_path(
+                root, str(paired_modeling_plan_path), str(paired_modeling_plan_sha256)
+            )
+        if attachment_selected:
+            from .attachment_revision import validate_candidate_intent
+
+            validate_candidate_intent(
+                root, str(attachment_intent_path), str(attachment_intent_sha256)
+            )
         workflow_root.mkdir(parents=True, exist_ok=False)
         staged_view = None
         if normalized_view is not None:
@@ -897,6 +974,11 @@ def plan_workflow(
             )
         primary = _source_artifact(root, find_reference(selected_job_id), "reference")
         request = WorkflowRequest(
+            geometry_review_policy=geometry_review_policy,
+            paired_modeling_plan_path=paired_modeling_plan_path,
+            paired_modeling_plan_sha256=paired_modeling_plan_sha256,
+            attachment_intent_path=attachment_intent_path,
+            attachment_intent_sha256=attachment_intent_sha256,
             workflow_id=workflow_id,
             job_id=selected_job_id,
             raw_request=normalized_request,
@@ -936,7 +1018,20 @@ def plan_workflow(
             request_sha256=sha256_file(request_path),
             routing_sha256=sha256_file(routing_path),
             existing_modeling_plan_sha256=existing_modeling_plan_sha256,
+            existing_attachment_metadata_sha256=(
+                sha256_file(root / "job.json") if attachment_selected else None
+            ),
             existing_assembly_consistency_policy=(existing_assembly_consistency_policy),
+            **(
+                {
+                    "reference_mask_seed_path": selected_seed.path,
+                    "reference_mask_seed_sha256": selected_seed.sha256,
+                    "reference_mask_scene_spec_sha256": selected_scene_hash,
+                    "reference_mask_seed_version": selected_seed_version,
+                }
+                if selected_seed is not None
+                else {}
+            ),
         )
         _write_immutable(
             workflow_root / "plan.json",
@@ -1071,6 +1166,10 @@ def _validate_known_json_contract(
     """Validate agent-authored canonical JSON with its existing strict host contract."""
 
     relative_path = requirement.source_path or requirement.path
+    if requirement.artifact_id == "material.swatch_manifest":
+        from .swatch_execution import validate_manifest
+
+        validate_manifest(root, payload)
     if relative_path == "analysis/modeling_plan.json":
         from ..analysis.models import ModelingPlan
 
@@ -1242,6 +1341,25 @@ def _validate_agent_completion_semantics(
                 step.parameters.get("require_spatial_surface_details", False)
             ),
         )
+    if (step.tool_name == "review_geometry_multiview"
+            and step.parameters.get("review_policy") == "exterior_geometry_review_v3"):
+        from ..qa.fidelity_review import POLICY, require_detail_quality_progression
+
+        run_root = root / "qa/assembly_sanity/runs" / str(step.parameters["run_id"])
+        review = validate_geometry_multiview_visual_review(root, run_root / "visual_review.json")
+        review_plan = AssemblySanityPlan.model_validate_json((run_root / "plan.json").read_bytes())
+        if step.parameters.get("review_policy") == POLICY and review_plan.review_policy != POLICY:
+            raise ValueError("selected exterior v3 workflow cannot downgrade its review policy")
+        if review_plan.review_policy == POLICY:
+            from ..qa.multiview_sanity import _require_current_sources
+
+            _require_current_sources(root, review_plan)
+            report = AssemblySanityReport.model_validate_json(
+                (run_root / "report.json").read_bytes()
+            )
+            if report.structural_status == "failed":
+                raise ValueError("revision_required: required assembly constraints failed")
+            require_detail_quality_progression(review_plan, review)
     for requirement in step.outputs:
         path = _resolve_job_path(root, requirement.path)
         if (
@@ -1548,7 +1666,7 @@ def _step_input_fingerprint(
     step: WorkflowStep,
     states: dict[str, WorkflowStepState],
 ) -> str:
-    """Hash the plan, request, and exact dependency completion fingerprints."""
+    """Hash immutable dependency evidence, including opted-in revision payload bindings."""
 
     payload: dict[str, Any] = {
         "plan_sha256": sha256_file(
@@ -1575,6 +1693,24 @@ def _step_input_fingerprint(
                 payload["current_modeling_plan_sha256"] = sha256_file(modeling_plan_path)
             except OSError:
                 payload["current_modeling_plan_sha256"] = "unreadable"
+    if expected_hash is not None and step.parameters.get("paired_modeling_plan_path") is not None:
+        from .paired_revision import committed_receipt
+
+        try:
+            receipt = committed_receipt(job_dir(plan.job_id), plan.workflow_id)
+        except (OSError, ValueError, KeyError, TypeError):
+            receipt = None
+        if receipt is not None:
+            payload["current_modeling_plan_sha256"] = (
+                expected_hash
+                if step.step_id == "revision.apply"
+                else receipt["after"]["analysis/modeling_plan.json"]
+            )
+    if step.parameters.get(BINDING_PARAMETER) is True and step.step_id != "revision.author":
+        path = binding_path(job_dir(plan.job_id), plan.workflow_id)
+        payload["revision_payload_binding_sha256"] = (
+            sha256_file(path) if path.is_file() else "missing"
+        )
     return stable_json_digest(payload)
 
 
@@ -1801,6 +1937,14 @@ def _specialized_approval_valid(
         directory = root / "optimization" / "runs" / run_id
         plan_path = directory / "review_plan.json"
         approval_path = directory / "optimization_approval.json"
+        if any(
+            (directory / name).exists() or (directory / name).is_symlink()
+            for name in (
+                "optimization_delegated_authorization.json",
+                "optimization_policy_authorization.json",
+            )
+        ):
+            return False
         if not plan_path.is_file() or not approval_path.is_file():
             return False
         try:
@@ -2021,7 +2165,7 @@ def _reconcile_locked(
     *,
     previous: WorkflowState | None,
 ) -> WorkflowState:
-    """Reconstruct state and preserve its timestamp when authoritative fields are unchanged."""
+    """Reconstruct history and reject pending revision or opted-in QA source-evidence drift."""
 
     plan_path = workflow_root / "plan.json"
     request_path = workflow_root / "request.json"
@@ -2152,12 +2296,52 @@ def _reconcile_locked(
                         completion_fingerprint = stable_json_digest(
                             {
                                 "input": input_fingerprint,
-                                "policy_authorization": (
-                                    policy_authorization.authorization_id
-                                ),
+                                "policy_authorization": (policy_authorization.authorization_id),
                             }
                         )
                         completed_at = policy_authorization.consumed_at
+        elif (
+            step.execution_mode == "specialized_approval"
+            and step.approval_gate == "optimization_plan"
+            and (
+                (workflow_root / "delegated_optimization_binding.json").exists()
+                or (workflow_root / "delegated_optimization_binding.json").is_symlink()
+            )
+        ):
+            from ..optimization.delegated_workflow import load_delegated_workflow_binding
+
+            try:
+                binding = load_delegated_workflow_binding(
+                    root, workflow_root, expected_input_fingerprint=input_fingerprint
+                )
+                if binding is None:
+                    raise ValueError("explicit delegated binding disappeared")
+                requirement = step.outputs[0].model_copy(
+                    update={
+                        "artifact_id": "portable.delegated_optimization_authorization",
+                        "path": binding.authorization.path,
+                    }
+                )
+                artifacts = [_inspect_artifact(root, requirement, None)]
+                if any(item.integrity != "valid" for item in artifacts):
+                    raise ValueError("delegated optimization grant is unreadable")
+                artifact_fingerprint = _artifact_fingerprint(artifacts)
+                status = "complete"
+                approval_id = "delegated_assistant:" + binding.authorization.sha256
+                completion_fingerprint = stable_json_digest(
+                    {
+                        "input": input_fingerprint,
+                        "delegated_binding": sha256_file(
+                            workflow_root / "delegated_optimization_binding.json"
+                        ),
+                        "delegated_authorization": binding.authorization.sha256,
+                    }
+                )
+                completed_at = binding.created_at
+            except (OSError, RuntimeError, ValueError) as exc:
+                status = "stale"
+                error = f"Delegated technical authorization is stale: {exc}"
+                reason_code = "orchestration_artifact_conflict"
         elif step.execution_mode == "specialized_approval":
             if _specialized_approval_valid(root, step, artifacts):
                 status = "complete"
@@ -2193,9 +2377,7 @@ def _reconcile_locked(
                         completion_fingerprint = stable_json_digest(
                             {
                                 "input": input_fingerprint,
-                                "policy_authorization": (
-                                    policy_authorization.authorization_id
-                                ),
+                                "policy_authorization": (policy_authorization.authorization_id),
                             }
                         )
                         completed_at = policy_authorization.consumed_at
@@ -2279,6 +2461,36 @@ def _reconcile_locked(
                 )
             else:
                 status = "ready"
+        if step.parameters.get(BINDING_PARAMETER) is True and (
+            (step.step_id == "revision.apply" and status == "ready")
+            or (step.step_id == "revision.approval" and status == "waiting_for_approval")
+        ):
+            try:
+                _validate_revision_payload_binding(
+                    root, plan.workflow_id, require_current_candidate=True
+                )
+            except OrchestrationArtifactConflict as exc:
+                status = "blocked"
+                error = str(exc)
+                reason_code = "orchestration_artifact_conflict"
+        if status in {
+            "ready",
+            "waiting_for_agent",
+            "waiting_for_approval",
+        } and _post_apply_revision_binding_required(plan, step):
+            try:
+                _validate_post_apply_revision_binding(root, plan, states)
+            except OrchestrationArtifactConflict as exc:
+                status = "blocked"
+                error = str(exc)
+                reason_code = "orchestration_artifact_conflict"
+        if step.tool_name == "run_visual_qa" and status == "ready":
+            try:
+                _validate_qa_mask_selection(root, request, step)
+            except (ValueError, OSError) as exc:
+                status = "blocked"
+                error = f"Reference mask source-evidence binding is invalid: {exc}"
+                reason_code = "orchestration_artifact_conflict"
         state = WorkflowStepState(
             step_id=step.step_id,
             status=status,  # type: ignore[arg-type]
@@ -2491,7 +2703,7 @@ def complete_workflow_step(
     input_fingerprint: str,
     note: str,
 ) -> WorkflowState:
-    """Record an exact agent/manual completion marker after validating current outputs."""
+    """Validate outputs and freeze opted-in geometry bytes before recording completion."""
 
     lock_ttl = _require_orchestration()
     root, workflow_root, request, plan, previous = _load_workflow(job_id, workflow_id)
@@ -2506,6 +2718,28 @@ def complete_workflow_step(
         step_state = next(item for item in state.steps if item.step_id == step_id)
         if step_state.input_fingerprint != input_fingerprint:
             raise ValueError("Completion input fingerprint does not match current workflow state")
+        if step.step_id == "revision.author" and step.parameters.get(BINDING_PARAMETER) is True:
+            if request.paired_modeling_plan_path is not None:
+                apply_step = next(item for item in plan.steps if item.step_id == "revision.apply")
+                _verify_revision_modeling_plan_binding(root, apply_step)
+            expected_binding = create_binding(
+                root, paired_modeling_plan_path=request.paired_modeling_plan_path,
+                paired_modeling_plan_sha256=request.paired_modeling_plan_sha256,
+                attachment_intent_path=request.attachment_intent_path,
+                attachment_intent_sha256=request.attachment_intent_sha256,
+                workflow_id=workflow_id,
+            )
+            path = binding_path(root, workflow_id)
+            if path.exists():
+                existing_binding = validate_binding(
+                    root, workflow_id, require_current_candidate=True
+                )
+                if existing_binding != expected_binding:
+                    raise OrchestrationArtifactConflict("revision geometry binding changed")
+            else:
+                _write_immutable(path, expected_binding)
+            state = _reconcile_locked(root, workflow_root, plan, request, previous=state)
+            step_state = next(item for item in state.steps if item.step_id == step_id)
         if any(
             output.lifecycle == "workflow_snapshot"
             and not _resolve_job_path(root, output.path).exists()
@@ -2531,6 +2765,10 @@ def complete_workflow_step(
         ):
             raise RuntimeError("Completion outputs are missing or invalid")
         _validate_agent_completion_semantics(root, step, request)
+        if _post_apply_revision_binding_required(plan, step):
+            _validate_post_apply_revision_binding(
+                root, plan, {item.step_id: item for item in state.steps}
+            )
         marker = WorkflowStepCompletion(
             completion_id=f"completion-{uuid4().hex}",
             workflow_id=workflow_id,
@@ -2560,7 +2798,7 @@ def approve_workflow_gate(
     artifact_fingerprint: str,
     approval_note: str,
 ) -> WorkflowState:
-    """Approve one exact generic checkpoint without authorizing specialized/future gates."""
+    """Approve exact current evidence, including opted-in revision payload dependencies."""
 
     lock_ttl = _require_orchestration()
     root, workflow_root, request, plan, previous = _load_workflow(job_id, workflow_id)
@@ -2576,6 +2814,8 @@ def approve_workflow_gate(
             raise RuntimeError("Workflow step is not waiting for approval")
         if step_state.input_fingerprint != artifact_fingerprint:
             raise ValueError("Approval fingerprint does not match current workflow evidence")
+        if step.parameters.get(BINDING_PARAMETER) is True:
+            _validate_revision_payload_binding(root, workflow_id, require_current_candidate=True)
         approval = WorkflowApproval(
             approval_id=f"approval-{uuid4().hex}",
             workflow_id=workflow_id,
@@ -2946,24 +3186,181 @@ def _evaluate_background_delivery(
         )
 
 
-def _apply_guarded_revision(job_id: str, workflow_id: str) -> None:
-    """Promote a validated RevisionPlan atomically after archiving the prior SceneSpec."""
+def _validate_revision_payload_binding(
+    root: Path, workflow_id: str, *, require_current_candidate: bool
+) -> dict[str, Any]:
+    """Classify invalid candidate byte bindings as technical artifact conflicts."""
+
+    try:
+        return validate_binding(
+            root, workflow_id, require_current_candidate=require_current_candidate
+        )
+    except (OSError, ValueError, RuntimeError, KeyError, TypeError) as exc:
+        raise OrchestrationArtifactConflict(
+            f"revision geometry binding conflict: {type(exc).__name__}; "
+            "candidate or contained dependencies are missing, stale, invalid, or unsafe"
+        ) from exc
+
+
+def _post_apply_revision_binding_required(plan: WorkflowPlan, step: WorkflowStep) -> bool:
+    """Protect only descendants of an explicitly bound revision, preserving legacy plans."""
+
+    apply_step = next((item for item in plan.steps if item.step_id == "revision.apply"), None)
+    return bool(
+        apply_step is not None
+        and apply_step.parameters.get(BINDING_PARAMETER) is True
+        and "revision.apply" in _transitive_dependencies(plan, step)
+    )
+
+
+def _validate_post_apply_revision_binding(
+    root: Path, plan: WorkflowPlan, states: dict[str, WorkflowStepState]
+) -> None:
+    """Keep pending derivations bound to approved payloads and exact completed receipt hashes."""
+
+    from ..models import SceneSpec
+    from ..production.validation import ensure_contained_production_path
+
+    try:
+        author_state = states["revision.author"]
+        apply_state = states["revision.apply"]
+        if author_state.status != "complete" or apply_state.status != "complete":
+            raise ValueError("post-apply source validation requires completed bound predecessors")
+        expected_binding = next(
+            item.sha256
+            for item in author_state.artifacts
+            if item.artifact_id == "revision.payload_binding"
+        )
+        expected_candidate = next(
+            item.sha256
+            for item in apply_state.artifacts
+            if item.artifact_id == "revision.scene_spec"
+        )
+        path = binding_path(root, plan.workflow_id)
+        if expected_binding is None or sha256_file(path) != expected_binding:
+            raise ValueError("revision binding differs from its completed author evidence")
+        binding = _validate_revision_payload_binding(
+            root, plan.workflow_id, require_current_candidate=False
+        )
+        apply_step = next(item for item in plan.steps if item.step_id == "revision.apply")
+        requirement = next(
+            item
+            for item in apply_step.outputs
+            if item.artifact_id == "revision.scene_spec"
+            and item.source_path == "analysis/scene_spec.json"
+            and item.lifecycle == "workflow_snapshot"
+        )
+        current = ensure_contained_production_path(
+            root, root / "analysis/scene_spec.json", must_exist=True
+        )
+        snapshot = ensure_contained_production_path(root, root / requirement.path, must_exist=True)
+        if expected_candidate is None or {sha256_file(current), sha256_file(snapshot)} != {
+            expected_candidate
+        }:
+            raise ValueError("promoted SceneSpec differs from its exact apply snapshot")
+        if "paired_modeling_plan" in binding:
+            from .paired_revision import committed_receipt
+
+            if committed_receipt(root, plan.workflow_id, require_current=True) is None:
+                raise ValueError("paired revision has no committed transaction receipt")
+            model_requirement = next(
+                item for item in apply_step.outputs if item.artifact_id == "revision.modeling_plan"
+            )
+            expected_model = next(
+                item.sha256
+                for item in apply_state.artifacts
+                if item.artifact_id == "revision.modeling_plan"
+            )
+            if (
+                sha256_file(
+                    ensure_contained_production_path(
+                        root, root / model_requirement.path, must_exist=True
+                    )
+                )
+                != expected_model
+            ):
+                raise ValueError("paired ModelingPlan apply snapshot changed")
+        candidate = SceneSpec.model_validate_json(_read_utf8(current))
+        if candidate.model_dump(mode="json") != binding["candidate_scene_spec"]:
+            raise ValueError("promoted SceneSpec differs from its approved candidate")
+        if sha256_file(path) != expected_binding:
+            raise ValueError("revision binding changed during post-apply validation")
+    except (OSError, ValueError, RuntimeError, KeyError, TypeError, StopIteration) as exc:
+        raise OrchestrationArtifactConflict(
+            f"post-apply revision source conflict: {type(exc).__name__}; "
+            "pending derived work no longer matches the approved candidate"
+        ) from exc
+
+
+def _validate_guarded_revision_root(root: Path) -> None:
+    """Reject an unsafe lexical owner before guarded transaction or failure-evidence writes."""
+
+    from ..production.validation import ensure_contained_production_path
+
+    try:
+        ensure_contained_production_path(root, root, must_exist=True)
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise OrchestrationArtifactConflict(
+            "revision geometry CAS conflict: owning job root is missing or unsafe"
+        ) from exc
+
+
+def _validate_guarded_revision_authority(root: Path, workflow_id: str) -> None:
+    """Re-read exact workflow authority, including existing policy support, before CAS."""
+
+    _validate_guarded_revision_root(root)
+    _, workflow_root, request, workflow_plan, previous = _load_workflow(root.name, workflow_id)
+    checked = _reconcile_locked(root, workflow_root, workflow_plan, request, previous=previous)
+    apply_state = next(item for item in checked.steps if item.step_id == "revision.apply")
+    if apply_state.status != "ready":
+        raise OrchestrationArtifactConflict(
+            "revision approval or bound sources changed before apply"
+        )
+
+
+def _apply_guarded_revision(job_id: str, workflow_id: str, *, bind_payloads: bool = False) -> None:
+    """Promote an exact candidate with optional immutable payload preconditions under CAS."""
 
     root = job_dir(job_id)
     current = root / "analysis" / "scene_spec.json"
     plan = root / "analysis" / "revision_plan.json"
     candidate = root / "analysis" / f".scene_spec.workflow-{workflow_id}-{uuid4().hex}.next.json"
+    binding = (
+        _validate_revision_payload_binding(root, workflow_id, require_current_candidate=True)
+        if bind_payloads
+        else None
+    )
+    evidence = revision_evidence_hashes(root, workflow_id) if bind_payloads else None
+    if binding is not None and "paired_modeling_plan" in binding:
+        from .paired_revision import apply_pair, publish_revision_diff
+
+        receipt = apply_pair(root, workflow_id, binding, evidence or {})
+        publish_revision_diff(root, workflow_id, _paired_diff_report(job_id, binding, receipt))
+        return
     _validated, report = apply_revision_plan(
         scene_spec_path=current,
         plan_path=plan,
         output_path=candidate,
     )
+    if binding is not None:
+        if _validated.model_dump(mode="json") != binding["candidate_scene_spec"]:
+            raise OrchestrationArtifactConflict("revision candidate differs from its byte binding")
+        # Re-read exact approval/marker evidence after staging under the writer lock.
+        _validate_guarded_revision_authority(root, workflow_id)
     replace_scene_spec_if_current(
         job_id,
         candidate,
         expected_current_sha256=report["base_spec_sha256"],
         expected_candidate_sha256=report["result_spec_sha256"],
         lock_owner_id=workflow_id,
+        **(
+            {
+                "expected_geometry_dependencies": binding["geometry_dependencies"],
+                "expected_revision_evidence": evidence,
+            }
+            if binding
+            else {}
+        ),
     )
     candidate.unlink(missing_ok=True)
     write_json_atomic(root / "reports" / "revision_diff.json", report)
@@ -2987,6 +3384,22 @@ def _verify_revision_modeling_plan_binding(root: Path, step: WorkflowStep) -> No
         )
     from ..analysis.models import ModelingPlan
 
+    paired_path = step.parameters.get("paired_modeling_plan_path")
+    if paired_path is not None:
+        from .paired_revision import committed_receipt
+
+        workflow_id = str(step.parameters["paired_workflow_id"])
+        receipt = committed_receipt(root, workflow_id, require_current=True)
+        if receipt is not None:
+            expected_hash = receipt["after"]["analysis/modeling_plan.json"]
+    if step.parameters.get("attachment_intent_path") is not None:
+        expected_metadata = step.parameters.get("attachment_metadata_before_sha256")
+        if receipt is not None:
+            expected_metadata = receipt["after"]["job.json"]
+        if expected_metadata is None or sha256_file(root / "job.json") != expected_metadata:
+            raise OrchestrationArtifactConflict(
+                "attachment revision original metadata hash changed"
+            )
     path = root / "analysis" / "modeling_plan.json"
     if not path.is_file() or sha256_file(path) != expected_hash:
         raise OrchestrationArtifactConflict(
@@ -3013,6 +3426,41 @@ def _step_material_plan_mode(step: Any, *, fallback: str) -> str:
     return material_plan_mode
 
 
+def _validate_qa_mask_selection(root: Path, request: WorkflowRequest, step: WorkflowStep):
+    """Validate opted-in pending QA against exact current scene and immutable source closure."""
+
+    from ..models import SceneSpec
+    from ..qa.evidence_selection import load_reference_mask_selection, selection_artifact
+    from ..reference_fidelity.models import FidelityArtifact
+    from ..reference_fidelity.service import read_artifact
+
+    selected_seed = selection_artifact(
+        step.parameters.get("reference_mask_seed_path"),
+        step.parameters.get("reference_mask_seed_sha256"),
+    )
+    if selected_seed is None:
+        if ("reference_mask_scene_spec_sha256" in step.parameters
+                or "reference_mask_seed_version" in step.parameters):
+            raise ValueError("reference mask continuation binding is incomplete")
+        return None
+    if (
+        request.execution_policy != "standard" or request.requested_scope != "qa_only"
+        or request.intent_hint != "visual_qa"
+    ):
+        raise ValueError("selected reference mask requires a Standard QA-only continuation")
+    raw = read_artifact(root, FidelityArtifact(
+        path="analysis/scene_spec.json",
+        sha256=step.parameters.get("reference_mask_scene_spec_sha256"),
+    ))
+    evidence, _ = load_reference_mask_selection(
+        root, find_reference(request.job_id), SceneSpec.model_validate_json(raw),
+        request.reference_content_scope, selected_seed,
+    )
+    if evidence.schema_version != step.parameters.get("reference_mask_seed_version", "0.3.0"):
+        raise ValueError("reference mask seed version differs from immutable QA plan")
+    return selected_seed
+
+
 def _execute_host_tool(
     root: Path,
     workflow_root: Path,
@@ -3021,7 +3469,7 @@ def _execute_host_tool(
     *,
     input_fingerprint: str,
 ) -> None:
-    """Execute one whitelisted deterministic host step with explicit parameters."""
+    """Execute allowlisted host work after exact revision and opted-in QA evidence checks."""
 
     _verify_revision_modeling_plan_binding(root, step)
     tool = step.tool_name
@@ -3077,7 +3525,11 @@ def _execute_host_tool(
         _validate_scene(request.job_id)
         return
     if tool == "apply_revision_plan":
-        _apply_guarded_revision(request.job_id, request.workflow_id)
+        _apply_guarded_revision(
+            request.job_id,
+            request.workflow_id,
+            bind_payloads=step.parameters.get(BINDING_PARAMETER) is True,
+        )
         return
     if tool == "evaluate_candidate_revision":
         trial_id = str(step.parameters["trial_id"])
@@ -3099,9 +3551,7 @@ def _execute_host_tool(
                     revision_plan_path=str(step.parameters["revision_plan_path"]),
                     input_fingerprint=input_fingerprint,
                     workflow_id=request.workflow_id,
-                    minimum_improvement=float(
-                        step.parameters.get("minimum_improvement", 0.001)
-                    ),
+                    minimum_improvement=float(step.parameters.get("minimum_improvement", 0.001)),
                 )
                 validate_candidate_review_decision(
                     root,
@@ -3117,9 +3567,7 @@ def _execute_host_tool(
             else:
                 generate_candidate_review_pdf(request.job_id, trial_id)
         except (CandidateReviewConflict, FileExistsError) as exc:
-            raise OrchestrationArtifactConflict(
-                f"orchestration_artifact_conflict: {exc}"
-            ) from exc
+            raise OrchestrationArtifactConflict(f"orchestration_artifact_conflict: {exc}") from exc
         return
     if tool == "promote_candidate_revision":
         try:
@@ -3129,9 +3577,7 @@ def _execute_host_tool(
                 workflow_id=request.workflow_id,
             )
         except CandidateReviewConflict as exc:
-            raise OrchestrationArtifactConflict(
-                f"orchestration_artifact_conflict: {exc}"
-            ) from exc
+            raise OrchestrationArtifactConflict(f"orchestration_artifact_conflict: {exc}") from exc
         return
     if tool == "material_scaffold":
         create_material_scaffold(request.job_id, overwrite=False)
@@ -3174,11 +3620,23 @@ def _execute_host_tool(
         render_job_material_swatches(request.job_id)
         return
     if tool == "run_visual_qa":
+        selected_seed = _validate_qa_mask_selection(root, request, step)
         run_job_visual_qa(
             request.job_id,
             include_generated_target=bool(step.parameters.get("include_generated_target", False)),
             run_id=(str(step.parameters["run_id"]) if "run_id" in step.parameters else None),
+            **(
+                {
+                    "reference_mask_seed_path": selected_seed.path,
+                    "reference_mask_seed_sha256": selected_seed.sha256,
+                }
+                if selected_seed is not None
+                else {}
+            ),
         )
+        if selected_seed is not None:
+            # Drift during host execution cannot receive a successful workflow attempt receipt.
+            _validate_qa_mask_selection(root, request, step)
         return
     if tool == "run_visual_diagnostics":
         qa_run_id = str(step.parameters["qa_run_id"])
@@ -3313,10 +3771,8 @@ def _execute_host_tool(
                         ) from recovery_exc
                 else:
                     if (
-                        adopted_plan.review_policy
-                        != step.parameters.get("review_policy")
-                        or adopted_report.review_policy
-                        != step.parameters.get("review_policy")
+                        adopted_plan.review_policy != step.parameters.get("review_policy")
+                        or adopted_report.review_policy != step.parameters.get("review_policy")
                         or (
                             has_explicit_material_plan_mode
                             and adopted_plan.material_plan_mode != material_plan_mode
@@ -3389,6 +3845,8 @@ def _execute_host_tool(
             run_id=run_id,
             resolution=int(step.parameters.get("resolution", 384)),
             material_plan_mode=material_plan_mode,
+            **({"review_policy": step.parameters["review_policy"]}
+               if step.parameters.get("review_policy") == "exterior_geometry_review_v3" else {}),
         )
         if Path(str(planned["plan"])).resolve() != plan_path.resolve() or planned.get(
             "review_policy"
@@ -3481,13 +3939,12 @@ def _execute_host_tool(
         )
         return
     if tool == "optimize_portable_asset":
+        from ..optimization.delegated_workflow import load_delegated_workflow_binding
+
+        delegated_binding = load_delegated_workflow_binding(root, workflow_root)
         run_id = str(step.parameters["run_id"])
         approved_hash = sha256_file(root / "optimization" / "runs" / run_id / "review_plan.json")
-        policy_path = (
-            workflow_root
-            / "policy_authorizations"
-            / "portable.plan_approval.json"
-        )
+        policy_path = workflow_root / "policy_authorizations" / "portable.plan_approval.json"
         policy_input_fingerprint = None
         if policy_path.is_file():
             from ..autonomy.models import PolicyAuthorization
@@ -3501,11 +3958,21 @@ def _execute_host_tool(
             profile_id=str(step.parameters["profile_id"]),
             run_id=run_id,
             approved_plan_sha256=approved_hash,
+            delegated_authorization_path=(
+                root / delegated_binding.authorization.path
+                if delegated_binding is not None
+                else None
+            ),
+            delegated_authorization_sha256=(
+                delegated_binding.authorization.sha256 if delegated_binding is not None else None
+            ),
+            enable_delegated_authority=delegated_binding is not None,
+            delegated_workflow_lock_owner=(
+                request.workflow_id if delegated_binding is not None else None
+            ),
             policy_authorization_path=(policy_path if policy_path.is_file() else None),
             workflow_id=(request.workflow_id if policy_path.is_file() else None),
-            workflow_step_id=(
-                "portable.plan_approval" if policy_path.is_file() else None
-            ),
+            workflow_step_id=("portable.plan_approval" if policy_path.is_file() else None),
             workflow_input_fingerprint=policy_input_fingerprint,
         )
         return
@@ -3519,12 +3986,21 @@ def _execute_host_tool(
         )
         return
     if tool == "build_portable_package":
+        from ..optimization.delegated_workflow import load_delegated_workflow_binding
+
+        delegated_binding = load_delegated_workflow_binding(root, workflow_root)
         package_asset(
             request.job_id,
             profile_id=str(step.parameters["profile_id"]),
             run_id=str(step.parameters["run_id"]),
             package_id=str(step.parameters["package_id"]),
             material_conversion_id=str(step.parameters["conversion_id"]),
+            delegated_workflow_lock_owner=(
+                request.workflow_id if delegated_binding is not None else None
+            ),
+            delegated_authorization_sha256=(
+                delegated_binding.authorization.sha256 if delegated_binding is not None else None
+            ),
         )
         return
     if tool == "validate_portable_package":
@@ -3657,12 +4133,17 @@ def _execute_ready_host_step(
     plan: WorkflowPlan,
     state: WorkflowState,
     step: WorkflowStep,
+    *,
+    swatch_selection: dict[str, Any] | None = None,
 ) -> WorkflowAttempt:
-    """Execute one ready host step and finalize its unique attempt receipt."""
+    """Execute one ready host step with optional exact swatch backend evidence."""
 
     current = next(item for item in state.steps if item.step_id == step.step_id)
     if current.status != "ready" or current.input_fingerprint is None:
         raise RuntimeError("Host step is not ready for execution")
+    if step.step_id == "revision.apply" and request.paired_modeling_plan_path is not None:
+        # Persist explicit technical retry preparation before the CAS checker reloads state.
+        _write_state(root, workflow_root, state)
     attempt_id = f"attempt-{current.attempt_count + 1:04d}-{uuid4().hex[:8]}"
     attempt_path = _attempt_path(workflow_root, step.step_id, attempt_id)
     started = _utc_now()
@@ -3679,14 +4160,31 @@ def _execute_ready_host_step(
     _write_immutable(attempt_path, running.model_dump(mode="json"))
     try:
         _verify_dependency_sources(root, workflow_root, plan, step)
-        _execute_host_tool(
-            root,
-            workflow_root,
-            request,
-            step,
-            input_fingerprint=current.input_fingerprint,
-        )
+        if _post_apply_revision_binding_required(plan, step):
+            _validate_post_apply_revision_binding(
+                root, plan, {item.step_id: item for item in state.steps}
+            )
+        if swatch_selection is not None:
+            from .swatch_execution import MaterialSwatchExecution, execute_selection
+
+            execute_selection(root, MaterialSwatchExecution(
+                job_id=plan.job_id, workflow_id=plan.workflow_id, attempt_id=attempt_id,
+                **swatch_selection,
+            ))
+            _verify_dependency_sources(root, workflow_root, plan, step)
+        else:
+            _execute_host_tool(
+                root,
+                workflow_root,
+                request,
+                step,
+                input_fingerprint=current.input_fingerprint,
+            )
         _verify_revision_modeling_plan_binding(root, step)
+        if _post_apply_revision_binding_required(plan, step):
+            _validate_post_apply_revision_binding(
+                root, plan, {item.step_id: item for item in state.steps}
+            )
         _materialize_step_snapshots(root, step)
         outputs = [_inspect_artifact(root, output, None) for output in step.outputs]
         if any(item.integrity != "valid" for item in outputs):
@@ -3705,6 +4203,11 @@ def _execute_ready_host_step(
             completed_at=_utc_now(),
         )
     except Exception as exc:
+        if (
+            step.parameters.get(BINDING_PARAMETER) is True
+            or _post_apply_revision_binding_required(plan, step)
+        ):
+            _validate_guarded_revision_root(root)
         reason_code = (
             "requires_standard_workflow"
             if isinstance(exc, RequiresStandardWorkflow)
@@ -3738,8 +4241,11 @@ def resume_workflow(
     *,
     max_host_steps: int | None = None,
     retry_failed: bool = False,
+    material_swatch_backend: str | None = None,
+    material_swatch_input_fingerprint: str | None = None,
+    material_swatch_failed_attempt_sha256: str | None = None,
 ) -> WorkflowState:
-    """Resume ready host steps and retry one failed step only with explicit consent."""
+    """Resume native steps; opt-in swatch selection binds exact ready or failed inputs."""
 
     lock_ttl = _require_orchestration()
     root, workflow_root, request, plan, previous = _load_workflow(job_id, workflow_id)
@@ -3782,6 +4288,7 @@ def resume_workflow(
                     )
                     _write_state(root, workflow_root, blocked)
                     return blocked
+        selection_previous = previous
         previous = _prepare_failed_step_retry(
             workflow_root,
             previous,
@@ -3791,6 +4298,18 @@ def resume_workflow(
         if limit < 1 or limit > 64:
             raise ValueError("max_host_steps must be within [1, 64]")
         state = _reconcile_locked(root, workflow_root, plan, request, previous=previous)
+        from .swatch_execution import validate_selection
+
+        swatch_selection = validate_selection(
+            root, workflow_root, plan, selection_previous, state,
+            backend=material_swatch_backend,
+            input_fingerprint=material_swatch_input_fingerprint,
+            failed_attempt_sha256=material_swatch_failed_attempt_sha256,
+            retry_failed=retry_failed,
+        )
+        if swatch_selection is not None:
+            selected_step = next(item for item in plan.steps if item.step_id == "material.swatches")
+            _verify_dependency_sources(root, workflow_root, plan, selected_step)
         executed = 0
         while executed < limit and state.current_step_id is not None:
             step = next(item for item in plan.steps if item.step_id == state.current_step_id)
@@ -3805,8 +4324,18 @@ def resume_workflow(
                     plan,
                     state,
                     step,
+                    **(
+                        {"swatch_selection": swatch_selection}
+                        if swatch_selection is not None else {}
+                    ),
                 )
+                swatch_selection = None
             except Exception as exc:
+                if (
+                    step.parameters.get(BINDING_PARAMETER) is True
+                    or _post_apply_revision_binding_required(plan, step)
+                ):
+                    _validate_guarded_revision_root(root)
                 requires_standard = isinstance(exc, RequiresStandardWorkflow)
                 artifact_conflict = isinstance(exc, OrchestrationArtifactConflict)
                 failure_status = "blocked" if requires_standard or artifact_conflict else "failed"
@@ -3935,3 +4464,113 @@ __all__ = [
     "reconcile_workflow",
     "resume_workflow",
 ]
+
+
+
+def _paired_diff_report(
+    job_id: str, binding: dict[str, Any], receipt: dict[str, Any]
+) -> dict[str, Any]:
+    """Derive the same technical report during ordinary commit and interrupted finalization."""
+
+    return {
+        "ok": True,
+        "job_id": job_id,
+        "base_spec_sha256": binding["base_spec_sha256"],
+        "result_spec_sha256": receipt["after"]["analysis/scene_spec.json"],
+        "paired_transaction": receipt,
+        "modeling_plan_changes": binding["paired_modeling_plan"]["changes"],
+    }
+
+
+def recover_paired_workflow_revision(
+    job_id: str, workflow_id: str, *, intent_sha256: str
+) -> dict[str, Any]:
+    """Roll back an interrupted pair or finish the receipt of an already committed pair."""
+
+    from ..blender_artifacts import deterministic_json_bytes, publish_bytes_create_once
+    from .paired_revision import (
+        committed_receipt,
+        publish_revision_diff,
+        recover_pair,
+        transaction_path,
+    )
+
+    lock_ttl = _require_orchestration()
+    root, workflow_root, request, plan, previous = _load_workflow(job_id, workflow_id)
+    if request.paired_modeling_plan_path is None:
+        raise ValueError("workflow did not select paired ModelingPlan revision")
+    with workflow_write_lock(root, job_id, workflow_id, ttl_seconds=lock_ttl):
+        receipt = committed_receipt(root, workflow_id, require_current=True)
+        if receipt is None:
+            return recover_pair(root, workflow_id, intent_sha256)
+        if receipt["intent_sha256"] != intent_sha256:
+            raise ValueError("paired finalization intent hash changed")
+        finalized = transaction_path(root, workflow_id, "finalized.json")
+        if finalized.exists():
+            raise FileExistsError("paired transaction recovery finalization already consumed")
+        state = _reconcile_locked(root, workflow_root, plan, request, previous=previous)
+        apply_state = next(item for item in state.steps if item.step_id == "revision.apply")
+        if apply_state.status == "complete":
+            raise FileExistsError("paired transaction already has a successful host receipt")
+        if any(
+            next(item for item in state.steps if item.step_id == step_id).status != "complete"
+            for step_id in ("revision.author", "revision.approval")
+        ):
+            raise ValueError("paired finalization author or approval is stale")
+        binding = _validate_revision_payload_binding(
+            root, workflow_id, require_current_candidate=False
+        )
+        report = _paired_diff_report(job_id, binding, receipt)
+        publish_revision_diff(root, workflow_id, report)
+        step = next(item for item in plan.steps if item.step_id == "revision.apply")
+        _materialize_step_snapshots(root, step)
+        outputs = [_inspect_artifact(root, output, None) for output in step.outputs]
+        if any(item.integrity != "valid" for item in outputs):
+            raise ValueError("paired finalization outputs are missing or corrupt")
+        committed_receipt(root, workflow_id, require_current=True)
+        if (
+            _validate_revision_payload_binding(root, workflow_id, require_current_candidate=False)
+            != binding
+        ):
+            raise ValueError("paired finalization binding changed")
+        for item in outputs:
+            if (
+                item.artifact_id == "revision.scene_spec"
+                and item.sha256 != receipt["after"]["analysis/scene_spec.json"]
+            ):
+                raise ValueError("paired SceneSpec recovery snapshot differs from receipt")
+            if (
+                item.artifact_id == "revision.modeling_plan"
+                and item.sha256 != receipt["after"]["analysis/modeling_plan.json"]
+            ):
+                raise ValueError("paired ModelingPlan recovery snapshot differs from receipt")
+            if (
+                item.artifact_id == "revision.job_metadata"
+                and item.sha256 != receipt["after"]["job.json"]
+            ):
+                raise ValueError("paired job metadata recovery snapshot differs from receipt")
+        attempt = WorkflowAttempt(
+            attempt_id="paired-recovery-" + intent_sha256[:16],
+            workflow_id=workflow_id,
+            job_id=job_id,
+            step_id="revision.apply",
+            plan_sha256=state.plan_sha256,
+            input_fingerprint=str(apply_state.input_fingerprint),
+            status="succeeded",
+            output_fingerprint=_artifact_fingerprint(outputs),
+            outputs=outputs,
+            started_at=_utc_now(),
+            completed_at=_utc_now(),
+        )
+        attempt_path = _attempt_path(workflow_root, "revision.apply", attempt.attempt_id)
+        if not attempt_path.exists():
+            _write_immutable(attempt_path, attempt.model_dump(mode="json"))
+        result = {
+            "schema_version": "0.1.0",
+            "status": "committed_finalized",
+            "intent_sha256": intent_sha256,
+        }
+        publish_bytes_create_once(finalized, deterministic_json_bytes(result))
+        updated = _reconcile_locked(root, workflow_root, plan, request, previous=state)
+        _write_state(root, workflow_root, updated)
+        return result

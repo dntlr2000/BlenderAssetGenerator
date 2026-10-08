@@ -1,0 +1,99 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Request one specialized root-scope decision over the exact native candidate closure.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "const": "authored_material_registered_solid_root_user_only",
+      "default": "authored_material_registered_solid_root_user_only",
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "preapproval": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "invariant_report": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "shadow_blend": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "approval_scope": {
+      "const": "material_identity_split",
+      "default": "material_identity_split",
+      "title": "Approval Scope",
+      "type": "string"
+    },
+    "satisfies_required_approval": {
+      "const": "root_scope",
+      "default": "root_scope",
+      "title": "Satisfies Required Approval",
+      "type": "string"
+    },
+    "status": {
+      "const": "eligible_for_explicit_user_scope_approval",
+      "default": "eligible_for_explicit_user_scope_approval",
+      "title": "Status",
+      "type": "string"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan",
+    "preapproval",
+    "invariant_report",
+    "shadow_blend"
+  ],
+  "title": "AuthoredMaterialIdentitySplitApprovalRequestV02",
+  "type": "object"
+}

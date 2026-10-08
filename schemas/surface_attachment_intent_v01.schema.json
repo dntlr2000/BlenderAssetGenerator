@@ -1,0 +1,324 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "AttachmentEntry": {
+      "additionalProperties": false,
+      "description": "Freeze one contact patch or explicit intentional open/modular exception.",
+      "properties": {
+        "attachment_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Attachment Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "required_full_patch",
+            "required_root_patch",
+            "intentional_open",
+            "modular_clearance"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "subject_lower": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PatchSelection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "subject_upper": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PatchSelection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "owner_front": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PatchSelection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "owner_back": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PatchSelection"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "root_region": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "frame_axes": {
+          "default": [
+            0,
+            2,
+            1
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Frame Axes",
+          "type": "array"
+        },
+        "frame_signs": {
+          "default": [
+            1,
+            1,
+            1
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Frame Signs",
+          "type": "array"
+        },
+        "minimum_embed_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Embed M"
+        },
+        "maximum_embed_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum Embed M"
+        },
+        "minimum_remaining_thickness_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Remaining Thickness M"
+        },
+        "minimum_relief_height_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Relief Height M"
+        },
+        "minimum_overlap_m": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum Overlap M"
+        },
+        "exception_reason": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "minLength": 8,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception Reason"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "scope"
+      ],
+      "title": "AttachmentEntry",
+      "type": "object"
+    },
+    "PatchSelection": {
+      "additionalProperties": false,
+      "description": "Choose an exact semantic component face group without geometric nearest-owner guesses.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "face_group_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Face Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "face_group_id"
+      ],
+      "title": "PatchSelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind optional full-patch intent to exact existing scene and geometry inputs.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "surface_attachment_intent",
+      "default": "surface_attachment_intent",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source_reference": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_modeling_plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_scene": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_geometry": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Source Geometry",
+      "type": "array"
+    },
+    "reference_region_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/AttachmentEntry"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "source_reference",
+    "source_modeling_plan",
+    "source_scene",
+    "source_geometry",
+    "entries"
+  ],
+  "title": "AttachmentIntentV01",
+  "type": "object"
+}

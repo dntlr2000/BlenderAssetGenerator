@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Consume one non-user specialized technical decision under the original bounded delegation.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "const": "authored_material_registered_solid_root_delegated_technical",
+      "default": "authored_material_registered_solid_root_delegated_technical",
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "intent_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Intent Id",
+      "type": "string"
+    },
+    "technical_approval": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "approval_request": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "delegation": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "technical_decision": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "user_approval_consumed": {
+      "const": false,
+      "default": false,
+      "title": "User Approval Consumed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "intent_id",
+    "technical_approval",
+    "approval_request",
+    "plan",
+    "delegation",
+    "technical_decision"
+  ],
+  "title": "AuthoredMaterialIdentitySplitTechnicalApplyIntentV02",
+  "type": "object"
+}

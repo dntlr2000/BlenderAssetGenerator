@@ -12,6 +12,7 @@ from builders.registry import create_geometry
 from compat import configure_render_compat, set_material_transparency
 from mathutils import Vector
 from modifiers import apply_deferred_modifiers, apply_immediate_modifiers
+from optical_volume_runtime import apply_optical_volume
 from portable_asset_common import native_io_path
 
 PACKAGE_SRC = Path(__file__).resolve().parents[2]
@@ -30,6 +31,7 @@ from codex_blender_modeler.shader_recipe_runtime import (  # noqa: E402
 )
 
 _MATERIAL_PROVENANCE_KEYS = (
+    "cbm_optical_volume_contract",
     "cbm_shader_recipe",
     "cbm_shader_family",
     "cbm_texture_strategy",
@@ -229,8 +231,7 @@ def _apply_manifest_graph(
     spatial_mode = bool(spatial_bindings)
     provenance = manifest.get("provenance", {})
     portable_uniform_mode = (
-        isinstance(provenance, dict)
-        and provenance.get("provider") == "cbm_autonomy_uniform_pbr"
+        isinstance(provenance, dict) and provenance.get("provider") == "cbm_autonomy_uniform_pbr"
     )
     image_extension = "REPEAT"
     if spatial_mode:
@@ -314,9 +315,7 @@ def _apply_manifest_graph(
             mix.name = "CBM_BaseColorHybrid"
             mix.label = "CBM Image + Procedural Base Color"
             mix.blend_type = procedural.get("image_blend", "MULTIPLY")
-            mix.inputs["Fac"].default_value = float(
-                procedural.get("image_mix_factor", 0.45)
-            )
+            mix.inputs["Fac"].default_value = float(procedural.get("image_mix_factor", 0.45))
             links.new(base_socket, mix.inputs[1])
             links.new(ramp.outputs["Color"], mix.inputs[2])
             base_socket = mix.outputs["Color"]
@@ -347,9 +346,7 @@ def _apply_manifest_graph(
     if normal_image is not None:
         normal_map = nodes.new("ShaderNodeNormalMap")
         normal_map.name = "CBM_NormalMap"
-        normal_map.inputs["Strength"].default_value = float(
-            procedural.get("normal_strength", 1.0)
-        )
+        normal_map.inputs["Strength"].default_value = float(procedural.get("normal_strength", 1.0))
         links.new(normal_image.outputs["Color"], normal_map.inputs["Color"])
         normal_socket = normal_map.outputs["Normal"]
 
@@ -437,11 +434,7 @@ def _apply_shader_recipe_layer(
     parameters = layer["parameters"]
     noise = {"scale": parameters.get("scale", 4.0)}
     noise.update(
-        {
-            key: parameters[key]
-            for key in ("detail", "roughness", "distortion")
-            if key in parameters
-        }
+        {key: parameters[key] for key in ("detail", "roughness", "distortion") if key in parameters}
     )
     procedural = {"seed": parameters.get("seed", 0), "noise": noise}
     for key in (
@@ -535,9 +528,7 @@ def make_material(
         if recipe_path:
             material["cbm_shader_recipe"] = recipe_path
         material["cbm_shader_family"] = shader_recipe.get("family", "standard_pbr")
-        material["cbm_texture_strategy"] = shader_recipe.get(
-            "cbm_texture_strategy", "none"
-        )
+        material["cbm_texture_strategy"] = shader_recipe.get("cbm_texture_strategy", "none")
         if principled_shader is not None:
             recipe_color = _apply_shader_recipe_surface(
                 material,
@@ -580,6 +571,8 @@ def make_material(
             material["cbm_uv_set"] = manifest["uv_set"]
             material["cbm_intended_scale_m"] = manifest["intended_scale_m"]
 
+    if shader_recipe is not None and shader_recipe.get("volume") is not None:
+        apply_optical_volume(material, shader_recipe["volume"])
     material.diffuse_color = color
     return material
 
@@ -606,9 +599,7 @@ def _assign_object_materials(
         return
     try:
         material_ids = json.loads(str(obj["cbm_v02_material_ids"]))
-        polygon_indices = json.loads(
-            str(obj["cbm_v02_polygon_material_indices"])
-        )
+        polygon_indices = json.loads(str(obj["cbm_v02_polygon_material_indices"]))
     except (KeyError, TypeError, json.JSONDecodeError) as exc:
         raise RuntimeError("MeshPayload 0.2 material handoff metadata is invalid") from exc
     if (
@@ -619,15 +610,11 @@ def _assign_object_materials(
     ):
         raise RuntimeError("MeshPayload 0.2 material ID sequence is invalid")
     if material_ids[0] != spec["material_id"]:
-        raise RuntimeError(
-            "MeshPayload 0.2 primary material differs from the SceneSpec object"
-        )
+        raise RuntimeError("MeshPayload 0.2 primary material differs from the SceneSpec object")
     missing = sorted(set(material_ids) - set(materials))
     if missing:
         raise RuntimeError(f"MeshPayload 0.2 references missing materials: {missing}")
-    if not isinstance(polygon_indices, list) or len(polygon_indices) != len(
-        obj.data.polygons
-    ):
+    if not isinstance(polygon_indices, list) or len(polygon_indices) != len(obj.data.polygons):
         raise RuntimeError("MeshPayload 0.2 polygon material evidence is incomplete")
     if len(obj.data.materials) != 0:
         raise RuntimeError("MeshPayload 0.2 builder unexpectedly preassigned materials")
@@ -654,9 +641,7 @@ def _apply_object_smoothing(obj: bpy.types.Object, spec: dict) -> None:
         return
     if str(obj.get("cbm_mesh_payload_version", "")) == "0.2.0":
         if str(obj.get("cbm_v02_smoothing_mode", "")) == "flat":
-            raise RuntimeError(
-                "SceneSpec shade_smooth conflicts with MeshPayload 0.2 flat intent"
-            )
+            raise RuntimeError("SceneSpec shade_smooth conflicts with MeshPayload 0.2 flat intent")
         return
     for polygon in obj.data.polygons:
         polygon.use_smooth = True
@@ -674,9 +659,7 @@ def _validate_v02_modifier_compatibility(obj: bpy.types.Object, spec: dict) -> N
     declared = {str(item["kind"]) for item in spec.get("modifiers", [])}
     duplicates = sorted(recreated & declared)
     if duplicates:
-        raise RuntimeError(
-            f"SceneSpec duplicates MeshPayload 0.2 modifier intent: {duplicates}"
-        )
+        raise RuntimeError(f"SceneSpec duplicates MeshPayload 0.2 modifier intent: {duplicates}")
 
 
 def apply_object_spec(
@@ -700,9 +683,7 @@ def apply_object_spec(
     obj = create_geometry(spec["geometry"], base_dir)
     standard_object_id = obj.get("cbm_standard_object_id")
     if standard_object_id is not None and str(standard_object_id) != str(spec["id"]):
-        raise RuntimeError(
-            "Standard custom_mesh object_id differs from the SceneSpec object ID"
-        )
+        raise RuntimeError("Standard custom_mesh object_id differs from the SceneSpec object ID")
     obj.name = spec["id"] if index == 0 else f"{spec['id']}__{index:03d}"
     obj["cbm_id"] = spec["id"]
     obj["cbm_instance_index"] = index

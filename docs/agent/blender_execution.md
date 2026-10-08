@@ -8,3 +8,7 @@ Actual Blender support claims require Blender 5.0.1 execution evidence. Pure con
 
 Primary rules: CBM-INV-002..024, CBM-INV-028..044, CBM-INV-067..071, CBM-INV-091..094, CBM-INV-113..150, CBM-INV-182, CBM-INV-189..190.
 
+
+For single-image reconstruction, document component centerlines/cross-sections and a camera hypothesis before detail. Inspect neutral profile, reverse, end and top views so a reference-facing relief cannot stand in for a finished volume. The selected proof domain must follow the intended geometry; never flatten a shape merely to fit a heightfield check. The [closed-solid local root-ball companion](../solid_root_attachment_delivery.md) is an explicit alternative domain, not a replacement image-quality score or approval.
+
+The explicit ShaderRecipe0.5.1 constant-volume subset is documented in [optical volume](../optical_volume_contract.md). Legacy0.5.0 remains unchanged; native boundaries and serialized extensions require separate evidence.

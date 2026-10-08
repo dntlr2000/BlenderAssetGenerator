@@ -45,6 +45,18 @@ uv run cbm export geometry_showcase --format fbx
 bevel, mirror, subdivision, solidify, array, decimate, remesh, boolean
 ```
 
+원시 export modifier 회귀는 Blender 5.0.1에서 별도로 실행합니다.
+
+```powershell
+$env:CBM_RUN_RAW_EXPORT_SMOKE = "1"
+uv run pytest tests/test_raw_scene_export.py
+```
+
+GLB/GLTF/FBX/OBJ의 독립 clean import에서 활성·비활성·이미 적용된 modifier와
+stack의 평가 형상, UV·material coverage 및 원본 blend 불변성을 확인합니다.
+Shape-key GLB/GLTF는 기존 morph 보존과 명시적 경고를 별도로 확인합니다.
+이는 원시 export mechanism 검사이며 production package나 인간 수용 증거가 아닙니다.
+
 ## Gate D — v0.4 measured constraints
 
 ```powershell

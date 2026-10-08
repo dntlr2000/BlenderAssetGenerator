@@ -8,6 +8,7 @@ from typing import Any
 
 from ..analysis.models import ModelingPlan
 from ..constraints.models import ConstraintResult
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.models import VisualQAReport
 from ..qa.structural_regression import (
     StructuralRegressionReport,
@@ -186,7 +187,7 @@ def evaluate_convergence(
     multiview_comparison_path: Path | None = None,
     minimum_improvement: float = 0.001,
 ) -> ConvergenceReport:
-    """Accept only direct improvements without measured or structural regressions."""
+    """Accept supported direct improvements without evidence, measured, or structural failures."""
 
     before = VisualQAReport.model_validate_json(
         before_report_path.read_text(encoding="utf-8")
@@ -196,6 +197,8 @@ def evaluate_convergence(
         raise ValueError("convergence reports belong to different jobs")
     if before.camera_fingerprint != after.camera_fingerprint:
         raise ValueError("convergence requires the same fixed comparison camera")
+    if direct_evidence_requires_review(before) or direct_evidence_requires_review(after):
+        raise ValueError("semantic part evidence requires review before convergence scoring")
     multiview_required = _authored_spatial_multiview_required(before.job_id)
     if multiview_required and multiview_comparison_path is None:
         raise ValueError(

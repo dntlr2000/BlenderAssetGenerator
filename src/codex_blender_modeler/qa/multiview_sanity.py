@@ -23,8 +23,18 @@ from ..blender_artifacts import stable_json_digest, write_json_atomic
 from ..blender_runner import run_blender
 from ..build_provenance import collect_build_provenance
 from ..models import SceneSpec, StrictModel
-from ..workspace import job_dir, load_job, resolve_metadata_path, sha256_file
+from ..workspace import job_dir, load_job, resolve_job_input_path, sha256_file
 from .camera_probe_service import artifact_publication_lease, write_json_exclusive
+from .fidelity_review import (
+    POLICY as DETAIL_REVIEW_POLICY,
+)
+from .fidelity_review import (
+    DetailReviewContract,
+    DetailVisualAssessment,
+    capture_detail_review_contract,
+    validate_detail_review_contract,
+    validate_detail_visual_assessments,
+)
 from .semantic_localizer import extract_semantic_bboxes
 
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -36,6 +46,7 @@ AssemblySanityPassKind = Literal["beauty", "silhouette", "object_id", "wireframe
 AssemblySanityReviewPolicy = Literal[
     "assembly_structural_v1",
     "exterior_geometry_review_v2",
+    "exterior_geometry_review_v3",
 ]
 AssemblySanityMaterialPlanMode = Literal["current", "scene_spec_only"]
 GeometryReviewScope = Literal[
@@ -231,6 +242,9 @@ class AssemblySanityPlan(StrictModel):
     material_plan_mode: AssemblySanityMaterialPlanMode = "current"
     source_fingerprint: str = Field(pattern=SHA256_PATTERN)
     review_policy: AssemblySanityReviewPolicy = "assembly_structural_v1"
+    detail_review_contract: DetailReviewContract | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     assembly_frame: AssemblyFrame
     target_ids: list[str] = Field(min_length=1)
     resolution: tuple[int, int]
@@ -258,6 +272,9 @@ class AssemblySanityPlan(StrictModel):
     def validate_plan(self) -> AssemblySanityPlan:
         """Require the exact view set, bounded resolution, and stable target membership."""
 
+        if ((self.review_policy == DETAIL_REVIEW_POLICY)
+                != (self.detail_review_contract is not None)):
+            raise ValueError("only exterior v3 requires a source-bound detail-review contract")
         width, height = self.resolution
         if width < 128 or height < 128 or width > 1024 or height > 1024:
             raise ValueError("assembly sanity resolution must be within [128, 1024]")
@@ -315,9 +332,19 @@ class AssemblySanityViewRender(StrictModel):
         return self
 
 
+class CanonicalDetailEvidence(StrictModel):
+    """Bind the native fixed-camera beauty without treating it as canonical seven-pass QA."""
+
+    camera_fingerprint: str = Field(pattern=SHA256_PATTERN)
+    beauty: AssemblySanityPassRecord
+
+
 class AssemblySanityRenderManifest(StrictModel):
     """Bind temporary-camera renders to exact source, plan, and Blender evidence."""
 
+    canonical_detail_evidence: CanonicalDetailEvidence | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
     schema_version: Literal["0.6.0"] = "0.6.0"
     diagnostic_kind: Literal["assembly_multiview_sanity"] = "assembly_multiview_sanity"
     canonical_v06_qa_run: Literal[False] = False
@@ -496,7 +523,7 @@ class GeometryVisualReviewFinding(StrictModel):
 
 
 class GeometryMultiviewVisualReview(StrictModel):
-    """Bind a Codex visual reading of all five views without claiming reference likeness."""
+    """Bind five-view reading and optional fixed-camera detail review without automatic fidelity."""
 
     model_config = ConfigDict(
         extra="forbid",
@@ -565,6 +592,12 @@ class GeometryMultiviewVisualReview(StrictModel):
     )
     advisory_only: Literal[True] = True
     automatic_revision_authorized: Literal[False] = False
+    detail_assessments: list[DetailVisualAssessment] = Field(
+        default_factory=list, exclude_if=lambda value: not value
+    )
+    reviewed_detail_contract_sha256: str | None = Field(
+        default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None
+    )
     reviewed_at: datetime
 
     @model_validator(mode="after")
@@ -605,6 +638,12 @@ class GeometryMultiviewVisualReview(StrictModel):
 class AssemblySanityReport(StrictModel):
     """Summarize structural multi-view evidence without claiming image similarity."""
 
+    detail_review_status: Literal["source_bound_visual_review_required"] | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    detail_review_contract_sha256: str | None = Field(
+        default=None, pattern=SHA256_PATTERN, exclude_if=lambda value: value is None
+    )
     schema_version: Literal["0.6.0"] = "0.6.0"
     diagnostic_kind: Literal["assembly_multiview_sanity"] = "assembly_multiview_sanity"
     canonical_v06_qa_run: Literal[False] = False
@@ -644,7 +683,8 @@ class AssemblySanityReport(StrictModel):
         has_error = any(item.severity == "error" for item in self.findings)
         if has_error and self.structural_status != "failed":
             raise ValueError("assembly sanity reports with errors must be failed")
-        if self.review_policy == "exterior_geometry_review_v2" and self.geometry_review is None:
+        if (self.review_policy in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}
+                and self.geometry_review is None):
             raise ValueError("exterior geometry review v2 requires an assessment")
         if self.review_policy == "assembly_structural_v1" and self.geometry_review is not None:
             raise ValueError("legacy structural reports cannot claim a v2 geometry review")
@@ -656,7 +696,7 @@ def _reference_sources(root: Path, metadata: dict[str, Any]) -> list[AssemblySan
 
     records: list[AssemblySanityReferenceSource] = []
     for item in metadata.get("sources", []):
-        path = resolve_metadata_path(str(item["path"]))
+        path = resolve_job_input_path(root, str(item["path"]), item.get("sha256"))
         if not path.is_file():
             raise FileNotFoundError(f"assembly sanity source is missing: {path}")
         actual = sha256_file(path)
@@ -760,6 +800,7 @@ def plan_job_assembly_multiview_sanity(
     run_id: str | None = None,
     resolution: int = 384,
     material_plan_mode: AssemblySanityMaterialPlanMode = "current",
+    review_policy: AssemblySanityReviewPolicy = "exterior_geometry_review_v2",
 ) -> dict[str, Any]:
     """Write one immutable five-view plan under an exact material-plan boundary."""
 
@@ -804,6 +845,18 @@ def plan_job_assembly_multiview_sanity(
     }
     if material_plan_mode != "current":
         source_payload["material_plan_mode"] = material_plan_mode
+    if review_policy not in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}:
+        raise ValueError("new assembly plans require explicit exterior review v2 or v3")
+    detail_contract = None
+    if review_policy == DETAIL_REVIEW_POLICY:
+        primary_sources = [item for item in sources if item.kind == "reference"]
+        if len(primary_sources) > 1:
+            raise ValueError("detail review requires one unambiguous primary reference")
+        detail_contract = capture_detail_review_contract(
+            root, run_dir, scene_path=scene_path, modeling_plan_path=modeling_plan_path,
+            target_ids=target_ids,
+            reference_path=(root / primary_sources[0].path if primary_sources else None),
+        )
     plan = AssemblySanityPlan(
         job_id=job_id,
         run_id=selected_run_id,
@@ -816,7 +869,8 @@ def plan_job_assembly_multiview_sanity(
         build_fingerprint=str(provenance["fingerprint"]),
         material_plan_mode=material_plan_mode,
         source_fingerprint=stable_json_digest(source_payload),
-        review_policy="exterior_geometry_review_v2",
+        review_policy=review_policy,
+        detail_review_contract=detail_contract,
         assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
         target_ids=target_ids,
         resolution=(resolution, resolution),
@@ -830,7 +884,7 @@ def plan_job_assembly_multiview_sanity(
             "Bounding-box assembly checks are broad evidence, not triangle-level clearance proof.",
         ],
     )
-    run_dir.mkdir(parents=True, exist_ok=False)
+    run_dir.mkdir(parents=True, exist_ok=review_policy == DETAIL_REVIEW_POLICY)
     plan_path = run_dir / "plan.json"
     write_json_atomic(plan_path, plan.model_dump(mode="json"))
     return {
@@ -853,6 +907,7 @@ def plan_job_assembly_multiview_sanity_for_sources(
     run_id: str,
     resolution: int = 384,
     material_plan_mode: AssemblySanityMaterialPlanMode = "current",
+    review_policy: AssemblySanityReviewPolicy = "exterior_geometry_review_v2",
 ) -> dict[str, Any]:
     """Plan isolated five-view evidence under an exact material-plan boundary."""
 
@@ -901,6 +956,18 @@ def plan_job_assembly_multiview_sanity_for_sources(
     }
     if material_plan_mode != "current":
         source_payload["material_plan_mode"] = material_plan_mode
+    if review_policy not in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}:
+        raise ValueError("new assembly plans require explicit exterior review v2 or v3")
+    detail_contract = None
+    if review_policy == DETAIL_REVIEW_POLICY:
+        primary_sources = [item for item in sources if item.kind == "reference"]
+        if len(primary_sources) > 1:
+            raise ValueError("detail review requires one unambiguous primary reference")
+        detail_contract = capture_detail_review_contract(
+            root, run_dir, scene_path=scene_path, modeling_plan_path=modeling_plan_path,
+            target_ids=target_ids,
+            reference_path=(root / primary_sources[0].path if primary_sources else None),
+        )
     plan = AssemblySanityPlan(
         job_id=job_id,
         run_id=selected_run_id,
@@ -913,7 +980,8 @@ def plan_job_assembly_multiview_sanity_for_sources(
         build_fingerprint=str(provenance["fingerprint"]),
         material_plan_mode=material_plan_mode,
         source_fingerprint=stable_json_digest(source_payload),
-        review_policy="exterior_geometry_review_v2",
+        review_policy=review_policy,
+        detail_review_contract=detail_contract,
         assembly_frame=modeling_plan.assembly_frame.model_dump(mode="json"),
         target_ids=target_ids,
         resolution=(resolution, resolution),
@@ -926,7 +994,7 @@ def plan_job_assembly_multiview_sanity_for_sources(
             "The comparison is a veto-only three-dimensional regression guard.",
         ],
     )
-    run_dir.mkdir(parents=True, exist_ok=False)
+    run_dir.mkdir(parents=True, exist_ok=review_policy == DETAIL_REVIEW_POLICY)
     plan_path = run_dir / "plan.json"
     write_json_atomic(plan_path, plan.model_dump(mode="json"))
     return {
@@ -1015,6 +1083,35 @@ def _validate_render_artifacts(
     manifest: AssemblySanityRenderManifest,
 ) -> None:
     """Validate manifest bindings and every diagnostic image before reporting."""
+
+    if plan.review_policy == DETAIL_REVIEW_POLICY:
+        from .camera_fingerprint import camera_fingerprint
+        from .fidelity_review import ReviewArtifact, _read
+
+        contract = validate_detail_review_contract(root, plan)
+        scene = SceneSpec.model_validate_json(_read(root, contract.scene_spec))
+        canonical = manifest.canonical_detail_evidence
+        if canonical is None:
+            raise ValueError("exterior v3 requires native fixed-camera beauty evidence")
+        record = canonical.beauty
+        expected_path = f"qa/assembly_sanity/runs/{plan.run_id}/canonical_beauty.png"
+        if (record.path != expected_path or record.kind != "beauty"
+                or (record.width, record.height) != scene.camera.resolution
+                or canonical.camera_fingerprint != camera_fingerprint(scene)):
+            raise ValueError("canonical detail image does not match the exact source camera")
+        from PIL import Image
+
+        artifact = _resolve_job_relative(root, record.path)
+        try:
+            _read(root, ReviewArtifact(path=record.path, sha256=record.sha256))
+        except (OSError, ValueError) as exc:
+            raise ValueError("canonical detail image is missing or changed") from exc
+        with Image.open(artifact) as image:
+            if image.size != (record.width, record.height) or image.format != "PNG":
+                raise ValueError("canonical detail pixel dimensions or format differ")
+    elif manifest.canonical_detail_evidence is not None:
+        raise ValueError("legacy assembly diagnostics cannot claim exterior v3 image evidence")
+
 
     expected = (
         manifest.job_id == plan.job_id
@@ -1332,10 +1429,21 @@ def validate_assembly_sanity_terminal(
         or report.render_manifest_sha256 != manifest_sha256
     ):
         raise ValueError("assembly sanity terminal identity or hash binding is invalid")
+    if plan.review_policy == DETAIL_REVIEW_POLICY:
+        validate_detail_review_contract(resolved_root, plan)
+    expected_detail_hash = (
+        stable_json_digest(plan.detail_review_contract.model_dump(mode="json"))
+        if plan.review_policy == DETAIL_REVIEW_POLICY else None
+    )
+    if (report.detail_review_contract_sha256 != expected_detail_hash
+            or report.detail_review_status != (
+                "source_bound_visual_review_required" if expected_detail_hash else None)):
+        raise ValueError("detail-review report coverage differs from the selected policy")
     if report.review_policy != plan.review_policy:
         raise ValueError("assembly sanity terminal review policy changed")
     strict_camera_contract = _has_strict_terminal_camera_contract(manifest)
-    if plan.review_policy == "exterior_geometry_review_v2" and not strict_camera_contract:
+    if (plan.review_policy in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}
+            and not strict_camera_contract):
         raise ValueError("exterior geometry review v2 requires strict camera evidence")
     if not strict_camera_contract:
         _validate_legacy_render_artifacts(
@@ -1373,7 +1481,7 @@ def validate_assembly_sanity_terminal(
         expected_status = "passed"
     expected_geometry_review = (
         _geometry_review_assessment(expected_findings)
-        if plan.review_policy == "exterior_geometry_review_v2"
+        if plan.review_policy in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}
         else None
     )
     expected_fraction = len(visible) / len(plan.target_ids)
@@ -1405,7 +1513,7 @@ def validate_assembly_sanity_terminal(
         or report.structural_status != expected_status
         or report.geometry_review != expected_geometry_review
         or (
-            plan.review_policy == "exterior_geometry_review_v2"
+            plan.review_policy in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}
             and (
                 report.reference_comparison_note != ASSEMBLY_SANITY_REFERENCE_NOTE
                 or report.limitations != plan.limitations
@@ -1454,7 +1562,7 @@ def validate_geometry_multiview_visual_review(
         expected_job_id=review.job_id,
         expected_run_id=review.run_id,
     )
-    if plan.review_policy != "exterior_geometry_review_v2":
+    if plan.review_policy not in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}:
         raise ValueError("geometry visual review requires exterior geometry review v2")
     if (
         review.plan_sha256 != plan_sha256
@@ -1462,6 +1570,10 @@ def validate_geometry_multiview_visual_review(
         or review.structural_report_sha256 != report_sha256
     ):
         raise ValueError("geometry visual review source hashes changed")
+    if plan.review_policy == DETAIL_REVIEW_POLICY:
+        validate_detail_visual_assessments(resolved_root, plan, review)
+    elif review.detail_assessments or review.reviewed_detail_contract_sha256 is not None:
+        raise ValueError("legacy geometry reviews cannot claim exterior v3 detail evidence")
     unknown_target_ids = sorted(
         {target_id for finding in review.findings for target_id in finding.target_ids}
         - set(report.target_ids)
@@ -1638,6 +1750,8 @@ def _recover_incomplete_job_assembly_multiview_sanity_locked(
     report_path = run_dir / "report.json"
     views_dir = run_dir / "views"
     visual_review_path = run_dir / "visual_review.json"
+    canonical_detail_path = run_dir / "canonical_beauty.png"
+    _require_regular_optional_derived_file(canonical_detail_path, "canonical detail beauty")
     _require_regular_optional_derived_file(manifest_path, "render manifest")
     _require_regular_optional_derived_file(report_path, "report")
     view_files, view_directories = _recoverable_view_tree(root, views_dir)
@@ -1672,7 +1786,7 @@ def _recover_incomplete_job_assembly_multiview_sanity_locked(
     if require_current_sources:
         _require_current_sources(root, plan)
     removed_paths: list[str] = []
-    for artifact in (report_path, manifest_path, *view_files):
+    for artifact in (report_path, manifest_path, canonical_detail_path, *view_files):
         if artifact.is_file():
             artifact.unlink()
             removed_paths.append(_job_relative(root, artifact))
@@ -1741,6 +1855,12 @@ def _finalize_job_assembly_multiview_sanity_locked(
     else:
         structural_status = "passed"
     report = AssemblySanityReport(
+        detail_review_status=("source_bound_visual_review_required"
+                              if plan.review_policy == DETAIL_REVIEW_POLICY else None),
+        detail_review_contract_sha256=(
+            stable_json_digest(plan.detail_review_contract.model_dump(mode="json"))
+            if plan.review_policy == DETAIL_REVIEW_POLICY else None
+        ),
         job_id=job_id,
         run_id=run_id,
         plan_sha256=plan_sha256,
@@ -1761,7 +1881,7 @@ def _finalize_job_assembly_multiview_sanity_locked(
         findings=findings,
         geometry_review=(
             _geometry_review_assessment(findings)
-            if plan.review_policy == "exterior_geometry_review_v2"
+            if plan.review_policy in {"exterior_geometry_review_v2", DETAIL_REVIEW_POLICY}
             else None
         ),
         limitations=[*plan.limitations],

@@ -99,6 +99,7 @@ from ..versioning import (
     VISUAL_QA_SCHEMA_VERSION,
     WORKFLOW_SCHEMA_VERSION,
 )
+from ..workspace import JobInputIntegrityError, resolve_job_input_path
 from .locks import queue_write_lock
 from .models import (
     AuditFinding,
@@ -373,10 +374,14 @@ def _parse_version(value: str | None) -> tuple[int, int, int] | None:
     return tuple(int(part) for part in match.groups())  # type: ignore[return-value]
 
 
-def _resolve_source_path(value: str, *, job_root: Path | None = None) -> Path:
+def _resolve_source_path(
+    value: str, *, job_root: Path | None = None, expected_sha256: str | None = None
+) -> Path:
     """Resolve legacy source metadata and recover its exact contained job-input suffix."""
 
     candidate = Path(value).expanduser()
+    if job_root is not None and expected_sha256 is not None:
+        return resolve_job_input_path(job_root, value, expected_sha256)
     if candidate.is_absolute():
         return candidate.resolve()
     repository_candidate = (get_settings().repo_root / candidate).resolve()
@@ -577,6 +582,16 @@ def _scan_job_files(
                     _validate_interior_qa_contract(path)
                 if "qa" in path.parts and "convergence" in path.parts:
                     _validate_visual_convergence_contract(path)
+                if (
+                    "optimization" in path.parts
+                    or path.name == "delegated_optimization_binding.json"
+                ):
+                    from ..optimization.delegated import validate_delegated_contract_file
+
+                    try:
+                        validate_delegated_contract_file(root, path)
+                    except RuntimeError as exc:
+                        raise ValueError("invalid delegated optimization authority") from exc
                 if "production" in path.parts:
                     from ..production.validation import validate_production_contract_file
 
@@ -2948,7 +2963,25 @@ def _audit_job(
                 )
             )
             continue
-        path = _resolve_source_path(value, job_root=root)
+        try:
+            path = _resolve_source_path(value, job_root=root, expected_sha256=expected)
+        except (ValueError, FileNotFoundError) as exc:
+            code = (
+                "SOURCE_HASH_MISMATCH"
+                if isinstance(exc, JobInputIntegrityError)
+                else "SOURCE_PATH_ESCAPE"
+                if isinstance(exc, ValueError)
+                else "SOURCE_MISSING_OR_LINKED"
+            )
+            findings.append(
+                _finding(
+                    code,
+                    "error",
+                    f"Source record {index} failed immutable input resolution.",
+                    job_id=job_id,
+                )
+            )
+            continue
         try:
             path.relative_to(input_root)
         except ValueError:

@@ -20,18 +20,42 @@ from compat import configure_render_compat, set_material_transparency  # noqa: E
 from export_portable_package import (  # noqa: E402
     normalize_gltf_serialization_topology,
 )
+from optical_volume_runtime import (  # noqa: E402
+    apply_optical_volume,
+    read_optical_volume,
+    validate_optical_volume_objects,
+)
 from portable_asset_common import operator_kwargs, scene_source_provenance  # noqa: E402
+from portable_authored_uv_proof import (  # noqa: E402
+    MAXIMUM_TRIANGLES,
+    UVProofError,
+    mapped_uvs,
+    prove_authored_uv,
+    validate_uv_layout,
+)
+from portable_authored_uv_runtime import (  # noqa: E402
+    inspection as authored_inspection,
+)
+from portable_authored_uv_runtime import (  # noqa: E402
+    pin_sampling,
+    read_source,
+    snapshot_object,
+)
 from portable_material_conversion_runtime import (  # noqa: E402
-    atlas_tile_bounds,
     blender_relative_path,
     fingerprint_json,
     grid_shape,
     native_io_path,
+    resolve_atlas_tiles,
     safe_component,
     sha256_file,
     stable_identifier,
     stable_object_key,
     write_json_atomic,
+)
+from portable_uv_scalar_runtime import (  # noqa: E402
+    make_scalar_proxy,
+    remove_scalar_proxies,
 )
 
 SCHEMA_VERSION = "0.7.0"
@@ -233,6 +257,8 @@ def _validate_atlas_policy(
         "preserve_existing_uv_sets": True,
         "required_channels": list(CHANNELS),
     }
+    if policy.get("tile_strategy") == "area_weighted_rect_v1":
+        expected["tile_strategy"] = "area_weighted_rect_v1"
     mismatches = {
         name: (policy.get(name), value)
         for name, value in expected.items()
@@ -248,6 +274,22 @@ def _validate_atlas_policy(
         raise ValueError("Portable atlas resolution must be a power of two")
     if float(policy.get("maximum_overlap_fraction", -1.0)) < 0.0:
         raise ValueError("atlas_policy.maximum_overlap_fraction must be non-negative")
+    strategy = policy.get("tile_strategy")
+    if strategy not in {"deterministic_grid", "area_weighted_rect_v1"}:
+        raise ValueError("unknown portable atlas tile strategy")
+    if strategy == "area_weighted_rect_v1" and (
+        policy.get("uv_method") != "validated_authored_uv_v1"
+    ):
+        raise ValueError("area_weighted_rect_v1 requires validated_authored_uv_v1")
+    if policy.get("uv_method", "smart_project") not in {
+        "smart_project",
+        "validated_authored_uv_v1",
+    }:
+        raise ValueError("unknown portable authored UV policy version")
+    if (policy.get("uv_method") == "validated_authored_uv_v1") != (
+        plan.get("authored_uv_source") is not None
+    ):
+        raise ValueError("authored UV policy requires exactly its source inspection")
     return policy
 
 
@@ -285,8 +327,7 @@ def _conversion_objects() -> list[bpy.types.Object]:
     candidates = [
         obj
         for obj in bpy.context.scene.objects
-        if obj.type == "MESH"
-        and str(obj.get("cbm_asset_role") or "") in CONVERTIBLE_ROLES
+        if obj.type == "MESH" and str(obj.get("cbm_asset_role") or "") in CONVERTIBLE_ROLES
     ]
     records = [
         {
@@ -314,9 +355,7 @@ def _conversion_objects() -> list[bpy.types.Object]:
         if not material.get("cbm_id"):
             raise RuntimeError(f"Derived material lacks stable cbm_id: {material.name}")
         if not material.get("cbm_material_source_fingerprint"):
-            raise RuntimeError(
-                f"Material {_material_id(material)} lacks V0.5 source fingerprint"
-            )
+            raise RuntimeError(f"Material {_material_id(material)} lacks V0.5 source fingerprint")
         mode = str(material.get("cbm_mapping_mode") or "")
         if mode == "generated":
             raise RuntimeError(
@@ -359,9 +398,7 @@ def _validate_conversion_scope(
     bindings = plan.get("materials")
     if not isinstance(bindings, list):
         raise ValueError("Conversion plan materials must be an array")
-    planned_ids = [
-        str(item.get("material_id")) for item in bindings if isinstance(item, dict)
-    ]
+    planned_ids = [str(item.get("material_id")) for item in bindings if isinstance(item, dict)]
     if planned_ids != actual_ids or len(bindings) != len(actual_ids):
         raise RuntimeError("Conversion plan material bindings must match required IDs in order")
     by_id: dict[str, dict[str, Any]] = {}
@@ -396,9 +433,7 @@ def _validate_conversion_scope(
         ).resolve()
         if embedded_recipe_path != recipe_path:
             raise RuntimeError(f"Loaded shader recipe path is stale for {material_id}")
-        if str(material.get("cbm_shader_recipe_sha256") or "") != str(
-            recipe.get("sha256")
-        ):
+        if str(material.get("cbm_shader_recipe_sha256") or "") != str(recipe.get("sha256")):
             raise RuntimeError(f"Loaded shader recipe provenance is stale for {material_id}")
         by_id[material_id] = binding
     return by_id
@@ -438,9 +473,67 @@ def _json_value(value: Any) -> Any:
         return str(value)
 
 
-def _surface_semantics(material: bpy.types.Material) -> dict[str, Any]:
+def _active_pure_emission(material: bpy.types.Material) -> Any | None:
+    """Recognize only an Emission directly feeding the active material Surface."""
+
+    if material.node_tree is None:
+        return None
+    outputs = [node for node in material.node_tree.nodes if node.type == "OUTPUT_MATERIAL"]
+    output = next((node for node in outputs if getattr(node, "is_active_output", False)), None)
+    if output is None:
+        return None
+    surface = output.inputs.get("Surface")
+    if surface is None or len(surface.links) != 1:
+        return None
+    node = surface.links[0].from_node
+    return node if node.type == "EMISSION" else None
+
+
+def _constant_emission_transport(material: bpy.types.Material) -> dict[str, Any] | None:
+    """Split one finite unlinked pure-emission radiance into LDR color and HDR scalar."""
+
+    node = _active_pure_emission(material)
+    if node is None:
+        return None
+    color = node.inputs.get("Color")
+    strength = node.inputs.get("Strength")
+    if color is None or strength is None or color.is_linked or strength.is_linked:
+        return None
+    values = [float(item) for item in color.default_value]
+    intensity = float(strength.default_value)
+    if len(values) != 4 or any(not math.isfinite(v) or v < 0.0 for v in values):
+        return None
+    if not math.isfinite(intensity) or intensity <= 0.0:
+        return None
+    peak = max(1.0, *values[:3])
+    scale = peak * intensity
+    if not math.isfinite(scale) or scale > 3.4028234663852886e38:
+        raise RuntimeError("Constant pure emission radiance exceeds Blender float32 strength range")
+    return {
+        "source_color": values,
+        "source_strength": intensity,
+        "baked_color": [*(v / peak for v in values[:3]), 1.0],
+        "portable_strength": scale,
+    }
+
+
+def _surface_semantics(
+    material: bpy.types.Material, *, preserve_constant_emission: bool = False
+) -> dict[str, Any]:
     """Capture portable scalar semantics that are not represented by the five maps."""
 
+    transport = _constant_emission_transport(material) if preserve_constant_emission else None
+    if transport is not None:
+        return {
+            "base_color": [0.0, 0.0, 0.0, 1.0],
+            "metallic": 1.0,
+            "roughness": 1.0,
+            "alpha": 1.0,
+            "transmission_weight": 0.0,
+            "emission_color": transport["source_color"],
+            "emission_strength": transport["source_strength"],
+            "constant_pure_emission_transport": transport,
+        }
     shader = _principled(material)
     fields = {
         "base_color": ("Base Color",),
@@ -464,11 +557,16 @@ def _surface_semantics(material: bpy.types.Material) -> dict[str, Any]:
         semantics["base_color"] = [float(item) for item in material.diffuse_color]
     semantics.setdefault("metallic", float(getattr(material, "metallic", 0.0)))
     semantics.setdefault("roughness", float(getattr(material, "roughness", 0.5)))
+    if _active_pure_emission(material) is not None:
+        semantics["nonconstant_pure_emission_unverified"] = True
+    optical_volume = read_optical_volume(material)
+    if optical_volume is not None:
+        semantics["optical_volume"] = optical_volume
     return semantics
 
 
 def _pin_original_uv_links(material: bpy.types.Material, uv_set: str) -> int:
-    """Replace implicit Texture Coordinate UV links with one explicit source UV node."""
+    """Freeze implicit image/coordinate UV sampling and tangent basis on the source render UV."""
 
     if material.node_tree is None:
         return 0
@@ -476,11 +574,15 @@ def _pin_original_uv_links(material: bpy.types.Material, uv_set: str) -> int:
     links = material.node_tree.links
     pending = []
     for node in nodes:
-        if node.type != "TEX_COORD":
-            continue
-        output = node.outputs.get("UV")
-        if output is not None:
-            pending.extend((link, link.to_socket) for link in list(output.links))
+        if node.type in {"UVMAP", "NORMAL_MAP"} and not node.uv_map:
+            if node.type == "UVMAP" or node.space == "TANGENT":
+                node.uv_map = uv_set
+        if node.type == "TEX_IMAGE" and not node.inputs["Vector"].is_linked:
+            pending.append((None, node.inputs["Vector"]))
+        if node.type == "TEX_COORD":
+            output = node.outputs.get("UV")
+            if output is not None:
+                pending.extend((link, link.to_socket) for link in list(output.links))
     if not pending:
         return 0
     uv_node = nodes.new("ShaderNodeUVMap")
@@ -492,7 +594,8 @@ def _pin_original_uv_links(material: bpy.types.Material, uv_set: str) -> int:
         nodes.remove(uv_node)
         raise RuntimeError("Running Blender exposes no UV output on ShaderNodeUVMap")
     for link, target in pending:
-        links.remove(link)
+        if link is not None:
+            links.remove(link)
         links.new(output, target)
     return len(pending)
 
@@ -513,6 +616,57 @@ def _bind_object_coordinates(
     return count
 
 
+def _require_supported_group_uv_sampling(material: bpy.types.Material) -> None:
+    """Reject implicit UV consumers in shared nested groups without modifying their graphs."""
+    if material.node_tree is None:
+        return
+    visited: set[int] = set()
+    visiting: set[int] = set()
+    node_count = len(material.node_tree.nodes)
+    if node_count > 512:
+        raise ValueError("unsupported grouped UV sampling: node resource limit exceeded")
+
+    def inspect_group(tree, depth: int) -> None:
+        """Check a bounded shared group graph once and refuse cycles or implicit UV sampling."""
+        nonlocal node_count
+        key = tree.as_pointer()
+        if key in visiting:
+            raise ValueError("unsupported grouped UV sampling: cyclic group graph")
+        if key in visited:
+            return
+        if depth > 64:
+            raise ValueError("unsupported grouped UV sampling: group depth limit exceeded")
+        if node_count + len(tree.nodes) > 512:
+            raise ValueError("unsupported grouped UV sampling: node resource limit exceeded")
+        visiting.add(key)
+        for node in sorted(tree.nodes, key=lambda item: item.name):
+            node_count += 1
+            if node_count > 512:
+                raise ValueError("unsupported grouped UV sampling: node resource limit exceeded")
+            implicit = (
+                (node.type == "TEX_IMAGE" and not node.inputs["Vector"].is_linked)
+                or (node.type == "UVMAP" and not node.uv_map)
+                or (node.type == "NORMAL_MAP" and node.space == "TANGENT" and not node.uv_map)
+                or (
+                    node.type == "TEX_COORD"
+                    and node.outputs.get("UV") is not None
+                    and node.outputs["UV"].is_linked
+                )
+            )
+            if implicit:
+                raise ValueError(
+                    f"unsupported grouped UV sampling: {tree.name}/{node.name} ({node.type})"
+                )
+            if node.type == "GROUP" and node.node_tree is not None:
+                inspect_group(node.node_tree, depth + 1)
+        visiting.remove(key)
+        visited.add(key)
+
+    for node in sorted(material.node_tree.nodes, key=lambda item: item.name):
+        if node.type == "GROUP" and node.node_tree is not None:
+            inspect_group(node.node_tree, 1)
+
+
 def _clone_source_material(
     obj: bpy.types.Object,
 ) -> tuple[bpy.types.Material, bpy.types.Material, str, dict[str, Any]]:
@@ -521,24 +675,32 @@ def _clone_source_material(
     source_material = obj.material_slots[0].material
     if source_material is None:
         raise RuntimeError(f"Missing source material: {obj.name}")
+    _require_supported_group_uv_sampling(source_material)
     material_id = _material_id(source_material)
     clone = source_material.copy()
     clone.name = f"CBM_BAKE_{safe_component(material_id)}_{safe_component(obj.name)}"
     mapping_mode = str(source_material.get("cbm_mapping_mode"))
     coordinate_bindings = 0
     original_uv_set = None
+    render_uv_sets = [layer.name for layer in obj.data.uv_layers if layer.active_render]
+    source_render_uv_set = render_uv_sets[0] if len(render_uv_sets) == 1 else None
     if mapping_mode == "uv":
         original_uv_set = str(source_material.get("cbm_uv_set") or "UVMap")
         if obj.data.uv_layers.get(original_uv_set) is None:
             bpy.data.materials.remove(clone)
             raise RuntimeError(f"{obj.name} is missing source UV set {original_uv_set!r}")
-        coordinate_bindings = _pin_original_uv_links(clone, original_uv_set)
+        if source_render_uv_set is None:
+            bpy.data.materials.remove(clone)
+            raise RuntimeError(f"{obj.name} has ambiguous source render UV selection")
+        coordinate_bindings = _pin_original_uv_links(clone, source_render_uv_set)
     else:
         source_object = bpy.data.objects.get(str(obj.get("cbm_source_object")))
         if source_object is None:
             bpy.data.materials.remove(clone)
             raise RuntimeError(f"Missing canonical coordinate source for {obj.name}")
         coordinate_bindings = _bind_object_coordinates(clone, source_object)
+        if source_render_uv_set is not None:
+            coordinate_bindings += _pin_original_uv_links(clone, source_render_uv_set)
     obj.data.materials[0] = clone
     return (
         source_material,
@@ -546,9 +708,98 @@ def _clone_source_material(
         mapping_mode,
         {
             "source_uv_set": original_uv_set,
+            "source_render_uv_set": source_render_uv_set,
             "coordinate_bindings": coordinate_bindings,
         },
     )
+
+
+def _clone_authored_source_material(obj, source):
+    """Copy a supported source graph and pin its measured UV sampling without changing frames."""
+    original = obj.material_slots[0].material
+    clone = original.copy()
+    clone.name = f"CBM_AUTHORED_BAKE_{safe_component(obj.name)}"
+    pin_sampling(clone, source)
+    obj.data.materials[0] = clone
+    return (
+        original,
+        clone,
+        str(original.get("cbm_mapping_mode")),
+        {
+            "source_uv_set": source["source_uv_set"],
+            "coordinate_bindings": len(source["sampling"]),
+            "source_sampling": source["sampling"],
+        },
+    )
+
+
+def _create_authored_atlas_uv(obj, bounds, source):
+    """Apply only the proved positive affine map, then validate actual float32 storage."""
+    mesh = obj.data
+    if mesh.uv_layers.get(ATLAS_UV_SET) is not None or mesh.users != 1:
+        raise ValueError("authored UV ineligible: layer collision or shared mesh")
+    source_uvs = source["uv_layers"][source["source_uv_set"]]
+    coordinates = mapped_uvs(source_uvs, bounds)
+    layer = mesh.uv_layers.new(name=ATLAS_UV_SET)
+    layer.uv.foreach_set("vector", [component for point in coordinates for component in point])
+    mesh.uv_layers.active = layer
+    layer.active_render = True
+    mesh.update()
+    actual = snapshot_object(obj, source=source)
+    for key in (
+        "identity",
+        "vertices",
+        "matrix_world",
+        "polygons",
+        "polygon_materials",
+        "loops",
+        "polygon_loops",
+        "triangles",
+        "source_uv_set",
+    ):
+        if actual[key] != source[key]:
+            raise ValueError("authored UV source topology or identity changed during affine map")
+    if any(actual["uv_layers"][name] != values for name, values in source["uv_layers"].items()):
+        raise ValueError("authored UV original layer changed during affine map")
+    proof = prove_authored_uv(
+        source_uvs, source["triangles"], bounds, actual_target_uvs=actual["uv_layers"][ATLAS_UV_SET]
+    )
+    obj["cbm_portable_uv_set"] = ATLAS_UV_SET
+    obj["cbm_portable_uv_policy"] = "validated_authored_uv_v1"
+    return {
+        "uv_set": ATLAS_UV_SET,
+        "bounds": list(bounds),
+        "loop_count": len(coordinates),
+        "unwrap_method": "validated_authored_uv_v1",
+        "repaired_degenerate_face_count": 0,
+        "remaining_degenerate_face_count": 0,
+        "source_layout_sha256": proof["source"]["layout_fingerprint_sha256"],
+        "target_layout_sha256": proof["target"]["layout_fingerprint_sha256"],
+    }
+
+
+def _verify_authored_tangents(obj):
+    """Verify native/export tangent probes while refusing every geometry repair."""
+    native, exported, attempts = _verify_repaired_tangent_basis(obj, ATLAS_UV_SET)
+    collinear = _collinear_sliver_faces(
+        obj, maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2, maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO
+    )
+    if native["invalid_loop_indices"] or exported["invalid_loop_indices"] or collinear:
+        raise ValueError(
+            "authored UV ineligible: tangent or serialization repair would change geometry"
+        )
+    micro = len(_micro_sliver_faces(obj, 1e-6))
+    return {
+        "repair_method": "none",
+        "micro_sliver_face_count_before": micro,
+        "remaining_micro_sliver_face_count": micro,
+        "collinear_sliver_face_count_before": 0,
+        "remaining_collinear_sliver_face_count": 0,
+        "invalid_loop_count_before": 0,
+        "invalid_loop_count_after": 0,
+        "verification_attempt_count": attempts,
+        "bounds_max_abs_delta_m": 0.0,
+    }
 
 
 def _activate_one(obj: bpy.types.Object) -> None:
@@ -565,9 +816,7 @@ def _activate_one(obj: bpy.types.Object) -> None:
 def _smart_project_kwargs() -> dict[str, Any]:
     """Feature-probe Smart UV Project arguments supported by the running Blender."""
 
-    identifiers = {
-        item.identifier for item in bpy.ops.uv.smart_project.get_rna_type().properties
-    }
+    identifiers = {item.identifier for item in bpy.ops.uv.smart_project.get_rna_type().properties}
     candidates = {
         "angle_limit": math.radians(66.0),
         "island_margin": 0.01,
@@ -581,9 +830,7 @@ def _smart_project_kwargs() -> dict[str, Any]:
 def _lightmap_pack_kwargs() -> dict[str, Any]:
     """Feature-probe a per-face UV fallback that avoids zero-area Smart UV islands."""
 
-    identifiers = {
-        item.identifier for item in bpy.ops.uv.lightmap_pack.get_rna_type().properties
-    }
+    identifiers = {item.identifier for item in bpy.ops.uv.lightmap_pack.get_rna_type().properties}
     candidates = {
         "PREF_CONTEXT": "ALL_FACES",
         "PREF_PACK_IN_ONE": True,
@@ -655,6 +902,29 @@ def _lightmap_fallback(obj: bpy.types.Object) -> None:
             bpy.ops.object.mode_set(mode="OBJECT")
 
 
+def _require_generated_uv_resource_bounds(mesh: bpy.types.Mesh) -> None:
+    """Enforce shared exact-proof limits before allocating Python UV or triangle arrays."""
+    if len(mesh.loops) > MAXIMUM_TRIANGLES * 3:
+        raise UVProofError("UV proof loop resource limit exceeded")
+    mesh.calc_loop_triangles()
+    if len(mesh.loop_triangles) > MAXIMUM_TRIANGLES:
+        raise UVProofError("UV proof triangle resource limit exceeded")
+
+
+def _prove_generated_atlas_uv(mesh: bpy.types.Mesh) -> dict[str, Any]:
+    """Prove actual stored destination UV triangles without tolerances or adjacency exemptions."""
+    layer = mesh.uv_layers.get(ATLAS_UV_SET)
+    if layer is None:
+        raise RuntimeError("Generated portable atlas layer is missing")
+    _require_generated_uv_resource_bounds(mesh)
+    values = [0.0] * (2 * len(mesh.loops))
+    layer.uv.foreach_get("vector", values)
+    return validate_uv_layout(
+        [values[index : index + 2] for index in range(0, len(values), 2)],
+        [list(triangle.loops) for triangle in mesh.loop_triangles],
+    )
+
+
 def _create_atlas_uv(
     obj: bpy.types.Object,
     bounds: tuple[float, float, float, float],
@@ -664,6 +934,7 @@ def _create_atlas_uv(
     mesh = obj.data
     if not mesh.polygons:
         raise RuntimeError(f"Portable atlas requires faces: {obj.name}")
+    _require_generated_uv_resource_bounds(mesh)
     existing = mesh.uv_layers.get(ATLAS_UV_SET)
     if existing is not None:
         mesh.uv_layers.remove(existing)
@@ -690,7 +961,14 @@ def _create_atlas_uv(
         raise RuntimeError(f"Smart UV Project removed the atlas layer: {obj.name}")
     initial_degenerate_faces = _degenerate_uv_faces(mesh, layer)
     unwrap_method = "smart_project"
-    if initial_degenerate_faces:
+    initial_exact_error = None
+    try:
+        _prove_generated_atlas_uv(mesh)
+    except UVProofError as error:
+        if not str(error).startswith(("Positive-area UV overlap", "Exact zero-area UV triangle")):
+            raise
+        initial_exact_error = str(error)
+    if initial_degenerate_faces or initial_exact_error is not None:
         _lightmap_fallback(obj)
         mesh = obj.data
         layer = mesh.uv_layers.get(ATLAS_UV_SET)
@@ -702,28 +980,26 @@ def _create_atlas_uv(
                 f"Portable atlas retains {len(remaining)} degenerate UV faces after "
                 f"Lightmap Pack: {obj.name}"
             )
+        _prove_generated_atlas_uv(mesh)
         unwrap_method = "lightmap_pack_fallback"
     minimum_u, minimum_v, maximum_u, maximum_v = bounds
     width = maximum_u - minimum_u
     height = maximum_v - minimum_v
     uv_values = getattr(layer, "uv", None)
     if uv_values is None:
-        raise RuntimeError(
-            f"Blender does not expose Float2 UV attribute storage: {obj.name}"
-        )
+        raise RuntimeError(f"Blender does not expose Float2 UV attribute storage: {obj.name}")
     coordinates = [0.0] * (len(uv_values) * 2)
     uv_values.foreach_get("vector", coordinates)
     for index in range(0, len(coordinates), 2):
-        coordinates[index] = minimum_u + min(
-            1.0, max(0.0, float(coordinates[index]))
-        ) * width
-        coordinates[index + 1] = minimum_v + min(
-            1.0, max(0.0, float(coordinates[index + 1]))
-        ) * height
+        coordinates[index] = minimum_u + min(1.0, max(0.0, float(coordinates[index]))) * width
+        coordinates[index + 1] = (
+            minimum_v + min(1.0, max(0.0, float(coordinates[index + 1]))) * height
+        )
     uv_values.foreach_set("vector", coordinates)
     mesh.uv_layers.active = layer
     layer.active_render = True
     mesh.update()
+    final_exact_proof = _prove_generated_atlas_uv(mesh)
     obj["cbm_portable_uv_set"] = ATLAS_UV_SET
     obj["cbm_portable_uv_policy"] = f"global_grid_{unwrap_method}"
     return {
@@ -731,6 +1007,8 @@ def _create_atlas_uv(
         "bounds": [round(value, 9) for value in bounds],
         "loop_count": len(uv_values),
         "unwrap_method": unwrap_method,
+        "initial_exact_uv_failure": initial_exact_error,
+        "exact_generated_uv_proof": final_exact_proof,
         "repaired_degenerate_face_count": len(initial_degenerate_faces),
         "remaining_degenerate_face_count": 0,
     }
@@ -791,9 +1069,7 @@ def _calculate_invalid_tangent_faces(
             freer()
     return {
         "invalid_loop_indices": invalid_loops,
-        "invalid_face_indices": sorted(
-            {loop_to_face[index] for index in invalid_loops}
-        ),
+        "invalid_face_indices": sorted({loop_to_face[index] for index in invalid_loops}),
         "probe_topology": "native_tri_quad",
     }
 
@@ -844,10 +1120,7 @@ def _micro_sliver_faces(obj: bpy.types.Object, distance_m: float) -> list[int]:
 
     result: list[int] = []
     for polygon in obj.data.polygons:
-        coordinates = [
-            obj.matrix_world @ obj.data.vertices[index].co
-            for index in polygon.vertices
-        ]
+        coordinates = [obj.matrix_world @ obj.data.vertices[index].co for index in polygon.vertices]
         if any(
             (coordinates[(index + 1) % len(coordinates)] - value).length <= distance_m
             for index, value in enumerate(coordinates)
@@ -868,14 +1141,8 @@ def _collinear_sliver_faces(
     for polygon in obj.data.polygons:
         if len(polygon.vertices) != 3:
             continue
-        coordinates = [
-            obj.matrix_world @ obj.data.vertices[index].co
-            for index in polygon.vertices
-        ]
-        edges = [
-            coordinates[(index + 1) % 3] - coordinates[index]
-            for index in range(3)
-        ]
+        coordinates = [obj.matrix_world @ obj.data.vertices[index].co for index in polygon.vertices]
+        edges = [coordinates[(index + 1) % 3] - coordinates[index] for index in range(3)]
         maximum_edge_squared = max(edge.length_squared for edge in edges)
         if maximum_edge_squared <= 0.0:
             result.append(int(polygon.index))
@@ -918,10 +1185,7 @@ def _verify_repaired_tangent_basis(
     for attempt in range(1, 4):
         native = _invalid_tangent_faces(obj, uv_name)
         exported = _simulated_export_tangent_faces(obj, uv_name)
-        if (
-            not native["invalid_loop_indices"]
-            and not exported["invalid_loop_indices"]
-        ):
+        if not native["invalid_loop_indices"] and not exported["invalid_loop_indices"]:
             return native, exported, attempt
         obj.data.update()
     return native, exported, 3
@@ -1012,8 +1276,8 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
     if layer is None:
         raise RuntimeError(f"Tangent repair removed portable UV: {obj.name}")
     remaining_uv = _degenerate_uv_faces(obj.data, layer)
-    native_after, export_after, verification_attempt_count = (
-        _verify_repaired_tangent_basis(obj, uv_name)
+    native_after, export_after, verification_attempt_count = _verify_repaired_tangent_basis(
+        obj, uv_name
     )
     remaining_micro_slivers = _micro_sliver_faces(obj, 1e-6)
     remaining_collinear_slivers = _collinear_sliver_faces(
@@ -1041,9 +1305,7 @@ def _repair_tangent_micro_slivers(obj: bpy.types.Object, uv_name: str) -> dict[s
             f"collinear_slivers={len(remaining_collinear_slivers)}, "
             f"degenerate_uv_faces={len(remaining_uv)}, bounds_delta={bounds_delta}"
         )
-    after_triangles = sum(
-        max(0, len(face.vertices) - 2) for face in obj.data.polygons
-    )
+    after_triangles = sum(max(0, len(face.vertices) - 2) for face in obj.data.polygons)
     if collinear_slivers and repairable_export_faces:
         repair_method = "remove_collinear_slivers_and_dissolve_degenerate"
     elif collinear_slivers:
@@ -1197,11 +1459,15 @@ def _set_color_or_link(
         target.default_value = values if len(values) == 4 else (*values[:3], 1.0)
 
 
-def _route_channel_to_emission(material: bpy.types.Material, channel: str) -> dict[str, Any]:
+def _route_channel_to_emission(
+    material: bpy.types.Material, channel: str, *, preserve_constant_emission: bool = False
+) -> dict[str, Any]:
     """Temporarily expose one channel as emission, multiplying emission by its strength."""
 
     if material.node_tree is None:
         raise RuntimeError(f"Material has no node tree: {material.name}")
+    # Capture the active source before the temporary Surface link is removed.
+    transport = _constant_emission_transport(material) if preserve_constant_emission else None
     nodes = material.node_tree.nodes
     links = material.node_tree.links
     output = _material_output(material)
@@ -1222,6 +1488,8 @@ def _route_channel_to_emission(material: bpy.types.Material, channel: str) -> di
             bake_emission.inputs["Color"],
             _constant_channel(material, channel),
         )
+    elif transport is not None:
+        bake_emission.inputs["Color"].default_value = transport["baked_color"]
     else:
         multiply = nodes.new("ShaderNodeMixRGB")
         multiply.name = "CBM_PortableBake_EmissionStrength"
@@ -1332,22 +1600,35 @@ def _bake_global_channels(
     output_blend: Path,
     resolution: int,
     margin_px: int,
+    *,
+    preserve_constant_emission: bool = False,
+    scalar_objects: list[bpy.types.Object] | None = None,
 ) -> tuple[dict[str, bpy.types.Image], list[dict[str, Any]]]:
     """Bake five global atlas channels across every planned material and derived user."""
 
     images: dict[str, bpy.types.Image] = {}
     outputs: list[dict[str, Any]] = []
     for channel in CHANNELS:
+        if scalar_objects is not None:
+            for proxy in scalar_objects:
+                proxy.hide_render = channel == "normal"
         image = _new_bake_image("global", channel, resolution)
         target_nodes = [
             _attach_bake_target(material, image, channel) for material in clone_materials
         ]
         routes: list[tuple[bpy.types.Material, dict[str, Any]]] = []
         try:
-            _activate_many(objects)
+            _activate_many(
+                scalar_objects if scalar_objects is not None and channel != "normal" else objects
+            )
             if channel != "normal":
                 routes = [
-                    (material, _route_channel_to_emission(material, channel))
+                    (
+                        material,
+                        _route_channel_to_emission(
+                            material, channel, preserve_constant_emission=preserve_constant_emission
+                        ),
+                    )
                     for material in clone_materials
                 ]
                 for material, target in zip(clone_materials, target_nodes, strict=True):
@@ -1378,6 +1659,34 @@ def _bake_global_channels(
         if channel not in images:
             bpy.data.images.remove(image)
     return images, outputs
+
+
+def _bake_scalar_coverage(proxies, output, resolution, margin_px):
+    """Measure actual proxy raster coverage with an independent white emission pass."""
+    material = bpy.data.materials.new("CBM_SCALAR_COVERAGE")
+    material.use_nodes = True
+    nodes = material.node_tree.nodes
+    nodes.clear()
+    shader = nodes.new("ShaderNodeEmission")
+    shader.inputs["Color"].default_value = (1.0, 1.0, 1.0, 1.0)
+    sink = nodes.new("ShaderNodeOutputMaterial")
+    material.node_tree.links.new(shader.outputs[0], sink.inputs["Surface"])
+    image = _new_bake_image("coverage", "base_color", resolution)
+    target = _attach_bake_target(material, image, "coverage")
+    originals = [obj.data.materials[0] for obj in proxies]
+    try:
+        for obj in proxies:
+            obj.data.materials[0] = material
+        _activate_many(proxies)
+        _run_bake_operator("base_color", margin_px)
+        digest = _save_bake_image(image, output)
+    finally:
+        for obj, original in zip(proxies, originals, strict=True):
+            obj.data.materials[0] = original
+        material.node_tree.nodes.remove(target)
+        bpy.data.materials.remove(material)
+        bpy.data.images.remove(image)
+    return {"file_name": output.name, "sha256": digest}
 
 
 def _set_socket_default(node: Any, names: tuple[str, ...], value: Any) -> bool:
@@ -1431,9 +1740,28 @@ def _portable_material(
         node.extension = "EXTEND"
         links.new(uv_output, node.inputs["Vector"])
         image_nodes[channel] = node
+    transport = semantics.get("constant_pure_emission_transport")
+    if transport is not None:
+        # Pure emission must not acquire diffuse or specular reflected lighting.
+        nodes.remove(shader)
+        emitter = nodes.new("ShaderNodeEmission")
+        links.new(image_nodes["emission"].outputs["Color"], emitter.inputs["Color"])
+        requested_strength = float(transport["portable_strength"])
+        emitter.inputs["Strength"].default_value = requested_strength
+        if not math.isclose(
+            float(emitter.inputs["Strength"].default_value), requested_strength, rel_tol=1e-6
+        ):
+            raise RuntimeError("Portable pure emission strength was clamped by Blender")
+        links.new(emitter.outputs[0], output.inputs["Surface"])
+        material.diffuse_color = (0.0, 0.0, 0.0, 1.0)
+        return material
     links.new(image_nodes["base_color"].outputs["Color"], shader.inputs["Base Color"])
     links.new(image_nodes["roughness"].outputs["Color"], shader.inputs["Roughness"])
-    links.new(image_nodes["metallic"].outputs["Color"], shader.inputs["Metallic"])
+    if semantics.get("optical_volume") is not None:
+        # The opted-in dielectric cannot acquire a linked mixed-material metal atlas.
+        shader.inputs["Metallic"].default_value = 0.0
+    else:
+        links.new(image_nodes["metallic"].outputs["Color"], shader.inputs["Metallic"])
     normal_map = nodes.new("ShaderNodeNormalMap")
     normal_map.uv_map = ATLAS_UV_SET
     links.new(image_nodes["normal"].outputs["Color"], normal_map.inputs["Color"])
@@ -1459,6 +1787,8 @@ def _portable_material(
     material.diffuse_color = tuple(
         float(item) for item in semantics.get("base_color", [0.8, 0.8, 0.8, alpha])
     )
+    if semantics.get("optical_volume") is not None:
+        apply_optical_volume(material, semantics["optical_volume"])
     return material
 
 
@@ -1475,16 +1805,34 @@ def _loss_notes(mapping_mode: str, semantics: dict[str, Any]) -> list[str]:
             "Object-space appearance was sampled against cbm_source_object before "
             "portable UV rewiring."
         )
+    if semantics.get("optical_volume") is not None:
+        notes.append(
+            "Opt-in homogeneous volume preserves constant thickness/attenuation intent; "
+            "thickness is an author estimate, not a measured path-length texture. "
+            "Requires KHR_materials_volume; destination support and optical parity are unverified."
+        )
     if float(semantics.get("transmission_weight", 0.0)) > 0.0:
         notes.append(
             "Transmission is retained as a scalar Principled semantic and is not encoded in a map."
         )
     if float(semantics.get("coat_weight", 0.0)) > 0.0:
         notes.append("Coat weight is retained as a scalar and may be format-limited downstream.")
-    if float(semantics.get("emission_strength", 0.0)) > 1.0:
+    if semantics.get("constant_pure_emission_transport") is not None:
+        notes.append(
+            "Constant pure Emission preserves its active color/strength as a normalized "
+            "8-bit emission atlas and a separate HDR emission scalar, "
+            "without reflected BSDF light. "
+            "Atlas quantization remains; HDR glTF requires KHR_materials_emissive_strength support."
+        )
+    elif float(semantics.get("emission_strength", 0.0)) > 1.0:
         notes.append(
             "Emission color was multiplied by strength before an 8-bit PNG bake; "
             "values above display white may be clamped."
+        )
+    if semantics.get("nonconstant_pure_emission_unverified"):
+        notes.append(
+            "Linked or unsupported pure Emission is outside the constant-emission preservation "
+            "route; reflected-light and HDR clipping equivalence remain unverified."
         )
     return notes
 
@@ -1492,19 +1840,27 @@ def _loss_notes(mapping_mode: str, semantics: dict[str, Any]) -> list[str]:
 def _portable_surface_factors(semantics: dict[str, Any]) -> dict[str, Any]:
     """Separate already-baked channels from retained alpha and transmission scalars."""
 
-    return {
-        "base_color_factor": [1.0, 1.0, 1.0, 1.0],
+    transport = semantics.get("constant_pure_emission_transport")
+    result = {
+        "base_color_factor": [0.0, 0.0, 0.0, 1.0] if transport else [1.0, 1.0, 1.0, 1.0],
         "roughness_factor": 1.0,
         "metallic_factor": 1.0,
-        "emission_factor": [1.0, 1.0, 1.0],
+        "emission_factor": (
+            [float(transport["portable_strength"])] * 3 if transport else [1.0, 1.0, 1.0]
+        ),
         "alpha_factor": float(semantics.get("alpha", 1.0)),
         "transmission_factor": float(semantics.get("transmission_weight", 0.0)),
     }
+    if semantics.get("optical_volume") is not None:
+        result["optical_volume"] = semantics["optical_volume"]
+        result["metallic_factor"] = 0.0
+    return result
 
 
 def _save_portable_blend(output_blend: Path) -> str:
     """Atomically save a separate converted scene without replacing the optimized source."""
 
+    validate_optical_volume_objects([obj for obj in bpy.data.objects if obj.type == "MESH"])
     os.makedirs(native_io_path(output_blend.parent), exist_ok=True)
     temporary = output_blend.with_name(output_blend.stem + ".partial.blend")
     if os.path.lexists(native_io_path(temporary)):
@@ -1563,12 +1919,24 @@ def main() -> None:
     _verify_bound_job_artifact(plan, "uv_manifest", "uv_manifest", job_root)
     atlas_policy = _validate_atlas_policy(plan, args.resolution, args.margin_px)
     objects = _conversion_objects()
+    validate_optical_volume_objects(objects)
     planned_bindings = _validate_conversion_scope(plan, objects, job_root)
+    authored = atlas_policy.get("uv_method") == "validated_authored_uv_v1"
+    source_objects = None
+    if authored:
+        source_path = plan_path.parent / "authored_uv_source.json"
+        source_ref = plan["authored_uv_source"]
+        if source_ref.get("kind") != "other" or sha256_file(source_path) != source_ref.get(
+            "sha256"
+        ):
+            raise ValueError("authored UV source inspection artifact changed")
+        source_payload = read_source(source_path)
+        current = authored_inspection(objects, source_blend_sha256)
+        if source_payload != current:
+            raise ValueError("authored UV source inspection no longer matches actual input")
+        source_objects = source_payload["objects"]
     columns, rows = grid_shape(len(objects))
-    tiles = [
-        atlas_tile_bounds(index, len(objects), args.resolution, args.margin_px)
-        for index in range(len(objects))
-    ]
+    tiles = resolve_atlas_tiles(atlas_policy, len(objects), source_objects)
     configure_render_compat(bpy.context.scene, "CYCLES", args.render_device)
 
     groups: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -1576,7 +1944,12 @@ def main() -> None:
     source_materials: dict[str, bpy.types.Material] = {}
     surface_by_material: dict[str, dict[str, Any]] = {}
     for index, (obj, bounds) in enumerate(zip(objects, tiles, strict=True)):
-        source_material, clone, mapping_mode, coordinate_record = _clone_source_material(obj)
+        if authored:
+            source_material, clone, mapping_mode, coordinate_record = (
+                _clone_authored_source_material(obj, source_objects[index])
+            )
+        else:
+            source_material, clone, mapping_mode, coordinate_record = _clone_source_material(obj)
         material_id = _material_id(source_material)
         existing_source = source_materials.get(material_id)
         if existing_source is not None and (
@@ -1585,19 +1958,45 @@ def main() -> None:
         ):
             raise RuntimeError(f"Material ID {material_id} has inconsistent source fingerprints")
         source_materials[material_id] = source_material
-        surface_by_material.setdefault(material_id, _surface_semantics(source_material))
-        atlas_record = _create_atlas_uv(obj, bounds)
-        serialization_topology = normalize_gltf_serialization_topology(
-            [obj],
-            "glb",
-            collinear_sliver_maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2,
-            collinear_sliver_maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO,
+        surface_by_material.setdefault(
+            material_id,
+            _surface_semantics(
+                source_material, preserve_constant_emission=profile.get("primary_format") == "glb"
+            ),
         )
-        topology_record = _repair_tangent_micro_slivers(obj, ATLAS_UV_SET)
-        topology_record = _merge_serialization_topology_repair(
-            topology_record,
-            serialization_topology,
-        )
+        if authored:
+            atlas_record = _create_authored_atlas_uv(obj, bounds, source_objects[index])
+            serialization_topology = {"method": "preserve_authored_geometry_no_repair"}
+            topology_record = _verify_authored_tangents(obj)
+            after_probe = snapshot_object(obj, source=source_objects[index])
+            for key in ("vertices", "polygons", "loops", "polygon_loops", "triangles", "uv_layers"):
+                expected = (
+                    source_objects[index][key]
+                    if key != "uv_layers"
+                    else {
+                        **source_objects[index][key],
+                        ATLAS_UV_SET: mapped_uvs(
+                            source_objects[index][key][source_objects[index]["source_uv_set"]],
+                            bounds,
+                        ),
+                    }
+                )
+                if after_probe[key] != expected:
+                    raise ValueError("authored UV topology or UVs changed during tangent probe")
+        else:
+            atlas_record = _create_atlas_uv(obj, bounds)
+            serialization_topology = normalize_gltf_serialization_topology(
+                [obj],
+                "glb",
+                collinear_sliver_maximum_area_m2=COLLINEAR_SLIVER_MAX_AREA_M2,
+                collinear_sliver_maximum_ratio=COLLINEAR_SLIVER_MAX_RATIO,
+            )
+            topology_record = _repair_tangent_micro_slivers(obj, ATLAS_UV_SET)
+            topology_record = _merge_serialization_topology_repair(
+                topology_record,
+                serialization_topology,
+            )
+            atlas_record["post_topology_exact_uv_proof"] = _prove_generated_atlas_uv(obj.data)
         binding_id = stable_identifier(f"{index:06d}.{obj.name}", "binding")
         record = {
             "binding_id": binding_id,
@@ -1620,19 +2019,69 @@ def main() -> None:
 
     required_material_ids = sorted(groups)
     all_clones = [
-        entry["clone"]
-        for material_id in required_material_ids
-        for entry in groups[material_id]
+        entry["clone"] for material_id in required_material_ids for entry in groups[material_id]
     ]
-    global_images, channel_outputs = _bake_global_channels(
-        objects,
-        all_clones,
-        required_material_ids,
-        texture_root,
-        output_blend,
-        args.resolution,
-        args.margin_px,
-    )
+    scalar_proxies = []
+    scalar_rows = []
+    scalar_evidence = None
+    try:
+        if authored:
+            for index, obj in enumerate(objects):
+                proxy, row = make_scalar_proxy(
+                    obj,
+                    source_objects[index],
+                    index,
+                    len(objects),
+                    args.resolution,
+                    args.margin_px,
+                    _channel_socket,
+                    _emission_strength_socket,
+                    atlas_policy=atlas_policy,
+                    source_objects=source_objects,
+                    precomputed_bounds=tiles[index],
+                )
+                scalar_proxies.append(proxy)
+                scalar_rows.append(row)
+            coverage = _bake_scalar_coverage(
+                scalar_proxies,
+                plan_path.parent / "authored_uv_coverage.png",
+                args.resolution,
+                args.margin_px,
+            )
+        global_images, channel_outputs = _bake_global_channels(
+            objects,
+            all_clones,
+            required_material_ids,
+            texture_root,
+            output_blend,
+            args.resolution,
+            args.margin_px,
+            preserve_constant_emission=profile.get("primary_format") == "glb",
+            scalar_objects=scalar_proxies if authored else None,
+        )
+        if authored:
+            scalar_evidence = {
+                "schema_version": "0.1.0",
+                "kind": "authored_uv_scalar_bake_evidence",
+                "method": "uv_domain_scalar_v1",
+                "conversion_plan_sha256": plan_sha256,
+                "optimized_blend_sha256": source_blend_sha256,
+                "source_snapshot_sha256": plan["authored_uv_source"]["sha256"],
+                "resolution": args.resolution,
+                "margin_px": args.margin_px,
+                "scalar_channels": ["base_color", "roughness", "metallic", "emission"],
+                "scalar_outputs": {
+                    item["channel"]: item["sha256"]
+                    for item in channel_outputs
+                    if item["channel"] != "normal"
+                },
+                "normal_method": "unchanged_actual_mesh_tangent_bake",
+                "normal_coverage_and_basis_fidelity": "not_proved_by_scalar_coverage",
+                "coverage": coverage,
+                "objects": scalar_rows,
+            }
+    finally:
+        remove_scalar_proxies(scalar_proxies)
     material_records: list[dict[str, Any]] = []
     for material_id in required_material_ids:
         entries = groups[material_id]
@@ -1656,9 +2105,7 @@ def main() -> None:
             {
                 "material_id": material_id,
                 "mapping_mode": mapping_mode,
-                "source_shader_recipe": planned_bindings[material_id][
-                    "source_shader_recipe"
-                ],
+                "source_shader_recipe": planned_bindings[material_id]["source_shader_recipe"],
                 "source_material_fingerprint": str(
                     source_materials[material_id].get("cbm_material_source_fingerprint")
                 ),
@@ -1666,27 +2113,29 @@ def main() -> None:
                     {
                         "material_id": material_id,
                         "source_material_fingerprint": str(
-                            source_materials[material_id].get(
-                                "cbm_material_source_fingerprint"
-                            )
+                            source_materials[material_id].get("cbm_material_source_fingerprint")
                         ),
                         "surface_factors": surface_factors,
                         "atlas_uv_set": ATLAS_UV_SET,
                         "channel_hashes": {
-                            item["channel"]: item["sha256"]
-                            for item in channel_outputs
+                            item["channel"]: item["sha256"] for item in channel_outputs
                         },
                     }
                 ),
-                "binding_ids": sorted(
-                    entry["record"]["binding_id"] for entry in entries
-                ),
+                "binding_ids": sorted(entry["record"]["binding_id"] for entry in entries),
                 "surface_factors": surface_factors,
-                "losses": _loss_notes(mapping_mode, semantics),
+                "losses": _loss_notes(mapping_mode, semantics)
+                + (
+                    [
+                        "Scalar/color channels use measured UV-domain proxy raster coverage. "
+                        "Normal remains an actual-mesh bake; subtexel normal coverage and "
+                        "export/import tangent-basis fidelity are not established by this proof."
+                    ]
+                    if authored
+                    else []
+                ),
                 "warnings": [],
-                "notes": [
-                    "All derived users share the five global atlas channel files."
-                ],
+                "notes": ["All derived users share the five global atlas channel files."],
             }
         )
 
@@ -1720,17 +2169,28 @@ def main() -> None:
                 or provenance.get("build_fingerprint")
                 or ""
             ),
-            "optimization_plan_sha256": str(
-                scene.get("cbm_portable_plan_sha256") or ""
-            ),
+            "optimization_plan_sha256": str(scene.get("cbm_portable_plan_sha256") or ""),
         },
         "atlas": {
             **atlas_policy,
-            "columns": columns,
-            "rows": rows,
+            **(
+                {"columns": columns, "rows": rows, "cross_object_overlap_prevented_by_grid": True}
+                if atlas_policy["tile_strategy"] == "deterministic_grid"
+                else {
+                    "tile_strategy": "area_weighted_rect_v1",
+                    "cross_object_overlap_prevented_by_integer_rectangles": True,
+                    "weight_basis": "world_triangle_surface_area_decimal64",
+                    "minimum_interior_px": 1,
+                    "uv_occupancy_compensated": False,
+                }
+            ),
             "object_count": len(objects),
-            "cross_object_overlap_prevented_by_grid": True,
             "pixel_overlap_measurement": "not_measured",
+            **(
+                {"triangle_interior_overlap_measurement": "host_recomputed_authored_uv_v1"}
+                if authored
+                else {}
+            ),
         },
         "entries": material_records,
         "materials": material_records,
@@ -1746,8 +2206,8 @@ def main() -> None:
                 "margin_px": args.margin_px,
                 "uv_minimum": record["atlas"]["bounds"][:2],
                 "uv_maximum": record["atlas"]["bounds"][2:],
-                "overlap_fraction": None,
-                "quality_status": "partially_verified",
+                "overlap_fraction": 0.0 if authored else None,
+                "quality_status": "verified" if authored else "partially_verified",
                 "unwrap_method": record["atlas"]["unwrap_method"],
                 "repaired_uv_degenerate_face_count": record["atlas"][
                     "repaired_degenerate_face_count"
@@ -1755,37 +2215,34 @@ def main() -> None:
                 "remaining_uv_degenerate_face_count": record["atlas"][
                     "remaining_degenerate_face_count"
                 ],
-                "tangent_repair_method": record["portable_topology"][
-                    "repair_method"
+                "tangent_repair_method": record["portable_topology"]["repair_method"],
+                "micro_sliver_face_count_before": record["portable_topology"][
+                    "micro_sliver_face_count_before"
                 ],
-                "micro_sliver_face_count_before": record[
-                    "portable_topology"
-                ]["micro_sliver_face_count_before"],
-                "remaining_micro_sliver_face_count": record[
-                    "portable_topology"
-                ]["remaining_micro_sliver_face_count"],
-                "collinear_sliver_face_count_before": record[
-                    "portable_topology"
-                ]["collinear_sliver_face_count_before"],
-                "remaining_collinear_sliver_face_count": record[
-                    "portable_topology"
-                ]["remaining_collinear_sliver_face_count"],
-                "tangent_invalid_loop_count_before": record[
-                    "portable_topology"
-                ]["invalid_loop_count_before"],
-                "tangent_invalid_loop_count_after": record[
-                    "portable_topology"
-                ]["invalid_loop_count_after"],
-                "tangent_verification_attempt_count": record[
-                    "portable_topology"
-                ]["verification_attempt_count"],
-                "bounds_max_abs_delta_m": record["portable_topology"][
-                    "bounds_max_abs_delta_m"
+                "remaining_micro_sliver_face_count": record["portable_topology"][
+                    "remaining_micro_sliver_face_count"
                 ],
+                "collinear_sliver_face_count_before": record["portable_topology"][
+                    "collinear_sliver_face_count_before"
+                ],
+                "remaining_collinear_sliver_face_count": record["portable_topology"][
+                    "remaining_collinear_sliver_face_count"
+                ],
+                "tangent_invalid_loop_count_before": record["portable_topology"][
+                    "invalid_loop_count_before"
+                ],
+                "tangent_invalid_loop_count_after": record["portable_topology"][
+                    "invalid_loop_count_after"
+                ],
+                "tangent_verification_attempt_count": record["portable_topology"][
+                    "verification_attempt_count"
+                ],
+                "bounds_max_abs_delta_m": record["portable_topology"]["bounds_max_abs_delta_m"],
             }
             for record in object_records
         ],
         "objects": object_records,
+        **({"authored_uv_scalar_bake": scalar_evidence} if authored else {}),
         "outputs": channel_outputs,
         "portable_blend": {
             "path": str(output_blend),

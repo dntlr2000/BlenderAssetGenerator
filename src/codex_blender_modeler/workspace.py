@@ -9,7 +9,7 @@ import socket
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from time import sleep
 from typing import Any
 from uuid import uuid4
@@ -161,10 +161,97 @@ def metadata_path(path: Path) -> str:
 
 
 def resolve_metadata_path(value: str) -> Path:
+    """Resolve generic historical metadata without relocating authority or receipts."""
+
     candidate = Path(value).expanduser()
     if candidate.is_absolute():
         return candidate.resolve()
     return (get_settings().repo_root / candidate).resolve()
+
+
+class JobInputIntegrityError(ValueError):
+    """Identify immutable input bytes that no longer match their recorded digest."""
+
+
+def _input_path_is_link_like(path: Path) -> bool:
+    """Reject symbolic links and Windows reparse points before input resolution."""
+
+    native = native_io_path(path)
+    if os.path.islink(native):
+        return True
+    is_junction = getattr(os.path, "isjunction", None)
+    if callable(is_junction) and is_junction(native):
+        return True
+    try:
+        return bool(getattr(os.lstat(native), "st_file_attributes", 0) & 0x400)
+    except FileNotFoundError:
+        return False
+
+
+def _require_unlinked_input_path(root: Path, path: Path) -> None:
+    """Check lexical ownership and every job-local ancestor without following links."""
+
+    absolute_root = Path(os.path.abspath(root))
+    candidate = Path(os.path.abspath(path))
+    relative = candidate.relative_to(absolute_root)
+    current = absolute_root
+    if _input_path_is_link_like(current):
+        raise ValueError("Job input owning root must not be link-like")
+    for part in relative.parts:
+        current = current / part
+        if _input_path_is_link_like(current):
+            raise ValueError("Job input must not traverse a link-like immutable input path")
+
+
+def resolve_job_input_path(root: Path, value: str, expected_sha256: str | None) -> Path:
+    """Verify supplied input hashes and require exact identity/hash for relocation."""
+
+    original = resolve_metadata_path(value)
+    lexical_input = root / "input"
+    _require_unlinked_input_path(root, lexical_input)
+    input_root = lexical_input.resolve()
+    if lexical_input.is_symlink() or not input_root.is_relative_to(root.resolve()):
+        raise ValueError("Job input directory must not escape the owning job")
+    # Windows-generated relative and absolute locators are historical metadata.
+    # Rebind only an exact job/input filename with recorded immutable content,
+    # never arbitrary dependency, approval, source-manifest, or receipt paths.
+    normalized = value.replace("\\", "/")
+    parts = PurePosixPath(normalized).parts
+    lexical_parts = normalized.split("/")
+    if (
+        any(part in {".", ".."} for part in lexical_parts)
+        or "//" in normalized.lstrip("/")
+        or "\x00" in value
+    ):
+        raise ValueError("Job input metadata path contains an unsafe component")
+    if original.is_file() and original.is_relative_to(input_root):
+        lexical = Path(value).expanduser()
+        if not lexical.is_absolute():
+            lexical = get_settings().repo_root / lexical
+        _require_unlinked_input_path(root, lexical)
+        if expected_sha256 is not None and (
+            not re.fullmatch(r"[0-9a-fA-F]{64}", expected_sha256)
+            or sha256_file(original).casefold() != expected_sha256.casefold()
+        ):
+            raise JobInputIntegrityError("Job input hash changed or is malformed")
+        return original
+    suffix_matches = (
+        len(parts) >= 3 and parts[-3:-1] == (root.name, "input")
+    ) or (len(parts) == 2 and parts[0] == "input")
+    if sum(parts[index : index + 2] == (root.name, "input") for index in range(len(parts))) > 1:
+        raise ValueError("Job input metadata has an ambiguous ownership suffix")
+    if not suffix_matches or not re.fullmatch(r"[0-9a-fA-F]{64}", expected_sha256 or ""):
+        raise FileNotFoundError("Job input cannot be relocated without exact identity and hash")
+    candidate = root / "input" / parts[-1]
+    _require_unlinked_input_path(root, candidate)
+    resolved = candidate.resolve()
+    if not resolved.is_relative_to(input_root) or candidate.is_symlink():
+        raise ValueError("Relocated job input escapes its immutable input directory")
+    if not candidate.is_file():
+        raise FileNotFoundError(f"Relocated job input is missing: {candidate}")
+    if sha256_file(candidate).casefold() != expected_sha256.casefold():
+        raise JobInputIntegrityError("Relocated job input hash changed")
+    return resolved
 
 
 def _validate_source(kind: str, source_path: Path) -> tuple[Path, str]:
@@ -327,10 +414,12 @@ def add_job_view(
 
 
 def find_input_assets(job_id: str) -> list[Path]:
+    """Find recorded immutable inputs, including verified relocated job copies."""
+
     metadata = load_job(job_id)
     candidates: list[Path] = []
     for record in metadata.get("sources", []):
-        path = resolve_metadata_path(record["path"])
+        path = resolve_job_input_path(job_dir(job_id), record["path"], record.get("sha256"))
         if path.is_file():
             candidates.append(path)
     if not candidates:
@@ -351,10 +440,12 @@ def find_input_images(job_id: str) -> list[Path]:
 
 
 def find_reference(job_id: str) -> Path:
+    """Find the exact primary reference without changing historical metadata bytes."""
+
     metadata = load_job(job_id)
     reference = next(
         (
-            resolve_metadata_path(item["path"])
+            resolve_job_input_path(job_dir(job_id), item["path"], item.get("sha256"))
             for item in metadata["sources"]
             if item["kind"] == "reference"
         ),
@@ -444,8 +535,10 @@ def canonical_scene_spec_write_lock(
     """Serialize one canonical SceneSpec writer through the V0.8 job-global lock."""
 
     from .orchestration.locks import workflow_write_lock
+    from .orchestration.paired_revision import assert_no_pending_pair
 
     root = job_dir(job_id)
+    assert_no_pending_pair(root)
     with workflow_write_lock(
         root,
         job_id,
@@ -463,14 +556,23 @@ def replace_scene_spec_if_current(
     expected_candidate_sha256: str,
     lock_owner_id: str,
     archive_current: bool = True,
+    expected_geometry_dependencies: dict[str, str] | None = None,
+    expected_revision_evidence: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Atomically promote one validated candidate only over the expected canonical hash."""
+    """Promote an exact candidate with optional geometry-byte checks at the final CAS boundary."""
 
     from .analysis.surface_details import validate_scene_surface_details
     from .models import SceneSpec
+    from .orchestration.paired_revision import assert_no_pending_pair
     from .validation import validate_scene_spec_interior_contract
 
-    root = job_dir(job_id).resolve()
+    lexical_root = job_dir(job_id)
+    assert_no_pending_pair(lexical_root)
+    if expected_geometry_dependencies is not None:
+        from .orchestration.service import _validate_guarded_revision_root
+
+        _validate_guarded_revision_root(lexical_root)
+    root = lexical_root.resolve()
     current = root / "analysis" / "scene_spec.json"
     candidate = candidate_path.expanduser().resolve()
     try:
@@ -549,6 +651,43 @@ def replace_scene_spec_if_current(
             raise RuntimeError(
                 "Canonical SceneSpec changed immediately before replacement"
             )
+        if expected_geometry_dependencies is not None:
+            from .orchestration.revision_payloads import (
+                geometry_dependency_hashes,
+                revision_evidence_hashes,
+            )
+            from .orchestration.service import (
+                OrchestrationArtifactConflict,
+                _validate_guarded_revision_authority,
+            )
+
+            try:
+                actual_dependencies = geometry_dependency_hashes(root, candidate_model)
+                if actual_dependencies != expected_geometry_dependencies:
+                    raise ValueError("revision geometry dependencies changed before replacement")
+                _validate_guarded_revision_authority(root, lock_owner_id)
+                if expected_revision_evidence != revision_evidence_hashes(root, lock_owner_id):
+                    raise ValueError("revision authority or evidence changed before replacement")
+                # Keep the owning lexical root no-link even if it changes during the scan.
+                _validate_guarded_revision_root(lexical_root)
+                if lexical_root.resolve() != root:
+                    raise ValueError("revision owning job root changed before replacement")
+                # The bounded dependency scan must not widen the canonical CAS race window.
+                _require_scene_spec_lock_owner(root, job_id, lock_owner_id)
+                if sha256_file(temporary) != expected_candidate_sha256:
+                    raise ValueError("revision replacement changed during dependency validation")
+                if (
+                    (expected_current_sha256 is None and current.exists())
+                    or (expected_current_sha256 is not None and (
+                        not current.is_file() or sha256_file(current) != expected_current_sha256
+                    ))
+                ):
+                    raise ValueError("canonical SceneSpec changed during dependency validation")
+            except (OSError, ValueError, RuntimeError) as exc:
+                raise OrchestrationArtifactConflict(
+                    f"revision geometry CAS conflict: {type(exc).__name__}; "
+                    "exact contained sources or authority changed"
+                ) from exc
         os.replace(temporary, current)
     except Exception:
         temporary.unlink(missing_ok=True)

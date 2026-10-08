@@ -8,6 +8,11 @@ from typing import TYPE_CHECKING
 
 from ..blender_artifacts import write_json_atomic
 from ..models import SceneSpec
+from ..surface_detail_atlas import (
+    atlas_image_dimension_errors,
+    declared_atlas_uv_metrics,
+    shared_atlas_errors,
+)
 from .models import (
     ModelingPlan,
     SurfaceDetailValidationCheck,
@@ -385,10 +390,38 @@ def validate_surface_detail_contract(
                 if item.material_id == material_id
             )
             if require_spatial_bindings and material_users != [detail.parent_object_id]:
-                binding_errors.append(
-                    "localized detail material is shared by objects outside its parent; "
-                    f"users={material_users}"
-                )
+                # Shared atlases are eligible only from current explicit geometry UVs,
+                # never from disjoint rectangle declarations or stale inventories alone.
+                atlas_metrics: dict[str, list[dict]] = {}
+                try:
+                    for user in material_users:
+                        atlas_metrics[user] = [declared_atlas_uv_metrics(
+                            job_root, object_by_id[user].geometry.model_dump(mode="json"),
+                            material_id=material_id,
+                        )]
+                    atlas_errors = shared_atlas_errors(
+                        material_id=material_id,
+                        material_users=material_users,
+                        bindings=[entry.model_dump(mode="json")
+                                  for entry in manifest.surface_detail_bindings],
+                        strategies={entry.id: str(entry.uv_strategy)
+                                    for entry in plan.surface_details},
+                        uv_metrics=atlas_metrics,
+                        resolution=manifest.resolution,
+                    )
+                    atlas_errors.extend(atlas_image_dimension_errors(
+                        manifest.model_dump(mode="json"), manifest_path,
+                    ))
+                except (OSError, ValueError, KeyError, TypeError) as exc:
+                    atlas_errors = [
+                        "current explicit-UV atlas proof unavailable: "
+                        f"{type(exc).__name__}: {str(exc)[:240]}"
+                    ]
+                if atlas_errors:
+                    binding_errors.append(
+                        "localized detail material is shared by objects outside its parent; "
+                        f"users={material_users}; " + "; ".join(atlas_errors)
+                    )
             if require_spatial_bindings:
                 inventory_records = inventory_by_id.get(detail.parent_object_id, [])
                 inventory_hashes: set[str] = set()

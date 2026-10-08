@@ -25,6 +25,12 @@ The user supplied an image and a short modeling request. Follow repository defau
    Preserve every assembly relationship ID and required-check membership, and satisfy them in the
    declared parent-local frame.
 6. Build, render, inspect, and validate through MCP.
+   For a volumetric request, first use a cheap provisional blockout and inspect actual reference,
+   oblique, exact-side, exact-top, rear and clay views before detailed materials or export. Record
+   component-specific section/depth hypotheses and uncertainty in the existing plan notes. A
+   matching front silhouette does not establish those hidden volumes; a shared-depth outline
+   extrusion needs revision unless a relief/sheet is the intended representation. Keep diagnostic
+   settings and visual findings explicit without synthesizing approval or a new canonical QA score.
 7. Do not texture or export unless requested.
 8. Return the preview path, object families, assumptions, and uncertainties.
    Report inferred hidden-axis placement separately from observed geometry.

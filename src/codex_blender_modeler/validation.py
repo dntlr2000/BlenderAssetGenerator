@@ -39,6 +39,10 @@ def validate_scene_spec_interior_contract(scene_spec: SceneSpec, path: Path) -> 
 def load_scene_spec(path: Path) -> SceneSpec:
     """Load a schema-valid SceneSpec and enforce optional job-owned cross-contracts."""
 
+    if path.name == "scene_spec.json" and path.parent.name == "analysis":
+        from .orchestration.paired_revision import assert_no_pending_pair
+
+        assert_no_pending_pair(path.parent.parent)
     raw = json.loads(path.read_text(encoding="utf-8"))
     schema_path = get_settings().repo_root / "schemas" / "scene_spec.schema.json"
     schema = json.loads(schema_path.read_text(encoding="utf-8"))

@@ -196,6 +196,32 @@
   "additionalProperties": false,
   "description": "Summarize structural multi-view evidence without claiming image similarity.",
   "properties": {
+    "detail_review_status": {
+      "anyOf": [
+        {
+          "const": "source_bound_visual_review_required",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail Review Status"
+    },
+    "detail_review_contract_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail Review Contract Sha256"
+    },
     "schema_version": {
       "const": "0.6.0",
       "default": "0.6.0",
@@ -257,7 +283,8 @@
       "default": "assembly_structural_v1",
       "enum": [
         "assembly_structural_v1",
-        "exterior_geometry_review_v2"
+        "exterior_geometry_review_v2",
+        "exterior_geometry_review_v3"
       ],
       "title": "Review Policy",
       "type": "string"

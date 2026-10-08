@@ -14,7 +14,7 @@ from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.cidfonts import UnicodeCIDFont
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.ttfonts import TTFError, TTFont
 from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import (
     Image,
@@ -71,18 +71,32 @@ def _font_candidates() -> list[tuple[Path, Path | None]]:
 
 
 def _register_report_fonts() -> dict[str, str]:
-    """Register an embedded Korean font or a standard Korean CID fallback."""
+    """Use the first loadable Korean font pair, or the standard Korean CID fallback."""
 
     regular_name = "CBMReportRegular"
     bold_name = "CBMReportBold"
+    registered = pdfmetrics.getRegisteredFontNames()
+    if regular_name in registered and bold_name in registered:
+        # Fixed aliases retain their first registered font across report exports.
+        regular_path = Path(pdfmetrics.getFont(regular_name).face.filename)
+        return {
+            "regular": regular_name,
+            "bold": bold_name,
+            "source": f"embedded:{regular_path.name}",
+        }
     for regular_path, bold_path in _font_candidates():
         if not regular_path.is_file():
             continue
-        if regular_name not in pdfmetrics.getRegisteredFontNames():
-            pdfmetrics.registerFont(TTFont(regular_name, str(regular_path)))
         usable_bold = bold_path if bold_path and bold_path.is_file() else regular_path
-        if bold_name not in pdfmetrics.getRegisteredFontNames():
-            pdfmetrics.registerFont(TTFont(bold_name, str(usable_bold)))
+        try:
+            # Load the pair before registration so an unsupported bold face cannot
+            # leave the regular alias bound to a rejected candidate.
+            regular_font = TTFont(regular_name, str(regular_path))
+            bold_font = TTFont(bold_name, str(usable_bold))
+        except TTFError:
+            continue
+        pdfmetrics.registerFont(regular_font)
+        pdfmetrics.registerFont(bold_font)
         return {
             "regular": regular_name,
             "bold": bold_name,
@@ -1195,6 +1209,7 @@ def _append_export_section(
     plan = documents.get("optimization_plan") or {}
     review = documents.get("optimization_review") or {}
     approval = documents.get("optimization_approval") or {}
+    delegated = documents.get("optimization_delegated_authorization") or {}
     preflight = documents.get("mesh_preflight_report") or {}
     cost = documents.get("asset_cost_report") or {}
     conversion = documents.get("material_conversion_manifest") or {}
@@ -1202,7 +1217,18 @@ def _append_export_section(
     roundtrip = documents.get("roundtrip_validation") or {}
     handoff = documents.get("destination_handoff_manifest") or {}
     if not any(
-        (plan, review, approval, preflight, cost, conversion, package, roundtrip, handoff)
+        (
+            plan,
+            review,
+            approval,
+            delegated,
+            preflight,
+            cost,
+            conversion,
+            package,
+            roundtrip,
+            handoff,
+        )
     ):
         story.append(
             _paragraph(
@@ -1213,6 +1239,14 @@ def _append_export_section(
         )
         return
 
+    if delegated:
+        story.append(
+            _paragraph(
+                "Technical authority: delegated_assistant. Final human beauty, package and "
+                "Activation acceptance remains absent; this evidence is not user approval.",
+                styles["body"],
+            )
+        )
     story.append(
         _metric_table(
             [
@@ -1338,22 +1372,10 @@ def _append_export_section(
 
     if conversion:
         story.append(_paragraph("Portable material conversion", styles["h2"]))
-        outputs = [
-            item for item in conversion.get("outputs", []) if isinstance(item, dict)
-        ]
-        entries = [
-            item for item in conversion.get("entries", []) if isinstance(item, dict)
-        ]
-        losses = [
-            str(loss)
-            for entry in entries
-            for loss in entry.get("losses", [])
-        ]
-        warnings = [
-            str(warning)
-            for entry in entries
-            for warning in entry.get("warnings", [])
-        ]
+        outputs = [item for item in conversion.get("outputs", []) if isinstance(item, dict)]
+        entries = [item for item in conversion.get("entries", []) if isinstance(item, dict)]
+        losses = [str(loss) for entry in entries for loss in entry.get("losses", [])]
+        warnings = [str(warning) for entry in entries for warning in entry.get("warnings", [])]
         story.append(
             _metric_table(
                 [
@@ -1592,9 +1614,7 @@ def _append_export_section(
     texture_pack = documents.get("texture_pack_manifest") or {}
     if texture_pack:
         story.append(_paragraph("Portable PBR 텍스처 패킹", styles["h2"]))
-        textures = [
-            item for item in texture_pack.get("textures", []) if isinstance(item, dict)
-        ]
+        textures = [item for item in texture_pack.get("textures", []) if isinstance(item, dict)]
         story.append(
             _data_table(
                 ["항목", "값"],
@@ -2242,7 +2262,7 @@ def _append_qa_section(
     images: dict[str, Any],
     styles: dict[str, ParagraphStyle],
 ) -> None:
-    """Append fixed-camera direct scores, visual evidence, findings, and revision candidates."""
+    """Append direct scores with their evidence warnings, findings, and revision candidates."""
 
     story.append(_paragraph("레퍼런스 시각 QA", styles["h1"]))
     report = documents.get("visual_qa_report")
@@ -2263,6 +2283,8 @@ def _append_qa_section(
             styles,
         )
     )
+    for warning in report.get("warnings", []):
+        story.append(_paragraph(str(warning), styles["body"]))
     _append_qa_companion_section(story, documents, images, styles)
     surface_detail = report.get("surface_detail_summary")
     if isinstance(surface_detail, dict):

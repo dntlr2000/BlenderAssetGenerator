@@ -6,6 +6,7 @@ from typing import Any
 
 from .blender_artifacts import file_exists, native_io_path
 from .material_manifest import MaterialManifestError, load_material_manifest
+from .optical_volume import validate_volume_recipe
 
 _SURFACE_LIMITS = {
     "metallic": (0.0, 1.0),
@@ -184,9 +185,7 @@ def _validate_noise_layer(layer: Any, material_id: str) -> dict[str, Any]:
         normalized["parameters"]["bump_distance"] = distance
     for name in ("scale", "detail", "roughness", "distortion"):
         if name in parameters:
-            normalized["parameters"][name] = _number(
-                parameters[name], f"noise.{name}", 0.0, None
-            )
+            normalized["parameters"][name] = _number(parameters[name], f"noise.{name}", 0.0, None)
     seed = parameters.get("seed", 0)
     if isinstance(seed, bool) or not isinstance(seed, int) or seed < 0:
         raise ShaderRecipeRuntimeError("noise.seed must be a non-negative integer")
@@ -202,7 +201,7 @@ def _validate_recipe(
 ) -> dict[str, Any]:
     """Validate one recipe and attach runtime provenance fields."""
 
-    if raw.get("schema_version") != "0.5.0":
+    if raw.get("schema_version") not in {"0.5.0", "0.5.1"}:
         raise ShaderRecipeRuntimeError(f"Unsupported shader recipe version: {recipe_path}")
     if raw.get("material_id") != material_id:
         raise ShaderRecipeRuntimeError(
@@ -212,6 +211,10 @@ def _validate_recipe(
         raise ShaderRecipeRuntimeError(
             f"Shader recipe {material_id} uses an unsupported shader family"
         )
+    try:
+        volume = validate_volume_recipe(raw)
+    except ValueError as error:
+        raise ShaderRecipeRuntimeError(str(error)) from error
     surface = _validate_surface(raw.get("surface", {}), material_id)
     mapping = raw.get("mapping", {})
     if not isinstance(mapping, dict):
@@ -241,6 +244,8 @@ def _validate_recipe(
         )
     result = dict(raw)
     result["surface"] = surface
+    if volume is not None:
+        result["volume"] = volume
     result["mapping"] = {
         "mode": runtime_mode,
         "uv_set": str(mapping.get("uv_set", "UVMap")),
@@ -422,6 +427,17 @@ def load_runtime_shader_recipes(job_root: Path, job_id: str) -> dict[str, dict[s
             item.get("texture_manifest"),
             recipe_manifest,
         )
+        if override.get("volume") is not None and manifest_value:
+            volume_manifest, _ = load_material_manifest(
+                {"id": material_id, "texture_manifest": manifest_value}, root
+            )
+            if volume_manifest is not None and any(
+                channel in volume_manifest.get("channels", {})
+                for channel in ("metallic", "opacity")
+            ):
+                raise ShaderRecipeRuntimeError(
+                    "Experimental optical volume forbids source metallic/opacity textures"
+                )
         override["cbm_plan_path"] = str(plan_path)
         override["cbm_texture_strategy"] = str(texture_strategy)
         override["cbm_texture_manifest"] = manifest_value

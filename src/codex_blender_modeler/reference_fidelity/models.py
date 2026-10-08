@@ -141,16 +141,79 @@ class ReferenceMaskSeedEvidenceV02(ReferenceMaskSeedEvidenceV01):
         return self
 
 
+class ReferenceSubjectExtentEvidenceV01(FidelityModel):
+    """Bind a selected subject extent to independently verified original-reference alpha."""
+
+    schema_version: Literal["0.1.0"] = "0.1.0"
+    contract_kind: Literal["reference_subject_extent_evidence"] = (
+        "reference_subject_extent_evidence"
+    )
+    job_id: JobId
+    reference: FidelityArtifact
+    reference_resolution: tuple[
+        Annotated[int, Field(ge=1, le=4096)], Annotated[int, Field(ge=1, le=4096)]
+    ]
+    reference_content_scope: Literal["primary_object_only"] = "primary_object_only"
+    subject_object_ids: list[StableId] = Field(min_length=1, max_length=256)
+    observation_id: StableId
+    bbox_pixels: tuple[
+        Annotated[int, Field(ge=0, le=4096)], Annotated[int, Field(ge=0, le=4096)],
+        Annotated[int, Field(ge=0, le=4096)], Annotated[int, Field(ge=0, le=4096)],
+    ]
+    pixel_bounds_convention: Literal["left_top_inclusive_right_bottom_exclusive"] = (
+        "left_top_inclusive_right_bottom_exclusive"
+    )
+    foreground_pixel_count: int = Field(ge=1, le=16777216)
+    confidence: float = Field(ge=0.5, le=1)
+    uncertainty: str = Field(min_length=8, max_length=2000)
+    extent_origin: Literal["reference_alpha_support"] = "reference_alpha_support"
+    alpha_threshold: Literal[0] = 0
+    candidate_or_render_derived: Literal[False] = False
+    semantic_extent_authority: Literal[False] = False
+    canonical_write_authority: Literal[False] = False
+    human_approval_authority: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_extent(self) -> Self:
+        """Require exact sorted subject membership and non-empty bounded source-pixel extent."""
+
+        if self.subject_object_ids != sorted(set(self.subject_object_ids)):
+            raise ValueError("subject extent IDs must be uniquely sorted")
+        left, top, right, bottom = self.bbox_pixels
+        width, height = self.reference_resolution
+        if not (left < right <= width and top < bottom <= height):
+            raise ValueError("subject extent must have positive area inside the reference")
+        if self.foreground_pixel_count > (right - left) * (bottom - top):
+            raise ValueError("subject alpha support exceeds its declared pixel extent")
+        return self
+
+
+class ReferenceMaskSeedEvidenceV03(ReferenceMaskSeedEvidenceV02):
+    """Add independent subject scope to V0.2 trimaps without changing local part authority."""
+
+    schema_version: Literal["0.3.0"] = "0.3.0"
+    reference_content_scope: Literal["primary_object_only"] = "primary_object_only"
+    subject_extent: FidelityArtifact
+
+    @model_validator(mode="after")
+    def validate_subject_extent_identity(self) -> Self:
+        """Keep the immutable extent JSON separate from original image and trimap bytes."""
+
+        if self.subject_extent.path in {self.reference.path, self.trimap.path}:
+            raise ValueError("subject extent cannot replace reference or trimap evidence")
+        return self
+
+
 ReferenceMaskSeedEvidence = Annotated[
-    ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02,
+    ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02 | ReferenceMaskSeedEvidenceV03,
     Field(discriminator="schema_version"),
 ]
 
 
 def parse_reference_mask_seed_evidence(
-    evidence: ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02,
-) -> ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02:
-    """Revalidate the exact selected companion version, including model-copy mutations."""
+    evidence: ReferenceMaskSeedEvidence,
+) -> ReferenceMaskSeedEvidenceV01 | ReferenceMaskSeedEvidenceV02 | ReferenceMaskSeedEvidenceV03:
+    """Revalidate the exact V0.1/V0.2/V0.3 companion, including model-copy mutations."""
     return TypeAdapter(ReferenceMaskSeedEvidence).validate_json(evidence.model_dump_json())
 
 

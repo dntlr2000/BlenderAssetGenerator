@@ -354,6 +354,69 @@
       "default": null,
       "title": "Revision Strategy"
     },
+    "paired_modeling_plan_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact existing candidate ModelingPlan for a manual guarded revision.",
+      "title": "Paired Modeling Plan Path"
+    },
+    "paired_modeling_plan_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "SHA-256 of the exact paired candidate ModelingPlan bytes.",
+      "title": "Paired Modeling Plan Sha256"
+    },
+    "attachment_intent_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Exact staged solid-root intent for an explicit paired guarded revision.",
+      "title": "Attachment Intent Path"
+    },
+    "attachment_intent_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "SHA-256 of the exact prospective solid-root intent bytes.",
+      "title": "Attachment Intent Sha256"
+    },
+    "geometry_review_policy": {
+      "default": "exterior_geometry_review_v2",
+      "enum": [
+        "exterior_geometry_review_v2",
+        "exterior_geometry_review_v3"
+      ],
+      "title": "Geometry Review Policy",
+      "type": "string"
+    },
     "delivery_scope": {
       "anyOf": [
         {

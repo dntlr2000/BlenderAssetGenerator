@@ -1,5 +1,111 @@
 {
   "$defs": {
+    "DetailVisualAssessment": {
+      "additionalProperties": false,
+      "description": "Record an explicit limited visual judgment, never physical-contact certification.",
+      "properties": {
+        "target_id": {
+          "minLength": 1,
+          "title": "Target Id",
+          "type": "string"
+        },
+        "aspect": {
+          "enum": [
+            "internal_form",
+            "attachment",
+            "reference_internal_detail"
+          ],
+          "title": "Aspect",
+          "type": "string"
+        },
+        "reference_basis": {
+          "enum": [
+            "observed_reference",
+            "inferred_only"
+          ],
+          "title": "Reference Basis",
+          "type": "string"
+        },
+        "outcome": {
+          "enum": [
+            "visually_supported",
+            "defect",
+            "unscorable"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "view_ids": {
+          "items": {
+            "enum": [
+              "front",
+              "right",
+              "top",
+              "rear",
+              "oblique"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "View Ids",
+          "type": "array"
+        },
+        "observation": {
+          "minLength": 8,
+          "title": "Observation",
+          "type": "string"
+        },
+        "limitations": {
+          "minLength": 8,
+          "title": "Limitations",
+          "type": "string"
+        },
+        "finding_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Finding Ids",
+          "type": "array"
+        },
+        "surface_detail_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Surface Detail Ids",
+          "type": "array"
+        },
+        "attachment_reference_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attachment Reference Ids",
+          "type": "array"
+        },
+        "physical_contact_verified": {
+          "const": false,
+          "default": false,
+          "title": "Physical Contact Verified",
+          "type": "boolean"
+        },
+        "human_acceptance": {
+          "const": false,
+          "default": false,
+          "title": "Human Acceptance",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "target_id",
+        "aspect",
+        "reference_basis",
+        "outcome",
+        "view_ids",
+        "observation",
+        "limitations"
+      ],
+      "title": "DetailVisualAssessment",
+      "type": "object"
+    },
     "GeometryVisualReviewFinding": {
       "additionalProperties": false,
       "description": "Record one Codex-observed issue from exact five-view beauty/wireframe evidence.",
@@ -159,7 +265,7 @@
       }
     }
   ],
-  "description": "Bind a Codex visual reading of all five views without claiming reference likeness.",
+  "description": "Bind five-view reading and optional fixed-camera detail review without automatic fidelity.",
   "properties": {
     "schema_version": {
       "const": "0.6.0",
@@ -290,6 +396,26 @@
       "default": false,
       "title": "Automatic Revision Authorized",
       "type": "boolean"
+    },
+    "detail_assessments": {
+      "items": {
+        "$ref": "#/$defs/DetailVisualAssessment"
+      },
+      "title": "Detail Assessments",
+      "type": "array"
+    },
+    "reviewed_detail_contract_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reviewed Detail Contract Sha256"
     },
     "reviewed_at": {
       "format": "date-time",

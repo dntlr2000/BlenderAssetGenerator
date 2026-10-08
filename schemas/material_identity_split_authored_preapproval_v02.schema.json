@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record exact native preparation without creating approval or canonical authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "status": {
+      "const": "passed",
+      "default": "passed",
+      "title": "Status",
+      "type": "string"
+    },
+    "blender_version": {
+      "const": "5.0.1",
+      "default": "5.0.1",
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "blender_executable_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blender Executable Sha256",
+      "type": "string"
+    },
+    "native_script_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 3,
+      "minProperties": 3,
+      "title": "Native Script Sha256",
+      "type": "object"
+    },
+    "source_native_inventory": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_native_inventory": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "shadow_validation": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "shadow_scene_inventory": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "shadow_blend": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "invariant_report": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "canonical_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Canonical Unchanged",
+      "type": "boolean"
+    },
+    "actual_user_approval_created": {
+      "const": false,
+      "default": false,
+      "title": "Actual User Approval Created",
+      "type": "boolean"
+    },
+    "canonical_write_count": {
+      "const": 0,
+      "default": 0,
+      "title": "Canonical Write Count",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan",
+    "blender_executable_sha256",
+    "native_script_sha256",
+    "source_native_inventory",
+    "candidate_native_inventory",
+    "shadow_validation",
+    "shadow_scene_inventory",
+    "shadow_blend",
+    "invariant_report"
+  ],
+  "title": "AuthoredMaterialIdentitySplitPreapprovalV02",
+  "type": "object"
+}

@@ -1,0 +1,137 @@
+{
+  "$defs": {
+    "PatchSelection": {
+      "additionalProperties": false,
+      "description": "Choose an exact semantic component face group without geometric nearest-owner guesses.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "face_group_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Face Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "face_group_id"
+      ],
+      "title": "PatchSelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one immutable polygon and existing component anchors, never a new mesh.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "surface_attachment_root_region",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "attachment_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Attachment Id",
+      "type": "string"
+    },
+    "subject_lower": {
+      "$ref": "#/$defs/PatchSelection"
+    },
+    "owner_front": {
+      "$ref": "#/$defs/PatchSelection"
+    },
+    "frame_axes": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Frame Axes",
+      "type": "array"
+    },
+    "frame_signs": {
+      "maxItems": 3,
+      "minItems": 3,
+      "prefixItems": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "integer"
+        }
+      ],
+      "title": "Frame Signs",
+      "type": "array"
+    },
+    "polygon": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          }
+        ],
+        "type": "array"
+      },
+      "maxItems": 256,
+      "minItems": 3,
+      "title": "Polygon",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract_kind",
+    "job_id",
+    "attachment_id",
+    "subject_lower",
+    "owner_front",
+    "frame_axes",
+    "frame_signs",
+    "polygon"
+  ],
+  "title": "RootRegionSelectionV01",
+  "type": "object"
+}

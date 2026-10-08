@@ -12,12 +12,13 @@ from uuid import uuid4
 
 from ..models import ObjectSpec, SceneSpec, SourceSpec
 from ..workspace import (
+    JobInputIntegrityError,
     canonical_scene_spec_write_lock,
     file_exists,
     job_dir,
     load_job,
     native_io_path,
-    resolve_metadata_path,
+    resolve_job_input_path,
     sha256_file,
 )
 from .diagnostic_models import (
@@ -235,11 +236,11 @@ def _primary_reference(root: Path, job_id: str) -> tuple[Path, str, str]:
     expected_hash = record.get("sha256")
     if not isinstance(raw_path, str) or not isinstance(expected_hash, str):
         raise ValueError("primary reference metadata lacks path or SHA-256")
-    path = _require_safe_job_path(
-        root,
-        resolve_metadata_path(raw_path),
-        "primary reference",
-    )
+    try:
+        reference_path = resolve_job_input_path(root, raw_path, expected_hash)
+    except JobInputIntegrityError as exc:
+        raise StaleSemanticMaskEvidence("primary reference changed") from exc
+    path = _require_safe_job_path(root, reference_path, "primary reference")
     input_root = _require_safe_job_path(
         root,
         root / "input",

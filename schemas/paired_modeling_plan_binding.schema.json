@@ -1,0 +1,3150 @@
+{
+  "$defs": {
+    "ArrayGenerator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayGenerator",
+      "type": "object"
+    },
+    "ArrayModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "array",
+          "default": "array",
+          "title": "Kind",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "offset": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Offset",
+          "type": "array"
+        }
+      },
+      "required": [
+        "count",
+        "offset"
+      ],
+      "title": "ArrayModifier",
+      "type": "object"
+    },
+    "AssemblyDistance": {
+      "additionalProperties": false,
+      "description": "Define one nonnegative meter or reference-relative assembly gap.",
+      "properties": {
+        "mode": {
+          "default": "relative",
+          "enum": [
+            "relative",
+            "meters"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "AssemblyDistance",
+      "type": "object"
+    },
+    "AssemblyFrame": {
+      "additionalProperties": false,
+      "description": "Describe the intrinsic 3D axes used to judge one assembled asset.",
+      "properties": {
+        "root_object_id": {
+          "title": "Root Object Id",
+          "type": "string"
+        },
+        "longitudinal_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Longitudinal Axis",
+          "type": "string"
+        },
+        "lateral_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Lateral Axis",
+          "type": "string"
+        },
+        "vertical_axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Vertical Axis",
+          "type": "string"
+        },
+        "symmetry": {
+          "default": "unknown",
+          "enum": [
+            "bilateral",
+            "asymmetric",
+            "unknown"
+          ],
+          "title": "Symmetry",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "root_object_id",
+        "longitudinal_axis",
+        "lateral_axis",
+        "vertical_axis"
+      ],
+      "title": "AssemblyFrame",
+      "type": "object"
+    },
+    "AssemblyTolerance": {
+      "additionalProperties": false,
+      "description": "Define one unambiguous absolute or reference-relative assembly tolerance.",
+      "properties": {
+        "mode": {
+          "default": "relative",
+          "enum": [
+            "relative",
+            "meters"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "value": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "title": "AssemblyTolerance",
+      "type": "object"
+    },
+    "AxisAlignmentRelationship": {
+      "additionalProperties": false,
+      "description": "Require one evaluated local subject axis to follow a declared 3D direction.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "axis_alignment",
+          "default": "axis_alignment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "subject_axis": {
+          "enum": [
+            "+X",
+            "-X",
+            "+Y",
+            "-Y",
+            "+Z",
+            "-Z"
+          ],
+          "title": "Subject Axis",
+          "type": "string"
+        },
+        "target_direction": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target Direction",
+          "type": "array"
+        },
+        "target_space": {
+          "default": "reference_local",
+          "enum": [
+            "reference_local",
+            "assembly_frame"
+          ],
+          "title": "Target Space",
+          "type": "string"
+        },
+        "directionality": {
+          "default": "directed",
+          "enum": [
+            "directed",
+            "undirected"
+          ],
+          "title": "Directionality",
+          "type": "string"
+        },
+        "angular_tolerance_deg": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "maximum": 90,
+          "title": "Angular Tolerance Deg",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "subject_axis",
+        "target_direction"
+      ],
+      "title": "AxisAlignmentRelationship",
+      "type": "object"
+    },
+    "AxisClearanceRelationship": {
+      "additionalProperties": false,
+      "description": "Require an axis-directed broad-phase gap between two evaluated bounds.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "axis_clearance",
+          "default": "axis_clearance",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "direction": {
+          "description": "POSITIVE measures reference.min-subject.max; NEGATIVE measures subject.min-reference.max on the declared assembly-frame axis.",
+          "enum": [
+            "POSITIVE",
+            "NEGATIVE"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "minimum_gap": {
+          "$ref": "#/$defs/AssemblyDistance"
+        },
+        "maximum_gap": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssemblyDistance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "min_transverse_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Transverse Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "direction"
+      ],
+      "title": "AxisClearanceRelationship",
+      "type": "object"
+    },
+    "BBoxContainmentRelationship": {
+      "additionalProperties": false,
+      "description": "Require subject bounds to stay inside reference bounds on selected axes.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bbox_containment",
+          "default": "bbox_containment",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "BBoxContainmentRelationship",
+      "type": "object"
+    },
+    "BBoxOverlapRelationship": {
+      "additionalProperties": false,
+      "description": "Require broad-phase interval overlap on every selected assembly-frame axis.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bbox_overlap",
+          "default": "bbox_overlap",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "minimum_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Minimum Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "BBoxOverlapRelationship",
+      "type": "object"
+    },
+    "BevelModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "bevel",
+          "default": "bevel",
+          "title": "Kind",
+          "type": "string"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "segments": {
+          "default": 2,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "limit_method": {
+          "default": "ANGLE",
+          "enum": [
+            "NONE",
+            "ANGLE",
+            "WEIGHT",
+            "VGROUP"
+          ],
+          "title": "Limit Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "width"
+      ],
+      "title": "BevelModifier",
+      "type": "object"
+    },
+    "BilateralPairRelationship": {
+      "additionalProperties": false,
+      "description": "Require two peer subjects to mirror around one reference center plane.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "bilateral_pair",
+          "default": "bilateral_pair",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "peer_id": {
+          "title": "Peer Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "peer_id"
+      ],
+      "title": "BilateralPairRelationship",
+      "type": "object"
+    },
+    "BooleanModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "boolean",
+          "default": "boolean",
+          "title": "Kind",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "UNION",
+            "DIFFERENCE",
+            "INTERSECT"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "solver": {
+          "default": "EXACT",
+          "enum": [
+            "EXACT",
+            "FAST"
+          ],
+          "title": "Solver",
+          "type": "string"
+        },
+        "hide_target": {
+          "default": true,
+          "title": "Hide Target",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operation",
+        "target_id"
+      ],
+      "title": "BooleanModifier",
+      "type": "object"
+    },
+    "CameraSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "projection": {
+          "enum": [
+            "PERSP",
+            "ORTHO"
+          ],
+          "title": "Projection",
+          "type": "string"
+        },
+        "location": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "target": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target",
+          "type": "array"
+        },
+        "focal_length_mm": {
+          "exclusiveMinimum": 0,
+          "title": "Focal Length Mm",
+          "type": "number"
+        },
+        "ortho_scale": {
+          "exclusiveMinimum": 0,
+          "title": "Ortho Scale",
+          "type": "number"
+        },
+        "resolution": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        }
+      },
+      "required": [
+        "projection",
+        "location",
+        "target",
+        "focal_length_mm",
+        "ortho_scale",
+        "resolution"
+      ],
+      "title": "CameraSpec",
+      "type": "object"
+    },
+    "CenterPlaneRelationship": {
+      "additionalProperties": false,
+      "description": "Require one subject center to remain on a reference center plane.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "center_plane",
+          "default": "center_plane",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis"
+      ],
+      "title": "CenterPlaneRelationship",
+      "type": "object"
+    },
+    "CoaxialRelationship": {
+      "additionalProperties": false,
+      "description": "Require subject and reference centers to align on two transverse axes.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "coaxial",
+          "default": "coaxial",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "enum": [
+                "X",
+                "Y",
+                "Z"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "X",
+                "Y",
+                "Z"
+              ],
+              "type": "string"
+            }
+          ],
+          "title": "Axes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axes"
+      ],
+      "title": "CoaxialRelationship",
+      "type": "object"
+    },
+    "CoordinateSystem": {
+      "additionalProperties": false,
+      "properties": {
+        "handedness": {
+          "const": "RIGHT",
+          "default": "RIGHT",
+          "title": "Handedness",
+          "type": "string"
+        },
+        "up": {
+          "const": "+Z",
+          "default": "+Z",
+          "title": "Up",
+          "type": "string"
+        },
+        "forward": {
+          "const": "-Y",
+          "default": "-Y",
+          "title": "Forward",
+          "type": "string"
+        }
+      },
+      "title": "CoordinateSystem",
+      "type": "object"
+    },
+    "CurveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "curve",
+          "default": "curve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Points",
+          "type": "array"
+        },
+        "spline_type": {
+          "default": "POLY",
+          "enum": [
+            "POLY",
+            "NURBS"
+          ],
+          "title": "Spline Type",
+          "type": "string"
+        },
+        "cyclic": {
+          "default": false,
+          "title": "Cyclic",
+          "type": "boolean"
+        },
+        "bevel_depth": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "title": "Bevel Depth",
+          "type": "number"
+        },
+        "bevel_resolution": {
+          "default": 3,
+          "maximum": 12,
+          "minimum": 0,
+          "title": "Bevel Resolution",
+          "type": "integer"
+        },
+        "resolution_u": {
+          "default": 12,
+          "maximum": 64,
+          "minimum": 1,
+          "title": "Resolution U",
+          "type": "integer"
+        },
+        "convert_to_mesh": {
+          "default": true,
+          "title": "Convert To Mesh",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "points"
+      ],
+      "title": "CurveGeometry",
+      "type": "object"
+    },
+    "CustomMeshGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "custom_mesh",
+          "default": "custom_mesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "vertices": {
+          "anyOf": [
+            {
+              "items": {
+                "maxItems": 3,
+                "minItems": 3,
+                "prefixItems": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "number"
+                  }
+                ],
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Vertices"
+        },
+        "faces": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Faces"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "format": {
+          "const": "mesh_json",
+          "default": "mesh_json",
+          "title": "Format",
+          "type": "string"
+        },
+        "recalculate_normals": {
+          "default": true,
+          "title": "Recalculate Normals",
+          "type": "boolean"
+        }
+      },
+      "title": "CustomMeshGeometry",
+      "type": "object"
+    },
+    "DecimateModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "decimate",
+          "default": "decimate",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ratio": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "ratio"
+      ],
+      "title": "DecimateModifier",
+      "type": "object"
+    },
+    "EvidenceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "bbox_norm": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Bbox Norm",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source_id",
+        "bbox_norm",
+        "status",
+        "confidence"
+      ],
+      "title": "EvidenceSpec",
+      "type": "object"
+    },
+    "MaterialSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "shader": {
+          "default": "principled",
+          "enum": [
+            "principled",
+            "water",
+            "glass",
+            "emissive",
+            "cloud"
+          ],
+          "title": "Shader",
+          "type": "string"
+        },
+        "base_color": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Base Color",
+          "type": "array"
+        },
+        "roughness": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Roughness",
+          "type": "number"
+        },
+        "metallic": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Metallic",
+          "type": "number"
+        },
+        "emission_strength": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Emission Strength",
+          "type": "number"
+        },
+        "texture_manifest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texture Manifest"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "base_color",
+        "roughness",
+        "metallic"
+      ],
+      "title": "MaterialSpec",
+      "type": "object"
+    },
+    "MirrorModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "mirror",
+          "default": "mirror",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "enum": [
+              "X",
+              "Y",
+              "Z"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "merge": {
+          "default": true,
+          "title": "Merge",
+          "type": "boolean"
+        },
+        "merge_threshold": {
+          "default": 0.001,
+          "minimum": 0,
+          "title": "Merge Threshold",
+          "type": "number"
+        }
+      },
+      "title": "MirrorModifier",
+      "type": "object"
+    },
+    "ModelingPlan": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "stage": {
+                "const": "authored"
+              }
+            },
+            "required": [
+              "stage"
+            ]
+          },
+          "then": {
+            "properties": {
+              "objects": {
+                "minItems": 1
+              }
+            },
+            "required": [
+              "objects"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "schema_version": {
+          "const": "0.4.0",
+          "default": "0.4.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "reference_analysis_path": {
+          "title": "Reference Analysis Path",
+          "type": "string"
+        },
+        "camera_solution_path": {
+          "title": "Camera Solution Path",
+          "type": "string"
+        },
+        "stage": {
+          "default": "scaffold",
+          "enum": [
+            "scaffold",
+            "authored"
+          ],
+          "title": "Stage",
+          "type": "string"
+        },
+        "objects": {
+          "items": {
+            "$ref": "#/$defs/ModelingPlanObject"
+          },
+          "title": "Objects",
+          "type": "array"
+        },
+        "assembly_consistency_policy": {
+          "default": "legacy_unbound",
+          "enum": [
+            "legacy_unbound",
+            "spatial_v1"
+          ],
+          "title": "Assembly Consistency Policy",
+          "type": "string"
+        },
+        "assembly_frame": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AssemblyFrame"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "assembly_relationships": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "axis_alignment": "#/$defs/AxisAlignmentRelationship",
+                "axis_clearance": "#/$defs/AxisClearanceRelationship",
+                "bbox_containment": "#/$defs/BBoxContainmentRelationship",
+                "bbox_overlap": "#/$defs/BBoxOverlapRelationship",
+                "bilateral_pair": "#/$defs/BilateralPairRelationship",
+                "center_plane": "#/$defs/CenterPlaneRelationship",
+                "coaxial": "#/$defs/CoaxialRelationship",
+                "side_specific": "#/$defs/SideSpecificRelationship",
+                "surface_contact": "#/$defs/SurfaceContactRelationship"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/CenterPlaneRelationship"
+              },
+              {
+                "$ref": "#/$defs/CoaxialRelationship"
+              },
+              {
+                "$ref": "#/$defs/BBoxContainmentRelationship"
+              },
+              {
+                "$ref": "#/$defs/BBoxOverlapRelationship"
+              },
+              {
+                "$ref": "#/$defs/SurfaceContactRelationship"
+              },
+              {
+                "$ref": "#/$defs/SideSpecificRelationship"
+              },
+              {
+                "$ref": "#/$defs/BilateralPairRelationship"
+              },
+              {
+                "$ref": "#/$defs/AxisAlignmentRelationship"
+              },
+              {
+                "$ref": "#/$defs/AxisClearanceRelationship"
+              }
+            ]
+          },
+          "title": "Assembly Relationships",
+          "type": "array"
+        },
+        "surface_detail_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SurfaceDetailPolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "surface_details": {
+          "items": {
+            "$ref": "#/$defs/SurfaceDetailDecision"
+          },
+          "title": "Surface Details",
+          "type": "array"
+        },
+        "global_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Global Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "reference_analysis_path",
+        "camera_solution_path"
+      ],
+      "title": "ModelingPlan",
+      "type": "object"
+    },
+    "ModelingPlanObject": {
+      "additionalProperties": false,
+      "description": "Describe one semantic modeling target and its optional content-scope role.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "recommended_geometry": {
+          "default": "undecided",
+          "enum": [
+            "primitive",
+            "profile_extrude",
+            "revolve",
+            "curve",
+            "terrain",
+            "custom_mesh",
+            "undecided"
+          ],
+          "title": "Recommended Geometry",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Norm"
+        },
+        "observed": {
+          "default": true,
+          "title": "Observed",
+          "type": "boolean"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "scope_role": {
+          "anyOf": [
+            {
+              "enum": [
+                "primary",
+                "supporting",
+                "context"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scope Role"
+        },
+        "assembly_role": {
+          "default": "unclassified",
+          "enum": [
+            "unclassified",
+            "root",
+            "attached",
+            "free_standing"
+          ],
+          "title": "Assembly Role",
+          "type": "string"
+        },
+        "required_assembly_checks": {
+          "items": {
+            "enum": [
+              "position",
+              "axis",
+              "orientation",
+              "clearance"
+            ],
+            "type": "string"
+          },
+          "title": "Required Assembly Checks",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label"
+      ],
+      "title": "ModelingPlanObject",
+      "type": "object"
+    },
+    "NormalTransferModifier": {
+      "additionalProperties": false,
+      "description": "Transfer split normals only across a bounded source-facing boundary ring.",
+      "properties": {
+        "kind": {
+          "const": "normal_transfer",
+          "default": "normal_transfer",
+          "title": "Kind",
+          "type": "string"
+        },
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "max_distance": {
+          "default": 0.08,
+          "exclusiveMinimum": 0,
+          "title": "Max Distance",
+          "type": "number"
+        },
+        "boundary_axis": {
+          "default": "X",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Boundary Axis",
+          "type": "string"
+        },
+        "boundary_side": {
+          "default": "MIN",
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Boundary Side",
+          "type": "string"
+        },
+        "boundary_width": {
+          "default": 0.12,
+          "exclusiveMinimum": 0,
+          "title": "Boundary Width",
+          "type": "number"
+        },
+        "mix_factor": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Mix Factor",
+          "type": "number"
+        }
+      },
+      "required": [
+        "target_id"
+      ],
+      "title": "NormalTransferModifier",
+      "type": "object"
+    },
+    "ObjectSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "geometry": {
+          "discriminator": {
+            "mapping": {
+              "curve": "#/$defs/CurveGeometry",
+              "custom_mesh": "#/$defs/CustomMeshGeometry",
+              "primitive": "#/$defs/PrimitiveGeometry",
+              "profile_extrude": "#/$defs/ProfileExtrudeGeometry",
+              "revolve": "#/$defs/RevolveGeometry",
+              "terrain": "#/$defs/TerrainGeometry"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PrimitiveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CustomMeshGeometry"
+            },
+            {
+              "$ref": "#/$defs/ProfileExtrudeGeometry"
+            },
+            {
+              "$ref": "#/$defs/RevolveGeometry"
+            },
+            {
+              "$ref": "#/$defs/CurveGeometry"
+            },
+            {
+              "$ref": "#/$defs/TerrainGeometry"
+            }
+          ],
+          "title": "Geometry"
+        },
+        "transform": {
+          "$ref": "#/$defs/TransformSpec"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "modifiers": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "array": "#/$defs/ArrayModifier",
+                "bevel": "#/$defs/BevelModifier",
+                "boolean": "#/$defs/BooleanModifier",
+                "decimate": "#/$defs/DecimateModifier",
+                "mirror": "#/$defs/MirrorModifier",
+                "normal_transfer": "#/$defs/NormalTransferModifier",
+                "remesh": "#/$defs/RemeshModifier",
+                "solidify": "#/$defs/SolidifyModifier",
+                "subdivision": "#/$defs/SubdivisionModifier"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BevelModifier"
+              },
+              {
+                "$ref": "#/$defs/MirrorModifier"
+              },
+              {
+                "$ref": "#/$defs/SubdivisionModifier"
+              },
+              {
+                "$ref": "#/$defs/SolidifyModifier"
+              },
+              {
+                "$ref": "#/$defs/ArrayModifier"
+              },
+              {
+                "$ref": "#/$defs/DecimateModifier"
+              },
+              {
+                "$ref": "#/$defs/RemeshModifier"
+              },
+              {
+                "$ref": "#/$defs/BooleanModifier"
+              },
+              {
+                "$ref": "#/$defs/NormalTransferModifier"
+              }
+            ]
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "generator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArrayGenerator"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Parent Id"
+        },
+        "shade_smooth": {
+          "default": false,
+          "title": "Shade Smooth",
+          "type": "boolean"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSpec"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "editable": {
+          "additionalProperties": true,
+          "title": "Editable",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "geometry",
+        "material_id"
+      ],
+      "title": "ObjectSpec",
+      "type": "object"
+    },
+    "PairedFieldChange": {
+      "additionalProperties": false,
+      "description": "Record one exact normalized field diff without adding an operation executor.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "before": {
+          "title": "Before"
+        },
+        "after": {
+          "title": "After"
+        }
+      },
+      "required": [
+        "path",
+        "before",
+        "after"
+      ],
+      "title": "PairedFieldChange",
+      "type": "object"
+    },
+    "PrimitiveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "primitive",
+          "default": "primitive",
+          "title": "Kind",
+          "type": "string"
+        },
+        "primitive": {
+          "enum": [
+            "cube",
+            "cylinder",
+            "sphere",
+            "cone",
+            "torus"
+          ],
+          "title": "Primitive",
+          "type": "string"
+        },
+        "dimensions": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "segments": {
+          "default": 32,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "ring_segments": {
+          "default": 16,
+          "maximum": 256,
+          "minimum": 3,
+          "title": "Ring Segments",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "primitive",
+        "dimensions"
+      ],
+      "title": "PrimitiveGeometry",
+      "type": "object"
+    },
+    "ProfileExtrudeGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "profile_extrude",
+          "default": "profile_extrude",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 3,
+          "title": "Profile",
+          "type": "array"
+        },
+        "depth": {
+          "exclusiveMinimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "axis": {
+          "default": "Y",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "cap": {
+          "default": true,
+          "title": "Cap",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile",
+        "depth"
+      ],
+      "title": "ProfileExtrudeGeometry",
+      "type": "object"
+    },
+    "RemeshModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "remesh",
+          "default": "remesh",
+          "title": "Kind",
+          "type": "string"
+        },
+        "voxel_size": {
+          "exclusiveMinimum": 0,
+          "title": "Voxel Size",
+          "type": "number"
+        },
+        "smooth": {
+          "default": false,
+          "title": "Smooth",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "voxel_size"
+      ],
+      "title": "RemeshModifier",
+      "type": "object"
+    },
+    "RevolveGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "revolve",
+          "default": "revolve",
+          "title": "Kind",
+          "type": "string"
+        },
+        "profile": {
+          "description": "Pairs of [radius, height]",
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Profile",
+          "type": "array"
+        },
+        "axis": {
+          "default": "Z",
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "angle_deg": {
+          "default": 360.0,
+          "exclusiveMinimum": 0,
+          "maximum": 360,
+          "title": "Angle Deg",
+          "type": "number"
+        },
+        "segments": {
+          "default": 48,
+          "maximum": 512,
+          "minimum": 3,
+          "title": "Segments",
+          "type": "integer"
+        },
+        "cap_ends": {
+          "default": true,
+          "title": "Cap Ends",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "profile"
+      ],
+      "title": "RevolveGeometry",
+      "type": "object"
+    },
+    "SceneSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "0.2.0",
+          "default": "0.2.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "job_id": {
+          "title": "Job Id",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "concept",
+            "measured"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "units": {
+          "const": "METERS",
+          "default": "METERS",
+          "title": "Units",
+          "type": "string"
+        },
+        "coordinate_system": {
+          "$ref": "#/$defs/CoordinateSystem"
+        },
+        "nominal_scene_size": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Nominal Scene Size",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceSpec"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "materials": {
+          "items": {
+            "$ref": "#/$defs/MaterialSpec"
+          },
+          "title": "Materials",
+          "type": "array"
+        },
+        "objects": {
+          "items": {
+            "$ref": "#/$defs/ObjectSpec"
+          },
+          "title": "Objects",
+          "type": "array"
+        },
+        "camera": {
+          "$ref": "#/$defs/CameraSpec"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        },
+        "revision_notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Revision Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_id",
+        "mode",
+        "nominal_scene_size",
+        "sources",
+        "materials",
+        "objects",
+        "camera"
+      ],
+      "title": "SceneSpec",
+      "type": "object"
+    },
+    "SideSpecificRelationship": {
+      "additionalProperties": false,
+      "description": "Require an explicitly justified subject to remain on one side of a reference.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "side_specific",
+          "default": "side_specific",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Side",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "side"
+      ],
+      "title": "SideSpecificRelationship",
+      "type": "object"
+    },
+    "SolidifyModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "solidify",
+          "default": "solidify",
+          "title": "Kind",
+          "type": "string"
+        },
+        "thickness": {
+          "title": "Thickness",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "required": [
+        "thickness"
+      ],
+      "title": "SolidifyModifier",
+      "type": "object"
+    },
+    "SourceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "reference",
+            "front",
+            "right",
+            "top",
+            "blueprint",
+            "cad"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "immutable": {
+          "default": true,
+          "title": "Immutable",
+          "type": "boolean"
+        },
+        "scale_anchors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scale Anchors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "kind"
+      ],
+      "title": "SourceSpec",
+      "type": "object"
+    },
+    "SubdivisionModifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "subdivision",
+          "default": "subdivision",
+          "title": "Kind",
+          "type": "string"
+        },
+        "levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Levels",
+          "type": "integer"
+        },
+        "render_levels": {
+          "default": 2,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Render Levels",
+          "type": "integer"
+        },
+        "subdivision_type": {
+          "default": "CATMULL_CLARK",
+          "enum": [
+            "CATMULL_CLARK",
+            "SIMPLE"
+          ],
+          "title": "Subdivision Type",
+          "type": "string"
+        }
+      },
+      "title": "SubdivisionModifier",
+      "type": "object"
+    },
+    "SurfaceContactRelationship": {
+      "additionalProperties": false,
+      "description": "Require one subject bound face to meet one reference bound face.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "subject_id": {
+          "title": "Subject Id",
+          "type": "string"
+        },
+        "reference_id": {
+          "title": "Reference Id",
+          "type": "string"
+        },
+        "evidence_status": {
+          "default": "inferred",
+          "enum": [
+            "observed",
+            "inferred",
+            "measured",
+            "authored"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/AssemblyTolerance"
+        },
+        "instance_policy": {
+          "default": "family_bounds",
+          "enum": [
+            "family_bounds",
+            "pairwise",
+            "broadcast_reference"
+          ],
+          "title": "Instance Policy",
+          "type": "string"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        },
+        "kind": {
+          "const": "surface_contact",
+          "default": "surface_contact",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axis": {
+          "enum": [
+            "X",
+            "Y",
+            "Z"
+          ],
+          "title": "Axis",
+          "type": "string"
+        },
+        "subject_side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Subject Side",
+          "type": "string"
+        },
+        "reference_side": {
+          "enum": [
+            "MIN",
+            "MAX"
+          ],
+          "title": "Reference Side",
+          "type": "string"
+        },
+        "min_transverse_overlap_ratio": {
+          "default": 0.05,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Min Transverse Overlap Ratio",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "subject_id",
+        "reference_id",
+        "axis",
+        "subject_side",
+        "reference_side"
+      ],
+      "title": "SurfaceContactRelationship",
+      "type": "object"
+    },
+    "SurfaceDetailDecision": {
+      "additionalProperties": false,
+      "description": "Route one non-structural visible detail to portable texture evidence or omission.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "label": {
+          "title": "Label",
+          "type": "string"
+        },
+        "parent_object_id": {
+          "title": "Parent Object Id",
+          "type": "string"
+        },
+        "representation": {
+          "enum": [
+            "texture_channels",
+            "baked_decal",
+            "omit"
+          ],
+          "title": "Representation",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "bbox_norm": {
+          "anyOf": [
+            {
+              "maxItems": 4,
+              "minItems": 4,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bbox Norm"
+        },
+        "target_material_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Material Id"
+        },
+        "channels": {
+          "items": {
+            "enum": [
+              "base_color",
+              "roughness",
+              "metallic",
+              "normal",
+              "height",
+              "opacity",
+              "emission"
+            ],
+            "type": "string"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "uv_strategy": {
+          "anyOf": [
+            {
+              "enum": [
+                "existing_uv",
+                "projected_patch",
+                "material_atlas"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Strategy"
+        },
+        "projected_size_px": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projected Size Px"
+        },
+        "estimated_relief_m": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimated Relief M"
+        },
+        "repeated_count": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Repeated Count",
+          "type": "integer"
+        },
+        "silhouette_affecting": {
+          "default": false,
+          "title": "Silhouette Affecting",
+          "type": "boolean"
+        },
+        "structural": {
+          "default": false,
+          "title": "Structural",
+          "type": "boolean"
+        },
+        "gameplay_relevant": {
+          "default": false,
+          "title": "Gameplay Relevant",
+          "type": "boolean"
+        },
+        "physical_transparency_required": {
+          "default": false,
+          "title": "Physical Transparency Required",
+          "type": "boolean"
+        },
+        "evidence_status": {
+          "default": "observed",
+          "enum": [
+            "observed",
+            "inferred"
+          ],
+          "title": "Evidence Status",
+          "type": "string"
+        },
+        "confidence": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "parent_object_id",
+        "representation"
+      ],
+      "title": "SurfaceDetailDecision",
+      "type": "object"
+    },
+    "SurfaceDetailPolicy": {
+      "additionalProperties": false,
+      "description": "Define how small, surface-attached reference details should be represented.",
+      "properties": {
+        "mode": {
+          "default": "auto_balanced",
+          "enum": [
+            "auto_balanced",
+            "texture_preferred",
+            "geometry_preferred",
+            "explicit"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "default_representation": {
+          "default": "texture_channels",
+          "enum": [
+            "texture_channels",
+            "baked_decal",
+            "omit"
+          ],
+          "title": "Default Representation",
+          "type": "string"
+        },
+        "prefer_texture_for_repeated_details": {
+          "default": true,
+          "title": "Prefer Texture For Repeated Details",
+          "type": "boolean"
+        },
+        "max_texture_projected_size_px": {
+          "default": 128,
+          "minimum": 1,
+          "title": "Max Texture Projected Size Px",
+          "type": "integer"
+        },
+        "max_texture_relief_m": {
+          "default": 0.01,
+          "minimum": 0,
+          "title": "Max Texture Relief M",
+          "type": "number"
+        },
+        "geometry_required_conditions": {
+          "items": {
+            "enum": [
+              "silhouette",
+              "structural",
+              "gameplay",
+              "physical_transparency"
+            ],
+            "type": "string"
+          },
+          "title": "Geometry Required Conditions",
+          "type": "array"
+        },
+        "notes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Notes",
+          "type": "array"
+        }
+      },
+      "title": "SurfaceDetailPolicy",
+      "type": "object"
+    },
+    "TerrainGeometry": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "terrain",
+          "default": "terrain",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "height_grid",
+            "heightmap"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "size": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Size",
+          "type": "array"
+        },
+        "heights": {
+          "anyOf": [
+            {
+              "items": {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heights"
+        },
+        "heightmap_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Heightmap Path"
+        },
+        "resolution": {
+          "default": [
+            128,
+            128
+          ],
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "title": "Resolution",
+          "type": "array"
+        },
+        "skirt_depth": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Skirt Depth",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mode",
+        "size"
+      ],
+      "title": "TerrainGeometry",
+      "type": "object"
+    },
+    "TransformSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "location": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Location",
+          "type": "array"
+        },
+        "rotation_deg": {
+          "default": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Rotation Deg",
+          "type": "array"
+        },
+        "scale": {
+          "default": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Scale",
+          "type": "array"
+        }
+      },
+      "title": "TransformSpec",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind immutable source identities, selected candidate bytes and preserved observations.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "base_modeling_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Base Modeling Plan Sha256",
+      "type": "string"
+    },
+    "candidate_path": {
+      "title": "Candidate Path",
+      "type": "string"
+    },
+    "candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Sha256",
+      "type": "string"
+    },
+    "base_modeling_plan": {
+      "$ref": "#/$defs/ModelingPlan"
+    },
+    "candidate_modeling_plan": {
+      "$ref": "#/$defs/ModelingPlan"
+    },
+    "base_scene_spec": {
+      "$ref": "#/$defs/SceneSpec"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/PairedFieldChange"
+      },
+      "title": "Changes",
+      "type": "array"
+    },
+    "preserved_sources": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Preserved Sources",
+      "type": "object"
+    }
+  },
+  "required": [
+    "base_modeling_plan_sha256",
+    "candidate_path",
+    "candidate_sha256",
+    "base_modeling_plan",
+    "candidate_modeling_plan",
+    "base_scene_spec",
+    "changes",
+    "preserved_sources"
+  ],
+  "title": "PairedModelingPlanBinding",
+  "type": "object"
+}

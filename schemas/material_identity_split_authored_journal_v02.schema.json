@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind four exact archives and specialized one-use authority before the first write.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "apply_intent": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "approval_consumption": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "before": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 4,
+      "minProperties": 4,
+      "title": "Before",
+      "type": "object"
+    },
+    "after": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 4,
+      "minProperties": 4,
+      "title": "After",
+      "type": "object"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "apply_intent",
+    "approval_consumption",
+    "before",
+    "after"
+  ],
+  "title": "AuthoredMaterialIdentitySplitJournalV02",
+  "type": "object"
+}

@@ -170,6 +170,139 @@
       ],
       "title": "AssemblySanityViewPlan",
       "type": "object"
+    },
+    "DetailReviewContract": {
+      "additionalProperties": false,
+      "description": "Keep broad-phase declarations separate from actual manual visual evidence.",
+      "properties": {
+        "modeling_plan": {
+          "$ref": "#/$defs/ReviewArtifact"
+        },
+        "scene_spec": {
+          "$ref": "#/$defs/ReviewArtifact"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "internal_form_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Internal Form Target Ids",
+          "type": "array"
+        },
+        "attachment_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Attachment Target Ids",
+          "type": "array"
+        },
+        "observed_reference_target_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observed Reference Target Ids",
+          "type": "array"
+        },
+        "broad_phase_relation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Broad Phase Relation Ids",
+          "type": "array"
+        },
+        "surface_detail_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Surface Detail Ids",
+          "type": "array"
+        },
+        "attachment_evidence": {
+          "const": "broad_phase_only",
+          "default": "broad_phase_only",
+          "title": "Attachment Evidence",
+          "type": "string"
+        },
+        "internal_detail_evidence": {
+          "const": "unverified",
+          "default": "unverified",
+          "title": "Internal Detail Evidence",
+          "type": "string"
+        },
+        "surface_detail_appearance": {
+          "const": "unverified",
+          "default": "unverified",
+          "title": "Surface Detail Appearance",
+          "type": "string"
+        },
+        "automated_fidelity_verified": {
+          "const": false,
+          "default": false,
+          "title": "Automated Fidelity Verified",
+          "type": "boolean"
+        },
+        "review_scope": {
+          "const": "geometry_internal_form_and_attachment",
+          "default": "geometry_internal_form_and_attachment",
+          "title": "Review Scope",
+          "type": "string"
+        },
+        "material_appearance_verified": {
+          "const": false,
+          "default": false,
+          "title": "Material Appearance Verified",
+          "type": "boolean"
+        },
+        "whole_asset_fidelity_verified": {
+          "const": false,
+          "default": false,
+          "title": "Whole Asset Fidelity Verified",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "modeling_plan",
+        "scene_spec",
+        "internal_form_target_ids",
+        "attachment_target_ids",
+        "observed_reference_target_ids",
+        "broad_phase_relation_ids",
+        "surface_detail_ids"
+      ],
+      "title": "DetailReviewContract",
+      "type": "object"
+    },
+    "ReviewArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one contained immutable input without granting source-write authority.",
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "ReviewArtifact",
+      "type": "object"
     }
   },
   "additionalProperties": false,
@@ -252,10 +385,22 @@
       "default": "assembly_structural_v1",
       "enum": [
         "assembly_structural_v1",
-        "exterior_geometry_review_v2"
+        "exterior_geometry_review_v2",
+        "exterior_geometry_review_v3"
       ],
       "title": "Review Policy",
       "type": "string"
+    },
+    "detail_review_contract": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DetailReviewContract"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "assembly_frame": {
       "$ref": "#/$defs/AssemblyFrame"

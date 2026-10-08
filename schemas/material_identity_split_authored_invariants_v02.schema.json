@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind complete native/source equality and exact planned assignment changes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_native_inventory": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_native_inventory": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "root_proofs": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "status": {
+      "const": "passed",
+      "default": "passed",
+      "title": "Status",
+      "type": "string"
+    },
+    "geometry_topology_transform_uv_smoothing_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Geometry Topology Transform Uv Smoothing Unchanged",
+      "type": "boolean"
+    },
+    "root_domain_reference_camera_unchanged": {
+      "const": true,
+      "default": true,
+      "title": "Root Domain Reference Camera Unchanged",
+      "type": "boolean"
+    },
+    "material_assignments_exact": {
+      "const": true,
+      "default": true,
+      "title": "Material Assignments Exact",
+      "type": "boolean"
+    },
+    "full_native_shader_and_render_state_preserved": {
+      "const": true,
+      "default": true,
+      "title": "Full Native Shader And Render State Preserved",
+      "type": "boolean"
+    },
+    "authored_material_plan_preserved": {
+      "const": true,
+      "default": true,
+      "title": "Authored Material Plan Preserved",
+      "type": "boolean"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "plan",
+    "source_native_inventory",
+    "candidate_native_inventory",
+    "root_proofs"
+  ],
+  "title": "AuthoredMaterialIdentitySplitInvariantsV02",
+  "type": "object"
+}

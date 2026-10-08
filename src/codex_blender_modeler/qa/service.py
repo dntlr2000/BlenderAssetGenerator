@@ -232,8 +232,10 @@ def run_job_visual_qa(
     include_generated_target: bool = False,
     provider: QATargetProvider | None = None,
     target_prompt: str | None = None,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Run one fixed-camera QA cycle and stop after non-executable revision candidates."""
+    """Run fixed-camera QA with optional exact source-bound V0.3 mask evidence."""
 
     root = job_dir(job_id)
     metadata = load_job(job_id)
@@ -241,6 +243,15 @@ def run_job_visual_qa(
     spec = SceneSpec.model_validate_json(scene_spec_path.read_text(encoding="utf-8"))
     if spec.job_id != job_id:
         raise ValueError("job metadata and SceneSpec job_id do not match")
+    from .evidence_selection import load_reference_mask_selection, selection_artifact
+
+    selected_seed = selection_artifact(reference_mask_seed_path, reference_mask_seed_sha256)
+    seed_evidence = None
+    content_scope = str(metadata.get("reference_content_scope", "full_reference"))
+    if selected_seed is not None:
+        seed_evidence, _ = load_reference_mask_selection(
+            root, find_reference(job_id), spec, content_scope, selected_seed
+        )
     spec_hash = sha256_file(scene_spec_path)
     fingerprint = camera_fingerprint(spec)
     selected_run_id = _validate_run_id(run_id or _new_run_id(spec_hash))
@@ -271,13 +282,21 @@ def run_job_visual_qa(
             run_dir=run_dir,
         )
     reference_path = find_reference(job_id)
+    if selected_seed is not None:
+        if sha256_file(scene_spec_path) != spec_hash:
+            raise ValueError("selected reference mask QA SceneSpec changed during rendering")
+        seed_evidence, _ = load_reference_mask_selection(
+            root, reference_path, spec, content_scope, selected_seed
+        )
     reference_mask_path, reference_mask_manifest_path = prepare_run_reference_mask(
         root=root,
         run_dir=run_dir,
         reference_path=reference_path,
         analysis_mask_path=_reference_content_mask(root),
         spec=spec,
-        reference_content_scope=str(metadata.get("reference_content_scope", "full_reference")),
+        reference_content_scope=content_scope,
+        **({"seed_evidence": seed_evidence, "seed_evidence_source": selected_seed}
+           if selected_seed is not None else {}),
     )
     request = create_visual_qa_request(
         job_id=job_id,
@@ -349,6 +368,11 @@ def run_job_visual_qa(
         )
         raise ValueError(f"Surface-detail QA prerequisite failed: {failures}")
     surface_warnings = [item.message for item in surface_report.checks if item.status == "warning"]
+    surface_warnings.append(
+        "Surface-detail counts and texture bindings are contract coverage only, not visible "
+        "appearance verification. Empty declarations do not establish that reference details "
+        "are unnecessary; geometry-worthy internal forms need separate visual review."
+    )
     surface_status = (
         surface_report.material_status
         if (root / "analysis" / "modeling_plan.json").is_file()

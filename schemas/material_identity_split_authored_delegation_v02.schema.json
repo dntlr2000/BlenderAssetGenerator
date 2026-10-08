@@ -1,0 +1,236 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "MaterialIdentityCloneRuleV02": {
+      "additionalProperties": false,
+      "description": "Declare one exclusive host and every existing detail row for its new identity.",
+      "properties": {
+        "source_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Material Id",
+          "type": "string"
+        },
+        "new_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "New Material Id",
+          "type": "string"
+        },
+        "target_object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Object Id",
+          "type": "string"
+        },
+        "surface_detail_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Surface Detail Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_material_id",
+        "new_material_id",
+        "target_object_id",
+        "surface_detail_ids"
+      ],
+      "title": "MaterialIdentityCloneRuleV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind the actual user question/reply to one narrow current-source split, not future hashes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "const": "authored_material_registered_solid_root_delegated_technical",
+      "default": "authored_material_registered_solid_root_delegated_technical",
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "delegation_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Delegation Id",
+      "type": "string"
+    },
+    "original_delegation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Original Delegation Id",
+      "type": "string"
+    },
+    "question": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "reply": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "question_message_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Question Message Id",
+      "type": "string"
+    },
+    "reply_message_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reply Message Id",
+      "type": "string"
+    },
+    "delegation_observed_at": {
+      "format": "date-time",
+      "title": "Delegation Observed At",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 5,
+      "minProperties": 5,
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "source_dependency_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 512,
+      "minProperties": 1,
+      "title": "Source Dependency Sha256",
+      "type": "object"
+    },
+    "clone_rules": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentityCloneRuleV02"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Clone Rules",
+      "type": "array"
+    },
+    "delegated_by": {
+      "const": "user",
+      "default": "user",
+      "title": "Delegated By",
+      "type": "string"
+    },
+    "decision_actor": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Decision Actor",
+      "type": "string"
+    },
+    "approval_scope": {
+      "const": "material_identity_split",
+      "default": "material_identity_split",
+      "title": "Approval Scope",
+      "type": "string"
+    },
+    "allowed_action": {
+      "const": "select_and_approve_exact_specialized_technical_candidate",
+      "default": "select_and_approve_exact_specialized_technical_candidate",
+      "title": "Allowed Action",
+      "type": "string"
+    },
+    "explicit_delegation_observed": {
+      "const": true,
+      "default": true,
+      "title": "Explicit Delegation Observed",
+      "type": "boolean"
+    },
+    "user_approved_future_candidate_hashes": {
+      "const": false,
+      "default": false,
+      "title": "User Approved Future Candidate Hashes",
+      "type": "boolean"
+    },
+    "geometry_or_uv_change_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Geometry Or Uv Change Allowed",
+      "type": "boolean"
+    },
+    "reference_or_content_scope_change_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Reference Or Content Scope Change Allowed",
+      "type": "boolean"
+    },
+    "material_appearance_change_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Material Appearance Change Allowed",
+      "type": "boolean"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    },
+    "aq_authority_created": {
+      "const": false,
+      "default": false,
+      "title": "Aq Authority Created",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "delegation_id",
+    "original_delegation_id",
+    "question",
+    "reply",
+    "question_message_id",
+    "reply_message_id",
+    "delegation_observed_at",
+    "source_sha256",
+    "source_dependency_sha256",
+    "clone_rules"
+  ],
+  "title": "AuthoredMaterialIdentitySplitDelegationV02",
+  "type": "object"
+}

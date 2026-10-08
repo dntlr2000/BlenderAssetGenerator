@@ -991,13 +991,18 @@ def test_revision_host_postcheck_rejects_mid_execution_modeling_plan_drift(
         )
 
     def accept_dependency_fixture(*_args: object, **_kwargs: object) -> None:
-        """Bypass unrelated predecessor snapshots in this post-check unit fixture."""
+        """Bypass predecessor snapshot/payload guards absent from this synthetic unit fixture."""
 
         return None
 
     monkeypatch.setattr(
         orchestration_service,
         "_verify_dependency_sources",
+        accept_dependency_fixture,
+    )
+    monkeypatch.setattr(
+        orchestration_service,
+        "_validate_post_apply_revision_binding",
         accept_dependency_fixture,
     )
     monkeypatch.setattr(orchestration_service, "_execute_host_tool", mutate_plan)

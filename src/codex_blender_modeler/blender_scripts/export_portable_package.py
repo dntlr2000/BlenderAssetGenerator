@@ -23,6 +23,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from optical_volume_runtime import (  # noqa: E402
+    validate_optical_volume_objects,
+    verify_exported_optical_volume,
+)
 from portable_asset_common import (  # noqa: E402
     object_inventory,
     operator_kwargs,
@@ -75,9 +79,7 @@ def _create_portable_gltf_temp_root(package_root: Path) -> Path:
     package_token = re.sub(r"[^A-Za-z0-9]+", "-", package_root.name).strip("-")[:16]
     package_token = package_token or "package"
     for _attempt in range(16):
-        candidate = temp_base / (
-            f"cbm-gltf-{package_token}-{os.getpid()}-{secrets.token_hex(4)}"
-        )
+        candidate = temp_base / (f"cbm-gltf-{package_token}-{os.getpid()}-{secrets.token_hex(4)}")
         try:
             candidate.mkdir(mode=0o777)
         except FileExistsError:
@@ -355,8 +357,7 @@ def _verify_portable_tangent_basis(
                 values = tuple(float(value) for value in loop.tangent)
                 sign = float(loop.bitangent_sign)
                 if not all(
-                    value == value and abs(value) != float("inf")
-                    for value in (*values, sign)
+                    value == value and abs(value) != float("inf") for value in (*values, sign)
                 ):
                     invalid += 1
             if invalid:
@@ -894,10 +895,7 @@ def _mesh_corner_normals(mesh: bpy.types.Mesh) -> list[Any]:
                 values[loop_index] = polygon.normal.copy()
     if any(value is None for value in values):
         raise RuntimeError("glTF serialization could not resolve every corner normal")
-    if any(
-        not all(math.isfinite(float(value[index])) for index in range(3))
-        for value in values
-    ):
+    if any(not all(math.isfinite(float(value[index])) for index in range(3)) for value in values):
         raise RuntimeError("glTF serialization encountered a non-finite corner normal")
     return values
 
@@ -918,13 +916,9 @@ def _capture_polygon_corner_normals(
         ):
             vertex_key = int(vertex_index)
             if vertex_key in by_vertex:
-                raise RuntimeError(
-                    "glTF serialization source polygon repeats a corner vertex"
-                )
+                raise RuntimeError("glTF serialization source polygon repeats a corner vertex")
             normal = corner_normals[loop_index]
-            by_vertex[vertex_key] = tuple(
-                float(normal[index]) for index in range(3)
-            )
+            by_vertex[vertex_key] = tuple(float(normal[index]) for index in range(3))
         if len(by_vertex) < 3:
             raise RuntimeError("glTF serialization encountered an invalid source polygon")
         records[int(polygon.index)] = (int(polygon.material_index), by_vertex)
@@ -950,14 +944,10 @@ def _capture_bmesh_triangle_corner_normals(
         source_polygon_index = int(face[source_face_layer])
         source_record = source_records.get(source_polygon_index)
         if source_record is None:
-            raise RuntimeError(
-                "glTF serialization triangulation lost source polygon identity"
-            )
+            raise RuntimeError("glTF serialization triangulation lost source polygon identity")
         source_material_index, source_normals = source_record
         if int(face.material_index) != source_material_index:
-            raise RuntimeError(
-                "glTF serialization triangulation changed source material identity"
-            )
+            raise RuntimeError("glTF serialization triangulation changed source material identity")
         vertices = tuple(int(vertex.index) for vertex in face.verts)
         try:
             by_vertex = {vertex: source_normals[vertex] for vertex in vertices}
@@ -1002,9 +992,7 @@ def _restore_triangulated_corner_normals(
                 raise RuntimeError(
                     "glTF serialization triangulation changed triangle corners"
                 ) from exc
-    if any(values for values in remaining.values()) or any(
-        normal is None for normal in restored
-    ):
+    if any(values for values in remaining.values()) or any(normal is None for normal in restored):
         raise RuntimeError(
             "glTF serialization triangulation did not preserve every source corner normal"
         )
@@ -1026,10 +1014,7 @@ def _serialization_collinear_slivers(
         if len(face.verts) != 3:
             continue
         coordinates = [obj.matrix_world @ vertex.co for vertex in face.verts]
-        edges = [
-            coordinates[(index + 1) % 3] - coordinates[index]
-            for index in range(3)
-        ]
+        edges = [coordinates[(index + 1) % 3] - coordinates[index] for index in range(3)]
         maximum_edge_squared = max(edge.length_squared for edge in edges)
         if maximum_edge_squared <= 0.0:
             result.append(face)
@@ -1058,17 +1043,12 @@ def normalize_gltf_serialization_topology(
             "format": format_name,
             "reason": "format_does_not_require_gltf_triangle_serialization",
         }
-    if (collinear_sliver_maximum_area_m2 is None) != (
-        collinear_sliver_maximum_ratio is None
-    ):
+    if (collinear_sliver_maximum_area_m2 is None) != (collinear_sliver_maximum_ratio is None):
         raise ValueError("glTF collinear-sliver thresholds must be supplied together")
-    if (
-        collinear_sliver_maximum_area_m2 is not None
-        and (
-            collinear_sliver_maximum_area_m2 <= 0.0
-            or collinear_sliver_maximum_ratio is None
-            or collinear_sliver_maximum_ratio <= 0.0
-        )
+    if collinear_sliver_maximum_area_m2 is not None and (
+        collinear_sliver_maximum_area_m2 <= 0.0
+        or collinear_sliver_maximum_ratio is None
+        or collinear_sliver_maximum_ratio <= 0.0
     ):
         raise ValueError("glTF collinear-sliver thresholds must be positive")
     import bmesh
@@ -1091,8 +1071,7 @@ def normalize_gltf_serialization_topology(
         removed_collinear_face_count = 0
         expected_triangles_after = triangles_before
         rewrite_requested = bool(
-            non_tri_faces_before
-            or collinear_sliver_maximum_area_m2 is not None
+            non_tri_faces_before or collinear_sliver_maximum_area_m2 is not None
         )
         if rewrite_requested:
             source_normal_records = _capture_polygon_corner_normals(mesh)
@@ -1101,9 +1080,7 @@ def normalize_gltf_serialization_topology(
                 editable.from_mesh(mesh)
                 editable.faces.ensure_lookup_table()
                 editable.faces.index_update()
-                source_face_layer = editable.faces.layers.int.new(
-                    "cbm_source_polygon_index"
-                )
+                source_face_layer = editable.faces.layers.int.new("cbm_source_polygon_index")
                 for face in editable.faces:
                     face[source_face_layer] = int(face.index)
                 faces = [face for face in editable.faces if len(face.verts) != 3]
@@ -1145,10 +1122,7 @@ def normalize_gltf_serialization_topology(
         remaining_non_tri_faces = sum(1 for polygon in mesh.polygons if len(polygon.vertices) != 3)
         if remaining_non_tri_faces:
             raise RuntimeError(f"glTF serialization mesh remains non-triangular: {obj.name}")
-        if (
-            triangles_after != expected_triangles_after
-            or polygons_after != triangles_after
-        ):
+        if triangles_after != expected_triangles_after or polygons_after != triangles_after:
             raise RuntimeError(
                 f"glTF serialization triangulation changed triangle identity: {obj.name}"
             )
@@ -1376,6 +1350,10 @@ def main() -> None:
         }
     )
     serialization_topology = normalize_gltf_serialization_topology(selected, args.format)
+    optics = validate_optical_volume_objects(selected, require_stored_geometry=True)
+    optical_active = bool(optics)
+    if optics and args.format not in {"glb", "gltf"}:
+        raise ValueError("Opt-in optical-volume packages currently require glTF/GLB")
     allowed_object_properties = (
         STATIC_PAYLOAD_OBJECT_PROPERTIES if args.static_payload else PORTABLE_OBJECT_PROPERTIES
     )
@@ -1393,6 +1371,9 @@ def main() -> None:
         else []
     )
     operator = export_selected(args.format, output)
+    optical_serialization = verify_exported_optical_volume(
+        output, args.format, optics, strict_opt_in=optical_active
+    )
     fbx_path_rewrite_count = (
         sanitize_fbx_absolute_paths(
             output,
@@ -1473,6 +1454,9 @@ def main() -> None:
     }
     if not args.static_payload:
         manifest["include_colliders"] = bool(args.include_colliders)
+    if optics:
+        manifest["optical_volume_boundary_evidence"] = optics
+        manifest["optical_volume_serialization"] = optical_serialization
     write_json(manifest_path, manifest)
     print(
         "CBM_ASSET_PACKAGE_OK "

@@ -19,7 +19,7 @@ from codex_blender_modeler.reference_fidelity.source_snapshot import validate_bu
 
 
 def file_fixture(tmp_path, monkeypatch, *, object_limit=None):
-    """Produce V0.6 files using the canonical request hash, distinct from its file hash."""
+    """Create exact V0.6 evidence; cloned budget-only objects carry no new observations."""
 
     root, target = _job_fixture(tmp_path, monkeypatch)
     if object_limit is not None:
@@ -29,6 +29,9 @@ def file_fixture(tmp_path, monkeypatch, *, object_limit=None):
         scene["objects"] = [json.loads(json.dumps(prototype)) for _ in range(object_limit)]
         for index, item in enumerate(scene["objects"][1:], start=1):
             item["id"] = f"{target}.fixture{index}"
+            for entry in item["evidence"]:
+                entry["status"] = "inferred"
+                entry["confidence"] = 0.3
         path.write_text(json.dumps(scene), encoding="utf-8")
     monkeypatch.setattr(qa_service, "_render_job_qa_passes", _mock_render(root, target))
     qa_service.run_job_visual_qa("asset_qa", run_id="fixture")

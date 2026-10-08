@@ -1,0 +1,61 @@
+{
+  "additionalProperties": false,
+  "description": "Retain complete existing binary64 and binary32 proof payloads for source and candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_binary64": {
+      "additionalProperties": true,
+      "title": "Source Binary64",
+      "type": "object"
+    },
+    "source_float32": {
+      "additionalProperties": true,
+      "title": "Source Float32",
+      "type": "object"
+    },
+    "candidate_binary64": {
+      "additionalProperties": true,
+      "title": "Candidate Binary64",
+      "type": "object"
+    },
+    "candidate_float32": {
+      "additionalProperties": true,
+      "title": "Candidate Float32",
+      "type": "object"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "source_binary64",
+    "source_float32",
+    "candidate_binary64",
+    "candidate_float32"
+  ],
+  "title": "AuthoredMaterialIdentitySplitRootProofsV02",
+  "type": "object"
+}

@@ -1,0 +1,133 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "external_asset_manifest",
+            "external_source",
+            "external_dependency",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_normalization_evidence",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Append an immutable, exact single-use receipt without rewriting the grant.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "delegated_optimization_consumption",
+      "default": "delegated_optimization_consumption",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "authorization": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "actor": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Actor",
+      "type": "string"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    },
+    "consumed_at": {
+      "format": "date-time",
+      "title": "Consumed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "authorization",
+    "source_fingerprint",
+    "plan_sha256",
+    "consumed_at"
+  ],
+  "title": "DelegatedOptimizationConsumptionV01",
+  "type": "object"
+}

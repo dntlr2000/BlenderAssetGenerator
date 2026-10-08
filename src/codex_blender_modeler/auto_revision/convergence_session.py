@@ -18,6 +18,7 @@ from ..constraints.models import ConstraintResult
 from ..models import SceneSpec
 from ..orchestration.locks import workflow_write_lock
 from ..orchestration.models import WorkflowAttempt, WorkflowPlan, WorkflowStepCompletion
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.hashing import canonical_model_sha256
 from ..qa.models import RenderPassManifest, VisualQAReport, VisualQARequest
 from ..qa.multiview_sanity import (
@@ -1023,8 +1024,10 @@ def _target_reached(
     plan: VisualConvergencePlan,
     report: VisualQAReport,
 ) -> bool:
-    """Return whether both approved direct-reference targets are satisfied."""
+    """Check approved targets only when the new report has no part-evidence blocker."""
 
+    if direct_evidence_requires_review(report):
+        raise ValueError("semantic part evidence requires review before convergence targets")
     metrics = report.direct_metrics
     return (
         metrics.overall_direct_score >= plan.target_direct_score

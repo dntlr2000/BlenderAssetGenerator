@@ -9,6 +9,7 @@ from ..autonomy.io import write_immutable_json
 from ..blender_artifacts import native_io_path, publish_bytes_create_once, sha256_file
 from ..models import SceneSpec
 from ..production.validation import ensure_contained_production_path
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.hashing import canonical_model_sha256
 from ..qa.models import RenderPassManifest, VisualQAReport, VisualQARequest
 from .models import (
@@ -183,7 +184,7 @@ def validate_review_evidence(
     hypothesis: ModelingHypothesisV01,
     review: VisualFindingSetV01,
 ) -> VisualQAReport:
-    """Cross-check observations, source snapshots, seven passes and actual V0.6 identity."""
+    """Cross-check exact render evidence and refuse explicitly unsubstantiated part scores."""
 
     if (
         ModelingHypothesisV01.model_validate_json(read_artifact(root, review.hypothesis))
@@ -272,6 +273,8 @@ def validate_review_evidence(
         read_artifact(root, artifact)
     if request.preview_sha256 != evidence.passes["beauty"].sha256:
         raise ValueError("review beauty differs from QA request")
+    if direct_evidence_requires_review(report):
+        raise ValueError("semantic part evidence requires review before fidelity scoring")
     return report
 
 
@@ -282,7 +285,7 @@ def _validate_reference_seed_manifest(
     request: VisualQARequest,
     request_artifact: FidelityArtifact,
 ) -> None:
-    """Require exact selected seeds and any V0.2 run-owned constraint snapshot."""
+    """Require exact selected seeds, trimap, and any V0.3 run-owned subject extent snapshot."""
     from ..blender_artifacts import stable_json_digest
     from ..qa.reference_mask import validate_explicit_reference_seeds
     from ..reference_scope import subject_object_ids
@@ -317,12 +320,16 @@ def _validate_reference_seed_manifest(
     mask = artifact_at(root, directory / "reference_mask.png")
     if mask.sha256 != request.reference_mask_sha256:
         raise ValueError("rendered reference mask bytes changed")
-    from .models import ReferenceMaskSeedEvidenceV02
+    from .models import ReferenceMaskSeedEvidenceV02, ReferenceMaskSeedEvidenceV03
 
     if isinstance(expected, ReferenceMaskSeedEvidenceV02):
         from ..qa.reference_mask_constraints import validate_trimap_manifest
 
         validate_trimap_manifest(root, directory, manifest, expected)
+    if isinstance(expected, ReferenceMaskSeedEvidenceV03):
+        from ..qa.reference_subject_extent import validate_subject_extent_manifest
+
+        validate_subject_extent_manifest(root, directory, manifest, expected)
 
 
 def _comparison_conditions(root: Path, review: VisualFindingSetV01) -> object:

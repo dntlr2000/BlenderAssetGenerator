@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "description": "Certify exact source restoration after an interrupted, non-replayable transaction.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "rolled_back",
+      "default": "rolled_back",
+      "title": "Status",
+      "type": "string"
+    },
+    "intent_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intent Sha256",
+      "type": "string"
+    },
+    "before": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 2,
+      "minProperties": 2,
+      "propertyNames": {
+        "enum": [
+          "analysis/scene_spec.json",
+          "analysis/modeling_plan.json"
+        ]
+      },
+      "title": "Before",
+      "type": "object"
+    }
+  },
+  "required": [
+    "intent_sha256",
+    "before"
+  ],
+  "title": "PairedRollbackReceipt",
+  "type": "object"
+}

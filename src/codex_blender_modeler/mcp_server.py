@@ -236,6 +236,7 @@ from .material_closure_public import (
 from .material_closure_public import (
     supersede_material_retry as supersede_material_retry_internal,
 )
+from .material_identity_split import authored_public
 from .material_identity_split_public import (
     apply_material_identity_split_public as apply_material_identity_split_internal,
 )
@@ -280,6 +281,11 @@ from .optimization import (
 from .optimization import (
     preflight_asset as preflight_asset_internal,
 )
+from .optimization.delegated import (
+    authorize_delegated_asset_optimization,
+    create_delegated_optimization_scope,
+)
+from .optimization.delegated_workflow import bind_delegated_optimization_workflow
 from .orchestration import (
     approve_workflow_gate as approve_workflow_gate_internal,
 )
@@ -289,6 +295,9 @@ from .orchestration import destination_adapters as destination_adapters_internal
 from .orchestration import get_workflow_status as get_workflow_status_internal
 from .orchestration import plan_workflow as plan_workflow_internal
 from .orchestration import reconcile_workflow as reconcile_workflow_internal
+from .orchestration import (
+    recover_paired_workflow_revision as recover_paired_workflow_revision_internal,
+)
 from .orchestration import resume_workflow as resume_workflow_internal
 from .orchestration.models import WorkflowBudgets
 from .packaging import (
@@ -818,6 +827,21 @@ def get_modeling_capabilities() -> dict:
             "material_plan_promotion": False,
             "automatic_migration": False,
             "destination_writes": False,
+        },
+        "authored_material_identity_split": {
+            "contract_version": "0.2.0",
+            "profile": "authored_material_registered_solid_root_user_only",
+            "profiles": [
+                "authored_material_registered_solid_root_user_only",
+                "authored_material_registered_solid_root_delegated_technical",
+            ],
+            "approval": "exact specialized USER decision bytes only",
+            "canonical_writer": "host_owned_four_file_cas",
+            "material_plan_preserved": True,
+            "material_closure_status": "pending_native_material_workflow",
+            "automatic_migration": False,
+            "delegated_authority": "explicit_source_bound_specialized_technical_profile_only",
+            "appearance_or_human_acceptance": False,
         },
         "feature_flags": {
             "material_core": feature_config.features.material_core,
@@ -1612,6 +1636,103 @@ def run_material_repair_session(
         plan_path=plan_path,
         source_binding_path=source_binding_path,
         preview_size=preview_size,
+    )
+
+
+
+@mcp.tool()
+def plan_authored_material_identity_split(
+    job_id: str,
+    run_id: str,
+    clone_rules_path: str,
+    source_material_plan_mode: str = "current",
+    delegation_path: str | None = None,
+) -> dict:
+    """Prepare explicit 0.2 authored-material solid-root candidates without approval."""
+    return authored_public.plan_authored_material_identity_split_public(
+        job_id,
+        run_id=run_id,
+        clone_rules_path=clone_rules_path,
+        source_material_plan_mode=source_material_plan_mode,
+        delegation_path=delegation_path,
+    )
+
+
+@mcp.tool()
+def run_authored_material_identity_split_preapproval(job_id: str, plan_path: str) -> dict:
+    """Run exact isolated native preapproval and stop at the specialized user request."""
+    return authored_public.run_authored_material_identity_split_preapproval_public(
+        job_id, plan_path=plan_path
+    )
+
+
+@mcp.tool()
+def get_authored_material_identity_split_status(job_id: str, run_id: str) -> dict:
+    """Read one explicit authored specialized run without advancing authority."""
+    return authored_public.get_authored_material_identity_split_status(job_id, run_id=run_id)
+
+
+@mcp.tool()
+def get_authored_material_identity_split_approval_request(
+    job_id: str, approval_request_path: str
+) -> dict:
+    """Read an exact authored specialized request without treating it as approval."""
+    return authored_public.get_authored_material_identity_split_approval_request(
+        job_id, approval_request_path=approval_request_path
+    )
+
+
+@mcp.tool()
+def approve_authored_material_identity_split(
+    job_id: str,
+    approval_request_path: str,
+    approval_path: str,
+    user_decision_path: str,
+    explicit_user_decision_observed: bool,
+) -> dict:
+    """Publish caller-authored specialized approval and exact observed user-decision bytes."""
+    return authored_public.approve_authored_material_identity_split(
+        job_id,
+        approval_request_path=approval_request_path,
+        approval_path=approval_path,
+        user_decision_path=user_decision_path,
+        explicit_user_decision_observed=explicit_user_decision_observed,
+    )
+
+
+@mcp.tool()
+def approve_authored_material_identity_split_technical(
+    job_id: str,
+    approval_request_path: str,
+    technical_approval_path: str,
+    technical_decision_path: str,
+    explicit_technical_decision_observed: bool,
+) -> dict:
+    """Publish distinct bounded delegated technical authority, never user or AQ approval."""
+    return authored_public.approve_authored_material_identity_split_technical(
+        job_id,
+        approval_request_path=approval_request_path,
+        technical_approval_path=technical_approval_path,
+        technical_decision_path=technical_decision_path,
+        explicit_technical_decision_observed=explicit_technical_decision_observed,
+    )
+
+
+@mcp.tool()
+def apply_authored_material_identity_split(job_id: str, apply_intent_path: str) -> dict:
+    """Consume one exact specialized user-only four-file CAS intent."""
+    return authored_public.apply_authored_material_identity_split_public(
+        job_id, apply_intent_path=apply_intent_path
+    )
+
+
+@mcp.tool()
+def recover_authored_material_identity_split(
+    job_id: str, run_id: str, apply_intent_sha256: str
+) -> dict:
+    """Recover an exact partial four-file journal without creating another authority."""
+    return authored_public.recover_authored_material_identity_split_public(
+        job_id, run_id=run_id, apply_intent_sha256=apply_intent_sha256
     )
 
 
@@ -2591,6 +2712,7 @@ def plan_short_workflow(
     target_subject: str | None = None,
     execution_policy: str = "standard",
     revision_strategy: str = "candidate_review",
+    geometry_review_policy: str = "exterior_geometry_review_v2",
     delivery_scope: str | None = None,
     mode: str = "concept",
     view_kind: str | None = None,
@@ -2606,18 +2728,38 @@ def plan_short_workflow(
     max_lod0_triangles: int | None = None,
     external_provider_budget: int = 0,
     include_destination_handoff: bool = False,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
+    paired_modeling_plan_path: str | None = None,
+    paired_modeling_plan_sha256: str | None = None,
+    attachment_intent_path: str | None = None,
+    attachment_intent_sha256: str | None = None,
 ) -> dict:
-    """Route one short request into an immutable, approval-aware V0.8 workflow."""
+    """Plan immutable workflows with optional exact QA evidence or paired guarded revisions."""
 
     state = plan_workflow_internal(
         request,
         job_id=job_id,
         reference_path=reference_path,
+        **({"reference_mask_seed_path": reference_mask_seed_path,
+            "reference_mask_seed_sha256": reference_mask_seed_sha256}
+           if reference_mask_seed_path is not None or reference_mask_seed_sha256 is not None
+           else {}),
+        **({"attachment_intent_path": attachment_intent_path,
+            "attachment_intent_sha256": attachment_intent_sha256}
+           if attachment_intent_path is not None or attachment_intent_sha256 is not None
+           else {}),
+        **({"paired_modeling_plan_path": paired_modeling_plan_path,
+            "paired_modeling_plan_sha256": paired_modeling_plan_sha256}
+           if paired_modeling_plan_path is not None or paired_modeling_plan_sha256 is not None
+           else {}),
         intent=intent,
         scope=scope,
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        **({"geometry_review_policy": geometry_review_policy}
+           if geometry_review_policy != "exterior_geometry_review_v2" else {}),
         revision_strategy=revision_strategy,
         delivery_scope=delivery_scope,
         mode=mode,
@@ -2830,14 +2972,25 @@ def resume_short_workflow(
     workflow_id: str,
     max_host_steps: int | None = None,
     retry_failed: bool = False,
+    material_swatch_backend: str | None = None,
+    material_swatch_input_fingerprint: str | None = None,
+    material_swatch_failed_attempt_sha256: str | None = None,
 ) -> dict:
-    """Run deterministic host steps and retry a failure only when explicitly requested."""
+    """Resume native work with optional exact swatch backend and explicit failed-retry binding."""
 
     return resume_workflow_internal(
         job_id,
         workflow_id,
         max_host_steps=max_host_steps,
         retry_failed=retry_failed,
+        **({
+            "material_swatch_backend": material_swatch_backend,
+            "material_swatch_input_fingerprint": material_swatch_input_fingerprint,
+            "material_swatch_failed_attempt_sha256": material_swatch_failed_attempt_sha256,
+        } if any(value is not None for value in (
+            material_swatch_backend, material_swatch_input_fingerprint,
+            material_swatch_failed_attempt_sha256,
+        )) else {}),
     ).model_dump(mode="json")
 
 
@@ -2895,6 +3048,19 @@ def get_destination_adapters() -> dict:
     """List validated destination adapters and engine-neutral fallback behavior."""
 
     return destination_adapters_internal()
+
+
+@mcp.tool()
+def recover_paired_workflow_revision(
+    job_id: str,
+    workflow_id: str,
+    intent_sha256: str,
+) -> dict:
+    """Roll back one interrupted paired transaction using its exact immutable intent SHA-256."""
+
+    return recover_paired_workflow_revision_internal(
+        job_id, workflow_id, intent_sha256=intent_sha256,
+    )
 
 
 @mcp.tool()
@@ -3099,6 +3265,7 @@ def plan_assembly_multiview_sanity(
     job_id: str,
     run_id: str | None = None,
     resolution: int = 384,
+    review_policy: str = "exterior_geometry_review_v2",
 ) -> dict:
     """Plan structural assembly views without replacing any specialized approval."""
 
@@ -3110,6 +3277,8 @@ def plan_assembly_multiview_sanity(
         job_id,
         run_id=run_id,
         resolution=resolution,
+        **({"review_policy": review_policy}
+           if review_policy != "exterior_geometry_review_v2" else {}),
     )
 
 
@@ -3502,8 +3671,10 @@ def run_visual_qa(
     target_seed: int | None = None,
     target_allowed_root: str | None = None,
     target_prompt: str | None = None,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
 ) -> dict:
-    """Run direct QA and optionally import one explicit advisory target image."""
+    """Run direct QA with explicit hash-bound source-mask or advisory target opt-ins."""
 
     config = load_feature_config()
     include_target = include_generated_target or target_image_path is not None
@@ -3541,6 +3712,10 @@ def run_visual_qa(
         include_generated_target=include_target,
         provider=provider,
         target_prompt=target_prompt.strip() if target_prompt else None,
+        **({"reference_mask_seed_path": reference_mask_seed_path,
+            "reference_mask_seed_sha256": reference_mask_seed_sha256}
+           if reference_mask_seed_path is not None or reference_mask_seed_sha256 is not None
+           else {}),
     )
 
 
@@ -3925,11 +4100,100 @@ def approve_portable_asset_optimization(
 
 
 @mcp.tool()
+def validate_portable_package_delegation(package_directory: str) -> dict:
+    """Validate sealed relocated authority bytes only; never execute or accept an asset."""
+
+    from .packaging.delegated import validate_delegated_package_authority
+
+    return validate_delegated_package_authority(package_directory)
+
+
+@mcp.tool()
+def create_portable_asset_delegation(
+    job_id: str,
+    delegation_id: str,
+    delegation_text_path: str,
+    delegation_text_sha256: str,
+    extension_confirmation_text_path: str,
+    extension_confirmation_text_sha256: str,
+    task_context_id: str,
+    expires_at: str,
+    allowed_assets_json: str,
+    extension_confirmation: str,
+    enable_delegated_authority: bool = False,
+) -> dict:
+    """Snapshot explicitly confirmed text and an expiring five-asset technical scope."""
+
+    return create_delegated_optimization_scope(
+        job_id,
+        delegation_id=delegation_id,
+        delegation_text_path=delegation_text_path,
+        delegation_text_sha256=delegation_text_sha256,
+        extension_confirmation_text_path=extension_confirmation_text_path,
+        extension_confirmation_text_sha256=extension_confirmation_text_sha256,
+        task_context_id=task_context_id,
+        expires_at=expires_at,
+        allowed_assets_json=allowed_assets_json,
+        extension_confirmation=extension_confirmation,
+        enable_delegated_authority=enable_delegated_authority,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def delegate_portable_asset_optimization(
+    job_id: str,
+    run_id: str,
+    plan_sha256: str,
+    scope_path: str,
+    scope_sha256: str,
+    decision_note: str,
+    enable_delegated_authority: bool = False,
+) -> dict:
+    """Issue an exact single-use delegated assistant grant, never user approval."""
+
+    return authorize_delegated_asset_optimization(
+        job_id,
+        run_id=run_id,
+        plan_sha256=plan_sha256,
+        scope_path=scope_path,
+        scope_sha256=scope_sha256,
+        decision_note=decision_note,
+        enable_delegated_authority=enable_delegated_authority,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
+def bind_portable_asset_delegation_workflow(
+    job_id: str,
+    workflow_id: str,
+    workflow_plan_sha256: str,
+    workflow_input_fingerprint: str,
+    run_id: str,
+    authorization_sha256: str,
+    enable_delegated_authority: bool = False,
+) -> dict:
+    """Select delegated authority for one exact waiting Standard optimization gate."""
+
+    return bind_delegated_optimization_workflow(
+        job_id,
+        workflow_id=workflow_id,
+        workflow_plan_sha256=workflow_plan_sha256,
+        workflow_input_fingerprint=workflow_input_fingerprint,
+        run_id=run_id,
+        authorization_sha256=authorization_sha256,
+        enable_delegated_authority=enable_delegated_authority,
+    ).model_dump(mode="json")
+
+
+@mcp.tool()
 def optimize_portable_asset(
     job_id: str,
     approved_plan_sha256: str,
     profile_id: str = "portable_gltf",
     run_id: str | None = None,
+    delegated_authorization_path: str | None = None,
+    delegated_authorization_sha256: str | None = None,
+    enable_delegated_authority: bool = False,
 ) -> dict:
     """Execute one reviewed, approved, hash-bound optimization run exactly once."""
 
@@ -3938,6 +4202,9 @@ def optimize_portable_asset(
         profile_id=profile_id,
         run_id=run_id,
         approved_plan_sha256=approved_plan_sha256,
+        delegated_authorization_path=delegated_authorization_path,
+        delegated_authorization_sha256=delegated_authorization_sha256,
+        enable_delegated_authority=enable_delegated_authority,
     ).model_dump(mode="json")
 
 
@@ -3951,6 +4218,7 @@ def build_portable_package(
     include_colliders: bool = True,
     content_mode: str = "full_evidence",
     primary_asset_stem: str | None = None,
+    delegated_authorization_sha256: str | None = None,
 ) -> dict:
     """Build one immutable engine-neutral package from a complete optimization run."""
 
@@ -3961,7 +4229,8 @@ def build_portable_package(
         package_id=package_id,
         material_conversion_id=material_conversion_id,
         include_colliders=include_colliders,
-        content_mode=content_mode,  # type: ignore[arg-type]
+        content_mode=content_mode,
+        delegated_authorization_sha256=delegated_authorization_sha256,  # type: ignore[arg-type]
         primary_asset_stem=primary_asset_stem,
     ).model_dump(mode="json")
 
@@ -3974,7 +4243,9 @@ def convert_portable_materials(
     profile_id: str = "portable_gltf",
     resolution: int = 1024,
     margin_px: int = 16,
+    uv_method: str = "smart_project",
     render_device: str = "auto",
+    tile_strategy: str = "deterministic_grid",
 ) -> dict:
     """Create a hash-bound run-owned PBR material conversion for portable packaging."""
 
@@ -3982,6 +4253,12 @@ def convert_portable_materials(
         raise ValueError("resolution must be at least 16")
     if margin_px < 1:
         raise ValueError("margin_px must be positive")
+    if uv_method not in {"smart_project", "validated_authored_uv_v1"}:
+        raise ValueError("uv-method must be smart_project or validated_authored_uv_v1")
+    if tile_strategy not in {"deterministic_grid", "area_weighted_rect_v1"}:
+        raise ValueError("unknown portable atlas tile strategy")
+    if tile_strategy == "area_weighted_rect_v1" and uv_method != "validated_authored_uv_v1":
+        raise ValueError("area_weighted_rect_v1 requires validated_authored_uv_v1")
     if render_device not in {"auto", "cpu", "gpu"}:
         raise ValueError("render_device must be auto, cpu, or gpu")
     return convert_portable_materials_internal(
@@ -3992,6 +4269,8 @@ def convert_portable_materials(
         resolution=resolution,
         margin_px=margin_px,
         render_device=render_device,
+        uv_method=uv_method,
+        **({"tile_strategy": tile_strategy} if tile_strategy != "deterministic_grid" else {}),
     ).model_dump(mode="json")
 
 
@@ -4210,15 +4489,23 @@ def validate_scene(job_id: str) -> dict:
 
 @mcp.tool()
 def export_scene(job_id: str, format: str = "glb") -> dict:
-    """Export the generated scene as glb, gltf, obj, or fbx."""
+    """Raw-export glb/gltf/obj/fbx; shape-key glTF preserves morphs and omits mesh modifiers."""
     if format not in {"glb", "gltf", "obj", "fbx"}:
         raise ValueError("format must be glb, gltf, obj, or fbx")
     root = ensure_job_dirs(job_id)
     blend = root / "blender" / "scene.blend"
     suffix = ".glb" if format == "glb" else f".{format}"
     output = root / "exports" / f"scene{suffix}"
-    run_blender("export_scene.py", ["--format", format, "--output", str(output)], blend_file=blend)
-    return {"ok": True, "path": str(output)}
+    result = run_blender(
+        "export_scene.py", ["--format", format, "--output", str(output)], blend_file=blend
+    )
+    response = {"ok": True, "path": str(output)}
+    warnings = [
+        line for line in result.stdout.splitlines() if line.startswith("CBM_EXPORT_WARNING ")
+    ]
+    if warnings:
+        response["warnings"] = warnings
+    return response
 
 
 def _preload_optional_vision_runtime() -> None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import math
 
 from ..models import ObjectSpec, SceneSpec, Vec3
+from .direct_compare import ambiguous_semantic_targets
 from .models import BoundingBoxMetric, QAFinding, SuggestedEdit, VisualQAReport
 
 _MIN_DIRECT_CONFIDENCE = 0.7
@@ -404,17 +405,25 @@ def enrich_direct_qa_suggestions(
     report: VisualQAReport,
     spec: SceneSpec,
 ) -> VisualQAReport:
-    """Enrich defensible direct findings with bounded, non-executable transform edits."""
+    """Enrich defensible findings, withholding transforms driven by shared whole-object boxes."""
 
     if report.job_id != spec.job_id:
         raise ValueError("visual QA report job_id does not match SceneSpec")
+    ambiguous_targets = set(ambiguous_semantic_targets(report.direct_metrics))
     objects = {item.id: item for item in spec.objects}
     metrics = {
         item.target_id: (item.metric, item.confidence)
         for item in report.direct_metrics.semantic_deviations
+        if item.target_id not in ambiguous_targets
     }
     findings = [
-        _enrich_finding(
+        finding.model_copy(update={"suggestion": None})
+        if (
+            "direct_reference" in finding.evidence_sources
+            and finding.issue_type in {"position", "proportion"}
+            and ambiguous_targets.intersection(finding.target_ids)
+        )
+        else _enrich_finding(
             finding,
             spec=spec,
             objects=objects,

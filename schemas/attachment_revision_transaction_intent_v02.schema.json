@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "description": "Add only exact job metadata to the fixed paired transaction's canonical inventory.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "binding_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Binding Sha256",
+      "type": "string"
+    },
+    "before": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 3,
+      "minProperties": 3,
+      "propertyNames": {
+        "enum": [
+          "analysis/scene_spec.json",
+          "analysis/modeling_plan.json",
+          "job.json"
+        ]
+      },
+      "title": "Before",
+      "type": "object"
+    },
+    "after": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 3,
+      "minProperties": 3,
+      "propertyNames": {
+        "enum": [
+          "analysis/scene_spec.json",
+          "analysis/modeling_plan.json",
+          "job.json"
+        ]
+      },
+      "title": "After",
+      "type": "object"
+    },
+    "evidence": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence",
+      "type": "object"
+    },
+    "report_before_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Report Before Sha256"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "binding_sha256",
+    "before",
+    "after",
+    "evidence",
+    "report_before_sha256"
+  ],
+  "title": "AttachmentTransactionIntentV02",
+  "type": "object"
+}

@@ -1,0 +1,185 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "SolidRootBallEntryV01": {
+      "additionalProperties": false,
+      "description": "Bind one intended local volumetric joint, never a seam-wide coverage claim.",
+      "properties": {
+        "attachment_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Attachment Id",
+          "type": "string"
+        },
+        "scope": {
+          "const": "required_local_overlap_ball",
+          "title": "Scope",
+          "type": "string"
+        },
+        "owner_semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Owner Semantic Id",
+          "type": "string"
+        },
+        "subject_semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Subject Semantic Id",
+          "type": "string"
+        },
+        "joint_description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Joint Description",
+          "type": "string"
+        },
+        "center": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Center",
+          "type": "array"
+        },
+        "radius_m": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000000.0,
+          "title": "Radius M",
+          "type": "number"
+        },
+        "root_bounds": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Root Bounds",
+          "type": "array"
+        }
+      },
+      "required": [
+        "attachment_id",
+        "scope",
+        "owner_semantic_id",
+        "subject_semantic_id",
+        "joint_description",
+        "center",
+        "radius_m",
+        "root_bounds"
+      ],
+      "title": "SolidRootBallEntryV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Select a separately named bounded proof domain with immutable source/camera intent.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "solid_root_attachment_intent",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "source_reference": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_modeling_plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_scene": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_geometry": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "maxItems": 128,
+      "minItems": 2,
+      "title": "Source Geometry",
+      "type": "array"
+    },
+    "source_camera_hypothesis": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "minimum_radius_m": {
+      "exclusiveMinimum": 0,
+      "maximum": 1000000.0,
+      "title": "Minimum Radius M",
+      "type": "number"
+    },
+    "radius_basis": {
+      "maxLength": 2000,
+      "minLength": 1,
+      "title": "Radius Basis",
+      "type": "string"
+    },
+    "required_semantics": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "maxItems": 128,
+      "minItems": 2,
+      "title": "Required Semantics",
+      "type": "array"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/SolidRootBallEntryV01"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Entries",
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "contract_kind",
+    "job_id",
+    "source_reference",
+    "source_modeling_plan",
+    "source_scene",
+    "source_geometry",
+    "source_camera_hypothesis",
+    "minimum_radius_m",
+    "radius_basis",
+    "required_semantics",
+    "entries"
+  ],
+  "title": "SolidRootAttachmentIntentV01",
+  "type": "object"
+}

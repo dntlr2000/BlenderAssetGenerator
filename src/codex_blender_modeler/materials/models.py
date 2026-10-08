@@ -3,7 +3,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
+
+from codex_blender_modeler.optical_volume import validate_volume_recipe
+from codex_blender_modeler.optical_volume_models import OpticalVolumeSpec
 
 Color4 = tuple[float, float, float, float]
 ShaderFamily = Literal[
@@ -59,9 +62,7 @@ class MaterialPlan(StrictModel):
     job_id: str
     scene_spec_path: str = "analysis/scene_spec.json"
     stage: Literal["scaffold", "authored"] = "scaffold"
-    surface_detail_binding_policy: Literal["legacy_unbound", "spatial_v1"] = (
-        "legacy_unbound"
-    )
+    surface_detail_binding_policy: Literal["legacy_unbound", "spatial_v1"] = "legacy_unbound"
     materials: list[MaterialPlanItem] = Field(default_factory=list)
     global_notes: list[str] = Field(default_factory=list)
 
@@ -94,9 +95,7 @@ class MaterialPromotionReceipt(StrictModel):
         default=None,
         pattern=r"^[0-9a-f]{64}$",
     )
-    canonical_plan_path: Literal["analysis/material_plan.json"] = (
-        "analysis/material_plan.json"
-    )
+    canonical_plan_path: Literal["analysis/material_plan.json"] = "analysis/material_plan.json"
     canonical_plan_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     history_path: str | None = None
     scene_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -134,11 +133,41 @@ class ShaderLayer(StrictModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
 
 
+def _volume_recipe_schema(schema: dict[str, Any]) -> None:
+    """Make JSON Schema enforce the same explicit opt-in boundary as host/native readers."""
+    schema["oneOf"] = [
+        {"properties": {"schema_version": {"const": "0.5.0"}}, "not": {"required": ["volume"]}},
+        {
+            "required": ["schema_version", "volume", "family", "surface"],
+            "properties": {
+                "schema_version": {"const": "0.5.1"},
+                "volume": {"type": "object"},
+                "family": {"enum": ["glass", "standard_pbr"]},
+                "layers": {"maxItems": 0},
+                "surface": {
+                    "required": ["metallic", "alpha", "ior", "transmission_weight"],
+                    "properties": {
+                        "base_color": {"prefixItems": [{"minimum": 0.0}] * 4},
+                        "emission_color": {"prefixItems": [{"minimum": 0.0}] * 4},
+                        "metallic": {"const": 0.0},
+                        "alpha": {"const": 1.0},
+                        "ior": {"minimum": 1.0, "maximum": 3.0},
+                        "transmission_weight": {"exclusiveMinimum": 0.0, "maximum": 1.0},
+                    },
+                },
+            },
+        },
+    ]
+
+
 class ShaderRecipe(StrictModel):
     """Define a whitelisted, Blender-version-neutral shader recipe."""
 
-    schema_version: Literal["0.5.0"] = "0.5.0"
+    model_config = ConfigDict(extra="forbid", json_schema_extra=_volume_recipe_schema)
+
+    schema_version: Literal["0.5.0", "0.5.1"] = "0.5.0"
     material_id: str
+    volume: OpticalVolumeSpec | None = None
     family: ShaderFamily = "standard_pbr"
     surface: SurfaceSpec = Field(default_factory=SurfaceSpec)
     mapping: MappingSpec = Field(default_factory=MappingSpec)
@@ -147,6 +176,22 @@ class ShaderRecipe(StrictModel):
     blender_master: bool = True
     bake_required: bool = False
     assumptions: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_versioned_volume(cls, value: Any) -> Any:
+        """Keep legacy recipes exact and require explicit0.5.1 volume authoring intent."""
+        if isinstance(value, dict):
+            validate_volume_recipe(value)
+        return value
+
+    @model_serializer(mode="wrap")
+    def serialize_legacy_compatible(self, handler):
+        """Do not introduce a null field into any legacy recipe serialization."""
+        result = handler(self)
+        if self.schema_version == "0.5.0":
+            result.pop("volume", None)
+        return result
 
     @model_validator(mode="after")
     def validate_layer_ids(self) -> ShaderRecipe:

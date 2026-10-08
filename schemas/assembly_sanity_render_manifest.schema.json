@@ -168,11 +168,42 @@
       ],
       "title": "AssemblySanityViewRender",
       "type": "object"
+    },
+    "CanonicalDetailEvidence": {
+      "additionalProperties": false,
+      "description": "Bind the native fixed-camera beauty without treating it as canonical seven-pass QA.",
+      "properties": {
+        "camera_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Camera Fingerprint",
+          "type": "string"
+        },
+        "beauty": {
+          "$ref": "#/$defs/AssemblySanityPassRecord"
+        }
+      },
+      "required": [
+        "camera_fingerprint",
+        "beauty"
+      ],
+      "title": "CanonicalDetailEvidence",
+      "type": "object"
     }
   },
   "additionalProperties": false,
   "description": "Bind temporary-camera renders to exact source, plan, and Blender evidence.",
   "properties": {
+    "canonical_detail_evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CanonicalDetailEvidence"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "schema_version": {
       "const": "0.6.0",
       "default": "0.6.0",

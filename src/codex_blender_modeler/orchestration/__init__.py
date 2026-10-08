@@ -27,6 +27,7 @@ from .service import (
     get_workflow_status,
     plan_workflow,
     reconcile_workflow,
+    recover_paired_workflow_revision,
     resume_workflow,
 )
 
@@ -55,5 +56,6 @@ __all__ = [
     "get_workflow_status",
     "plan_workflow",
     "reconcile_workflow",
+    "recover_paired_workflow_revision",
     "resume_workflow",
 ]

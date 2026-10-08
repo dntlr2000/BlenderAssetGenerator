@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -113,6 +114,60 @@ def _raw_checks(
     return checks
 
 
+def _lod_feasibility_warnings(
+    raw: dict[str, Any], profile: AssetProfile, evidence_path: str
+) -> list[MeshPreflightCheck]:
+    """Warn when an inspected closed mesh gets a cap below any closed-volume triangle minimum."""
+
+    if not profile.lod.enabled:
+        return []
+    checks: list[MeshPreflightCheck] = []
+    for record in raw.get("objects", []):
+        if not isinstance(record, dict) or record.get("type") != "MESH":
+            continue
+        if record.get("hide_render") or NON_RENDER_BOOLEAN_TAG in _record_source_tags(record):
+            continue
+        topology = record.get("topology")
+        if not isinstance(topology, dict) or topology.get("manifold_closed") is not True:
+            continue
+        if any(
+            topology.get(key) != 0
+            for key in (
+                "boundary_edge_count",
+                "overused_edge_count",
+                "degenerate_face_count",
+                "loose_edge_count",
+                "loose_vertex_count",
+                "non_finite_vertex_count",
+            )
+        ):
+            continue
+        triangles = topology.get("triangles_estimated")
+        if type(triangles) is not int or triangles < 4:
+            continue
+        for target in profile.lod.targets:
+            maximum = math.ceil(triangles * target.target_triangle_ratio)
+            if maximum >= 4:
+                continue
+            checks.append(
+                MeshPreflightCheck(
+                    id=f"preflight.lod.closed_minimum.{len(checks) + 1:04d}",
+                    category="budget",
+                    status="warning",
+                    target_id=str(record.get("semantic_id") or record.get("name") or "unknown"),
+                    message=(
+                        f"LOD{target.level} per-instance cap is {maximum} triangles for an "
+                        f"inspected closed-topology source ({triangles} triangles). A closed "
+                        "nonzero-volume surface needs at least four triangles. If this source "
+                        "encloses volume, that property cannot survive this cap. Volume and "
+                        "silhouette feasibility remain unverified; review optional LOD policy."
+                    ),
+                    evidence_path=evidence_path,
+                )
+            )
+    return checks
+
+
 def _record_source_tags(record: dict[str, Any]) -> set[str]:
     """Normalize comma-separated CBM source tags from one Blender inventory record."""
 
@@ -121,17 +176,9 @@ def _record_source_tags(record: dict[str, Any]) -> set[str]:
         return set()
     raw_tags = custom.get("cbm_tags")
     if isinstance(raw_tags, str):
-        return {
-            item.strip().casefold()
-            for item in raw_tags.split(",")
-            if item.strip()
-        }
+        return {item.strip().casefold() for item in raw_tags.split(",") if item.strip()}
     if isinstance(raw_tags, list):
-        return {
-            str(item).strip().casefold()
-            for item in raw_tags
-            if str(item).strip()
-        }
+        return {str(item).strip().casefold() for item in raw_tags if str(item).strip()}
     return set()
 
 
@@ -164,12 +211,10 @@ def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
         )
         if renderability and len(renderability) != 1:
             raise ValueError(
-                "Semantic mesh family mixes render-visible and hidden instances: "
-                f"{target_id}"
+                f"Semantic mesh family mixes render-visible and hidden instances: {target_id}"
             )
         helper_membership = {
-            NON_RENDER_BOOLEAN_TAG in _record_source_tags(record)
-            for record in records
+            NON_RENDER_BOOLEAN_TAG in _record_source_tags(record) for record in records
         }
         if len(helper_membership) != 1:
             raise ValueError(
@@ -191,15 +236,9 @@ def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
             MeshSummary(
                 target_id=target_id,
                 source_tags=sorted(
-                    {
-                        tag
-                        for record in records
-                        for tag in _record_source_tags(record)
-                    }
+                    {tag for record in records for tag in _record_source_tags(record)}
                 ),
-                source_renderable=(
-                    next(iter(renderability)) if renderability else None
-                ),
+                source_renderable=(next(iter(renderability)) if renderability else None),
                 object_count=len(records),
                 vertex_count=sum(int(item.get("vertices", 0)) for item in topology_records),
                 triangle_count=sum(
@@ -216,12 +255,8 @@ def _mesh_summaries(raw: dict[str, Any]) -> list[MeshSummary]:
                     bool(item.get("negative_determinant")) for item in topology_records
                 ),
                 bounds=Bounds3D(
-                    minimum=tuple(
-                        min(float(value[axis]) for value in minima) for axis in range(3)
-                    ),
-                    maximum=tuple(
-                        max(float(value[axis]) for value in maxima) for axis in range(3)
-                    ),
+                    minimum=tuple(min(float(value[axis]) for value in minima) for axis in range(3)),
+                    maximum=tuple(max(float(value[axis]) for value in maxima) for axis in range(3)),
                 ),
                 declared_exceptions=exceptions,
             )
@@ -236,12 +271,8 @@ def _verify_raw_source(raw: dict[str, Any], job_id: str, fingerprint: str) -> No
     if not isinstance(source, dict):
         raise RuntimeError("Blender preflight did not report source provenance")
     if source.get("job_id") != job_id:
-        raise RuntimeError(
-            f"Blender scene job mismatch: {source.get('job_id')!r} != {job_id!r}"
-        )
-    embedded = source.get("build_fingerprint") or source.get(
-        "material_build_fingerprint"
-    )
+        raise RuntimeError(f"Blender scene job mismatch: {source.get('job_id')!r} != {job_id!r}")
+    embedded = source.get("build_fingerprint") or source.get("material_build_fingerprint")
     if embedded != fingerprint:
         raise RuntimeError(
             "Blender scene is stale relative to canonical geometry/material contracts; "
@@ -282,7 +313,10 @@ def run_asset_preflight(
         _verify_raw_source(raw, job_id, source.build_fingerprint)
         require_unchanged_source(source, root, job_id)
         evidence_path = job_relative(root, raw_path)
-        checks = _raw_checks(raw, evidence_path)
+        checks = [
+            *_raw_checks(raw, evidence_path),
+            *_lod_feasibility_warnings(raw, profile, evidence_path),
+        ]
         counts = {
             status: sum(check.status == status for check in checks)
             for status in ("passed", "warning", "failed")

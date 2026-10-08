@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import hashlib
 
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.models import QAFinding, VisualQAReport
 from .v02_models import FindingCategory, QualityFindingV02
+
+PART_EVIDENCE_FINDING_ID_V02 = "finding.v06.semantic_part_evidence_reliability"
 
 _AUTHORITATIVE_SOURCES = frozenset({"direct_reference", "constraint"})
 _CATEGORY_BY_ISSUE_TYPE: dict[str, FindingCategory] = {
@@ -33,7 +36,7 @@ def project_authoritative_v06_findings_v02(
     *,
     evidence_id: str,
 ) -> list[QualityFindingV02]:
-    """Project high authoritative V0.6 findings without changing the direct score."""
+    """Project high findings and explicit evidence blockers without changing V0.6 scores."""
 
     projected: list[QualityFindingV02] = []
     for index, finding in enumerate(report.findings):
@@ -50,6 +53,21 @@ def project_authoritative_v06_findings_v02(
                 target_ids=list(finding.target_ids),
                 evidence_ids=[evidence_id],
                 message=f"V0.6 finding {finding.id}: {finding.description}",
+            )
+        )
+    if direct_evidence_requires_review(report):
+        projected.append(
+            QualityFindingV02(
+                finding_id=PART_EVIDENCE_FINDING_ID_V02,
+                category="missing_evidence",
+                severity="high",
+                authoritative=True,
+                target_ids=[],
+                evidence_ids=[evidence_id],
+                message=(
+                    "Semantic part evidence requires review: shared whole-object boxes "
+                    "do not establish distinct part-local support. This is not a geometry verdict."
+                ),
             )
         )
     return projected

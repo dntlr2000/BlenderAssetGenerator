@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "description": "Certify the exact committed canonical pair without asserting visual acceptance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "committed",
+      "default": "committed",
+      "title": "Status",
+      "type": "string"
+    },
+    "intent_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intent Sha256",
+      "type": "string"
+    },
+    "after": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 2,
+      "minProperties": 2,
+      "propertyNames": {
+        "enum": [
+          "analysis/scene_spec.json",
+          "analysis/modeling_plan.json"
+        ]
+      },
+      "title": "After",
+      "type": "object"
+    }
+  },
+  "required": [
+    "intent_sha256",
+    "after"
+  ],
+  "title": "PairedCommitReceipt",
+  "type": "object"
+}

@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "description": "Declare one exclusive host and every existing detail row for its new identity.",
+  "properties": {
+    "source_material_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Source Material Id",
+      "type": "string"
+    },
+    "new_material_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "New Material Id",
+      "type": "string"
+    },
+    "target_object_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Target Object Id",
+      "type": "string"
+    },
+    "surface_detail_ids": {
+      "items": {
+        "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Surface Detail Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_material_id",
+    "new_material_id",
+    "target_object_id",
+    "surface_detail_ids"
+  ],
+  "title": "MaterialIdentityCloneRuleV02",
+  "type": "object"
+}

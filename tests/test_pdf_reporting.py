@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from jsonschema import Draft202012Validator
@@ -71,12 +72,147 @@ def test_pdf_font_fallback_uses_supported_korean_cid(monkeypatch) -> None:
         return []
 
     monkeypatch.setattr(pdf_renderer, "_font_candidates", no_local_font_candidates)
+    monkeypatch.setattr(pdf_renderer.pdfmetrics, "getRegisteredFontNames", lambda: [])
 
     assert pdf_renderer._register_report_fonts() == {
         "regular": "HYGothic-Medium",
         "bold": "HYGothic-Medium",
         "source": "cid-fallback:HYGothic-Medium",
     }
+
+
+@pytest.fixture
+def isolated_report_fonts(monkeypatch):
+    """Keep simulated ReportLab registrations local to each font-selection test."""
+
+    registered = {}
+
+    def register_font(font) -> None:
+        """Model ReportLab's first-registration-wins dynamic font aliases."""
+
+        registered.setdefault(font.fontName, font)
+
+    monkeypatch.setattr(pdf_renderer.pdfmetrics, "getRegisteredFontNames", lambda: list(registered))
+    monkeypatch.setattr(pdf_renderer.pdfmetrics, "getFont", registered.__getitem__)
+    monkeypatch.setattr(pdf_renderer.pdfmetrics, "registerFont", register_font)
+    return registered
+
+
+@pytest.mark.parametrize("unsupported_face", ["regular", "bold"])
+@pytest.mark.parametrize("has_next_candidate", [False, True])
+def test_pdf_font_skips_unsupported_pair_without_partial_registration(
+    tmp_path: Path, monkeypatch, isolated_report_fonts, unsupported_face, has_next_candidate
+) -> None:
+    """Skip an incompatible regular or bold face without contaminating the next pair."""
+
+    bad_regular = tmp_path / "unsupported-regular.ttc"
+    bad_bold = tmp_path / "unsupported-bold.ttc"
+    good_regular = tmp_path / "supported-korean.ttf"
+    good_bold = tmp_path / "supported-korean-bold.ttf"
+    for path in (bad_regular, bad_bold, good_regular, good_bold):
+        path.touch()
+    candidates = [(bad_regular, bad_bold)]
+    if has_next_candidate:
+        candidates.append((good_regular, good_bold))
+    failed_path = bad_regular if unsupported_face == "regular" else bad_bold
+
+    def load_font(name, filename):
+        """Simulate unsupported outlines while preserving the selected file identity."""
+
+        if filename == str(failed_path):
+            raise pdf_renderer.TTFError("postscript outlines are not supported")
+        return SimpleNamespace(fontName=name, face=SimpleNamespace(filename=filename))
+
+    monkeypatch.setattr(pdf_renderer, "_font_candidates", lambda: candidates)
+    monkeypatch.setattr(pdf_renderer, "TTFont", load_font)
+    result = pdf_renderer._register_report_fonts()
+
+    if has_next_candidate:
+        assert result == {
+            "regular": "CBMReportRegular",
+            "bold": "CBMReportBold",
+            "source": "embedded:supported-korean.ttf",
+        }
+        assert isolated_report_fonts["CBMReportRegular"].face.filename == str(good_regular)
+        assert isolated_report_fonts["CBMReportBold"].face.filename == str(good_bold)
+    else:
+        assert result == {
+            "regular": "HYGothic-Medium",
+            "bold": "HYGothic-Medium",
+            "source": "cid-fallback:HYGothic-Medium",
+        }
+        assert set(isolated_report_fonts) == {"HYGothic-Medium"}
+
+
+def test_pdf_font_cached_source_matches_registered_face(
+    tmp_path: Path, monkeypatch, isolated_report_fonts
+) -> None:
+    """Report the reused font's actual source after the configured candidate changes."""
+
+    first = tmp_path / "first-korean.ttf"
+    second = tmp_path / "second-korean.ttf"
+    first.touch()
+    second.touch()
+    candidates = [(first, None)]
+
+    def load_font(name, filename):
+        """Record a candidate's filename without requiring platform fonts in the test."""
+
+        return SimpleNamespace(fontName=name, face=SimpleNamespace(filename=filename))
+
+    monkeypatch.setattr(pdf_renderer, "_font_candidates", lambda: candidates)
+    monkeypatch.setattr(pdf_renderer, "TTFont", load_font)
+    initial = pdf_renderer._register_report_fonts()
+    candidates[:] = [(second, None)]
+    assert pdf_renderer._register_report_fonts() == initial
+    assert initial["source"] == "embedded:first-korean.ttf"
+    assert isolated_report_fonts["CBMReportBold"].face.filename == str(first)
+
+
+@pytest.mark.parametrize("error", [OSError("cannot read font"), RuntimeError("font loader bug")])
+def test_pdf_font_does_not_hide_unexpected_loading_errors(
+    tmp_path: Path, monkeypatch, isolated_report_fonts, error
+) -> None:
+    """Propagate non-format loading failures instead of silently falling back."""
+
+    candidate = tmp_path / "korean.ttf"
+    candidate.touch()
+
+    def fail_load(*args, **kwargs):
+        """Raise an unexpected loader failure for the negative-path assertion."""
+
+        raise error
+
+    monkeypatch.setattr(pdf_renderer, "_font_candidates", lambda: [(candidate, None)])
+    monkeypatch.setattr(pdf_renderer, "TTFont", fail_load)
+    with pytest.raises(type(error), match=str(error)):
+        pdf_renderer._register_report_fonts()
+    assert not isolated_report_fonts
+
+
+def test_pdf_font_does_not_hide_registration_errors(
+    tmp_path: Path, monkeypatch, isolated_report_fonts
+) -> None:
+    """Keep registration failures outside the narrowly scoped candidate-load fallback."""
+
+    candidate = tmp_path / "korean.ttf"
+    candidate.touch()
+
+    def load_font(name, filename):
+        """Create a successfully loaded font whose registration will fail."""
+
+        return SimpleNamespace(fontName=name, face=SimpleNamespace(filename=filename))
+
+    def fail_registration(font) -> None:
+        """Raise a format-class error after loading to test the exception boundary."""
+
+        raise pdf_renderer.TTFError("registration failed")
+
+    monkeypatch.setattr(pdf_renderer, "_font_candidates", lambda: [(candidate, None)])
+    monkeypatch.setattr(pdf_renderer, "TTFont", load_font)
+    monkeypatch.setattr(pdf_renderer.pdfmetrics, "registerFont", fail_registration)
+    with pytest.raises(pdf_renderer.TTFError, match="registration failed"):
+        pdf_renderer._register_report_fonts()
 
 
 def test_report_source_schema_rejects_absolute_and_traversal_paths() -> None:

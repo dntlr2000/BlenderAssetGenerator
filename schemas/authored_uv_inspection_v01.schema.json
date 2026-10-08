@@ -1,0 +1,332 @@
+{
+  "$defs": {
+    "UVIdentity": {
+      "additionalProperties": false,
+      "description": "Bind ordered geometry to its exact derived object and source material.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "semantic_id": {
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "source_object": {
+          "title": "Source Object",
+          "type": "string"
+        },
+        "asset_role": {
+          "enum": [
+            "render",
+            "lod"
+          ],
+          "title": "Asset Role",
+          "type": "string"
+        },
+        "lod_level": {
+          "maximum": 8,
+          "minimum": 0,
+          "title": "Lod Level",
+          "type": "integer"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "source_material_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Material Fingerprint",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "semantic_id",
+        "source_object",
+        "asset_role",
+        "lod_level",
+        "material_id",
+        "source_material_fingerprint"
+      ],
+      "title": "UVIdentity",
+      "type": "object"
+    },
+    "UVSampling": {
+      "additionalProperties": false,
+      "description": "Record the measured named layer used by every supported UV consumer.",
+      "properties": {
+        "node_name": {
+          "title": "Node Name",
+          "type": "string"
+        },
+        "node_type": {
+          "enum": [
+            "UVMAP",
+            "NORMAL_MAP",
+            "TEX_IMAGE",
+            "TEX_COORD"
+          ],
+          "title": "Node Type",
+          "type": "string"
+        },
+        "selection": {
+          "enum": [
+            "uv_map",
+            "normal_map",
+            "image_vector",
+            "texture_coordinate_uv"
+          ],
+          "title": "Selection",
+          "type": "string"
+        },
+        "uv_set": {
+          "title": "Uv Set",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node_name",
+        "node_type",
+        "selection",
+        "uv_set"
+      ],
+      "title": "UVSampling",
+      "type": "object"
+    },
+    "UVSnapshot": {
+      "additionalProperties": false,
+      "description": "Retain full ordered native corner storage and topology without rounding.",
+      "properties": {
+        "identity": {
+          "$ref": "#/$defs/UVIdentity"
+        },
+        "vertices": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 500000,
+          "minItems": 1,
+          "title": "Vertices",
+          "type": "array"
+        },
+        "matrix_world": {
+          "items": {
+            "maxItems": 4,
+            "minItems": 4,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Matrix World",
+          "type": "array"
+        },
+        "polygons": {
+          "items": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "maxItems": 250000,
+          "minItems": 1,
+          "title": "Polygons",
+          "type": "array"
+        },
+        "polygon_materials": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Polygon Materials",
+          "type": "array"
+        },
+        "loops": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 500000,
+          "minItems": 3,
+          "title": "Loops",
+          "type": "array"
+        },
+        "polygon_loops": {
+          "items": {
+            "items": {
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "title": "Polygon Loops",
+          "type": "array"
+        },
+        "triangles": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "minimum": 0,
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 250000,
+          "minItems": 1,
+          "title": "Triangles",
+          "type": "array"
+        },
+        "uv_layers": {
+          "additionalProperties": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          },
+          "title": "Uv Layers",
+          "type": "object"
+        },
+        "source_uv_set": {
+          "title": "Source Uv Set",
+          "type": "string"
+        },
+        "sampling": {
+          "items": {
+            "$ref": "#/$defs/UVSampling"
+          },
+          "title": "Sampling",
+          "type": "array"
+        },
+        "active_uv_set": {
+          "title": "Active Uv Set",
+          "type": "string"
+        },
+        "render_uv_set": {
+          "title": "Render Uv Set",
+          "type": "string"
+        }
+      },
+      "required": [
+        "identity",
+        "vertices",
+        "matrix_world",
+        "polygons",
+        "polygon_materials",
+        "loops",
+        "polygon_loops",
+        "triangles",
+        "uv_layers",
+        "source_uv_set",
+        "sampling",
+        "active_uv_set",
+        "render_uv_set"
+      ],
+      "title": "UVSnapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a fixed Blender 5.0.1 read-only inspection to exact blend bytes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "kind": {
+      "const": "authored_uv_inspection",
+      "default": "authored_uv_inspection",
+      "title": "Kind",
+      "type": "string"
+    },
+    "uv_method": {
+      "const": "validated_authored_uv_v1",
+      "default": "validated_authored_uv_v1",
+      "title": "Uv Method",
+      "type": "string"
+    },
+    "blender_version": {
+      "const": "5.0.1",
+      "title": "Blender Version",
+      "type": "string"
+    },
+    "blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blend Sha256",
+      "type": "string"
+    },
+    "stage": {
+      "enum": [
+        "source",
+        "target"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/UVSnapshot"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Objects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "blender_version",
+    "blend_sha256",
+    "stage",
+    "objects"
+  ],
+  "title": "AuthoredUVInspection",
+  "type": "object"
+}

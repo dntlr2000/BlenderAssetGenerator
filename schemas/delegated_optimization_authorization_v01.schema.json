@@ -1,0 +1,316 @@
+{
+  "$defs": {
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "external_asset_manifest",
+            "external_source",
+            "external_dependency",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_normalization_evidence",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    },
+    "SourceProvenance": {
+      "additionalProperties": false,
+      "description": "Freeze canonical geometry, build, material, and texture inputs for one V0.7 run.",
+      "properties": {
+        "source_kind": {
+          "default": "scene_spec",
+          "enum": [
+            "scene_spec",
+            "external_static_asset"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "scene_spec": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "external_asset_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "external_source_artifacts": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "External Source Artifacts",
+          "type": "array"
+        },
+        "blend": {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        "source_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Fingerprint",
+          "type": "string"
+        },
+        "build_fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Build Fingerprint",
+          "type": "string"
+        },
+        "geometry_payloads": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Geometry Payloads",
+          "type": "array"
+        },
+        "material_plan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "texture_manifests": {
+          "items": {
+            "$ref": "#/$defs/HashedArtifact"
+          },
+          "title": "Texture Manifests",
+          "type": "array"
+        },
+        "attachment_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "blend",
+        "source_fingerprint",
+        "build_fingerprint"
+      ],
+      "title": "SourceProvenance",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind one delegated assistant technical decision to an exact current candidate.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "delegated_optimization_authorization",
+      "default": "delegated_optimization_authorization",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "authorization_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Authorization Id",
+      "type": "string"
+    },
+    "grant_ordinal": {
+      "maximum": 3,
+      "minimum": 1,
+      "title": "Grant Ordinal",
+      "type": "integer"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "actor": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Actor",
+      "type": "string"
+    },
+    "issuer": {
+      "const": "host",
+      "default": "host",
+      "title": "Issuer",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "delegation_text_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Delegation Text Sha256",
+      "type": "string"
+    },
+    "reference_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Reference Sha256",
+      "type": "string"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceProvenance"
+    },
+    "candidate_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Candidate Sha256",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "review_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Sha256",
+      "type": "string"
+    },
+    "profile_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Profile Sha256",
+      "type": "string"
+    },
+    "preflight_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Preflight Sha256",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "portable_gltf",
+      "default": "portable_gltf",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "primary_format": {
+      "const": "glb",
+      "default": "glb",
+      "title": "Primary Format",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "local_technical_package_generation_and_clean_import",
+      "default": "local_technical_package_generation_and_clean_import",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "decision_note": {
+      "minLength": 1,
+      "title": "Decision Note",
+      "type": "string"
+    },
+    "one_time": {
+      "const": true,
+      "default": true,
+      "title": "One Time",
+      "type": "boolean"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    },
+    "authorized_at": {
+      "format": "date-time",
+      "title": "Authorized At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "authorization_id",
+    "grant_ordinal",
+    "job_id",
+    "run_id",
+    "scope",
+    "delegation_text_sha256",
+    "reference_sha256",
+    "source",
+    "candidate_sha256",
+    "plan_sha256",
+    "review_sha256",
+    "profile_sha256",
+    "preflight_sha256",
+    "decision_note",
+    "authorized_at"
+  ],
+  "title": "DelegatedOptimizationAuthorizationV01",
+  "type": "object"
+}

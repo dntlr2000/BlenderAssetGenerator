@@ -43,6 +43,67 @@
       "title": "MappingSpec",
       "type": "object"
     },
+    "OpticalVolumeSpec": {
+      "additionalProperties": false,
+      "description": "Declare a positive approximate thickness and homogeneous absorption parameters.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "thickness_factor": {
+          "maximum": 1000000.0,
+          "minimum": 1e-06,
+          "title": "Thickness Factor",
+          "type": "number"
+        },
+        "attenuation_distance": {
+          "anyOf": [
+            {
+              "maximum": 1000000.0,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attenuation Distance"
+        },
+        "attenuation_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            }
+          ],
+          "title": "Attenuation Color",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "thickness_factor",
+        "attenuation_distance",
+        "attenuation_color"
+      ],
+      "title": "OpticalVolumeSpec",
+      "type": "object"
+    },
     "ShaderLayer": {
       "additionalProperties": false,
       "description": "Describe one whitelisted material layer and its optional mask.",
@@ -251,16 +312,125 @@
   },
   "additionalProperties": false,
   "description": "Define a whitelisted, Blender-version-neutral shader recipe.",
+  "oneOf": [
+    {
+      "not": {
+        "required": [
+          "volume"
+        ]
+      },
+      "properties": {
+        "schema_version": {
+          "const": "0.5.0"
+        }
+      }
+    },
+    {
+      "properties": {
+        "schema_version": {
+          "const": "0.5.1"
+        },
+        "volume": {
+          "type": "object"
+        },
+        "family": {
+          "enum": [
+            "glass",
+            "standard_pbr"
+          ]
+        },
+        "layers": {
+          "maxItems": 0
+        },
+        "surface": {
+          "properties": {
+            "base_color": {
+              "prefixItems": [
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                }
+              ]
+            },
+            "emission_color": {
+              "prefixItems": [
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                },
+                {
+                  "minimum": 0.0
+                }
+              ]
+            },
+            "metallic": {
+              "const": 0.0
+            },
+            "alpha": {
+              "const": 1.0
+            },
+            "ior": {
+              "maximum": 3.0,
+              "minimum": 1.0
+            },
+            "transmission_weight": {
+              "exclusiveMinimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "required": [
+            "metallic",
+            "alpha",
+            "ior",
+            "transmission_weight"
+          ]
+        }
+      },
+      "required": [
+        "schema_version",
+        "volume",
+        "family",
+        "surface"
+      ]
+    }
+  ],
   "properties": {
     "schema_version": {
-      "const": "0.5.0",
       "default": "0.5.0",
+      "enum": [
+        "0.5.0",
+        "0.5.1"
+      ],
       "title": "Schema Version",
       "type": "string"
     },
     "material_id": {
       "title": "Material Id",
       "type": "string"
+    },
+    "volume": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OpticalVolumeSpec"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "family": {
       "default": "standard_pbr",

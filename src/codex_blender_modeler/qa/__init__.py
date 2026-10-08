@@ -67,8 +67,10 @@ def run_job_visual_qa(
     include_generated_target: bool = False,
     provider: QATargetProvider | None = None,
     target_prompt: str | None = None,
+    reference_mask_seed_path: str | None = None,
+    reference_mask_seed_sha256: str | None = None,
 ) -> dict[str, Any]:
-    """Load and run the visual QA service lazily to avoid package import cycles."""
+    """Lazily forward QA and optional exact mask selection without legacy default changes."""
 
     from .service import run_job_visual_qa as run_service
 
@@ -80,6 +82,10 @@ def run_job_visual_qa(
         include_generated_target=include_generated_target,
         provider=provider,
         target_prompt=target_prompt,
+        **({"reference_mask_seed_path": reference_mask_seed_path,
+            "reference_mask_seed_sha256": reference_mask_seed_sha256}
+           if reference_mask_seed_path is not None or reference_mask_seed_sha256 is not None
+           else {}),
     )
 
 

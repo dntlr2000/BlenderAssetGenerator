@@ -193,14 +193,17 @@ def _apply_operation(raw: dict[str, Any], operation: RevisionOperation) -> tuple
     return before, after
 
 
-def apply_revision_plan(
+def preview_revision_plan(
     *,
     scene_spec_path: Path,
     plan_path: Path,
-    output_path: Path | None = None,
 ) -> tuple[SceneSpec, dict[str, Any]]:
-    """Apply one hash-bound revision only after every canonical safety contract passes."""
+    """Validate and derive an exact guarded candidate without publishing any files."""
 
+    if scene_spec_path.name == "scene_spec.json" and scene_spec_path.parent.name == "analysis":
+        from .orchestration.paired_revision import assert_no_pending_pair
+
+        assert_no_pending_pair(scene_spec_path.parent.parent)
     plan = load_revision_plan(plan_path)
     scene_spec_path = scene_spec_path.resolve()
     actual_hash = sha256_file(scene_spec_path)
@@ -239,20 +242,34 @@ def apply_revision_plan(
     )
     validated = SceneSpec.model_validate(next_raw)
     validate_scene_spec_interior_contract(validated, scene_spec_path)
+    report = {
+        "ok": True,
+        "job_id": plan.job_id,
+        "request": plan.request,
+        "base_spec_sha256": actual_hash,
+        "changes": changes,
+        "acceptance_criteria": plan.acceptance_criteria,
+        "assumptions": plan.assumptions,
+    }
+    return validated, report
+
+
+def apply_revision_plan(
+    *,
+    scene_spec_path: Path,
+    plan_path: Path,
+    output_path: Path | None = None,
+) -> tuple[SceneSpec, dict[str, Any]]:
+    """Apply the same read-only preview only after its canonical safety checks pass."""
+
+    validated, report = preview_revision_plan(
+        scene_spec_path=scene_spec_path, plan_path=plan_path
+    )
     destination = (output_path or scene_spec_path).resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(
         json.dumps(validated.model_dump(mode="json"), indent=2, ensure_ascii=False) + "\n",
         encoding="utf-8",
     )
-    report = {
-        "ok": True,
-        "job_id": plan.job_id,
-        "request": plan.request,
-        "base_spec_sha256": actual_hash,
-        "result_spec_sha256": sha256_file(destination),
-        "changes": changes,
-        "acceptance_criteria": plan.acceptance_criteria,
-        "assumptions": plan.assumptions,
-    }
+    report["result_spec_sha256"] = sha256_file(destination)
     return validated, report

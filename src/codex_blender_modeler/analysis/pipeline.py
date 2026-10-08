@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Literal
 
 from ..reference_scope import reference_content_scope_from_metadata
-from ..workspace import find_input_images, job_dir, load_job, metadata_path, resolve_metadata_path
+from ..workspace import find_input_images, job_dir, load_job, metadata_path, resolve_job_input_path
 from .basic import analyze_image
 from .camera import solve_camera
 from .models import CameraSolution, ModelingPlan, ReferenceAnalysis, SurfaceDetailPolicy
@@ -86,7 +86,7 @@ def analyze_job_reference(
     images = []
     for record in records:
         source_id = str(record["kind"])
-        path = resolve_metadata_path(str(record["path"]))
+        path = resolve_job_input_path(root, str(record["path"]), record.get("sha256"))
         image_analysis = analyze_image(source_id, path, diagnostics)
         if selected_provider == "opencv":
             from .opencv_provider import enrich_with_line_analysis

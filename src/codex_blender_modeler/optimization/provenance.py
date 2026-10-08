@@ -107,6 +107,14 @@ def _collect_scene_spec_source(root: Path, job_id: str) -> SourceProvenance:
             item.model_dump(mode="json") for item in texture_manifests
         ],
     }
+    attachment = None
+    if build.get("attachment_intent") is not None:
+        selected = build["attachment_intent"]
+        attachment = _artifact(
+            root, "source.attachment_intent", "other",
+            root / selected["path"], selected["sha256"],
+        )
+        fingerprint_payload["attachment_intent"] = attachment.model_dump(mode="json")
     return SourceProvenance(
         source_kind="scene_spec",
         scene_spec=scene_artifact,
@@ -116,6 +124,7 @@ def _collect_scene_spec_source(root: Path, job_id: str) -> SourceProvenance:
         geometry_payloads=geometry_payloads,
         material_plan=material_plan,
         texture_manifests=texture_manifests,
+        attachment_intent=attachment,
     )
 
 

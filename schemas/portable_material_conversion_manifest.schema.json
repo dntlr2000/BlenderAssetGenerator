@@ -63,10 +63,80 @@
       "title": "HashedArtifact",
       "type": "object"
     },
+    "OpticalVolumeSpec": {
+      "additionalProperties": false,
+      "description": "Declare a positive approximate thickness and homogeneous absorption parameters.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "thickness_factor": {
+          "maximum": 1000000.0,
+          "minimum": 1e-06,
+          "title": "Thickness Factor",
+          "type": "number"
+        },
+        "attenuation_distance": {
+          "anyOf": [
+            {
+              "maximum": 1000000.0,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Attenuation Distance"
+        },
+        "attenuation_color": {
+          "maxItems": 3,
+          "minItems": 3,
+          "prefixItems": [
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            },
+            {
+              "maximum": 1,
+              "minimum": 1e-06,
+              "type": "number"
+            }
+          ],
+          "title": "Attenuation Color",
+          "type": "array"
+        }
+      },
+      "required": [
+        "schema_version",
+        "thickness_factor",
+        "attenuation_distance",
+        "attenuation_color"
+      ],
+      "title": "OpticalVolumeSpec",
+      "type": "object"
+    },
     "PortableAtlasPolicy": {
       "additionalProperties": false,
       "description": "Define one deterministic global atlas over every derived render and LOD binding.",
       "properties": {
+        "uv_method": {
+          "default": "smart_project",
+          "enum": [
+            "smart_project",
+            "validated_authored_uv_v1"
+          ],
+          "title": "Uv Method",
+          "type": "string"
+        },
         "layout": {
           "const": "global_shared",
           "default": "global_shared",
@@ -86,8 +156,11 @@
           "type": "string"
         },
         "tile_strategy": {
-          "const": "deterministic_grid",
           "default": "deterministic_grid",
+          "enum": [
+            "deterministic_grid",
+            "area_weighted_rect_v1"
+          ],
           "title": "Tile Strategy",
           "type": "string"
         },
@@ -267,7 +340,8 @@
           "default": "smart_project",
           "enum": [
             "smart_project",
-            "lightmap_pack_fallback"
+            "lightmap_pack_fallback",
+            "validated_authored_uv_v1"
           ],
           "title": "Unwrap Method",
           "type": "string"
@@ -564,6 +638,48 @@
     },
     "PortableSurfaceFactors": {
       "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "optical_volume": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "optical_volume"
+            ]
+          },
+          "then": {
+            "properties": {
+              "metallic_factor": {
+                "const": 0.0
+              },
+              "alpha_factor": {
+                "const": 1.0
+              },
+              "transmission_factor": {
+                "exclusiveMinimum": 0.0
+              },
+              "base_color_factor": {
+                "prefixItems": [
+                  {},
+                  {},
+                  {},
+                  {
+                    "const": 1.0
+                  }
+                ]
+              }
+            },
+            "required": [
+              "metallic_factor",
+              "alpha_factor",
+              "transmission_factor"
+            ]
+          }
+        }
+      ],
       "description": "Preserve portable scalar factors that cannot be inferred from atlas pixels alone.",
       "properties": {
         "base_color_factor": {
@@ -652,6 +768,17 @@
           "minimum": 0,
           "title": "Transmission Factor",
           "type": "number"
+        },
+        "optical_volume": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpticalVolumeSpec"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "title": "PortableSurfaceFactors",
@@ -736,6 +863,17 @@
           },
           "title": "Texture Manifests",
           "type": "array"
+        },
+        "attachment_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -848,6 +986,28 @@
       "type": "array"
     },
     "portable_blend": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "authored_uv_proof": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "authored_uv_scalar_bake": {
       "anyOf": [
         {
           "$ref": "#/$defs/HashedArtifact"

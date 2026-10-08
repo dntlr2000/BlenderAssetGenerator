@@ -1,0 +1,137 @@
+{
+  "additionalProperties": false,
+  "description": "Bind one explicit backend choice to exact native workflow and build evidence.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "step_id": {
+      "const": "material.swatches",
+      "default": "material.swatches",
+      "title": "Step Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^attempt-[0-9]{4}-[a-f0-9]{8}$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "backend": {
+      "enum": [
+        "eevee_auto",
+        "cycles_cpu"
+      ],
+      "title": "Backend",
+      "type": "string"
+    },
+    "plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Plan Sha256",
+      "type": "string"
+    },
+    "request_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Request Sha256",
+      "type": "string"
+    },
+    "input_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Input Fingerprint",
+      "type": "string"
+    },
+    "blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blend Sha256",
+      "type": "string"
+    },
+    "build_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Build Fingerprint",
+      "type": "string"
+    },
+    "source_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Source Sha256",
+      "type": "object"
+    },
+    "dependency_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Dependency Sha256",
+      "type": "object"
+    },
+    "material_ids": {
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Material Ids",
+      "type": "array"
+    },
+    "failed_attempt_path": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failed Attempt Path"
+    },
+    "failed_attempt_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Failed Attempt Sha256"
+    },
+    "no_engine_parity_claim": {
+      "const": true,
+      "default": true,
+      "title": "No Engine Parity Claim",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "workflow_id",
+    "attempt_id",
+    "backend",
+    "plan_sha256",
+    "request_sha256",
+    "input_fingerprint",
+    "blend_sha256",
+    "build_fingerprint",
+    "source_sha256",
+    "dependency_sha256",
+    "material_ids"
+  ],
+  "title": "MaterialSwatchExecution",
+  "type": "object"
+}

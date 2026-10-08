@@ -1,0 +1,182 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record a delegated assistant's exact specialized technical decision, never user approval.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "const": "authored_material_registered_solid_root_delegated_technical",
+      "default": "authored_material_registered_solid_root_delegated_technical",
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "approval_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Approval Id",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "approved",
+        "rejected"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "approved_by": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Approved By",
+      "type": "string"
+    },
+    "authority_kind": {
+      "const": "bounded_specialized_technical_delegation",
+      "default": "bounded_specialized_technical_delegation",
+      "title": "Authority Kind",
+      "type": "string"
+    },
+    "decision_observed_at": {
+      "format": "date-time",
+      "title": "Decision Observed At",
+      "type": "string"
+    },
+    "delegation": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "technical_decision_text_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Technical Decision Text Sha256",
+      "type": "string"
+    },
+    "approval_request": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "preapproval": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "invariant_report": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "shadow_blend": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "approval_scope": {
+      "const": "material_identity_split",
+      "default": "material_identity_split",
+      "title": "Approval Scope",
+      "type": "string"
+    },
+    "satisfies_required_approval": {
+      "const": "root_scope",
+      "default": "root_scope",
+      "title": "Satisfies Required Approval",
+      "type": "string"
+    },
+    "single_use": {
+      "const": true,
+      "default": true,
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "exact_candidate_only": {
+      "const": true,
+      "default": true,
+      "title": "Exact Candidate Only",
+      "type": "boolean"
+    },
+    "geometry_or_uv_change_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Geometry Or Uv Change Allowed",
+      "type": "boolean"
+    },
+    "material_plan_promotion_allowed": {
+      "const": false,
+      "default": false,
+      "title": "Material Plan Promotion Allowed",
+      "type": "boolean"
+    },
+    "appearance_or_package_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Appearance Or Package Acceptance",
+      "type": "boolean"
+    },
+    "is_user_approval": {
+      "const": false,
+      "default": false,
+      "title": "Is User Approval",
+      "type": "boolean"
+    },
+    "user_approval_created": {
+      "const": false,
+      "default": false,
+      "title": "User Approval Created",
+      "type": "boolean"
+    },
+    "aq_authority_created": {
+      "const": false,
+      "default": false,
+      "title": "Aq Authority Created",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "approval_id",
+    "decision",
+    "decision_observed_at",
+    "delegation",
+    "technical_decision_text_sha256",
+    "approval_request",
+    "plan",
+    "preapproval",
+    "invariant_report",
+    "shadow_blend"
+  ],
+  "title": "AuthoredMaterialIdentitySplitTechnicalApprovalV02",
+  "type": "object"
+}

@@ -1,4 +1,4 @@
-# Reference Fidelity 0.1/0.2 — disabled-experimental companion
+# Reference Fidelity 0.1/0.2/0.3 — disabled-experimental companion
 
 ## Reference mask seed와 부품 전체 크기 증거
 
@@ -43,6 +43,75 @@ direct score를 다시 계산하지 않는다. CLI/MCP 명령·allowlist와 Scen
 trimap 계약 통과는 경계의 의미적 정확성을 증명하지 않는다. uncertain band와 전체 윤곽을
 reference에서 독립적으로 검증한 뒤 새로운 비교 조건으로 고정해야 한다. 실제 자산 수정은
 여전히 같은 조건의 일곱 Blender pass와 source-bound finding·paired comparison이 필요하다.
+
+## Semantic part-evidence reliability diagnostics
+
+New V0.6 reports retain the original direct score, silhouette IoU, semantic deviations and
+geometry findings when two or more distinct targets share exactly the same reference box
+covering at least 80% of the global reference subject box. One bounded `other` finding and
+`SEMANTIC_PART_EVIDENCE_REVIEW_REQUIRED` warning identify the affected targets. This pattern
+means distinct part-local support is unsubstantiated by the boxes; it does not prove that
+overlapping geometry or materials are wrong. Small local overlaps and single targets do not
+trigger this narrowly scoped diagnostic. No scoring weight or acceptance threshold changes.
+
+Affected direct transform suggestions are withheld. The explicit marker makes IQ 0.1 reference
+alignment and the IQ 0.2 bridge unscorable, prevents reference-fidelity/campaign score validation
+and Standard convergence acceptance, and makes background fast-review evidence unscorable.
+PDF QA scores carry their report warnings. Existing saved reports, schemas, source observations,
+completed outcomes and hashes are never rewritten or automatically migrated.
+
+A separate informational coverage warning reports observed and score-eligible target counts when
+some declared parts lack observed or sufficiently confident reference boxes. Inferred parts are
+not silently promoted to observations and this warning introduces no new coverage requirement.
+Absence of duplicate-box diagnostics is not proof of correct evidence or complete visual quality.
+Resolve ambiguity with independently derived original-reference part evidence in a new authorized
+candidate and fresh QA run. Preserve prior evidence and the exact source/scope/approval boundary;
+never adjust boxes to match the rendered candidate or discard inconvenient historical findings.
+
+### Partial part evidence cannot redefine subject-mask scope
+
+For a new `primary_object_only` run, if some selected subject targets lack observed
+reference bounds (using the existing 0.5 scope-confidence threshold) and the resulting
+part-box union would clip source foreground pixels, mask preparation stops before publishing
+any run-local mask/manifest/report. The error explicitly classifies the scope evidence as
+unscorable and reports the observed target count and removed-pixel count. Partial evidence
+with no foreground clipping stays eligible under the unchanged existing rules.
+
+The V0.1/V0.2 path has no independent whole-subject extent input: V0.2 trimap foreground is
+also bounded by that observed-part union. Do not compensate with inferred boxes, expanded
+part boxes, `full_reference`, old-mask replacement, or a threshold change. The explicitly
+selected V0.3 companion below is the only added extent route. Existing masks and completed
+reports remain immutable historical evidence.
+
+### Opt-in V0.3 original-alpha subject extent
+
+`ReferenceMaskSeedEvidenceV03` extends the exact V0.2 trimap/seed/label contract with a
+required `subject_extent: FidelityArtifact`. Its `ReferenceSubjectExtentEvidenceV01` JSON
+binds the exact original reference artifact and resolution, `primary_object_only`, uniquely
+sorted primary/supporting IDs, observation ID, pixel bbox, nonzero-alpha pixel count,
+confidence and uncertainty. Pixel coordinates use inclusive left/top and exclusive right/bottom.
+The first profile accepts only `extent_origin=reference_alpha_support`, single-frame original RGBA with
+visible support and transparent exterior, and all render/semantic/write/human-approval
+authority flags remain false. Opaque, non-RGBA and animated inputs are explicitly unsupported.
+
+The host recomputes alpha>0 bbox and support count from the exact original reference bytes;
+matching declared hashes alone cannot validate a wrong extent. This establishes a source-pixel
+ROI, not semantic part extents, hidden geometry or human approval. The author must independently
+verify that the alpha-supported image is the selected isolated subject. The host verifies exact
+alpha support, not whether every visible foreground item belongs to that subject. A transparent
+image containing unrelated extra objects is not automatically safe for `primary_object_only`;
+independent semantic scope review remains necessary. V0.3 uses this exact ROI for mask clipping and trimap scope while retaining local observed-box seed checks and all
+existing V0.2 label validation. No inferred part bounds or rendered pixels enter the ROI.
+
+Before publication, reference, trimap and extent hashes are reread. Each successful new run
+stores the original extent JSON bytes as `reference_subject_extent.json` and binds that exact
+snapshot in its mask manifest alongside the existing trimap snapshot. Review validates the
+selected V0.3 contract, original image, source extent and run snapshot. Unknown versions,
+source/scope/ID/resolution mismatch, stale bytes, render-derived provenance, unsupported alpha,
+snapshot substitution and occupied output paths fail closed. The no-companion partial-scope
+refusal remains active. V0.1/V0.2 schemas and serialized contracts are unchanged; only the
+hypothesis version dispatcher gains the optional V0.3 variant. No new public tool privilege,
+canonical SceneSpec field, implicit migration or acceptance authority is added.
 
 ## 구조 수정 후 이전 quality source 보존
 
@@ -216,6 +285,38 @@ append-only로 보충할 수 있다. 기존 defect/satisfied 판단의 변경, �
 | `aq-structural-reentry JOB SESSION STRATEGY COST` | `begin_aq_structural_reentry` | structural-only wrapper |
 | `aq-quality-reentry JOB SESSION STRATEGY COST` | `begin_aq_quality_reentry` | 진단된 structural/local/material route |
 | `aq-geometry-preflight JOB SESSION --modeling-plan PATH --scene-spec-v03 PATH [--structure-authoring PATH]` | `preflight_aq_geometry_authoring` | 제출 전 source/후보 계약과 실제 object 비용 검사 |
+
+#### Public QA and Standard QA-only selection
+
+Ordinary `run_job_visual_qa`, CLI `visual-qa`, and MCP `run_visual_qa` accept an explicit
+pair: `reference_mask_seed_path` (normalized job-relative V0.3 seed JSON) and
+`reference_mask_seed_sha256` (exact file bytes). CLI options are `--reference-mask-seed-path`
+and `--reference-mask-seed-sha256`. Both must be supplied; no files are discovered implicitly.
+The public selector requires V0.3. Existing V0.1/V0.2 snapshot/hypothesis routes retain their
+original dispatch and contracts.
+
+For an existing current asset, host `plan_workflow`, CLI `workflow-plan`, or MCP
+`plan_short_workflow` can use the same pair only with explicit `intent=visual_qa`,
+`scope=qa_only`, and `execution_policy=standard`. This creates a fresh immutable QA-only
+continuation. It pins the current canonical SceneSpec SHA-256 and seed path/hash in existing
+scalar `qa.run` parameters. It does not add default fields to WorkflowRequest or change
+non-opted-in plan serialization. Do not edit or retrofit an old workflow or reuse an earlier
+geometry gate's approval for a changed plan. After a separately authorized geometry apply,
+create this fresh QA-only workflow from the actual resulting canonical state.
+
+The host preflights seed/reference/trimap/extent before planning or rendering, and revalidates
+pending work and source bytes before mask publication and successful host receipt. A successful
+selected run stores exact `reference_mask_seed_evidence.json`, `reference_trimap.png` and
+`reference_subject_extent.json` bytes as required immutable step artifacts. The mask manifest
+binds both original seed file and run snapshot by path/hash. Occupied or partial outputs cannot
+be adopted as success. Completed receipt history remains readable after a later source revision.
+Existing diagnostics, PDF and `qa.review` boundaries remain in the native plan; selection grants
+no canonical write, promotion, beauty/package acceptance, or automatic observation completeness.
+
+The standalone V0.3 validator also binds to the single recorded primary reference in job.json,
+its exact hash and `primary_object_only` scope, using the existing strict immutable-input
+relocation rules. Declaring a `renders/` file immutable inside a SceneSpec cannot authorize it.
+This supplements, rather than replaces, source-alpha and independently inspected subject checks.
 
 ### Geometry authoring preflight 0.1
 
@@ -440,3 +541,13 @@ reservation 전에 거절되며, 이는 기존 Blender smoke를 새 reference-qu
 source가 바뀌면 새 baseline을 사용하며 과거 성공을 새 캠페인의 성공으로 재분류하지 않는다.
 이 절은 사전 위임을 선택한 새 작업에 적용한다. 위의 날짜별 기존 exact scope 승인 기록과
 legacy 승인 경로는 그 당시 의미를 그대로 보존한다.
+
+
+Explicit public QA selection also accepts the existing ReferenceMaskSeedEvidenceV02
+trimap contract. This is useful for source-only segmentation corrections such as
+excluding a photographed cast shadow. It never invents RGBA alpha or grants whole-
+subject extent authority. Both versions bind the recorded immutable input path/hash;
+V0.2 still fails when partial observed bounds would clip the subject. New Standard
+QA-only plans record the exact V0.2 discriminator and require only seed/trimap
+snapshots. Existing V0.3 and no-selection plan bytes retain their previous meaning.
+Changed evaluation inputs must be reported separately from visual improvement.

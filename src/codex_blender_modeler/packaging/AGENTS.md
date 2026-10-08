@@ -11,3 +11,9 @@ Normative focus: CBM-INV-028..035, CBM-INV-041..044, CBM-INV-055..058, CBM-INV-1
 Never mutate canonical authoring data. Each format has independent exact source, plan, approval/authorization, package, loss, dependency, and clean-import evidence. Reject overwrite, missing files, links, absolute/escaping paths, stale inputs, and cross-format pass borrowing. Review bundles are not packages.
 
 For AQ v2 delivery, keep legacy exact V0.7 user approval and Approval Envelope 0.3 policy authority as separate additive alternatives. Policy authority is non-user, single-use, bound to the initially requested format and exact source freeze/optimization plan, and cannot add a format or replace clean-import evidence.
+
+The optional [Delegated Optimization 0.1.0](../../../docs/delegated_optimization_authority.md)
+companion is a third exclusive non-user technical authority for explicitly scoped five-asset
+GLB `full_evidence` completion. Require exact grant hashes and immutable consumption;
+retain standalone portable proof and absent final human acceptance. Never auto-discover
+it for execution or reuse it as AQ, user, destination, or Activation authority.

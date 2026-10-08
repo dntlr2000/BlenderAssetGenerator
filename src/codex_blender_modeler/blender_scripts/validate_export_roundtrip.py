@@ -12,6 +12,10 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from optical_volume_runtime import (  # noqa: E402
+    validate_imported_optical_volume,
+    verify_exported_optical_volume,
+)
 from portable_asset_common import (  # noqa: E402
     object_inventory,
     operator_kwargs,
@@ -259,9 +263,11 @@ def tangent_readiness(obj: bpy.types.Object) -> dict[str, Any]:
     calculator = getattr(mesh, "calc_tangents", None)
     if calculator is None:
         return {"status": "unverified", "reason": "runtime_unsupported"}
+    # Blender may reallocate UV-layer RNA during tangent calculation or release.
+    selected_uv_name = str(uv_layer.name)
     invalid = 0
     try:
-        calculator(uvmap=uv_layer.name)
+        calculator(uvmap=selected_uv_name)
         for loop in mesh.loops:
             values = tuple(float(value) for value in loop.tangent)
             sign = float(loop.bitangent_sign)
@@ -277,7 +283,7 @@ def tangent_readiness(obj: bpy.types.Object) -> dict[str, Any]:
             "status": "failed",
             "reason": "tangent_calculation_error",
             "detail": f"{type(exc).__name__}: {exc}",
-            "uv_set": uv_layer.name,
+            "uv_set": selected_uv_name,
             "selection_basis": selection_basis,
         }
     finally:
@@ -289,7 +295,7 @@ def tangent_readiness(obj: bpy.types.Object) -> dict[str, Any]:
                 pass
     return {
         "status": "ready" if invalid == 0 else "failed",
-        "uv_set": uv_layer.name,
+        "uv_set": selected_uv_name,
         "selection_basis": selection_basis,
         "loop_count": len(mesh.loops),
         "invalid_loop_count": invalid,
@@ -599,6 +605,25 @@ def main() -> None:
     ]
     expected_records = list(expected_manifest.get("objects", []))
     matches, errors = match_records(expected_records, actual_records, args.format)
+    optical_roundtrip = None
+    if "optical_volume_boundary_evidence" in expected_manifest:
+        try:
+            optical_expected = expected_manifest["optical_volume_boundary_evidence"]
+            serialized_optics = verify_exported_optical_volume(
+                input_path, args.format, optical_expected, strict_opt_in=True
+            )
+            imported_optics = validate_imported_optical_volume(
+                list(bpy.context.scene.objects), optical_expected
+            )
+            optical_roundtrip = {
+                "status": "passed",
+                "serialization": serialized_optics,
+                "actual_import_boundaries": imported_optics,
+                "destination_support_verified": False,
+            }
+        except (ValueError, RuntimeError, KeyError, TypeError) as error:
+            errors.append("Optical-volume clean import failed: " + str(error))
+            optical_roundtrip = {"status": "failed", "reason": str(error)}
     warnings = [str(value) for value in expected_manifest.get("warnings", [])]
     conversion_plan_sha256 = expected_manifest.get("source", {}).get(
         "material_conversion_plan_sha256"
@@ -850,6 +875,8 @@ def main() -> None:
         "comparisons": comparisons,
         "imported_objects": actual_records,
     }
+    if optical_roundtrip is not None:
+        report["optical_volume_roundtrip"] = optical_roundtrip
     write_json(output_path, report)
     state = "OK" if report["ok"] else "FAILED"
     print(f"CBM_ASSET_ROUNDTRIP_{state} output={output_path}")

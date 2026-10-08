@@ -235,6 +235,17 @@
           },
           "title": "Texture Manifests",
           "type": "array"
+        },
+        "attachment_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [

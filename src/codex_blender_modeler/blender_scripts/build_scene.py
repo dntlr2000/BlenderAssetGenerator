@@ -29,6 +29,7 @@ from common import (  # noqa: E402
     setup_camera,
     setup_lighting,
 )
+from optical_volume_runtime import validate_optical_volume_objects  # noqa: E402
 from surface_detail_uv_runtime import (  # noqa: E402
     load_surface_detail_uv_requirements,
 )
@@ -65,9 +66,7 @@ def main() -> None:
     args = parse_args()
     spec_path = Path(args.spec).expanduser().resolve()
     job_root = (
-        Path(args.job_root).expanduser().resolve()
-        if args.job_root
-        else spec_path.parent.parent
+        Path(args.job_root).expanduser().resolve() if args.job_root else spec_path.parent.parent
     )
     try:
         spec_path.relative_to(job_root)
@@ -135,9 +134,7 @@ def main() -> None:
 
     object_map: dict[str, list[bpy.types.Object]] = {}
     object_ids = {str(item["id"]) for item in spec["objects"]}
-    unknown_surface_detail_parents = sorted(
-        set(surface_detail_uv_requirements) - object_ids
-    )
+    unknown_surface_detail_parents = sorted(set(surface_detail_uv_requirements) - object_ids)
     if unknown_surface_detail_parents:
         raise RuntimeError(
             "Surface-detail UV requirements reference missing SceneSpec objects: "
@@ -157,13 +154,10 @@ def main() -> None:
                 index,
             )
             mapping = material_mappings.get(str(object_spec["material_id"]))
-            detail_requirement = surface_detail_uv_requirements.get(
-                str(object_spec["id"])
-            )
+            detail_requirement = surface_detail_uv_requirements.get(str(object_spec["id"]))
             if detail_requirement is not None:
                 if mapping is not None and (
-                    mapping["mode"] != "uv"
-                    or mapping["uv_set"] != detail_requirement["uv_set"]
+                    mapping["mode"] != "uv" or mapping["uv_set"] != detail_requirement["uv_set"]
                 ):
                     raise RuntimeError(
                         "MaterialPlan mapping conflicts with the ModelingPlan "
@@ -173,9 +167,7 @@ def main() -> None:
                 uv_result = ensure_uv_mapping(
                     built_object,
                     effective_mapping,
-                    generate_if_missing=bool(
-                        detail_requirement["generate_if_missing"]
-                    ),
+                    generate_if_missing=bool(detail_requirement["generate_if_missing"]),
                 )
                 built_object["cbm_surface_detail_uv_policy"] = uv_result
                 built_object["cbm_surface_detail_uv_ids"] = ",".join(
@@ -191,6 +183,13 @@ def main() -> None:
         object_map[object_spec["id"]] = built
 
     apply_scene_relationships(spec["objects"], object_map)
+    optical_volume_evidence = validate_optical_volume_objects(
+        [obj for items in object_map.values() for obj in items]
+    )
+    if optical_volume_evidence:
+        bpy.context.scene["cbm_optical_volume_boundary_evidence"] = json.dumps(
+            optical_volume_evidence, sort_keys=True, allow_nan=False
+        )
     setup_camera(spec["camera"])
     setup_lighting()
     bpy.context.scene["cbm_job_id"] = spec["job_id"]

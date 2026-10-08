@@ -1,5 +1,8 @@
 # BlenderAssetGenerator V0.9.1
 
+The optional [validated authored UV conversion v1](docs/validated_authored_uv.md) preserves eligible authored layouts with strict converted-blend proof; Smart Project remains the default.
+
+
 Reference-fidelity 장기 개선 작업은 사용자 선택 A안으로 종료했습니다. 현재 버전과 중단 위치·성과·재개 조건은 [HANDOFF_KO.md](docs/HANDOFF_KO.md), 임시 산출물 정리 결과는 [CLEANUP_RESULT_KO.md](docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md)를 참조하세요. v0.9.1은 종료 시점의 코드와 호환성을 고정한 릴리스이며 AQ v2 Activation 또는 5자산 시각 성공 선언이 아닙니다.
 
 레퍼런스 이미지, 직교 도면, 치수와 사용자 피드백을 재현 가능한 Blender 정적 자산으로 변환하는 Codex 작업 저장소입니다. V0.9는 V0.8까지의 분석·형상·재질·Visual QA·portable package·workflow를 보존하면서 환경 증거, 읽기 전용 workspace audit, single-worker queue, 명시적 controller 실행 모드를 가진 production dispatch/controller와 Codex Destination Handoff를 추가합니다. Autonomous Quality Extension(AQ) `0.1.0`은 이 프로젝트 `0.9.1` 위에서 새 정적 소품에만 명시적으로 선택하는 병렬 production/controller overlay이며 V1.0 승격이 아닙니다. AQ v2 `0.2.0`, Approval Envelope `0.3.0`, One-Prompt Supervisor `0.1.0`, 선택적 Codex Built-in ImageGen core `0.1.0`과 additive Material Loop `0.1.0`은 experimental overlay이며 두 v2 profile 모두 아직 `disabled_experimental`입니다. Material Closure Stabilization `0.1.0`과 Material Identity Split `0.1.0`은 기존 사용자 승인 경로를 보존하면서, 새 envelope session에서 exact non-user policy authority를 별도 adapter로 받을 수 있는 기반 capability입니다.
@@ -256,6 +259,21 @@ uv run cbm workflow-adapters
 ```
 
 `workflow-adapters`의 검증된 기본 목적지는 `engine_neutral`입니다. Unity 또는 Unreal이 표시되더라도 실제 adapter 검증 전에는 지원된 것으로 취급하지 않습니다.
+
+### 원시 내보내기와 modifier
+
+`cbm export`와 MCP `export_scene`의 GLB/GLTF는 정적 mesh의 현재 viewport 평가 결과를
+내보내므로 bevel·array 등의 활성 modifier를 보존합니다. 원본 `.blend`는 저장하거나
+수정하지 않습니다. Subdivision의 viewport/render level이 다르면 렌더 형상과 같다고
+보장하지 않습니다. 어느 scene 또는 collection의 mesh라도 shape key가 있으면 기존
+glTF 동작을 유지하기 위해 전체 export의 modifier 평가를 끄고 경고합니다. 이 경우
+morph target은 보존되지만 다른 mesh의 modifier도 export에 빠질 수 있습니다.
+CLI는 경고를 출력하며 MCP는 해당 응답에 `warnings`를 추가합니다.
+
+이 동작은 원시 export와 AQ review preview에만 적용됩니다. 이미 평가된 파생 mesh를
+쓰는 V0.7 production package, 별도 clean import·승인 요구, 기존 export 증거는
+변경하지 않습니다. Rig·animation 지원을 새로 보증하지 않습니다.
+실제 검사와 한계는 [제한적 클라우드 수정 검증](docs/verification/VERIFICATION_BOUNDED_CLOUD_FIXES_KO.md)을 참고합니다.
 
 ## V0.8 짧은 요청 workflow
 
@@ -585,6 +603,12 @@ workflow-owned RevisionPlan 작성
 ```
 
 카메라 변경, semantic 추가·삭제, custom-mesh vertex 편집, 재질 변경 또는 큰 재설계는 이 경로에서 거부됩니다. 그 경우 `--revision-strategy manual_guarded`를 명시하거나 V0.4 authoring으로 돌아갑니다. 이미 생성된 legacy workflow에는 새 기본값을 소급 적용하지 않습니다.
+
+기존 Standard `manual_guarded` revision에서 ModelingPlan도 함께 바꿔야 하면
+`--paired-modeling-plan-path`와 `--paired-modeling-plan-sha256`를 모두 명시합니다.
+동일 semantic identity와 기존 필수 관계를 보존하는 정확한 staged candidate만 허용하며,
+기존 승인 경계와 host의 paired transaction을 사용합니다. 정확한 선택 조건, immutable
+snapshot, rollback-only recovery는 [paired ModelingPlan revision](docs/paired_modeling_plan_revision.md)을 따릅니다.
 
 완전한 사용 예와 승인·재개 명령은 [V0.8 빠른 시작](docs/guides/GETTING_STARTED_V08_KO.md)을 따릅니다.
 
@@ -1206,9 +1230,12 @@ V0.9 안정화만 진단하고 V0.8 회귀를 별도 실행한 경우에만:
 - [V0.7.4 최적화 승인 경계](docs/history/V074_PRE_OPTIMIZATION_REVIEW_KO.md)
 - [선택적 실내 범위와 다각도 QA](docs/guides/INTERIOR_SCOPE_KO.md)
 - [Blender 5 호환성](docs/verification/BLENDER_5_COMPATIBILITY_KO.md)
+- [다섯 자산 클라우드 검증과 입력 경로 호환성](docs/verification/VERIFICATION_FIVE_ASSET_CLOUD_KO.md)
 - [변경 기록](CHANGELOG.md)
 
 V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또는 목적 엔진 runtime parity를 의미하지 않습니다. V1.0 승격은 현재 중단되어 있으며, 자동 Unity/Unreal/custom Destination Adapter는 V1.1 이후에 목적지가 확정된 다음 별도로 설계·검증합니다.
+
+The explicitly selected [closed-solid root-ball companion](docs/solid_root_attachment_delivery.md) adds local volumetric attachment checks for complete curved solids. It keeps the legacy heightfield proof separate and does not claim seam-wide coverage or visual acceptance.
 
 <!-- CBM:REPOSITORY_SUMMARY:START -->
 ## Generated repository summary
@@ -1223,12 +1250,12 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 - Skill orchestration entrypoints: standard-asset-cycle, aq-one-prompt-orchestrator
 - Registered project skills: 23
 - Skill registry SHA-256: bb99243f8653a5518723f5b99bf0494106eeb808c0b531c3723beb82183b0362
-- CLI commands: 202
-- CLI registry SHA-256: b780c207809e31d4c5f928b25e7afae443d3c72892e1a8f75968d5d764fa0e45
-- MCP server tools: 187
-- MCP server registry SHA-256: 747b4cd87dab7f33b0b1b151e937d99bc525bd2081f80bd293ec0902333844bb
-- Project-enabled MCP tools: 186
-- Project-enabled MCP SHA-256: 3eed7a2a4745c66400f50de07dc0b638afd850e158cfe75a1507da1ce46c2e84
+- CLI commands: 215
+- CLI registry SHA-256: 699cf34396db526e6f4904bb0d3cb4dbfd9621eb1a6fd29a998abbd1397a67e3
+- MCP server tools: 200
+- MCP server registry SHA-256: cedfc72c99ad3eb7d01a8c1b61c9a553f3563a2bbf92780c82e698d298a07375
+- Project-enabled MCP tools: 199
+- Project-enabled MCP SHA-256: cfde8a4b5be58b8dfc74bddac4104a27bdc3540481b5ab2a4cf3e5137031f16d
 - Controller phase profiles: reference_readonly, geometry_authoring, material_authoring, codex_imagegen, quality_readonly, delivery, handoff_plan, admin_audit, delegated_controller_v1
 - Delivery registry SHA-256: c7ca99c593982facf2c1673c489f53a9ef89965adb6a77474ffdca4970549acd
 - Latest reported test count: 2238
@@ -1236,3 +1263,11 @@ V0.9는 현재 정의된 로컬 범위에서 완료됐지만 cross-platform 또�
 
 Server registration, project enablement, and controller phase profiles are separate authorization surfaces. Experimental entries are not verified support.
 <!-- CBM:REPOSITORY_SUMMARY:END -->
+
+### Optional source-bound geometry review
+
+See [Exterior geometry review v3](docs/exterior_geometry_review_v3.md) for explicit
+reference/canonical-image internal-form and attachment review, unchanged legacy
+scores, and fail-closed quality progression. V1/v2 remain readable and unchanged.
+
+Shared material atlases retain stable identities only with complete current UV occupancy and actual image-dimension proof. See [bounded shared-atlas validation](docs/shared_material_atlas_validation.md).

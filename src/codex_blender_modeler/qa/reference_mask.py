@@ -12,7 +12,7 @@ from ..reference_scope import subject_object_ids
 from ..workspace import sha256_file
 
 if TYPE_CHECKING:
-    from ..reference_fidelity.models import ReferenceMaskSeedEvidence
+    from ..reference_fidelity.models import FidelityArtifact, ReferenceMaskSeedEvidence
 
 
 @dataclass(frozen=True)
@@ -33,7 +33,7 @@ def validate_explicit_reference_seeds(
     *,
     allowed_object_ids: set[str] | None = None,
 ) -> list[EvidenceSeed]:
-    """Validate exact interior seeds and optional trimap without changing semantic extents."""
+    """Validate local seeds, optional trimap and V0.3 source scope without part-extent changes."""
     from ..reference_fidelity.models import (
         ReferenceMaskSeedEvidenceV02,
         parse_reference_mask_seed_evidence,
@@ -383,21 +383,51 @@ def prepare_run_reference_mask(
     spec: SceneSpec,
     reference_content_scope: str = "full_reference",
     seed_evidence: ReferenceMaskSeedEvidence | None = None,
+    seed_evidence_source: FidelityArtifact | None = None,
 ) -> tuple[Path, Path]:
-    """Freeze a run-local mask using the exact selected legacy seeds or V0.2 trimap."""
-    from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV02
+    """Freeze masks and optional exact seed-file snapshots; reject unbound partial scope."""
+    from ..reference_fidelity.models import (
+        ReferenceMaskSeedEvidenceV02,
+        ReferenceMaskSeedEvidenceV03,
+        parse_reference_mask_seed_evidence,
+    )
+    from .evidence_selection import SEED_SNAPSHOT_NAME, load_reference_mask_selection
     from .reference_mask_constraints import (
         METHOD,
         SNAPSHOT_NAME,
         refine_reference_trimap,
         validate_reference_trimap,
     )
+    from .reference_subject_extent import (
+        SNAPSHOT_NAME as EXTENT_SNAPSHOT_NAME,
+    )
+    from .reference_subject_extent import (
+        clip_to_subject_extent,
+        normalized_subject_extent,
+        validate_reference_subject_extent,
+    )
 
+    seed_source_bytes = None
+    if seed_evidence_source is not None:
+        selected, seed_source_bytes = load_reference_mask_selection(
+            root, reference_path, spec, reference_content_scope, seed_evidence_source
+        )
+        if seed_evidence is None or selected.model_dump() != seed_evidence.model_dump():
+            raise ValueError("selected seed file differs from supplied reference mask evidence")
+        if (run_dir / SEED_SNAPSHOT_NAME).exists():
+            raise FileExistsError("QA run-local seed source snapshot already exists")
     output_path = run_dir / "reference_mask.png"
     manifest_path = run_dir / "reference_mask_manifest.json"
     if output_path.exists() or manifest_path.exists():
         raise FileExistsError("QA run-local reference mask artifacts already exist")
+    if seed_evidence is not None:
+        seed_evidence = parse_reference_mask_seed_evidence(seed_evidence)
     constrained = isinstance(seed_evidence, ReferenceMaskSeedEvidenceV02)
+    extent_bytes = None
+    if isinstance(seed_evidence, ReferenceMaskSeedEvidenceV03) and (
+        run_dir / EXTENT_SNAPSHOT_NAME
+    ).exists():
+        raise FileExistsError("QA run-local subject extent snapshot already exists")
     if constrained and (run_dir / SNAPSHOT_NAME).exists():
         raise FileExistsError("QA run-local trimap snapshot already exists")
 
@@ -417,15 +447,36 @@ def prepare_run_reference_mask(
             raise ValueError(
                 "primary_object_only QA requires explicit primary/supporting SceneSpec roles"
             )
-        subject_bbox = _subject_evidence_bbox(spec, selected_subject_ids)
-        if subject_bbox is None:
-            raise ValueError(
-                "primary_object_only QA requires observed subject evidence bounds"
+        if isinstance(seed_evidence, ReferenceMaskSeedEvidenceV03):
+            subject_extent, extent_bytes = validate_reference_subject_extent(
+                root, reference_path, spec, seed_evidence, allowed_object_ids=selected_subject_ids
             )
-        analysis_mask = _clip_mask_to_normalized_bbox(
-            analysis_mask,
-            subject_bbox,
-        )
+            subject_bbox = normalized_subject_extent(subject_extent)
+            analysis_mask = clip_to_subject_extent(analysis_mask, subject_extent)
+        else:
+            subject_bbox = _subject_evidence_bbox(spec, selected_subject_ids)
+            if subject_bbox is None:
+                raise ValueError(
+                    "primary_object_only QA requires observed subject evidence bounds"
+                )
+            scoped_mask = _clip_mask_to_normalized_bbox(analysis_mask, subject_bbox)
+            reference_sources = {source.id for source in spec.sources if source.kind == "reference"}
+            observed_subject_ids = {
+                obj.id for obj in spec.objects if obj.id in selected_subject_ids
+                and any(entry.status == "observed" and entry.confidence >= 0.5
+                        and entry.source_id in reference_sources for entry in obj.evidence)
+            }
+            removed_pixels = analysis_mask.histogram()[255] - scoped_mask.histogram()[255]
+            if observed_subject_ids != selected_subject_ids and removed_pixels > 0:
+                # Partial part observations cannot independently justify a smaller subject mask.
+                raise ValueError(
+                    "reference mask scope is unscorable: observed part bounds cover "
+                    f"{len(observed_subject_ids)}/{len(selected_subject_ids)} subject targets "
+                    f"and would clip {removed_pixels} source foreground pixels. Independently "
+                    "scope-bound full-subject evidence is required; inferred part boxes cannot "
+                    "supply that authority. No run mask or report was published."
+                )
+            analysis_mask = scoped_mask
     elif reference_content_scope != "full_reference":
         raise ValueError("unsupported reference_content_scope for QA")
     seeds = (
@@ -482,6 +533,17 @@ def prepare_run_reference_mask(
         # Refuse source changes during segmentation before publishing any run mask.
         read_artifact(root, seed_evidence.reference)
         read_artifact(root, seed_evidence.trimap)
+        if isinstance(seed_evidence, ReferenceMaskSeedEvidenceV03):
+            read_artifact(root, seed_evidence.subject_extent)
+            from .reference_subject_extent import validate_recorded_primary_reference
+
+            validate_recorded_primary_reference(root, spec.job_id, seed_evidence.reference)
+    if seed_evidence_source is not None:
+        _, final_seed_bytes = load_reference_mask_selection(
+            root, reference_path, spec, reference_content_scope, seed_evidence_source
+        )
+        if final_seed_bytes != seed_source_bytes:
+            raise ValueError("selected seed source changed before mask publication")
     selected.save(output_path, format="PNG", optimize=False)
     manifest: dict[str, Any] = {
         "schema_version": "0.6.0",
@@ -531,5 +593,25 @@ def prepare_run_reference_mask(
         manifest["trimap_snapshot"] = FidelityArtifact(
             path=snapshot.relative_to(root).as_posix(), sha256=sha256_file(snapshot)
         ).model_dump(mode="json")
+    if extent_bytes is not None:
+        from ..reference_fidelity.models import FidelityArtifact
+
+        assert isinstance(seed_evidence, ReferenceMaskSeedEvidenceV03)
+        extent_snapshot = run_dir / EXTENT_SNAPSHOT_NAME
+        with extent_snapshot.open("xb") as stream:
+            stream.write(extent_bytes)
+        manifest["subject_extent_snapshot"] = FidelityArtifact(
+            path=extent_snapshot.relative_to(root).as_posix(),
+            sha256=sha256_file(extent_snapshot),
+        ).model_dump(mode="json")
+    if seed_source_bytes is not None:
+        seed_snapshot = run_dir / SEED_SNAPSHOT_NAME
+        with seed_snapshot.open("xb") as stream:
+            stream.write(seed_source_bytes)
+        manifest["seed_evidence_source"] = seed_evidence_source.model_dump(mode="json")
+        manifest["seed_evidence_snapshot"] = {
+            "path": seed_snapshot.relative_to(root).as_posix(),
+            "sha256": sha256_file(seed_snapshot),
+        }
     write_json_atomic(manifest_path, manifest)
     return output_path, manifest_path

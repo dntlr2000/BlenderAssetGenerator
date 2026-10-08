@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "FidelityArtifact": {
+      "additionalProperties": false,
+      "description": "Bind a contained artifact to its immutable bytes, not a mutable latest pointer.",
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FidelityArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a selected subject extent to independently verified original-reference alpha.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "reference_subject_extent_evidence",
+      "default": "reference_subject_extent_evidence",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "reference": {
+      "$ref": "#/$defs/FidelityArtifact"
+    },
+    "reference_resolution": {
+      "maxItems": 2,
+      "minItems": 2,
+      "prefixItems": [
+        {
+          "maximum": 4096,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "maximum": 4096,
+          "minimum": 1,
+          "type": "integer"
+        }
+      ],
+      "title": "Reference Resolution",
+      "type": "array"
+    },
+    "reference_content_scope": {
+      "const": "primary_object_only",
+      "default": "primary_object_only",
+      "title": "Reference Content Scope",
+      "type": "string"
+    },
+    "subject_object_ids": {
+      "items": {
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+        "type": "string"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Subject Object Ids",
+      "type": "array"
+    },
+    "observation_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "bbox_pixels": {
+      "maxItems": 4,
+      "minItems": 4,
+      "prefixItems": [
+        {
+          "maximum": 4096,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "maximum": 4096,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "maximum": 4096,
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "maximum": 4096,
+          "minimum": 0,
+          "type": "integer"
+        }
+      ],
+      "title": "Bbox Pixels",
+      "type": "array"
+    },
+    "pixel_bounds_convention": {
+      "const": "left_top_inclusive_right_bottom_exclusive",
+      "default": "left_top_inclusive_right_bottom_exclusive",
+      "title": "Pixel Bounds Convention",
+      "type": "string"
+    },
+    "foreground_pixel_count": {
+      "maximum": 16777216,
+      "minimum": 1,
+      "title": "Foreground Pixel Count",
+      "type": "integer"
+    },
+    "confidence": {
+      "maximum": 1,
+      "minimum": 0.5,
+      "title": "Confidence",
+      "type": "number"
+    },
+    "uncertainty": {
+      "maxLength": 2000,
+      "minLength": 8,
+      "title": "Uncertainty",
+      "type": "string"
+    },
+    "extent_origin": {
+      "const": "reference_alpha_support",
+      "default": "reference_alpha_support",
+      "title": "Extent Origin",
+      "type": "string"
+    },
+    "alpha_threshold": {
+      "const": 0,
+      "default": 0,
+      "title": "Alpha Threshold",
+      "type": "integer"
+    },
+    "candidate_or_render_derived": {
+      "const": false,
+      "default": false,
+      "title": "Candidate Or Render Derived",
+      "type": "boolean"
+    },
+    "semantic_extent_authority": {
+      "const": false,
+      "default": false,
+      "title": "Semantic Extent Authority",
+      "type": "boolean"
+    },
+    "canonical_write_authority": {
+      "const": false,
+      "default": false,
+      "title": "Canonical Write Authority",
+      "type": "boolean"
+    },
+    "human_approval_authority": {
+      "const": false,
+      "default": false,
+      "title": "Human Approval Authority",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "reference",
+    "reference_resolution",
+    "subject_object_ids",
+    "observation_id",
+    "bbox_pixels",
+    "foreground_pixel_count",
+    "confidence",
+    "uncertainty"
+  ],
+  "title": "ReferenceSubjectExtentEvidenceV01",
+  "type": "object"
+}

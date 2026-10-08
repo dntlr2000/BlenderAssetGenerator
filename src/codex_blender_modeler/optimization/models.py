@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import math
 import re
 from datetime import datetime
 from pathlib import PurePosixPath
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_serializer, model_validator
+
+from codex_blender_modeler.optical_volume_models import OpticalVolumeSpec
 
 SCHEMA_VERSION = "0.7.0"
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
@@ -49,9 +52,7 @@ PortableProfile = Literal["portable_gltf", "fbx_interchange", "obj_legacy"]
 ArtifactStatus = Literal["planned", "complete", "failed"]
 QualityStatus = Literal["verified", "partially_verified", "unverified"]
 Vec3 = tuple[float, float, float]
-PortableMaterialChannel = Literal[
-    "base_color", "roughness", "metallic", "normal", "emission"
-]
+PortableMaterialChannel = Literal["base_color", "roughness", "metallic", "normal", "emission"]
 PORTABLE_MATERIAL_CHANNELS = (
     "base_color",
     "roughness",
@@ -122,6 +123,16 @@ class SourceProvenance(V07StrictModel):
     geometry_payloads: list[HashedArtifact] = Field(default_factory=list)
     material_plan: HashedArtifact | None = None
     texture_manifests: list[HashedArtifact] = Field(default_factory=list)
+    attachment_intent: HashedArtifact | None = None
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_attachment_absence(self, handler):
+        """Omit the additive selection from historical no-attachment serialization."""
+
+        value = handler(self)
+        if self.attachment_intent is None:
+            value.pop("attachment_intent", None)
+        return value
 
     @model_validator(mode="after")
     def validate_provenance(self) -> SourceProvenance:
@@ -139,9 +150,7 @@ class SourceProvenance(V07StrictModel):
                 self.external_asset_manifest is None
                 or self.external_asset_manifest.kind != "external_asset_manifest"
             ):
-                raise ValueError(
-                    "external source provenance requires kind=external_asset_manifest"
-                )
+                raise ValueError("external source provenance requires kind=external_asset_manifest")
             allowed_external_kinds = {
                 "external_source",
                 "external_dependency",
@@ -150,8 +159,7 @@ class SourceProvenance(V07StrictModel):
                 "external_normalization_evidence",
             }
             if any(
-                item.kind not in allowed_external_kinds
-                for item in self.external_source_artifacts
+                item.kind not in allowed_external_kinds for item in self.external_source_artifacts
             ):
                 raise ValueError("external provenance contains an invalid source artifact kind")
         if self.blend.kind != "blend":
@@ -162,6 +170,10 @@ class SourceProvenance(V07StrictModel):
             raise ValueError("material_plan provenance artifact must use kind=material_plan")
         if any(item.kind != "texture_manifest" for item in self.texture_manifests):
             raise ValueError("texture manifest provenance must use kind=texture_manifest")
+        if self.attachment_intent is not None and (
+            self.source_kind != "scene_spec" or self.attachment_intent.kind != "other"
+        ):
+            raise ValueError("attachment selection requires SceneSpec and kind=other")
         artifacts = self.artifacts()
         ids = [item.id for item in artifacts]
         paths = [item.path for item in artifacts]
@@ -183,6 +195,8 @@ class SourceProvenance(V07StrictModel):
         artifacts.extend([self.blend, *self.geometry_payloads, *self.texture_manifests])
         if self.material_plan is not None:
             artifacts.append(self.material_plan)
+        if self.attachment_intent is not None:
+            artifacts.append(self.attachment_intent)
         return artifacts
 
 
@@ -349,10 +363,7 @@ class SourceQualitySummary(V07StrictModel):
 
         if self.report_artifact.kind != "other":
             raise ValueError("source quality report artifact must use kind=other")
-        if (
-            self.quality_status != "passed"
-            and not self.standard_workflow_recommended
-        ):
+        if self.quality_status != "passed" and not self.standard_workflow_recommended:
             raise ValueError("non-passing source quality must recommend standard revision")
         return self
 
@@ -487,9 +498,7 @@ class LODOptimizationReview(V07StrictModel):
 class CollisionOptimizationReview(V07StrictModel):
     """Expose the exact collider policy and its bounded pre-execution estimate."""
 
-    strategy: Literal[
-        "none", "box", "sphere", "capsule", "convex_hull", "compound", "mesh_proxy"
-    ]
+    strategy: Literal["none", "box", "sphere", "capsule", "convex_hull", "compound", "mesh_proxy"]
     semantic_family_count: int = Field(ge=0)
     source_object_count: int = Field(ge=0)
     estimated_collider_count: int = Field(ge=0)
@@ -549,19 +558,19 @@ class OptimizationReview(V07StrictModel):
     budgets: CostBudgetPolicy = Field(default_factory=CostBudgetPolicy)
     status: Literal["awaiting_user_approval"] = "awaiting_user_approval"
     decision_required: Literal[True] = True
-    available_decisions: list[
-        Literal["approve", "revise_asset", "revise_profile", "cancel"]
-    ] = Field(
-        default_factory=lambda: [
-            "approve",
-            "revise_asset",
-            "revise_profile",
-            "cancel",
-        ]
+    available_decisions: list[Literal["approve", "revise_asset", "revise_profile", "cancel"]] = (
+        Field(
+            default_factory=lambda: [
+                "approve",
+                "revise_asset",
+                "revise_profile",
+                "cancel",
+            ]
+        )
     )
-    recommended_decision: Literal[
-        "approve", "revise_asset", "revise_profile", "cancel"
-    ] | None = None
+    recommended_decision: Literal["approve", "revise_asset", "revise_profile", "cancel"] | None = (
+        None
+    )
     decision_reason: str | None = Field(default=None, min_length=1, max_length=1000)
     warnings: list[str] = Field(default_factory=list)
     created_at: datetime
@@ -590,9 +599,7 @@ class OptimizationReview(V07StrictModel):
         ):
             raise ValueError("recommended decision must be available in this review")
         if (self.recommended_decision is None) != (self.decision_reason is None):
-            raise ValueError(
-                "recommended decision and decision reason must be supplied together"
-            )
+            raise ValueError("recommended decision and decision reason must be supplied together")
         return self
 
 
@@ -1158,12 +1165,13 @@ class PortableMaterialContractArtifact(V07StrictModel):
 class PortableAtlasPolicy(V07StrictModel):
     """Define one deterministic global atlas over every derived render and LOD binding."""
 
+    uv_method: Literal["smart_project", "validated_authored_uv_v1"] = "smart_project"
     layout: Literal["global_shared"] = "global_shared"
     atlas_scope: Literal["all_render_lod"] = "all_render_lod"
     conversion_phase: Literal["after_optimization_with_canonical_source_frame"] = (
         "after_optimization_with_canonical_source_frame"
     )
-    tile_strategy: Literal["deterministic_grid"] = "deterministic_grid"
+    tile_strategy: Literal["deterministic_grid", "area_weighted_rect_v1"] = "deterministic_grid"
     uv_set: StableId = "CBMPortableAtlas"
     resolution: PositivePixel = 2048
     margin_px: int = Field(default=16, ge=1, le=1024)
@@ -1175,10 +1183,24 @@ class PortableAtlasPolicy(V07StrictModel):
         max_length=5,
     )
 
+    @model_serializer(mode="wrap")
+    def serialize_legacy_policy(self, handler):
+        """Keep absent legacy method bytes unchanged while making opt-in explicit."""
+        value = handler(self)
+        if self.uv_method == "smart_project":
+            value.pop("uv_method", None)
+        return value
+
     @model_validator(mode="after")
     def validate_policy(self) -> PortableAtlasPolicy:
         """Require a power-of-two atlas and the exact five portable PBR channels."""
 
+        if self.tile_strategy == "area_weighted_rect_v1" and (
+            self.uv_method != "validated_authored_uv_v1"
+        ):
+            raise ValueError("area_weighted_rect_v1 requires validated_authored_uv_v1")
+        if self.tile_strategy == "area_weighted_rect_v1" and self.resolution < 64:
+            raise ValueError("area_weighted_rect_v1 requires at least 64 pixels")
         if self.resolution & (self.resolution - 1):
             raise ValueError("portable atlas resolution must be a power of two")
         if self.margin_px * 2 >= self.resolution:
@@ -1226,6 +1248,7 @@ class PortableMaterialConversionPlan(V07StrictModel):
     optimized_blend: HashedArtifact
     uv_manifest: HashedArtifact
     required_material_ids: list[StableId] = Field(min_length=1)
+    authored_uv_source: HashedArtifact | None = None
     atlas_policy: PortableAtlasPolicy = Field(default_factory=PortableAtlasPolicy)
     materials: list[PortableMaterialBinding] = Field(min_length=1)
     status: Literal["draft", "approved"] = "draft"
@@ -1234,10 +1257,24 @@ class PortableMaterialConversionPlan(V07StrictModel):
     canonical_unchanged: Literal[True] = True
     notes: list[str] = Field(default_factory=list)
 
+    @model_serializer(mode="wrap")
+    def serialize_legacy_plan(self, handler):
+        """Omit the additive source proof reference when the legacy mode is selected."""
+        value = handler(self)
+        if self.authored_uv_source is None:
+            value.pop("authored_uv_source", None)
+        return value
+
     @model_validator(mode="after")
     def validate_plan(self) -> PortableMaterialConversionPlan:
         """Enforce artifact roles, exact material coverage, and approval lifecycle rules."""
 
+        if (self.atlas_policy.uv_method == "validated_authored_uv_v1") != (
+            self.authored_uv_source is not None
+        ):
+            raise ValueError("authored UV mode requires exactly its source inspection artifact")
+        if self.authored_uv_source is not None and self.authored_uv_source.kind != "other":
+            raise ValueError("authored UV source artifact must use kind=other")
         expected_roles = (
             (self.profile_artifact, "asset_profile", "profile_artifact"),
             (self.optimization_plan, "optimization_plan", "optimization_plan"),
@@ -1260,6 +1297,7 @@ class PortableMaterialConversionPlan(V07StrictModel):
             self.optimized_blend,
             self.uv_manifest,
             *(item.source_shader_recipe for item in self.materials),
+            *([self.authored_uv_source] if self.authored_uv_source is not None else []),
         ]
         artifact_ids = [item.id for item in artifacts]
         artifact_paths = [item.path for item in artifacts]
@@ -1289,9 +1327,9 @@ class PortableAtlasTile(V07StrictModel):
     uv_maximum: UVPoint
     overlap_fraction: float | None = Field(default=None, ge=0, le=1)
     quality_status: QualityStatus = "unverified"
-    unwrap_method: Literal["smart_project", "lightmap_pack_fallback"] = (
-        "smart_project"
-    )
+    unwrap_method: Literal[
+        "smart_project", "lightmap_pack_fallback", "validated_authored_uv_v1"
+    ] = "smart_project"
     repaired_uv_degenerate_face_count: int = Field(default=0, ge=0)
     remaining_uv_degenerate_face_count: Literal[0] = 0
     tangent_repair_method: Literal[
@@ -1315,13 +1353,17 @@ class PortableAtlasTile(V07StrictModel):
 
         if self.margin_px * 2 >= min(self.resolution):
             raise ValueError("portable atlas tile margin must leave a positive image interior")
-        if any(
-            high <= low
-            for low, high in zip(self.uv_minimum, self.uv_maximum, strict=True)
-        ):
+        if any(high <= low for low, high in zip(self.uv_minimum, self.uv_maximum, strict=True)):
             raise ValueError("portable atlas tile maximum must exceed its minimum")
         if self.quality_status == "verified" and self.overlap_fraction is None:
             raise ValueError("verified atlas quality requires overlap_fraction evidence")
+        if self.unwrap_method == "validated_authored_uv_v1" and (
+            self.overlap_fraction != 0.0
+            or self.quality_status != "verified"
+            or self.tangent_repair_method != "none"
+            or self.repaired_uv_degenerate_face_count != 0
+        ):
+            raise ValueError("authored UV tile requires measured zero overlap and no repair")
         return self
 
 
@@ -1349,8 +1391,53 @@ class PortableChannelOutput(V07StrictModel):
         return self
 
 
+def _optical_factor_schema(schema: dict[str, Any]) -> None:
+    """Express the opt-in factor domain without changing absent-companion legacy defaults."""
+    schema["allOf"] = [
+        {
+            "if": {
+                "required": ["optical_volume"],
+                "properties": {"optical_volume": {"type": "object"}},
+            },
+            "then": {
+                "required": ["metallic_factor", "alpha_factor", "transmission_factor"],
+                "properties": {
+                    "metallic_factor": {"const": 0.0},
+                    "alpha_factor": {"const": 1.0},
+                    "transmission_factor": {"exclusiveMinimum": 0.0},
+                    "base_color_factor": {"prefixItems": [{}, {}, {}, {"const": 1.0}]},
+                },
+            },
+        }
+    ]
+
+
 class PortableSurfaceFactors(V07StrictModel):
     """Preserve portable scalar factors that cannot be inferred from atlas pixels alone."""
+
+    model_config = ConfigDict(json_schema_extra=_optical_factor_schema)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_optical_literals(cls, value: Any) -> Any:
+        """Reject coercion only for explicitly opted-in portable volume records."""
+        if isinstance(value, dict) and value.get("optical_volume") is not None:
+            if not {"metallic_factor", "alpha_factor", "transmission_factor"}.issubset(value):
+                raise ValueError("Optical portable factors require explicit dielectric scalars")
+            for key, item in value.items():
+                if key == "optical_volume":
+                    continue
+                values = item if isinstance(item, (list, tuple)) else [item]
+                for number in values:
+                    if type(number) not in (int, float):
+                        raise ValueError("Optical portable factors require finite numeric literals")
+                    try:
+                        finite = math.isfinite(float(number))
+                    except OverflowError as error:
+                        raise ValueError("Optical portable factor overflows") from error
+                    if not finite:
+                        raise ValueError("Optical portable factors require finite numeric literals")
+        return value
 
     base_color_factor: tuple[UnitFloat, UnitFloat, UnitFloat, UnitFloat] = (
         1.0,
@@ -1367,6 +1454,29 @@ class PortableSurfaceFactors(V07StrictModel):
     )
     alpha_factor: UnitFloat = 1.0
     transmission_factor: UnitFloat = 0.0
+    optical_volume: OpticalVolumeSpec | None = None
+
+    @model_validator(mode="after")
+    def validate_optical_surface_factors(self):
+        """Require the declared volume to retain a transmitting alpha-one dielectric fallback."""
+        if self.optical_volume is not None and (
+            self.transmission_factor <= 0
+            or self.metallic_factor != 0
+            or self.alpha_factor != 1
+            or self.base_color_factor[3] != 1
+        ):
+            raise ValueError(
+                "Optical volume factors require positive transmission, zero metal, alpha1"
+            )
+        return self
+
+    @model_serializer(mode="wrap")
+    def serialize_optional_optics(self, handler):
+        """Retain byte-equivalent legacy factors when the explicit companion is absent."""
+        result = handler(self)
+        if self.optical_volume is None:
+            result.pop("optical_volume", None)
+        return result
 
 
 class PortableMaterialConversionEntry(V07StrictModel):
@@ -1416,6 +1526,8 @@ class PortableMaterialConversionManifest(V07StrictModel):
     tiles: list[PortableAtlasTile] = Field(default_factory=list)
     outputs: list[PortableChannelOutput] = Field(default_factory=list)
     portable_blend: HashedArtifact | None = None
+    authored_uv_proof: HashedArtifact | None = None
+    authored_uv_scalar_bake: HashedArtifact | None = None
     status: Literal["planned", "running", "complete", "failed"] = "planned"
     created_at: datetime
     completed_at: datetime | None = None
@@ -1423,14 +1535,37 @@ class PortableMaterialConversionManifest(V07StrictModel):
     errors: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
 
+    @model_serializer(mode="wrap")
+    def serialize_legacy_manifest(self, handler):
+        """Keep legacy manifest serialization unchanged when no authored proof exists."""
+        value = handler(self)
+        if self.authored_uv_proof is None:
+            value.pop("authored_uv_proof", None)
+        if self.authored_uv_scalar_bake is None:
+            value.pop("authored_uv_scalar_bake", None)
+        return value
+
     @model_validator(mode="after")
     def validate_manifest(self) -> PortableMaterialConversionManifest:
         """Enforce hash roles, exact coverage, unique paths, and status-specific outputs."""
 
+        authored = self.atlas_policy.uv_method == "validated_authored_uv_v1"
+        if self.authored_uv_scalar_bake is not None and (
+            not authored or self.authored_uv_scalar_bake.kind != "other"
+        ):
+            raise ValueError("scalar bake evidence requires authored mode and kind=other")
+        if not authored and self.authored_uv_proof is not None:
+            raise ValueError("legacy conversion cannot contain authored UV proof")
+        if self.status == "complete" and authored != (self.authored_uv_proof is not None):
+            raise ValueError("complete authored UV conversion requires its strict measured proof")
+        if self.authored_uv_proof is not None and self.authored_uv_proof.kind != "other":
+            raise ValueError("authored UV proof artifact must use kind=other")
+        if any(
+            (tile.unwrap_method == "validated_authored_uv_v1") != authored for tile in self.tiles
+        ):
+            raise ValueError("atlas tile method does not match explicit conversion policy")
         if self.plan_artifact.kind != "portable_material_conversion_plan":
-            raise ValueError(
-                "plan_artifact must use kind=portable_material_conversion_plan"
-            )
+            raise ValueError("plan_artifact must use kind=portable_material_conversion_plan")
         expected_roles = (
             (self.profile_artifact, "asset_profile", "profile_artifact"),
             (self.optimization_plan, "optimization_plan", "optimization_plan"),
@@ -1463,17 +1598,13 @@ class PortableMaterialConversionManifest(V07StrictModel):
         tile_ids = [item.binding_id for item in self.tiles]
         if tile_ids != sorted(set(tile_ids)):
             raise ValueError("global atlas tile binding IDs must be ordered and unique")
-        entry_binding_ids = [
-            binding_id for item in self.entries for binding_id in item.binding_ids
-        ]
+        entry_binding_ids = [binding_id for item in self.entries for binding_id in item.binding_ids]
         if len(entry_binding_ids) != len(set(entry_binding_ids)):
             raise ValueError("material entry binding IDs must be globally unique")
         if sorted(entry_binding_ids) != tile_ids:
             raise ValueError("global atlas tiles must exactly cover material entry bindings")
         entry_material_by_binding = {
-            binding_id: item.material_id
-            for item in self.entries
-            for binding_id in item.binding_ids
+            binding_id: item.material_id for item in self.entries for binding_id in item.binding_ids
         }
         if any(
             entry_material_by_binding.get(tile.binding_id) != tile.material_id
@@ -1483,8 +1614,7 @@ class PortableMaterialConversionManifest(V07StrictModel):
         if any(item.uv_set != self.atlas_policy.uv_set for item in self.tiles):
             raise ValueError("every global atlas tile must use the atlas-policy UV set")
         if any(
-            item.resolution
-            != (self.atlas_policy.resolution, self.atlas_policy.resolution)
+            item.resolution != (self.atlas_policy.resolution, self.atlas_policy.resolution)
             for item in self.tiles
         ):
             raise ValueError("every global atlas tile resolution must match the policy")
@@ -1502,8 +1632,7 @@ class PortableMaterialConversionManifest(V07StrictModel):
         if any(item.material_ids != self.required_material_ids for item in self.outputs):
             raise ValueError("every global channel must exactly cover required materials")
         if any(
-            item.resolution
-            != (self.atlas_policy.resolution, self.atlas_policy.resolution)
+            item.resolution != (self.atlas_policy.resolution, self.atlas_policy.resolution)
             for item in self.outputs
         ):
             raise ValueError("every global channel resolution must match the atlas policy")
@@ -1525,6 +1654,12 @@ class PortableMaterialConversionManifest(V07StrictModel):
             raise ValueError("conversion-manifest binding artifact paths must be unique")
         output_ids = [output.id for output in self.outputs]
         output_paths = [output.path for output in self.outputs]
+        if self.authored_uv_scalar_bake is not None:
+            output_ids.append(self.authored_uv_scalar_bake.id)
+            output_paths.append(self.authored_uv_scalar_bake.path)
+        if self.authored_uv_proof is not None:
+            output_ids.append(self.authored_uv_proof.id)
+            output_paths.append(self.authored_uv_proof.path)
         if self.portable_blend is not None:
             if self.portable_blend.kind != "blend":
                 raise ValueError("portable_blend must use kind=blend")

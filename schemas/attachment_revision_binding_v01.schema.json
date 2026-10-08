@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "AttachmentRevisionRecordV01": {
+      "additionalProperties": false,
+      "description": "Link immutable initial registration and predecessor to one exact guarded workflow.",
+      "properties": {
+        "schema_version": {
+          "const": "0.1.0",
+          "default": "0.1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "kind": {
+          "const": "solid_root_attachment_revision",
+          "default": "solid_root_attachment_revision",
+          "title": "Kind",
+          "type": "string"
+        },
+        "job_id": {
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "workflow_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Workflow Id",
+          "type": "string"
+        },
+        "initial_registration": {
+          "$ref": "#/$defs/Artifact"
+        },
+        "previous_revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "previous_intent": {
+          "$ref": "#/$defs/Artifact"
+        },
+        "candidate_intent": {
+          "$ref": "#/$defs/Artifact"
+        },
+        "metadata_before_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Metadata Before Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "workflow_id",
+        "initial_registration",
+        "previous_revision",
+        "previous_intent",
+        "candidate_intent",
+        "metadata_before_sha256"
+      ],
+      "title": "AttachmentRevisionRecordV01",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind exact metadata before/after and both complete proof domains into author approval.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "revision": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "record": {
+      "$ref": "#/$defs/AttachmentRevisionRecordV01"
+    },
+    "metadata_after_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Metadata After Sha256",
+      "type": "string"
+    },
+    "source_preflight": {
+      "additionalProperties": true,
+      "title": "Source Preflight",
+      "type": "object"
+    },
+    "float32_preflight": {
+      "additionalProperties": true,
+      "title": "Float32 Preflight",
+      "type": "object"
+    }
+  },
+  "required": [
+    "revision",
+    "record",
+    "metadata_after_sha256",
+    "source_preflight",
+    "float32_preflight"
+  ],
+  "title": "AttachmentRevisionBindingV01",
+  "type": "object"
+}

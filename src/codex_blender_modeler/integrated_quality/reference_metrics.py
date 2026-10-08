@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.models import VisualQAReport
 from .models import AxisThreshold, QualityAxisResult, QualityMetric
 
@@ -55,7 +56,7 @@ def reference_alignment_axis(
     evidence_id: str,
     confidence: float = 1.0,
 ) -> QualityAxisResult:
-    """Project immutable V0.6 metrics into one axis without changing their values."""
+    """Retain V0.6 numbers while withholding axis trust for explicit evidence diagnostics."""
 
     if report is None:
         return QualityAxisResult(
@@ -125,8 +126,25 @@ def reference_alignment_axis(
             ),
         ),
     ]
+    requires_review = direct_evidence_requires_review(report)
+    if requires_review:
+        metrics.append(
+            QualityMetric(
+                metric_id="reference.semantic_part_evidence_reliability",
+                status="unscorable",
+                value=None,
+                confidence=0,
+                critical=True,
+                evidence_ids=[evidence_id],
+                message="Shared whole-object boxes require independent part-local evidence review.",
+            )
+        )
     status = _axis_status(metrics)
     limitations = list(report.warnings)
+    if requires_review:
+        limitations.append(
+            "Direct-score numbers are diagnostic only; semantic part evidence requires review."
+        )
     if high_findings:
         limitations.append(
             "High authoritative findings remain unresolved: " + ", ".join(high_findings)
@@ -135,8 +153,8 @@ def reference_alignment_axis(
         axis="reference_alignment",
         required=threshold.required,
         status=status,  # type: ignore[arg-type]
-        score=direct_score,
-        confidence=confidence,
+        score=None if requires_review else direct_score,
+        confidence=0 if requires_review else confidence,
         metrics=metrics,
         evidence_ids=[evidence_id],
         limitations=limitations,

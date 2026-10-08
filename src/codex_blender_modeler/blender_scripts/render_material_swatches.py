@@ -37,6 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--render-engine", choices=("eevee", "cycles"), default="eevee")
     parser.add_argument("--render-device", choices=("auto", "cpu", "gpu"), default="auto")
     parser.add_argument("--size", type=int, default=512)
+    parser.add_argument("--build-fingerprint")
     parser.add_argument("--material-id", action="append", default=[])
     argv = sys.argv[sys.argv.index("--") + 1 :] if "--" in sys.argv else []
     args = parser.parse_args(argv)
@@ -166,6 +167,14 @@ def main() -> None:
     args = parse_args()
     output_dir = Path(args.output_dir).expanduser().resolve()
     manifest_path = Path(args.manifest).expanduser().resolve()
+    if args.build_fingerprint is not None:
+        from codex_blender_modeler.build_provenance import require_matching_build_provenance
+
+        require_matching_build_provenance(
+            str(bpy.context.scene.get("cbm_build_provenance", "")),
+            args.build_fingerprint,
+            operation="selected workflow material swatches",
+        )
     os.makedirs(native_io_path(output_dir), exist_ok=True)
     configure_artifact_render(args.render_engine, args.render_device)
     scene = bpy.context.scene
@@ -215,6 +224,8 @@ def main() -> None:
         "source_material_count": len(source_materials),
         "swatches": records,
     }
+    if args.build_fingerprint is not None:
+        manifest["build_fingerprint"] = args.build_fingerprint
     write_json_atomic(manifest_path, manifest)
     print(f"CBM_MATERIAL_SWATCH_OK materials={len(records)} manifest={manifest_path}")
 

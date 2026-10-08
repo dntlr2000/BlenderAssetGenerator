@@ -24,7 +24,7 @@ def validate_reference_trimap(
     *,
     allowed_object_ids: set[str] | None,
 ) -> tuple[Image.Image, bytes]:
-    """Read exact PNG labels and reject foreign scope, dimensions, values or observed samples."""
+    """Validate exact labels against legacy observed bounds or independent V0.3 source scope."""
     from ..reference_fidelity.service import read_artifact
     from .reference_mask import _inset_bbox, _pixel_bbox
 
@@ -68,13 +68,25 @@ def validate_reference_trimap(
         if trimap.crop(core).getextrema() != (255, 255):
             raise ValueError("trimap contradicts an exact foreground seed core")
     if allowed_object_ids is not None:
+        from ..reference_fidelity.models import ReferenceMaskSeedEvidenceV03
         from .reference_mask import _clip_mask_to_normalized_bbox, _subject_evidence_bbox
+        from .reference_subject_extent import (
+            clip_to_subject_extent,
+            validate_reference_subject_extent,
+        )
 
-        bbox = _subject_evidence_bbox(spec, allowed_object_ids)
-        if bbox is None:
-            raise ValueError("trimap subject has no observed reference extent")
         foreground = trimap.point(lambda value: 255 if value in {170, 255} else 0)
-        if _clip_mask_to_normalized_bbox(foreground, bbox).tobytes() != foreground.tobytes():
+        if isinstance(evidence, ReferenceMaskSeedEvidenceV03):
+            extent, _raw = validate_reference_subject_extent(
+                root, reference_path, spec, evidence, allowed_object_ids=allowed_object_ids
+            )
+            scoped_foreground = clip_to_subject_extent(foreground, extent)
+        else:
+            bbox = _subject_evidence_bbox(spec, allowed_object_ids)
+            if bbox is None:
+                raise ValueError("trimap subject has no observed reference extent")
+            scoped_foreground = _clip_mask_to_normalized_bbox(foreground, bbox)
+        if scoped_foreground.tobytes() != foreground.tobytes():
             raise ValueError("trimap foreground escapes the observed subject extent")
     return trimap, raw
 

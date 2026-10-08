@@ -39,3 +39,8 @@ For job_kind external_static_asset, intake/external_asset_manifest.json and its 
 Project is 0.9.1 and canonical SceneSpec is 0.2.0. Derived-only SceneSpec V03 is 0.3.0. Material Identity Split, Skill Orchestration, and CLI-only Storage Retention are additive `0.1.0` companions and do not change either version. Existing V0.4–V0.9 and AQ/IQ 0.1 loaders retain their meaning. Companion contracts select strict loaders by exact schema_version and profile/session binding; absence is not automatic migration. A skill run snapshots its registry and transitive resources, then resumes from those exact bytes; the live skill directory is not historical run authority.
 
 Relevant exact rules: CBM-INV-001..019, CBM-INV-025..035, CBM-INV-045..048, CBM-INV-059..066, CBM-INV-099, CBM-INV-107..112, CBM-INV-134, CBM-INV-145..150, CBM-INV-166, CBM-INV-174..192.
+
+Authored Material Identity Split `0.2.0` is a separately selected registered-solid-root
+companion in `production/material_identity_split_authored/`. Its exact four-file
+journal and distinct direct-user/delegated-technical authority records never migrate
+Material Identity Split `0.1.0`. See the [authored split contract](../authored_material_identity_split.md).

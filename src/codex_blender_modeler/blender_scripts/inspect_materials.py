@@ -25,6 +25,7 @@ from codex_blender_modeler.material_manifest import (  # noqa: E402
     MaterialManifestError,
     load_material_manifest,
 )
+from codex_blender_modeler.surface_detail_atlas import shared_atlas_errors  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -185,6 +186,8 @@ def _authoritative_spatial_bindings(
             "uv_layout_sha256": binding["uv_layout_sha256"],
             "channels": list(binding["channels"]),
             "wrap": binding["wrap"],
+            "placement": binding["placement"],
+            "atlas_resolution": list(manifest["resolution"]),
         }
         for binding in manifest.get("surface_detail_bindings", [])
     ]
@@ -274,6 +277,15 @@ def material_record(material: bpy.types.Material, job_root: Path) -> dict[str, A
         bindings,
         channel_evidence,
     )
+    # Keep legacy single-parent graph semantics; shared atlases separately require
+    # actual loaded channel dimensions before declared texel padding is trusted.
+    atlas_image_size_errors: list[str] = []
+    for channel in sorted({name for binding in bindings for name in binding["channels"]}):
+        node = material.node_tree.nodes.get(f"CBM_{channel}") if material.node_tree else None
+        if (node is None or getattr(node, "image", None) is None
+                or tuple(int(value) for value in node.image.size[:2])
+                != tuple(bindings[0].get("atlas_resolution", []))):
+            atlas_image_size_errors.append(f"{channel}: actual atlas image dimensions mismatch")
     errors.extend(graph_evidence["errors"])
     try:
         recorded_bindings = json.loads(
@@ -329,6 +341,8 @@ def material_record(material: bpy.types.Material, job_root: Path) -> dict[str, A
         "spatial_binding_count": len(bindings),
         "spatial_bindings": bindings,
         "spatial_graph_evidence": graph_evidence,
+        "atlas_image_sizes_valid": bool(bindings and not atlas_image_size_errors),
+        "atlas_image_size_errors": atlas_image_size_errors,
         "errors": errors,
         "warnings": warnings,
     }
@@ -378,6 +392,10 @@ def object_uv_record(obj: bpy.types.Object) -> dict[str, Any]:
     """Measure evaluated UV coverage and approximate texel density for one mesh object."""
 
     warnings: list[str] = []
+    assigned_material_ids = sorted({
+        str(slot.material.get("cbm_id", slot.material.name))
+        for slot in obj.material_slots if slot.material is not None
+    })
     source_uv_layers = [
         {
             "name": str(layer.name),
@@ -392,6 +410,10 @@ def object_uv_record(obj: bpy.types.Object) -> dict[str, Any]:
     try:
         mesh.calc_loop_triangles()
         uv_layers = [layer.name for layer in mesh.uv_layers]
+        evaluated_uv_layer_metrics = [
+            {"name": layer.name, **uv_layer_metrics(mesh, layer)}
+            for layer in mesh.uv_layers
+        ]
         active_uv = mesh.uv_layers.active
         if active_uv is None:
             return {
@@ -399,11 +421,13 @@ def object_uv_record(obj: bpy.types.Object) -> dict[str, Any]:
                 "name": obj.name,
                 "uv_layers": uv_layers,
                 "source_uv_layers": source_uv_layers,
+                "evaluated_uv_layer_metrics": evaluated_uv_layer_metrics,
                 "active_uv": None,
                 "triangle_count": len(mesh.loop_triangles),
                 "outside_unit_uv_loops": 0,
                 "degenerate_uv_triangles": 0,
                 "material_stats": [],
+                "assigned_material_ids": assigned_material_ids,
                 "warnings": ["Mesh has no active UV layer"],
             }
 
@@ -462,11 +486,13 @@ def object_uv_record(obj: bpy.types.Object) -> dict[str, Any]:
             "name": obj.name,
             "uv_layers": uv_layers,
             "source_uv_layers": source_uv_layers,
+            "evaluated_uv_layer_metrics": evaluated_uv_layer_metrics,
             "active_uv": active_uv.name,
             "triangle_count": len(mesh.loop_triangles),
             "outside_unit_uv_loops": outside,
             "degenerate_uv_triangles": total_degenerate,
             "material_stats": stats,
+            "assigned_material_ids": assigned_material_ids,
             "warnings": warnings,
         }
     finally:
@@ -476,8 +502,10 @@ def object_uv_record(obj: bpy.types.Object) -> dict[str, Any]:
 def _spatial_binding_checks(
     materials: list[dict[str, Any]],
     objects: list[dict[str, Any]],
+    *,
+    atlas_strategies: dict[str, str] | None = None,
 ) -> list[dict[str, Any]]:
-    """Compare every runtime spatial binding with its parent object's exact source UV hash."""
+    """Check exact source UVs and independently measured evaluated shared-atlas occupancy."""
 
     object_records: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for record in objects:
@@ -485,7 +513,42 @@ def _spatial_binding_checks(
     checks: list[dict[str, Any]] = []
     for material in materials:
         material_id = str(material["material_id"])
-        for binding in material.get("spatial_bindings", []):
+        bindings = material.get("spatial_bindings", [])
+        material_users = sorted({
+            str(record["object_id"]) for record in objects
+            if material_id in record.get("assigned_material_ids", [])
+            or any(item.get("material_id") == material_id
+                   for item in record.get("material_stats", []))
+        })
+        atlas_errors: list[str] = []
+        if len(material_users) > 1 and bindings:
+            if material.get("atlas_image_sizes_valid") is not True:
+                atlas_errors.append("shared atlas actual image dimensions are unverified or stale")
+            if sum(entry["material_id"] == material_id for entry in materials) != 1:
+                atlas_errors.append("shared atlas material identity is ambiguous")
+            resolution = bindings[0].get("atlas_resolution", [])
+            if any(entry.get("atlas_resolution") != resolution for entry in bindings):
+                atlas_errors.append("shared atlas texture resolution is inconsistent")
+            for key, check_hash in [("source_uv_layers", True),
+                                    ("evaluated_uv_layer_metrics", False)]:
+                metrics = {
+                    parent: [layer for record in object_records.get(parent, [])
+                             for layer in (
+                                 [entry for entry in record.get(key, [])
+                                  if entry.get("name") == "UVMap"] or [{}]
+                             )]
+                    for parent in material_users
+                }
+                atlas_errors.extend(shared_atlas_errors(
+                    material_id=material_id, material_users=material_users,
+                    bindings=bindings, strategies=atlas_strategies or {},
+                    uv_metrics=metrics, resolution=resolution,
+                    check_fingerprints=check_hash,
+                    # Inventory bounds round to six decimals. Add conservative
+                    # uncertainty so rounding cannot hide an actual cell escape.
+                    bounds_rounding_uncertainty=1e-6,
+                ))
+        for binding in bindings:
             parent_id = str(binding["parent_object_id"])
             uv_set = str(binding["uv_set"])
             expected = str(binding["uv_layout_sha256"])
@@ -526,10 +589,10 @@ def _spatial_binding_checks(
                 str(record["object_id"])
                 for record in objects
                 if str(record["object_id"]) != parent_id
-                and any(
+                and (material_id in record.get("assigned_material_ids", []) or any(
                     item.get("material_id") == material_id
                     for item in record.get("material_stats", [])
-                )
+                ))
             )
             graph_ok = material.get("spatial_graph_evidence", {}).get("status") == "passed"
             matches = bool(
@@ -537,7 +600,7 @@ def _spatial_binding_checks(
                 and actual_hashes == {expected}
                 and unit_bounds
                 and assigned_to_parent
-                and not other_users
+                and (not other_users or not atlas_errors)
                 and graph_ok
             )
             checks.append(
@@ -551,6 +614,8 @@ def _spatial_binding_checks(
                     "unit_uv_bounds": unit_bounds,
                     "assigned_to_parent": assigned_to_parent,
                     "other_material_users": other_users,
+                    "shared_atlas_errors": sorted(set(atlas_errors)) if other_users else [],
+                    "shared_atlas_occupancy_verified": bool(other_users and not atlas_errors),
                     "spatial_graph_status": material.get(
                         "spatial_graph_evidence", {}
                     ).get("status"),
@@ -577,7 +642,17 @@ def build_report(job_root: Path) -> dict[str, Any]:
         for obj in sorted(bpy.context.scene.objects, key=lambda item: item.name)
         if obj.type == "MESH"
     ]
-    spatial_checks = _spatial_binding_checks(materials, objects)
+    modeling_path = job_root / "analysis" / "modeling_plan.json"
+    atlas_strategies: dict[str, str] = {}
+    if modeling_path.is_file():
+        modeling = json.loads(modeling_path.read_text(encoding="utf-8"))
+        atlas_strategies = {
+            str(detail["id"]): str(detail.get("uv_strategy"))
+            for detail in modeling.get("surface_details", [])
+        }
+    spatial_checks = _spatial_binding_checks(
+        materials, objects, atlas_strategies=atlas_strategies,
+    )
     errors = [
         f"{record['material_id']}: {message}"
         for record in materials

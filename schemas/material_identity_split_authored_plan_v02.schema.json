@@ -1,0 +1,330 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "AuthoredSplitDerivativeV02": {
+      "additionalProperties": false,
+      "description": "Bind a strict payload predecessor and its exact material-only derivative.",
+      "properties": {
+        "object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/Artifact"
+        },
+        "candidate": {
+          "$ref": "#/$defs/Artifact"
+        }
+      },
+      "required": [
+        "object_id",
+        "source",
+        "candidate"
+      ],
+      "title": "AuthoredSplitDerivativeV02",
+      "type": "object"
+    },
+    "AuthoredSplitMaterialDerivativeV02": {
+      "additionalProperties": false,
+      "description": "Bind metadata-only recipe/manifest clones and exact copied media bytes.",
+      "properties": {
+        "object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Object Id",
+          "type": "string"
+        },
+        "source_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate_manifest": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_recipe": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "candidate_recipe": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Artifact"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "media_copies": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Artifact"
+          },
+          "maxProperties": 256,
+          "title": "Media Copies",
+          "type": "object"
+        }
+      },
+      "required": [
+        "object_id",
+        "source_manifest",
+        "candidate_manifest",
+        "source_recipe",
+        "candidate_recipe",
+        "media_copies"
+      ],
+      "title": "AuthoredSplitMaterialDerivativeV02",
+      "type": "object"
+    },
+    "MaterialIdentityCloneRuleV02": {
+      "additionalProperties": false,
+      "description": "Declare one exclusive host and every existing detail row for its new identity.",
+      "properties": {
+        "source_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Source Material Id",
+          "type": "string"
+        },
+        "new_material_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "New Material Id",
+          "type": "string"
+        },
+        "target_object_id": {
+          "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+          "title": "Target Object Id",
+          "type": "string"
+        },
+        "surface_detail_ids": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+            "type": "string"
+          },
+          "maxItems": 256,
+          "minItems": 1,
+          "title": "Surface Detail Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source_material_id",
+        "new_material_id",
+        "target_object_id",
+        "surface_detail_ids"
+      ],
+      "title": "MaterialIdentityCloneRuleV02",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind immutable sources, strict candidates, complete proofs, and prospective provenance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "delegation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "clone_rules": {
+      "items": {
+        "$ref": "#/$defs/MaterialIdentityCloneRuleV02"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Clone Rules",
+      "type": "array"
+    },
+    "source_files": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "maxProperties": 512,
+      "minProperties": 5,
+      "title": "Source Files",
+      "type": "object"
+    },
+    "immutable_dependencies": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 512,
+      "title": "Immutable Dependencies",
+      "type": "object"
+    },
+    "candidate_scene_spec": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_modeling_plan": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_job_metadata": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_attachment_intent": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "attachment_revision": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "derivatives": {
+      "items": {
+        "$ref": "#/$defs/AuthoredSplitDerivativeV02"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Derivatives",
+      "type": "array"
+    },
+    "material_derivatives": {
+      "items": {
+        "$ref": "#/$defs/AuthoredSplitMaterialDerivativeV02"
+      },
+      "maxItems": 128,
+      "minItems": 1,
+      "title": "Material Derivatives",
+      "type": "array"
+    },
+    "material_dependencies": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 512,
+      "title": "Material Dependencies",
+      "type": "object"
+    },
+    "root_proofs": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "prospective_build_provenance": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_build_provenance": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_material_plan_mode": {
+      "default": "current",
+      "enum": [
+        "current",
+        "scene_spec_only"
+      ],
+      "title": "Source Material Plan Mode",
+      "type": "string"
+    },
+    "material_plan_mode": {
+      "const": "authored_identity_preserved",
+      "default": "authored_identity_preserved",
+      "title": "Material Plan Mode",
+      "type": "string"
+    },
+    "material_closure_status": {
+      "const": "pending_native_material_workflow",
+      "default": "pending_native_material_workflow",
+      "title": "Material Closure Status",
+      "type": "string"
+    },
+    "execution_authorized": {
+      "const": false,
+      "default": false,
+      "title": "Execution Authorized",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "created_at",
+    "clone_rules",
+    "source_files",
+    "immutable_dependencies",
+    "candidate_scene_spec",
+    "candidate_modeling_plan",
+    "candidate_job_metadata",
+    "candidate_attachment_intent",
+    "attachment_revision",
+    "derivatives",
+    "material_derivatives",
+    "material_dependencies",
+    "root_proofs",
+    "prospective_build_provenance",
+    "source_build_provenance"
+  ],
+  "title": "AuthoredMaterialIdentitySplitPlanV02",
+  "type": "object"
+}

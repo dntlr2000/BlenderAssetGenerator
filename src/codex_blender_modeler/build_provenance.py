@@ -452,6 +452,9 @@ def collect_build_provenance(
 ) -> dict[str, Any]:
     """Collect exact build inputs under one explicit material-plan selection boundary."""
 
+    from .paired_revision_runtime import assert_no_pending_pair
+
+    assert_no_pending_pair(job_root)
     root = job_root.expanduser().resolve()
     if material_plan_mode not in {"current", "scene_spec_only"}:
         raise BuildProvenanceError(f"Unsupported build material-plan mode: {material_plan_mode!r}")
@@ -637,6 +640,21 @@ def collect_build_provenance(
     assembly_contracts = _optional_assembly_contract_hashes(root)
     if assembly_contracts is not None:
         payload["assembly_contracts"] = assembly_contracts
+    from .attachment_runtime import REGISTRATION_PATH, selected_attachment
+
+    attachment = selected_attachment(root, job_id, spec_path)
+    if attachment is not None:
+        payload["attachment_intent"] = attachment
+        payload["attachment_registration_sha256"] = sha256_file(root / REGISTRATION_PATH)
+        metadata = json.loads((root / "job.json").read_bytes())
+        if "attachment_revision" in metadata:
+            payload["attachment_revision"] = metadata["attachment_revision"]
+        if material_plan_mode == "scene_spec_only":
+            from .authored_material_runtime import provenance_closure
+
+            closure = provenance_closure(root, metadata)
+            if closure is not None:
+                payload["authored_material_identity_split_closure"] = closure
     payload["fingerprint"] = canonical_json_sha256(payload)
     return payload
 

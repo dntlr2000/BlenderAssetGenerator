@@ -1,0 +1,104 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Record one immutable commit or exact rollback without granting future authority.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "committed",
+        "rolled_back"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "journal": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "canonical": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 4,
+      "minProperties": 4,
+      "title": "Canonical",
+      "type": "object"
+    },
+    "material_closure_status": {
+      "const": "pending_native_material_workflow",
+      "default": "pending_native_material_workflow",
+      "title": "Material Closure Status",
+      "type": "string"
+    },
+    "authored_material_plan_preserved": {
+      "const": true,
+      "default": true,
+      "title": "Authored Material Plan Preserved",
+      "type": "boolean"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "status",
+    "journal",
+    "canonical"
+  ],
+  "title": "AuthoredMaterialIdentitySplitTerminalV02",
+  "type": "object"
+}

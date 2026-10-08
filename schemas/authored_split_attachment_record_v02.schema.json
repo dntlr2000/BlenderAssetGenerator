@@ -1,0 +1,103 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Select one specialized run in an acyclic mixed attachment revision chain.",
+  "properties": {
+    "profile": {
+      "default": "authored_material_registered_solid_root_user_only",
+      "enum": [
+        "authored_material_registered_solid_root_user_only",
+        "authored_material_registered_solid_root_delegated_technical"
+      ],
+      "title": "Profile",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "kind": {
+      "const": "solid_root_attachment_material_identity_split_revision",
+      "default": "solid_root_attachment_material_identity_split_revision",
+      "title": "Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "workflow_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Workflow Id",
+      "type": "string"
+    },
+    "initial_registration": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "previous_revision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Artifact"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "previous_intent": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "candidate_intent": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "metadata_before_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Metadata Before Sha256",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "workflow_id",
+    "initial_registration",
+    "previous_revision",
+    "previous_intent",
+    "candidate_intent",
+    "metadata_before_sha256"
+  ],
+  "title": "AuthoredSplitAttachmentRecordV02",
+  "type": "object"
+}

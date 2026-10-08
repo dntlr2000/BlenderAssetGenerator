@@ -13,3 +13,23 @@ Destination Handoff starts only from an accepted supported package, has its own 
 New AQ GLB delivery may additionally capture strict `geometry_delivery_corner_evidence` 0.1.0 and publish a `geometry_delivery_numerical_survival_report` 0.2.0. This Blender 5.0.1-only companion retains the exact legacy 0.1.0 snapshot comparison, including its original failures. It may refine only optimized-to-clean-import GLB UV/split-normal cell failures after uniquely matching every triangle corner, preserving winding and material/topology checks, and verifying fixed position/UV/normal component and angular bounds. Consumers must rehash and recompute the raw proof and bind it to the exact host-owned run, published snapshots, converted blend, primary GLB, source freeze and build. Unknown versions, ambiguous correspondence, missing proof, or changed artifacts fail closed. Legacy reports, FBX, candidate promotion, human quality, package acceptance and destination authority retain their original meanings; no historical evidence is migrated or reclassified.
 
 Primary rules: CBM-INV-028..035, CBM-INV-041..044, CBM-INV-053, CBM-INV-055..066, CBM-INV-078, CBM-INV-080, CBM-INV-096, CBM-INV-117, CBM-INV-149..150, CBM-INV-162..170, CBM-INV-181..185, CBM-INV-192.
+
+The optional [delegated technical authority](../delegated_optimization_authority.md)
+adds a third mutually exclusive proof, restricted to exact GLB `full_evidence` runs.
+Its portable authority manifest retains `final_human_acceptance=false`; copied proof
+can validate its internal integrity without granting new execution authority. Separate
+actual clean-import and human package-acceptance evidence remain required. Expiry or
+later canonical revisions close new execution eligibility without rewriting historical
+consumed/package evidence.
+
+New package publication rejects known recorded optional-LOD silhouette failures while
+preserving legacy unknown measurements. The explicit read-only
+[post-export LOD diagnostic](../lod_quality_diagnostics.md) recomputes supplied exact masks;
+it never supplies rendering attestation, native per-family verification, or acceptance.
+
+An explicitly selected [area-weighted rectangle strategy](../weighted_portable_atlas.md)
+may accompany validated authored UV conversion. It recomputes world-surface-area
+weights from the existing exact source inspection; grid defaults, geometry and
+tangent thresholds, scalar/normal evidence separation and package gates are unchanged.
+
+The opt-in [constant optical-volume contract](../optical_volume_contract.md) preserves declared thickness/attenuation in GLB/glTF only, with closed-boundary and actual serialized-factor checks. It grants no destination or appearance parity and leaves legacy material serialization unchanged.

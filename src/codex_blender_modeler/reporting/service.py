@@ -20,7 +20,7 @@ from ..qa.multiview_sanity import (
     validate_assembly_sanity_terminal,
     validate_geometry_multiview_visual_review,
 )
-from ..workspace import job_dir, load_job, resolve_metadata_path, sha256_file
+from ..workspace import job_dir, load_job, resolve_job_input_path, sha256_file
 from .models import HumanReportManifest, ReportScope, ReportSource
 from .pdf_renderer import render_job_pdf
 
@@ -105,7 +105,12 @@ def _resolve_reference(metadata: dict[str, Any], root: Path, warnings: list[str]
     if not isinstance(value, str) or not value:
         warnings.append("Job metadata does not identify a primary reference image.")
         return None
-    reference = _safe_job_file(root, resolve_metadata_path(value), warnings)
+    try:
+        path = resolve_job_input_path(root, value, metadata.get("reference_sha256"))
+    except (ValueError, FileNotFoundError):
+        warnings.append("Skipped unavailable or invalid immutable reference evidence.")
+        return None
+    reference = _safe_job_file(root, path, warnings)
     if reference is None:
         return None
     expected = metadata.get("reference_sha256")
@@ -345,6 +350,10 @@ def _collect_export_sources(
             sources,
         )
         package_manifest = documents.get("package_manifest")
+        if any((package_dir / "metadata").glob("optimization_delegated_*")):
+            from ..packaging.delegated import validate_delegated_package_authority
+
+            validate_delegated_package_authority(package_dir)
         _collect_json_source(
             root,
             "texture_pack_manifest",
@@ -392,6 +401,19 @@ def _collect_export_sources(
                 ("review_plan", "metadata/review_plan.json"),
                 ("optimization_review", "metadata/optimization_review.json"),
                 ("optimization_approval", "metadata/optimization_approval.json"),
+                (
+                    "optimization_policy_authorization",
+                    "metadata/optimization_policy_authorization.json",
+                ),
+                (
+                    "optimization_delegated_authorization",
+                    "metadata/optimization_delegated_authorization.json",
+                ),
+                (
+                    "optimization_delegated_consumption",
+                    "metadata/optimization_delegated_consumption.json",
+                ),
+                ("optimization_delegated_scope", "metadata/optimization_delegated_scope.json"),
             ]
             if not static_payload:
                 snapshot_pairs.extend(
@@ -436,10 +458,20 @@ def _collect_export_sources(
         warnings,
     )
     if run_dir is not None:
+        if any(run_dir.glob("optimization_delegated_*")):
+            from ..optimization.delegated import validate_delegated_contract_file
+
+            validate_delegated_contract_file(
+                root, run_dir / "optimization_delegated_authorization.json"
+            )
         for key, filename in (
             ("review_plan", "review_plan.json"),
             ("optimization_review", "optimization_review.json"),
             ("optimization_approval", "optimization_approval.json"),
+            ("optimization_policy_authorization", "optimization_policy_authorization.json"),
+            ("optimization_delegated_authorization", "optimization_delegated_authorization.json"),
+            ("optimization_delegated_consumption", "optimization_delegated_consumption.json"),
+            ("optimization_delegated_scope", "optimization_delegated_scope.json"),
             ("optimization_plan", "optimization_plan.json"),
             ("mesh_preflight_report", "mesh_preflight_report.json"),
             ("lod_manifest", "lod_manifest.json"),

@@ -9,6 +9,7 @@ from PIL import Image
 from ..blender_artifacts import write_json_atomic
 from ..models import SceneSpec
 from ..optimization.provenance import collect_source_provenance
+from ..qa.direct_compare import direct_evidence_requires_review
 from ..qa.hashing import canonical_model_sha256
 from ..qa.models import (
     REQUIRED_QA_PASS_KINDS,
@@ -276,7 +277,7 @@ def evaluate_background_quality(
     fit_report_path: Path,
     output_path: Path,
 ) -> BackgroundQualityReport:
-    """Create a review-delivery quality outcome without blocking on visual findings."""
+    """Classify review delivery while retaining explicit semantic evidence insufficiency."""
 
     qa_root = root / "qa" / "runs" / qa_run_id
     request_path = qa_root / "request.json"
@@ -357,6 +358,11 @@ def evaluate_background_quality(
         roles,
     )
 
+    if direct_evidence_requires_review(report):
+        unscorable.append(
+            "Semantic part evidence requires review: shared whole-object boxes do not "
+            "establish independent part-local support; this is not a geometry defect verdict."
+        )
     classified: list[BackgroundQualityFinding] = []
     primary_high: list[str] = []
     supporting_high: list[str] = []

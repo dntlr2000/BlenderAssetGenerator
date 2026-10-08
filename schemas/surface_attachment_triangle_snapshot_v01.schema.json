@@ -1,0 +1,168 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "PatchSelection": {
+      "additionalProperties": false,
+      "description": "Choose an exact semantic component face group without geometric nearest-owner guesses.",
+      "properties": {
+        "semantic_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Semantic Id",
+          "type": "string"
+        },
+        "face_group_id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Face Group Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "semantic_id",
+        "face_group_id"
+      ],
+      "title": "PatchSelection",
+      "type": "object"
+    },
+    "TrianglePatch": {
+      "additionalProperties": false,
+      "description": "Carry a complete selected actual patch awaiting fixed-inspector extraction verification.",
+      "properties": {
+        "selection": {
+          "$ref": "#/$defs/PatchSelection"
+        },
+        "source_geometry": {
+          "$ref": "#/$defs/Artifact"
+        },
+        "vertices_m": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 8192,
+          "minItems": 3,
+          "title": "Vertices M",
+          "type": "array"
+        },
+        "triangles": {
+          "items": {
+            "maxItems": 3,
+            "minItems": 3,
+            "prefixItems": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Triangles",
+          "type": "array"
+        }
+      },
+      "required": [
+        "selection",
+        "source_geometry",
+        "vertices_m",
+        "triangles"
+      ],
+      "title": "TrianglePatch",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind triangle bytes without claiming verified extraction from the named artifact.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "surface_attachment_triangle_snapshot",
+      "default": "surface_attachment_triangle_snapshot",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "maxLength": 128,
+      "minLength": 1,
+      "title": "Job Id",
+      "type": "string"
+    },
+    "inspected_artifact": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "source_scene": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "stage": {
+      "enum": [
+        "emitted_mesh",
+        "native_evaluated",
+        "clean_import_glb"
+      ],
+      "title": "Stage",
+      "type": "string"
+    },
+    "patches": {
+      "items": {
+        "$ref": "#/$defs/TrianglePatch"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "title": "Patches",
+      "type": "array"
+    }
+  },
+  "required": [
+    "job_id",
+    "inspected_artifact",
+    "source_scene",
+    "stage",
+    "patches"
+  ],
+  "title": "AttachmentTriangleSnapshotV01",
+  "type": "object"
+}

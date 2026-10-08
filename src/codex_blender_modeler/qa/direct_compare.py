@@ -27,6 +27,43 @@ _SILHOUETTE_WEIGHT = 0.60
 _GLOBAL_BBOX_WEIGHT = 0.15
 _SEMANTIC_BBOX_WEIGHT = 0.25
 _MIN_SEMANTIC_CONFIDENCE = 0.7
+_MIN_WHOLE_OBJECT_COVERAGE = 0.8
+_PART_EVIDENCE_FINDING_ID = "direct.evidence.shared_whole_object_bbox"
+_PART_EVIDENCE_WARNING_PREFIX = "SEMANTIC_PART_EVIDENCE_REVIEW_REQUIRED:"
+
+
+def ambiguous_semantic_targets(metrics: DirectVisualMetrics) -> tuple[str, ...]:
+    """Find exact duplicate boxes covering most of the reference subject, not local overlaps.
+
+    Shared boxes may describe legitimate overlapping geometry or materials. They do not,
+    by themselves, establish distinct part-local observations. Confidence declarations
+    and absent rendered parts cannot resolve that ambiguity. This is a narrow diagnostic,
+    not proof of a geometry defect or a validator for all possible evidence mistakes.
+    """
+
+    global_box = metrics.global_bbox.reference_bbox_norm
+    global_area = (global_box[2] - global_box[0]) * (global_box[3] - global_box[1])
+    if not all(math.isfinite(value) for value in global_box) or global_area <= 0:
+        return ()
+    grouped: dict[BBox, set[str]] = {}
+    for item in metrics.semantic_deviations:
+        box = item.metric.reference_bbox_norm
+        if not all(math.isfinite(value) and 0 <= value <= 1 for value in box):
+            continue
+        overlap_width = max(0.0, min(box[2], global_box[2]) - max(box[0], global_box[0]))
+        overlap_height = max(0.0, min(box[3], global_box[3]) - max(box[1], global_box[1]))
+        if overlap_width * overlap_height / global_area >= _MIN_WHOLE_OBJECT_COVERAGE:
+            grouped.setdefault(box, set()).add(item.target_id)
+    return tuple(sorted({target for targets in grouped.values() if len(targets) > 1
+                         for target in targets}))
+
+
+def direct_evidence_requires_review(report: VisualQAReport) -> bool:
+    """Recognize explicit new-run evidence diagnostics without relabeling legacy reports."""
+
+    return any(finding.id == _PART_EVIDENCE_FINDING_ID for finding in report.findings) or any(
+        warning.startswith(_PART_EVIDENCE_WARNING_PREFIX) for warning in report.warnings
+    )
 
 
 def observed_regions_from_scene_spec(
@@ -205,7 +242,7 @@ def compare_reference_to_render(
     object_id_colors: Mapping[str, str] | None = None,
     observed_regions: Mapping[str, tuple[BBox, float]] | None = None,
 ) -> VisualQAReport:
-    """Compare reference evidence directly to shader-independent fixed-camera passes."""
+    """Compare fixed-camera passes, retaining numeric metrics and flagging ambiguous evidence."""
 
     rendered_mask = _load_mask(silhouette_path)
     reference_mask = _load_mask(Path(request.reference_mask_path), rendered_mask.size)
@@ -295,6 +332,54 @@ def compare_reference_to_render(
         semantic_deviations=semantic_deviations,
         overall_direct_score=direct_score,
     )
+    warnings = (
+        ["Generated target is pending and cannot affect direct-reference metrics."]
+        if request.include_generated_target
+        else []
+    )
+    warnings.append(
+        "DIRECT_SCORE_SCOPE: overall_direct_score measures silhouette and global/semantic "
+        "bounding boxes only. Internal forms, ornament, surface-detail appearance, material "
+        "likeness, and physical attachments are not verified by this score. A clean export "
+        "round trip proves source preservation, not fidelity to the original reference."
+    )
+    declared_targets = set(object_id_colors or {})
+    observed_targets = declared_targets.intersection(observed_regions or {})
+    scored_targets = {
+        target for target in observed_targets
+        if (observed_regions or {})[target][1] >= _MIN_SEMANTIC_CONFIDENCE
+    }
+    if declared_targets and len(scored_targets) < len(declared_targets):
+        warnings.append(
+            "SEMANTIC_PART_EVIDENCE_COVERAGE: "
+            f"{len(observed_targets)}/{len(declared_targets)} declared semantic targets have "
+            f"observed reference boxes; {len(scored_targets)}/{len(declared_targets)} meet "
+            "the semantic scoring confidence threshold. Unobserved or low-confidence parts "
+            "are not independently scored. This coverage notice does not impose a new "
+            "observation requirement or establish whole-asset acceptance."
+        )
+    ambiguous_targets = ambiguous_semantic_targets(metrics)
+    if ambiguous_targets:
+        description = (
+            "Identical near-whole-object reference boxes do not establish distinct "
+            "part-local support for the affected targets. Overlapping parts may be legitimate; "
+            "this is an evidence limitation, not a geometry defect verdict. Existing part "
+            "findings and the aggregate direct score remain numerically unchanged and are "
+            "diagnostic only pending fresh, independently derived part-local evidence review."
+        )
+        warnings.append(f"{_PART_EVIDENCE_WARNING_PREFIX} {description}")
+        findings.append(
+            QAFinding(
+                id=_PART_EVIDENCE_FINDING_ID,
+                target_ids=list(ambiguous_targets),
+                issue_type="other",
+                severity="medium",
+                description=description,
+                evidence_sources=["direct_reference"],
+                confidence=1.0,
+                metrics={"affected_target_count": float(len(ambiguous_targets))},
+            )
+        )
     return VisualQAReport(
         job_id=request.job_id,
         run_id=request.run_id,
@@ -305,9 +390,5 @@ def compare_reference_to_render(
         generated_target_status=(
             "pending" if request.include_generated_target else "not_requested"
         ),
-        warnings=(
-            ["Generated target is pending and cannot affect direct-reference metrics."]
-            if request.include_generated_target
-            else []
-        ),
+        warnings=warnings,
     )

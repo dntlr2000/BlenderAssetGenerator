@@ -18,6 +18,7 @@ from .v02_models import (
     SemanticMetricV02,
 )
 from .v02_reentry import route_quality_findings_v02
+from .v02_v06_bridge import PART_EVIDENCE_FINDING_ID_V02
 
 
 def _gate(
@@ -486,7 +487,7 @@ def build_integrated_quality_report_v02(
     legacy_v06_direct_score: float | None = None,
     additional_findings: list[QualityFindingV02] | None = None,
 ) -> IntegratedQualityReportV02:
-    """Build an IQ 0.2 report without changing V0.6 or Integrated Quality 0.1 evidence."""
+    """Build IQ 0.2 with explicit part-evidence blockers and unchanged legacy score numbers."""
 
     visibility_gate = _fixed_camera_visibility_gate(fixed_camera_visibility, policy)
     gates = [
@@ -497,6 +498,18 @@ def build_integrated_quality_report_v02(
         *([visibility_gate] if visibility_gate is not None else []),
     ]
     extras = additional_findings or []
+    part_evidence = [item for item in extras if item.finding_id == PART_EVIDENCE_FINDING_ID_V02]
+    if part_evidence:
+        gates.append(
+            _gate(
+                "gate.reference.semantic_part_evidence_v02",
+                status="unscorable",
+                required=True,
+                evidence_ids=sorted({key for item in part_evidence for key in item.evidence_ids}),
+                reason_code="semantic_part_evidence_requires_review",
+                message="Independent part-local source evidence is ambiguous or unavailable.",
+            )
+        )
     if any(item.category == "restricted_scope" for item in extras):
         restricted = [item for item in extras if item.category == "restricted_scope"]
         gates.append(

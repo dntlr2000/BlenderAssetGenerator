@@ -243,6 +243,30 @@ class WorkflowRequest(V08StrictModel):
     target_subject: str | None = Field(default=None, min_length=1, max_length=256)
     execution_policy: ExecutionPolicy = "standard"
     revision_strategy: RevisionStrategy | None = None
+    paired_modeling_plan_path: JobRelativePath | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Exact existing candidate ModelingPlan for a manual guarded revision.",
+    )
+    paired_modeling_plan_sha256: Sha256 | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="SHA-256 of the exact paired candidate ModelingPlan bytes.",
+    )
+    attachment_intent_path: JobRelativePath | None = Field(
+        default=None, exclude_if=lambda value: value is None,
+        description="Exact staged solid-root intent for an explicit paired guarded revision.",
+    )
+    attachment_intent_sha256: Sha256 | None = Field(
+        default=None, exclude_if=lambda value: value is None,
+        description="SHA-256 of the exact prospective solid-root intent bytes.",
+    )
+    geometry_review_policy: Literal[
+        "exterior_geometry_review_v2", "exterior_geometry_review_v3"
+    ] = Field(
+        default="exterior_geometry_review_v2",
+        exclude_if=lambda value: value == "exterior_geometry_review_v2",
+    )
     delivery_scope: DeliveryScope | None = None
     fast_quality_policy: FastQualityPolicy | None = None
     background_preview_binding: BackgroundPreviewBinding | None = None
@@ -259,8 +283,24 @@ class WorkflowRequest(V08StrictModel):
 
     @model_validator(mode="after")
     def validate_view_request(self) -> WorkflowRequest:
-        """Keep staged views distinct and enforce the bounded background fast lane."""
+        """Validate paired revision selection, staged views, and bounded background work."""
 
+        if (self.attachment_intent_path is None) != (self.attachment_intent_sha256 is None):
+            raise ValueError("attachment intent path and SHA-256 must be supplied together")
+        if self.attachment_intent_path is not None and self.paired_modeling_plan_path is None:
+            raise ValueError("attachment intent revision requires exact paired ModelingPlan")
+        if (self.paired_modeling_plan_path is None) != (
+            self.paired_modeling_plan_sha256 is None
+        ):
+            raise ValueError("paired ModelingPlan path and SHA-256 must be supplied together")
+        if self.paired_modeling_plan_path is not None and (
+            self.execution_policy != "standard"
+            or self.revision_strategy != "manual_guarded"
+            or self.intent_hint != "revise_asset"
+        ):
+            raise ValueError(
+                "paired ModelingPlan requires explicit Standard manual_guarded revise_asset"
+            )
         if self.reference_content_scope == "primary_object_only" and self.target_subject is None:
             raise ValueError("primary_object_only requires an explicit target_subject")
         if self.staged_view is not None and self.staged_view.kind == "reference":

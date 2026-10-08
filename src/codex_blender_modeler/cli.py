@@ -162,6 +162,7 @@ from .material_closure_public import (
     run_material_shadow_compile,
     supersede_material_retry,
 )
+from .material_identity_split import authored_public
 from .material_identity_split_public import (
     apply_material_identity_split_public,
     approve_material_identity_split,
@@ -188,6 +189,11 @@ from .optimization import (
 from .optimization import (
     asset_status as get_asset_status,
 )
+from .optimization.delegated import (
+    authorize_delegated_asset_optimization,
+    create_delegated_optimization_scope,
+)
+from .optimization.delegated_workflow import bind_delegated_optimization_workflow
 from .orchestration import (
     approve_workflow_gate,
     cancel_workflow,
@@ -195,6 +201,7 @@ from .orchestration import (
     destination_adapters,
     get_workflow_status,
     reconcile_workflow,
+    recover_paired_workflow_revision,
     resume_workflow,
 )
 from .orchestration import (
@@ -1207,6 +1214,12 @@ def report_pdf(
 @app.command("visual-qa")
 def visual_qa(
     job_id: str,
+    reference_mask_seed_path: Annotated[
+        str | None, typer.Option("--reference-mask-seed-path")
+    ] = None,
+    reference_mask_seed_sha256: Annotated[
+        str | None, typer.Option("--reference-mask-seed-sha256")
+    ] = None,
     render_engine: Annotated[str, typer.Option("--render-engine")] = "eevee",
     render_device: Annotated[str, typer.Option("--render-device")] = "auto",
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
@@ -1218,7 +1231,7 @@ def visual_qa(
     target_allowed_root: Annotated[Path | None, typer.Option("--target-allowed-root")] = None,
     target_prompt_file: Annotated[Path | None, typer.Option("--target-prompt-file")] = None,
 ) -> None:
-    """Render V0.6 passes and optionally import one advisory image-model target."""
+    """Render V0.6 QA with explicit source-mask evidence or advisory target opt-ins."""
 
     _validate_render_options(render_engine, render_device)
     features = load_feature_config()
@@ -1269,6 +1282,10 @@ def visual_qa(
         include_generated_target=include_target,
         provider=provider,
         target_prompt=target_prompt,
+        **({"reference_mask_seed_path": reference_mask_seed_path,
+            "reference_mask_seed_sha256": reference_mask_seed_sha256}
+           if reference_mask_seed_path is not None or reference_mask_seed_sha256 is not None
+           else {}),
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 
@@ -1637,6 +1654,7 @@ def qa_assembly_sanity_plan(
     job_id: str,
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
     resolution: Annotated[int, typer.Option("--resolution", min=128, max=1024)] = 384,
+    review_policy: Annotated[str, typer.Option("--review-policy")] = "exterior_geometry_review_v2",
 ) -> None:
     """Plan a noncanonical five-view assembly diagnostic without bypassing approvals."""
 
@@ -1646,6 +1664,8 @@ def qa_assembly_sanity_plan(
         job_id,
         run_id=run_id,
         resolution=resolution,
+        **({"review_policy": review_policy}
+           if review_policy != "exterior_geometry_review_v2" else {}),
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
 
@@ -1898,12 +1918,120 @@ def asset_preflight(
         raise typer.Exit(code=2)
 
 
+@app.command("asset-delegation-validate-package")
+def asset_delegation_validate_package(package_directory: str) -> None:
+    """Check relocated sealed delegation evidence without granting execution or acceptance."""
+
+    from .packaging.delegated import validate_delegated_package_authority
+
+    console.print_json(data=validate_delegated_package_authority(package_directory))
+
+
+@app.command("asset-delegation-create")
+def asset_delegation_create(
+    job_id: str,
+    delegation_id: Annotated[str, typer.Option("--delegation-id")],
+    delegation_text_path: Annotated[str, typer.Option("--delegation-text-path")],
+    delegation_text_sha256: Annotated[str, typer.Option("--delegation-text-sha256")],
+    extension_confirmation_text_path: Annotated[
+        str, typer.Option("--extension-confirmation-text-path")
+    ],
+    extension_confirmation_text_sha256: Annotated[
+        str, typer.Option("--extension-confirmation-text-sha256")
+    ],
+    task_context_id: Annotated[str, typer.Option("--task-context-id")],
+    expires_at: Annotated[str, typer.Option("--expires-at")],
+    allowed_assets_json: Annotated[str, typer.Option("--allowed-assets-json")],
+    extension_confirmation: Annotated[str, typer.Option("--extension-confirmation")],
+    enable_delegated_authority: Annotated[
+        bool, typer.Option("--enable-delegated-authority")
+    ] = False,
+) -> None:
+    """Record exact explicit delegation text and a finite five-asset technical scope."""
+
+    result = create_delegated_optimization_scope(
+        job_id,
+        delegation_id=delegation_id,
+        delegation_text_path=delegation_text_path,
+        delegation_text_sha256=delegation_text_sha256,
+        extension_confirmation_text_path=extension_confirmation_text_path,
+        extension_confirmation_text_sha256=extension_confirmation_text_sha256,
+        task_context_id=task_context_id,
+        expires_at=expires_at,
+        allowed_assets_json=allowed_assets_json,
+        extension_confirmation=extension_confirmation,
+        enable_delegated_authority=enable_delegated_authority,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-plan-delegate")
+def asset_plan_delegate(
+    job_id: str,
+    run_id: Annotated[str, typer.Option("--run-id")],
+    plan_sha256: Annotated[str, typer.Option("--plan-sha256")],
+    scope_path: Annotated[str, typer.Option("--scope-path")],
+    scope_sha256: Annotated[str, typer.Option("--scope-sha256")],
+    decision_note: Annotated[str, typer.Option("--decision-note")],
+    enable_delegated_authority: Annotated[
+        bool, typer.Option("--enable-delegated-authority")
+    ] = False,
+) -> None:
+    """Issue one exact non-user delegated optimization grant within its finite scope."""
+
+    result = authorize_delegated_asset_optimization(
+        job_id,
+        run_id=run_id,
+        plan_sha256=plan_sha256,
+        scope_path=scope_path,
+        scope_sha256=scope_sha256,
+        decision_note=decision_note,
+        enable_delegated_authority=enable_delegated_authority,
+    )
+    console.print_json(result.model_dump_json())
+
+
+@app.command("asset-delegation-bind-workflow")
+def asset_delegation_bind_workflow(
+    job_id: str,
+    workflow_id: Annotated[str, typer.Option("--workflow-id")],
+    workflow_plan_sha256: Annotated[str, typer.Option("--workflow-plan-sha256")],
+    workflow_input_fingerprint: Annotated[str, typer.Option("--workflow-input-fingerprint")],
+    run_id: Annotated[str, typer.Option("--run-id")],
+    authorization_sha256: Annotated[str, typer.Option("--authorization-sha256")],
+    enable_delegated_authority: Annotated[
+        bool, typer.Option("--enable-delegated-authority")
+    ] = False,
+) -> None:
+    """Bind one waiting Standard optimization gate without changing its historical plan."""
+
+    result = bind_delegated_optimization_workflow(
+        job_id,
+        workflow_id=workflow_id,
+        workflow_plan_sha256=workflow_plan_sha256,
+        workflow_input_fingerprint=workflow_input_fingerprint,
+        run_id=run_id,
+        authorization_sha256=authorization_sha256,
+        enable_delegated_authority=enable_delegated_authority,
+    )
+    console.print_json(result.model_dump_json())
+
+
 @app.command("asset-optimize")
 def asset_optimize(
     job_id: str,
     approved_plan_sha256: Annotated[str, typer.Option("--approved-plan-sha256")],
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     run_id: Annotated[str | None, typer.Option("--run-id")] = None,
+    delegated_authorization_path: Annotated[
+        str | None, typer.Option("--delegated-authorization-path")
+    ] = None,
+    delegated_authorization_sha256: Annotated[
+        str | None, typer.Option("--delegated-authorization-sha256")
+    ] = None,
+    enable_delegated_authority: Annotated[
+        bool, typer.Option("--enable-delegated-authority")
+    ] = False,
 ) -> None:
     """Execute one reviewed and explicitly approved run-owned optimization plan."""
 
@@ -1912,6 +2040,9 @@ def asset_optimize(
         profile_id=profile,
         run_id=run_id,
         approved_plan_sha256=approved_plan_sha256,
+        delegated_authorization_path=delegated_authorization_path,
+        delegated_authorization_sha256=delegated_authorization_sha256,
+        enable_delegated_authority=enable_delegated_authority,
     )
     console.print_json(result.model_dump_json())
 
@@ -1957,6 +2088,9 @@ def asset_package(
         bool, typer.Option("--include-colliders/--exclude-colliders")
     ] = True,
     content_mode: Annotated[str, typer.Option("--content-mode")] = "full_evidence",
+    delegated_authorization_sha256: Annotated[
+        str | None, typer.Option("--delegated-authorization-sha256")
+    ] = None,
     primary_asset_stem: Annotated[
         str | None,
         typer.Option("--primary-asset-stem"),
@@ -1971,7 +2105,8 @@ def asset_package(
         package_id=package_id,
         material_conversion_id=material_conversion_id,
         include_colliders=include_colliders,
-        content_mode=content_mode,  # type: ignore[arg-type]
+        content_mode=content_mode,
+        delegated_authorization_sha256=delegated_authorization_sha256,  # type: ignore[arg-type]
         primary_asset_stem=primary_asset_stem,
     )
     console.print_json(result.model_dump_json())
@@ -1985,10 +2120,18 @@ def asset_material_convert(
     profile: Annotated[str, typer.Option("--profile")] = "portable_gltf",
     resolution: Annotated[int, typer.Option("--resolution", min=16)] = 1024,
     margin_px: Annotated[int, typer.Option("--margin-px", min=1)] = 16,
+    uv_method: Annotated[str, typer.Option("--uv-method")] = "smart_project",
     render_device: Annotated[str, typer.Option("--render-device")] = "auto",
+    tile_strategy: Annotated[str, typer.Option("--tile-strategy")] = "deterministic_grid",
 ) -> None:
     """Bake run-owned portable PBR atlases without changing authoring materials."""
 
+    if uv_method not in {"smart_project", "validated_authored_uv_v1"}:
+        raise typer.BadParameter("uv-method must be smart_project or validated_authored_uv_v1")
+    if tile_strategy not in {"deterministic_grid", "area_weighted_rect_v1"}:
+        raise typer.BadParameter("unknown portable atlas tile strategy")
+    if tile_strategy == "area_weighted_rect_v1" and uv_method != "validated_authored_uv_v1":
+        raise typer.BadParameter("area_weighted_rect_v1 requires validated_authored_uv_v1")
     if render_device not in {"auto", "cpu", "gpu"}:
         raise typer.BadParameter("render-device must be auto, cpu, or gpu")
     result = convert_portable_materials(
@@ -1999,6 +2142,8 @@ def asset_material_convert(
         resolution=resolution,
         margin_px=margin_px,
         render_device=render_device,
+        uv_method=uv_method,
+        **({"tile_strategy": tile_strategy} if tile_strategy != "deterministic_grid" else {}),
     )
     console.print_json(result.model_dump_json())
 
@@ -2126,6 +2271,24 @@ def handoff_status_command(job_id: str) -> None:
 @app.command("workflow-plan")
 def workflow_plan_command(
     request: Annotated[str, typer.Option("--request")],
+    reference_mask_seed_path: Annotated[
+        str | None, typer.Option("--reference-mask-seed-path")
+    ] = None,
+    reference_mask_seed_sha256: Annotated[
+        str | None, typer.Option("--reference-mask-seed-sha256")
+    ] = None,
+    paired_modeling_plan_path: Annotated[
+        str | None, typer.Option("--paired-modeling-plan-path")
+    ] = None,
+    paired_modeling_plan_sha256: Annotated[
+        str | None, typer.Option("--paired-modeling-plan-sha256")
+    ] = None,
+    attachment_intent_path: Annotated[
+        str | None, typer.Option("--attachment-intent-path")
+    ] = None,
+    attachment_intent_sha256: Annotated[
+        str | None, typer.Option("--attachment-intent-sha256")
+    ] = None,
     job_id: Annotated[str | None, typer.Option("--job-id")] = None,
     reference_path: Annotated[str | None, typer.Option("--reference-path")] = None,
     intent: Annotated[str, typer.Option("--intent")] = "auto",
@@ -2136,6 +2299,9 @@ def workflow_plan_command(
     target_subject: Annotated[str | None, typer.Option("--target-subject")] = None,
     execution_policy: Annotated[str, typer.Option("--execution-policy")] = "standard",
     revision_strategy: Annotated[str, typer.Option("--revision-strategy")] = "candidate_review",
+    geometry_review_policy: Annotated[
+        str, typer.Option("--geometry-review-policy")
+    ] = "exterior_geometry_review_v2",
     delivery_scope: Annotated[str | None, typer.Option("--delivery-scope")] = None,
     mode: Annotated[str, typer.Option("--mode")] = "concept",
     view_kind: Annotated[str | None, typer.Option("--view-kind")] = None,
@@ -2159,17 +2325,31 @@ def workflow_plan_command(
         typer.Option("--include-destination-handoff/--no-destination-handoff"),
     ] = False,
 ) -> None:
-    """Route one short request into an immutable approval-aware workflow plan."""
+    """Plan immutable workflows with optional exact QA evidence or paired guarded revisions."""
 
     state = plan_orchestrated_workflow(
         request,
         job_id=job_id,
         reference_path=reference_path,
+        **({"reference_mask_seed_path": reference_mask_seed_path,
+            "reference_mask_seed_sha256": reference_mask_seed_sha256}
+           if reference_mask_seed_path is not None or reference_mask_seed_sha256 is not None
+           else {}),
+        **({"attachment_intent_path": attachment_intent_path,
+            "attachment_intent_sha256": attachment_intent_sha256}
+           if attachment_intent_path is not None or attachment_intent_sha256 is not None
+           else {}),
+        **({"paired_modeling_plan_path": paired_modeling_plan_path,
+            "paired_modeling_plan_sha256": paired_modeling_plan_sha256}
+           if paired_modeling_plan_path is not None or paired_modeling_plan_sha256 is not None
+           else {}),
         intent=intent,
         scope=scope,
         reference_content_scope=reference_content_scope,
         target_subject=target_subject,
         execution_policy=execution_policy,
+        **({"geometry_review_policy": geometry_review_policy}
+           if geometry_review_policy != "exterior_geometry_review_v2" else {}),
         revision_strategy=revision_strategy,
         delivery_scope=delivery_scope,
         mode=mode,
@@ -2837,6 +3017,135 @@ def material_closure_plan_command(
         closure_id=closure_id,
     )
     console.print_json(json.dumps(result, ensure_ascii=False))
+
+
+
+@app.command("authored-material-identity-split-plan")
+def authored_material_identity_split_plan_command(
+    job_id: str,
+    run_id: str,
+    clone_rules_path: str,
+    source_material_plan_mode: str = "current",
+    delegation_path: str | None = None,
+) -> None:
+    """Prepare explicit 0.2 authored-material solid-root candidates without approval."""
+    console.print_json(
+        json.dumps(
+            authored_public.plan_authored_material_identity_split_public(
+                job_id,
+                run_id=run_id,
+                clone_rules_path=clone_rules_path,
+                source_material_plan_mode=source_material_plan_mode,
+                delegation_path=delegation_path,
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-preapproval")
+def authored_material_identity_split_preapproval_command(job_id: str, plan_path: str) -> None:
+    """Run isolated exact native preapproval and stop at the specialized user request."""
+    console.print_json(
+        json.dumps(
+            authored_public.run_authored_material_identity_split_preapproval_public(
+                job_id, plan_path=plan_path
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-status")
+def authored_material_identity_split_status_command(job_id: str, run_id: str) -> None:
+    """Read one explicit authored specialized run without advancing authority."""
+    console.print_json(
+        json.dumps(
+            authored_public.get_authored_material_identity_split_status(job_id, run_id=run_id)
+        )
+    )
+
+
+@app.command("authored-material-identity-split-approval-request")
+def authored_material_identity_split_approval_request_command(
+    job_id: str, approval_request_path: str
+) -> None:
+    """Read the exact authored specialized candidate request and its native evidence."""
+    console.print_json(
+        json.dumps(
+            authored_public.get_authored_material_identity_split_approval_request(
+                job_id, approval_request_path=approval_request_path
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-approve")
+def authored_material_identity_split_approve_command(
+    job_id: str,
+    approval_request_path: str,
+    approval_path: str,
+    user_decision_path: str,
+    confirm_explicit_user_decision: bool = False,
+) -> None:
+    """Publish a caller-authored specialized approval and exact user-decision bytes."""
+    console.print_json(
+        json.dumps(
+            authored_public.approve_authored_material_identity_split(
+                job_id,
+                approval_request_path=approval_request_path,
+                approval_path=approval_path,
+                user_decision_path=user_decision_path,
+                explicit_user_decision_observed=confirm_explicit_user_decision,
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-approve-technical")
+def authored_material_identity_split_approve_technical_command(
+    job_id: str,
+    approval_request_path: str,
+    technical_approval_path: str,
+    technical_decision_path: str,
+    confirm_explicit_technical_decision: bool = False,
+) -> None:
+    """Publish a distinct delegated assistant decision without creating user or AQ approval."""
+    console.print_json(
+        json.dumps(
+            authored_public.approve_authored_material_identity_split_technical(
+                job_id,
+                approval_request_path=approval_request_path,
+                technical_approval_path=technical_approval_path,
+                technical_decision_path=technical_decision_path,
+                explicit_technical_decision_observed=confirm_explicit_technical_decision,
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-apply")
+def authored_material_identity_split_apply_command(job_id: str, apply_intent_path: str) -> None:
+    """Consume one exact user-only intent in a four-file journaled CAS."""
+    console.print_json(
+        json.dumps(
+            authored_public.apply_authored_material_identity_split_public(
+                job_id, apply_intent_path=apply_intent_path
+            )
+        )
+    )
+
+
+@app.command("authored-material-identity-split-recover")
+def authored_material_identity_split_recover_command(
+    job_id: str, run_id: str, apply_intent_sha256: str
+) -> None:
+    """Restore exact four-file archives for one hash-selected partial transaction."""
+    console.print_json(
+        json.dumps(
+            authored_public.recover_authored_material_identity_split_public(
+                job_id, run_id=run_id, apply_intent_sha256=apply_intent_sha256
+            )
+        )
+    )
 
 
 @app.command("material-identity-split-plan")
@@ -4375,14 +4684,32 @@ def workflow_resume_command(
             help="Explicitly retry only the current failed deterministic host step.",
         ),
     ] = False,
+    material_swatch_backend: Annotated[
+        str | None, typer.Option("--material-swatch-backend",
+                                 help="Exact bound swatch backend: eevee_auto or cycles_cpu.")
+    ] = None,
+    material_swatch_input_fingerprint: Annotated[
+        str | None, typer.Option("--material-swatch-input-fingerprint")
+    ] = None,
+    material_swatch_failed_attempt_sha256: Annotated[
+        str | None, typer.Option("--material-swatch-failed-attempt-sha256")
+    ] = None,
 ) -> None:
-    """Run deterministic host steps, requiring an explicit flag for failed retries."""
+    """Resume native host work with optional exact swatch backend and failed-retry binding."""
 
     state = resume_workflow(
         job_id,
         workflow_id,
         max_host_steps=max_host_steps,
         retry_failed=retry_failed,
+        **({
+            "material_swatch_backend": material_swatch_backend,
+            "material_swatch_input_fingerprint": material_swatch_input_fingerprint,
+            "material_swatch_failed_attempt_sha256": material_swatch_failed_attempt_sha256,
+        } if any(value is not None for value in (
+            material_swatch_backend, material_swatch_input_fingerprint,
+            material_swatch_failed_attempt_sha256,
+        )) else {}),
     )
     console.print_json(state.model_dump_json())
     if state.status == "failed":
@@ -4439,6 +4766,20 @@ def workflow_cancel_command(
 
     state = cancel_workflow(job_id, workflow_id, reason=reason)
     console.print_json(state.model_dump_json())
+
+
+@app.command("workflow-recover-paired-revision")
+def workflow_recover_paired_revision_command(
+    job_id: str,
+    workflow_id: str,
+    intent_sha256: Annotated[str, typer.Option("--intent-sha256")],
+) -> None:
+    """Roll back one interrupted paired transaction bound to its exact immutable intent."""
+
+    receipt = recover_paired_workflow_revision(
+        job_id, workflow_id, intent_sha256=intent_sha256,
+    )
+    console.print_json(json.dumps(receipt, ensure_ascii=False))
 
 
 @app.command("workflow-adapters")
@@ -4813,18 +5154,21 @@ def export_scene(
     job_id: str,
     format: Annotated[str, typer.Option("--format")] = "glb",
 ) -> None:
-    """Export the generated scene."""
+    """Raw-export evaluated static geometry; shape-key glTF keeps legacy modifier behavior."""
     if format not in {"glb", "gltf", "obj", "fbx"}:
         raise typer.BadParameter("format must be glb, gltf, obj, or fbx")
     root = job_dir(job_id)
     blend = root / "blender" / "scene.blend"
     suffix = ".glb" if format == "glb" else f".{format}"
     output = root / "exports" / f"scene{suffix}"
-    run_blender(
+    result = run_blender(
         "export_scene.py",
         ["--format", format, "--output", str(output)],
         blend_file=blend,
     )
+    for line in result.stdout.splitlines():
+        if line.startswith("CBM_EXPORT_WARNING "):
+            console.print(line)
     console.print(f"Exported: {output}")
 
 

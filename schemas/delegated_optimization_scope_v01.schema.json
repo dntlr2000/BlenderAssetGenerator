@@ -1,0 +1,187 @@
+{
+  "$defs": {
+    "DelegatedAssetIdentityV01": {
+      "additionalProperties": false,
+      "description": "Name one immutable job/reference identity in the expressly delegated task.",
+      "properties": {
+        "job_id": {
+          "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "reference_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Reference Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id",
+        "reference_sha256"
+      ],
+      "title": "DelegatedAssetIdentityV01",
+      "type": "object"
+    },
+    "HashedArtifact": {
+      "additionalProperties": false,
+      "description": "Bind one stable artifact identity to a job-relative path and SHA-256 digest.",
+      "properties": {
+        "id": {
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "scene_spec",
+            "external_asset_manifest",
+            "external_source",
+            "external_dependency",
+            "external_intake_plan",
+            "external_intake_approval",
+            "external_normalization_evidence",
+            "blend",
+            "geometry_payload",
+            "material_plan",
+            "texture_manifest",
+            "asset_profile",
+            "optimization_plan",
+            "preflight_report",
+            "lod_manifest",
+            "collision_manifest",
+            "uv_manifest",
+            "asset_cost_report",
+            "texture_pack_manifest",
+            "lod_mesh",
+            "collider_mesh",
+            "uv_preview",
+            "packed_texture",
+            "package_manifest",
+            "package_file",
+            "roundtrip_inventory",
+            "other"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "pattern": "^(?!/)(?![A-Za-z]:)(?!.*:)(?!.*(?:^|/)\\.\\.(?:/|$))(?!.*\\\\)(?!.*//)[^\\u0000]+$",
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "path",
+        "sha256"
+      ],
+      "title": "HashedArtifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Preserve exact user delegation and its separately confirmed contract extension.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "delegated_optimization_scope",
+      "default": "delegated_optimization_scope",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "delegation_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Delegation Id",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "issuer": {
+      "const": "host",
+      "default": "host",
+      "title": "Issuer",
+      "type": "string"
+    },
+    "delegation_text": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "extension_confirmation_text": {
+      "$ref": "#/$defs/HashedArtifact"
+    },
+    "task_context_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Task Context Id",
+      "type": "string"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "maximum_authorizations_per_job": {
+      "const": 3,
+      "default": 3,
+      "title": "Maximum Authorizations Per Job",
+      "type": "integer"
+    },
+    "allowed_assets": {
+      "items": {
+        "$ref": "#/$defs/DelegatedAssetIdentityV01"
+      },
+      "maxItems": 5,
+      "minItems": 5,
+      "title": "Allowed Assets",
+      "type": "array"
+    },
+    "extension_confirmation": {
+      "const": "explicit_user_confirmation",
+      "title": "Extension Confirmation",
+      "type": "string"
+    },
+    "purpose": {
+      "const": "five_asset_local_portable_gltf_technical_completion",
+      "default": "five_asset_local_portable_gltf_technical_completion",
+      "title": "Purpose",
+      "type": "string"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "delegation_id",
+    "job_id",
+    "delegation_text",
+    "extension_confirmation_text",
+    "task_context_id",
+    "expires_at",
+    "allowed_assets",
+    "extension_confirmation",
+    "created_at"
+  ],
+  "title": "DelegatedOptimizationScopeV01",
+  "type": "object"
+}

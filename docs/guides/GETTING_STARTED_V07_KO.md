@@ -194,6 +194,9 @@ uv run cbm asset-material-convert <job-id> `
 
 이 단계는 canonical authoring 셰이더와 `.blend`를 수정하지 않습니다. 정확한 source/profile/run hash에 묶인 derived scene에서 공유 portable UV atlas를 만들고 Base Color, Roughness, Metallic, Normal, Emission 채널을 베이크합니다. 결과는 conversion 전용 디렉터리와 `portable_material_conversion_manifest.json`에 기록되며, 같은 conversion ID는 덮어쓰지 않습니다.
 
+원본 UV 검증 재사용은 명시적 선택인 `--uv-method validated_authored_uv_v1`로 사용할 수 있습니다. 기존 Smart Project가 기본값이며, 지원 조건과 엄격한 증거 경계는 [validated authored UV v1](../validated_authored_uv.md)을 참조하세요.
+
+
 ## 7. Immutable package
 
 ```powershell

@@ -1,0 +1,121 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Consume one delegated-assistant technical authority without counting a human approval.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "profile": {
+      "const": "authored_material_registered_solid_root_delegated_technical",
+      "default": "authored_material_registered_solid_root_delegated_technical",
+      "title": "Profile",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "apply_intent": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "technical_approval": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "approval_request": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "delegation": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "technical_decision": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "decision_actor": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Decision Actor",
+      "type": "string"
+    },
+    "original_delegation_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Original Delegation Id",
+      "type": "string"
+    },
+    "delegation_origin_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Delegation Origin Id",
+      "type": "string"
+    },
+    "consumption_ordinal": {
+      "const": 1,
+      "default": 1,
+      "title": "Consumption Ordinal",
+      "type": "integer"
+    },
+    "consumed_once": {
+      "const": true,
+      "default": true,
+      "title": "Consumed Once",
+      "type": "boolean"
+    },
+    "user_approval_consumed": {
+      "const": false,
+      "default": false,
+      "title": "User Approval Consumed",
+      "type": "boolean"
+    },
+    "aq_authority_consumed": {
+      "const": false,
+      "default": false,
+      "title": "Aq Authority Consumed",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "apply_intent",
+    "technical_approval",
+    "approval_request",
+    "delegation",
+    "technical_decision",
+    "original_delegation_id",
+    "delegation_origin_id"
+  ],
+  "title": "AuthoredMaterialIdentitySplitTechnicalConsumptionV02",
+  "type": "object"
+}

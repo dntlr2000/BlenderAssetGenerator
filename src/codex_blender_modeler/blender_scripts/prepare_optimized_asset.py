@@ -19,6 +19,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
+from optical_volume_runtime import validate_optical_volume_objects  # noqa: E402
 from portable_asset_common import (  # noqa: E402
     material_ids,
     object_inventory,
@@ -92,9 +93,10 @@ def verify_source(plan: dict[str, Any], scene: bpy.types.Scene) -> dict[str, Any
         scene_spec = source.get("scene_spec")
         if isinstance(scene_spec, dict):
             expected_spec = scene_spec.get("sha256")
-    if expected_spec and str(expected_spec).lower() != str(
-        provenance.get("scene_spec_sha256") or ""
-    ).lower():
+    if (
+        expected_spec
+        and str(expected_spec).lower() != str(provenance.get("scene_spec_sha256") or "").lower()
+    ):
         raise RuntimeError("Optimization plan SceneSpec hash does not match the source scene")
     expected_external = None
     if isinstance(source, dict):
@@ -161,17 +163,9 @@ def object_source_tags(source: bpy.types.Object) -> set[str]:
 
     raw_tags = source.get("cbm_tags", "")
     if isinstance(raw_tags, str):
-        return {
-            item.strip().casefold()
-            for item in raw_tags.split(",")
-            if item.strip()
-        }
+        return {item.strip().casefold() for item in raw_tags.split(",") if item.strip()}
     if isinstance(raw_tags, (list, tuple)):
-        return {
-            str(item).strip().casefold()
-            for item in raw_tags
-            if str(item).strip()
-        }
+        return {str(item).strip().casefold() for item in raw_tags if str(item).strip()}
     return set()
 
 
@@ -317,8 +311,7 @@ def ensure_uvs(
         actions.append(f"uv0:preserved:{obj.data.uv_layers[0].name}")
     else:
         raise RuntimeError(
-            "Portable render mesh has no UV0 and generation is disabled: "
-            f"{obj.name}"
+            f"Portable render mesh has no UV0 and generation is disabled: {obj.name}"
         )
     uv0 = obj.data.uv_layers.get(uv0_name) or obj.data.uv_layers[0]
     material_uv_name = str(uv0.name)
@@ -331,9 +324,7 @@ def ensure_uvs(
                 "Portable render and lightmap UV sets must use distinct names: "
                 f"{obj.name} ({material_uv_name})"
             )
-        actions.append(
-            f"uv1:{ensure_uv_mapping(obj, {'mode': 'uv', 'uv_set': uv1_name})}"
-        )
+        actions.append(f"uv1:{ensure_uv_mapping(obj, {'mode': 'uv', 'uv_set': uv1_name})}")
     # Blender may invalidate collection-element wrappers when a new UV layer is added.
     # Reacquire UV0 by its stable name before selecting it or calculating tangents.
     uv0 = obj.data.uv_layers.get(material_uv_name)
@@ -398,8 +389,7 @@ def mesh_fingerprint(obj: bpy.types.Object, *, world_space: bool) -> str:
 
     matrix = obj.matrix_world if world_space else Matrix.Identity(4)
     vertices = [
-        [round(float(value), 6) for value in matrix @ vertex.co]
-        for vertex in obj.data.vertices
+        [round(float(value), 6) for value in matrix @ vertex.co] for vertex in obj.data.vertices
     ]
     faces = [
         {
@@ -485,9 +475,7 @@ def _world_bounds(obj: bpy.types.Object) -> tuple[Vector, Vector]:
     return minimum, maximum
 
 
-def _overlap_volume(
-    left: tuple[Vector, Vector], right: tuple[Vector, Vector]
-) -> float:
+def _overlap_volume(left: tuple[Vector, Vector], right: tuple[Vector, Vector]) -> float:
     """Return positive AABB intersection volume or zero for separated/touching bounds."""
 
     extents = [
@@ -539,9 +527,7 @@ def detect_overlap_candidates(
         key=lambda item: item.name,
     )
     bounds = {obj.name: _world_bounds(obj) for obj in render_objects}
-    fingerprints = {
-        obj.name: mesh_fingerprint(obj, world_space=True) for obj in render_objects
-    }
+    fingerprints = {obj.name: mesh_fingerprint(obj, world_space=True) for obj in render_objects}
     findings: list[dict[str, Any]] = []
     total = 0
     for left, right in combinations(render_objects, 2):
@@ -554,10 +540,9 @@ def detect_overlap_candidates(
         total += 1
         if len(findings) >= pair_limit:
             continue
-        exact = (
-            fingerprints[left.name] == fingerprints[right.name]
-            and material_ids(left) == material_ids(right)
-        )
+        exact = fingerprints[left.name] == fingerprints[right.name] and material_ids(
+            left
+        ) == material_ids(right)
         findings.append(
             {
                 "finding_id": f"overlap.{phase}.{len(findings) + 1:04d}",
@@ -565,9 +550,7 @@ def detect_overlap_candidates(
                 "right_object": right.name,
                 "left_semantic_id": str(left.get("cbm_id")),
                 "right_semantic_id": str(right.get("cbm_id")),
-                "classification": (
-                    "exact_duplicate" if exact else "aabb_overlap_candidate"
-                ),
+                "classification": ("exact_duplicate" if exact else "aabb_overlap_candidate"),
                 "overlap_volume_m3": rounded_volume,
                 "action": "report_only",
             }
@@ -582,24 +565,18 @@ def derived_cost_snapshot(
 
     renders = [obj for obj in objects if str(obj.get("cbm_asset_role")) == "render"]
     lods = [obj for obj in objects if str(obj.get("cbm_asset_role")) == "lod"]
-    colliders = [
-        obj for obj in objects if str(obj.get("cbm_asset_role")) == "collider"
-    ]
+    colliders = [obj for obj in objects if str(obj.get("cbm_asset_role")) == "collider"]
     all_meshes = [obj for obj in objects if obj.type == "MESH"]
     return {
         "lod0_render_objects": len(renders),
         "lod0_material_slots": sum(len(obj.material_slots) for obj in renders),
-        "lod0_estimated_draw_calls": sum(
-            max(1, len(set(material_ids(obj)))) for obj in renders
-        ),
+        "lod0_estimated_draw_calls": sum(max(1, len(set(material_ids(obj)))) for obj in renders),
         "lod0_vertices": sum(len(obj.data.vertices) for obj in renders),
         "lod0_triangles": sum(estimated_triangle_count(obj) for obj in renders),
         "lod_objects": len(lods),
         "collider_objects": len(colliders),
         "collider_triangles": sum(estimated_triangle_count(obj) for obj in colliders),
-        "total_derived_triangles": sum(
-            estimated_triangle_count(obj) for obj in all_meshes
-        ),
+        "total_derived_triangles": sum(estimated_triangle_count(obj) for obj in all_meshes),
         "unique_materials": len(
             {material_id for obj in renders for material_id in material_ids(obj)}
         ),
@@ -810,9 +787,7 @@ def normalize_derived_lod_for_budget(
         triangulated = len(non_triangles)
         if non_triangles:
             bmesh.ops.triangulate(editable, faces=non_triangles)
-        zero_area_faces = [
-            face for face in editable.faces if face.calc_area() <= area_epsilon
-        ]
+        zero_area_faces = [face for face in editable.faces if face.calc_area() <= area_epsilon]
         removed = len(zero_area_faces)
         if zero_area_faces:
             bmesh.ops.delete(editable, geom=zero_area_faces, context="FACES")
@@ -936,9 +911,7 @@ def make_lod(
         decimate_passes += 1
     current_triangles = estimated_triangle_count(target)
     if current_triangles > maximum_triangles:
-        triangulated_faces, removed_zero_area_faces = normalize_derived_lod_for_budget(
-            target
-        )
+        triangulated_faces, removed_zero_area_faces = normalize_derived_lod_for_budget(target)
         current_triangles = estimated_triangle_count(target)
     if current_triangles > maximum_triangles:
         correction_ratio = maximum_triangles / current_triangles * 0.95
@@ -1022,8 +995,7 @@ def _capsule_mesh(
     radial_axes = [index for index in range(3) if index != axis]
     radius = max(
         1e-6,
-        max(float(dimensions[radial_axes[0]]), float(dimensions[radial_axes[1]]))
-        * 0.5,
+        max(float(dimensions[radial_axes[0]]), float(dimensions[radial_axes[1]])) * 0.5,
     )
     cylinder_half = max(0.0, float(dimensions[axis]) * 0.5 - radius)
     vertices: list[tuple[float, float, float]] = []
@@ -1066,9 +1038,7 @@ def _capsule_mesh(
             )
     last_ring = 1 + (rings - 2) * segments
     for segment in range(segments):
-        faces.append(
-            (last_ring + segment, last_ring + (segment + 1) % segments, top_index)
-        )
+        faces.append((last_ring + segment, last_ring + (segment + 1) % segments, top_index))
     mesh = bpy.data.meshes.new(name)
     mesh.from_pydata(vertices, [], faces)
     mesh.update()
@@ -1161,16 +1131,12 @@ def enforce_collider_triangle_budget(
     _activate(collider)
     result = bpy.ops.object.modifier_apply(modifier=modifier.name)
     if "FINISHED" not in result:
-        raise RuntimeError(
-            f"Collider decimation failed for {collider.name}: {sorted(result)}"
-        )
+        raise RuntimeError(f"Collider decimation failed for {collider.name}: {sorted(result)}")
     collider.data.validate(verbose=False, clean_customdata=False)
     collider.data.update()
     after = sum(max(0, len(face.vertices) - 2) for face in collider.data.polygons)
     if after > maximum:
-        raise RuntimeError(
-            f"Collider {collider.name} exceeds triangle budget {after} > {maximum}"
-        )
+        raise RuntimeError(f"Collider {collider.name} exceeds triangle budget {after} > {maximum}")
     return before, after
 
 
@@ -1203,9 +1169,7 @@ def lod_levels(policy: dict[str, Any]) -> list[tuple[int, float]]:
     return sorted(set(normalized))
 
 
-def object_policy(
-    plan: dict[str, Any], semantic_id: str, section: str, default: Any
-) -> Any:
+def object_policy(plan: dict[str, Any], semantic_id: str, section: str, default: Any) -> Any:
     """Resolve one per-semantic override while retaining a stable global default."""
 
     overrides = plan.get("objects") or plan.get("object_policies")
@@ -1280,10 +1244,10 @@ def main() -> None:
     if plan.get("status") not in {"approved", "running"}:
         raise RuntimeError("OptimizationPlan must be approved before derived preparation")
     plan_sha256 = sha256_file(plan_path)
-    profile_sha256, source_blend_sha256 = verify_input_artifacts(
-        plan, profile_path, source_blend
-    )
+    profile_sha256, source_blend_sha256 = verify_input_artifacts(plan, profile_path, source_blend)
     provenance = verify_source(plan, bpy.context.scene)
+    # Validate volume units and boundaries before optimization can bake object scale.
+    validate_optical_volume_objects(list(bpy.data.objects))
     transform_policy = "rotation_scale"
     pivot_policy = str(profile.get("pivot_policy", "keep"))
     mesh_policy = {
@@ -1332,9 +1296,7 @@ def main() -> None:
         ),
         key=lambda item: item.name,
     )
-    anonymous_authoring_geometry = [
-        obj.name for obj in authoring_geometry if not obj.get("cbm_id")
-    ]
+    anonymous_authoring_geometry = [obj.name for obj in authoring_geometry if not obj.get("cbm_id")]
     if anonymous_authoring_geometry:
         raise RuntimeError(
             "Canonical authoring geometry is missing stable cbm_id: "
@@ -1356,17 +1318,13 @@ def main() -> None:
         {
             str(source.get("cbm_id"))
             for source in source_objects
-            if (
-                bool(source.hide_render)
-                or NON_RENDER_BOOLEAN_TAG in object_source_tags(source)
-            )
+            if (bool(source.hide_render) or NON_RENDER_BOOLEAN_TAG in object_source_tags(source))
             and bool(directives[str(source.get("cbm_id"))].get("include", True))
         }
     )
     if unsafe_helpers:
         raise RuntimeError(
-            "Optimization directives include canonical non-render helper sources: "
-            f"{unsafe_helpers}"
+            f"Optimization directives include canonical non-render helper sources: {unsafe_helpers}"
         )
 
     derived_objects: list[bpy.types.Object] = []
@@ -1378,9 +1336,7 @@ def main() -> None:
         if not bool(directive.get("include", True)):
             continue
         lod0 = evaluated_mesh_copy(source, derived_collection)
-        lod0["cbm_instance_fingerprint"] = mesh_fingerprint(
-            lod0, world_space=False
-        )
+        lod0["cbm_instance_fingerprint"] = mesh_fingerprint(lod0, world_space=False)
         if str(lod0.get("cbm_id")) != semantic_id:
             raise RuntimeError(f"Derived semantic ID changed for {source.name}")
         if material_ids(lod0) != material_ids(source):
@@ -1416,9 +1372,7 @@ def main() -> None:
             else "disabled"
         )
         if tangent_action == "unsupported" or tangent_action.startswith("failed:"):
-            raise RuntimeError(
-                f"Tangent readiness failed for {semantic_id}: {tangent_action}"
-            )
+            raise RuntimeError(f"Tangent readiness failed for {semantic_id}: {tangent_action}")
         derived_objects.append(lod0)
         object_actions: dict[str, Any] = {
             "source_object": source.name,
@@ -1438,9 +1392,7 @@ def main() -> None:
             lod = make_lod(lod0, derived_collection, level, ratio)
             derived_objects.append(lod)
             object_actions["lods"].append(level)
-            object_actions["lod_triangle_counts"][str(level)] = estimated_triangle_count(
-                lod
-            )
+            object_actions["lod_triangle_counts"][str(level)] = estimated_triangle_count(lod)
             object_actions["lod_smoothing_refresh"][str(level)] = json.loads(
                 str(lod["cbm_lod_smoothing_refresh"])
             )
@@ -1469,12 +1421,10 @@ def main() -> None:
         else []
     )
     if bool(consolidation_policy.get("detect_overlap_candidates", True)):
-        overlap_before, overlap_before_total, overlap_before_truncated = (
-            detect_overlap_candidates(
-                before_objects,
-                phase="before",
-                pair_limit=int(consolidation_policy.get("overlap_pair_limit", 5000)),
-            )
+        overlap_before, overlap_before_total, overlap_before_truncated = detect_overlap_candidates(
+            before_objects,
+            phase="before",
+            pair_limit=int(consolidation_policy.get("overlap_pair_limit", 5000)),
         )
     else:
         overlap_before, overlap_before_total, overlap_before_truncated = [], 0, False
@@ -1492,12 +1442,10 @@ def main() -> None:
     )
     derived_objects = sorted(list(derived_collection.objects), key=lambda item: item.name)
     if bool(consolidation_policy.get("detect_overlap_candidates", True)):
-        overlap_after, overlap_after_total, overlap_after_truncated = (
-            detect_overlap_candidates(
-                derived_objects,
-                phase="after",
-                pair_limit=int(consolidation_policy.get("overlap_pair_limit", 5000)),
-            )
+        overlap_after, overlap_after_total, overlap_after_truncated = detect_overlap_candidates(
+            derived_objects,
+            phase="after",
+            pair_limit=int(consolidation_policy.get("overlap_pair_limit", 5000)),
         )
     else:
         overlap_after, overlap_after_total, overlap_after_truncated = [], 0, False
@@ -1506,15 +1454,9 @@ def main() -> None:
     scene = bpy.context.scene
     scene["cbm_portable_schema_version"] = "0.7.0"
     scene["cbm_portable_plan_sha256"] = plan_sha256
-    scene["cbm_portable_source_build_fingerprint"] = str(
-        provenance["build_fingerprint"]
-    )
-    scene["cbm_portable_source_scene_spec_sha256"] = str(
-        provenance.get("scene_spec_sha256") or ""
-    )
-    scene["cbm_portable_source_kind"] = str(
-        provenance.get("source_kind") or "scene_spec"
-    )
+    scene["cbm_portable_source_build_fingerprint"] = str(provenance["build_fingerprint"])
+    scene["cbm_portable_source_scene_spec_sha256"] = str(provenance.get("scene_spec_sha256") or "")
+    scene["cbm_portable_source_kind"] = str(provenance.get("source_kind") or "scene_spec")
     source_contract = plan.get("source")
     external_manifest_contract = (
         source_contract.get("external_asset_manifest")
@@ -1527,19 +1469,14 @@ def main() -> None:
         else None
     )
     scene["cbm_portable_source_external_manifest_sha256"] = str(
-        expected_external_manifest_sha256
-        or provenance.get("external_asset_manifest_sha256")
-        or ""
+        expected_external_manifest_sha256 or provenance.get("external_asset_manifest_sha256") or ""
     )
     output_blend.parent.mkdir(parents=True, exist_ok=True)
     temporary = output_blend.with_name(output_blend.stem + ".partial.blend")
     bpy.ops.wm.save_as_mainfile(filepath=str(temporary))
     temporary.replace(output_blend)
 
-    records = [
-        object_inventory(obj)
-        for obj in sorted(derived_objects, key=lambda item: item.name)
-    ]
+    records = [object_inventory(obj) for obj in sorted(derived_objects, key=lambda item: item.name)]
     manifest = {
         "schema_version": "0.7.0",
         "kind": "optimized_asset_manifest",
@@ -1555,13 +1492,9 @@ def main() -> None:
             "blend_sha256": sha256_file(output_blend),
             "collection": DERIVED_COLLECTION,
             "object_count": len(records),
-            "render_object_count": sum(
-                record["asset_role"] == "render" for record in records
-            ),
+            "render_object_count": sum(record["asset_role"] == "render" for record in records),
             "lod_object_count": sum(record["asset_role"] == "lod" for record in records),
-            "collider_object_count": sum(
-                record["asset_role"] == "collider" for record in records
-            ),
+            "collider_object_count": sum(record["asset_role"] == "collider" for record in records),
         },
         "policies": {
             "transform": transform_policy,

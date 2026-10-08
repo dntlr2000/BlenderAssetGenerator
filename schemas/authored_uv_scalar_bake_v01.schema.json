@@ -1,0 +1,361 @@
+{
+  "$defs": {
+    "ScalarCoverageImage": {
+      "additionalProperties": false,
+      "description": "Bind the independent white-emission coverage mask without exposing a free path.",
+      "properties": {
+        "file_name": {
+          "const": "authored_uv_coverage.png",
+          "title": "File Name",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file_name",
+        "sha256"
+      ],
+      "title": "ScalarCoverageImage",
+      "type": "object"
+    },
+    "ScalarDependency": {
+      "additionalProperties": false,
+      "description": "Describe one allowlisted source node participating in an actual scalar evaluation.",
+      "properties": {
+        "node_name": {
+          "title": "Node Name",
+          "type": "string"
+        },
+        "node_type": {
+          "enum": [
+            "TEX_IMAGE",
+            "MAPPING",
+            "UVMAP",
+            "VALUE",
+            "RGB"
+          ],
+          "title": "Node Type",
+          "type": "string"
+        },
+        "output": {
+          "title": "Output",
+          "type": "string"
+        },
+        "uv_set": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uv Set"
+        },
+        "image_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Image Name"
+        },
+        "interpolation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interpolation"
+        },
+        "extension": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Extension"
+        },
+        "projection": {
+          "anyOf": [
+            {
+              "const": "FLAT",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Projection"
+        }
+      },
+      "required": [
+        "node_name",
+        "node_type",
+        "output"
+      ],
+      "title": "ScalarDependency",
+      "type": "object"
+    },
+    "ScalarProxy": {
+      "additionalProperties": false,
+      "description": "Bind a disposable scalar evaluation rectangle to its exact original UV snapshot.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "material_id": {
+          "title": "Material Id",
+          "type": "string"
+        },
+        "source_snapshot_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Source Snapshot Sha256",
+          "type": "string"
+        },
+        "source_uv_set": {
+          "title": "Source Uv Set",
+          "type": "string"
+        },
+        "source_bounds": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Source Bounds",
+          "type": "array"
+        },
+        "target_bounds": {
+          "maxItems": 4,
+          "minItems": 4,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Target Bounds",
+          "type": "array"
+        },
+        "target_corners": {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 4,
+          "minItems": 4,
+          "title": "Target Corners",
+          "type": "array"
+        },
+        "sampled_uv_layers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Sampled Uv Layers",
+          "type": "array"
+        },
+        "layer_corners": {
+          "additionalProperties": {
+            "items": {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            "maxItems": 4,
+            "minItems": 4,
+            "type": "array"
+          },
+          "title": "Layer Corners",
+          "type": "object"
+        },
+        "dependencies": {
+          "additionalProperties": {
+            "items": {
+              "$ref": "#/$defs/ScalarDependency"
+            },
+            "type": "array"
+          },
+          "title": "Dependencies",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "material_id",
+        "source_snapshot_sha256",
+        "source_uv_set",
+        "source_bounds",
+        "target_bounds",
+        "target_corners",
+        "sampled_uv_layers",
+        "layer_corners",
+        "dependencies"
+      ],
+      "title": "ScalarProxy",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Prove scalar-domain raster coverage while explicitly excluding normal fidelity claims.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "kind": {
+      "const": "authored_uv_scalar_bake_evidence",
+      "default": "authored_uv_scalar_bake_evidence",
+      "title": "Kind",
+      "type": "string"
+    },
+    "method": {
+      "const": "uv_domain_scalar_v1",
+      "default": "uv_domain_scalar_v1",
+      "title": "Method",
+      "type": "string"
+    },
+    "conversion_plan_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Conversion Plan Sha256",
+      "type": "string"
+    },
+    "optimized_blend_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Optimized Blend Sha256",
+      "type": "string"
+    },
+    "source_snapshot_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Snapshot Sha256",
+      "type": "string"
+    },
+    "resolution": {
+      "maximum": 8192,
+      "minimum": 1,
+      "title": "Resolution",
+      "type": "integer"
+    },
+    "margin_px": {
+      "maximum": 1024,
+      "minimum": 1,
+      "title": "Margin Px",
+      "type": "integer"
+    },
+    "scalar_channels": {
+      "items": {
+        "enum": [
+          "base_color",
+          "roughness",
+          "metallic",
+          "emission"
+        ],
+        "type": "string"
+      },
+      "title": "Scalar Channels",
+      "type": "array"
+    },
+    "scalar_outputs": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Scalar Outputs",
+      "type": "object"
+    },
+    "normal_method": {
+      "const": "unchanged_actual_mesh_tangent_bake",
+      "title": "Normal Method",
+      "type": "string"
+    },
+    "normal_coverage_and_basis_fidelity": {
+      "const": "not_proved_by_scalar_coverage",
+      "title": "Normal Coverage And Basis Fidelity",
+      "type": "string"
+    },
+    "coverage": {
+      "$ref": "#/$defs/ScalarCoverageImage"
+    },
+    "objects": {
+      "items": {
+        "$ref": "#/$defs/ScalarProxy"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "title": "Objects",
+      "type": "array"
+    }
+  },
+  "required": [
+    "conversion_plan_sha256",
+    "optimized_blend_sha256",
+    "source_snapshot_sha256",
+    "resolution",
+    "margin_px",
+    "scalar_channels",
+    "scalar_outputs",
+    "normal_method",
+    "normal_coverage_and_basis_fidelity",
+    "coverage",
+    "objects"
+  ],
+  "title": "AuthoredUVScalarBakeEvidence",
+  "type": "object"
+}

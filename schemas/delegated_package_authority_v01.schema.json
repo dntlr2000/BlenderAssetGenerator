@@ -1,0 +1,85 @@
+{
+  "additionalProperties": false,
+  "description": "Self-contained technical package evidence; never future execution or human acceptance.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "artifact_kind": {
+      "const": "delegated_package_authority",
+      "default": "delegated_package_authority",
+      "title": "Artifact Kind",
+      "type": "string"
+    },
+    "job_id": {
+      "pattern": "^[a-z0-9][a-z0-9_-]{0,63}$",
+      "title": "Job Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "package_id": {
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$",
+      "title": "Package Id",
+      "type": "string"
+    },
+    "profile_id": {
+      "const": "portable_gltf",
+      "default": "portable_gltf",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "actor": {
+      "const": "delegated_assistant",
+      "default": "delegated_assistant",
+      "title": "Actor",
+      "type": "string"
+    },
+    "source_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Source Fingerprint",
+      "type": "string"
+    },
+    "evidence_sha256": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Evidence Sha256",
+      "type": "object"
+    },
+    "final_human_acceptance": {
+      "const": false,
+      "default": false,
+      "title": "Final Human Acceptance",
+      "type": "boolean"
+    },
+    "grants_execution_authority": {
+      "const": false,
+      "default": false,
+      "title": "Grants Execution Authority",
+      "type": "boolean"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "job_id",
+    "run_id",
+    "package_id",
+    "source_fingerprint",
+    "evidence_sha256",
+    "created_at"
+  ],
+  "title": "DelegatedPackageAuthorityV01",
+  "type": "object"
+}

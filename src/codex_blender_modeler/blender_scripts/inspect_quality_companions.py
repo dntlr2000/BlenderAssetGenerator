@@ -25,10 +25,12 @@ from portable_asset_common import (  # noqa: E402
     inspect_mesh_topology_data,
     write_json,
 )
+from self_intersection_runtime import bounded_self_intersection  # noqa: E402
 
 AREA_EPSILON = 1.0e-12
 UV_EPSILON = 1.0e-10
 MAX_SELF_INTERSECTION_TRIANGLES = 5000
+MAX_SELF_INTERSECTION_PAIR_TESTS = 100_000
 MAX_UV_TRIANGLES = 2048
 MAX_UV_PAIR_TESTS = 1_000_000
 MAX_BVH_SAMPLES = 512
@@ -182,34 +184,13 @@ def _flipped_component_metrics(
 def _bounded_self_intersection(
     world_vertices: list[Vector], triangles: list[tuple[int, int, int]]
 ) -> dict[str, Any]:
-    """Count non-adjacent BVH self-overlaps within a strict triangle budget."""
+    """Resolve inclusive AABB candidates exactly within finite triangle/pair work budgets."""
 
-    if len(triangles) > MAX_SELF_INTERSECTION_TRIANGLES:
-        return {
-            "availability": "unavailable",
-            "message": (
-                "Self-intersection BVH budget exceeded: "
-                f"{len(triangles)} > {MAX_SELF_INTERSECTION_TRIANGLES} triangles."
-            ),
-        }
-    if not triangles:
-        return {
-            "availability": "unavailable",
-            "message": "Self-intersection evidence requires at least one triangle.",
-        }
-    tree = BVHTree.FromPolygons(world_vertices, triangles, all_triangles=True)
-    pairs = {
-        tuple(sorted((int(left), int(right))))
-        for left, right in tree.overlap(tree)
-        if int(left) != int(right) and not set(triangles[int(left)]) & set(triangles[int(right)])
-    }
-    return {
-        "availability": "available",
-        "passed": not pairs,
-        "measured_value": len(pairs),
-        "threshold": 0,
-        "message": f"Blender BVH found {len(pairs)} non-adjacent overlap pair(s).",
-    }
+    return bounded_self_intersection(
+        world_vertices, triangles,
+        max_triangles=MAX_SELF_INTERSECTION_TRIANGLES,
+        max_pair_tests=MAX_SELF_INTERSECTION_PAIR_TESTS,
+    )
 
 
 def _signed_uv_area(points: list[tuple[float, float]]) -> float:
@@ -730,6 +711,7 @@ def main() -> None:
             "observations": _aggregate_topology_checks(object_records),
             "limits": {
                 "self_intersection_triangles": MAX_SELF_INTERSECTION_TRIANGLES,
+                "self_intersection_pair_tests": MAX_SELF_INTERSECTION_PAIR_TESTS,
                 "uv_triangles": MAX_UV_TRIANGLES,
                 "uv_pair_tests": MAX_UV_PAIR_TESTS,
             },

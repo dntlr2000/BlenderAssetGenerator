@@ -125,6 +125,12 @@ def asset_status(job_id: str) -> dict[str, Any]:
                 "plan_status": plan_status,
                 "review_available": (directory / "optimization_review.json").is_file(),
                 "approval_available": (directory / "optimization_approval.json").is_file(),
+                "delegated_authorization_available": (
+                    directory / "optimization_delegated_authorization.json"
+                ).is_file(),
+                "delegated_consumption_available": (
+                    directory / "optimization_delegated_consumption.json"
+                ).is_file(),
             }
         )
     packages = (

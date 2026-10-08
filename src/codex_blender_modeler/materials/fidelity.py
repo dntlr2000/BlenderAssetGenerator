@@ -12,6 +12,11 @@ from typing import Any
 from PIL import Image, ImageFilter
 
 from ..blender_artifacts import write_json_atomic
+from ..surface_detail_atlas import (
+    atlas_image_dimension_errors,
+    declared_atlas_uv_metrics,
+    shared_atlas_errors,
+)
 from ..texturing import load_texture_manifest
 from ..workspace import job_dir, sha256_file
 from .fidelity_models import (
@@ -423,10 +428,11 @@ def _binding_matches_current_uv(
     detail_parents: dict[str, str],
     inventory_by_id: dict[str, list[dict[str, Any]]],
     manifest_path: Path,
+    shared_atlas_validated: bool = False,
 ) -> bool:
-    """Accept a spatial binding only when IDs, UV topology, bounds, and mask are current."""
+    """Accept exact UV bindings; shared users additionally need full current atlas proof."""
 
-    if sorted(assigned_object_ids) != [binding.parent_object_id]:
+    if sorted(assigned_object_ids) != [binding.parent_object_id] and not shared_atlas_validated:
         return False
     if detail_parents.get(binding.detail_id) != binding.parent_object_id:
         return False
@@ -620,6 +626,32 @@ def evaluate_material_fidelity(
             {binding.parent_object_id for binding in manifest.surface_detail_bindings}
         )
         binding_ids = {binding.detail_id for binding in manifest.surface_detail_bindings}
+        shared_atlas_validated = False
+        if len(set(assigned)) > 1 and manifest.surface_detail_bindings:
+            # Atlas status consumes current mesh bytes, not only old inventory summaries.
+            try:
+                object_by_id = {entry["id"]: entry for entry in scene_spec["objects"]}
+                atlas_metrics = {}
+                for user in assigned:
+                    geometry = object_by_id[user]["geometry"]
+                    atlas_metrics[user] = [declared_atlas_uv_metrics(
+                        root, geometry, material_id=item.material_id,
+                    )]
+                    mesh_path = _safe_job_path(root, geometry["path"])
+                    input_hashes[_relative_path(root, mesh_path)] = sha256_file(mesh_path)
+                shared_atlas_validated = not shared_atlas_errors(
+                    material_id=item.material_id, material_users=assigned,
+                    bindings=[entry.model_dump(mode="json")
+                              for entry in manifest.surface_detail_bindings],
+                    strategies={str(entry["id"]): str(entry.get("uv_strategy"))
+                                for entry in modeling_plan.get("surface_details", [])},
+                    uv_metrics=atlas_metrics, resolution=manifest.resolution,
+                )
+                shared_atlas_validated = shared_atlas_validated and not (
+                    atlas_image_dimension_errors(manifest.model_dump(mode="json"), manifest_path)
+                )
+            except (OSError, ValueError, KeyError, TypeError):
+                shared_atlas_validated = False
         binding_mismatches = sorted(
             binding.detail_id
             for binding in manifest.surface_detail_bindings
@@ -631,6 +663,7 @@ def evaluate_material_fidelity(
                     detail_parents=detail_parents,
                     inventory_by_id=inventory_by_id,
                     manifest_path=manifest_path,
+                    shared_atlas_validated=shared_atlas_validated,
                 )
             )
         )

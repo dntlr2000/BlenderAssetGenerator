@@ -44,6 +44,7 @@ BlenderAssetGenerator/
   docs/DOCUMENT_RELOCATION_KO.md
   docs/HANDOFF_KO.md
   docs/README.md
+  docs/adaptive_profile_authoring.md
   docs/agent/README.md
   docs/agent/approvals_and_authorization.md
   docs/agent/autonomy_safety.md
@@ -68,7 +69,15 @@ BlenderAssetGenerator/
   docs/architecture/ARCHITECTURE_V08_KO.md
   docs/architecture/ARCHITECTURE_V09_KO.md
   docs/architecture/SKILL_ORCHESTRATION_ARCHITECTURE_KO.md
+  docs/authored_material_identity_split.md
+  docs/contour_relief_authoring.md
+  docs/cubic_bezier_sampling.md
+  docs/delegated_optimization_authority.md
+  docs/exterior_geometry_review_v3.md
+  docs/exterior_surface_refinement.md
   docs/fidelity_campaign_delegation.md
+  docs/generated_portable_uv_fallback.md
+  docs/guarded_solid_root_attachment_revision.md
   docs/guides/CONTROLLER_EXECUTOR_KO.md
   docs/guides/DELIVERY_PROFILES_KO.md
   docs/guides/EXTERNAL_STATIC_ASSET_INTAKE_KO.md
@@ -91,6 +100,9 @@ BlenderAssetGenerator/
   docs/guides/SURFACE_DETAIL_ROUTING_KO.md
   docs/history/CRYSTALGUN_FRAMEWORK_INCIDENT_KO.md
   docs/history/V074_PRE_OPTIMIZATION_REVIEW_KO.md
+  docs/lod_quality_diagnostics.md
+  docs/manufactured_panel_refinement.md
+  docs/material_swatch_backend_selection.md
   docs/migration/MIGRATION_AQ_APPROVAL_ENVELOPE_KO.md
   docs/migration/MIGRATION_AQ_V02_KO.md
   docs/migration/MIGRATION_AUTONOMOUS_QUALITY_KO.md
@@ -101,10 +113,17 @@ BlenderAssetGenerator/
   docs/migration/MIGRATION_V2_KO.md
   docs/migration/SKILL_ORCHESTRATION_MIGRATION_KO.md
   docs/migration/UPGRADE_FROM_V02_KO.md
+  docs/optical_volume_contract.md
+  docs/overlap_aware_embedding_partition.md
+  docs/paired_modeling_plan_revision.md
+  docs/portable_optical_audit.md
+  docs/profiled_relief_authoring.md
+  docs/projected_centerline_coverage.md
   docs/prompts/IMAGEGEN_MATERIAL_LOOP_PROMPTS_KO.md
   docs/prompts/MATERIAL_CLOSURE_STABILIZATION_PROMPTS_KO.md
   docs/prompts/MATERIAL_IDENTITY_SPLIT_PROMPTS_KO.md
   docs/prompts/NEW_REFERENCE_VALIDATION_PROMPTS_KO.md
+  docs/reference_assembly_generation.md
   docs/reference_fidelity.md
   docs/reference_fidelity_closeout/CHANGE_REVIEW_KO.md
   docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md
@@ -113,6 +132,9 @@ BlenderAssetGenerator/
   docs/reference_fidelity_closeout/VISUAL_EVIDENCE_KO.md
   docs/reference_fidelity_closeout/preserved_scratch_references.json
   docs/roadmap/ROADMAP_V1_KO.md
+  docs/shared_material_atlas_validation.md
+  docs/solid_root_attachment_delivery.md
+  docs/surface_attachment_delivery.md
   docs/testing/AQ_APPROVAL_KPI_KO.md
   docs/testing/SKILL_ORCHESTRATION_KPI_KO.md
   docs/testing/SKILL_ORCHESTRATION_TEST_PLAN_KO.md
@@ -128,22 +150,30 @@ BlenderAssetGenerator/
   docs/testing/TEST_PLAN_V07_KO.md
   docs/testing/TEST_PLAN_V08_KO.md
   docs/testing/TEST_PLAN_V09_KO.md
+  docs/texture_profile_cost_audit.md
   docs/triangulated_shell.md
+  docs/validated_authored_uv.md
+  docs/verification/BAG_CHECKPOINT_UPDATE_20261008_KO.md
   docs/verification/BLENDER_5_COMPATIBILITY_KO.md
+  docs/verification/CLOUD_SOURCE_CHECKPOINT_20261008.md
   docs/verification/VERIFICATION_AQ_APPROVAL_ENVELOPE_KO.md
   docs/verification/VERIFICATION_AQ_ONE_PROMPT_5_ASSET_CAMPAIGN_KO.md
   docs/verification/VERIFICATION_AQ_V02_KO.md
   docs/verification/VERIFICATION_AUTONOMOUS_QUALITY_KO.md
+  docs/verification/VERIFICATION_BOUNDED_CLOUD_FIXES_KO.md
   docs/verification/VERIFICATION_CODEX_IMAGEGEN_PROVIDER_KO.md
+  docs/verification/VERIFICATION_FIVE_ASSET_CLOUD_KO.md
   docs/verification/VERIFICATION_IMAGEGEN_MATERIAL_LOOP_KO.md
   docs/verification/VERIFICATION_KO.md
   docs/verification/VERIFICATION_MATERIAL_CLOSURE_STABILIZATION_KO.md
   docs/verification/VERIFICATION_MATERIAL_IDENTITY_SPLIT_KO.md
+  docs/verification/VERIFICATION_SELF_INTERSECTION_COVERAGE.md
   docs/verification/VERIFICATION_V06_KO.md
   docs/verification/VERIFICATION_V073_KO.md
   docs/verification/VERIFICATION_V074_KO.md
   docs/verification/VERIFICATION_V08_KO.md
   docs/verification/VERIFICATION_V09_KO.md
+  docs/weighted_portable_atlas.md
   examples/autonomous_quality_benchmarks/manifest.json
   examples/autonomous_quality_benchmarks_v02/manifest.json
   examples/first_reference_test/geometry/city_underside.mesh.json
@@ -243,7 +273,16 @@ BlenderAssetGenerator/
   schemas/asset_production_dispatch_request.schema.json
   schemas/asset_profile.schema.json
   schemas/asset_scale_context.schema.json
+  schemas/attachment_revision_binding_v01.schema.json
+  schemas/attachment_revision_commit_receipt_v02.schema.json
+  schemas/attachment_revision_record_v01.schema.json
+  schemas/attachment_revision_rollback_receipt_v02.schema.json
+  schemas/attachment_revision_transaction_intent_v02.schema.json
   schemas/authored_material_manifest.schema.json
+  schemas/authored_split_attachment_record_v02.schema.json
+  schemas/authored_uv_inspection_v01.schema.json
+  schemas/authored_uv_proof_v01.schema.json
+  schemas/authored_uv_scalar_bake_v01.schema.json
   schemas/autonomy_approval_envelope.schema.json
   schemas/autonomy_approval_policy_profile.schema.json
   schemas/autonomy_benchmark_v02_blender_receipt.schema.json
@@ -329,6 +368,11 @@ BlenderAssetGenerator/
   schemas/controller_executor_phase_tool_profile.schema.json
   schemas/controller_executor_result.schema.json
   schemas/convergence_report.schema.json
+  schemas/delegated_optimization_authorization_v01.schema.json
+  schemas/delegated_optimization_consumption_v01.schema.json
+  schemas/delegated_optimization_scope_v01.schema.json
+  schemas/delegated_optimization_workflow_binding_v01.schema.json
+  schemas/delegated_package_authority_v01.schema.json
   schemas/delegated_production_advance_receipt.schema.json
   schemas/delegated_production_controller_plan.schema.json
   schemas/delegated_production_state.schema.json
@@ -458,10 +502,26 @@ BlenderAssetGenerator/
   schemas/material_graph_runtime_preview_manifest.schema.json
   schemas/material_graph_spec.schema.json
   schemas/material_high_resolution_authorization.schema.json
+  schemas/material_identity_clone_rule_v02.schema.json
   schemas/material_identity_split_apply_intent.schema.json
   schemas/material_identity_split_apply_receipt.schema.json
   schemas/material_identity_split_approval_consumption_receipt.schema.json
   schemas/material_identity_split_approval_request.schema.json
+  schemas/material_identity_split_authored_apply_intent_v02.schema.json
+  schemas/material_identity_split_authored_approval_request_v02.schema.json
+  schemas/material_identity_split_authored_approval_v02.schema.json
+  schemas/material_identity_split_authored_consumption_v02.schema.json
+  schemas/material_identity_split_authored_delegation_v02.schema.json
+  schemas/material_identity_split_authored_invariants_v02.schema.json
+  schemas/material_identity_split_authored_journal_v02.schema.json
+  schemas/material_identity_split_authored_plan_v02.schema.json
+  schemas/material_identity_split_authored_preapproval_v02.schema.json
+  schemas/material_identity_split_authored_root_proofs_v02.schema.json
+  schemas/material_identity_split_authored_technical_apply_intent_v02.schema.json
+  schemas/material_identity_split_authored_technical_approval_request_v02.schema.json
+  schemas/material_identity_split_authored_technical_approval_v02.schema.json
+  schemas/material_identity_split_authored_technical_consumption_v02.schema.json
+  schemas/material_identity_split_authored_terminal_v02.schema.json
   schemas/material_identity_split_binding_derivative_receipt.schema.json
   schemas/material_identity_split_geometry_continuation_receipt.schema.json
   schemas/material_identity_split_invariant_report.schema.json
@@ -497,6 +557,7 @@ BlenderAssetGenerator/
   schemas/material_session_supersession_receipt.schema.json
   schemas/material_shadow_compile_receipt.schema.json
   schemas/material_state_consistency_report.schema.json
+  schemas/material_swatch_execution.schema.json
   schemas/material_validation.schema.json
   schemas/mesh_payload_v02.schema.json
   schemas/mesh_payload_v02_compile_report.schema.json
@@ -511,6 +572,10 @@ BlenderAssetGenerator/
   schemas/package_repair_failure.schema.json
   schemas/package_repair_plan.schema.json
   schemas/package_repair_receipt.schema.json
+  schemas/paired_modeling_plan_binding.schema.json
+  schemas/paired_revision_commit_receipt.schema.json
+  schemas/paired_revision_rollback_receipt.schema.json
+  schemas/paired_revision_transaction_intent.schema.json
   schemas/policy_authorization.schema.json
   schemas/policy_gate_target.schema.json
   schemas/portable_material_conversion_manifest.schema.json
@@ -532,6 +597,8 @@ BlenderAssetGenerator/
   schemas/reference_evidence_run_result.schema.json
   schemas/reference_mask_seed_evidence_v01.schema.json
   schemas/reference_mask_seed_evidence_v02.schema.json
+  schemas/reference_mask_seed_evidence_v03.schema.json
+  schemas/reference_subject_extent_evidence_v01.schema.json
   schemas/render_pass_manifest.schema.json
   schemas/review_bundle_manifest.schema.json
   schemas/review_bundle_receipt.schema.json
@@ -555,6 +622,7 @@ BlenderAssetGenerator/
   schemas/skill_execution_receipt.schema.json
   schemas/skill_registry.schema.json
   schemas/skill_route_decision.schema.json
+  schemas/solid_root_attachment_intent_v01.schema.json
   schemas/stability_report_manifest.schema.json
   schemas/standard_composite_run_plan.schema.json
   schemas/standard_composite_run_state.schema.json
@@ -574,6 +642,9 @@ BlenderAssetGenerator/
   schemas/structural_reentry_plan_v01.schema.json
   schemas/structural_regression_report.schema.json
   schemas/structure_authoring_v01.schema.json
+  schemas/surface_attachment_intent_v01.schema.json
+  schemas/surface_attachment_root_region_v01.schema.json
+  schemas/surface_attachment_triangle_snapshot_v01.schema.json
   schemas/surface_detail_validation.schema.json
   schemas/texture_manifest.schema.json
   schemas/texture_pack_manifest.schema.json
@@ -603,16 +674,21 @@ BlenderAssetGenerator/
   schemas/workspace_audit.schema.json
   schemas/workspace_relocation_plan.schema.json
   schemas/workspace_relocation_receipt.schema.json
+  scripts/audit_glb_texture_semantics.py
   scripts/audit_reference_fidelity_history.py
   scripts/bootstrap.ps1
   scripts/bootstrap.sh
   scripts/check_activation_readiness_contract.py
   scripts/check_agent_instructions.py
+  scripts/check_exported_lod_quality.py
   scripts/check_no_job_specific_framework_literals.py
   scripts/doctor.py
   scripts/finalize_gate_run.py
   scripts/generate_repository_summary.py
   scripts/generate_schemas.py
+  scripts/manufactured_panel_refinement_contract.py
+  scripts/replay_exterior_surface_refinement.py
+  scripts/replay_manufactured_panel_refinement.py
   scripts/run_advisory_target_smoke.py
   scripts/run_autonomous_quality_gates.ps1
   scripts/run_autonomous_quality_gates.sh
@@ -634,6 +710,7 @@ BlenderAssetGenerator/
   scripts/verify_v06_artifacts.py
   src/codex_blender_modeler/__init__.py
   src/codex_blender_modeler/activation_profile_publication.py
+  src/codex_blender_modeler/adaptive_sweep_authoring.py
   src/codex_blender_modeler/analysis/__init__.py
   src/codex_blender_modeler/analysis/assembly.py
   src/codex_blender_modeler/analysis/basic.py
@@ -645,6 +722,10 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/architecture/__init__.py
   src/codex_blender_modeler/architecture/models.py
   src/codex_blender_modeler/architecture/service.py
+  src/codex_blender_modeler/attachment_revision_runtime.py
+  src/codex_blender_modeler/attachment_runtime.py
+  src/codex_blender_modeler/authored_material_runtime.py
+  src/codex_blender_modeler/authored_split_runtime.py
   src/codex_blender_modeler/auto_revision/__init__.py
   src/codex_blender_modeler/auto_revision/approval.py
   src/codex_blender_modeler/auto_revision/candidate_builder.py
@@ -743,6 +824,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/assembly/models.py
   src/codex_blender_modeler/blender_scripts/assembly/service.py
   src/codex_blender_modeler/blender_scripts/assembly_runtime.py
+  src/codex_blender_modeler/blender_scripts/authored_split_native.py
   src/codex_blender_modeler/blender_scripts/bake_materials.py
   src/codex_blender_modeler/blender_scripts/build_scene.py
   src/codex_blender_modeler/blender_scripts/builders/__init__.py
@@ -771,6 +853,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/extract_standard_custom_mesh.py
   src/codex_blender_modeler/blender_scripts/geometry_intent_runtime.py
   src/codex_blender_modeler/blender_scripts/inspect_asset_topology.py
+  src/codex_blender_modeler/blender_scripts/inspect_authored_uv.py
   src/codex_blender_modeler/blender_scripts/inspect_custom_mesh_v02.py
   src/codex_blender_modeler/blender_scripts/inspect_external_static_asset.py
   src/codex_blender_modeler/blender_scripts/inspect_geometry_delivery_v02.py
@@ -778,12 +861,18 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/inspect_materials.py
   src/codex_blender_modeler/blender_scripts/inspect_quality_companions.py
   src/codex_blender_modeler/blender_scripts/inspect_scene.py
+  src/codex_blender_modeler/blender_scripts/inspect_surface_attachment_geometry.py
   src/codex_blender_modeler/blender_scripts/material_graph_runtime_registry.py
   src/codex_blender_modeler/blender_scripts/materialize_structural_geometry.py
   src/codex_blender_modeler/blender_scripts/modifiers.py
   src/codex_blender_modeler/blender_scripts/normalize_external_static_asset.py
+  src/codex_blender_modeler/blender_scripts/optical_volume_runtime.py
   src/codex_blender_modeler/blender_scripts/portable_asset_common.py
+  src/codex_blender_modeler/blender_scripts/portable_authored_uv_proof.py
+  src/codex_blender_modeler/blender_scripts/portable_authored_uv_runtime.py
   src/codex_blender_modeler/blender_scripts/portable_material_conversion_runtime.py
+  src/codex_blender_modeler/blender_scripts/portable_uv_scalar_bake.py
+  src/codex_blender_modeler/blender_scripts/portable_uv_scalar_runtime.py
   src/codex_blender_modeler/blender_scripts/prepare_optimized_asset.py
   src/codex_blender_modeler/blender_scripts/probe_autonomous_quality.py
   src/codex_blender_modeler/blender_scripts/probe_autonomous_quality_v02.py
@@ -801,6 +890,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/render_preview.py
   src/codex_blender_modeler/blender_scripts/render_qa_passes.py
   src/codex_blender_modeler/blender_scripts/render_uv_diagnostic.py
+  src/codex_blender_modeler/blender_scripts/self_intersection_runtime.py
   src/codex_blender_modeler/blender_scripts/standard_custom_mesh_runtime.py
   src/codex_blender_modeler/blender_scripts/surface_detail_uv_runtime.py
   src/codex_blender_modeler/blender_scripts/topology/__init__.py
@@ -916,6 +1006,11 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/material_graph/runtime_models.py
   src/codex_blender_modeler/material_identity_split/AGENTS.md
   src/codex_blender_modeler/material_identity_split/__init__.py
+  src/codex_blender_modeler/material_identity_split/authored_materials.py
+  src/codex_blender_modeler/material_identity_split/authored_models.py
+  src/codex_blender_modeler/material_identity_split/authored_public.py
+  src/codex_blender_modeler/material_identity_split/authored_service.py
+  src/codex_blender_modeler/material_identity_split/authored_transaction.py
   src/codex_blender_modeler/material_identity_split/models.py
   src/codex_blender_modeler/material_identity_split/service.py
   src/codex_blender_modeler/material_identity_split/transaction.py
@@ -941,7 +1036,13 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/mcp_server.py
   src/codex_blender_modeler/migration.py
   src/codex_blender_modeler/models.py
+  src/codex_blender_modeler/optical_volume.py
+  src/codex_blender_modeler/optical_volume_gltf.py
+  src/codex_blender_modeler/optical_volume_models.py
   src/codex_blender_modeler/optimization/__init__.py
+  src/codex_blender_modeler/optimization/delegated.py
+  src/codex_blender_modeler/optimization/delegated_models.py
+  src/codex_blender_modeler/optimization/delegated_workflow.py
   src/codex_blender_modeler/optimization/io.py
   src/codex_blender_modeler/optimization/models.py
   src/codex_blender_modeler/optimization/optimizer.py
@@ -951,17 +1052,31 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/optimization/service.py
   src/codex_blender_modeler/orchestration/AGENTS.md
   src/codex_blender_modeler/orchestration/__init__.py
+  src/codex_blender_modeler/orchestration/attachment_revision.py
   src/codex_blender_modeler/orchestration/locks.py
   src/codex_blender_modeler/orchestration/models.py
+  src/codex_blender_modeler/orchestration/paired_models.py
+  src/codex_blender_modeler/orchestration/paired_revision.py
   src/codex_blender_modeler/orchestration/planner.py
+  src/codex_blender_modeler/orchestration/revision_payloads.py
   src/codex_blender_modeler/orchestration/router.py
   src/codex_blender_modeler/orchestration/service.py
+  src/codex_blender_modeler/orchestration/swatch_execution.py
   src/codex_blender_modeler/packaging/AGENTS.md
   src/codex_blender_modeler/packaging/__init__.py
+  src/codex_blender_modeler/packaging/attachment.py
+  src/codex_blender_modeler/packaging/authored_uv.py
+  src/codex_blender_modeler/packaging/delegated.py
+  src/codex_blender_modeler/packaging/lod_quality.py
   src/codex_blender_modeler/packaging/material_conversion.py
   src/codex_blender_modeler/packaging/models.py
+  src/codex_blender_modeler/packaging/optical_audit.py
+  src/codex_blender_modeler/packaging/scalar_bake.py
   src/codex_blender_modeler/packaging/service.py
+  src/codex_blender_modeler/packaging/solid_attachment.py
+  src/codex_blender_modeler/packaging/texture_cost_audit.py
   src/codex_blender_modeler/packaging/texture_packing.py
+  src/codex_blender_modeler/paired_revision_runtime.py
   src/codex_blender_modeler/production/AGENTS.md
   src/codex_blender_modeler/production/__init__.py
   src/codex_blender_modeler/production/activation_models.py
@@ -980,6 +1095,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/production/validation.py
   src/codex_blender_modeler/qa/__init__.py
   src/codex_blender_modeler/qa/advisory_compare.py
+  src/codex_blender_modeler/qa/attachment_occupancy.py
   src/codex_blender_modeler/qa/camera_attribution.py
   src/codex_blender_modeler/qa/camera_fingerprint.py
   src/codex_blender_modeler/qa/camera_probe_service.py
@@ -987,12 +1103,16 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/qa/diagnostic_service.py
   src/codex_blender_modeler/qa/diagnostics.py
   src/codex_blender_modeler/qa/direct_compare.py
+  src/codex_blender_modeler/qa/evidence_selection.py
+  src/codex_blender_modeler/qa/fidelity_review.py
   src/codex_blender_modeler/qa/hashing.py
   src/codex_blender_modeler/qa/image_io.py
   src/codex_blender_modeler/qa/models.py
   src/codex_blender_modeler/qa/multiview_sanity.py
   src/codex_blender_modeler/qa/reference_mask.py
   src/codex_blender_modeler/qa/reference_mask_constraints.py
+  src/codex_blender_modeler/qa/reference_occupancy.py
+  src/codex_blender_modeler/qa/reference_subject_extent.py
   src/codex_blender_modeler/qa/reporting.py
   src/codex_blender_modeler/qa/request.py
   src/codex_blender_modeler/qa/semantic_localizer.py
@@ -1003,6 +1123,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/qa/structural_regression.py
   src/codex_blender_modeler/qa/suggestion_enrichment.py
   src/codex_blender_modeler/qa/target_provider.py
+  src/codex_blender_modeler/radial_detail_authoring.py
   src/codex_blender_modeler/reference_evidence/__init__.py
   src/codex_blender_modeler/reference_evidence/camera_hypotheses.py
   src/codex_blender_modeler/reference_evidence/models.py
@@ -1028,6 +1149,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/skill_orchestration/__init__.py
   src/codex_blender_modeler/skill_orchestration/models.py
   src/codex_blender_modeler/skill_orchestration/service.py
+  src/codex_blender_modeler/solid_attachment_contract.py
   src/codex_blender_modeler/stabilization/__init__.py
   src/codex_blender_modeler/stabilization/archive_models.py
   src/codex_blender_modeler/stabilization/locks.py
@@ -1041,7 +1163,12 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/storage_retention/models.py
   src/codex_blender_modeler/storage_retention/service.py
   src/codex_blender_modeler/structural_geometry/__init__.py
+  src/codex_blender_modeler/structural_geometry/attachment_companion.py
+  src/codex_blender_modeler/structural_geometry/compose_owner_front.py
   src/codex_blender_modeler/structural_geometry/composition_geometry.py
+  src/codex_blender_modeler/structural_geometry/constant_back.py
+  src/codex_blender_modeler/structural_geometry/contour_relief.py
+  src/codex_blender_modeler/structural_geometry/cubic_bezier_sampling.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_equivalence.py
   src/codex_blender_modeler/structural_geometry/geometry_delivery_inspector_v02.py
   src/codex_blender_modeler/structural_geometry/geometry_intent_runtime_v02.py
@@ -1054,11 +1181,19 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/structural_geometry/migration.py
   src/codex_blender_modeler/structural_geometry/migration_service.py
   src/codex_blender_modeler/structural_geometry/models.py
+  src/codex_blender_modeler/structural_geometry/owner_relief.py
+  src/codex_blender_modeler/structural_geometry/partition_heightfield.py
+  src/codex_blender_modeler/structural_geometry/profiled_relief.py
   src/codex_blender_modeler/structural_geometry/relief_geometry.py
+  src/codex_blender_modeler/structural_geometry/root_region.py
   src/codex_blender_modeler/structural_geometry/service.py
+  src/codex_blender_modeler/structural_geometry/solid_attachment_companion.py
+  src/codex_blender_modeler/structural_geometry/solid_root_ball.py
+  src/codex_blender_modeler/structural_geometry/support_coverage.py
   src/codex_blender_modeler/structural_geometry/triangle_shell.py
   src/codex_blender_modeler/structural_geometry/triangle_shell_math.py
   src/codex_blender_modeler/structural_geometry/v02.py
+  src/codex_blender_modeler/surface_detail_atlas.py
   src/codex_blender_modeler/texturing/AGENTS.md
   src/codex_blender_modeler/texturing/__init__.py
   src/codex_blender_modeler/texturing/manifest.py
@@ -1069,19 +1204,28 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/validation.py
   src/codex_blender_modeler/versioning.py
   src/codex_blender_modeler/workspace.py
+  tests/blender_authored_uv_fixture.py
+  tests/blender_profiled_relief_probe.py
+  tests/blender_scalar_uv_fixture.py
   tests/blender_scripts/create_external_static_asset_fixture.py
   tests/blender_scripts/probe_portable_json_long_path.py
   tests/cli_help_support.py
+  tests/fixtures/authored_split_optical_probe.py
+  tests/fixtures/authored_uv_optical_metadata_probe.py
   tests/fixtures/integrated_quality_v02/masks.json
+  tests/fixtures/optical_volume_hardening_probe.py
+  tests/fixtures/optical_volume_native_probe.py
   tests/fixtures/procedural_wood_v1_recorded/README.md
   tests/fixtures/procedural_wood_v1_recorded/base_color.png
   tests/fixtures/procedural_wood_v1_recorded/height.png
   tests/fixtures/procedural_wood_v1_recorded/normal.png
   tests/fixtures/procedural_wood_v1_recorded/occlusion.png
   tests/fixtures/procedural_wood_v1_recorded/roughness.png
+  tests/fixtures/profiled_centerline_cutout_crystal.json
   tests/fixtures/reference_fidelity/candidate_budget_failure.json
   tests/fixtures/reference_fidelity/historical_5e5b172.json
   tests/test_activation_readiness.py
+  tests/test_adaptive_sweep_authoring.py
   tests/test_advanced_material_handoff_v02.py
   tests/test_advisory_target_compare.py
   tests/test_agent_instruction_hierarchy.py
@@ -1104,6 +1248,16 @@ BlenderAssetGenerator/
   tests/test_aq_v2_canary_recovery_regression.py
   tests/test_assembly_consistency.py
   tests/test_assembly_topology_aq.py
+  tests/test_attachment_companion.py
+  tests/test_attachment_occupancy_publication_oracles.py
+  tests/test_authored_material_identity_split.py
+  tests/test_authored_material_identity_split_surfaces.py
+  tests/test_authored_recipe_aliases.py
+  tests/test_authored_split_bounded_reads.py
+  tests/test_authored_split_preserved_graph.py
+  tests/test_authored_uv_conversion.py
+  tests/test_authored_uv_optical_metadata.py
+  tests/test_authored_uv_proof.py
   tests/test_auto_revision.py
   tests/test_auto_revision_locking.py
   tests/test_auto_revision_service.py
@@ -1148,6 +1302,7 @@ BlenderAssetGenerator/
   tests/test_blender_companion_service.py
   tests/test_blender_render_compat.py
   tests/test_blender_runner.py
+  tests/test_boundary_zero_thickness.py
   tests/test_build_provenance.py
   tests/test_candidate_review.py
   tests/test_canonical_scene_spec_writes.py
@@ -1170,8 +1325,21 @@ BlenderAssetGenerator/
   tests/test_codex_imagegen_security.py
   tests/test_comparison_lighting.py
   tests/test_comparison_lighting_blender.py
+  tests/test_compose_owner_front.py
+  tests/test_compose_owner_front_oracles.py
+  tests/test_constant_back.py
+  tests/test_constant_back_affine_oracles.py
+  tests/test_constant_back_oracles.py
   tests/test_constraints.py
+  tests/test_contour_relief.py
+  tests/test_contour_relief_blender.py
   tests/test_controller_executor_v02.py
+  tests/test_cubic_bezier_sampling.py
+  tests/test_delegated_optimization.py
+  tests/test_embedding_bvh_partition_policy.py
+  tests/test_embedding_fixed_directions.py
+  tests/test_embedding_sweep_equivalence.py
+  tests/test_exterior_surface_refinement.py
   tests/test_external_static_asset_intake.py
   tests/test_feature_config.py
   tests/test_fidelity_budget_epoch.py
@@ -1180,9 +1348,15 @@ BlenderAssetGenerator/
   tests/test_fidelity_delegation_blender.py
   tests/test_fidelity_delegation_lineage.py
   tests/test_fidelity_delegation_public.py
+  tests/test_generated_portable_uv_fallback.py
   tests/test_geometry_delivery_equivalence.py
+  tests/test_geometry_detail_review_v3.py
   tests/test_geometry_intent_v02_reachability.py
   tests/test_geometry_models.py
+  tests/test_glb_texture_semantics.py
+  tests/test_guarded_attachment_revision.py
+  tests/test_guarded_attachment_revision_surface.py
+  tests/test_inserted_root.py
   tests/test_integrated_quality_aq.py
   tests/test_integrated_quality_hard_gate_evidence.py
   tests/test_integrated_quality_v02_metrics.py
@@ -1190,6 +1364,9 @@ BlenderAssetGenerator/
   tests/test_integrated_quality_v02_schemas.py
   tests/test_integrated_quality_v02_service.py
   tests/test_interior_qa.py
+  tests/test_lod_quality_guard.py
+  tests/test_lod_quality_native_blender.py
+  tests/test_manufactured_panel_refinement.py
   tests/test_material_authoring_blender_v02.py
   tests/test_material_authoring_schemas_v02.py
   tests/test_material_authoring_v02.py
@@ -1218,20 +1395,39 @@ BlenderAssetGenerator/
   tests/test_material_manifest.py
   tests/test_material_retry_supersession.py
   tests/test_material_scaffold.py
+  tests/test_material_swatch_execution.py
   tests/test_migration.py
   tests/test_models.py
   tests/test_no_job_specific_framework_literals.py
   tests/test_normal_transfer_modifier.py
+  tests/test_optical_audit.py
+  tests/test_optical_volume_contract.py
+  tests/test_optical_volume_hardening.py
+  tests/test_optical_volume_native.py
+  tests/test_owner_relief.py
+  tests/test_owner_side_embedding.py
   tests/test_packaging_long_paths_aq.py
+  tests/test_paired_revision_contract.py
+  tests/test_paired_revision_legacy_evidence.py
+  tests/test_paired_revision_public_surface.py
+  tests/test_paired_revision_runtime.py
+  tests/test_paired_revision_transaction.py
+  tests/test_partition_heightfield.py
+  tests/test_partition_heightfield_oracles.py
   tests/test_patch_release_compatibility.py
   tests/test_pdf_reporting.py
   tests/test_procedural_pbr_provider.py
+  tests/test_profiled_relief.py
+  tests/test_profiled_relief_blender.py
+  tests/test_public_v02_mask_selection.py
   tests/test_pytest_acl_safe_runner.py
   tests/test_qa_camera_geometry_attribution.py
   tests/test_qa_camera_probe_service.py
   tests/test_qa_diagnostic_models.py
   tests/test_qa_diagnostic_service.py
+  tests/test_qa_evidence_selection.py
   tests/test_qa_multiview_sanity.py
+  tests/test_qa_part_evidence_reliability.py
   tests/test_qa_semantic_mask_public_surface.py
   tests/test_qa_semantic_mask_registry.py
   tests/test_qa_shape_metrics.py
@@ -1240,6 +1436,8 @@ BlenderAssetGenerator/
   tests/test_quality_revision_budget.py
   tests/test_quality_revision_flow.py
   tests/test_quality_revision_host.py
+  tests/test_radial_detail_authoring.py
+  tests/test_raw_scene_export.py
   tests/test_reference_analysis.py
   tests/test_reference_content_scope.py
   tests/test_reference_evidence_aq.py
@@ -1253,21 +1451,48 @@ BlenderAssetGenerator/
   tests/test_reference_mask_constraints.py
   tests/test_reference_mask_refinement.py
   tests/test_reference_mask_seed_evidence.py
+  tests/test_reference_occupancy.py
+  tests/test_reference_subject_extent.py
   tests/test_repository_catalog.py
   tests/test_repository_summary_generator.py
   tests/test_revision.py
+  tests/test_revision_payload_binding.py
+  tests/test_revision_payload_post_apply.py
+  tests/test_root_region.py
+  tests/test_root_region_host.py
+  tests/test_root_region_host_oracles.py
+  tests/test_root_region_oracles.py
+  tests/test_roundtrip_tangent_uv_identity.py
+  tests/test_scalar_proxy_precomputed_bounds.py
   tests/test_scene_spec_v03_migration_public.py
   tests/test_scene_validation_modifier_order.py
+  tests/test_self_intersection_runtime.py
+  tests/test_separated_depth_bounds.py
   tests/test_shader_recipe_runtime.py
   tests/test_skill_orchestration.py
   tests/test_skill_orchestration_public_surface.py
+  tests/test_solid_root_attachment_host.py
+  tests/test_solid_root_attachment_native.py
+  tests/test_solid_root_ball.py
   tests/test_standard_custom_mesh.py
   tests/test_storage_retention.py
   tests/test_storage_retention_contracts.py
   tests/test_storage_retention_public.py
+  tests/test_support_coverage.py
+  tests/test_surface_attachment_geometry_oracles.py
+  tests/test_surface_attachment_host.py
+  tests/test_surface_attachment_host_native_entrypoint.py
+  tests/test_surface_attachment_host_oracles.py
+  tests/test_surface_attachment_native_entrypoint.py
+  tests/test_surface_attachment_occupancy.py
+  tests/test_surface_attachment_overlay_oracles.py
+  tests/test_surface_attachment_root_oracles.py
   tests/test_surface_detail_policy.py
+  tests/test_surface_detail_shared_atlas.py
   tests/test_surface_detail_uv_runtime.py
+  tests/test_texture_cost_audit.py
   tests/test_texture_service.py
+  tests/test_uv_scalar_bake.py
   tests/test_v05_bake_contracts.py
   tests/test_v05_bake_service.py
   tests/test_v05_material_contracts.py
@@ -1275,6 +1500,7 @@ BlenderAssetGenerator/
   tests/test_v06_public_surface.py
   tests/test_v06_schemas.py
   tests/test_v071_blender_material_conversion.py
+  tests/test_v071_constant_emission_transport.py
   tests/test_v071_gate_scripts.py
   tests/test_v071_host_packaging.py
   tests/test_v071_material_conversion_contracts.py
@@ -1309,7 +1535,10 @@ BlenderAssetGenerator/
   tests/test_visual_convergence_service.py
   tests/test_visual_qa.py
   tests/test_visual_qa_service.py
+  tests/test_weighted_atlas_integration.py
+  tests/test_weighted_atlas_layout.py
   tests/test_workspace.py
+  tests/test_workspace_input_relocation.py
   tests/test_workspace_v04.py
   textures/README.md
   uv.lock

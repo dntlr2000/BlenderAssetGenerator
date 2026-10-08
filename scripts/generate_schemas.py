@@ -119,7 +119,9 @@ from codex_blender_modeler.autonomy_v2.delegation_models import (
     DelegationScopeV01,
     FidelityCampaignDelegationV01,
 )
-from codex_blender_modeler.autonomy_v2.fidelity_budget_models import FidelityBudgetEpochV01
+from codex_blender_modeler.autonomy_v2.fidelity_budget_models import (
+    FidelityBudgetEpochV01,
+)
 from codex_blender_modeler.autonomy_v2.geometry_preflight_models import (
     GeometryAuthoringPreflightV01,
 )
@@ -325,6 +327,7 @@ from codex_blender_modeler.material_graph.runtime_models import (
     NormalizedMaterialNodeInventory,
     PortableMaterialApproximationReport,
 )
+from codex_blender_modeler.material_identity_split import authored_models
 from codex_blender_modeler.material_identity_split.models import (
     MaterialIdentitySplitApplyIntent,
     MaterialIdentitySplitApplyReceipt,
@@ -354,6 +357,13 @@ from codex_blender_modeler.materials.models import (
     ShaderRecipe,
 )
 from codex_blender_modeler.models import SceneSpec
+from codex_blender_modeler.optimization.delegated_models import (
+    DelegatedOptimizationAuthorizationV01,
+    DelegatedOptimizationConsumptionV01,
+    DelegatedOptimizationScopeV01,
+    DelegatedOptimizationWorkflowBindingV01,
+    DelegatedPackageAuthorityV01,
+)
 from codex_blender_modeler.optimization.models import (
     AssetProfile,
     CollisionManifest,
@@ -367,6 +377,10 @@ from codex_blender_modeler.optimization.models import (
     StaticAssetCostReport,
     UVManifest,
 )
+from codex_blender_modeler.orchestration.attachment_revision import (
+    AttachmentRevisionBindingV01,
+    AttachmentRevisionRecordV01,
+)
 from codex_blender_modeler.orchestration.models import (
     IntentRouting,
     WorkflowApproval,
@@ -377,6 +391,20 @@ from codex_blender_modeler.orchestration.models import (
     WorkflowState,
     WorkflowStepCompletion,
 )
+from codex_blender_modeler.orchestration.paired_models import (
+    AttachmentCommitReceiptV02,
+    AttachmentRollbackReceiptV02,
+    AttachmentTransactionIntentV02,
+    PairedCommitReceipt,
+    PairedModelingPlanBinding,
+    PairedRollbackReceipt,
+    PairedTransactionIntent,
+)
+from codex_blender_modeler.orchestration.swatch_execution import MaterialSwatchExecution
+from codex_blender_modeler.packaging.authored_uv import (
+    AuthoredUVInspection,
+    AuthoredUVProof,
+)
 from codex_blender_modeler.packaging.models import (
     ExportPackageManifest,
     PortablePackageAcceptance,
@@ -384,6 +412,7 @@ from codex_blender_modeler.packaging.models import (
     StaticPayloadProvenance,
     TexturePackManifest,
 )
+from codex_blender_modeler.packaging.scalar_bake import AuthoredUVScalarBakeEvidence
 from codex_blender_modeler.production.activation_models import (
     ActivationAssetCandidateIndex,
     ActivationAssetCandidateRegistry,
@@ -463,6 +492,8 @@ from codex_blender_modeler.reference_fidelity.models import (
     ModelingHypothesisV01,
     ReferenceMaskSeedEvidenceV01,
     ReferenceMaskSeedEvidenceV02,
+    ReferenceMaskSeedEvidenceV03,
+    ReferenceSubjectExtentEvidenceV01,
     RenderEvidenceV01,
     UVSpatialPreservationV01,
     VisualFindingSetV01,
@@ -505,6 +536,11 @@ from codex_blender_modeler.storage_retention.models import (
     StorageCleanupReceiptV01,
     StorageInventoryV01,
 )
+from codex_blender_modeler.structural_geometry.attachment_companion import (
+    AttachmentIntentV01,
+    AttachmentTriangleSnapshotV01,
+    RootRegionSelectionV01,
+)
 from codex_blender_modeler.structural_geometry.geometry_delivery_equivalence import (
     GeometryDeliveryCornerEvidenceV02,
     GeometryNumericalSurvivalReportV02,
@@ -531,10 +567,18 @@ from codex_blender_modeler.structural_geometry.models import (
     StructuralGeometryCandidate,
     StructuralMeshPayload,
 )
+from codex_blender_modeler.structural_geometry.solid_attachment_companion import (
+    SolidRootAttachmentIntentV01,
+)
 from codex_blender_modeler.texturing.models import TextureManifest
 
 ROOT = Path(__file__).resolve().parents[1]
+
 SCHEMAS = {
+    "solid_root_attachment_intent_v01.schema.json": SolidRootAttachmentIntentV01,
+    "surface_attachment_intent_v01.schema.json": AttachmentIntentV01,
+    "surface_attachment_root_region_v01.schema.json": RootRegionSelectionV01,
+    "surface_attachment_triangle_snapshot_v01.schema.json": AttachmentTriangleSnapshotV01,
     "scene_spec.schema.json": SceneSpec,
     "standard_custom_mesh_payload.schema.json": StandardCustomMeshPayload,
     "reference_analysis.schema.json": ReferenceAnalysis,
@@ -598,11 +642,21 @@ SCHEMAS = {
     "optimization_plan.schema.json": OptimizationPlan,
     "optimization_review.schema.json": OptimizationReview,
     "optimization_approval.schema.json": OptimizationApproval,
+    "delegated_optimization_scope_v01.schema.json": DelegatedOptimizationScopeV01,
+    "delegated_package_authority_v01.schema.json": DelegatedPackageAuthorityV01,
+    "delegated_optimization_authorization_v01.schema.json": DelegatedOptimizationAuthorizationV01,
+    "delegated_optimization_consumption_v01.schema.json": DelegatedOptimizationConsumptionV01,
+    "delegated_optimization_workflow_binding_v01.schema.json": (
+        DelegatedOptimizationWorkflowBindingV01
+    ),
     "mesh_preflight_report.schema.json": MeshPreflightReport,
     "lod_manifest.schema.json": LODManifest,
     "collision_manifest.schema.json": CollisionManifest,
     "uv_manifest.schema.json": UVManifest,
     "asset_cost_report.schema.json": StaticAssetCostReport,
+    "authored_uv_scalar_bake_v01.schema.json": AuthoredUVScalarBakeEvidence,
+    "authored_uv_inspection_v01.schema.json": AuthoredUVInspection,
+    "authored_uv_proof_v01.schema.json": AuthoredUVProof,
     "portable_material_conversion_plan.schema.json": PortableMaterialConversionPlan,
     "portable_material_conversion_manifest.schema.json": PortableMaterialConversionManifest,
     "texture_pack_manifest.schema.json": TexturePackManifest,
@@ -621,12 +675,22 @@ SCHEMAS = {
     "interior_qa_revision_candidates.schema.json": InteriorQARevisionCandidates,
     "interior_qa_latest.schema.json": InteriorQALatest,
     "workflow_request.schema.json": WorkflowRequest,
+    "attachment_revision_binding_v01.schema.json": AttachmentRevisionBindingV01,
+    "attachment_revision_record_v01.schema.json": AttachmentRevisionRecordV01,
+    "attachment_revision_transaction_intent_v02.schema.json": AttachmentTransactionIntentV02,
+    "attachment_revision_commit_receipt_v02.schema.json": AttachmentCommitReceiptV02,
+    "attachment_revision_rollback_receipt_v02.schema.json": AttachmentRollbackReceiptV02,
+    "paired_modeling_plan_binding.schema.json": PairedModelingPlanBinding,
+    "paired_revision_transaction_intent.schema.json": PairedTransactionIntent,
+    "paired_revision_commit_receipt.schema.json": PairedCommitReceipt,
+    "paired_revision_rollback_receipt.schema.json": PairedRollbackReceipt,
     "intent_routing.schema.json": IntentRouting,
     "workflow_plan.schema.json": WorkflowPlan,
     "workflow_state.schema.json": WorkflowState,
     "workflow_approval.schema.json": WorkflowApproval,
     "workflow_step_completion.schema.json": WorkflowStepCompletion,
     "workflow_attempt.schema.json": WorkflowAttempt,
+    "material_swatch_execution.schema.json": MaterialSwatchExecution,
     "workflow_lock.schema.json": WorkflowLock,
     # Skill Orchestration 0.1 snapshots and projections never replace host authority.
     "skill_registry.schema.json": SkillRegistry,
@@ -665,24 +729,16 @@ SCHEMAS = {
     "activation_asset_eligibility_report.schema.json": (ActivationAssetEligibilityReport),
     "activation_asset_candidate_registry.schema.json": (ActivationAssetCandidateRegistry),
     "activation_asset_candidate_index.schema.json": ActivationAssetCandidateIndex,
-    "activation_human_quality_disposition.schema.json": (
-        ActivationHumanQualityDisposition
-    ),
-    "activation_campaign_outcome_evidence.schema.json": (
-        ActivationCampaignOutcomeEvidence
-    ),
+    "activation_human_quality_disposition.schema.json": (ActivationHumanQualityDisposition),
+    "activation_campaign_outcome_evidence.schema.json": (ActivationCampaignOutcomeEvidence),
     "activation_campaign_outcome_eligibility_report.schema.json": (
         ActivationCampaignOutcomeEligibilityReport
     ),
-    "activation_campaign_outcome_registry.schema.json": (
-        ActivationCampaignOutcomeRegistry
-    ),
+    "activation_campaign_outcome_registry.schema.json": (ActivationCampaignOutcomeRegistry),
     "activation_campaign_outcome_index.schema.json": ActivationCampaignOutcomeIndex,
     "human_local_activation_acceptance.schema.json": HumanLocalActivationAcceptance,
     "local_activation_readiness_report.schema.json": LocalActivationReadinessReport,
-    "local_profile_activation_publication.schema.json": (
-        LocalProfileActivationPublication
-    ),
+    "local_profile_activation_publication.schema.json": (LocalProfileActivationPublication),
     "human_activation_acceptance.schema.json": HumanActivationAcceptance,
     "asset_production_dispatch_request.schema.json": AssetProductionDispatchRequest,
     "delegated_production_controller_plan.schema.json": DelegatedProductionControllerPlan,
@@ -791,9 +847,7 @@ SCHEMAS = {
     "autonomy_v02_budget.schema.json": AutonomyBudgetV2,
     "autonomy_v02_root_authorization.schema.json": RootAuthorizationV2,
     "autonomy_v02_quality_source_freeze.schema.json": QualityApprovedSourceFreeze,
-    "autonomy_v02_human_quality_review_bundle.schema.json": (
-        HumanQualityReviewBundleV2
-    ),
+    "autonomy_v02_human_quality_review_bundle.schema.json": (HumanQualityReviewBundleV2),
     "autonomy_v02_quality_review_bundle.schema.json": QualityReviewBundleV2,
     "autonomy_v02_delivery_profile.schema.json": DeliveryProfile,
     "autonomy_v02_delivery_plan.schema.json": DeliveryPlan,
@@ -1013,59 +1067,126 @@ SCHEMAS = {
 }
 
 
-SCHEMAS.update({
-    "fidelity_development_preview_budget_extension_v01.schema.json": (
-        DevelopmentPreviewBudgetExtensionV01
-    ),
-    "fidelity_development_preview_attempt_outcome_v01.schema.json": (
-        DevelopmentPreviewAttemptOutcomeV01
-    ),
-    "fidelity_development_preview_budget_extension_v02.schema.json": (
-        DevelopmentPreviewBudgetExtensionV02
-    ),
-    "fidelity_development_preview_budget_extension_v03.schema.json": (
-        DevelopmentPreviewBudgetExtensionV03
-    ),
-    "fidelity_development_preview_budget_extension_v04.schema.json": (
-        DevelopmentPreviewBudgetExtensionV04
-    ),
-    "fidelity_development_preview_attempt_outcome_v02.schema.json": (
-        DevelopmentPreviewAttemptOutcomeV02
-    ),
-    "fidelity_development_preview_attempt_outcome_v03.schema.json": (
-        DevelopmentPreviewAttemptOutcomeV03
-    ),
-    "fidelity_uv_spatial_preservation_v01.schema.json": UVSpatialPreservationV01,
-    "directional_material_preflight_v01.schema.json": DirectionalMaterialPreflightV01,
-    "directional_mapping_evidence_v01.schema.json": DirectionalMappingEvidenceV01,
-    "modeling_hypothesis_v01.schema.json": ModelingHypothesisV01,
-    "reference_mask_seed_evidence_v01.schema.json": ReferenceMaskSeedEvidenceV01,
-    "reference_mask_seed_evidence_v02.schema.json": ReferenceMaskSeedEvidenceV02,
-    "visual_finding_set_v01.schema.json": VisualFindingSetV01,
-    "fidelity_evaluation_v01.schema.json": FidelityEvaluationV01,
-    "fidelity_comparison_v01.schema.json": FidelityComparisonV01,
-    "fidelity_render_evidence_v01.schema.json": RenderEvidenceV01,
-    "structure_authoring_v01.schema.json": StructureAuthoringV01,
-    "aq_quality_revision_loop_v01.schema.json": AQQualityRevisionLoopV01,
-    "aq_quality_revision_loop_v02.schema.json": AQQualityRevisionLoopV02,
-    "aq_quality_revision_loop_v03.schema.json": AQQualityRevisionLoopV03,
-    "aq_quality_revision_loop_v04.schema.json": AQQualityRevisionLoopV04,
-    "autonomy_fidelity_budget_v03.schema.json": AutonomyBudgetV03,
-    "fidelity_budget_epoch_v01.schema.json": FidelityBudgetEpochV01,
-    "fidelity_campaign_delegation_v01.schema.json": FidelityCampaignDelegationV01,
-    "fidelity_delegation_decision_v01.schema.json": DelegationDecisionV01,
-    "fidelity_delegation_scope_v01.schema.json": DelegationScopeV01,
-    "fidelity_delegation_preparation_v01.schema.json": DelegationPreparationV01,
-    "fidelity_delegation_outcome_v01.schema.json": DelegationOutcomeV01,
-    "autonomy_delegated_budget_v04.schema.json": AutonomyBudgetV04,
-    "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
-    "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
-    "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,
-    "revision_ledger_entry_v01.schema.json": RevisionLedgerEntryV01,
-    "revision_cost_v01.schema.json": RevisionCostV01,
-    "fidelity_review_bundle_v01.schema.json": FidelityReviewBundleV01,
-    "fidelity_review_terminal_v01.schema.json": FidelityReviewTerminalV01,
-})
+SCHEMAS.update(
+    {
+        "fidelity_development_preview_budget_extension_v01.schema.json": (
+            DevelopmentPreviewBudgetExtensionV01
+        ),
+        "fidelity_development_preview_attempt_outcome_v01.schema.json": (
+            DevelopmentPreviewAttemptOutcomeV01
+        ),
+        "fidelity_development_preview_budget_extension_v02.schema.json": (
+            DevelopmentPreviewBudgetExtensionV02
+        ),
+        "fidelity_development_preview_budget_extension_v03.schema.json": (
+            DevelopmentPreviewBudgetExtensionV03
+        ),
+        "fidelity_development_preview_budget_extension_v04.schema.json": (
+            DevelopmentPreviewBudgetExtensionV04
+        ),
+        "fidelity_development_preview_attempt_outcome_v02.schema.json": (
+            DevelopmentPreviewAttemptOutcomeV02
+        ),
+        "fidelity_development_preview_attempt_outcome_v03.schema.json": (
+            DevelopmentPreviewAttemptOutcomeV03
+        ),
+        "fidelity_uv_spatial_preservation_v01.schema.json": UVSpatialPreservationV01,
+        "directional_material_preflight_v01.schema.json": DirectionalMaterialPreflightV01,
+        "directional_mapping_evidence_v01.schema.json": DirectionalMappingEvidenceV01,
+        "modeling_hypothesis_v01.schema.json": ModelingHypothesisV01,
+        "reference_mask_seed_evidence_v01.schema.json": ReferenceMaskSeedEvidenceV01,
+        "reference_mask_seed_evidence_v02.schema.json": ReferenceMaskSeedEvidenceV02,
+        "reference_mask_seed_evidence_v03.schema.json": ReferenceMaskSeedEvidenceV03,
+        "reference_subject_extent_evidence_v01.schema.json": ReferenceSubjectExtentEvidenceV01,
+        "visual_finding_set_v01.schema.json": VisualFindingSetV01,
+        "fidelity_evaluation_v01.schema.json": FidelityEvaluationV01,
+        "fidelity_comparison_v01.schema.json": FidelityComparisonV01,
+        "fidelity_render_evidence_v01.schema.json": RenderEvidenceV01,
+        "structure_authoring_v01.schema.json": StructureAuthoringV01,
+        "aq_quality_revision_loop_v01.schema.json": AQQualityRevisionLoopV01,
+        "aq_quality_revision_loop_v02.schema.json": AQQualityRevisionLoopV02,
+        "aq_quality_revision_loop_v03.schema.json": AQQualityRevisionLoopV03,
+        "aq_quality_revision_loop_v04.schema.json": AQQualityRevisionLoopV04,
+        "autonomy_fidelity_budget_v03.schema.json": AutonomyBudgetV03,
+        "fidelity_budget_epoch_v01.schema.json": FidelityBudgetEpochV01,
+        "fidelity_campaign_delegation_v01.schema.json": FidelityCampaignDelegationV01,
+        "fidelity_delegation_decision_v01.schema.json": DelegationDecisionV01,
+        "fidelity_delegation_scope_v01.schema.json": DelegationScopeV01,
+        "fidelity_delegation_preparation_v01.schema.json": DelegationPreparationV01,
+        "fidelity_delegation_outcome_v01.schema.json": DelegationOutcomeV01,
+        "autonomy_delegated_budget_v04.schema.json": AutonomyBudgetV04,
+        "aq_quality_attempt_v01.schema.json": QualityAttemptV01,
+        "aq_quality_render_reservation_v01.schema.json": QualityRenderReservationV01,
+        "structural_reentry_plan_v01.schema.json": StructuralReentryPlanV01,
+        "revision_ledger_entry_v01.schema.json": RevisionLedgerEntryV01,
+        "revision_cost_v01.schema.json": RevisionCostV01,
+        "fidelity_review_bundle_v01.schema.json": FidelityReviewBundleV01,
+        "fidelity_review_terminal_v01.schema.json": FidelityReviewTerminalV01,
+    }
+)
+
+
+SCHEMAS.update(
+    {
+        "material_identity_split_authored_plan_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitPlanV02
+        ),
+        "authored_split_attachment_record_v02.schema.json": (
+            authored_models.AuthoredSplitAttachmentRecordV02
+        ),
+        "material_identity_split_authored_preapproval_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitPreapprovalV02
+        ),
+        "material_identity_split_authored_invariants_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitInvariantsV02
+        ),
+        "material_identity_split_authored_approval_request_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitApprovalRequestV02
+        ),
+        "material_identity_split_authored_approval_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitApprovalV02
+        ),
+        "material_identity_split_authored_apply_intent_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitApplyIntentV02
+        ),
+        "material_identity_split_authored_journal_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitJournalV02
+        ),
+        "material_identity_split_authored_consumption_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitConsumptionV02
+        ),
+        "material_identity_split_authored_terminal_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitTerminalV02
+        ),
+        "material_identity_split_authored_root_proofs_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitRootProofsV02
+        ),
+        "material_identity_clone_rule_v02.schema.json": (
+            authored_models.MaterialIdentityCloneRuleV02
+        ),
+    }
+)
+
+
+SCHEMAS.update(
+    {
+        "material_identity_split_authored_technical_approval_request_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitTechnicalApprovalRequestV02
+        ),
+        "material_identity_split_authored_delegation_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitDelegationV02
+        ),
+        "material_identity_split_authored_technical_approval_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitTechnicalApprovalV02
+        ),
+        "material_identity_split_authored_technical_apply_intent_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitTechnicalApplyIntentV02
+        ),
+        "material_identity_split_authored_technical_consumption_v02.schema.json": (
+            authored_models.AuthoredMaterialIdentitySplitTechnicalConsumptionV02
+        ),
+    }
+)
 
 
 def main() -> None:

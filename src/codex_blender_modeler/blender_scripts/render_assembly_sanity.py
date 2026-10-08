@@ -270,7 +270,7 @@ def main() -> None:
     canonical_camera = scene.camera
     if canonical_camera is None:
         raise RuntimeError("Assembly sanity requires a canonical camera for build provenance")
-    scene_hash, _camera_hash, build_fingerprint = _validated_build_provenance(
+    scene_hash, camera_hash, build_fingerprint = _validated_build_provenance(
         scene,
         canonical_camera,
         scene_spec_path,
@@ -313,6 +313,20 @@ def main() -> None:
     radius = max(0.05, math.sqrt(sum(value * value for value in dimensions)) * 0.5)
     distance = max(0.25, radius * 3.25)
     assembly_evaluation = evaluate_assembly_relationships(contract, object_map)
+
+    canonical_evidence = None
+    if plan.get("review_policy") == "exterior_geometry_review_v3":
+        # Capture the actual fixed source camera before target isolation or temporary cameras.
+        canonical_resolution = [scene.render.resolution_x, scene.render.resolution_y]
+        scene.render.resolution_percentage = 100
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.image_settings.color_mode = "RGB"
+        canonical_path = output_dir.parent / "canonical_beauty.png"
+        _render_pass(scene, view_layer, canonical_path, None)
+        canonical_evidence = {
+            "camera_fingerprint": camera_hash,
+            "beauty": _pass_record(root, "beauty", canonical_path, canonical_resolution),
+        }
 
     width, height = [int(value) for value in plan["resolution"]]
     scene.render.resolution_x = width
@@ -415,6 +429,8 @@ def main() -> None:
         "views": rendered_views,
         "warnings": warnings,
     }
+    if canonical_evidence is not None:
+        manifest["canonical_detail_evidence"] = canonical_evidence
     write_json_atomic(manifest_path, manifest)
     if sha256_file(blend_path) != source_blend_sha256:
         raise RuntimeError("Assembly sanity rendering changed the authoring blend on disk")

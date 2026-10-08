@@ -1076,6 +1076,15 @@ def approve_asset_optimization(
     root = job_dir(job_id)
     run_root = run_directory(root, run_id)
     approval_path = run_root / "optimization_approval.json"
+    if any(run_root.glob("optimization_delegated_*")) or any(
+        (run_root / name).exists() or (run_root / name).is_symlink()
+        for name in (
+            "optimization_policy_authorization.json",
+            "optimization_delegated_authorization.json",
+            "optimization_delegated_consumption.json",
+        )
+    ):
+        raise RuntimeError("Optimization run mixes user, policy or delegated authority")
     if approval_path.exists():
         raise FileExistsError(f"Optimization approval already exists: {approval_path}")
     plan_path = run_root / "review_plan.json"
@@ -1116,9 +1125,7 @@ def approve_asset_optimization(
         approved_at=utc_now(),
     )
     write_model(approval_path, approval)
-    approved = plan.model_copy(
-        update={"status": "approved", "approved_at": approval.approved_at}
-    )
+    approved = plan.model_copy(update={"status": "approved", "approved_at": approval.approved_at})
     write_model(
         run_root / "optimization_plan.json",
         OptimizationPlan.model_validate(approved.model_dump(mode="json")),
@@ -1139,10 +1146,12 @@ def _consume_optimization_approval(
     review_path = run_root / "optimization_review.json"
     approval_path = run_root / "optimization_approval.json"
     policy_snapshot_path = run_root / "optimization_policy_authorization.json"
-    if policy_snapshot_path.exists():
-        raise RuntimeError(
-            "Optimization run mixes user approval and policy authorization evidence"
-        )
+    if (
+        policy_snapshot_path.exists()
+        or policy_snapshot_path.is_symlink()
+        or any(run_root.glob("optimization_delegated_*"))
+    ):
+        raise RuntimeError("Optimization run mixes user approval and policy authorization evidence")
     reviewed_plan = load_model(review_plan_path, OptimizationPlan)
     review = load_model(review_path, OptimizationReview)
     approval = load_model(approval_path, OptimizationApproval)
@@ -1154,9 +1163,7 @@ def _consume_optimization_approval(
     expected_approved = reviewed_plan.model_copy(
         update={"status": "approved", "approved_at": approval.approved_at}
     )
-    expected_approved = OptimizationPlan.model_validate(
-        expected_approved.model_dump(mode="json")
-    )
+    expected_approved = OptimizationPlan.model_validate(expected_approved.model_dump(mode="json"))
     if (
         reviewed_plan.status != "draft"
         or plan != expected_approved
@@ -1183,10 +1190,15 @@ def _snapshot_optimization_policy_authorization(
 ) -> Path:
     """Copy one already-validated policy grant into immutable run-owned evidence."""
 
-    if (run_root / "optimization_approval.json").exists():
-        raise RuntimeError(
-            "Optimization run mixes user approval and policy authorization evidence"
+    if any(run_root.glob("optimization_delegated_*")) or any(
+        (run_root / name).exists() or (run_root / name).is_symlink()
+        for name in (
+            "optimization_approval.json",
+            "optimization_delegated_authorization.json",
+            "optimization_delegated_consumption.json",
         )
+    ):
+        raise RuntimeError("Optimization run mixes user approval and policy authorization evidence")
     source = policy_authorization_path.resolve(strict=True)
     target = run_root / "optimization_policy_authorization.json"
     content = source.read_bytes()
@@ -1213,6 +1225,8 @@ def _consume_optimization_policy_authorization(
 ):
     """Validate a consumed autonomy policy grant without forging a user approval."""
 
+    if any(run_root.glob("optimization_delegated_*")):
+        raise RuntimeError("Optimization run mixes policy and delegated authority")
     raw_authorization = json.loads(policy_authorization_path.read_text(encoding="utf-8"))
     if raw_authorization.get("schema_version") == "0.3.0":
         from ..autonomy_v2.approval_models import AQV2RoutinePolicyAuthorization
@@ -1274,10 +1288,15 @@ def _consume_optimization_policy_authorization(
 
     review_plan_path = run_root / "review_plan.json"
     review_path = run_root / "optimization_review.json"
-    if (run_root / "optimization_approval.json").exists():
-        raise RuntimeError(
-            "Optimization run mixes user approval and policy authorization evidence"
+    if any(
+        (run_root / name).exists() or (run_root / name).is_symlink()
+        for name in (
+            "optimization_approval.json",
+            "optimization_delegated_authorization.json",
+            "optimization_delegated_consumption.json",
         )
+    ):
+        raise RuntimeError("Optimization run mixes user approval and policy authorization evidence")
     reviewed_plan = load_model(review_plan_path, OptimizationPlan)
     review = load_model(review_path, OptimizationReview)
     plan_hash = sha256_file(review_plan_path)
@@ -1329,11 +1348,16 @@ def optimize_asset(
     run_id: str | None = None,
     approved_plan_sha256: str | None = None,
     policy_authorization_path: str | Path | None = None,
+    delegated_authorization_path: str | Path | None = None,
+    delegated_authorization_sha256: str | None = None,
+    enable_delegated_authority: bool = False,
+    delegated_workflow_lock_owner: str | None = None,
+    _delegated_lock_owner: str | None = None,
     workflow_id: str | None = None,
     workflow_step_id: str | None = None,
     workflow_input_fingerprint: str | None = None,
 ) -> OptimizationPlan:
-    """Execute one exactly user- or policy-authorized derived-asset plan once."""
+    """Execute one exclusive exact user, policy or explicitly delegated technical plan."""
 
     if not load_feature_config().features.portable_asset_core:
         raise RuntimeError("portable_asset_core is disabled in cbm.toml")
@@ -1341,6 +1365,28 @@ def optimize_asset(
     if not run_id:
         raise ValueError("asset-optimize requires the reviewed --run-id")
     selected = run_id
+    if (
+        delegated_authorization_path is not None
+        and delegated_workflow_lock_owner is None
+        and _delegated_lock_owner is None
+    ):
+        from ..orchestration.locks import workflow_write_lock
+
+        with workflow_write_lock(root, job_id, f"delegated-optimize-{selected}") as lock:
+            return optimize_asset(
+                job_id,
+                profile_id=profile_id,
+                run_id=run_id,
+                approved_plan_sha256=approved_plan_sha256,
+                policy_authorization_path=policy_authorization_path,
+                delegated_authorization_path=delegated_authorization_path,
+                delegated_authorization_sha256=delegated_authorization_sha256,
+                enable_delegated_authority=enable_delegated_authority,
+                workflow_id=workflow_id,
+                workflow_step_id=workflow_step_id,
+                workflow_input_fingerprint=workflow_input_fingerprint,
+                _delegated_lock_owner=lock.workflow_id,
+            )
     run_root = run_directory(root, selected)
     preflight = load_model(run_root / "mesh_preflight_report.json", MeshPreflightReport)
     plan = load_model(run_root / "optimization_plan.json", OptimizationPlan)
@@ -1353,12 +1399,46 @@ def optimize_asset(
         source != preflight.source
         or source != plan.source
         or plan.profile_artifact != profile_artifact(root, profile)
-        or plan.preflight_report.sha256
-        != sha256_file(run_root / "mesh_preflight_report.json")
+        or plan.preflight_report.sha256 != sha256_file(run_root / "mesh_preflight_report.json")
     ):
         raise RuntimeError("Reviewed source, profile, or preflight changed; start a new V0.7 run")
     _validate_reviewed_directives(plan, preflight)
-    if policy_authorization_path is None:
+    if delegated_authorization_path is not None:
+        from .delegated import consume_delegated_optimization_authorization
+
+        if (
+            policy_authorization_path is not None
+            or workflow_id is not None
+            or workflow_step_id is not None
+            or workflow_input_fingerprint is not None
+        ):
+            raise ValueError("Optimization request mixes delegated and policy authority")
+        if not delegated_authorization_sha256 or not approved_plan_sha256:
+            raise ValueError("delegated optimization requires exact authority and plan hashes")
+        approval = consume_delegated_optimization_authorization(
+            root,
+            run_root,
+            plan,
+            authorization_path=delegated_authorization_path,
+            authorization_sha256=delegated_authorization_sha256,
+            approved_plan_sha256=approved_plan_sha256,
+            enable_delegated_authority=enable_delegated_authority,
+            workflow_lock_owner=delegated_workflow_lock_owner,
+            held_job_lock_owner=_delegated_lock_owner,
+        )
+        approval_note = (
+            "Execution uses exact single-use delegated_assistant technical authority; "
+            "final human beauty, package and Activation acceptance remains absent."
+        )
+        approved_at = approval.authorized_at
+    elif (
+        delegated_authorization_sha256 is not None
+        or enable_delegated_authority
+        or delegated_workflow_lock_owner is not None
+        or _delegated_lock_owner is not None
+    ):
+        raise ValueError("delegated authority must be selected by an explicit exact path")
+    elif policy_authorization_path is None:
         approval = _consume_optimization_approval(
             root,
             run_root,
@@ -1437,8 +1517,7 @@ def optimize_asset(
             raise RuntimeError("Blender did not produce a successful optimized asset manifest")
         raw_source = raw.get("source", {})
         if not isinstance(raw_source, dict) or (
-            str(raw_source.get("build_fingerprint", "")).lower()
-            != source.build_fingerprint
+            str(raw_source.get("build_fingerprint", "")).lower() != source.build_fingerprint
         ):
             raise RuntimeError("Optimized Blender evidence has a stale build fingerprint")
         require_unchanged_source(source, root, job_id)
@@ -1447,9 +1526,7 @@ def optimize_asset(
         cost_path = run_root / "asset_cost_report.json"
         write_model(cost_path, cost)
         if not cost.ok:
-            failed_budgets = [
-                item.message for item in cost.budgets if item.status == "failed"
-            ]
+            failed_budgets = [item.message for item in cost.budgets if item.status == "failed"]
             raise RuntimeError(
                 "V0.7.3 static-asset cost budget failed: " + "; ".join(failed_budgets)
             )

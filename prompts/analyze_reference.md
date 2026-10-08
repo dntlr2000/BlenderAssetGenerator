@@ -1,11 +1,11 @@
 # Task: Convert analyzed references into canonical SceneSpec v0.2
 
-You are working inside Codex Blender Modeler project v0.4.
+You are working inside Codex Blender Modeler project v0.9.1.
 
 Read:
 
 - `AGENTS.md`
-- the `reference-analysis`, `reference-to-scene`, and `blender-build` skills
+- relevant project skills only when explicitly requested by the user, as required by `AGENTS.md`
 - job metadata
 - `analysis/reference_analysis.json`
 - `analysis/camera_solution.json`
@@ -22,6 +22,20 @@ Requirements:
 - Use deterministic diagnostics as evidence, not as metric truth.
 - Use stable semantic object and material IDs.
 - Populate or respect the semantic modeling plan before final SceneSpec authoring.
+- Deterministic image analysis is a scaffold, not completed three-dimensional interpretation.
+  Inspect the actual reference pixels. Classify visible boundaries as outer silhouette,
+  material/color boundary, raised or recessed surface detail, occlusion, or an actual opening.
+  Identify which structural owner continues behind each occluder before tracing separate parts.
+  Use existing plan evidence, descriptions and confidence fields; do not invent schema fields.
+- Record observed overlap order separately from inferred thickness, back surfaces and mounting
+  depth. A single image does not determine unique hidden geometry or measured dimensions.
+  Preserve observed openings and free tips; do not fill them to simplify the assembly.
+- An observed continuous surface needs a continuous carrier or a supported seam across its
+  visible width and depth. Independently extruded outlines, matching bounding boxes, one contact
+  point, and a supported centerline cannot establish this. Identify the complete intended root
+  or attachment footprint and its supporting owner, including lateral edges and interior gaps.
+  State intentional modular separation or optical/open surfaces explicitly instead of treating
+  every disconnected mesh as a defect.
 - New authored plans must use `assembly_consistency_policy=spatial_v1`, define one asset-local
   `assembly_frame`, classify every object with an assembly role, and record stable-ID
   `assembly_relationships` for attached structural or functional components.
@@ -49,6 +63,23 @@ Requirements:
 - Never create a SceneSpec object for an ID routed through `surface_details`. Record its parent,
   target material, PBR channels, UV strategy, observed bbox, and confidence instead.
 - First reproduce silhouette, proportions, camera framing, and semantic layout; defer decoration.
+- Before detailed material work or delivery preparation for a volumetric reconstruction, inspect a
+  cheap provisional blockout in the reference view, an oblique view, exact side, exact top, rear,
+  and clay. Record the actual diagnostic settings and each major part's local section/depth
+  hypothesis in existing notes and confidence fields. Side/top views are diagnostics of inferred
+  construction, not additional observed references or canonical V0.6 score inputs.
+- Reject a blockout that merely applies a common extrusion depth to a drawing when the intended
+  asset needs rounded, tapered, or otherwise distinct component volumes. Do not impose an
+  arbitrary minimum depth on a legitimate plaque, sheet, or user-requested relief. Resolve visible
+  separation, implausible sections, and unintended material-boundary scallops before expensive
+  material/optimization stages; test counts or front silhouette agreement cannot replace this
+  visual authoring decision. Preserve intentional cutouts and free tips.
+- Also establish the broad cross-sections visible in highlights, occlusions and creases. A flat
+  silhouette plate is not a completed volume merely because its front projection matches.
+  Prefer shared owner geometry for continuous carved relief. For a separate attached relief,
+  derive its full underside from the owner surface rather than setting independent tube depths.
+  A supported height-field owner can use the reusable reference assembly construction path in
+  `docs/reference_assembly_generation.md`; arbitrary surfaces remain outside that path's proof.
 - Choose the least complex deterministic geometry recipe:
   - `primitive` for simple masses;
   - `profile_extrude` for front/side outlines with depth;
@@ -65,6 +96,15 @@ Requirements:
 - In measured mode, obey scale anchors and `constraints/constraints.json`; report unresolved degrees of freedom.
 - Use camera-solution fields as a scaffold, not an unquestionable solution.
 - Keep hidden-side reconstruction assumptions explicit.
+- Freeze original-reference critical foreground regions and intended openings before comparing
+  candidates. Never shrink sure regions around candidate errors. When the optional attachment
+  companion is explicitly selected, retain exact source, camera and region evidence and prove
+  the whole declared patches on actual native, converted and clean-imported geometry. Historical
+  absence is unverified; stale, failed or unsupported supplied evidence cannot be a pass.
+- Inspect front, oblique, rear and clay closeups after construction. Check continuous seams,
+  broad relief, root insertion, normals and intended openings independently of the global
+  silhouette score. Report geometry, objects/primitives and texture costs; use the existing
+  supported material/export route and preserve final human visual review as a separate decision.
 - Preserve the ModelingPlan assembly frame, relationship IDs, subject/reference IDs, evidence,
   confidence, and each object's `required_assembly_checks` in SceneSpec authoring. Satisfy
   `axis_alignment`, `axis_clearance`, and the other relations in the declared parent-local frame

@@ -6,3 +6,8 @@
 - SceneSpec, ModelingPlan, and Blend move together under the canonical host lock. Partial state is append-only evidence and must resolve to commit, exact rollback, or `recovery_required`.
 - Identity split never creates MaterialPlan, ShaderRecipe, TextureManifest, controller, IQ, package, or destination evidence.
 - Preserve historical plans and failed sessions exactly. New evidence is run-owned, immutable, create-once, and exact-adopts identical bytes only.
+- The explicit authored-solid-root 0.2 profiles observe a present authored MaterialPlan and exact registered source; never fabricate 0.1 absence or AQ roots. See [authored split](../../../docs/authored_material_identity_split.md).
+- Direct-user and delegated-technical 0.2 decisions are distinct schemas/profiles. A bounded delegation binds original question/reply evidence, source closure and exact clone scope; the assistant's later exact technical approval never means the user reviewed future hashes. Consume the original conversation/scope identity once, independent of wrapper/run/approval IDs.
+- Authored 0.2 commits a prebuilt prospective-provenance Blend with SceneSpec, ModelingPlan and job metadata under a four-file CAS. Keep every pending reader gate; never rebuild against partial canonical state. Preserve original MaterialPlan, source texture/recipe graphs, and exact shared media copies. Appearance closure remains pending.
+
+- Authored native identity splits clone the exact source Blend effective graphs and bind complete retained/cloned shader/render state. The distinct `authored_identity_preserved` provenance is never an ordinary `scene_spec_only` build or a MaterialPlan promotion; only the exact committed archive/current Blend verifier may recognize it.

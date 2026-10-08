@@ -67,6 +67,15 @@
       "additionalProperties": false,
       "description": "Define one deterministic global atlas over every derived render and LOD binding.",
       "properties": {
+        "uv_method": {
+          "default": "smart_project",
+          "enum": [
+            "smart_project",
+            "validated_authored_uv_v1"
+          ],
+          "title": "Uv Method",
+          "type": "string"
+        },
         "layout": {
           "const": "global_shared",
           "default": "global_shared",
@@ -86,8 +95,11 @@
           "type": "string"
         },
         "tile_strategy": {
-          "const": "deterministic_grid",
           "default": "deterministic_grid",
+          "enum": [
+            "deterministic_grid",
+            "area_weighted_rect_v1"
+          ],
           "title": "Tile Strategy",
           "type": "string"
         },
@@ -315,6 +327,17 @@
           },
           "title": "Texture Manifests",
           "type": "array"
+        },
+        "attachment_intent": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HashedArtifact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -382,6 +405,17 @@
       "minItems": 1,
       "title": "Required Material Ids",
       "type": "array"
+    },
+    "authored_uv_source": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HashedArtifact"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "atlas_policy": {
       "$ref": "#/$defs/PortableAtlasPolicy"

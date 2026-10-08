@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "description": "Certify one opted-in three-file commit without changing legacy receipt bytes.",
+  "properties": {
+    "schema_version": {
+      "const": "0.2.0",
+      "default": "0.2.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "status": {
+      "const": "committed",
+      "default": "committed",
+      "title": "Status",
+      "type": "string"
+    },
+    "intent_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Intent Sha256",
+      "type": "string"
+    },
+    "after": {
+      "additionalProperties": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "maxProperties": 3,
+      "minProperties": 3,
+      "propertyNames": {
+        "enum": [
+          "analysis/scene_spec.json",
+          "analysis/modeling_plan.json",
+          "job.json"
+        ]
+      },
+      "title": "After",
+      "type": "object"
+    }
+  },
+  "required": [
+    "intent_sha256",
+    "after"
+  ],
+  "title": "AttachmentCommitReceiptV02",
+  "type": "object"
+}

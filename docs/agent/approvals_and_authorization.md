@@ -45,3 +45,20 @@ parent confirmation permits bounded successor scopes and routine AQ policy actio
 without per-scope user questions. Every future promotion/optimization/package gate
 still has exact single-use host policy authority; it is never human acceptance.
 Legacy specialized approval paths and immutable histories retain their meaning.
+
+## Optional exact delegated technical completion
+
+[Delegated Optimization 0.1.0](../delegated_optimization_authority.md) is an explicitly
+selected, finite five-asset host companion. It records `actor=delegated_assistant`,
+never changes V0.7 `approved_by=user`, never borrows AQ policy, and never grants final
+human acceptance. Exact text/scope/candidate/hash binding, nonrefundable ordinal claims,
+exclusive single-use consumption and explicit Standard workflow binding are mandatory.
+
+[Authored Material Identity Split 0.2](../authored_material_identity_split.md)
+adds explicit direct-user and bounded delegated-technical profiles for registered
+solid-root jobs with an authored MaterialPlan. The latter binds exact original
+question/reply evidence and current source/clone scope, then records a separate
+`delegated_assistant` exact technical decision. Stable original conversation and
+scope claims prevent authority reset through new wrappers, runs or approval IDs.
+Neither profile grants material appearance, MaterialPlan promotion or final-human
+acceptance; generic paired approval and AQ authority are not substitutes.

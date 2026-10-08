@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from ..blender_artifacts import file_exists, native_io_path
 from ..blender_runner import run_blender
+from ..blender_scripts.portable_material_conversion_runtime import resolve_atlas_tiles
 from ..config import load_feature_config
 from ..materials.io import load_material_plan, load_shader_recipe, resolve_job_path
 from ..optimization.io import (
@@ -45,6 +46,25 @@ from ..optimization.provenance import (
     require_unchanged_source,
 )
 from ..workspace import job_dir, sha256_file
+from .authored_uv import (
+    MODE as AUTHORED_UV_MODE,
+)
+from .authored_uv import (
+    AuthoredUVInspection,
+    build_proof,
+    inspect_blend,
+    validate_inspection,
+    verify_saved_proof,
+    write_proof_model,
+)
+from .authored_uv import (
+    read_json as read_authored_json,
+)
+from .scalar_bake import (
+    AuthoredUVScalarBakeEvidence,
+    validate_scalar_evidence,
+    verify_saved_scalar_evidence,
+)
 
 
 @dataclass(frozen=True)
@@ -122,9 +142,7 @@ def _material_bindings(
 
     material_plan_path = root / "analysis" / "material_plan.json"
     if not file_exists(material_plan_path):
-        raise RuntimeError(
-            "Portable material conversion requires analysis/material_plan.json"
-        )
+        raise RuntimeError("Portable material conversion requires analysis/material_plan.json")
     material_plan = load_material_plan(material_plan_path)
     if material_plan.job_id != job_id:
         raise RuntimeError("MaterialPlan job_id does not match the conversion job")
@@ -141,9 +159,7 @@ def _material_bindings(
         raise RuntimeError("Optimized LOD0 evidence contains no material identities")
     missing_plan = sorted(set(required) - set(plan_items))
     if missing_plan:
-        raise RuntimeError(
-            f"Exported materials are missing from MaterialPlan: {missing_plan}"
-        )
+        raise RuntimeError(f"Exported materials are missing from MaterialPlan: {missing_plan}")
 
     bindings: list[PortableMaterialBinding] = []
     build_materials = current_build.get("materials", {})
@@ -154,9 +170,7 @@ def _material_bindings(
         recipe_path = resolve_job_path(root, item.shader_recipe, "shader_recipe")
         recipe = load_shader_recipe(recipe_path)
         if recipe.material_id != material_id:
-            raise RuntimeError(
-                f"ShaderRecipe material ID differs from MaterialPlan: {material_id}"
-            )
+            raise RuntimeError(f"ShaderRecipe material ID differs from MaterialPlan: {material_id}")
         if recipe.mapping.mode == "generated":
             raise RuntimeError(
                 f"{material_id} uses generated mapping, which V0.7.1 portable "
@@ -267,19 +281,20 @@ def _surface_factors(value: Any) -> PortableSurfaceFactors:
     """Normalize feature-probed portable Principled factors from Blender evidence."""
 
     record = value if isinstance(value, dict) else {}
+    if record.get("optical_volume") is not None:
+        return PortableSurfaceFactors.model_validate(record)
     return PortableSurfaceFactors(
         base_color_factor=tuple(
-            float(item)
-            for item in record.get("base_color_factor", (1.0, 1.0, 1.0, 1.0))
+            float(item) for item in record.get("base_color_factor", (1.0, 1.0, 1.0, 1.0))
         ),
         roughness_factor=float(record.get("roughness_factor", 1.0)),
         metallic_factor=float(record.get("metallic_factor", 1.0)),
         emission_factor=tuple(
-            float(item)
-            for item in record.get("emission_factor", (1.0, 1.0, 1.0))
+            float(item) for item in record.get("emission_factor", (1.0, 1.0, 1.0))
         ),
         alpha_factor=float(record.get("alpha_factor", 1.0)),
         transmission_factor=float(record.get("transmission_factor", 0.0)),
+        optical_volume=record.get("optical_volume"),
     )
 
 
@@ -308,6 +323,57 @@ def _normalize_manifest(
     if str(raw.get("optimized_blend_sha256", "")).lower() != plan.optimized_blend.sha256:
         raise RuntimeError("Blender conversion evidence has a stale optimized blend hash")
 
+    authored = plan.atlas_policy.uv_method == AUTHORED_UV_MODE
+    if authored:
+        if raw.get("ok") is not True:
+            raise ValueError("authored UV raw success must be boolean true")
+        for label in ("tiles", "materials", "outputs"):
+            values = _require_raw_list(raw.get(label), label)
+            key = {"tiles": "binding_id", "materials": "material_id", "outputs": "channel"}[label]
+            if len({item.get(key) for item in values}) != len(values):
+                raise ValueError(f"duplicate authored UV raw {label}")
+        if [item.get("material_id") for item in raw["materials"]] != plan.required_material_ids:
+            raise ValueError("authored UV raw material coverage/order changed")
+        if [item.get("channel") for item in raw["outputs"]] != plan.atlas_policy.required_channels:
+            raise ValueError("authored UV raw output channel coverage/order changed")
+        for record in raw["outputs"]:
+            expected_output = {
+                "material_ids": plan.required_material_ids,
+                "resolution": [plan.atlas_policy.resolution] * 2,
+                "file_format": "png",
+                "color_space": "sRGB"
+                if record["channel"] in {"base_color", "emission"}
+                else "Non-Color",
+            }
+            if any(record.get(key) != value for key, value in expected_output.items()):
+                raise ValueError("authored UV raw output policy changed")
+        for record in raw["materials"]:
+            binding = next(
+                (item for item in plan.materials if item.material_id == record.get("material_id")),
+                None,
+            )
+            if binding is None or any(
+                record.get(key) != getattr(binding, key)
+                for key in ("mapping_mode", "source_material_fingerprint")
+            ):
+                raise ValueError("authored UV raw material identity changed")
+            if record.get("source_shader_recipe") != binding.source_shader_recipe.model_dump(
+                mode="json"
+            ):
+                raise ValueError("authored UV raw shader recipe changed")
+        for record in raw["tiles"]:
+            PortableAtlasTile.model_validate(record)
+            if any(
+                record.get(key) != value
+                for key, value in {
+                    "uv_set": plan.atlas_policy.uv_set,
+                    "resolution": [plan.atlas_policy.resolution] * 2,
+                    "margin_px": plan.atlas_policy.margin_px,
+                }.items()
+            ):
+                raise ValueError("authored UV raw tile policy changed")
+            if record.get("unwrap_method") != AUTHORED_UV_MODE:
+                raise ValueError("authored UV raw tile proof method missing")
     tiles: list[PortableAtlasTile] = []
     for record in _require_raw_list(raw.get("tiles"), "tiles"):
         tiles.append(
@@ -315,9 +381,7 @@ def _normalize_manifest(
                 binding_id=str(record["binding_id"]),
                 material_id=str(record["material_id"]),
                 target_id=str(record.get("target_id") or record.get("semantic_id")),
-                derived_object_id=str(
-                    record.get("derived_object_id") or record.get("object_name")
-                ),
+                derived_object_id=str(record.get("derived_object_id") or record.get("object_name")),
                 lod_level=int(record.get("lod_level", 0)),
                 uv_set=plan.atlas_policy.uv_set,
                 resolution=(
@@ -340,12 +404,8 @@ def _normalize_manifest(
                 remaining_uv_degenerate_face_count=int(
                     record.get("remaining_uv_degenerate_face_count", 0)
                 ),
-                tangent_repair_method=str(
-                    record.get("tangent_repair_method", "none")
-                ),
-                micro_sliver_face_count_before=int(
-                    record.get("micro_sliver_face_count_before", 0)
-                ),
+                tangent_repair_method=str(record.get("tangent_repair_method", "none")),
+                micro_sliver_face_count_before=int(record.get("micro_sliver_face_count_before", 0)),
                 remaining_micro_sliver_face_count=int(
                     record.get("remaining_micro_sliver_face_count", 0)
                 ),
@@ -364,9 +424,7 @@ def _normalize_manifest(
                 tangent_verification_attempt_count=int(
                     record.get("tangent_verification_attempt_count", 1)
                 ),
-                bounds_max_abs_delta_m=float(
-                    record.get("bounds_max_abs_delta_m", 0.0)
-                ),
+                bounds_max_abs_delta_m=float(record.get("bounds_max_abs_delta_m", 0.0)),
             )
         )
     tiles.sort(key=lambda item: item.binding_id)
@@ -374,8 +432,7 @@ def _normalize_manifest(
     output_root = staging_root / "textures"
     outputs: list[PortableChannelOutput] = []
     raw_outputs = {
-        str(item.get("channel")): item
-        for item in _require_raw_list(raw.get("outputs"), "outputs")
+        str(item.get("channel")): item for item in _require_raw_list(raw.get("outputs"), "outputs")
     }
     for channel in plan.atlas_policy.required_channels:
         record = raw_outputs.get(channel)
@@ -401,11 +458,7 @@ def _normalize_manifest(
                 channel=channel,
                 path=job_relative(root, final_root / "textures" / expected.name),
                 sha256=digest,
-                color_space=(
-                    "sRGB"
-                    if channel in {"base_color", "emission"}
-                    else "Non-Color"
-                ),
+                color_space=("sRGB" if channel in {"base_color", "emission"} else "Non-Color"),
                 resolution=(
                     plan.atlas_policy.resolution,
                     plan.atlas_policy.resolution,
@@ -436,8 +489,7 @@ def _normalize_manifest(
                 source_shader_recipe=binding.source_shader_recipe,
                 source_material_fingerprint=binding.source_material_fingerprint,
                 portable_material_fingerprint=str(
-                    record.get("portable_material_fingerprint")
-                    or _json_fingerprint(record)
+                    record.get("portable_material_fingerprint") or _json_fingerprint(record)
                 ),
                 mapping_mode=binding.mapping_mode,
                 binding_ids=sorted(entry_tiles.get(material_id, [])),
@@ -455,6 +507,17 @@ def _normalize_manifest(
     raw_portable = _require_raw_object(raw.get("portable_blend"), "portable_blend")
     if str(raw_portable.get("sha256", portable_digest)).lower() != portable_digest:
         raise RuntimeError("Portable Blender scene hash differs from conversion evidence")
+    if authored:
+        scalar_evidence = AuthoredUVScalarBakeEvidence.model_validate(
+            raw.get("authored_uv_scalar_bake")
+        )
+        source_inspection = AuthoredUVInspection.model_validate(
+            read_authored_json(staging_root / "authored_uv_source.json")
+        )
+        validate_scalar_evidence(
+            scalar_evidence, source_inspection, plan, expected_plan_sha256, staging_root, outputs
+        )
+        write_proof_model(staging_root / "authored_uv_scalar_bake.json", scalar_evidence)
     now = utc_now()
     return PortableMaterialConversionManifest(
         manifest_id=f"material.conversion.{conversion_id}",
@@ -485,13 +548,38 @@ def _normalize_manifest(
             path=job_relative(root, final_root / "converted" / "scene.blend"),
             sha256=portable_digest,
         ),
+        authored_uv_scalar_bake=(
+            HashedArtifact(
+                id=f"authored.uv.scalar.{conversion_id}",
+                kind="other",
+                path=job_relative(root, final_root / "authored_uv_scalar_bake.json"),
+                sha256=sha256_file(staging_root / "authored_uv_scalar_bake.json"),
+            )
+            if authored
+            else None
+        ),
+        authored_uv_proof=(
+            HashedArtifact(
+                id=f"authored.uv.proof.{conversion_id}",
+                kind="other",
+                path=job_relative(root, final_root / "authored_uv_proof.json"),
+                sha256=sha256_file(staging_root / "authored_uv_proof.json"),
+            )
+            if authored
+            else None
+        ),
         status="complete",
         created_at=now,
         completed_at=now,
         notes=[
             "Cross-object atlas tile bounds are deterministic and non-overlapping.",
-            "Smart-project intra-object island overlap remains explicitly reported by "
-            "Blender evidence.",
+            (
+                "Authored source/target triangle interiors were exactly tested; proof covers the "
+                "converted blend, not exported-asset or appearance fidelity."
+                if authored
+                else "Smart-project intra-object island overlap remains explicitly "
+                "reported by Blender evidence."
+            ),
             *[str(item) for item in raw.get("notes", [])],
         ],
     )
@@ -506,13 +594,21 @@ def convert_portable_materials(
     resolution: int = 2048,
     margin_px: int = 16,
     render_device: str = "auto",
+    uv_method: str = "smart_project",
+    tile_strategy: str = "deterministic_grid",
 ) -> PortableMaterialConversionManifest:
     """Bake one immutable global PBR atlas and publish a separate portable scene."""
 
     if not load_feature_config().features.portable_asset_core:
         raise RuntimeError("portable_asset_core is disabled in cbm.toml")
+    if uv_method not in {"smart_project", AUTHORED_UV_MODE}:
+        raise ValueError("uv_method must be smart_project or validated_authored_uv_v1")
     if render_device not in {"auto", "cpu", "gpu"}:
         raise ValueError("render_device must be auto, cpu, or gpu")
+    if tile_strategy not in {"deterministic_grid", "area_weighted_rect_v1"}:
+        raise ValueError("unknown portable atlas tile strategy")
+    if tile_strategy == "area_weighted_rect_v1" and uv_method != AUTHORED_UV_MODE:
+        raise ValueError("area_weighted_rect_v1 requires validated_authored_uv_v1")
     root = job_dir(job_id)
     run_root = run_directory(root, run_id)
     optimization = load_model(run_root / "optimization_plan.json", OptimizationPlan)
@@ -522,9 +618,7 @@ def convert_portable_materials(
     if optimization.profile_id != profile.profile_id:
         raise ValueError("Optimization plan and conversion profiles do not match")
     if resolution > profile.textures.maximum_resolution:
-        raise ValueError(
-            "conversion resolution exceeds the selected AssetProfile maximum"
-        )
+        raise ValueError("conversion resolution exceeds the selected AssetProfile maximum")
     lod = load_model(run_root / "lod_manifest.json", LODManifest)
     uv = load_model(run_root / "uv_manifest.json", UVManifest)
     if (
@@ -558,6 +652,30 @@ def convert_portable_materials(
         resolution=resolution,
         margin_px=margin_px,
     )
+    source_inspection = None
+    if uv_method == AUTHORED_UV_MODE:
+        source_inspection = inspect_blend(
+            run_root / "optimized" / "scene.blend", plan.optimized_blend.sha256, runner=run_blender
+        )
+        validate_inspection(source_inspection, plan, stage="source")
+        source_path = staging_root / "authored_uv_source.json"
+        write_proof_model(source_path, source_inspection)
+        planned = plan.model_dump(mode="json")
+        planned["atlas_policy"]["uv_method"] = AUTHORED_UV_MODE
+        planned["atlas_policy"]["tile_strategy"] = tile_strategy
+        planned["authored_uv_source"] = {
+            "id": f"authored.uv.source.{conversion_id}",
+            "kind": "other",
+            "path": job_relative(root, final_root / source_path.name),
+            "sha256": sha256_file(source_path),
+        }
+        plan = PortableMaterialConversionPlan.model_validate(planned)
+        # Refuse impossible weighted layouts before the conversion render/bake starts.
+        resolve_atlas_tiles(
+            plan.atlas_policy.model_dump(mode="json"),
+            len(source_inspection.objects),
+            [item.model_dump(mode="json") for item in source_inspection.objects],
+        )
     plan_path = staging_root / "conversion_plan.json"
     write_model(plan_path, plan)
     evidence_path = staging_root / "conversion_evidence.json"
@@ -594,13 +712,33 @@ def convert_portable_materials(
     )
     if not file_exists(evidence_path):
         raise RuntimeError("Blender material conversion produced no evidence JSON")
-    with open(native_io_path(evidence_path), encoding="utf-8") as stream:
-        raw = json.load(stream)
+    if uv_method == AUTHORED_UV_MODE:
+        raw = read_authored_json(evidence_path)
+    else:
+        with open(native_io_path(evidence_path), encoding="utf-8") as stream:
+            raw = json.load(stream)
     if not isinstance(raw, dict):
         raise ValueError("Blender material conversion evidence must be a JSON object")
     require_unchanged_source(optimization.source, root, job_id)
     if sha256_file(run_root / "optimized" / "scene.blend") != plan.optimized_blend.sha256:
         raise RuntimeError("Optimized input blend changed during material conversion")
+    if uv_method == AUTHORED_UV_MODE:
+        actual_source = inspect_blend(
+            run_root / "optimized" / "scene.blend", plan.optimized_blend.sha256, runner=run_blender
+        )
+        if actual_source != source_inspection:
+            raise ValueError("authored UV source inspection changed during conversion")
+        target_inspection = inspect_blend(
+            output_blend, sha256_file(output_blend), source_path=source_path, runner=run_blender
+        )
+        proof = build_proof(
+            source_inspection,
+            target_inspection,
+            plan,
+            sha256_file(plan_path),
+            plan.authored_uv_source.sha256,
+        )
+        write_proof_model(staging_root / "authored_uv_proof.json", proof)
     manifest = _normalize_manifest(
         root,
         final_root,
@@ -609,6 +747,10 @@ def convert_portable_materials(
         plan,
         raw,
     )
+    if uv_method == AUTHORED_UV_MODE:
+        from .authored_uv import validate_manifest_proof
+
+        validate_manifest_proof(plan, manifest, proof)
     write_model(staging_root / "conversion_manifest.json", manifest)
     os.replace(native_io_path(staging_root), native_io_path(final_root))
     return manifest
@@ -678,6 +820,24 @@ def load_portable_material_conversion(
         path = resolve_inside(root, output.path, f"portable {output.channel} channel")
         if not file_exists(path) or sha256_file(path) != output.sha256:
             raise RuntimeError(f"Portable material channel is missing or changed: {output.channel}")
+    if (
+        plan.atlas_policy.uv_method != manifest.atlas_policy.uv_method
+        or plan.atlas_policy.tile_strategy != manifest.atlas_policy.tile_strategy
+    ):
+        raise ValueError("portable material conversion policy method/strategy changed")
+    if (
+        plan.atlas_policy.tile_strategy == "area_weighted_rect_v1"
+        and plan.atlas_policy != manifest.atlas_policy
+    ):
+        raise ValueError("weighted portable material conversion policy changed")
+    if plan.atlas_policy.uv_method == AUTHORED_UV_MODE:
+        for binding in plan.materials:
+            recipe = binding.source_shader_recipe
+            recipe_path = resolve_inside(root, recipe.path, "authored UV source shader recipe")
+            if not file_exists(recipe_path) or sha256_file(recipe_path) != recipe.sha256:
+                raise ValueError("authored UV source shader recipe changed")
+        verify_saved_proof(root, directory, plan, manifest)
+        verify_saved_scalar_evidence(root, directory, plan, manifest)
     require_unchanged_source(optimization.source, root, optimization.job_id)
     return MaterialConversionSelection(
         conversion_id=conversion_id,

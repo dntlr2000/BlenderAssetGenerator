@@ -9,7 +9,7 @@ from .models import (
 
 
 def reference_fidelity_capability() -> dict[str, object]:
-    """Describe selected companion versions without claiming campaign or human success."""
+    """Describe exact companion versions and public QA-only opt-in without approval claims."""
 
     return {
         "schema_version": "0.1.0",
@@ -23,7 +23,13 @@ def reference_fidelity_capability() -> dict[str, object]:
         },
         "funded_autonomy_budget_version": "0.3.0",
         "fidelity_budget_epoch_version": "0.1.0",
-        "reference_mask_seed_versions": ["0.1.0", "0.2.0"],
+        "reference_mask_seed_versions": ["0.1.0", "0.2.0", "0.3.0"],
+        "public_reference_mask_selection": {
+            "version": "0.3.0", "automatic_discovery": False,
+            "parameters": ["reference_mask_seed_path", "reference_mask_seed_sha256"],
+            "workflow_route": "existing_job_standard_visual_qa_qa_only",
+            "canonical_write_authority": False, "approval_authority": False,
+        },
         "correction_routes": ["structural_reentry", "parametric_revision", "material_revision"],
         "hold_routes": ["evidence_required", "calibration", "technical_recovery"],
         "legacy_behavior_changed": False,

@@ -168,6 +168,35 @@ Use this separate V0.6 path only when an approved InteriorScope already contains
 - Parse the request into target IDs, exact paths, operations, exclusions, and acceptance criteria.
 - For new standard `revise_asset` workflows, prefer workflow-owned `candidate_review` so plan, isolated build, exact QA, optional constraints, and comparison PDF are produced before the single canonical-promotion decision.
 - Use `plan-revision` + `apply-revision` through explicit `manual_guarded` for redesign, camera, material, semantic-membership, custom-mesh, or other changes outside the candidate envelope.
+- New Standard `manual_guarded` workflows freeze a host-derived candidate SceneSpec and exact,
+  recursively validated geometry dependency map at author completion. Their existing gate binds
+  that immutable artifact; missing, added, changed, escaped or linked dependencies block approval
+  or pending apply. The host revalidates the map and exact authority under the writer lock at
+  canonical compare-and-swap. Pending build, render, inspection, validation, multi-view review,
+  and report steps retain the same approved dependency bytes and exact promoted SceneSpec snapshot;
+  host execution and agent completion recheck these sources before successful receipt publication.
+  Source drift blocks pending work without rewriting completed apply or derivation receipts.
+  This is a technical precondition, never a new approval type. Historical plans without the
+  binding flag and completed receipt histories retain their meaning.
+- A paired ModelingPlan revision is a separate explicit selection on an existing Standard
+  `manual_guarded` `revise_asset` workflow. Supply both `paired_modeling_plan_path` and
+  `paired_modeling_plan_sha256` (CLI `--paired-modeling-plan-path` and
+  `--paired-modeling-plan-sha256`; MCP `plan_short_workflow` uses the same parameter names).
+  The candidate must already exist at a contained job-relative path and match the exact hash
+  at planning. The immutable request and every revision step bind the same pair. Author
+  completion freezes the candidate; it must never overwrite `analysis/modeling_plan.json`.
+  The existing exact approval covers the paired binding, and only the guarded host transaction
+  may replace SceneSpec and ModelingPlan together. Apply records a `revision.modeling_plan`
+  workflow snapshot whose source is canonical `analysis/modeling_plan.json`. Pre-apply checks
+  retain the original ModelingPlan hash; pending downstream work validates the approved new pair.
+  This opt-in does not migrate policies, remove required assembly relationships, expand immutable
+  subject/reference/content scope, or change existing workflows. Interrupted paired writes use
+  `workflow-recover-paired-revision JOB WORKFLOW --intent-sha256 SHA256` or MCP
+  `recover_paired_workflow_revision` for exact rollback or receipt finalization without rewriting the canonical pair. Recovery is single-use, preserves
+  immutable intent/receipt history, and requires a new workflow before reapplication.
+- A registered solid-root job may explicitly select an exact candidate attachment intent
+  alongside the paired ModelingPlan. See [guarded solid-root revision](../guarded_solid_root_attachment_revision.md)
+  for its immutable registration chain, source/Float32 preflight and fixed three-file recovery.
 - Preserve all values not reached by approved operations.
 - Rebuild from SceneSpec; do not hand-edit the `.blend` as the fix.
 - Re-render with the same comparison camera.
@@ -189,6 +218,9 @@ Before testing a new Blender installation, run `blender_compatibility_probe` or 
 7. Preserve InteriorScope, visual-revision, and optimization approvals as specialized contracts; orchestration cannot synthesize them. New standard revisions use one post-evaluation `candidate_review` promotion approval, while explicit `manual_guarded` keeps the legacy pre-application approval.
 8. Reconcile after every step from current files and hashes. Mark changed evidence stale instead of treating it as completed.
 9. Resume from the first incomplete step. Retry a failed host step only with explicit authorization and a new attempt receipt.
+   Exact current material swatches may explicitly select EEVEE or Cycles CPU through
+   the [bound backend-selection companion](../material_swatch_backend_selection.md);
+   failed retries retain their exact receipt and normal authorization boundary.
 10. Cancellation preserves all evidence. Destination-specific reconstruction remains deferred until a validated adapter is selected and tested.
 11. Keep `execution_policy=standard` unless the user explicitly chooses the background exterior fast lane before planning.
 12. For `background_exterior`, resolve `delivery_scope` before creating the workflow: `preview_only` runs bounded pre-QA fit, one canonical direct QA, a machine quality report, and a combined review PDF; `portable_package` continues through V0.7 but still waits for the exact optimization-plan approval.

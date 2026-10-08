@@ -195,3 +195,23 @@ build/
 /.tr/
 /*.trvg/
 /.aq_activation_chain_audit_20260817
+
+# Local credentials, environments and developer-tool outputs.
+/.env.*
+!/.env.example
+/.venv-*/
+/venv/
+/env/
+/.cache/
+/.mypy_cache/
+/.coverage
+/.coverage.*
+/htmlcov/
+/coverage.xml
+
+# Future local attachments and isolated harness workspaces are not maintained source.
+# Existing tracked attachments and immutable verification fixtures remain tracked.
+/.codex-remote-attachments/
+/codex_goal_tmp_*/
+/codex_pytest_*/
+/codex_validation_*/
