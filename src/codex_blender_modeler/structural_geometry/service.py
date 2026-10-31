@@ -73,8 +73,11 @@ def materialize_structural_candidate(
         else StructuralGeometryCandidate.model_validate(candidate)
     )
     # The new data-only shell is explicit MeshPayload 0.2; legacy dispatch stays unchanged.
-    if validated.geometry.kind == "triangulated_shell" and mesh_payload_version != "0.2.0":
-        raise ValueError("triangulated_shell requires explicit MeshPayload 0.2 materialization")
+    if (validated.geometry.kind in {"triangulated_shell", "polygon_shell"}
+            and mesh_payload_version != "0.2.0"):
+        raise ValueError(
+            f"{validated.geometry.kind} requires explicit MeshPayload 0.2 materialization"
+        )
     if mesh_payload_version == "0.2.0":
         if validated.geometry_intent is None:
             raise ValueError("MeshPayload 0.2 requires explicit GeometryIntent")
@@ -167,4 +170,13 @@ def materialize_structural_candidate(
             report = json.load(handle)
         if report.get("mesh_payload_version") != "0.2.0":
             raise RuntimeError("materialization report omitted MeshPayload 0.2 dispatch")
+        if validated.geometry.kind == "polygon_shell":
+            from .triangle_view import MeshTriangleViewV01, project_triangle_view
+
+            view = MeshTriangleViewV01.model_validate_json(json.dumps(report.get("triangle_view")))
+            if (view.source_mesh.path != mesh_path.relative_to(job_root.resolve()).as_posix()
+                    or view.source_mesh.sha256 != file_sha256(mesh_path)
+                    or materialized.faces != validated.geometry.faces):
+                raise RuntimeError("polygon materialization changed faces or triangle-view source")
+            project_triangle_view(materialized, view)
     return materialized

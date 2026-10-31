@@ -178,6 +178,10 @@ def main() -> None:
         if obj.type == "MESH":
             record["vertices"] = len(obj.data.vertices)
             record["polygons"] = len(obj.data.polygons)
+            if obj.get("cbm_preserve_polygon_tessellation", False):
+                from polygon_topology import object_topology_statistics
+
+                record["polygon_topology"] = object_topology_statistics(obj)
             record["active_uv"] = (
                 str(obj.data.uv_layers.active.name)
                 if obj.data.uv_layers.active is not None

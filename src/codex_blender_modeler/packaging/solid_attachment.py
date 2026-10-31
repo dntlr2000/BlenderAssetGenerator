@@ -11,6 +11,7 @@ from ..attachment_runtime import artifact_bytes, contained_file
 from ..structural_geometry.mesh_payload_v02 import MeshPayloadV02
 from ..structural_geometry.solid_attachment_companion import SolidRootAttachmentIntentV01
 from ..structural_geometry.solid_root_ball import Budget, certify_ball, prepare_solid
+from ..structural_geometry.triangle_view import selected_triangle_mesh
 from ..workspace import resolve_job_input_path
 
 
@@ -97,7 +98,10 @@ def load_solid_source_meshes(
             or len(raw["faces"]) > 4096
         ):
             raise ValueError("solid-root source exceeds bounded geometry/byte limits")
-        total_triangles += len(raw["faces"])
+        expanded = sum(max(0, len(f) - 2) for f in raw["faces"] if isinstance(f, list))
+        if expanded > 4096:
+            raise ValueError("solid-root expanded semantic triangle limit exceeded")
+        total_triangles += expanded
         if total_triangles > 25_000:
             raise ValueError("solid-root aggregate asset triangle limit exceeded")
         mesh = MeshPayloadV02.model_validate_json(data)
@@ -120,6 +124,7 @@ def load_solid_source_meshes(
             or obj.get("parent_id")
         ):
             raise ValueError("solid-root source requires explicit unmodified world-space geometry")
+        mesh = selected_triangle_mesh(root, intent, artifact, mesh)
         if (
             any(len(face) != 3 for face in mesh.faces)
             or len(mesh.material_slots) != 1
@@ -143,10 +148,12 @@ def evaluate_solid_actual(
     raw: dict[str, Any],
 ) -> dict[str, Any]:
     """Recompute complete mapped solids and local balls without asserting native extraction."""
-    from .attachment import map_actual_mesh
+    from .attachment import _parse_attachment_intent, map_actual_mesh
 
     # Revalidate an in-memory host object as well as JSON-loaded instances.
-    intent = SolidRootAttachmentIntentV01.model_validate_json(intent.model_dump_json())
+    intent = _parse_attachment_intent(intent.model_dump_json().encode())
+    if not isinstance(intent, SolidRootAttachmentIntentV01):
+        raise ValueError("solid-root evaluation requires its explicitly selected domain")
     if set(meshes) != set(intent.required_semantics):
         raise ValueError("solid-root bound source semantic set differs")
     records = raw.get("objects")

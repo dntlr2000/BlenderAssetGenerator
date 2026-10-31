@@ -193,7 +193,7 @@ def selected_attachment(root: Path, job_id: str, scene_path: Path) -> dict[str, 
     selection = select_revised_attachment(root, metadata, selection, committed)
     payload = json.loads(artifact_bytes(root, selection))
     if (
-        payload.get("schema_version") != "0.1.0"
+        payload.get("schema_version") not in {"0.1.0", "0.2.0"}
         or payload.get("contract_kind")
         not in {"surface_attachment_intent", "solid_root_attachment_intent"}
         or payload.get("job_id") != job_id
@@ -217,6 +217,12 @@ def selected_attachment(root: Path, job_id: str, scene_path: Path) -> dict[str, 
         raise ValueError("attachment intent needs a bounded geometry source list")
     for item in geometries:
         artifact_bytes(root, item)
+    if payload["schema_version"] == "0.2.0":
+        views = payload.get("source_triangle_views")
+        if not isinstance(views, list) or len(views) != len(geometries):
+            raise ValueError("polygon attachment is missing its complete triangle views")
+        for item in views:
+            artifact_bytes(root, item)
     for key in ("source_modeling_plan", "source_reference"):
         artifact_bytes(root, payload[key])
     if payload["contract_kind"] == "surface_attachment_intent":

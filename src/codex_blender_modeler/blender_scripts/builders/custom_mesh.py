@@ -349,6 +349,8 @@ def _build_v02(
     _apply_data_intent(obj, payload, materialize_material_slots=False)
     _apply_modifier_intent(obj, payload)
     mesh.update(calc_edges=True)
+    if payload.get("builder_kind") == "polygon_shell":
+        obj["cbm_preserve_polygon_tessellation"] = True
     obj["cbm_mesh_payload_version"] = "0.2.0"
     obj["cbm_v02_payload_sha256"] = _sha256_file(payload_path)
     obj["cbm_v02_source_fingerprint"] = str(

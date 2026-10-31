@@ -33,10 +33,15 @@ from ..structural_geometry.owner_relief import (
     inspect_inserted_root,
     verify_height_field_solid,
 )
+from ..structural_geometry.polygon_attachment import (
+    AttachmentIntentV02,
+    SolidRootAttachmentIntentV02,
+)
 from ..structural_geometry.profiled_relief import _validate_embedded
 from ..structural_geometry.root_region import inspect_root_region
 from ..structural_geometry.solid_attachment_companion import SolidRootAttachmentIntentV01
 from ..structural_geometry.triangle_shell import TriangulatedShellGeometry
+from ..structural_geometry.triangle_view import selected_triangle_mesh
 from ..workspace import job_dir
 
 POSITION_LIMIT_M = 0.0
@@ -102,9 +107,12 @@ def _region_snapshot_name(attachment_id: str) -> str:
 def _parse_attachment_intent(data: bytes) -> AttachmentIntentV01 | SolidRootAttachmentIntentV01:
     """Dispatch only explicitly named strict domains; unknown fields/versions still fail."""
     payload = json.loads(data)
+    polygon = isinstance(payload, dict) and payload.get("schema_version") == "0.2.0"
     if isinstance(payload, dict) and payload.get("contract_kind") == "solid_root_attachment_intent":
-        return SolidRootAttachmentIntentV01.model_validate_json(data)
-    return AttachmentIntentV01.model_validate_json(data)
+        model = SolidRootAttachmentIntentV02 if polygon else SolidRootAttachmentIntentV01
+    else:
+        model = AttachmentIntentV02 if polygon else AttachmentIntentV01
+    return model.model_validate_json(data)
 
 
 def register_surface_attachment_intent(
@@ -290,7 +298,10 @@ def _source_meshes(root: Path, intent: AttachmentIntentV01) -> dict[str, MeshPay
             or len(raw["faces"]) > 8192
         ):
             raise ValueError("attachment source exceeds bounded bytes/semantic geometry limits")
-        total_triangles += len(raw["faces"])
+        expanded = sum(max(0, len(f) - 2) for f in raw["faces"] if isinstance(f, list))
+        if expanded > 8192:
+            raise ValueError("attachment expanded semantic triangle limit exceeded")
+        total_triangles += expanded
         if total_triangles > 25000:
             raise ValueError("attachment source exceeds total triangle limit")
         mesh = MeshPayloadV02.model_validate_json(data)
@@ -315,6 +326,7 @@ def _source_meshes(root: Path, intent: AttachmentIntentV01) -> dict[str, MeshPay
             raise ValueError(
                 "attachment source currently requires explicit world-space unmodified parts"
             )
+        mesh = selected_triangle_mesh(root, intent, artifact, mesh)
         if any(len(face) != 3 for face in mesh.faces) or len(mesh.material_slots) != 1:
             raise ValueError("attachment source requires triangulated single-slot payloads")
         if mesh.semantic_id in meshes:
@@ -835,6 +847,19 @@ def inspect_stage(
         raise ValueError("actual attachment extraction differs from exact host request")
     # Existing files are never accepted as substitute for this freshly invoked fixed extraction.
     report = evaluate_actual(intent, meshes, raw, root_regions=load_root_regions(root, intent))
+    if intent.schema_version == "0.2.0":
+        directory = output.with_name(output.stem + "_polygon_inputs")
+        directory.mkdir(parents=True, exist_ok=False)
+        snapshots = []
+        for index, bound in enumerate([*intent.source_geometry, *intent.source_triangle_views]):
+            data = artifact_bytes(root, bound.model_dump(mode="json"))
+            target = directory / f"{index:04d}.json"
+            with target.open("xb") as stream:
+                stream.write(data)
+            snapshots.append({"source": bound.model_dump(mode="json"),
+                "snapshot": {"path": target.relative_to(root).as_posix(), "sha256": _sha(target)}})
+        report["polygon_source_snapshots"] = snapshots
+
     if isinstance(intent, SolidRootAttachmentIntentV01):
         if selected_attachment(root, root.name, root / source.scene_spec.path) != expected:
             raise ValueError("solid-root source selection changed during actual extraction")
@@ -951,13 +976,35 @@ def _capture_stage_evidence(root: Path, audit: Path, stage: str, report: dict) -
                 raise ValueError("solid-root live source differs from snapshot")
             captured[item["role"]] = (item, data)
             files[path.relative_to(audit).as_posix()] = expected["sha256"]
-        selected_intent = SolidRootAttachmentIntentV01.model_validate_json(captured["intent"][1])
+        selected_intent = _parse_attachment_intent(captured["intent"][1])
         if (
             captured["intent"][0]["source"] != report["intent"]
             or selected_intent.source_camera_hypothesis.model_dump(mode="json")
             != captured["camera_hypothesis"][0]["source"]
         ):
             raise ValueError("solid-root snapshot dependencies are mixed")
+    # Exact opt-in projections are sealed together with their original polygon payloads.
+    live_intent = (
+        _parse_attachment_intent(artifact_bytes(root, report["intent"]))
+        if "intent" in report else None
+    )
+    if live_intent is None and "polygon_source_snapshots" in report:
+        raise ValueError("polygon source snapshots lack an explicit intent binding")
+    expected_polygon_sources = ([*live_intent.source_geometry, *live_intent.source_triangle_views]
+                                if live_intent and live_intent.schema_version == "0.2.0" else [])
+    polygon_snapshots = report.get("polygon_source_snapshots", [])
+    if len(polygon_snapshots) != len(expected_polygon_sources):
+        raise ValueError("polygon source snapshots are missing or extra")
+    for index, (row, bound) in enumerate(zip(
+        polygon_snapshots, expected_polygon_sources, strict=True
+    )):
+        path = audit / f"{stage}_polygon_inputs" / f"{index:04d}.json"
+        expected = {"path": path.relative_to(root).as_posix(), "sha256": bound.sha256}
+        if row != {"source": bound.model_dump(mode="json"), "snapshot": expected}:
+            raise ValueError("polygon source snapshot identity differs")
+        if artifact_bytes(root, expected) != artifact_bytes(root, row["source"]):
+            raise ValueError("polygon source snapshot differs from source")
+        files[path.relative_to(audit).as_posix()] = expected["sha256"]
     coverage = report["reference_region_coverage"]
     if coverage["selected"]:
         if coverage["status"] != "passed":
@@ -1073,7 +1120,7 @@ def verify_package_attachment(
         inspected_artifacts[artifact.relative_to(root).as_posix()] = artifact_hash
         for item in report.get("root_region_snapshots", []) + report.get(
             "bound_intent_snapshots", []
-        ):
+        ) + report.get("polygon_source_snapshots", []):
             inspected_artifacts[item["source"]["path"]] = item["source"]["sha256"]
         reports.append(report)
     destination = staging_root / "metadata/attachment"

@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "description": "Preserve bounded, closed, outward polygons with optional exact corner UVs.",
+  "properties": {
+    "kind": {
+      "const": "polygon_shell",
+      "default": "polygon_shell",
+      "title": "Kind",
+      "type": "string"
+    },
+    "vertices": {
+      "items": {
+        "maxItems": 3,
+        "minItems": 3,
+        "prefixItems": [
+          {
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "type": "number"
+          },
+          {
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "type": "number"
+          },
+          {
+            "maximum": 1000000.0,
+            "minimum": -1000000.0,
+            "type": "number"
+          }
+        ],
+        "type": "array"
+      },
+      "maxItems": 65536,
+      "minItems": 4,
+      "title": "Vertices",
+      "type": "array"
+    },
+    "faces": {
+      "items": {
+        "items": {
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "maxItems": 4,
+        "minItems": 3,
+        "type": "array"
+      },
+      "maxItems": 131072,
+      "minItems": 4,
+      "title": "Faces",
+      "type": "array"
+    },
+    "loop_uvs": {
+      "anyOf": [
+        {
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "maximum": 1000000.0,
+                "minimum": -1000000.0,
+                "type": "number"
+              },
+              {
+                "maximum": 1000000.0,
+                "minimum": -1000000.0,
+                "type": "number"
+              }
+            ],
+            "type": "array"
+          },
+          "maxItems": 393216,
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Loop Uvs"
+    }
+  },
+  "required": [
+    "vertices",
+    "faces"
+  ],
+  "title": "PolygonShellGeometry",
+  "type": "object"
+}

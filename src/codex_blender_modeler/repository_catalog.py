@@ -37,6 +37,7 @@ STRUCTURAL_BUILDER_KINDS = (
     "sweep",
     "terrain",
     "triangulated_shell",
+    "polygon_shell",
 )
 
 RULE_GROUPS: tuple[tuple[str, int, int], ...] = (

@@ -13,7 +13,6 @@ from ..models import SceneSpec
 from ..packaging.attachment import preflight_source_attachment
 from ..packaging.solid_attachment import load_solid_source_meshes
 from ..structural_geometry.attachment_companion import Artifact
-from ..structural_geometry.solid_attachment_companion import SolidRootAttachmentIntentV01
 from ..structural_geometry.solid_root_ball import Budget, certify_ball, prepare_solid
 from .models import JobId, Sha256, V08StrictModel, WorkflowId
 from .paired_revision import MODEL_PATH, SCENE_PATH, _file
@@ -106,9 +105,13 @@ def validate_candidate_intent(root: Path, path: str, sha256: str) -> dict[str, A
 
 def validate_rebinding(old: dict[str, Any], new: dict[str, Any]) -> None:
     """Permit source bindings alone, preserving all roots, domains, semantic order and camera."""
-    SolidRootAttachmentIntentV01.model_validate_json(json.dumps(old))
-    SolidRootAttachmentIntentV01.model_validate_json(json.dumps(new))
+    from ..structural_geometry.polygon_attachment import parse_solid_root_intent
+
+    parse_solid_root_intent(json.dumps(old).encode())
+    parse_solid_root_intent(json.dumps(new).encode())
     mutable = {"source_scene", "source_modeling_plan", "source_geometry"}
+    if old.get("schema_version") == new.get("schema_version") == "0.2.0":
+        mutable.add("source_triangle_views")
     if stable_json_digest({k: v for k, v in old.items() if k not in mutable}) != stable_json_digest(
         {k: v for k, v in new.items() if k not in mutable}
     ):
@@ -127,7 +130,9 @@ def _proofs(root: Path, document: dict[str, Any], sources: dict[str, bytes]) -> 
     from ..attachment_revision_runtime import _historical_geometry
 
     _historical_geometry(root, document, sources)
-    intent = SolidRootAttachmentIntentV01.model_validate_json(json.dumps(document))
+    from ..structural_geometry.polygon_attachment import parse_solid_root_intent
+
+    intent = parse_solid_root_intent(json.dumps(document).encode())
     meshes = load_solid_source_meshes(root, intent, prospective_sources=sources)
     budget = Budget()
     solids = {

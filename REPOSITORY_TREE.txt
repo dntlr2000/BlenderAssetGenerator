@@ -43,6 +43,7 @@ BlenderAssetGenerator/
   cbm.toml
   docs/DOCUMENT_RELOCATION_KO.md
   docs/HANDOFF_KO.md
+  docs/QUAD_AUTHORING_VALIDATION_KO.md
   docs/README.md
   docs/adaptive_profile_authoring.md
   docs/agent/README.md
@@ -116,6 +117,7 @@ BlenderAssetGenerator/
   docs/optical_volume_contract.md
   docs/overlap_aware_embedding_partition.md
   docs/paired_modeling_plan_revision.md
+  docs/polygon_authoring.md
   docs/portable_optical_audit.md
   docs/profiled_relief_authoring.md
   docs/projected_centerline_coverage.md
@@ -581,6 +583,7 @@ BlenderAssetGenerator/
   schemas/mesh_payload_v02_migration_plan.schema.json
   schemas/mesh_payload_v02_migration_receipt.schema.json
   schemas/mesh_preflight_report.schema.json
+  schemas/mesh_triangle_view_v01.schema.json
   schemas/modeling_hypothesis_v01.schema.json
   schemas/modeling_plan.schema.json
   schemas/optimization_approval.schema.json
@@ -595,6 +598,7 @@ BlenderAssetGenerator/
   schemas/paired_revision_transaction_intent.schema.json
   schemas/policy_authorization.schema.json
   schemas/policy_gate_target.schema.json
+  schemas/polygon_shell_v01.schema.json
   schemas/portable_material_conversion_manifest.schema.json
   schemas/portable_material_conversion_plan.schema.json
   schemas/portable_package_acceptance.schema.json
@@ -640,6 +644,7 @@ BlenderAssetGenerator/
   schemas/skill_registry.schema.json
   schemas/skill_route_decision.schema.json
   schemas/solid_root_attachment_intent_v01.schema.json
+  schemas/solid_root_attachment_intent_v02.schema.json
   schemas/stability_report_manifest.schema.json
   schemas/standard_composite_run_plan.schema.json
   schemas/standard_composite_run_state.schema.json
@@ -660,6 +665,7 @@ BlenderAssetGenerator/
   schemas/structural_regression_report.schema.json
   schemas/structure_authoring_v01.schema.json
   schemas/surface_attachment_intent_v01.schema.json
+  schemas/surface_attachment_intent_v02.schema.json
   schemas/surface_attachment_root_region_v01.schema.json
   schemas/surface_attachment_triangle_snapshot_v01.schema.json
   schemas/surface_detail_validation.schema.json
@@ -704,6 +710,7 @@ BlenderAssetGenerator/
   scripts/generate_repository_summary.py
   scripts/generate_schemas.py
   scripts/manufactured_panel_refinement_contract.py
+  scripts/quad_reference_recipes.py
   scripts/replay_exterior_surface_refinement.py
   scripts/replay_manufactured_panel_refinement.py
   scripts/run_advisory_target_smoke.py
@@ -723,6 +730,8 @@ BlenderAssetGenerator/
   scripts/run_v08_gates.sh
   scripts/run_v09_gates.ps1
   scripts/run_v09_gates.sh
+  scripts/validate_quad_references.py
+  scripts/validate_quad_references_native.py
   scripts/verify_v04_regressions.py
   scripts/verify_v06_artifacts.py
   src/codex_blender_modeler/__init__.py
@@ -852,6 +861,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/builders/geometry_nodes_template.py
   src/codex_blender_modeler/blender_scripts/builders/loft.py
   src/codex_blender_modeler/blender_scripts/builders/multi_loop_extrude.py
+  src/codex_blender_modeler/blender_scripts/builders/polygon_shell.py
   src/codex_blender_modeler/blender_scripts/builders/primitive.py
   src/codex_blender_modeler/blender_scripts/builders/profile_extrude.py
   src/codex_blender_modeler/blender_scripts/builders/registry.py
@@ -884,6 +894,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/blender_scripts/modifiers.py
   src/codex_blender_modeler/blender_scripts/normalize_external_static_asset.py
   src/codex_blender_modeler/blender_scripts/optical_volume_runtime.py
+  src/codex_blender_modeler/blender_scripts/polygon_topology.py
   src/codex_blender_modeler/blender_scripts/portable_asset_common.py
   src/codex_blender_modeler/blender_scripts/portable_authored_uv_proof.py
   src/codex_blender_modeler/blender_scripts/portable_authored_uv_runtime.py
@@ -1200,6 +1211,9 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/structural_geometry/models.py
   src/codex_blender_modeler/structural_geometry/owner_relief.py
   src/codex_blender_modeler/structural_geometry/partition_heightfield.py
+  src/codex_blender_modeler/structural_geometry/polygon_attachment.py
+  src/codex_blender_modeler/structural_geometry/polygon_shell.py
+  src/codex_blender_modeler/structural_geometry/polygon_shell_math.py
   src/codex_blender_modeler/structural_geometry/profiled_relief.py
   src/codex_blender_modeler/structural_geometry/relief_geometry.py
   src/codex_blender_modeler/structural_geometry/root_region.py
@@ -1209,6 +1223,7 @@ BlenderAssetGenerator/
   src/codex_blender_modeler/structural_geometry/support_coverage.py
   src/codex_blender_modeler/structural_geometry/triangle_shell.py
   src/codex_blender_modeler/structural_geometry/triangle_shell_math.py
+  src/codex_blender_modeler/structural_geometry/triangle_view.py
   src/codex_blender_modeler/structural_geometry/v02.py
   src/codex_blender_modeler/surface_detail_atlas.py
   src/codex_blender_modeler/texturing/AGENTS.md
@@ -1433,6 +1448,8 @@ BlenderAssetGenerator/
   tests/test_partition_heightfield_oracles.py
   tests/test_patch_release_compatibility.py
   tests/test_pdf_reporting.py
+  tests/test_polygon_shell.py
+  tests/test_polygon_shell_blender.py
   tests/test_procedural_pbr_provider.py
   tests/test_profiled_relief.py
   tests/test_profiled_relief_blender.py

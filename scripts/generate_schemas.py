@@ -1189,6 +1189,26 @@ SCHEMAS.update(
 )
 
 
+# Explicit additive polygon schemas retain all historical model versions.
+from codex_blender_modeler.structural_geometry.polygon_attachment import (  # noqa: E402
+    AttachmentIntentV02,
+    SolidRootAttachmentIntentV02,
+)
+from codex_blender_modeler.structural_geometry.polygon_shell import (  # noqa: E402
+    PolygonShellGeometry,
+)
+from codex_blender_modeler.structural_geometry.triangle_view import (  # noqa: E402
+    MeshTriangleViewV01,
+)
+
+SCHEMAS.update({
+    "polygon_shell_v01.schema.json": PolygonShellGeometry,
+    "mesh_triangle_view_v01.schema.json": MeshTriangleViewV01,
+    "surface_attachment_intent_v02.schema.json": AttachmentIntentV02,
+    "solid_root_attachment_intent_v02.schema.json": SolidRootAttachmentIntentV02,
+})
+
+
 def main() -> None:
     """Regenerate host-model schemas while retaining manual Blender report schemas."""
 

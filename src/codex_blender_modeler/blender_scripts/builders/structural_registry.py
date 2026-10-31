@@ -14,6 +14,7 @@ from builders import (
     geometry_nodes_template,
     loft,
     multi_loop_extrude,
+    polygon_shell,
     primitive,
     profile_extrude,
     revolve,
@@ -37,6 +38,7 @@ _STRUCTURAL_BUILDERS: dict[str, Builder] = {
     "multi_loop_extrude": multi_loop_extrude.build,
     "geometry_nodes_template": geometry_nodes_template.build,
     "triangulated_shell": triangulated_shell.build,
+    "polygon_shell": polygon_shell.build,
 }
 
 

@@ -488,7 +488,7 @@ def main() -> None:
     if actual_hash != args.candidate_sha256:
         raise RuntimeError("structural candidate changed after host validation")
     if (
-        candidate["geometry"]["kind"] == "triangulated_shell"
+        candidate["geometry"]["kind"] in {"triangulated_shell", "polygon_shell"}
         and args.mesh_payload_version != "0.2.0"
     ):
         raise RuntimeError("triangulated shell requires explicit MeshPayload 0.2 materialization")
@@ -526,6 +526,18 @@ def main() -> None:
     }
     if args.mesh_payload_version == "0.2.0":
         report["mesh_payload_version"] = "0.2.0"
+    if candidate["geometry"]["kind"] == "polygon_shell":
+        from polygon_topology import mesh_triangle_view, object_topology_statistics
+
+        view = mesh_triangle_view(obj.data)
+        report["triangle_view"] = {
+            "schema_version": "0.1.0", "contract_kind": "mesh_triangle_view",
+            "source_mesh": {"path": output_mesh.relative_to(job_root).as_posix(),
+                            "sha256": report["mesh_sha256"]},
+            "loop_triangles": view["loop_indices"],
+        }
+        report["topology"] = object_topology_statistics(obj)
+        report["blender_version"] = bpy.app.version_string
     _write_json(report_path, report)
 
 

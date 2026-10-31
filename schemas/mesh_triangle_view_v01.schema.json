@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "description": "Identify one immutable contained input by exact path and digest.",
+      "properties": {
+        "path": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Bind a complete oriented corner partition to one immutable authored payload.",
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0",
+      "default": "0.1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "contract_kind": {
+      "const": "mesh_triangle_view",
+      "default": "mesh_triangle_view",
+      "title": "Contract Kind",
+      "type": "string"
+    },
+    "source_mesh": {
+      "$ref": "#/$defs/Artifact"
+    },
+    "loop_triangles": {
+      "items": {
+        "maxItems": 3,
+        "minItems": 3,
+        "prefixItems": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "maxItems": 131072,
+      "minItems": 1,
+      "title": "Loop Triangles",
+      "type": "array"
+    }
+  },
+  "required": [
+    "source_mesh",
+    "loop_triangles"
+  ],
+  "title": "MeshTriangleViewV01",
+  "type": "object"
+}

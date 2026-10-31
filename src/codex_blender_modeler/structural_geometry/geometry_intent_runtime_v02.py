@@ -25,6 +25,7 @@ BuilderKindV02 = Literal[
     "multi_loop_extrude",
     "geometry_nodes_template",
     "triangulated_shell",
+    "polygon_shell",
     "custom_mesh",
     "fixture",
 ]

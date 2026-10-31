@@ -78,6 +78,7 @@ _STRUCTURAL_KINDS = frozenset(
     {
         "loft", "sweep", "boolean_tree", "multi_loop_extrude", "geometry_nodes_template",
         "triangulated_shell",
+        "polygon_shell",
     }
 )
 _STABLE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$")

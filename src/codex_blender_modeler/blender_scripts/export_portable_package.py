@@ -1084,12 +1084,14 @@ def normalize_gltf_serialization_topology(
                 for face in editable.faces:
                     face[source_face_layer] = int(face.index)
                 faces = [face for face in editable.faces if len(face.verts) != 3]
-                bmesh.ops.triangulate(
-                    editable,
-                    faces=faces,
-                    quad_method="FIXED",
-                    ngon_method="EAR_CLIP",
-                )
+                if obj.get("cbm_preserve_polygon_tessellation", False):
+                    from polygon_topology import triangulate_preserving_tessellation
+
+                    triangulate_preserving_tessellation(editable, mesh, faces)
+                else:
+                    bmesh.ops.triangulate(
+                        editable, faces=faces, quad_method="FIXED", ngon_method="EAR_CLIP",
+                    )
                 if collinear_sliver_maximum_area_m2 is not None:
                     collinear_faces = _serialization_collinear_slivers(
                         editable,

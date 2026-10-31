@@ -34,6 +34,7 @@ from ..models import (
     TerrainGeometry,
     TransformSpec,
 )
+from .polygon_shell import PolygonShellGeometry
 from .triangle_shell import TriangulatedShellGeometry
 
 SCHEMA_VERSION = "0.3.0"
@@ -479,7 +480,8 @@ GeometrySpecV03 = Annotated[
     | BooleanTreeGeometry
     | MultiLoopExtrudeGeometry
     | GeometryNodesTemplateGeometry
-    | TriangulatedShellGeometry,
+    | TriangulatedShellGeometry
+    | PolygonShellGeometry,
     Field(discriminator="kind"),
 ]
 
@@ -622,7 +624,8 @@ class StructuralGeometryCandidate(StructuralStrictModel):
         | BooleanTreeGeometry
         | MultiLoopExtrudeGeometry
         | GeometryNodesTemplateGeometry
-        | TriangulatedShellGeometry,
+        | TriangulatedShellGeometry
+        | PolygonShellGeometry,
         Field(discriminator="kind"),
     ]
     geometry_intent: GeometryIntent | None = None

@@ -13,18 +13,23 @@ import test_surface_attachment_host as fixture
 from codex_blender_modeler.build_provenance import collect_build_provenance
 from codex_blender_modeler.config import get_settings
 from codex_blender_modeler.packaging import attachment as host
-from codex_blender_modeler.structural_geometry.solid_attachment_companion import (
-    SolidRootAttachmentIntentV01,
-)
 
 
-def test_registered_solid_root_real_inspect_stage_without_pythonpath(tmp_path, monkeypatch):
+@pytest.mark.parametrize("polygon", [False, True])
+def test_registered_solid_root_real_inspect_stage_without_pythonpath(
+    tmp_path, monkeypatch, polygon
+):
     """A true registered-root host launch must extract native/GLB geometry with no priming."""
     settings = get_settings()
     executable = shutil.which(settings.blender_bin)
     if executable is None:
         pytest.skip("Configured Blender executable is unavailable")
-    root, selection, document = solid_fixture.registration_fixture(tmp_path)
+    if polygon:
+        from test_polygon_shell import polygon_registration
+
+        root, selection, document = polygon_registration(tmp_path, "solid")
+    else:
+        root, selection, document = solid_fixture.registration_fixture(tmp_path)
     monkeypatch.setattr(host, "job_dir", lambda _: root)
     assert (
         host.register_solid_root_attachment_intent(
@@ -32,7 +37,7 @@ def test_registered_solid_root_real_inspect_stage_without_pythonpath(tmp_path, m
         )
         == selection
     )
-    intent = SolidRootAttachmentIntentV01.model_validate_json(json.dumps(document))
+    intent = host._parse_attachment_intent(json.dumps(document).encode())
     meshes = host._source_meshes(root, intent)
     proof = collect_build_provenance(root, root.name, validate_contracts=False)
     blend, glb = root / "fixture.blend", root / "fixture.glb"
@@ -44,7 +49,7 @@ def test_registered_solid_root_real_inspect_stage_without_pythonpath(tmp_path, m
             {
                 "semantic_id": mesh.semantic_id,
                 "vertices": mesh.vertices,
-                "faces": mesh.faces,
+                "faces": mesh.source.faces if polygon else mesh.faces,
                 "material_id": mesh.material_slots[0].material_id,
             }
             for mesh in meshes.values()
@@ -144,7 +149,8 @@ bpy.ops.export_scene.gltf(filepath=payload["glb"], export_format="GLB", export_e
             == artifact_hash
             == hashlib.sha256(artifact.read_bytes()).hexdigest()
         )
-        assert len(host._capture_stage_evidence(root, audit, stage, report)) == 4
+        sealed = host._capture_stage_evidence(root, audit, stage, report)
+        assert len(sealed) == (8 if polygon else 4)
         records.append(report)
     assert {
         str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in input_paths
@@ -171,9 +177,21 @@ bpy.ops.export_scene.gltf(filepath=payload["glb"], export_format="GLB", export_e
         staging_root=staging,
     )
     host._verify_package_attachment_closure(root, closure)
-    assert len(closure["package_files"]) == 13
+    assert len(closure["package_files"]) == (25 if polygon else 13)
     assert document["source_camera_hypothesis"]["path"] in closure["inspected_artifacts"]
     assert selection["path"] in closure["inspected_artifacts"]
+    if polygon:
+        for item in document["source_geometry"] + document["source_triangle_views"]:
+            assert closure["inspected_artifacts"][item["path"]] == item["sha256"]
+        selected_view = root / document["source_triangle_views"][0]["path"]
+        original_view = selected_view.read_bytes()
+        try:
+            selected_view.write_bytes(original_view + b"\n")
+            with pytest.raises(ValueError, match="changed before publication"):
+                host._verify_package_attachment_closure(root, closure)
+        finally:
+            selected_view.write_bytes(original_view)
+        host._verify_package_attachment_closure(root, closure)
     assert (
         json.loads((staging / "metadata/attachment/summary.json").read_bytes())[
             "final_human_acceptance"

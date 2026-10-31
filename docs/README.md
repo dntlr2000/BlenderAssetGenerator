@@ -39,3 +39,6 @@ Reference-fidelity 장기 개선은 A안으로 종료됐습니다. 보존된 개
 ## 2026-10-21 완료 자산 폐기
 
 사용자의 새 보존 기준에 따라 완료 작업 46개(48,162파일, 7.198 GB)를 실제 폐기했다. 실패·보류·알려진 시각 결함·완료 불명확 자산 19개와 공유 소비 기록은 유지했다. 완료 모델·package 전체는 복원할 수 없으며 원본 reference와 최소 이력만 외부에 보존했다. 앞선 표의 보존·복원 설명은 각 기록 날짜의 상태다. [실제 삭제 목록·현재 보존 목록·무결성 검증](reference_fidelity_closeout/WORKSPACE_COMPLETED_RETIREMENT_20261021_KO.md)을 따른다.
+
+- [Quad-dominant polygon authoring](polygon_authoring.md): polygon sources, inspection views and bounded Cloth/Rock/Wood validation.
+- [사각형 저작 구현·3자산 검증 결과](QUAD_AUTHORING_VALIDATION_KO.md): 최종 원본·GLB·실제 관찰·한계·비용과 검증 기록.

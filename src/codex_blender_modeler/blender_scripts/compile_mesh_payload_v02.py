@@ -142,6 +142,8 @@ def _apply_data_intent(
     """Apply v2 data intent, optionally deferring material slots to SceneSpec build."""
 
     mesh = obj.data
+    if payload.get("builder_kind") == "polygon_shell":
+        obj["cbm_preserve_polygon_tessellation"] = True
     uv_layer = mesh.uv_layers.new(name="UVMap")
     for loop_index, raw_uv in enumerate(payload["loop_uvs"]):
         uv = (float(raw_uv[0]), float(raw_uv[1]))

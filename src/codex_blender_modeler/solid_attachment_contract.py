@@ -65,9 +65,12 @@ def validate_solid_root_contract(payload: Any) -> None:
         "required_semantics",
         "entries",
     }
+    version = payload.get("schema_version") if isinstance(payload, dict) else None
+    if version == "0.2.0":
+        keys.add("source_triangle_views")
     if not isinstance(payload, dict) or set(payload) != keys:
         raise ValueError("solid-root intent has unknown or missing fields")
-    if payload["schema_version"] != "0.1.0" or payload["contract_kind"] != KIND:
+    if version not in {"0.1.0", "0.2.0"} or payload["contract_kind"] != KIND:
         raise ValueError("unsupported solid-root intent")
     _identity(payload["job_id"])
     for key in (
@@ -84,6 +87,15 @@ def validate_solid_root_contract(payload: Any) -> None:
         _artifact(artifact)
     if len({x["path"] for x in geometry}) != len(geometry):
         raise ValueError("solid-root geometry repeats a path")
+    if version == "0.2.0":
+        views = payload["source_triangle_views"]
+        if not isinstance(views, list) or len(views) != len(geometry):
+            raise ValueError("solid-root triangle views must cover every source")
+        for view in views:
+            _artifact(view)
+        paths = [item["path"] for item in [*geometry, *views]]
+        if len(paths) != len(set(paths)):
+            raise ValueError("solid-root triangle views repeat or alias a source")
     minimum = _number(payload["minimum_radius_m"], "minimum radius")
     if minimum <= 0:
         raise ValueError("solid-root minimum radius must be positive")

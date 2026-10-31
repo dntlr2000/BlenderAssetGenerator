@@ -87,6 +87,8 @@ def _step_fingerprint(
 def _historical_geometry(root: Path, document: dict, archived: dict[str, bytes]) -> None:
     """Rehash the complete retained geometry closure, using archives for historical canonicals."""
     pending = list(document["source_geometry"])
+    if document.get("schema_version") == "0.2.0":
+        pending.extend(document["source_triangle_views"])
     visited = {}
     folded = {}
     total_bytes = 0
@@ -289,6 +291,8 @@ def validate_revision_transaction(
         else:
             artifact_bytes(root, {"path": path, "sha256": digest})
     mutable = {"source_scene", "source_modeling_plan", "source_geometry"}
+    if old.get("schema_version") == candidate.get("schema_version") == "0.2.0":
+        mutable.add("source_triangle_views")
     if _stable({k: v for k, v in old.items() if k not in mutable}) != _stable(
         {k: v for k, v in candidate.items() if k not in mutable}
     ):
