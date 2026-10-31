@@ -1,0 +1,66 @@
+{
+  "kind": "historical_workspace_retirement_and_read_only_asset_analysis",
+  "date": "2026-10-20",
+  "source_head": "ca81eb719dd499d043ce4877c3153dcde489e25a",
+  "classification_sha256": "ccb0431c51047577ae3e2f52d2971281f1cf6317b445b5116f8192e1d75260d6",
+  "delete_plan_sha256": "4793040e0d9271d415f425398e51fa635d3acb891c5fdcd208f96ec011c9db81",
+  "deleted_files": 47890,
+  "deleted_logical_bytes": 8750323734,
+  "fully_removed_roots": 180,
+  "remaining_category3_4_files": 496,
+  "remaining_category3_4_bytes": 127259994,
+  "category2_files": 57447,
+  "category2_bytes": 8275054345,
+  "category2_content_hashes_unchanged": true,
+  "category1_files_unchanged": 129,
+  "preservation": {
+    "archive": "E:\\CodexValidation\\bag-history-cleanup-20261020-run01\\evidence\\preserved-minimum.zip",
+    "archive_bytes": 87461824,
+    "sha256": "410d2787192b0d5b92bbd40bf6d8f72c67b356801478de354c0cb2fe13ecc7b0",
+    "verified_unique_members": 6480,
+    "original_path_map_verified": true,
+    "partial_not_native_restore": true
+  },
+  "historical_host_resume_supported": false,
+  "old_consumption_refunded": false,
+  "new_builds_renders_qa_or_delivery": 0,
+  "human_acceptance_created": false,
+  "remaining_roots": {
+    "workspaces/item_crystalgun_full_0": {
+      "files": 1,
+      "bytes": 33
+    },
+    "workspaces/.fidelity_delegations": {
+      "files": 134,
+      "bytes": 80368503
+    },
+    "workspaces/_staging": {
+      "files": 10,
+      "bytes": 3171169
+    },
+    "workspace_archive/.cbm/receipts": {
+      "files": 16,
+      "bytes": 18929
+    },
+    "workspace_archive/.cbm/plans": {
+      "files": 16,
+      "bytes": 14385
+    },
+    "workspaces/.fidelity_budget": {
+      "files": 3,
+      "bytes": 3
+    },
+    "workspaces/aq_rf_df8b1514_01_plastic": {
+      "files": 6,
+      "bytes": 1183843
+    },
+    "workspaces/aq_rf_aa22b13_01p2": {
+      "files": 27,
+      "bytes": 23609363
+    },
+    "workspaces/aq_ref_fidelity_b407d18_01_plastic_shard": {
+      "files": 283,
+      "bytes": 18893766
+    }
+  }
+}

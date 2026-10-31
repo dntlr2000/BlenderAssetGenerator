@@ -1,0 +1,336 @@
+{
+  "kind": "offline_scratch_preservation_completion",
+  "status": "completed_with_retained_exceptions",
+  "started_utc": "2026-09-30T07:11:49.1746844Z",
+  "finished_utc": "2026-09-30T09:26:10.2129717Z",
+  "repository": "E:\\Playground\\BlenderAssetGenerator",
+  "evidence_root": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence",
+  "git": {
+    "starting_head": "d5c6570e4d1b6cc64f5fe3c781135999e342fc5b",
+    "final_head": "0d48439137af7d901d0399c4c903b418aba3ba6d",
+    "branch": "main",
+    "status": [],
+    "clean": true,
+    "local_ahead_cached_origin_main": 2,
+    "v091_tag_commit": "b59094c8c6b795ba3bfc3e2a25982e18e479f179",
+    "tag_moved": false,
+    "pushes": 0,
+    "commit_files": [
+      "docs/HANDOFF_KO.md",
+      "docs/reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md",
+      "FILE_MANIFEST.sha256"
+    ],
+    "remote_probe": {
+      "error": "schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS (0x8009030e)",
+      "exit_code": 1,
+      "server_state_confirmed": false,
+      "command": "git ls-remote origin refs/heads/main refs/tags/v0.9.1*"
+    }
+  },
+  "scope": {
+    "selected_roots": [
+      ".aq_activation_chain_audit_20260817",
+      ".b",
+      ".b0",
+      ".bc",
+      ".c2",
+      ".codex_temp",
+      ".codex_test",
+      ".codex_tmp",
+      ".codex_validation",
+      ".codex-runs",
+      ".codex-temp",
+      ".d",
+      ".e",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".t",
+      ".t29a",
+      ".t29b",
+      ".tmp",
+      ".tmp-aq-activation-31fcceda",
+      ".tmp-aq-activation-6572b22",
+      ".tmp-aq-activation-7c2ed0c",
+      ".tmp-aq-activation-920529ca",
+      ".tmp-aq-activation-9759cd4",
+      ".tmp-aq-activation-b029397",
+      ".tmp-aq-activation-cf295cd",
+      ".tmp-aq-activation-d1d2f090",
+      ".tmp-aq-canary-02",
+      ".tmp-aq-canary-03",
+      ".tmp-aq-canary-04",
+      ".tmp-aq-stage9-prep",
+      ".tmp-camera-direction-smoke-20260828",
+      ".tmp-check-activation-final",
+      ".tmp-check-activation-final-2",
+      ".tmp-check-campaign-contract",
+      ".tmp-codex",
+      ".tmp-pytest-full-20260829-a",
+      ".tmp-pytest-mask-20260829-b",
+      ".tmp-pytest-mask-20260829-d",
+      ".tmp-pytest-mask-20260829-e",
+      ".tmp-pytest-related-20260829-a",
+      ".tmp-ruff-8a",
+      ".tmp-ruff-8a-final",
+      ".tmp-runtime-aq-reconcile",
+      ".tmp-runtime-aq-reconcile-idempotent",
+      ".tmp-runtime-aq-reconcile-v2",
+      ".tmp-schema-campaign-contract",
+      ".tmp-schema-regenerate",
+      ".tmp-schema-regenerate-2",
+      ".tmp-schema-terminal-v2",
+      ".tmp-tests-activation-campaign",
+      ".tmp-tests-skill-terminal-20260902",
+      ".tmp-tests-skill-terminal-escalated",
+      ".tmp-tests-skill-terminal-retry",
+      ".tmp-tests-skill-terminal-v2",
+      ".tmp-tests-skill-terminal-x",
+      ".tmp-tests-wp3-focused",
+      ".tmp-tests-wp3-focused-2",
+      ".tmp-tests-wp3-single",
+      ".tmp-validation",
+      "codex_validation_tmp",
+      "PlaygroundBlenderAssetGenerator.tv6b",
+      "pytest-cache-files-j5pzrwpw",
+      "pytest-cache-files-jwd5mjx0",
+      "test_runs",
+      "tmp"
+    ],
+    "excluded": [
+      "workspaces",
+      "reports",
+      "output",
+      "production",
+      "workspace_archive",
+      ".git",
+      ".env",
+      ".venv",
+      ".agents",
+      ".codex",
+      ".cbm",
+      ".codex-remote-attachments",
+      ".codex_uv_cache"
+    ],
+    "source_code_changes": 0,
+    "canonical_changes": 0,
+    "campaign_operations": 0,
+    "new_human_acceptances": 0,
+    "acl_or_ownership_changes": 0,
+    "read_only_flags_cleared": 0,
+    "link_targets_followed": 0
+  },
+  "project_removal": {
+    "removed_files": 2225268,
+    "removed_logical_bytes": 23290572744,
+    "failed_files": 3273,
+    "removed_directories": 1998522,
+    "free_before": 136592412672,
+    "free_after": 154915979264,
+    "finished_utc": "2026-09-30T09:01:22.2912353Z"
+  },
+  "preservation": {
+    "verified_source_files": 2228541,
+    "referenced_logical_bytes": 23290800939,
+    "unique_mapped_files": 717713,
+    "unique_mapped_bytes": 5995722390,
+    "payload_file_count": 718295,
+    "payload_file_bytes": 6004121293,
+    "partial_attempt_orphan_files": 582,
+    "partial_attempt_orphan_bytes": 8398903,
+    "orphan_deletions": 0,
+    "orphan_hold_reason": "Partial v2 journal ends with a truncated record; proof failed closed without deletion.",
+    "authoritative_manifest": "preservation-v3.jsonl.gz",
+    "manifest_compressed_sha256": "a1e4720fbf3085e76e7405dd48da1f32b5bc6a16d7fcec8c5345f39938f44a18",
+    "manifest_decompressed_sha256": "561905acf4924e68684de3e73c3b2076818df75da1c6e9f4ccc8807f6f8f4c48",
+    "restore_rule": "Use exact per-file path/destination/hash mapping and original relative paths in a new external validation copy. Do not assume prefix replacement; do not rewrite historical payload."
+  },
+  "retained_project_exceptions": {
+    "selected_top_roots": 66,
+    "absent_top_roots": 18,
+    "present_top_roots": 48,
+    "roots_with_unmeasured_subtrees": 47,
+    "held_subdirectories_not_enumerated": 1017,
+    "reparse_entries_not_followed": 474,
+    "ordinary_read_only_files": 3273,
+    "ordinary_read_only_bytes": 228195,
+    "known_file_kind": "Old test fixture .git/objects files; attributes Archive + ReadOnly",
+    "total_remaining_bytes": null,
+    "reason": "Unknown/shared-cache/ACL/reparse/read-only boundaries retained; known ordinary bytes do not represent total remaining size."
+  },
+  "validation": {
+    "restored_jobs": 10,
+    "restored_files": 1641,
+    "restored_bytes": 273739789,
+    "restored_directory_proof_count": 771,
+    "original_fidelity_passed": 50,
+    "restored_fidelity_passed": 50,
+    "post_removal_fidelity_passed": 50,
+    "historical_anchors_passed": 16,
+    "tracked_integrity_count": 1539,
+    "asset_integrity_count": 1652,
+    "tracked_markdown_documents": 184,
+    "post_closeout_links": 510,
+    "external_historical_links": 13,
+    "preexisting_moved_document_links": 2,
+    "post_closeout_status": "passed",
+    "invariants_passed": 192,
+    "repository_generator_check": "passed",
+    "whitespace_check": "passed",
+    "new_pytest_full_runs": 0,
+    "new_Blender_runs": 0,
+    "new_clean_import_runs": 0,
+    "historical_quality_reclassifications": 0
+  },
+  "metadata_compression": {
+    "files": 9,
+    "original_bytes": 4207736906,
+    "compressed_bytes": 623712495,
+    "saved_logical_bytes": 3584024411,
+    "lossless_sha_verified": true,
+    "historical_payload_changed": false
+  },
+  "task_temporary_cleanup": {
+    "diagnosis": "The empty post-cleanup result became null in the final PowerShell summary expression after all removals; the original final receipt was not created.",
+    "kind": "read_only_task_temp_cleanup_reconciliation",
+    "post_inventory_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "removed_files": 1653,
+    "source_temp_removed": true,
+    "removed_logical_bytes": 273930137,
+    "verified_preserved_copies": 1653,
+    "additional_deletions": 0,
+    "removed_empty_directories": 778,
+    "retained_entries": 0,
+    "journal_sha256": "67db3bd26a9546cd2c82ed77f7ae190ba1b59aa86355fdef875c71e986d7963f",
+    "original_helper_exit_code": 1,
+    "plan_sha256": "29542feac70686600f45ad5c19e442ee50c452819a4935b8b3159564671140a5",
+    "existing_reports_changed": 0,
+    "original_helper_error": "The property 'Count' cannot be found on this object",
+    "complete": true,
+    "observed_utc": "2026-09-30T09:21:48.0878729Z"
+  },
+  "accounting": {
+    "project_logical_bytes_removed": 23290572744,
+    "external_payload_file_bytes": 6004121293,
+    "external_auxiliary_file_count": 62,
+    "external_auxiliary_file_bytes": 642768886,
+    "external_total_file_bytes_before_this_receipt": 6646890179,
+    "auxiliary_snapshot_excludes": [
+      "repository-relative payload counted separately",
+      "this completion receipt"
+    ],
+    "file_lengths_are_not_allocated_cluster_usage": true,
+    "volume": "E:",
+    "observed_free_at_start": 147363270656,
+    "observed_free_at_completion": 158774202368,
+    "observed_net_free_increase": 11410931712,
+    "caveat": "Same-volume preservation is not freed capacity. Net free-space change includes this task metadata and unrelated concurrent disk activity. Earlier tidy/release savings are not added."
+  },
+  "supporting_reports": [
+    {
+      "path": "start.json",
+      "bytes": 2539,
+      "sha256": "e014b26f022c2ac5a90742fd654bd66e3d592c654dc4e30167dc5c210ac4909a"
+    },
+    {
+      "path": "copy-summary.json",
+      "bytes": 293,
+      "sha256": "0fb366f3b34983241db00e6b45653ca9636bb7cee5f82d4ec38ca079fad0627d"
+    },
+    {
+      "path": "apply-summary.json",
+      "bytes": 210,
+      "sha256": "0641974e5e65c30b177171913d600cb7b6dad554df0db7b6de024217724a85bf"
+    },
+    {
+      "path": "residual-summary.json",
+      "bytes": 29634,
+      "sha256": "99ded84f8a8565759a013466885c10c836524e3450a2415fba5649222155273c"
+    },
+    {
+      "path": "metadata-compression-receipt.json",
+      "bytes": 5337,
+      "sha256": "dafab8badf15ff583a44113e223ef9b1a7c8cb602be9b43750621cbc7e44c6ef"
+    },
+    {
+      "path": "pre-delete-validation-v3.json",
+      "bytes": 1609865,
+      "sha256": "f204c2400cffee64f499e8516fdd70fb41807716cd54450d896d89a8cff3c114"
+    },
+    {
+      "path": "restored-file-integrity.json",
+      "bytes": 1350179,
+      "sha256": "392e92975b9e1d6cfc5ba8b6e1fd3d1c203f8090d1d17eb05ab903bab1fbb3c4"
+    },
+    {
+      "path": "restored-directory-proof.json",
+      "bytes": 192886,
+      "sha256": "70bdd6b1a60067a53eae88e89208d1e1a3e416d458c5d3685f6a69741991d13d"
+    },
+    {
+      "path": "fidelity-original-validation.json",
+      "bytes": 38549,
+      "sha256": "3fa12c0858fb1cd2dc67ce1b8407616f081d9eb3f974476b4c40f69c5ef37cb6"
+    },
+    {
+      "path": "fidelity-restored-validation.json",
+      "bytes": 38834,
+      "sha256": "fa5cd782040a2b19f2c7ed5e541d51b6cb9230f39a35621216dc727144f637f7"
+    },
+    {
+      "path": "fidelity-post-removal-validation.json",
+      "bytes": 38847,
+      "sha256": "ac76f87cfa3ff6fb46b07018fe3e3450a29a104b60079f640c2866b3dfad7de0"
+    },
+    {
+      "path": "historical-after.json",
+      "bytes": 4465,
+      "sha256": "691ff006e6a5bdfb9edda52cf4dd04337d05a6785be231c76c17d65c2210aaf1"
+    },
+    {
+      "path": "historical-evidence-locator.json",
+      "bytes": 9806,
+      "sha256": "38d75527ae18881ff138ef2aefa8c25a0a4219df223da937c771d4618ef30c3c"
+    },
+    {
+      "path": "post-closeout-validation.json",
+      "bytes": 1617293,
+      "sha256": "b734f57c66dc16ebb148e0571db9b6e2d6c162caad21f6779fa95e9496381385"
+    },
+    {
+      "path": "repository-administrative-checks.json",
+      "bytes": 811,
+      "sha256": "8664bfe12e32c42c782cd009057b19f433085b6d77cab6c0069c63a1570634bc"
+    },
+    {
+      "path": "documentation-checks.json",
+      "bytes": 733,
+      "sha256": "6c740b53113ce6e73993acc1ac109c97bad7033f5269cf2b1fe5f380a5481d79"
+    },
+    {
+      "path": "orphan-dedup-plan.json",
+      "bytes": 310697,
+      "sha256": "7d169719c4347571eab4aa638e18c48920e4b922f3c7f571298cbe1e15fb9c0a"
+    },
+    {
+      "path": "task-temp-cleanup-plan.json",
+      "bytes": 1078673,
+      "sha256": "29542feac70686600f45ad5c19e442ee50c452819a4935b8b3159564671140a5"
+    },
+    {
+      "path": "task-temp-cleanup-journal.jsonl",
+      "bytes": 1092840,
+      "sha256": "67db3bd26a9546cd2c82ed77f7ae190ba1b59aa86355fdef875c71e986d7963f"
+    },
+    {
+      "path": "task-temp-after-cleanup.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "task-temp-cleanup-reconciliation.json",
+      "bytes": 951,
+      "sha256": "adf967c34bb496210fdc5c0fdd64aa1671eb9a07c387e6e67152fe63ff34255c"
+    }
+  ],
+  "completion_note": "Existing machine evidence and earlier failed/interrupted attempts are preserved. The temporary cleanup helper failed only while writing its final summary after removal; separate read-only reconciliation confirmed all 1653 preserved copies, absent task root and zero additional deletion. No further cleanup, campaign, source change, push or tag move was performed."
+}

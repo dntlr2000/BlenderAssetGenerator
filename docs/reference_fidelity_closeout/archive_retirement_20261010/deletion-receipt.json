@@ -1,0 +1,47 @@
+{
+  "kind": "explicit_archive_retirement",
+  "target": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01",
+  "started_utc": "2026-10-10T15:00:16.4829229Z",
+  "finished_utc": "2026-10-10T15:03:20.1796122Z",
+  "status": "completed",
+  "target_absent": true,
+  "error": null,
+  "predelete_files": 718358,
+  "predelete_directories": 564111,
+  "predelete_logical_bytes": 6646902689,
+  "free_before_bytes": 95102222336,
+  "free_after_bytes": 103471734784,
+  "observed_free_increase_bytes": 8369512448,
+  "inventory_metadata_sha256": "0fd583d20c2ee85c6e6c7acba91794bf54c49362b1be9d59601ec8c7ababb666",
+  "preserved_records": [
+    {
+      "name": "completion-receipt.json",
+      "bytes": 12510,
+      "sha256": "a8008129d1fe8551a039de770f52832bca2d500f48e1d8a130250a05f0902ea2"
+    },
+    {
+      "name": "copy-summary.json",
+      "bytes": 293,
+      "sha256": "0fb366f3b34983241db00e6b45653ca9636bb7cee5f82d4ec38ca079fad0627d"
+    },
+    {
+      "name": "apply-summary.json",
+      "bytes": 210,
+      "sha256": "0641974e5e65c30b177171913d600cb7b6dad554df0db7b6de024217724a85bf"
+    },
+    {
+      "name": "metadata-compression-receipt.json",
+      "bytes": 5337,
+      "sha256": "dafab8badf15ff583a44113e223ef9b1a7c8cb602be9b43750621cbc7e44c6ef"
+    },
+    {
+      "name": "historical-evidence-locator.json",
+      "bytes": 9806,
+      "sha256": "38d75527ae18881ff138ef2aefa8c25a0a4219df223da937c771d4618ef30c3c"
+    }
+  ],
+  "acl_or_ownership_changes": 0,
+  "link_targets_followed": 0,
+  "other_historical_deletions": 0,
+  "caveat": "Logical file lengths differ from NTFS allocation. Observed volume free-space increase can include concurrent disk activity. Historical summaries are not a complete backup."
+}

@@ -10,21 +10,21 @@
 
 ### Reference
 
-![Plastic reference](../../workspaces/aq_rf_ab39_01p/input/reference.png)
+![Plastic reference](E:/CodexValidation/bag-completed-retirement-20261021-run02/evidence/visual/ef1a06d053cbf414b986d5488dd8d5c4b4a61b9387489fb957816feec167cc52.png)
 
 ### 이전 Standard canary
 
-![이전 Standard Plastic](../../workspaces/item_plastic_standard_canary_01/qa/runs/v08-d33330a6-qa/passes/beauty.png)
+![이전 Standard Plastic](E:/CodexValidation/bag-completed-retirement-20261021-run02/evidence/visual/a3103ed58856d27de55cadbc08876c95c4905541a97c998c3f3edff910d91e0c.png)
 
 입체적인 파란 플라스틱 몸체와 테두리를 이미 갖고 있다. 다만 reference보다 윤곽과 테두리가 각지고 단순하며 사진의 마모·긁힘은 적다. 당시 사용자는 남은 silhouette 한계를 명시적으로 수용했고 package도 승인했다. 지금의 다른 기준으로 그 수용을 취소하거나 실패로 바꾸지 않는다.
 
 ### 직전 ab39 결과의 실제 BEFORE
 
-![ab39 Plastic 재질 수정 전](../../workspaces/aq_rf_ab39_01p/qa/runs/candidate-01/passes/beauty.png)
+![ab39 Plastic 재질 수정 전](E:/CodexValidation/bag-completed-retirement-20261021-run02/evidence/visual/878ec8f33d6d9efd8776f7c0d306cde10a69d0769adf053a064ebd76f59ab703.png)
 
 ### 직전 ab39 결과의 실제 AFTER
 
-![ab39 Plastic 재질 수정 후](../../workspaces/aq_rf_ab39_01p/qa/runs/material-01/passes/beauty.png)
+![ab39 Plastic 재질 수정 후](E:/CodexValidation/bag-completed-retirement-20261021-run02/evidence/visual/77666d151f967211f8c614df6463821fa8d1b59f81fee65a49b47b09d2b4b637.png)
 
 ab39 내부 BEFORE/AFTER는 동일 geometry·camera·lighting·renderer 조건이다. 몸체와 테두리의 푸른색 불일치를 완화했고, 넓고 연속적인 회색 마모 띠를 불규칙한 국소 마모로 바꿨다. paired proof는 이 제한된 재질 개선을 뒷받침한다. 개별 긁힘 위치·빈도, 마모 폭, 사진의 거친 느낌은 여전히 정확히 같지 않다. 이는 완전한 사진 복원이 아니다.
 
@@ -62,7 +62,7 @@ reference의 윤곽을 따라가는 판과 가는 선형 부품에 가깝다. �
 
 ### 나중에 만든 cutback 후보
 
-![후속 Wood cutback 후보](../../workspaces/aq_rf_24632c6c_03_wood_cutback/qa/runs/initial-fixed/passes/beauty.png)
+![후속 Wood cutback 후보](E:/CodexValidation/bag-completed-retirement-20261021-run02/evidence/visual/23494c43f23a9dbef82c1d1e2a9faf31c7e2c7fc182b58eef844c2cecd6c48d8.png)
 
 flat AQ에 비해 실제 부피와 나뭇결이 보인다. 하지만 단면이 규칙적·관처럼 보이는 부분, 둥글고 매끈한 가장자리, reference와 다른 풍화 표현이 남았다. 이 후보는 구조 예산 소진으로 review terminal이며 production package가 아니다. 이 그림을 새로운 best-known으로 지정하지 않았고, 기존 `wood_cap`의 historical best-known 기록도 그대로다.
 
@@ -79,3 +79,8 @@ Standard·flat AQ·cutback은 동일 reference지만 카메라·조명·mask·�
 - 인간에게 남는 판단: 확보된 결과 중 실제 용도에 적합한 것은 무엇인지. 현재 보고서의 시각 관찰은 beauty/package/Activation 수용을 만들지 않는다.
 
 모든 이미지의 현재 해시와 크기는 [VISUAL_REFERENCES.json](E:/CodexValidation/rf-reassessment-20260929-run01/VISUAL_REFERENCES.json)에 기록했다. 새 렌더 비용은 0이다.
+
+
+## 2026-10-21 완료 자산 폐기
+
+이 문서가 보여 주는 품질 판단은 당시 기록 그대로다. 완료 자산 폐기에 따라 Plastic 이미지 링크를 정확한 외부 보존 바이트로 연결했고, 앞선 정리의 Wood cutback 이미지도 최소 ZIP에서 그대로 복사했다. 신규 렌더·인간 수용은 없다. [폐기·복원 한계](WORKSPACE_COMPLETED_RETIREMENT_20261021_KO.md)를 확인한다.

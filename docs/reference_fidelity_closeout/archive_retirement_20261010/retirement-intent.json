@@ -1,0 +1,38 @@
+{
+  "task": "bag-archive-retirement-20261010-run01",
+  "started_utc": "2026-10-10T14:51:05.9307039Z",
+  "git_head": "ca81eb719dd499d043ce4877c3153dcde489e25a",
+  "branch": "Dots",
+  "initial_git_clean": true,
+  "authorized_delete": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01",
+  "reason": "Explicit user retirement of obsolete scratch archive to recover disk capacity; prior validation will not be continued.",
+  "preserved_records": [
+    {
+      "name": "completion-receipt.json",
+      "bytes": 12510,
+      "sha256": "a8008129d1fe8551a039de770f52832bca2d500f48e1d8a130250a05f0902ea2"
+    },
+    {
+      "name": "copy-summary.json",
+      "bytes": 293,
+      "sha256": "0fb366f3b34983241db00e6b45653ca9636bb7cee5f82d4ec38ca079fad0627d"
+    },
+    {
+      "name": "apply-summary.json",
+      "bytes": 210,
+      "sha256": "0641974e5e65c30b177171913d600cb7b6dad554df0db7b6de024217724a85bf"
+    },
+    {
+      "name": "metadata-compression-receipt.json",
+      "bytes": 5337,
+      "sha256": "dafab8badf15ff583a44113e223ef9b1a7c8cb602be9b43750621cbc7e44c6ef"
+    },
+    {
+      "name": "historical-evidence-locator.json",
+      "bytes": 9806,
+      "sha256": "38d75527ae18881ff138ef2aefa8c25a0a4219df223da937c771d4618ef30c3c"
+    }
+  ],
+  "restoration_after_delete": "Unavailable from this archive; retained summaries and locator are historical records only.",
+  "other_historical_deletions_authorized": false
+}

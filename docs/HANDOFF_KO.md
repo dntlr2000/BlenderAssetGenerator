@@ -2,6 +2,8 @@
 
 2026-09-30. 사용자는 재평가의 **A안: 장기 개선 작업 종료**를 선택했다. 이 문서는 다시 개발하거나 캠페인을 실행하라는 지시가 아니다. 다음 작업은 별도 사용자 지시가 있어야 한다.
 
+이 문서의 개발·품질 판정은 9월 30일 종료 당시 기록이다. 이후 코드 갱신·검증은 [10월 8일 checkpoint 기록](verification/BAG_CHECKPOINT_UPDATE_20261008_KO.md)을, 10월 10~11일의 보관소 폐기는 아래 보존·정리 항목을 함께 확인한다. 이번 저장공간 정리는 새 릴리스·품질 판정이 아니다.
+
 ## 고정 버전과 사용 범위
 
 | 항목 | 기준 |
@@ -99,9 +101,9 @@ Rust [state 0007](../workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026
 
 ## 보존·정리와 향후 재개 절차
 
-현재 문서는 `docs/`에 모았다. 종료 증거 사본에 이어, `.b/.t/.tmp` 등에서 외부 보존을 검증한 임시자료의 프로젝트 사본도 정리했다. 이번 scratch 정리에서 일반 파일 2,225,268개, 논리 크기 23,290,572,744 bytes를 제거했으며, 이는 같은 용량의 디스크 공간을 확보했다는 뜻이 아니다. 읽을 수 있는 잔여 일반 파일은 3,273개이고 보호·접근 제한 하위 트리의 전체 크기는 미확정이다. AQ workspace·원본 reference·canonical·승인·소비·terminal은 원위치에 유지한다. 최신 보존 위치·수치·제외 사유는 [문서·저장공간 정리 안내](reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 따른다.
+현재 문서는 `docs/`에 모았다. 2026-09-30의 첫 scratch 정리에서는 프로젝트 사본 2,225,268개·23,290,572,744 bytes를 제거했고 48개 임시 루트가 남았다. 같은 날의 별도 [잔여 정리](E:/CodexValidation/bag-v091-residual-cleanup-20260930-run01/evidence/REPORT_KO.md)에서 그 48개 루트도 제거했다. 첫 정리의 잔여 수치를 현재 상태로 읽지 않는다. AQ workspace·원본 reference·canonical·승인·소비·terminal은 이 정리 대상이 아니다. 최신 보존 위치·수치·제외 사유는 [문서·저장공간 정리 안내](reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md)를 따른다.
 
-역사 검증 문서의 `.b/fid` 링크 13개는 원문을 바꾸지 않고 [파일별 외부 locator](E:/CodexValidation/bag-v091-scratch-archive-20260930-run01/evidence/historical-evidence-locator.json)로 찾는다. 보관소는 같은 내용을 합쳐 저장하므로 경로 prefix만 바꿔 찾거나 실행하면 안 된다. 기존 host 검사가 필요하면 [복원 검증 기록](E:/CodexValidation/bag-v091-scratch-archive-20260930-run01/evidence/restored-file-integrity.json)처럼 새 외부 검증 사본에 원래 상대경로와 필요한 의존 파일을 재구성한다. 원본 machine JSON의 경로·hash·승인 의미는 그대로다. 이번 정리는 offline 보존 작업이며 native storage-cleanup apply와 캠페인 실행은 각각 0회다.
+사용자는 과거 검증을 계속할 계획이 없어 첫 scratch 외부 보관소의 폐기를 요청했다. [폐기 사유·실제 결과·보존 receipt](reference_fidelity_closeout/archive_retirement_20261010/README_KO.md)를 따른다. 역사 검증 문서의 `.b/fid` 링크 13개에 대한 [locator 사본](reference_fidelity_closeout/archive_retirement_20261010/historical-evidence-locator.json)은 이력 확인용이며, 그 보관소의 원본 payload를 열거나 복원하는 수단이 아니다. 원래 machine JSON의 경로·hash·승인 의미와 과거 판정은 바꾸지 않았다. 새 작업에 옛 자료가 필요하면 실제 남아 있는 증거부터 확인해야 한다.
 
 문서는 이 프로젝트를 기본 위치로 사용한다. [정리 결과와 제외 항목](reference_fidelity_closeout/CLEANUP_RESULT_KO.md), [보존 복사본과 SHA-256 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/project-preservation.json), [검증 복제본 보존 매핑](E:/CodexValidation/bag-v091-archive-20260930-run01/evidence/repository-relative/reports/reference_fidelity_closeout/v0.9.1/clone-preservation.json)을 먼저 확인한다. 원래 machine JSON의 절대경로는 바꿔 쓰지 않았다. 삭제한 검증 scratch는 검증된 source bundle·lock·명령으로 필요할 때 재현하는 자료이며 운영 workspace가 아니다.
 
@@ -117,3 +119,13 @@ Rust [state 0007](../workspaces/aq_rf_ab39_02r1/production/autonomy_v2/aqv2-2026
 재개 요청 예시:
 
 > 프로젝트의 docs/HANDOFF_KO.md와 현재 AGENTS.md를 먼저 읽고, 내가 이번에 요청하는 실제 자산 문제만 조사해. v0.9.1 태그·기존 결과·계약·소비·cleanup receipt를 재검증하고, 완료 Plastic을 재작성하거나 전체 5자산 캠페인을 자동 재시작하지 마. 기존 경로와 권한 안의 최소 작업 및 중단 조건을 제시해.
+
+
+## 2026-10-20 과거 workspace 폐기 후 상태
+
+사용자 지시로 과거 분류 ③·④에서 47,890개 파일을 정리했다. ① 최신 업데이트 증거와 ②의 65개 root는 유지했다. 앞선 본문의 ‘AQ workspace 원위치 보존’ 등은 당시 상태이며, 현재 삭제·부분 보존 범위는 [정리 결과](reference_fidelity_closeout/WORKSPACE_CLEANUP_20261020_KO.md)가 우선한다. 외부 최소 보존 ZIP은 전체 세션 복원본이 아니므로 과거 중단 지점에서 그대로 재개할 수 있다고 해석하지 않는다. 기존 소비를 환급하거나 승인·terminal을 수정하지 않았다. 완성 자산의 실제 파일과 크기는 [② 상세 분석](reference_fidelity_closeout/WORKSPACE_CATEGORY2_STORAGE_20261020_KO.md)에 있다.
+
+
+## 2026-10-21 완료 자산 폐기
+
+사용자의 새 보존 기준에 따라 완료 작업 46개(48,162파일, 7.198 GB)를 실제 폐기했다. 실패·보류·알려진 시각 결함·완료 불명확 자산 19개와 공유 소비 기록은 유지했다. 완료 모델·package 전체는 복원할 수 없으며 원본 reference와 최소 이력만 외부에 보존했다. 앞선 표의 보존·복원 설명은 각 기록 날짜의 상태다. [실제 삭제 목록·현재 보존 목록·무결성 검증](reference_fidelity_closeout/WORKSPACE_COMPLETED_RETIREMENT_20261021_KO.md)을 따른다.

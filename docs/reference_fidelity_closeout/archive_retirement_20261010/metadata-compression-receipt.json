@@ -1,0 +1,96 @@
+{
+  "records": [
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 151541573,
+      "stored_sha256": "2c586f74c56633b258cd2ec7670db70c940b2d7f293a125537c37b7444297946",
+      "original_removed": true,
+      "original_sha256": "3f0428a34ffa6f7d9bddedc43303145500a4c92dd7cb0947cabac2bf89668534",
+      "stored_bytes": 14931351,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\inventory.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\inventory.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 90758,
+      "stored_sha256": "4772d1d6236309458fbf629ac7e9421fd1185c37ef17b03a90932b1857559e35",
+      "original_removed": true,
+      "original_sha256": "fa838c879c842048ca967037a55a54b6704e32d98d9400b9e9335b1ca5508126",
+      "stored_bytes": 9875,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\holds-discovered.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\holds-discovered.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 874203782,
+      "stored_sha256": "208271b8867c884d7f75d10969222f181cc0c65fd7b45b38091e17b5d36d053d",
+      "original_removed": true,
+      "original_sha256": "8bc697e7cacadb1ce0aa4ebbe80eb10e45c9989f87b9fed761045a2262260ab7",
+      "stored_bytes": 83725311,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\inventory-v2.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\inventory-v2.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 535979,
+      "stored_sha256": "a7e748a6cf85644853b1bc32046ec0458fb768bb6a5eaa75ce2a8b9f4f6fae13",
+      "original_removed": true,
+      "original_sha256": "224b9480be9fdb1ebdce5d9d60331b6513db4c4abcdc8ac91a04b43df358f7c6",
+      "stored_bytes": 48746,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\holds-v2.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\holds-v2.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 479359,
+      "stored_sha256": "7879b967b00b402879538792cad57155848f71bb76d502f0c6388e120d5148fc",
+      "original_removed": true,
+      "original_sha256": "142b40ed8cd1ea78d05c01880577385432bc0ccfc9135dbff3ba666a31728da4",
+      "stored_bytes": 25739,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\hold-decisions.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\hold-decisions.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 29889809,
+      "stored_sha256": "b21aeab5e12ad28215329e883efd81941d73c277c250c4d0cbd6d98ebdc9aa4e",
+      "original_removed": true,
+      "original_sha256": "ef914fd903518024be0ada3762b0991406347c1d05d164b2abe7edfd25fb147d",
+      "stored_bytes": 4367491,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 79013819,
+      "stored_sha256": "c2f33c3a9ed0d765b61067fb2efa685c0d19675da178aa091863a63baa4c1722",
+      "original_removed": true,
+      "original_sha256": "1166825bb7f8047b325c879739d67ff358c0bd37e8b7ec7d0168a05a67e8de30",
+      "stored_bytes": 10664463,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation-v2.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation-v2.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 1623087437,
+      "stored_sha256": "a1e4720fbf3085e76e7405dd48da1f32b5bc6a16d7fcec8c5345f39938f44a18",
+      "original_removed": true,
+      "original_sha256": "561905acf4924e68684de3e73c3b2076818df75da1c6e9f4ccc8807f6f8f4c48",
+      "stored_bytes": 252649412,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation-v3.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\preservation-v3.jsonl"
+    },
+    {
+      "decompressed_bytes_sha256_matched": true,
+      "original_bytes": 1448894390,
+      "stored_sha256": "7c9f3eb699971b6d35207080ecaaf6b879b53ea04110fe1f2450d13b329d00ad",
+      "original_removed": true,
+      "original_sha256": "ef3708c9ab3f676051fe7dfa86880170c0e5456b4f46825ddcd7fd4ca5712ef4",
+      "stored_bytes": 257290107,
+      "stored": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\removal-journal.jsonl.gz",
+      "original": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\removal-journal.jsonl"
+    }
+  ],
+  "kind": "lossless_operational_metadata_storage",
+  "finished_utc": "2026-09-30T09:17:17.9977900Z"
+}

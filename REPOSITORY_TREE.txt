@@ -126,11 +126,28 @@ BlenderAssetGenerator/
   docs/reference_assembly_generation.md
   docs/reference_fidelity.md
   docs/reference_fidelity_closeout/CHANGE_REVIEW_KO.md
+  docs/reference_fidelity_closeout/CLEANUP_CANDIDATES_20261010_KO.md
   docs/reference_fidelity_closeout/CLEANUP_RESULT_KO.md
   docs/reference_fidelity_closeout/REASSESSMENT_KO.md
   docs/reference_fidelity_closeout/STORAGE_ORGANIZATION_KO.md
   docs/reference_fidelity_closeout/VISUAL_EVIDENCE_KO.md
+  docs/reference_fidelity_closeout/WORKSPACE_CATEGORY2_STORAGE_20261020_KO.md
+  docs/reference_fidelity_closeout/WORKSPACE_CLEANUP_20261020_KO.md
+  docs/reference_fidelity_closeout/WORKSPACE_COMPLETED_RETIREMENT_20261021_KO.md
+  docs/reference_fidelity_closeout/archive_retirement_20261010/.gitattributes
+  docs/reference_fidelity_closeout/archive_retirement_20261010/README_KO.md
+  docs/reference_fidelity_closeout/archive_retirement_20261010/apply-summary.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/completion-receipt.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/copy-summary.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/delete-preflight.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/deletion-receipt.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/historical-evidence-locator.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/metadata-compression-receipt.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/retirement-intent.json
+  docs/reference_fidelity_closeout/archive_retirement_20261010/target-inventory-longpath.json
   docs/reference_fidelity_closeout/preserved_scratch_references.json
+  docs/reference_fidelity_closeout/workspace_cleanup_20261020_receipt.json
+  docs/reference_fidelity_closeout/workspace_completed_retirement_20261021_receipt.json
   docs/roadmap/ROADMAP_V1_KO.md
   docs/shared_material_atlas_validation.md
   docs/solid_root_attachment_delivery.md

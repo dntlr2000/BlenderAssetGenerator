@@ -1,0 +1,133 @@
+{
+  "root": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01",
+  "started_utc": "2026-10-10T14:55:48.263818+00:00",
+  "files": 718358,
+  "directories": 564111,
+  "logical_bytes": 6646902689,
+  "links": 0,
+  "errors": 0,
+  "exceptions": [],
+  "readonly_files": 0,
+  "latest_file_mtime_ns": 1790760370264853800,
+  "top_groups": [
+    {
+      "path": "evidence\\repository-relative",
+      "files": 718295,
+      "logical_bytes": 6004121293
+    },
+    {
+      "path": "evidence\\removal-journal.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 257290107
+    },
+    {
+      "path": "evidence\\preservation-v3.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 252649412
+    },
+    {
+      "path": "evidence\\inventory-v2.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 83725311
+    },
+    {
+      "path": "evidence\\inventory.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 14931351
+    },
+    {
+      "path": "evidence\\preservation-v2.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 10664463
+    },
+    {
+      "path": "evidence\\residual-snapshot.jsonl",
+      "files": 1,
+      "logical_bytes": 8180628
+    },
+    {
+      "path": "evidence\\preservation.jsonl.gz",
+      "files": 1,
+      "logical_bytes": 4367491
+    },
+    {
+      "path": "evidence\\pre-delete-validation-v2.json",
+      "files": 1,
+      "logical_bytes": 1709059
+    },
+    {
+      "path": "evidence\\post-closeout-validation.json",
+      "files": 1,
+      "logical_bytes": 1617293
+    },
+    {
+      "path": "evidence\\pre-delete-validation-v3.json",
+      "files": 1,
+      "logical_bytes": 1609865
+    },
+    {
+      "path": "evidence\\restored-file-integrity.json",
+      "files": 1,
+      "logical_bytes": 1350179
+    },
+    {
+      "path": "evidence\\task-temp-cleanup-journal.jsonl",
+      "files": 1,
+      "logical_bytes": 1092840
+    },
+    {
+      "path": "evidence\\task-temp-cleanup-plan.json",
+      "files": 1,
+      "logical_bytes": 1078673
+    },
+    {
+      "path": "evidence\\task-temp-before-cleanup.jsonl",
+      "files": 1,
+      "logical_bytes": 745080
+    }
+  ],
+  "top_extensions": [
+    [
+      ".json",
+      3861282537
+    ],
+    [
+      ".gz",
+      623713196
+    ],
+    [
+      ".pyc",
+      600670542
+    ],
+    [
+      ".blend",
+      306250684
+    ],
+    [
+      ".pdf",
+      267373549
+    ],
+    [
+      ".png",
+      234124322
+    ],
+    [
+      ".zip",
+      176570266
+    ],
+    [
+      ".pyd",
+      116419072
+    ],
+    [
+      "",
+      62879028
+    ],
+    [
+      ".py",
+      59378932
+    ]
+  ],
+  "metadata_inventory_sha256": "0fd583d20c2ee85c6e6c7acba91794bf54c49362b1be9d59601ec8c7ababb666",
+  "finished_utc": "2026-10-10T14:57:30.559064+00:00"
+}

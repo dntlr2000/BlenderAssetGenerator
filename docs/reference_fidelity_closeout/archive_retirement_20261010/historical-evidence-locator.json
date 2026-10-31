@@ -1,0 +1,163 @@
+{
+  "source_report": "pre-delete-validation-v3.json",
+  "note": "Historical documents and original machine JSON remain byte-identical; use exact per-file destinations rather than prefix replacement.",
+  "kind": "historical_document_external_locator",
+  "mappings": {
+    ".b/fid/fidelity_wood_b01/qa/runs/baseline_depfix/passes/beauty.png": {
+      "path": ".b/fid/fidelity_wood_b01/qa/runs/baseline_depfix/passes/beauty.png",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\qa\\runs\\baseline_depfix\\passes\\beauty.png",
+        "sha256": "fa79af74df9ed5790c1eb12ab53fa2f2d59e0587cd2d49e5d5e24938f7c4c4c4",
+        "bytes": 252426
+      },
+      "manifest_line": 1936586,
+      "status": "verified_offline_copy",
+      "actual_sha256": "fa79af74df9ed5790c1eb12ab53fa2f2d59e0587cd2d49e5d5e24938f7c4c4c4",
+      "actual_bytes": 252426
+    },
+    ".b/fid/fidelity_wood_b01/qa/runs/material_directional/passes/beauty.png": {
+      "path": ".b/fid/fidelity_wood_b01/qa/runs/material_directional/passes/beauty.png",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\qa\\runs\\material_directional\\render_source\\passes\\beauty.png",
+        "sha256": "02089b5a7634f5b8552b288c2ecb3c9f6cad56a76abb45e94640ec01e505b241",
+        "bytes": 231746
+      },
+      "manifest_line": 1936701,
+      "status": "verified_offline_copy",
+      "actual_sha256": "02089b5a7634f5b8552b288c2ecb3c9f6cad56a76abb45e94640ec01e505b241",
+      "actual_bytes": 231746
+    },
+    ".b/fid/fidelity_wood_b01/qa/runs/structural_material_attempt08/passes/beauty.png": {
+      "path": ".b/fid/fidelity_wood_b01/qa/runs/structural_material_attempt08/passes/beauty.png",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\qa\\runs\\structural_material_attempt08\\render_source\\passes\\beauty.png",
+        "sha256": "2f6b30e6f601649b9eaf9ea136156b26e3743fb207ed6a07a05a7636ad0f9435",
+        "bytes": 244599
+      },
+      "manifest_line": 1936847,
+      "status": "verified_offline_copy",
+      "actual_sha256": "2f6b30e6f601649b9eaf9ea136156b26e3743fb207ed6a07a05a7636ad0f9435",
+      "actual_bytes": 244599
+    },
+    ".b/fid/fidelity_wood_b01/qa/runs/material/passes/beauty.png": {
+      "path": ".b/fid/fidelity_wood_b01/qa/runs/material/passes/beauty.png",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\qa\\runs\\material\\render_source\\passes\\beauty.png",
+        "sha256": "6118c1f4e149ea4a722978ca6b9e5554f6b6bb314654caf108f9e94858297dda",
+        "bytes": 268850
+      },
+      "manifest_line": 1936920,
+      "status": "verified_offline_copy",
+      "actual_sha256": "6118c1f4e149ea4a722978ca6b9e5554f6b6bb314654caf108f9e94858297dda",
+      "actual_bytes": 268850
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/inspection/structural_material_attempt08/visual_findings.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/inspection/structural_material_attempt08/visual_findings.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\inspection\\structural_material_attempt08\\visual_findings.json",
+        "sha256": "0552163102f569a7471f0efb01a3809cf75159a484be3f29c45289d24b8c38f9",
+        "bytes": 10570
+      },
+      "manifest_line": 1937123,
+      "status": "verified_offline_copy",
+      "actual_sha256": "0552163102f569a7471f0efb01a3809cf75159a484be3f29c45289d24b8c38f9",
+      "actual_bytes": 10570
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/inspection/structural_material_attempt08/evaluation.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/inspection/structural_material_attempt08/evaluation.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\inspection\\structural_material_attempt08\\evaluation.json",
+        "sha256": "4239d029b9dfd9439a8e5d167172d58d08582e77e55504fdd5d01b3631e01574",
+        "bytes": 1572
+      },
+      "manifest_line": 1937138,
+      "status": "verified_offline_copy",
+      "actual_sha256": "4239d029b9dfd9439a8e5d167172d58d08582e77e55504fdd5d01b3631e01574",
+      "actual_bytes": 1572
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/inspection/material_directional/evaluation.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/inspection/material_directional/evaluation.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\inspection\\material_directional\\evaluation.json",
+        "sha256": "88f3a9df90beba4dd04707703a1dc61894bbdaaba2701b2bf8e21b56eae3808c",
+        "bytes": 1478
+      },
+      "manifest_line": 1937377,
+      "status": "verified_offline_copy",
+      "actual_sha256": "88f3a9df90beba4dd04707703a1dc61894bbdaaba2701b2bf8e21b56eae3808c",
+      "actual_bytes": 1478
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/hypothesis.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/hypothesis.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\hypothesis.json",
+        "sha256": "cf799cbc5829702ea1e3956a142c809547e8c4551a83f8a9e72135cc416434a1",
+        "bytes": 4976
+      },
+      "manifest_line": 1937382,
+      "status": "verified_offline_copy",
+      "actual_sha256": "cf799cbc5829702ea1e3956a142c809547e8c4551a83f8a9e72135cc416434a1",
+      "actual_bytes": 4976
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/glb_diagnostic/result.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/glb_diagnostic/result.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\glb_diagnostic\\result.json",
+        "sha256": "6d95a1e610514eef5f354b8acf92eb8cd0519834ce691c7509c7c351b858d170",
+        "bytes": 993
+      },
+      "manifest_line": 1937409,
+      "status": "verified_offline_copy",
+      "actual_sha256": "6d95a1e610514eef5f354b8acf92eb8cd0519834ce691c7509c7c351b858d170",
+      "actual_bytes": 993
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/inspection/material/evaluation.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/inspection/material/evaluation.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\inspection\\material\\evaluation.json",
+        "sha256": "0b6417ae0650bfce5bd441739b699068416f79cb4b787cd8aac386f138496335",
+        "bytes": 1396
+      },
+      "manifest_line": 1937453,
+      "status": "verified_offline_copy",
+      "actual_sha256": "0b6417ae0650bfce5bd441739b699068416f79cb4b787cd8aac386f138496335",
+      "actual_bytes": 1396
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/comparisons/material_directional_v2_attempt03--structural_material_attempt08.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/comparisons/material_directional_v2_attempt03--structural_material_attempt08.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\comparisons\\material_directional_v2_attempt03--structural_material_attempt08.json",
+        "sha256": "e8a98e2bf4b022ede9ad74111f67cd14b75847497a041d512f7dbba3a4557bbf",
+        "bytes": 853
+      },
+      "manifest_line": 1937499,
+      "status": "verified_offline_copy",
+      "actual_sha256": "e8a98e2bf4b022ede9ad74111f67cd14b75847497a041d512f7dbba3a4557bbf",
+      "actual_bytes": 853
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/comparisons/material--material_directional.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/comparisons/material--material_directional.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\comparisons\\material--material_directional.json",
+        "sha256": "22107aec48727b8e953eb02f706ec2e92bd3abdfd4966936679ccb5d7b6c0822",
+        "bytes": 761
+      },
+      "manifest_line": 1937524,
+      "status": "verified_offline_copy",
+      "actual_sha256": "22107aec48727b8e953eb02f706ec2e92bd3abdfd4966936679ccb5d7b6c0822",
+      "actual_bytes": 761
+    },
+    ".b/fid/fidelity_wood_b01/fidelity/comparisons/baseline_depfix--material.json": {
+      "path": ".b/fid/fidelity_wood_b01/fidelity/comparisons/baseline_depfix--material.json",
+      "mapping": {
+        "destination": "E:\\CodexValidation\\bag-v091-scratch-archive-20260930-run01\\evidence\\repository-relative\\.b\\fid\\fidelity_wood_b01\\fidelity\\comparisons\\baseline_depfix--material.json",
+        "sha256": "b2304363948f4efaa0d82a894500a319e1d78f15e817b06d627290c9f86944d0",
+        "bytes": 860
+      },
+      "manifest_line": 1937583,
+      "status": "verified_offline_copy",
+      "actual_sha256": "b2304363948f4efaa0d82a894500a319e1d78f15e817b06d627290c9f86944d0",
+      "actual_bytes": 860
+    }
+  }
+}
